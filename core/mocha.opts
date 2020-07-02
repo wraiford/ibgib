@@ -1,0 +1,4 @@
+# mocha.opts
+  --reporter spec
+  --diff true
+  --ui bdd
