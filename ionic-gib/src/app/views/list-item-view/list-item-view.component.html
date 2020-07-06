@@ -1,0 +1,35 @@
+<!-- pic -->
+<pic-view
+  *ngIf='item?.type === "pic"'
+  class='pic-item'
+  [addr]='addr'
+  (click)='handleClicked(item)'
+  >
+</pic-view>
+
+<!-- comment -->
+<comment-view
+  *ngIf='item?.type === "comment"'
+  class='comment-item'
+  [addr]='addr'
+  (click)='handleClicked(item)'
+  >
+</comment-view>
+
+<!-- tag -->
+<tag-view
+  *ngIf='item?.type === "tag"'
+  class='list-item tag-item'
+  [addr]='addr'
+  (click)='handleClicked(item)'
+  >
+</tag-view>
+
+<!-- fallback for none of the above -->
+<fallback-view
+  *ngIf='!itemTypes.includes(item?.type)'
+  class='list-item'
+  [addr]='addr'
+  (click)='handleClicked(item)'
+  >
+</fallback-view>

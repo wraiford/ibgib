@@ -1,0 +1,32 @@
+:host {
+  border-width: 5px;
+  border-style: solid;
+  border-color: pink;
+  width: 100%;
+  height: 100%;
+  display: flex;
+}
+
+.list-item {
+  border-radius: 15px;
+  border-width: 2px;
+  border-style: solid;
+  border-color: var(--ion-color-primary);
+  margin-bottom: 10px;
+}
+
+.pic-item {
+  @extend .list-item;
+  border-color: purple;
+}
+
+.comment-item {
+  @extend .list-item;
+  border-color: blue;
+}
+
+.tag-item {
+  @extend .list-item;
+  border-color: yellow;
+    width: 100%;
+}
