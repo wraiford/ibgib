@@ -1,5 +1,6 @@
 // import { TextEncoder } from 'util';
-var crypto = require('crypto');
+// var crypto = require('crypto');
+declare var crypto: any;
 // var crypto = crypto || require('crypto');
 // declare var crypto: any;
 // var c = crypto ? crypto : eval(`crypto = require('crypto');`);

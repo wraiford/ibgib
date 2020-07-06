@@ -256,4 +256,9 @@ export interface TransformResult<TOut extends IbGib> {
      * DNA side effects created in the transformation.
      */
     dnas?: TOut[],
+    /**
+     * If you're performing a transform with multiple steps,
+     * then there will be intermediate ibGibs created.
+     */
+    intermediateIbGibs?: TOut[],
 }

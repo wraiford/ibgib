@@ -1,5 +1,6 @@
 // import { TextEncoder } from 'util';
-var crypto = require('crypto');
+// var crypto = require('crypto');
+declare var crypto: any;
 // var crypto = crypto || require('crypto');
 // declare var crypto: any;
 // var c = crypto ? crypto : eval(`crypto = require('crypto');`);
@@ -21,7 +22,7 @@ import { Ib } from "../types";
 export function sha256v1(ibGib: IbGib_V1, salt: string = ""): Promise<string> {
     // console.log('func_gib_sha256v1 executed');
     if (!salt) { salt = ""; }
-    let hashToHex = async (message: string | undefined) => {
+    let hashToHex = async (message: string) => {
         if (!message) { return ""; }
         try {
             if (crypto) {
@@ -30,20 +31,15 @@ export function sha256v1(ibGib: IbGib_V1, salt: string = ""): Promise<string> {
                     const buffer = await crypto.subtle.digest('SHA-256', msgUint8);
                     const asArray = Array.from(new Uint8Array(buffer));
                     return asArray.map(b => b.toString(16).padStart(2, '0')).join('');
-                } else if (crypto.createHash) {
-                    let hash = crypto.createHash('sha256');
-                    hash.update(message);
-                    return hash.digest('hex');
                 } else {
                     throw new Error('Cannot create hash, as unknown crypto library version.');
                 }
-            }
-            else {
+            } else {
                 throw new Error('Cannot create hash, crypto falsy.');
             }
         } catch (e) {
             console.error(e.message);
-            return undefined;
+            throw e;
         }
     };
     let hashFields;
@@ -93,7 +89,7 @@ export function sha256v1(ibGib: IbGib_V1, salt: string = ""): Promise<string> {
  */
 export async function hashToHexCopy(
     message: string | undefined
-): Promise<string | undefined> {
+): Promise<string> {
     if (!message) { return ""; }
     try {
         if (crypto) {
@@ -102,10 +98,6 @@ export async function hashToHexCopy(
                 const buffer = await crypto.subtle.digest('SHA-256', msgUint8);
                 const asArray = Array.from(new Uint8Array(buffer));
                 return asArray.map(b => b.toString(16).padStart(2, '0')).join('');
-            } else if (crypto.createHash) {
-                let hash = crypto.createHash('sha256');
-                hash.update(message);
-                return hash.digest('hex');
             } else {
                 throw new Error('Cannot create hash, as unknown crypto library version.');
             }
@@ -115,6 +107,6 @@ export async function hashToHexCopy(
         }
     } catch (e) {
         console.error(e.message);
-        return undefined;
+        throw e;
     }
 };

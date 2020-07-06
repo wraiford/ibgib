@@ -1,5 +1,6 @@
 import { Ib, Gib, IbGib, IbGibAddr, IbAndGib } from './types';
-var crypto = require('crypto');
+// var crypto = require('crypto');
+declare var crypto: any;
 
 export function clone(obj: any) {
     return JSON.parse(JSON.stringify(obj));
