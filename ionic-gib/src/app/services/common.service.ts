@@ -1,7 +1,11 @@
-import { Injectable, ChangeDetectorRef } from '@angular/core';
+import { Injectable, Inject } from '@angular/core';
 import { FilesService } from './files.service';
-import { NavController } from '@ionic/angular';
 import { IbgibsService } from './ibgibs.service';
+import { IbGibAddr } from 'ts-gib';
+
+export interface IbgibNav {
+  navTo({addr}: {addr: IbGibAddr}): Promise<void>;
+}
 
 /**
  * Contains common singleton services that will be included in the
@@ -23,8 +27,6 @@ export class CommonService {
   constructor(
     public ibgibs: IbgibsService,
     public files: FilesService,
-    public nav: NavController,
-  ) {
-
-  }
+    @Inject('IbgibNav') public nav: IbgibNav,
+  ) { }
 }

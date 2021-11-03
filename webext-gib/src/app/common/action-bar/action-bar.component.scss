@@ -1,0 +1,33 @@
+:host {
+    overflow-x: scroll;
+    overflow-y: none;
+    border-width: 2px;
+    border-color: green;
+    border-style: solid;
+    margin: 1px;
+    width: 100%;
+
+    display: flexbox;
+    flex-direction: column;
+}
+
+input {
+    height: 0px;
+    width: 0px;
+    margin: 0px;
+    padding: 0px;
+}
+
+ion-icon {
+    margin: 0px;
+}
+
+.item {
+    border-width: 1px;
+    border-color: pink;
+    border-style: solid;
+}
+ion-button {
+    width:  50px;
+    height: 50px;
+}

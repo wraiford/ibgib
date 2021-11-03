@@ -1,14 +1,14 @@
 import { Component, OnInit, ChangeDetectorRef, Input } from '@angular/core';
-import { Plugins, Camera, CameraResultType } from '@capacitor/core';
-const { Modals, Filesystem } = Plugins;
+import { Plugins, Camera, CameraResultType, ActionSheetOptionStyle, ActionSheetResult } from '@capacitor/core';
+const { Modals } = Plugins;
 import { IbgibComponentBase } from '../bases/ibgib-component-base';
 import { CommonService } from 'src/app/services/common.service';
 import { IbGibAddr, IbGibRel8ns, V1 } from 'ts-gib';
 import { ActionItem, PicData, CommentData } from '../types';
-import { hash, getIbGibAddr, getTimestamp, getIbAndGib } from 'ts-gib/dist/helper';
-import { Factory_V1 as factory, IbGibRel8ns_V1, Rel8n } from 'ts-gib/dist/V1';
-import { IBGIB_BASE_DIR } from '../constants';
-
+import { hash, getIbGibAddr, getTimestamp, getIbAndGib, pretty } from 'ts-gib/dist/helper';
+import { Factory_V1 as factory, IbGibRel8ns_V1, Rel8n, IbGib_V1 } from 'ts-gib/dist/V1';
+import * as ionicons from 'ionicons/icons/index';
+import { ILLEGAL_TAG_TEXT_CHARS } from '../constants';
 
 @Component({
   selector: 'action-bar',
@@ -19,6 +19,14 @@ export class ActionBarComponent extends IbgibComponentBase
   implements OnInit {
 
   protected lc = `[${ActionBarComponent.name}]`;
+
+  @Input()
+  get addr(): IbGibAddr { return super.addr; }
+  set addr(value: IbGibAddr) { super.addr = value; }
+
+  @Input()
+  get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
+  set ibGib_Context(value: IbGib_V1 ) { super.ibGib_Context = value; }
 
   /**
    * temporary hack
@@ -76,46 +84,63 @@ export class ActionBarComponent extends IbgibComponentBase
   async actionAddComment(event: MouseEvent): Promise<void> {
     const lc = `${this.lc}[${this.actionAddComment.name}]`;
     try {
+      console.log(`${lc} __`);
       const resComment = await Modals.prompt({
         title: 'comment',
         message: 'add text',
         inputPlaceholder: 'text here',
       });
+      console.log(`${lc} 1`);
       if (resComment.cancelled || !resComment.value) { return; }
       const text = resComment.value.trim();
       console.log(`${lc} text: ${text}`);
       const data: CommentData = { text, textTimestamp: getTimestamp() };
-      const rel8ns: IbGibRel8ns = { 'comment on': [this.addr] };
 
+      console.log(`${lc} 2a`);
       // create an ibgib with the filename and ext
-      const resCommentIbGib = await factory.firstGen({
+      const opts:any = {
         parentIbGib: factory.primitive({ib: 'comment'}),
-        ib: `comment ${text}`,
+        ib: `comment ${text.length > 10 ? text.substring(0,10) : text}`,
         data,
-        rel8ns,
         dna: true,
         tpj: { uuid: true }
-      });
-      await this.common.ibgibs.persistTransformResult({resTransform: resCommentIbGib});
+      };
+
+      if (this.addr) {
+        opts.rel8ns = { 'comment on': [this.addr] };
+      }
+
+      console.log(`${lc} opts: ${pretty(opts)}`);
+      const resCommentIbGib = await factory.firstGen(opts);
+      console.log(`${lc} 2b`);
+      await this.common.files.persistTransformResult({resTransform: resCommentIbGib});
+      console.log(`${lc} 2c`);
       const { newIbGib: newComment } = resCommentIbGib;
       const newCommentAddr = getIbGibAddr({ibGib: newComment});
       // need to nav to picture if not in a context, or
       // or if in context need to rel8 to the context.
 
-      // rel8 to context
-      if (!this.ibGib) { await this.loadIbGib(); }
-      const rel8nsToAddByAddr = { comment: [newCommentAddr] };
-      const resRel8ToContext =
-        await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true});
-      await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToContext});
-      const { newIbGib: newContext } = resRel8ToContext;
-      const newContextAddr = getIbGibAddr(newContext);
+      console.log(`${lc} 3`);
+      let navToAddr: string;
+      if (this.addr) {
+        // if we have a context, rel8 to it
+        if (!this.ibGib) { await this.loadIbGib(); }
+        const rel8nsToAddByAddr = { comment: [newCommentAddr] };
+        const resRel8ToContext =
+          await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true});
+        await this.common.files.persistTransformResult({resTransform: resRel8ToContext});
+        const { newIbGib: newContext } = resRel8ToContext;
+        const newContextAddr = getIbGibAddr(newContext);
 
-      // nav to either the pic we just added, or the new context "in time"
-      // to which the pic was added.
-      const navToAddr = this.isMeta ?
-        getIbGibAddr({ibGib: newComment}) :
-        getIbGibAddr({ibGib: newContext});
+        console.log(`${lc} 4`);
+        // nav to either the pic we just added, or the new context "in time"
+        // to which the pic was added.
+        navToAddr = this.isMeta ?
+          getIbGibAddr({ibGib: newComment}) :
+          getIbGibAddr({ibGib: newContext});
+      } else {
+        navToAddr = getIbGibAddr({ibGib: newComment});
+      }
       await this.navTo({addr: navToAddr});
 
     } catch (error) {
@@ -172,7 +197,7 @@ export class ActionBarComponent extends IbgibComponentBase
         dna: true,
         tpj: { uuid: true }
       });
-      await this.common.ibgibs.persistTransformResult({resTransform: resPicIbGib});
+      await this.common.files.persistTransformResult({resTransform: resPicIbGib});
       const { newIbGib: newPic } = resPicIbGib;
       const newPicAddr = getIbGibAddr({ibGib: newPic});
       // need to nav to picture if not in a context, or
@@ -183,7 +208,7 @@ export class ActionBarComponent extends IbgibComponentBase
       const rel8nsToAddByAddr = { pic: [newPicAddr] };
       const resRel8ToContext =
         await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true});
-      await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToContext});
+      await this.common.files.persistTransformResult({resTransform: resRel8ToContext});
       const { newIbGib: newContext } = resRel8ToContext;
       const newContextAddr = getIbGibAddr(newContext);
 
@@ -265,27 +290,529 @@ export class ActionBarComponent extends IbgibComponentBase
   async actionTag(event: MouseEvent): Promise<void> {
     const lc = `${this.lc}[${this.actionTag.name}]`;
     try {
-      const tagsIbGib = await this.common.ibgibs.getTagsIbgib({initialize: false});
+      const tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
       const tagAddrs = tagsIbGib.rel8ns.tag;
       const tagOptions = tagAddrs.map(addr => {
         const { ib } = getIbAndGib({ibGibAddr: addr});
         const tag = ib.substring('tag '.length);
-        return { title: tag };
+        const action: any = { title: tag, addr};
+        return action;
       });
       let resPrompt = await Modals.showActions({
         title: 'Select tag',
         message: 'Select a tag to add this ibGib to',
-        options: [{title: 'Cancel Tag'}, ...tagOptions]
+        options: [
+          {
+            // index 0
+            title: 'Cancel', 
+
+            style: ActionSheetOptionStyle.Cancel 
+          }, 
+          {
+            // index 1
+            title: 'New Tag...', 
+
+            style: ActionSheetOptionStyle.Default 
+          }, 
+
+          // index = i-2
+          ...tagOptions,
+        ]
       });
 
-      if (resPrompt.index > 0) {
-        await Plugins.Modals.alert({title: 'selected', message: tagOptions[resPrompt.index-1].title});
+      if (resPrompt.index === 0) {
+        await Plugins.Modals.alert({
+          title: 'nope', 
+          message: 'cancelled'
+        });
+        return;
+      } else if (resPrompt.index === 1) {
+        await this.createNewTag();
       } else {
-        await Plugins.Modals.alert({title: 'nope', message: 'cancelled'});
+        let i = resPrompt.index - 2;
+        let action: any = tagOptions[i];
+        let addr = action.addr;
+        await Plugins.Modals.alert({
+          title: 'selected', 
+          message: `${action.title} (${addr})`
+        });
+
+        this.common.ibgibs.rel8TagToTagsIbGib
       }
 
     } catch (error) {
       console.error(`${lc} ${error.message}`)
     }
+
+  }
+
+  async createNewTag(): Promise<void> {
+    const lc = `${this.lc}[${this.createNewTag.name}]`;
+    let icon: string;
+    let tagText: string;
+
+    let options = IONICONS.map(iconText => {
+      console.log(`${lc} ${iconText}`);
+      return {
+        title: iconText,
+        icon: iconText,
+      };
+    });
+
+    for (let i = 0; i < 10; i++) {
+      let resTagText = await Plugins.Modals.prompt({
+        title: 'Tag Text?',
+        message: `What's the tag called?`,
+        cancelButtonTitle: 'Cancel',
+        okButtonTitle: 'Create Tag',
+      });
+
+      if (resTagText.cancelled || !resTagText.value) { 
+        console.log(`${lc} cancelled? no value?`)
+        return; 
+      }
+
+      if (ILLEGAL_TAG_TEXT_CHARS.some(x => resTagText.value.includes(x))) {
+        await Plugins.Modals.alert({
+          title: 'Nope...', 
+          message: `Tag Text can't contain spaces or ${ILLEGAL_TAG_TEXT_CHARS}`,
+        });
+      } else {
+        tagText = resTagText.value;
+        console.log(`${lc} tagText: ${tagText}`);
+        break;
+      }
+    }
+
+    console.log(`${lc} resIcon stuff`)
+
+      let resIcon: ActionSheetResult;
+      try {
+        await this.delay(200); // some problem with ionic showing the modal too soon.
+        resIcon = await Plugins.Modals.showActions({
+          title: 'Tag Icon?',
+          message: 'Type in the icon',
+          options: [{title: 'Cancel'}, ...options],
+        });
+        console.log(`${lc} whaaaa`)
+      } catch (error) {
+        console.error(`${lc} error: ${error.message}`);
+        return;
+      }
+
+      // cancel index
+      if (resIcon.index === 0) { 
+        console.log(`${lc} (cancelling) resIcon.index: ${resIcon.index}`);
+        return; 
+      } else {
+        console.log(`${lc} resIcon.index: ${resIcon.index}`);
+      }
+      icon = options[resIcon.index-1].icon;
+
+
+      const resNewTag = 
+        await this.common.ibgibs.createTagIbGib({text: tagText, icon, description: ''});
+    // });
+
+    
+  }
+
+  delay(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve();
+      }, ms);
+    });
   }
 }
+
+const IONICONS = [
+  'add',
+  'add-circle',
+  'alert',
+  'alert-circle',
+
+// ionicons.add,
+// ionicons.airplane,
+// ionicons.alarm,
+// ionicons.albums,
+// ionicons.alert,
+// ionicons.alertCircle,
+// ionicons.americanFootball,
+// ionicons.analytics,
+// ionicons.aperture,
+// ionicons.apps,
+// ionicons.archive,
+// ionicons.arrowBack,
+// ionicons.arrowBackCircle,
+// ionicons.arrowDown,
+// ionicons.arrowDownCircle,
+// ionicons.arrowForward,
+// ionicons.arrowForwardCircle,
+// ionicons.arrowRedo,
+// ionicons.arrowRedoCircle,
+// ionicons.arrowUndo,
+// ionicons.arrowUndoCircle,
+// ionicons.arrowUp,
+// ionicons.arrowUpCircle,
+// ionicons.at,
+// ionicons.atCircle,
+// ionicons.attach,
+// ionicons.backspace,
+// ionicons.bandage,
+// ionicons.barChart,
+// ionicons.barbell,
+// ionicons.barcode,
+// ionicons.baseball,
+// ionicons.basket,
+// ionicons.basketball,
+// ionicons.batteryCharging,
+// ionicons.batteryDead,
+// ionicons.batteryFull,
+// ionicons.batteryHalf,
+// ionicons.beaker,
+// ionicons.bed,
+// ionicons.beer,
+// ionicons.bicycle,
+// ionicons.bluetooth,
+// ionicons.boat,
+// ionicons.body,
+// ionicons.bonfire,
+// ionicons.book,
+// ionicons.bookmark,
+// ionicons.bookmarks,
+// ionicons.briefcase,
+// ionicons.browsers,
+// ionicons.brush,
+// ionicons.bug,
+// ionicons.build,
+// ionicons.bulb,
+// ionicons.bus,
+// ionicons.business,
+// ionicons.cafe,
+// ionicons.calculator,
+// ionicons.calendar,
+// ionicons.call,
+// ionicons.camera,
+// ionicons.cameraReverse,
+// ionicons.car,
+// ionicons.carSport,
+// ionicons.card,
+// ionicons.caretBack,
+// ionicons.caretBackCircle,
+// ionicons.caretDown,
+// ionicons.caretDownCircle,
+// ionicons.caretForward,
+// ionicons.caretForwardCircle,
+// ionicons.caretUp,
+// ionicons.caretUpCircle,
+// ionicons.cart,
+// ionicons.cash,
+// ionicons.cellular,
+// ionicons.chatbox,
+// ionicons.chatboxEllipses,
+// ionicons.chatbubble,
+// ionicons.chatbubbleEllipses,
+// ionicons.chatbubbles,
+// ionicons.checkbox,
+// ionicons.checkmark,
+// ionicons.checkmarkCircle,
+// ionicons.checkmarkDone,
+// ionicons.checkmarkDoneCircle,
+// ionicons.chevronBack,
+// ionicons.chevronBackCircle,
+// ionicons.chevronDown,
+// ionicons.chevronDownCircle,
+// ionicons.chevronForward,
+// ionicons.chevronForwardCircle,
+// ionicons.chevronUp,
+// ionicons.chevronUpCircle,
+// ionicons.clipboard,
+// ionicons.close,
+// ionicons.closeCircle,
+// ionicons.cloud,
+// ionicons.cloudCircle,
+// ionicons.cloudDone,
+// ionicons.cloudDownload,
+// ionicons.cloudOffline,
+// ionicons.cloudUpload,
+// ionicons.cloudy,
+// ionicons.cloudyNight,
+// ionicons.code,
+// ionicons.codeDownload,
+// ionicons.codeSlash,
+// ionicons.codeWorking,
+// ionicons.cog,
+// ionicons.colorFill,
+// ionicons.colorFilter,
+// ionicons.colorPalette,
+// ionicons.colorWand,
+// ionicons.compass,
+// ionicons.construct,
+// ionicons.contract,
+// ionicons.contrast,
+// ionicons.copy,
+// ionicons.create,
+// ionicons.crop,
+// ionicons.cube,
+// ionicons.cut,
+// ionicons.desktop,
+// ionicons.disc,
+// ionicons.document,
+// ionicons.documentAttach,
+// ionicons.documentText,
+// ionicons.documents,
+// ionicons.download,
+// ionicons.duplicate,
+// ionicons.ear,
+// ionicons.earth,
+// ionicons.easel,
+// ionicons.egg,
+// ionicons.ellipse,
+// ionicons.ellipsisHorizontal,
+// ionicons.ellipsisHorizontalCircle,
+// ionicons.ellipsisVertical,
+// ionicons.ellipsisVerticalCircle,
+// ionicons.enter,
+// ionicons.exit,
+// ionicons.expand,
+// ionicons.eye,
+// ionicons.eyeOff,
+// ionicons.eyedrop,
+// ionicons.fastFood,
+// ionicons.female,
+// ionicons.fileTray,
+// ionicons.fileTrayFull,
+// ionicons.fileTrayStacked,
+// ionicons.film,
+// ionicons.filter,
+// ionicons.fingerPrint,
+// ionicons.fitness,
+// ionicons.flag,
+// ionicons.flame,
+// ionicons.flash,
+// ionicons.flashOff,
+// ionicons.flashlight,
+// ionicons.flask,
+// ionicons.flower,
+// ionicons.folder,
+// ionicons.folderOpen,
+// ionicons.football,
+// ionicons.funnel,
+// ionicons.gameController,
+// ionicons.gift,
+// ionicons.gitBranch,
+// ionicons.gitCommit,
+// ionicons.gitCompare,
+// ionicons.gitMerge,
+// ionicons.gitNetwork,
+// ionicons.gitPullRequest,
+// ionicons.glasses,
+// ionicons.globe,
+// ionicons.golf,
+// ionicons.grid,
+// ionicons.hammer,
+// ionicons.handLeft,
+// ionicons.handRight,
+// ionicons.happy,
+// ionicons.hardwareChip,
+// ionicons.headset,
+// ionicons.heart,
+// ionicons.heartCircle,
+// ionicons.heartDislike,
+// ionicons.heartDislikeCircle,
+// ionicons.heartHalf,
+// ionicons.help,
+// ionicons.helpBuoy,
+// ionicons.helpCircle,
+// ionicons.home,
+// ionicons.hourglass,
+// ionicons.iceCream,
+// ionicons.image,
+// ionicons.images,
+// ionicons.infinite,
+// ionicons.information,
+// ionicons.informationCircle,
+// ionicons.journal,
+// ionicons.key,
+// ionicons.keypad,
+// ionicons.language,
+// ionicons.laptop,
+// ionicons.layers,
+// ionicons.leaf,
+// ionicons.library,
+// ionicons.link,
+// ionicons.list,
+// ionicons.listCircle,
+// ionicons.locate,
+// ionicons.location,
+// ionicons.lockClosed,
+// ionicons.lockOpen,
+// ionicons.logIn,
+// ionicons.magnet,
+// ionicons.mail,
+// ionicons.mailOpen,
+// ionicons.mailUnread,
+// ionicons.male,
+// ionicons.maleFemale,
+// ionicons.man,
+// ionicons.map,
+// ionicons.medal,
+// ionicons.medical,
+// ionicons.medkit,
+// ionicons.megaphone,
+// ionicons.menu,
+// ionicons.mic,
+// ionicons.micCircle,
+// ionicons.micOff,
+// ionicons.micOffCircle,
+// ionicons.moon,
+// ionicons.move,
+// ionicons.musicalNote,
+// ionicons.musicalNotes,
+// ionicons.navigate,
+// ionicons.navigateCircle,
+// ionicons.newspaper,
+// ionicons.notifications,
+// ionicons.notificationsCircle,
+// ionicons.notificationsOff,
+// ionicons.notificationsOffCircle,
+// ionicons.nuclear,
+// ionicons.nutrition,
+// ionicons.open,
+// ionicons.options,
+// ionicons.paperPlane,
+// ionicons.partlySunny,
+// ionicons.pause,
+// ionicons.pauseCircle,
+// ionicons.paw,
+// ionicons.pencil,
+// ionicons.people,
+// ionicons.peopleCircle,
+// ionicons.person,
+// ionicons.personAdd,
+// ionicons.personCircle,
+// ionicons.personRemove,
+// ionicons.phoneLandscape,
+// ionicons.phonePortrait,
+// ionicons.pieChart,
+// ionicons.pin,
+// ionicons.pint,
+// ionicons.pizza,
+// ionicons.planet,
+// ionicons.play,
+// ionicons.playBack,
+// ionicons.playBackCircle,
+// ionicons.playCircle,
+// ionicons.playForward,
+// ionicons.playForwardCircle,
+// ionicons.playSkipBack,
+// ionicons.playSkipBackCircle,
+// ionicons.playSkipForward,
+// ionicons.playSkipForwardCircle,
+// ionicons.podium,
+// ionicons.power,
+// ionicons.pricetag,
+// ionicons.pricetags,
+// ionicons.print,
+// ionicons.pulse,
+// ionicons.push,
+// ionicons.qrCode,
+// ionicons.radio,
+// ionicons.radioButtonOff,
+// ionicons.radioButtonOn,
+// ionicons.rainy,
+// ionicons.reader,
+// ionicons.receipt,
+// ionicons.recording,
+// ionicons.refresh,
+// ionicons.refreshCircle,
+// ionicons.reload,
+// ionicons.reloadCircle,
+// ionicons.remove,
+// ionicons.removeCircle,
+// ionicons.reorderFour,
+// ionicons.reorderThree,
+// ionicons.reorderTwo,
+// ionicons.repeat,
+// ionicons.resize,
+// ionicons.restaurant,
+// ionicons.returnDownBack,
+// ionicons.returnDownForward,
+// ionicons.returnUpBack,
+// ionicons.returnUpForward,
+// ionicons.ribbon,
+// ionicons.rocket,
+// ionicons.rose,
+// ionicons.sad,
+// ionicons.save,
+// ionicons.scan,
+// ionicons.scanCircle,
+// ionicons.school,
+// ionicons.search,
+// ionicons.searchCircle,
+// ionicons.send,
+// ionicons.server,
+// ionicons.settings,
+// ionicons.shapes,
+// ionicons.share,
+// ionicons.shareSocial,
+// ionicons.shield,
+// ionicons.shieldCheckmark,
+// ionicons.shirt,
+// ionicons.shuffle,
+// ionicons.skull,
+// ionicons.snow,
+// ionicons.speedometer,
+// ionicons.square,
+// ionicons.star,
+// ionicons.starHalf,
+// ionicons.statsChart,
+// ionicons.stop,
+// ionicons.stopCircle,
+// ionicons.stopwatch,
+// ionicons.subway,
+// ionicons.sunny,
+// ionicons.swapHorizontal,
+// ionicons.swapVertical,
+// ionicons.sync,
+// ionicons.syncCircle,
+// ionicons.tabletLandscape,
+// ionicons.tabletPortrait,
+// ionicons.tennisball,
+// ionicons.terminal,
+// ionicons.text,
+// ionicons.thermometer,
+// ionicons.thumbsDown,
+// ionicons.thumbsUp,
+// ionicons.thunderstorm,
+// ionicons.time,
+// ionicons.timer,
+// ionicons.today,
+// ionicons.toggle,
+// ionicons.trailSign,
+// ionicons.train,
+// ionicons.transgender,
+// ionicons.trash,
+// ionicons.trashBin,
+// ionicons.trendingDown,
+// ionicons.trendingUp,
+// ionicons.triangle,
+// ionicons.trophy,
+// ionicons.tv,
+// ionicons.umbrella,
+// ionicons.videocam,
+// ionicons.volumeHigh,
+// ionicons.volumeLow,
+// ionicons.volumeMedium,
+// ionicons.volumeMute,
+// ionicons.volumeOff,
+// ionicons.walk,
+// ionicons.wallet,
+// ionicons.warning,
+// ionicons.watch,
+// ionicons.water,
+// ionicons.wifi,
+// ionicons.wine,
+// ionicons.woman,
+];

@@ -1,14 +1,13 @@
-import { Component, OnInit, OnDestroy, Input, ChangeDetectorRef } from '@angular/core';
-import { IbGib_V1, GIB, Factory_V1, Rel8n } from "ts-gib/dist/V1";
-import { IbGibAddr, Ib, Gib, V1, TransformResult } from "ts-gib";
-import { getIbAndGib, getIbGibAddr } from "ts-gib/dist/helper";
+import { OnInit, OnDestroy, Input, ChangeDetectorRef } from '@angular/core';
+import { IbGibAddr } from "ts-gib";
 import { Injectable } from "@angular/core";
 import { IbgibItem } from '../types';
 import { IbgibComponentBase } from './ibgib-component-base';
 import { CommonService } from 'src/app/services/common.service';
 import { DEFAULT_LIST_REL8N_NAMES } from '../constants';
+import { IbGib_V1 } from 'ts-gib/dist/V1';
 
-@Injectable()
+@Injectable({providedIn: "root"})
 export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem>
     extends IbgibComponentBase<TItem>
     implements OnInit, OnDestroy {
@@ -21,7 +20,8 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
      *   the place. This is used all throughout the codebase.
      *   Otherwise, I usually use very long names...often too long! :-)
      */
-    protected lc: string = IbgibListComponentBase.name;
+    protected lc: string = `[${IbgibListComponentBase.name}]`;
+
     private _updatingItems: boolean;
 
     @Input()
@@ -61,10 +61,11 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
     }
 
     /**
-     *
+     * 
      */
     async updateItems(): Promise<void> {
         const lc = `${this.lc}[${this.updateItems.name}]`;
+        console.log(`${lc} updating...`);
         if (this._updatingItems) { return; }
         this._updatingItems = true;
         try {
@@ -88,11 +89,14 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
                 }
                 return a.ibGib?.data?.timestamp < b.ibGib?.data?.timestamp ? -1 : 1
             });
-            this.items = newItems;
+            this.items = newItems || [];
+            console.log(`${lc} this.items count: ${this.items.length}`);
         } catch (error) {
             console.error(`${lc} ${error.message}`);
         } finally {
+            this.ref.detectChanges();
             this._updatingItems = false;
+            console.log(`${lc} updated.`);
         }
     }
 

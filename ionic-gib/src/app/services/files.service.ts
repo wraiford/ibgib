@@ -1,11 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Plugins, FilesystemDirectory, FilesystemEncoding, Capacitor, FileReadResult } from '@capacitor/core';
+import { Plugins, FilesystemEncoding, FileReadResult } from '@capacitor/core';
 const { Filesystem } = Plugins;
 
-import { IbGibAddr } from 'ts-gib/dist';
+import { IbGibAddr, TransformResult } from 'ts-gib/dist';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
-import { getIbGibAddr, hash } from 'ts-gib/dist/helper';
+import { getIbGibAddr, hash, getIbAndGib } from 'ts-gib/dist/helper';
 import { IBGIB_BASE_SUBPATH, IBGIB_BIN_SUBPATH, IBGIB_META_SUBPATH, IBGIB_DNA_SUBPATH, IBGIB_IBGIBS_SUBPATH, IBGIB_FILES_ENCODING, IBGIB_BASE_DIR } from '../common/constants';
 import { DomSanitizer } from '@angular/platform-browser';
 
@@ -163,12 +163,13 @@ export class FilesService {
     binExt,
     isMeta,
     isDna,
-    getRawResult: getRaw
+    getRawResult,
   }: GetIbGibOpts): Promise<GetIbGibResult> {
     const lc = `${this.lc}[${this.get.name}(${addr})]`;
 
     if (!addr && !binHash) { throw new Error(`${lc} addr or binHash required.`) };
 
+    const {ib,gib} = getIbAndGib({ibGibAddr: addr});
     const isBin = !addr;
     const result: GetIbGibResult = {};
 
@@ -180,7 +181,7 @@ export class FilesService {
           directory: IBGIB_BASE_DIR,
           encoding: IBGIB_FILES_ENCODING,
         });
-        // console.log(resRead.data);
+        console.log(`${lc} path found: ${p}`);
         return resRead;
       } catch (error) {
         console.log(`${lc} path not found: ${p}`);
@@ -226,7 +227,7 @@ export class FilesService {
         // bin
         result.binData = resRead.data;
       }
-      if (getRaw) { result.raw = resRead; }
+      if (getRawResult) { result.raw = resRead; }
       result.success = true;
     } catch (error) {
       const errorMsg = `${lc} ${error.message}`;
@@ -291,7 +292,7 @@ export class FilesService {
         directory: IBGIB_BASE_DIR,
         encoding: FilesystemEncoding.UTF8
       });
-      console.log(`resWrite.uri: ${resWrite.uri}`);
+      console.log(`${lc} resWrite.uri: ${resWrite.uri}`);
 
       result.success = true;
       if (getRawResult) { result.raw = resWrite; }
@@ -304,32 +305,71 @@ export class FilesService {
     return result;
   }
 
+  async ensurePermissions(): Promise<boolean> {
+    const lc = `${this.lc}[${this.ensurePermissions.name}]`;
+    try {
+      if (Filesystem.requestPermissions) {
+        const resPermissions = await Filesystem.requestPermissions();
+        if (resPermissions?.results) {
+          console.warn(`${lc} resPermissions: ${JSON.stringify(resPermissions.results)} falsy`);
+          return true;
+        } else {
+          console.warn(`${lc} resPermissions?.results falsy`);
+          return true;
+        }
+      } else {
+        console.warn(`${lc} Filesystem.requestPermissions falsy`);
+        return true;
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return false; 
+    }
+  }
+
   /**
    * Ensure directories are created on filesystem.
    */
   async ensureDirs(): Promise<void> {
     const directory = IBGIB_BASE_DIR;
-    const ensure: (path: string) => Promise<void> = async (path) => {
-      const lc = `ensure(path: ${path})`;
-      let exists = false;
-      try {
-        const result = await Filesystem.readdir({ path, directory });
-        console.log(`${lc} result.files: ${JSON.stringify(result?.files)}`);
-        exists = true;
-      } catch (error) {
-        console.log(`${lc} Did not exist`);
+
+    const permitted = await this.ensurePermissions();
+    if (!permitted) { return; }
+
+    const ensure: (path: string) => Promise<boolean> = async (path) => {
+      const lc = `ensure(path: ${path}, directory: ${directory})`;
+
+      console.log(`${lc} starting...`);
+      const pathExistsKey = directory.toString() + '/' + path;
+      let exists = this.pathExistsMap[pathExistsKey] || false;
+
+      if (!exists) {
+        try {
+          const result = await Filesystem.readdir({ path, directory });
+          // console.log(`${lc} result.files: ${JSON.stringify(result?.files)}`);
+          exists = true;
+          this.pathExistsMap[pathExistsKey] = true;
+        } catch (error) {
+          console.log(`${lc} Did not exist`);
+        }
       }
 
       if (!exists) {
+        // try full path
         console.log(`${lc} creating...`);
         try {
-          const result = await Filesystem.mkdir({ path, directory });
+          const result = await Filesystem.mkdir({ path, directory, recursive: true });
+          this.pathExistsMap[pathExistsKey] = true;
         } catch (error) {
-          console.log(`${lc} Error creating.`)
+          console.log(`${lc} Error creating. Trying next`);
         } finally {
           console.log(`${lc} complete.`);
         }
       }
+
+      console.log(`${lc} completed yo.`);
+
+      return exists;
     }
 
     const paths = [
@@ -343,6 +383,12 @@ export class FilesService {
       await ensure(path);
     }
   }
+
+  /**
+   * Check every time app starts if paths exist. 
+   * But don't check every time do anything whatsoever.
+   */
+  private pathExistsMap = {};
 
   async delete({
     addr,
@@ -384,5 +430,36 @@ export class FilesService {
     }
 
     return result;
+  }
+
+  /**
+   * Convenience function for persisting a transform result, which has
+   * a newIbGib and optionally intermediate ibGibs and/or dnas.
+   */
+  async persistTransformResult({
+    isMeta,
+    resTransform,
+  }: {
+    isMeta?: boolean,
+    resTransform: TransformResult<IbGib_V1>
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.persistTransformResult.name}]`;
+    try {
+      const { newIbGib, intermediateIbGibs, dnas } = resTransform;
+      const ibGibs = [newIbGib, ...(intermediateIbGibs || [])];
+      for (let ibGib of ibGibs) {
+        const resPut = await this.put({ibGib, isMeta});
+        if (!resPut.success) { throw new Error(`${lc} ${resPut.errorMsg}`); }
+      }
+      if (dnas) {
+        for (let ibGib of dnas) {
+          const resPut = await this.put({ibGib, isDna: true});
+          if (!resPut.success) { throw new Error(`${lc} ${resPut.errorMsg}`); }
+        }
+      }
+    } catch (error) {
+      console.log(`${lc} ${error.message}`);
+      throw error;
+    }
   }
 }

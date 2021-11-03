@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Input, ChangeDetectorRef } from '@angular/core';
+import { OnInit, OnDestroy, Input, ChangeDetectorRef } from '@angular/core';
 import { IbGib_V1, GIB, Factory_V1, Rel8n } from "ts-gib/dist/V1";
 import { IbGibAddr, Ib, Gib, V1, TransformResult } from "ts-gib";
 import { getIbAndGib, getIbGibAddr } from "ts-gib/dist/helper";
@@ -8,6 +8,7 @@ import { IbgibItem, PicData, CommentData } from '../types';
 import { CommonService } from 'src/app/services/common.service';
 import { DEFAULT_META_IB_STARTS } from '../constants';
 
+// @Injectable({providedIn: "root"})
 @Injectable()
 export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     implements OnInit, OnDestroy {
@@ -20,14 +21,19 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
      *   the place. This is used all throughout the codebase.
      *   Otherwise, I usually use very long names...often too long! :-)
      */
-    protected lc: string = IbgibComponentBase.name;
+    protected lc: string = `[${IbgibComponentBase.name}]`;
 
     private _updatingIbGib: boolean;
     // private _addr: IbGibAddr;
-    @Input()
     get addr(): IbGibAddr { return this.item?.addr; }
+    @Input()
     set addr(value: IbGibAddr) {
-        if (this._updatingIbGib) { return; }
+        const lc = `${this.lc}[set addr(${value})]`;
+        if (this._updatingIbGib) { 
+            console.log(`${lc} already updatingIbGib`)
+            return; 
+        }
+        console.log(`${lc} updating ibgib ${value}`);
         this._updatingIbGib = true;
         this.updateIbGib(value).finally(() => {
             this._updatingIbGib = false;
@@ -45,22 +51,52 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     get isMeta(): boolean {
         return this.item?.isMeta || DEFAULT_META_IB_STARTS.some(x => this.ib?.startsWith(x)); // hack
     }
+    get ibGib_Context(): IbGib_V1 { return this.item?.ibGib_Context; }
+    @Input()
+    set ibGib_Context(value: IbGib_V1) {
+        const lc = `${this.lc}[set ibGib_Context]`;
+        if (this.item?.ibGib_Context) { 
+            console.warn(`${lc} can only set context once.`); 
+            return;
+        }
+        if (!value) {
+            console.log(`${lc} ignored setting falsy context.`); 
+            return;
+        }
+        const setContext = () => {
+            console.log(`${lc} setting context`);
+            if (this.item) {
+                this.item.ibGib_Context = value;
+                this.ref.detectChanges();
+            } else {
+                console.error(`${lc} attempted to set context to falsy item.`);
+            }
+        };
+        if (this.item) { 
+            setContext();
+        } else {
+            // hack in case this gets set in binding before the item does.
+            setTimeout(() => { setContext(); }, 1000); 
+        }
+    }
 
     get files(): FilesService { return this.common.files; }
 
     @Input()
-    get isTag(): boolean { return this.ib?.startsWith('tag') || false; }
+    get isRoot(): boolean { return this.ib?.startsWith('root ') || false; }
     @Input()
-    get isPic(): boolean { return this.ib?.startsWith('pic') || false; }
+    get isTag(): boolean { return this.ib?.startsWith('tag ') || false; }
     @Input()
-    get isComment(): boolean { return this.ib?.startsWith('comment') || false; }
+    get isPic(): boolean { return this.ib?.startsWith('pic ') || false; }
+    @Input()
+    get isComment(): boolean { return this.ib?.startsWith('comment ') || false; }
 
     /**
      * Hack because ngSwitchCase doesn't seem to work properly. Probably my fault...hmmm
      *
      * this is used in the fallback case.
      */
-    get itemTypes(): string[] { return ['pic','comment','tag']; }
+    get itemTypes(): string[] { return ['pic','comment','tag', 'root']; }
 
     constructor(
         protected common: CommonService,
@@ -137,23 +173,35 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     }): Promise<void> {
         const lc = `${this.lc}[${this.loadIbGib.name}]`;
         if (!item) {
-            const isMeta = this.isMeta;
             item = this.item;
-            item.isMeta = isMeta;
+            if (item) {
+                const isMeta = this.isMeta;
+                item.isMeta = isMeta;
+            }
+        }
+        if (!item) {
+            console.warn(`${lc} item is undefined/null`);
+            return;
         }
         if (item.addr) {
+            const {ib, gib} = getIbAndGib({ibGibAddr: item.addr});
             if (!force && item.ibGib && getIbGibAddr({ibGib: item.ibGib}) === item.addr) {
                 // do nothing, because we already have loaded this address.
             } else {
-                const resGet = await this.files.get({addr: item.addr, isMeta: item.isMeta });
-                if (resGet.success) {
-                    item.ibGib = resGet.ibGib;
-                } else if (!resGet.success && item.isMeta) {
-                    // we've tried to load a meta ibGib that does not exist.
-                    const { ib } = getIbAndGib({ibGibAddr: item.addr});
+                if (gib === GIB) {
+                    // primitive, just build
                     item.ibGib = Factory_V1.primitive({ib});
                 } else {
-                    console.error(`${lc} ${resGet.errorMsg || 'unknown error'}`)
+                    // try to get from files provider
+                    const resGet = await this.files.get({addr: item.addr, isMeta: item.isMeta });
+                    if (resGet.success) {
+                        item.ibGib = resGet.ibGib;
+                    } else if (!resGet.success && item.isMeta) {
+                        // we've tried to load a meta ibGib that does not exist.
+                        item.ibGib = Factory_V1.primitive({ib});
+                    } else {
+                        console.error(`${lc} ${resGet.errorMsg || 'unknown error'}`)
+                    }
                 }
             }
         } else {
@@ -197,11 +245,13 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     }
 
     async navTo({addr}: {addr: IbGibAddr}): Promise<void> {
-        await this.common.nav.navigateRoot(['ibgib', addr], {
-            queryParamsHandling: 'preserve',
-            animated: true,
-            animationDirection: 'forward',
-        });
+        console.log(`navigating to addr: ${addr}`);
+        this.common.nav.navTo({addr});
+        // await this.common.nav.navigateRoot(['ibgib', addr], {
+        //     queryParamsHandling: 'preserve',
+        //     animated: true,
+        //     animationDirection: 'forward',
+        // });
     }
 
     /**
@@ -222,6 +272,8 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         item = item || this.item;
         if (this.isTag) {
             this.item.type = 'tag';
+        } else if (this.isRoot) {
+            this.item.type = 'root';
         } else if (this.isPic) {
             this.item.type = 'pic';
         } else if (this.isComment) {
@@ -260,4 +312,5 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     this.item.text = data.text;
     this.item.timestamp = data.textTimestamp || data.timestamp;
   }
+
 }

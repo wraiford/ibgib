@@ -1,4 +1,13 @@
+<!-- <p>item here</p>
+<p>addr: {{addr || "falsy"}}</p> -->
 <!-- pic -->
+<root-view
+  *ngIf='item?.type === "root"'
+  class='root-item'
+  [addr]='addr'
+  (click)='handleClicked(item)'
+  >
+</root-view>
 <pic-view
   *ngIf='item?.type === "pic"'
   class='pic-item'

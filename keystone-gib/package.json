@@ -1,0 +1,42 @@
+{
+  "name": "keystone-gib",
+  "version": "0.0.3",
+  "description": "Ibgib keystone layer built on top of ts-gib. ",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -b tsconfig.browser.json --force",
+    "build:test": "tsc -b tsconfig.test.json --force",
+    "build:node": "tsc -b tsconfig.node.json --force",
+    "clean": "rm -rf ./dist",
+    "clean:test": "rm -rf ./dist/test",
+    "pack:browser": "npm version patch && npm run build && npm pack",
+    "pack:node": "npm version patch && npm run build:node && npm pack",
+    "prebuild": "./set_target.sh browser && npm run clean",
+    "prebuild:test": "./set_target.sh node && npm run clean",
+    "prebuild:node": "./set_target.sh node && npm run clean",
+    "pretest": "npm run build:test",
+    "test": "./node_modules/mocha/bin/mocha \"dist/**/*.spec.js\" --opts ./mocha.opts",
+    "predebug": "npm run build:test",
+    "debug": "./node_modules/mocha/bin/mocha debug \"dist/V1/keystone.spec.js\" --opts ./mocha.opts --no-timeouts",
+    "debugBAK": "./node_modules/mocha/bin/mocha debug \"dist/**/*.spec.js\" --opts ./mocha.opts --no-timeouts"
+  },
+  "keywords": [
+    "ibgib",
+    "typescript",
+    "dlt",
+    "blockchain"
+  ],
+  "author": "William Raiford",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/chai": "^4.2.7",
+    "@types/mocha": "^5.2.7",
+    "@types/node": "^12.12.17",
+    "chai": "^4.2.0",
+    "mocha": "^5.2.0"
+  },
+  "dependencies": {
+    "rxjs": "^6.5.5",
+    "ts-gib": "^0.1.27"
+  }
+}

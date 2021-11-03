@@ -1,6 +1,8 @@
+<!-- <p>list view here</p>
+<p>testprop: {{testprop}}</p> -->
 <list-item
   *ngFor='let item of items'
-  [addr]='item?.addr'
+  [addr]='item.addr'
   (click)='handleClicked(item)'
   >
 </list-item>

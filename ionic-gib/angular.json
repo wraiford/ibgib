@@ -29,6 +29,16 @@
                 "glob": "**/*.svg",
                 "input": "node_modules/ionicons/dist/ionicons/svg",
                 "output": "./svg"
+              },
+              {
+                "glob": "**/manifest.json",
+                "input": "src/assets",
+                "output": "/"
+              },
+              {
+                "glob": "**/background.js",
+                "input": "src/assets",
+                "output": "/"
               }
             ],
             "styles": [

@@ -1,0 +1,1 @@
+export var FOO_CONSTANT = 'foo here';

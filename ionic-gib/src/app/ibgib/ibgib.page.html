@@ -4,7 +4,8 @@
       <ion-menu-button></ion-menu-button>
     </ion-buttons>
 
-    <ion-title *ngIf='isTag && ib !== "tags"'>
+    <!-- <ion-title *ngIf='isTag && ib !== "tags"'> -->
+    <ion-title *ngIf='item?.type === "tag"'>
       <tag-view [addr]='item.addr'> </tag-view>
     </ion-title>
     <ion-title *ngIf='isPic' class='pic-title'>
@@ -27,11 +28,12 @@
 
   <div id="container">
 
-    <tag-list-view *ngIf='ib?.startsWith("tag")' [addr]='addr'>
-    </tag-list-view>
+    <!-- <p *ngIf='ib?.startsWith("tag")'>tag addr: {{addr||"falsy"}}</p> -->
+    <!-- <list-item ([testprop])='"set in ibgibpage.html"' [addr]='addr'></list-item> -->
+    <tag-list *ngIf='ib?.startsWith("tag")' [addr]='addr' [ibGib_Context]='ibGib'></tag-list>
 
-    <chat-view *ngIf='!ib?.startsWith("tag")' [addr]='addr'>
-    </chat-view>
+    <!-- <p *ngIf='!ib?.startsWith("tag")'>chat</p> -->
+    <chat-view *ngIf='!ib?.startsWith("tag")' [addr]='addr' [ibGib_Context]='ibGib'></chat-view>
 
     <!-- <chat-view [addr]='addr'></chat-view> -->
     <!-- <strong class="capitalize">raw data:</strong> -->
@@ -42,6 +44,6 @@
 </ion-content>
 
   <ion-footer>
-    <action-bar [addr]='addr'></action-bar>
+    <action-bar [addr]='addr' [ibGib_Context]='ibGib'></action-bar>
   </ion-footer>
 

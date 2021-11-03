@@ -26,6 +26,10 @@ ion-menu.md ion-list#meta-list {
   border-bottom: 1px solid var(--ion-color-step-150, #d7d8da);
 }
 
+ion-list-header {
+  cursor: pointer;
+}
+
 ion-menu.md ion-list#meta-list ion-list-header {
   font-size: 22px;
   font-weight: 600;
@@ -117,3 +121,7 @@ ion-note {
 ion-item.selected {
   --color: var(--ion-color-primary);
 }
+
+// ion-content {
+//   display: flex;
+// }

@@ -1,10 +1,9 @@
 import { Component, OnInit, OnDestroy, Input, ChangeDetectorRef } from '@angular/core';
-import { IbgibComponentBase } from 'src/app/common/bases/ibgib-component-base';
-import { FilesService } from 'src/app/services/files.service';
 import { IbGibAddr } from 'ts-gib';
 import { CommonService } from 'src/app/services/common.service';
 import { IbgibItem } from 'src/app/common/types';
 import { IbgibListComponentBase } from 'src/app/common/bases/ibgib-list-component-base';
+import { IbGib_V1 } from 'ts-gib/dist/V1';
 
 interface ChatItem extends IbgibItem {
 
@@ -18,6 +17,16 @@ interface ChatItem extends IbgibItem {
 export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
   implements OnInit, OnDestroy {
 
+  protected lc: string = `[${ChatViewComponent.name}]`;
+
+  @Input()
+  get addr(): IbGibAddr { return super.addr; }
+  set addr(value: IbGibAddr) { super.addr = value; }
+
+  @Input()
+  get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
+  set ibGib_Context(value: IbGib_V1 ) { super.ibGib_Context = value; }
+
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
@@ -30,7 +39,9 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
     setTimeout(() => {
       if (document) {
         const list = document.getElementById('theList');
-        list.scrollTop = list.scrollHeight;
+        if (list) {
+          list.scrollTop = list.scrollHeight;
+        }
       }
     },700);
   }

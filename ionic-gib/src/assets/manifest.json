@@ -1,0 +1,24 @@
+{
+    "name": "webext-gib",
+    "version": "0.0.1",
+    "description": "Simple, powerful and open life-long learning, chat, todo, calendar, and much more...",
+    "browser_action": {
+        "default_title": "ibgib",
+        "default_icon": {
+            "32": "/assets/icon/favicon.png",
+            "64": "/assets/icon/favicon.png"
+        }
+    },
+    "background": {
+        "scripts": [
+            "background.js"
+        ]
+    },
+    "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self';",
+    "permissions": [
+        "storage", 
+        "contextMenus",
+        "tabs"
+    ],
+    "manifest_version": 2
+}

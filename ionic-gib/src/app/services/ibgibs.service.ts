@@ -1,12 +1,18 @@
 import { Injectable } from '@angular/core';
-import { IbGib_V1, Rel8n } from 'ts-gib/dist/V1';
-import { IbGibAddr, V1, TransformResult } from 'ts-gib';
+import { IbGib_V1, Rel8n, GIB } from 'ts-gib/dist/V1';
+import { IbGibAddr, V1, Ib } from 'ts-gib';
 import { Storage } from '@capacitor/core';
 import { FilesService } from './files.service';
-import { TAGS_IBGIB_ADDR_KEY, TAGS_IB, TAG_REL8N_NAME } from '../common/constants';
+import { 
+  TAG_REL8N_NAME, DEFAULT_ROOT_DESCRIPTION, DEFAULT_ROOT_ICON, 
+  ROOT_REL8N_NAME, DEFAULT_TAG_ICON, DEFAULT_TAG_DESCRIPTION, 
+  DEFAULT_ROOT_TEXT 
+} from '../common/constants';
 import { Factory_V1 as factory } from 'ts-gib/dist/V1';
 import { getIbGibAddr } from 'ts-gib/dist/helper';
-import { TagData } from '../common/types';
+import { TagData, SpecialIbGibType, RootData } from '../common/types';
+import { IbGibWitnessScheduler } from 'keystone-gib/src/V1/witnesses/scheduler';
+import { InMemoryRepo } from 'keystone-gib/src/V1/witnesses/in-memory-repo';
 
 @Injectable({
   providedIn: 'root'
@@ -20,48 +26,152 @@ export class IbgibsService {
     private files: FilesService,
   ) { }
 
+  private _inMemoryRepo = new InMemoryRepo(/*includeAddrs*/ false, /*optimisticPut*/ true);
+  /**
+   * Primary scheduler (execution loop) for this service. When it witnesses
+   * any ibGib, it adds it to the list of 
+   */
+  private _scheduler = new IbGibWitnessScheduler(this._inMemoryRepo);
 
+  private _currentRoot: IbGib_V1<RootData> | undefined;
+  async getCurrentRoot(): Promise<IbGib_V1<RootData> | undefined> {
+    if (this._currentRoot) { return this._currentRoot; }
+
+    const lc = `${this.lc}[${this.getCurrentRoot.name}]`;
+    try {
+      const roots = await this.getSpecialIbgib({type: "roots"});
+      if (!roots) { throw new Error(`Roots not initialized.`); }
+      if (!roots.rel8ns) { throw new Error(`Roots not initialized properly. No rel8ns.`); }
+      if (!roots.rel8ns.current) { throw new Error(`Roots not initialized properly. No current root.`); }
+      if (roots.rel8ns.current.length === 0) { throw new Error(`Invalid Roots: empty current root rel8n.`); }
+      if (roots.rel8ns.current.length > 1) { throw new Error(`Invalid Roots: multiple current roots selected.`); }
+
+      const currentRootAddr = roots.rel8ns.current[0]!;
+      const resCurrentRoot = await this.files.get({addr: currentRootAddr, isMeta: true});
+      if (resCurrentRoot.ibGib) {
+        return <IbGib_V1<RootData>>resCurrentRoot.ibGib;
+      } else {
+        throw new Error(`could not get current root. addr: ${currentRootAddr}`);
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return undefined;
+    }
+  }
+  async setCurrentRoot(root: IbGib_V1<RootData>): Promise<void> {
+    const lc = `${this.lc}[${this.setCurrentRoot.name}]`;
+    try {
+      if (!root) { throw new Error(`root required.`); }
+      const rootAddr = getIbGibAddr({ibGib: root});
+
+      // get the roots and update its "current" rel8n
+      const roots = await this.getSpecialIbgib({type: "roots"});
+      if (!roots) { throw new Error(`Roots not initialized.`); }
+      // if (!roots.rel8ns) { throw new Error(`Roots not initialized properly. No rel8ns.`); }
+      // if (!roots.rel8ns.current) { throw new Error(`Roots not initialized properly. No current root.`); }
+      // if (roots.rel8ns.current.length === 0) { throw new Error(`Invalid Roots: empty current root rel8n.`); }
+      // if (roots.rel8ns.current.length > 1) { throw new Error(`Invalid Roots: multiple current roots selected.`); }
+
+      // remove any existing current root value
+      const rel8nsToRemoveByAddr = { current: roots?.rel8ns?.current || undefined , };
+      const rel8nsToAddByAddr = { current: [rootAddr] };
+
+      const resNewRoot = await V1.rel8({
+        src: roots,
+        dna: false,
+        linkedRel8ns: ["past", "ancestor"],
+        rel8nsToRemoveByAddr,
+        rel8nsToAddByAddr,
+      });
+      await this.files.persistTransformResult({isMeta: true, resTransform: resNewRoot});
+      this._currentRoot = root;
+
+      // how to let others know roots has changed?
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+    }
+  }
+
+  getSpecialIbgibIb({type}: {type: SpecialIbGibType}): Ib {
+    return `meta special ${type}`;
+  }
+
+  getSpecialIbgibAddr({type}: {type: SpecialIbGibType}): string {
+    const ib = this.getSpecialIbgibIb({type});
+    return `${ib}^${GIB}`;
+  }
+
+  getSpecialStorageKey({type}: {type: SpecialIbGibType}): string {
+    return `storage_key ${this.getSpecialIbgibAddr({type})}`;
+  }
 
   /**
-   * Gets the apps TagsIbGib.
+   * Gets one of the app's special ibGibs, e.g., TagsIbGib.
    *
-   * Initializes if asked to, which will create a new TagsIbGib as well
-   * as create some initial tags as well.
-   *
-   * @param initialize initialize (i.e. create) if TagsIbGib not found. Used for initializing app (first run).
+   * When initializing tags, this will generate some boilerplate tags.
+   * I'm going to be doing roots here also, and who knows what else, but each
+   * one will have its own initialize specifics.
+   * 
+   * @param initialize initialize (i.e. create) ONLY IF IbGib not found. Used for initializing app (first run).
+   * 
+   * @see {@link initializeSpecial}
+   * @see {@link initializeTags}
    */
-  async getTagsIbgib({
-    initialize
+  async getSpecialIbgib({
+    type,
+    initialize,
   }: {
-    initialize: boolean
+    type: SpecialIbGibType,
+    initialize?: boolean,
   }): Promise<IbGib_V1 | null> {
-    const lc = `${this.lc}[${this.getTagsIbgib.name}]`;
+    const lc = `${this.lc}[${this.getSpecialIbgib.name}]`;
     try {
-      let tagsAddr = (await Storage.get({key: TAGS_IBGIB_ADDR_KEY}))?.value;
-      if (!tagsAddr) {
+      let key = this.getSpecialStorageKey({type});
+      let addr = (await Storage.get({key}))?.value;
+      if (!addr) {
         if (initialize && !this._initializing) {
           this._initializing = true;
           try {
-            tagsAddr = await this.initializeTags();
+            addr = await this.initializeSpecial({type});
           } catch (error) {
             console.error(`${lc} error initializing: ${error.message}`);
           } finally {
             this._initializing = false;
           }
-        } else {
-          return null;
         }
+        if (!addr) { throw new Error(`Special address not in storage and couldn't initialize it either.`); }
       }
-      console.log(`tagsAddr: ${tagsAddr}`);
+      console.log(`addr: ${addr}`);
 
-      let resTags = await this.files.get({addr: tagsAddr, isMeta: true});
-      if (!resTags.success) { throw new Error(resTags.errorMsg); }
-      if (!resTags.ibGib) { throw new Error(`no ibGib in result`); }
-
-      return resTags.ibGib
+      let resSpecial = await this.files.get({addr: addr, isMeta: true});
+      if (!resSpecial.success) { throw new Error(resSpecial.errorMsg); }
+      if (!resSpecial.ibGib) { throw new Error(`no ibGib in result`); }
+      return resSpecial.ibGib
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       return null;
+    }
+  }
+
+  async initializeSpecial({
+    type,
+  }: {
+    type: SpecialIbGibType,
+  }): Promise<IbGibAddr | null> {
+    const lc = `${this.lc}[${this.initializeSpecial.name}]`;
+    try {
+      switch (type) {
+        case "tags":
+          return this.initializeTags();
+      
+        case "roots":
+          return this.initializeRoots();
+
+        default:
+          throw new Error(`not implemented. type: ${type}`);
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
     }
   }
 
@@ -75,53 +185,133 @@ export class IbgibsService {
   async initializeTags(): Promise<IbGibAddr | null> {
     const lc = `${this.lc}[${this.initializeTags.name}]`;
     try {
-      const tagsIbGib = await this.initializeNewTagsIbGib();
-      let tagsAddr = getIbGibAddr({ibGib: tagsIbGib});
-      await Storage.set({key: TAGS_IBGIB_ADDR_KEY, value: tagsAddr});
+      const storageKey = this.getSpecialStorageKey({type: "tags"});
+      const special = await this.initializeSpecialIbGib({type: "tags"});
+      let addr = getIbGibAddr({ibGib: special});
+      await Storage.set({key: storageKey, value: addr});
 
       // at this point, our tags ibGib has no associated tag ibGibs.
       // add home, favorite tags
       const initialTagDatas: TagData[] = [
-        { tagText: 'home', icon: 'home-outline' },
-        { tagText: 'favorite', icon: 'heart-outline' },
+        { text: 'home', icon: 'home-outline' },
+        { text: 'favorite', icon: 'heart-outline' },
       ];
-      for (let tagData of initialTagDatas) {
-        const resCreate = await this.createTagIbGib(tagData);
-        tagsAddr = resCreate.newTagsAddr;
-        await Storage.set({key: TAGS_IBGIB_ADDR_KEY, value: tagsAddr});
+      for (const data of initialTagDatas) {
+        const resCreate = await this.createTagIbGib(data);
+        addr = resCreate.newTagsAddr;
+        await Storage.set({key: storageKey, value: addr});
       }
 
-      return tagsAddr;
+      return addr;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       return null;
     }
   }
 
-  private async initializeNewTagsIbGib(): Promise<IbGib_V1> {
-    const lc = `${this.lc}[${this.initializeNewTagsIbGib.name}]`;
+  // private async initializeNewTagsIbGib(): Promise<IbGib_V1> {
+  //   const lc = `${this.lc}[${this.initializeNewTagsIbGib.name}]`;
+  //   try {
+  //     const tagsIb = this.getSpecialIbgibIb({type: "tags"});
+  //     const src = factory.primitive({ib: tagsIb });
+  //     const resNewTags = await V1.fork({
+  //       src,
+  //       destIb: tagsIb,
+  //       linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
+  //       tpj: { uuid: true },
+  //       dna: true,
+  //     });
+  //     await this.files.persistTransformResult({
+  //       resTransform: resNewTags,
+  //       isMeta: true
+  //     });
+  //     return resNewTags.newIbGib;
+  //   } catch (error) {
+  //     console.error(`${lc} ${error.message}`);
+  //     throw error;
+  //   }
+  // }
+
+  async initializeRoots(): Promise<IbGibAddr | null> {
+    const lc = `${this.lc}[${this.initializeRoots.name}]`;
     try {
-      const src = factory.primitive({ib: TAGS_IB });
+      const storageKey = this.getSpecialStorageKey({type: "roots"});
+      const special = await this.initializeSpecialIbGib({type: "roots"});
+      let specialAddr = getIbGibAddr({ibGib: special});
+      await Storage.set({key: storageKey, value: specialAddr});
+
+      // at this point, our tags ibGib has no associated tag ibGibs.
+      // add home, favorite tags
+      const rootNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+
+      const initialDatas: RootData[] = rootNames.map(n => {
+        return { 
+          text: `${n}root`, 
+          icon: DEFAULT_ROOT_ICON, 
+          description: DEFAULT_ROOT_DESCRIPTION 
+        };
+      });
+      for (const data of initialDatas) {
+        const resCreate = await this.createRootIbGib(data);
+        specialAddr = resCreate.newRootsAddr;
+        // update the storage for the updated **roots** ibgib.
+        // that roots ibgib is what points to the just created new root.
+        await Storage.set({key: storageKey, value: specialAddr});
+      }
+
+      // initialize current root
+
+
+      return specialAddr;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return null;
+    }
+  }
+
+  // private async initializeNewRootsIbGib(): Promise<IbGib_V1> {
+  //   const lc = `${this.lc}[${this.initializeNewRootsIbGib.name}]`;
+  //   try {
+  //     const specialIb = this.getSpecialIbgibIb({type: "roots"});
+  //     const src = factory.primitive({ib: specialIb});
+  //     const resNewTags = await V1.fork({
+  //       src,
+  //       destIb: specialIb,
+  //       linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
+  //       tpj: { uuid: true },
+  //       dna: true,
+  //     });
+  //     await this.files.persistTransformResult({
+  //       resTransform: resNewTags,
+  //       isMeta: true
+  //     });
+  //     return resNewTags.newIbGib;
+  //   } catch (error) {
+  //     console.error(`${lc} ${error.message}`);
+  //     throw error;
+  //   }
+  // }
+
+  private async initializeSpecialIbGib({
+    type,
+  }: {
+    type: SpecialIbGibType,
+  }): Promise<IbGib_V1> {
+    const lc = `${this.lc}[${this.initializeSpecialIbGib.name}]`;
+    try {
+      const specialIb = this.getSpecialIbgibIb({type});
+      const src = factory.primitive({ib: specialIb});
       const resNewTags = await V1.fork({
         src,
-        destIb: TAGS_IB,
+        destIb: specialIb,
         linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
         tpj: { uuid: true },
         dna: true,
       });
-      await this.persistTransformResult({
+      await this.files.persistTransformResult({
         resTransform: resNewTags,
         isMeta: true
       });
-      // for (let ibGib of [newTagsIbGib, ...(intermediateIbGibs || [])]) {
-      //   let resPut = await this.files.put({ibGib, isMeta: true});
-      //   if (!resPut.success) { throw new Error(resPut.errorMsg || 'error creating new tags ibGib'); }
-      // }
-      // for (let ibGib of dnas) {
-      //   let resPut = await this.files.put({ibGib, isDna: true});
-      //   if (!resPut.success) { throw new Error(resPut.errorMsg || 'error creating new tags ibGib'); }
-      // }
-      // return newTagsIbGib;
       return resNewTags.newIbGib;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -144,26 +334,26 @@ export class IbgibsService {
   }
 
   async createTagIbGib({
-    tagText,
+    text,
     icon,
-  }: {
-    tagText: string,
-    icon?: string,
-  }): Promise<{newTagIbGib: IbGib_V1, newTagsAddr: string}> {
+    description,
+  }: TagData): Promise<{newTagIbGib: IbGib_V1, newTagsAddr: string}> {
     const lc = `${this.lc}[${this.createTagIbGib.name}]`;
     try {
-      if (!tagText) { throw new Error(`${lc} tag text required`); }
-      const tagIb = this.tagTextToIb(tagText);
+      if (!text) { throw new Error(`${lc} text required`); }
+      icon = icon || DEFAULT_TAG_ICON;
+      description = description || DEFAULT_TAG_DESCRIPTION;
+      const tagIb = this.tagTextToIb(text);
       const tagPrimitive = factory.primitive({ib: "tag"});
       const resNewTag = await factory.firstGen({
         parentIbGib: tagPrimitive,
         ib: tagIb,
-        data: <TagData>{ tagText, icon: icon || '' },
+        data: { text, icon, description },
         linkedRel8ns: [ Rel8n.past, Rel8n.ancestor ],
         dna: true,
       });
       const { newIbGib: newTagIbGib } = resNewTag;
-      await this.persistTransformResult({resTransform: resNewTag, isMeta: true});
+      await this.files.persistTransformResult({resTransform: resNewTag, isMeta: true});
       const newTagsAddr = await this.rel8TagToTagsIbGib(newTagIbGib);
       return { newTagIbGib, newTagsAddr };
     } catch (error) {
@@ -172,71 +362,102 @@ export class IbgibsService {
     }
   }
 
-  /**
-   * Convenience function for persisting a transform result, which has
-   * a newIbGib and optionally intermediate ibGibs and/or dnas.
-   */
-  async persistTransformResult({
-    isMeta,
-    resTransform,
-  }: {
-    isMeta?: boolean,
-    resTransform: TransformResult<IbGib_V1>
-  }): Promise<void> {
-    const lc = `${this.lc}[${this.persistTransformResult.name}]`;
+  async createRootIbGib({
+    text,
+    icon,
+    description,
+  }: RootData): Promise<{newRootIbGib: IbGib_V1, newRootsAddr: string}> {
+    const lc = `${this.lc}[${this.createRootIbGib.name}]`;
     try {
-      const { newIbGib, intermediateIbGibs, dnas } = resTransform;
-      const ibGibs = [newIbGib, ...(intermediateIbGibs || [])];
-      for (let ibGib of ibGibs) {
-        const resPut = await this.files.put({ibGib, isMeta});
-        if (!resPut.success) { throw new Error(`${lc} ${resPut.errorMsg}`); }
-      }
-      if (dnas) {
-        for (let ibGib of dnas) {
-          const resPut = await this.files.put({ibGib, isDna: true});
-          if (!resPut.success) { throw new Error(`${lc} ${resPut.errorMsg}`); }
-        }
-      }
+      text = text || DEFAULT_ROOT_TEXT;
+      icon = icon || DEFAULT_ROOT_ICON;
+      description = description || DEFAULT_ROOT_DESCRIPTION;
+      const ib = this.rootTextToIb(text);
+      const parentIbGib = factory.primitive({ib: "root"});
+      const resNewIbGib = await factory.firstGen({
+        parentIbGib,
+        ib,
+        data: { text, icon, description },
+        linkedRel8ns: [ Rel8n.past, Rel8n.ancestor ],
+        dna: true,
+      });
+      const { newIbGib } = resNewIbGib;
+      await this.files.persistTransformResult({resTransform: resNewIbGib, isMeta: true});
+      const newRootsAddr = await this.rel8ToSpecialIbGib({
+        type: "roots",
+        rel8nName: ROOT_REL8N_NAME,
+        ibGibToRel8: newIbGib,
+        isMeta: true,
+      });
+      return { newRootIbGib: newIbGib, newRootsAddr };
     } catch (error) {
       console.log(`${lc} ${error.message}`);
       throw error;
     }
   }
 
+  rootTextToIb(text: string): string {
+    const lc = `${this.lc}[${this.rootTextToIb.name}]`;
+    if (!text) { throw new Error(`${lc} text required.`)}
+    return `root ${text}`;
+  }
+
   /**
    * Relates the given tag to the TagsIbGib, saves the generated
    * TagsIbGib and updates the settings to point to the new TagsIbGib.
    *
-   * @param newTagIbGib to add to Tags
+   * @param tagIbGib to add to Tags
    */
-  async rel8TagToTagsIbGib(newTagIbGib: IbGib_V1): Promise<IbGibAddr> {
-    const lc = `${this.lc}[${this.rel8TagToTagsIbGib.name}]`;
-    try {
-      const newTagAddr = getIbGibAddr({ibGib: newTagIbGib});
+  rel8TagToTagsIbGib(tagIbGib: IbGib_V1): Promise<IbGibAddr> {
+    return this.rel8ToSpecialIbGib({
+      type: "tags",
+      rel8nName: TAG_REL8N_NAME,
+      ibGibToRel8: tagIbGib,
+      isMeta: true,
+    });
+  }
 
-      // get the tags ibgib with rel8ns to all (local) tags
-      let tagsAddr = (await Storage.get({key: TAGS_IBGIB_ADDR_KEY}))?.value;
-      if (!tagsAddr) { throw new Error(`tagsAddr not found`) };
-      let resGetTags = await this.files.get({addr: tagsAddr, isMeta: true});
-      if (!resGetTags.success) { throw new Error(`couldn't get tags`) }
-      if (!resGetTags.ibGib) { throw new Error(`resGetTags.ibGib falsy`) }
+  async rel8ToSpecialIbGib({
+    type,
+    rel8nName,
+    ibGibToRel8,
+    isMeta,
+  }: {
+    type: SpecialIbGibType,
+    rel8nName: string,
+    ibGibToRel8: IbGib_V1,
+    isMeta: boolean,
+  }): Promise<IbGibAddr> {
+    const lc = `${this.lc}[${this.rel8ToSpecialIbGib.name}({type: ${type}, rel8nName: ${rel8nName}, isMeta: ${isMeta}})]`;
+    try {
+      const newAddr = getIbGibAddr({ibGib: ibGibToRel8});
+
+      // get the special ibgib
+      const storageKey = this.getSpecialStorageKey({type});
+      let specialAddr = (await Storage.get({key: storageKey}))?.value;
+      if (!specialAddr) { throw new Error(`addr not found`) };
+      let resGetSpecial = await this.files.get({addr: specialAddr, isMeta: true});
+      if (!resGetSpecial.success) { throw new Error(`couldn't get special`) }
+      if (!resGetSpecial.ibGib) { throw new Error(`resGetSpecial.ibGib falsy`) }
 
       // rel8 the new tag to the tags index.
       const resTransform = await V1.rel8({
-        src: resGetTags.ibGib!,
-        rel8nsToAddByAddr: { [TAG_REL8N_NAME]: [newTagAddr] },
+        src: resGetSpecial.ibGib!,
+        rel8nsToAddByAddr: { [rel8nName]: [newAddr] },
         dna: true,
         linkedRel8ns: [Rel8n.past],
       });
 
       // persist
-      await this.persistTransformResult({resTransform, isMeta: true});
+      await this.files.persistTransformResult({resTransform, isMeta});
 
       // return the new tagS address (not the incoming new tag)
-      const { newIbGib: newTagsIbGib } = resTransform;
-      tagsAddr = getIbGibAddr({ibGib: newTagsIbGib});
+      const { newIbGib: newSpecialIbGib } = resTransform;
+      specialAddr = getIbGibAddr({ibGib: newSpecialIbGib});
 
-      return tagsAddr;
+      await Storage.set({key: storageKey, value: specialAddr});
+
+      return specialAddr;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

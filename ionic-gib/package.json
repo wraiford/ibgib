@@ -7,9 +7,15 @@
     "ng": "ng",
     "start": "ng serve --ssl",
     "build": "ng build",
+    "build:aot": "ng build --aot",
+    "watch": "ng build --aot --output-path www --watch",
     "test": "ng test",
     "lint": "ng lint",
-    "e2e": "ng e2e"
+    "e2e": "ng e2e",
+    "ff:chrome": "cd www && web-ext run -t firefox-desktop -t chromium",
+    "ff": "cd www && web-ext run -t firefox-desktop --firefox-profile=webext-test --keep-profile-changes",
+    "chrome": "cd www && web-ext run -t chromium",
+    "android": "ionic capacitor build android"
   },
   "private": true,
   "dependencies": {
@@ -19,6 +25,7 @@
     "@angular/platform-browser": "~9.1.6",
     "@angular/platform-browser-dynamic": "~9.1.6",
     "@angular/router": "~9.1.6",
+    "@capacitor/android": "^2.2.1",
     "@capacitor/core": "2.2.1",
     "@ionic-native/core": "^5.0.7",
     "@ionic-native/splash-screen": "^5.0.0",
@@ -27,7 +34,7 @@
     "@ionic/pwa-elements": "^1.5.2",
     "lex-gib": "^0.10.1",
     "rxjs": "~6.5.1",
-    "ts-gib": "^0.1.12",
+    "ts-gib": "^0.1.25",
     "tslib": "^1.10.0",
     "zone.js": "~0.10.2"
   },
@@ -38,7 +45,7 @@
     "@angular/compiler-cli": "~9.1.6",
     "@angular/language-service": "~9.1.6",
     "@capacitor/cli": "2.2.1",
-    "@ionic/angular-toolkit": "^2.1.1",
+    "@ionic/angular-toolkit": "^3.0.0",
     "@types/jasmine": "~3.5.0",
     "@types/jasminewd2": "~2.0.3",
     "@types/node": "^12.11.1",
