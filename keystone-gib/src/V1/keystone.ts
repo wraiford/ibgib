@@ -203,7 +203,7 @@ export async function generateNewKeystone_Hash({
         linkedRel8ns: [Rel8n.ancestor, Rel8n.past],
     });
 
-    // generate config keystone ibGib...
+    // generate keystone config ibGib...
     const resKeystoneConfig = await generateKeystoneConfig({challengesConfig});
     const {newIbGib: keystoneConfig} = resKeystoneConfig;
     const keystoneConfigAddr = getIbGibAddr({ibGib: keystoneConfig});

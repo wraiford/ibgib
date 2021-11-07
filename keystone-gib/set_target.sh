@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 
 # This script is for changing between node and browser targets.
 # The driving use case is hashing, which requires the crypto lib.
@@ -7,14 +7,12 @@
 # imports and can't get mocha html working),
 # and anything I do that tries to bundle differently between browser and web
 # fails with webpack/tsc. So this is my own hack.
-# Ick and sigh but what can you do.
 
 
 if [[ $1 == node ]] || [[ $1 == browser ]]; then
   echo "TARGET is: $1"
 
-  # Files=('/home/wraiford/ibgib/src/ibgib/ts-gib/src/ibgibs/funcs/gibs/sha256v1.ts' '/home/wraiford/ibgib/src/ibgib/ts-gib/src/core/helper.ts')
-  Files=('/home/wraiford/ibgib/impl/typescript/core/src/testtarget.ts' '/home/wraiford/ibgib/impl/typescript/core/src/V1/sha256v1.ts' '/home/wraiford/ibgib/impl/typescript/core/src/helper.ts')
+  Files=('./src/V1/sha256v1.ts' './src/helper.ts')
   echo "Files is..." ${Files[@]}
 
   for file in "${Files[@]}"; do

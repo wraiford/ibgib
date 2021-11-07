@@ -22,7 +22,7 @@ timeline, each like a git repo. Each and every one of them can be forked,
 and if also producing dna, they can be merged into other timelines.
 Because they relate to each other (via `rel8ns`) with Merkle links,
 each one is like its own little blockchain when viewed as nodes on the DAG.
-But because of special `rel8ns` like `ancestor` and `past`, the ibgibs
+But because of specific special `rel8ns` like `ancestor` and `past`, the ibgibs
 also have cyclic and non-directed properties. So it's also NOT a DAG, and
 this is one aspect that is unique to the DLT protocol.
 
@@ -538,7 +538,8 @@ be included in your metadata DAG "on-chain" like all of the other transaction me
 
 ## contributing
 
-Wat? Contribute? hmm.
+Wat? Contribute? hmm. Love it, wouldn't believe it if you told me you wanted to. But
+you can still it do.
 
 ### to add unit tests (specs)
 
