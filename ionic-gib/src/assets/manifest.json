@@ -1,5 +1,5 @@
 {
-    "name": "webext-gib",
+    "name": "ionic-gib",
     "version": "0.0.1",
     "description": "Simple, powerful and open life-long learning, chat, todo, calendar, and much more...",
     "browser_action": {

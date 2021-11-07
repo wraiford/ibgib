@@ -104,6 +104,8 @@ export class AppComponent extends IbgibComponentBase
         // make sure roots are initialized FIRST before any other ibgib happenings
         await this.loadRoots();
 
+        // await this.initializeLatest();
+
         // tags
         const tagsKey = this.common.ibgibs.getSpecialStorageKey({type: "tags"});
         this.tagsAddr = (await Plugins.Storage.get({key: tagsKey})).value;
@@ -167,7 +169,8 @@ export class AppComponent extends IbgibComponentBase
     if (!this.item) { this.item = {} }
     this.item.isMeta = true;
     console.log(`${lc} getting...`);
-    const special = await this.common.ibgibs.getSpecialIbgib({type: "roots", initialize: true});
+    const special = 
+      await this.common.ibgibs.getSpecialIbgib({type: "roots", initialize: true});
     console.log(`${lc} gotten.`);
     this.rootsAddr = getIbGibAddr({ibGib: special});
     this.currentRoot = await this.getCurrentRoot();

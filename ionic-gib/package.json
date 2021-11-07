@@ -1,8 +1,7 @@
 {
   "name": "ionic-gib",
   "version": "0.0.1",
-  "author": "Ionic Framework",
-  "homepage": "https://ionicframework.com/",
+  "author": "William Raiford",
   "scripts": {
     "ng": "ng",
     "start": "ng serve --ssl",
@@ -12,13 +11,16 @@
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e",
-    "ff:chrome": "cd www && web-ext run -t firefox-desktop -t chromium",
-    "ff": "cd www && web-ext run -t firefox-desktop --firefox-profile=webext-test --keep-profile-changes",
-    "chrome": "cd www && web-ext run -t chromium",
-    "android": "ionic capacitor build android"
+    "ff:chrome": "cd www && web-ext run -t firefox-desktop -t chromium --keep-profile-changes --browser-console",
+    "ff": "cd www && web-ext run -t firefox-desktop --firefox-profile=webext-test --keep-profile-changes --browser-console",
+    "chrome": "cd www && web-ext run -t chromium --keep-profile-changes --browser-console",
+    "start:android": "ionic capacitor run android",
+    "build:android": "ionic build && ionic capacitor sync android",
+    "watch:android": "ionic capacitor run android --live-reload"
   },
   "private": true,
   "dependencies": {
+    "@angular/cli": "^9.1.5",
     "@angular/common": "~9.1.6",
     "@angular/core": "~9.1.6",
     "@angular/forms": "~9.1.6",
@@ -34,13 +36,12 @@
     "@ionic/pwa-elements": "^1.5.2",
     "lex-gib": "^0.10.1",
     "rxjs": "~6.5.1",
-    "ts-gib": "^0.1.25",
+    "ts-gib": "^0.1.32",
     "tslib": "^1.10.0",
     "zone.js": "~0.10.2"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "~0.901.5",
-    "@angular/cli": "~9.1.5",
     "@angular/compiler": "~9.1.6",
     "@angular/compiler-cli": "~9.1.6",
     "@angular/language-service": "~9.1.6",

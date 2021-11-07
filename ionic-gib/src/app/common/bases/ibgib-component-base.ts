@@ -198,7 +198,8 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
                         item.ibGib = resGet.ibGib;
                     } else if (!resGet.success && item.isMeta) {
                         // we've tried to load a meta ibGib that does not exist.
-                        item.ibGib = Factory_V1.primitive({ib});
+                        // item.ibGib = Factory_V1.primitive({ib});
+                        item.ibGib = null;
                     } else {
                         console.error(`${lc} ${resGet.errorMsg || 'unknown error'}`)
                     }
@@ -211,7 +212,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
 
     /**
      * Creates a primitive ibGib, forks it with the same ib
-     * but with a tpj (temporal junction point, aka birthday) to give it
+     * but with a tjp (temporal junction point, aka birthday) to give it
      * uniqueness and returns the fork result, which includes the unique ibGib.
      *
      * Also this will by default use linkedRel8ns for 'past' and 'ancestor'.
@@ -239,7 +240,8 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
                 src: primitive,
                 dna,
                 linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
-                tpj: {uuid: true, timestamp: true},
+                tjp: {uuid: true, timestamp: true},
+                nCounter: true,
             });
         return result;
     }

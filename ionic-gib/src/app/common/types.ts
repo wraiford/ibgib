@@ -79,6 +79,9 @@ export interface RootData {
     description?: string;
 }
 
+export interface LatestData {
+}
+
 export interface PicData {
     binHash: string;
     binHashThumb?: string;
@@ -101,4 +104,4 @@ export interface ActionItem {
     filepicked?: (event: any) => Promise<void>;
 }
 
-export type SpecialIbGibType = "tags" | "roots";
+export type SpecialIbGibType = "tags" | "roots" | "latest";

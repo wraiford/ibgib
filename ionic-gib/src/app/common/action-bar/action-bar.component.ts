@@ -103,7 +103,7 @@ export class ActionBarComponent extends IbgibComponentBase
         ib: `comment ${text.length > 10 ? text.substring(0,10) : text}`,
         data,
         dna: true,
-        tpj: { uuid: true }
+        tjp: { uuid: true }
       };
 
       if (this.addr) {
@@ -127,7 +127,7 @@ export class ActionBarComponent extends IbgibComponentBase
         if (!this.ibGib) { await this.loadIbGib(); }
         const rel8nsToAddByAddr = { comment: [newCommentAddr] };
         const resRel8ToContext =
-          await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true});
+          await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
         await this.common.files.persistTransformResult({resTransform: resRel8ToContext});
         const { newIbGib: newContext } = resRel8ToContext;
         const newContextAddr = getIbGibAddr(newContext);
@@ -195,7 +195,7 @@ export class ActionBarComponent extends IbgibComponentBase
         data,
         rel8ns,
         dna: true,
-        tpj: { uuid: true }
+        tjp: { uuid: true }
       });
       await this.common.files.persistTransformResult({resTransform: resPicIbGib});
       const { newIbGib: newPic } = resPicIbGib;
@@ -207,7 +207,7 @@ export class ActionBarComponent extends IbgibComponentBase
       if (!this.ibGib) { await this.loadIbGib(); }
       const rel8nsToAddByAddr = { pic: [newPicAddr] };
       const resRel8ToContext =
-        await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true});
+        await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
       await this.common.files.persistTransformResult({resTransform: resRel8ToContext});
       const { newIbGib: newContext } = resRel8ToContext;
       const newContextAddr = getIbGibAddr(newContext);

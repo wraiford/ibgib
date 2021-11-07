@@ -1,3 +1,3 @@
 <!-- <p>tag view here</p> -->
 <ion-icon [name]="ibGib?.data?.icon"></ion-icon>
-<div class='tag-text'> {{ ibGib?.data?.tagText }}</div>
+<div class='tag-text'> {{ ibGib?.data?.tagText || ibGib?.data?.text || '[missing tag text]' }}</div>

@@ -90,3 +90,19 @@ export const DEFAULT_ROOT_ICON = 'analytics-outline';
  * Default description specifically for roots.
  */
 export const DEFAULT_ROOT_DESCRIPTION = 'This is a root ibgib, which is basically like a root folder that is primarily responsible for "containing" other ibgibs.';
+/**
+ * rel8n name used inside the root to those ibgib it contains.
+ * 
+ * @example 
+ * ```json
+ *  { 
+ *      ib: root, 
+ *      gib: ABC123, 
+ *      data: {...}, 
+ *      rel8ns: {
+ *          [rel8nName]: ["a^1", "b^2"]
+ *      }
+ *  }
+ * ```
+ */
+export const DEFAULT_ROOT_REL8N_NAME = 'x';

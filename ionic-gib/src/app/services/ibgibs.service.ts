@@ -6,14 +6,17 @@ import { FilesService } from './files.service';
 import { 
   TAG_REL8N_NAME, DEFAULT_ROOT_DESCRIPTION, DEFAULT_ROOT_ICON, 
   ROOT_REL8N_NAME, DEFAULT_TAG_ICON, DEFAULT_TAG_DESCRIPTION, 
-  DEFAULT_ROOT_TEXT 
+  DEFAULT_ROOT_TEXT, DEFAULT_ROOT_REL8N_NAME,
 } from '../common/constants';
 import { Factory_V1 as factory } from 'ts-gib/dist/V1';
 import { getIbGibAddr } from 'ts-gib/dist/helper';
 import { TagData, SpecialIbGibType, RootData } from '../common/types';
-import { IbGibWitnessScheduler } from 'keystone-gib/src/V1/witnesses/scheduler';
-import { InMemoryRepo } from 'keystone-gib/src/V1/witnesses/in-memory-repo';
+// import { IbGibWitnessScheduler } from 'keystone-gib/src/V1/witnesses/scheduler';
+// import { InMemoryRepo } from 'keystone-gib/src/V1/witnesses/in-memory-repo';
 
+/**
+ * Get/update/work with special ibgibs, such as the current root, tags, etc.
+ */
 @Injectable({
   providedIn: 'root'
 })
@@ -26,12 +29,12 @@ export class IbgibsService {
     private files: FilesService,
   ) { }
 
-  private _inMemoryRepo = new InMemoryRepo(/*includeAddrs*/ false, /*optimisticPut*/ true);
+  // private _inMemoryRepo = new InMemoryRepo(/*includeAddrs*/ false, /*optimisticPut*/ true);
   /**
    * Primary scheduler (execution loop) for this service. When it witnesses
    * any ibGib, it adds it to the list of 
    */
-  private _scheduler = new IbGibWitnessScheduler(this._inMemoryRepo);
+  // private _scheduler = new IbGibWitnessScheduler(this._inMemoryRepo);
 
   private _currentRoot: IbGib_V1<RootData> | undefined;
   async getCurrentRoot(): Promise<IbGib_V1<RootData> | undefined> {
@@ -82,6 +85,7 @@ export class IbgibsService {
         linkedRel8ns: ["past", "ancestor"],
         rel8nsToRemoveByAddr,
         rel8nsToAddByAddr,
+        nCounter: true,
       });
       await this.files.persistTransformResult({isMeta: true, resTransform: resNewRoot});
       this._currentRoot = root;
@@ -103,6 +107,50 @@ export class IbgibsService {
 
   getSpecialStorageKey({type}: {type: SpecialIbGibType}): string {
     return `storage_key ${this.getSpecialIbgibAddr({type})}`;
+  }
+
+  async rel8ToCurrentRoot({
+    ibGib, 
+    linked,
+    rel8nName,
+  }: {
+    ibGib: IbGib_V1, 
+    linked?: boolean,
+    rel8nName?: string,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.rel8ToCurrentRoot}]`;
+
+    try {
+      let currentRoot = await this.getCurrentRoot();
+      if (!currentRoot) { throw new Error('currentRoot undefined'); }
+
+      let ibGibAddr = getIbGibAddr({ibGib});
+
+      // check to see if it's already rel8d. If so, we're done.
+      if (currentRoot.rel8ns[rel8nName] && 
+          currentRoot.rel8ns[rel8nName].includes(ibGibAddr)) {
+        // already rel8d
+        return;
+      }
+
+      rel8nName = rel8nName || DEFAULT_ROOT_REL8N_NAME;
+
+      // we only need to add the ibgib itself to the root, not the tjp
+      // and not any dependent ibgibs. ...wakka doodle.
+      const resNewRoot = await V1.rel8({
+        src: currentRoot,
+        dna: false,
+        linkedRel8ns: linked ? ["past", "ancestor", rel8nName] : ["past", "ancestor"],
+        rel8nsToAddByAddr: { [rel8nName]: [ibGibAddr] },
+        nCounter: true,
+      });
+      await this.files.persistTransformResult({isMeta: true, resTransform: resNewRoot});
+      this._currentRoot = <IbGib_V1<RootData>>resNewRoot.newIbGib;
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return;
+    }
   }
 
   /**
@@ -167,6 +215,9 @@ export class IbgibsService {
         case "roots":
           return this.initializeRoots();
 
+        case "latest":
+          return this.initializeLatest();
+
         default:
           throw new Error(`not implemented. type: ${type}`);
       }
@@ -218,8 +269,9 @@ export class IbgibsService {
   //       src,
   //       destIb: tagsIb,
   //       linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
-  //       tpj: { uuid: true },
+  //       tjp: { uuid: true },
   //       dna: true,
+  //       nCounter: true,
   //     });
   //     await this.files.persistTransformResult({
   //       resTransform: resNewTags,
@@ -269,6 +321,23 @@ export class IbgibsService {
     }
   }
 
+  async initializeLatest(): Promise<IbGibAddr | null> {
+    const lc = `${this.lc}[${this.initializeLatest.name}]`;
+    try {
+      const storageKey = this.getSpecialStorageKey({type: "latest"});
+      const special = await this.initializeSpecialIbGib({type: "latest"});
+      let specialAddr = getIbGibAddr({ibGib: special});
+      await Storage.set({key: storageKey, value: specialAddr});
+
+      // initialize the initial data
+      // right now, the latest ibgib doesn't have data
+
+      return specialAddr;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return null;
+    }
+  }
   // private async initializeNewRootsIbGib(): Promise<IbGib_V1> {
   //   const lc = `${this.lc}[${this.initializeNewRootsIbGib.name}]`;
   //   try {
@@ -278,8 +347,9 @@ export class IbgibsService {
   //       src,
   //       destIb: specialIb,
   //       linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
-  //       tpj: { uuid: true },
+  //       tjp: { uuid: true },
   //       dna: true,
+  //       nCounter: true,
   //     });
   //     await this.files.persistTransformResult({
   //       resTransform: resNewTags,
@@ -292,7 +362,7 @@ export class IbgibsService {
   //   }
   // }
 
-  private async initializeSpecialIbGib({
+  async initializeSpecialIbGib({
     type,
   }: {
     type: SpecialIbGibType,
@@ -301,18 +371,19 @@ export class IbgibsService {
     try {
       const specialIb = this.getSpecialIbgibIb({type});
       const src = factory.primitive({ib: specialIb});
-      const resNewTags = await V1.fork({
+      const resNewSpecial = await V1.fork({
         src,
         destIb: specialIb,
         linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
-        tpj: { uuid: true },
+        tjp: { uuid: true },
         dna: true,
+        nCounter: true,
       });
       await this.files.persistTransformResult({
-        resTransform: resNewTags,
+        resTransform: resNewSpecial,
         isMeta: true
       });
-      return resNewTags.newIbGib;
+      return resNewSpecial.newIbGib;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -440,24 +511,25 @@ export class IbgibsService {
       if (!resGetSpecial.success) { throw new Error(`couldn't get special`) }
       if (!resGetSpecial.ibGib) { throw new Error(`resGetSpecial.ibGib falsy`) }
 
-      // rel8 the new tag to the tags index.
-      const resTransform = await V1.rel8({
+      // rel8 the new tag to the special ibgib.
+      const resTransformNewSpecial = await V1.rel8({
         src: resGetSpecial.ibGib!,
         rel8nsToAddByAddr: { [rel8nName]: [newAddr] },
         dna: true,
         linkedRel8ns: [Rel8n.past],
+        nCounter: true,
       });
 
       // persist
-      await this.files.persistTransformResult({resTransform, isMeta});
+      await this.files.persistTransformResult({resTransform: resTransformNewSpecial, isMeta});
 
-      // return the new tagS address (not the incoming new tag)
-      const { newIbGib: newSpecialIbGib } = resTransform;
-      specialAddr = getIbGibAddr({ibGib: newSpecialIbGib});
+      // return the new special address (not the incoming new tag)
+      const { newIbGib: newSpecialIbGib } = resTransformNewSpecial;
+      let newSpecialAddr = getIbGibAddr({ibGib: newSpecialIbGib});
 
-      await Storage.set({key: storageKey, value: specialAddr});
+      await Storage.set({key: storageKey, value: newSpecialAddr});
 
-      return specialAddr;
+      return newSpecialAddr;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
