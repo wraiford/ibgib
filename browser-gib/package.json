@@ -1,8 +1,7 @@
 {
   "name": "browser-gib",
   "version": "0.0.1",
-  "author": "Ionic Framework",
-  "homepage": "https://ionicframework.com/",
+  "author": "William Raiford",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
