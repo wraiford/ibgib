@@ -64,7 +64,6 @@ export class IbgibsService {
   async setCurrentRoot(root: IbGib_V1<RootData>): Promise<void> {
     const lc = `${this.lc}[${this.setCurrentRoot.name}]`;
     try {
-      debugger;
       if (!root) { throw new Error(`root required.`); }
       const rootAddr = getIbGibAddr({ibGib: root});
 
@@ -132,7 +131,6 @@ export class IbgibsService {
     try {
       let currentRoot = await this.getCurrentRoot();
       if (!currentRoot) { 
-        debugger;
         throw new Error('currentRoot undefined'); 
       }
 
@@ -161,7 +159,6 @@ export class IbgibsService {
       await this.setCurrentRoot(<IbGib_V1<RootData>>resNewRoot.newIbGib);
 
     } catch (error) {
-      debugger;
       console.error(`${lc} ${error.message}`);
       return;
     }
