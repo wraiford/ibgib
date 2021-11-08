@@ -32,3 +32,6 @@ plugins
 www
 
 *.tsbuildinfo
+
+ts-gib
+
