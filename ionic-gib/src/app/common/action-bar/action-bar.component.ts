@@ -103,7 +103,8 @@ export class ActionBarComponent extends IbgibComponentBase
         ib: `comment ${text.length > 10 ? text.substring(0,10) : text}`,
         data,
         dna: true,
-        tjp: { uuid: true }
+        tjp: { uuid: true, timestamp: true },
+        nCounter: true,
       };
 
       if (this.addr) {
@@ -114,6 +115,10 @@ export class ActionBarComponent extends IbgibComponentBase
       const resCommentIbGib = await factory.firstGen(opts);
       console.log(`${lc} 2b`);
       await this.common.files.persistTransformResult({resTransform: resCommentIbGib});
+      await this.common.ibgibs.rel8ToCurrentRoot({
+        ibGib: resCommentIbGib.newIbGib, 
+        linked: true
+      });
       console.log(`${lc} 2c`);
       const { newIbGib: newComment } = resCommentIbGib;
       const newCommentAddr = getIbGibAddr({ibGib: newComment});
@@ -129,6 +134,10 @@ export class ActionBarComponent extends IbgibComponentBase
         const resRel8ToContext =
           await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
         await this.common.files.persistTransformResult({resTransform: resRel8ToContext});
+        await this.common.ibgibs.rel8ToCurrentRoot({
+          ibGib: resRel8ToContext.newIbGib, 
+          linked: true
+        });
         const { newIbGib: newContext } = resRel8ToContext;
         const newContextAddr = getIbGibAddr(newContext);
 
@@ -195,9 +204,14 @@ export class ActionBarComponent extends IbgibComponentBase
         data,
         rel8ns,
         dna: true,
-        tjp: { uuid: true }
+        tjp: { uuid: true, timestamp: true },
+        nCounter: true,
       });
       await this.common.files.persistTransformResult({resTransform: resPicIbGib});
+      await this.common.ibgibs.rel8ToCurrentRoot({
+        ibGib: resPicIbGib.newIbGib, 
+        linked: true
+      });
       const { newIbGib: newPic } = resPicIbGib;
       const newPicAddr = getIbGibAddr({ibGib: newPic});
       // need to nav to picture if not in a context, or
@@ -209,6 +223,10 @@ export class ActionBarComponent extends IbgibComponentBase
       const resRel8ToContext =
         await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
       await this.common.files.persistTransformResult({resTransform: resRel8ToContext});
+      await this.common.ibgibs.rel8ToCurrentRoot({
+        ibGib: resRel8ToContext.newIbGib, 
+        linked: true
+      });
       const { newIbGib: newContext } = resRel8ToContext;
       const newContextAddr = getIbGibAddr(newContext);
 

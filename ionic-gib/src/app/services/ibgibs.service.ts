@@ -64,6 +64,7 @@ export class IbgibsService {
   async setCurrentRoot(root: IbGib_V1<RootData>): Promise<void> {
     const lc = `${this.lc}[${this.setCurrentRoot.name}]`;
     try {
+      debugger;
       if (!root) { throw new Error(`root required.`); }
       const rootAddr = getIbGibAddr({ibGib: root});
 
@@ -76,10 +77,13 @@ export class IbgibsService {
       // if (roots.rel8ns.current.length > 1) { throw new Error(`Invalid Roots: multiple current roots selected.`); }
 
       // remove any existing current root value
-      const rel8nsToRemoveByAddr = { current: roots?.rel8ns?.current || undefined , };
+      
+      const rel8nsToRemoveByAddr = roots?.rel8ns?.current && roots?.rel8ns?.current.length > 0 ?
+        { current: roots!.rel8ns!.current, } :
+        undefined;
       const rel8nsToAddByAddr = { current: [rootAddr] };
 
-      const resNewRoot = await V1.rel8({
+      const resNewRoots = await V1.rel8({
         src: roots,
         dna: false,
         linkedRel8ns: ["past", "ancestor"],
@@ -87,7 +91,12 @@ export class IbgibsService {
         rel8nsToAddByAddr,
         nCounter: true,
       });
-      await this.files.persistTransformResult({isMeta: true, resTransform: resNewRoot});
+      await this.files.persistTransformResult({isMeta: true, resTransform: resNewRoots});
+
+      const storageKey = this.getSpecialStorageKey({type: "roots"});
+      let newRootsAddr = getIbGibAddr({ibGib: resNewRoots.newIbGib});
+      await Storage.set({key: storageKey, value: newRootsAddr});
+
       this._currentRoot = root;
 
       // how to let others know roots has changed?
@@ -118,11 +127,14 @@ export class IbgibsService {
     linked?: boolean,
     rel8nName?: string,
   }): Promise<void> {
-    const lc = `${this.lc}[${this.rel8ToCurrentRoot}]`;
+    const lc = `${this.lc}[${this.rel8ToCurrentRoot.name}]`;
 
     try {
       let currentRoot = await this.getCurrentRoot();
-      if (!currentRoot) { throw new Error('currentRoot undefined'); }
+      if (!currentRoot) { 
+        debugger;
+        throw new Error('currentRoot undefined'); 
+      }
 
       let ibGibAddr = getIbGibAddr({ibGib});
 
@@ -145,9 +157,11 @@ export class IbgibsService {
         nCounter: true,
       });
       await this.files.persistTransformResult({isMeta: true, resTransform: resNewRoot});
-      this._currentRoot = <IbGib_V1<RootData>>resNewRoot.newIbGib;
+      console.log(`${lc} updating _currentRoot root`);
+      await this.setCurrentRoot(<IbGib_V1<RootData>>resNewRoot.newIbGib);
 
     } catch (error) {
+      debugger;
       console.error(`${lc} ${error.message}`);
       return;
     }
@@ -277,6 +291,7 @@ export class IbgibsService {
   //       resTransform: resNewTags,
   //       isMeta: true
   //     });
+  //     await this.rel8ToCurrentRoot({ibGib: resNewTags.newIbGib, linked: true});
   //     return resNewTags.newIbGib;
   //   } catch (error) {
   //     console.error(`${lc} ${error.message}`);
@@ -296,6 +311,7 @@ export class IbgibsService {
       // add home, favorite tags
       const rootNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
 
+      let firstRoot: IbGib_V1<RootData> = null;
       const initialDatas: RootData[] = rootNames.map(n => {
         return { 
           text: `${n}root`, 
@@ -305,6 +321,7 @@ export class IbgibsService {
       });
       for (const data of initialDatas) {
         const resCreate = await this.createRootIbGib(data);
+        if (!firstRoot) { firstRoot = resCreate.newRootIbGib; }
         specialAddr = resCreate.newRootsAddr;
         // update the storage for the updated **roots** ibgib.
         // that roots ibgib is what points to the just created new root.
@@ -312,7 +329,12 @@ export class IbgibsService {
       }
 
       // initialize current root
+      await this.setCurrentRoot(firstRoot);
+      // hack: the above line updates the roots in storage. so get **that** addr.
 
+      specialAddr = (await Storage.get({key: storageKey})).value;
+
+      if (!specialAddr) { throw new Error('no roots address in storage?'); }
 
       return specialAddr;
     } catch (error) {
@@ -355,6 +377,7 @@ export class IbgibsService {
   //       resTransform: resNewTags,
   //       isMeta: true
   //     });
+  //     await this.rel8ToCurrentRoot({ibGib: resNewTags.newIbGib, linked: true});
   //     return resNewTags.newIbGib;
   //   } catch (error) {
   //     console.error(`${lc} ${error.message}`);
@@ -375,7 +398,7 @@ export class IbgibsService {
         src,
         destIb: specialIb,
         linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
-        tjp: { uuid: true },
+        tjp: { uuid: true, timestamp: true },
         dna: true,
         nCounter: true,
       });
@@ -383,6 +406,9 @@ export class IbgibsService {
         resTransform: resNewSpecial,
         isMeta: true
       });
+      if (type !== 'roots') {
+        await this.rel8ToCurrentRoot({ibGib: resNewSpecial.newIbGib, linked: true});
+      }
       return resNewSpecial.newIbGib;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -422,6 +448,7 @@ export class IbgibsService {
         data: { text, icon, description },
         linkedRel8ns: [ Rel8n.past, Rel8n.ancestor ],
         dna: true,
+        nCounter: true,
       });
       const { newIbGib: newTagIbGib } = resNewTag;
       await this.files.persistTransformResult({resTransform: resNewTag, isMeta: true});
@@ -437,7 +464,7 @@ export class IbgibsService {
     text,
     icon,
     description,
-  }: RootData): Promise<{newRootIbGib: IbGib_V1, newRootsAddr: string}> {
+  }: RootData): Promise<{newRootIbGib: IbGib_V1<RootData>, newRootsAddr: string}> {
     const lc = `${this.lc}[${this.createRootIbGib.name}]`;
     try {
       text = text || DEFAULT_ROOT_TEXT;
@@ -450,6 +477,7 @@ export class IbgibsService {
         ib,
         data: { text, icon, description },
         linkedRel8ns: [ Rel8n.past, Rel8n.ancestor ],
+        tjp: { uuid: true, timestamp: true },
         dna: true,
       });
       const { newIbGib } = resNewIbGib;
@@ -460,7 +488,7 @@ export class IbgibsService {
         ibGibToRel8: newIbGib,
         isMeta: true,
       });
-      return { newRootIbGib: newIbGib, newRootsAddr };
+      return { newRootIbGib: <IbGib_V1<RootData>>newIbGib, newRootsAddr };
     } catch (error) {
       console.log(`${lc} ${error.message}`);
       throw error;
@@ -512,7 +540,7 @@ export class IbgibsService {
       if (!resGetSpecial.ibGib) { throw new Error(`resGetSpecial.ibGib falsy`) }
 
       // rel8 the new tag to the special ibgib.
-      const resTransformNewSpecial = await V1.rel8({
+      const resNewSpecial = await V1.rel8({
         src: resGetSpecial.ibGib!,
         rel8nsToAddByAddr: { [rel8nName]: [newAddr] },
         dna: true,
@@ -521,10 +549,15 @@ export class IbgibsService {
       });
 
       // persist
-      await this.files.persistTransformResult({resTransform: resTransformNewSpecial, isMeta});
+      await this.files.persistTransformResult({resTransform: resNewSpecial, isMeta});
+
+      // rel8 the new special ibgib to the root, but only if it's not a root itself.
+      if (type !== 'roots') {
+        await this.rel8ToCurrentRoot({ibGib: resNewSpecial.newIbGib, linked: true});
+      }
 
       // return the new special address (not the incoming new tag)
-      const { newIbGib: newSpecialIbGib } = resTransformNewSpecial;
+      const { newIbGib: newSpecialIbGib } = resNewSpecial;
       let newSpecialAddr = getIbGibAddr({ibGib: newSpecialIbGib});
 
       await Storage.set({key: storageKey, value: newSpecialAddr});

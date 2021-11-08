@@ -243,6 +243,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
                 tjp: {uuid: true, timestamp: true},
                 nCounter: true,
             });
+        await this.common.ibgibs.rel8ToCurrentRoot({ibGib: result.newIbGib, linked: true});
         return result;
     }
 
