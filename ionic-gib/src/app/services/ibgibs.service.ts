@@ -137,6 +137,7 @@ export class IbgibsService {
       let ibGibAddr = getIbGibAddr({ibGib});
 
       // check to see if it's already rel8d. If so, we're done.
+      // NOTE: (very) naive!
       if (currentRoot.rel8ns[rel8nName] && 
           currentRoot.rel8ns[rel8nName].includes(ibGibAddr)) {
         // already rel8d
@@ -280,7 +281,7 @@ export class IbgibsService {
   //       src,
   //       destIb: tagsIb,
   //       linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
-  //       tjp: { uuid: true },
+  //       tjp: { uuid: true, timestamp: true },
   //       dna: true,
   //       nCounter: true,
   //     });
@@ -366,7 +367,7 @@ export class IbgibsService {
   //       src,
   //       destIb: specialIb,
   //       linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
-  //       tjp: { uuid: true },
+  //       tjp: { uuid: true, timestamp: true },
   //       dna: true,
   //       nCounter: true,
   //     });
@@ -444,6 +445,7 @@ export class IbgibsService {
         ib: tagIb,
         data: { text, icon, description },
         linkedRel8ns: [ Rel8n.past, Rel8n.ancestor ],
+        tjp: { uuid: true, timestamp: true },
         dna: true,
         nCounter: true,
       });
@@ -560,6 +562,84 @@ export class IbgibsService {
       await Storage.set({key: storageKey, value: newSpecialAddr});
 
       return newSpecialAddr;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Returns true if the given {@param ibGib} is the temporal junction 
+   * point for a given ibGib timeline.
+   */
+  async isTjp_Naive({
+    ibGib,
+    naive = true,
+  }: {
+    ibGib: IbGib_V1<any>,
+    naive?: boolean,
+  }): Promise<boolean> {
+    const lc = `${this.lc}[${this.isTjp_Naive.name}]`;
+    try {
+      if (!ibGib) { throw new Error('ibGib required.'); }
+      if (naive) {
+        if (ibGib.data) {
+          if (ibGib.data!.isTjp) { return true; }
+          if (!ibGib.rel8ns) { throw new Error('ibGib.rel8ns required.'); }
+          if (ibGib.rel8ns.past && ibGib.rel8ns.past.length > 0) { return false; }
+          if (ibGib.rel8ns.past && ibGib.rel8ns.past.length === 0) { return true; }
+          return false;
+        } else {
+          throw new Error('loaded ibGib required (data).');
+        }
+      } else {
+        throw new Error('only naive implemented right now.');
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
+
+  async getTjp({
+    ibGib,
+    naive = true,
+  }: {
+    ibGib: IbGib_V1<any>,
+    naive?: boolean,
+  }): Promise<IbGib_V1<any>> {
+    const lc = `${this.lc}[${this.isTjp_Naive.name}]`;
+
+    try {
+      if (!ibGib) { throw new Error('ibGib required.'); }
+      let isTjp = await this.isTjp_Naive({ibGib, naive});
+      if (isTjp) { return ibGib; }
+
+      // the given ibGib arg isn't itself the tjp
+      if (!ibGib.rel8ns) { throw new Error('ibGib.rel8ns required.'); }
+
+      if (ibGib.rel8ns!.tjp && ibGib.rel8ns!.tjp.length > 0) {
+        let firstTjpAddr = ibGib.rel8ns!.tjp[0];
+        let resGetTjpIbGib = await this.files.get({addr: firstTjpAddr});
+        if (resGetTjpIbGib.success) { return resGetTjpIbGib.ibGib }
+      }
+
+      // couldn't get the tjp from the rel8ns.tjp, so look for manually in past.
+      // but we can't just get the earliest in the 'past', because the tjp
+      // may be one of the intermediates!
+      // So, check the immediate past ibGib recursively.
+
+      let past = ibGib.rel8ns.past || [];
+      if (past.length === 0) { 
+        console.warn(`${lc} past.length === 0, but assumption atow is that code wouldnt reach here if that were the case.`)
+        return ibGib; 
+      }
+      let pastIbGibAddr = past[past.length-1];
+      let resGetPastIbGib = await this.files.get({addr: pastIbGibAddr});
+      let pastIbGib = resGetPastIbGib.ibGib;
+
+      // call this method recursively!
+      return await this.getTjp({ibGib: pastIbGib, naive});
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

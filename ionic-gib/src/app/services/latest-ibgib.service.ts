@@ -48,6 +48,4 @@ export class LatestIbgibService {
     throw new Error('not implemented');
   }
 
-
-
 }
