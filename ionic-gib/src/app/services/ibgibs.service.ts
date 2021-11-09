@@ -345,12 +345,13 @@ export class IbgibsService {
     const lc = `${this.lc}[${this.initializeLatest.name}]`;
     try {
       const storageKey = this.getSpecialStorageKey({type: "latest"});
-      const special = await this.initializeSpecialIbGib({type: "latest"});
+      const special = 
+        await this.initializeSpecialIbGib({type: "latest", skipRel8ToRoot: true});
       let specialAddr = getIbGibAddr({ibGib: special});
       await Storage.set({key: storageKey, value: specialAddr});
 
-      // initialize the initial data
-      // right now, the latest ibgib doesn't have data
+      // right now, the latest ibgib doesn't have any more initialization, 
+      // since it is supposed to be as ephemeral and non-tracked as possible.
 
       return specialAddr;
     } catch (error) {
@@ -358,6 +359,7 @@ export class IbgibsService {
       return null;
     }
   }
+
   // private async initializeNewRootsIbGib(): Promise<IbGib_V1> {
   //   const lc = `${this.lc}[${this.initializeNewRootsIbGib.name}]`;
   //   try {
@@ -385,8 +387,10 @@ export class IbgibsService {
 
   async initializeSpecialIbGib({
     type,
+    skipRel8ToRoot,
   }: {
     type: SpecialIbGibType,
+    skipRel8ToRoot?: boolean,
   }): Promise<IbGib_V1> {
     const lc = `${this.lc}[${this.initializeSpecialIbGib.name}]`;
     try {
@@ -397,14 +401,14 @@ export class IbgibsService {
         destIb: specialIb,
         linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
         tjp: { uuid: true, timestamp: true },
-        dna: true,
+        dna: false,
         nCounter: true,
       });
       await this.files.persistTransformResult({
         resTransform: resNewSpecial,
         isMeta: true
       });
-      if (type !== 'roots') {
+      if (type !== 'roots' && !skipRel8ToRoot) {
         await this.rel8ToCurrentRoot({ibGib: resNewSpecial.newIbGib, linked: true});
       }
       return resNewSpecial.newIbGib;
@@ -520,11 +524,33 @@ export class IbgibsService {
     rel8nName,
     ibGibToRel8,
     isMeta,
+    linked,
+    skipRel8ToRoot,
+    severPast,
+    deletePreviousSpecialIbGib,
   }: {
     type: SpecialIbGibType,
     rel8nName: string,
     ibGibToRel8: IbGib_V1,
     isMeta: boolean,
+    linked?: boolean,
+    skipRel8ToRoot?: boolean,
+    /**
+     * Clears out the special.rel8ns.past array to an empty array.
+     * 
+     * {@see deletePreviousSpecialIbGib} for driving use case.
+     */
+    severPast?: boolean,
+    /**
+     * Deletes the previous special ibGib.
+     * 
+     * ## driving use case
+     * 
+     * the latest ibGib is one that is completely ephemeral. It doesn't get attached
+     * to the current root, and it only has the current instance. So we don't want to
+     * keep around past incarnations.
+     */
+    deletePreviousSpecialIbGib?: boolean,
   }): Promise<IbGibAddr> {
     const lc = `${this.lc}[${this.rel8ToSpecialIbGib.name}({type: ${type}, rel8nName: ${rel8nName}, isMeta: ${isMeta}})]`;
     try {
@@ -542,16 +568,22 @@ export class IbgibsService {
       const resNewSpecial = await V1.rel8({
         src: resGetSpecial.ibGib!,
         rel8nsToAddByAddr: { [rel8nName]: [newAddr] },
-        dna: true,
-        linkedRel8ns: [Rel8n.past],
+        dna: false,
+        linkedRel8ns: linked ? [Rel8n.past, rel8nName] : [Rel8n.past],
         nCounter: true,
       });
+
+      if (severPast) { resNewSpecial.newIbGib.rel8ns.past = []; }
+
+      if (resNewSpecial.intermediateIbGibs) { 
+        throw new Error('new special creates intermediate ibgibs. so severing past is harder.'); 
+      }
 
       // persist
       await this.files.persistTransformResult({resTransform: resNewSpecial, isMeta});
 
       // rel8 the new special ibgib to the root, but only if it's not a root itself.
-      if (type !== 'roots') {
+      if (type !== 'roots' && !skipRel8ToRoot) {
         await this.rel8ToCurrentRoot({ibGib: resNewSpecial.newIbGib, linked: true});
       }
 
@@ -560,6 +592,11 @@ export class IbgibsService {
       let newSpecialAddr = getIbGibAddr({ibGib: newSpecialIbGib});
 
       await Storage.set({key: storageKey, value: newSpecialAddr});
+
+      // delete if required, only after updating storage with the new special addr.
+      if (deletePreviousSpecialIbGib) {
+        await this.files.delete({addr: specialAddr, isMeta});
+      }
 
       return newSpecialAddr;
     } catch (error) {
