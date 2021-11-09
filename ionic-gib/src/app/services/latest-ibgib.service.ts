@@ -1,28 +1,60 @@
 import { Injectable } from '@angular/core';
 import { Plugins } from '@capacitor/core';
 import { getIbGibAddr } from 'ts-gib/dist/helper';
-import { IbGib_V1, Rel8n, GIB } from 'ts-gib/dist/V1';
-import { IbGibAddr, V1, Ib } from 'ts-gib';
+import { IbGib_V1 } from 'ts-gib/dist/V1';
+import { IbGibAddr } from 'ts-gib';
 import { FilesService } from './files.service';
 import { IbgibsService } from './ibgibs.service';
 const { Modals } = Plugins;
 
-const HACK_STORAGE_KEY_LATEST = 'latest_ibgib_storage_key';
 /**
- * The latest ibGib is a special ibgib that maintains an index, to the
- * best of its knowledge, that relates a tjp with an ib^gib pointer
- * that is the most recent in the `past` `rel8n`.
+ * The tjp (temporal junction point) defines atow the beginning of an ibGib timeline.
+ * it's like the birthday for an ibGib.
+ * 
+ * The latest ibGib in that timeline is also special, because it's often what you 
+ * want to work with.
  * 
  * So ideally, when an ibgib, A, has a tjp A1, and it is updated to A2, A3, An 
- * via `mut8` and/or `rel8` transforms, that ibgib creates a timeline.
- * The Latest ibGib tracks the relationship between the tjp and its most 
- * recent frame in that timeline, i.e., A1 -> An. 
+ * via `mut8` and/or `rel8` transforms, that ibgib creates a single timeline.
+ * This {@link LatestIbgibService} attempts to track the relationship between that starting
+ * tjp address and its corresponding latest frame in that timeline, i.e., A1 -> An. 
  * 
+ * ## mapping persistence implementation details
+ * 
+ * The latest ibGib service is backed by a special ibgib that maintains the mapping index.
+ * It does this by rel8-ing that special backing ibgib via the tjp pointer, 
+ * e.g. [special latest ibgib^XXX000].rel8ns[A^TJP123] === [A^N12345]
  * It does this via the ib^gib content address pointer, so this becomes 
  * a mapping from A^TJP123 to A^N12345.
  * 
- * It keeps this mapping via the special 'latest' ibGib, which is registered
- * with the {@link IbgibsService}.
+ * This backing ibGib is special (even for special ibGibs) in that:
+ *   * it does not relate itself with the current root of the application
+ *   * it does not maintain references to its past (i.e. rel8ns['past'] === [])
+ *   * it DELETES its previous incarnation from the files service
+ * 
+ * In other words, this service is meant to be as ephemeral as possible. I am keeping it
+ * as an ibGib and not some other data format (like straight in storage/some other db) 
+ * because I've found this is often useful and what I end up doing anyway to leverage other
+ * ibgib behavior. For example, in the future it may be good to take snapshots, which is a
+ * simple copy operation of the file persistence.
+ * 
+ * 
+ * ## current naive implementation notes
+ * 
+ * questions: 
+ *   * What do we want to do if we can't locate an ibGib record? 
+ *   * How/when do we want to alert the user/our own code that we've found multiple timelines for an ibGib with a tjp (usually
+ * a thing we want to avoid)?
+ *   * Who do we want to notify when new ibGibs arrive? 
+ *   * How often do we want to check external sources for latest? 
+ *   * When do we get to merging ibGib timelines?
+ * 
+ * This is behavior that is somewhat taken care of, e.g. in git, with the HEAD pointer for a repo. 
+ * But we're talking about here basically as a metarepo or "repo of repos", and unlike git, 
+ * we don't want our HEAD metadata living "off chain" (outside of the DLT itself that it's modifying).
+ * So eventually, what we want is just like what we want with ALL ibGibs: perspective. From "the app"'s
+ * perspective, the latest is mapped. But really, apps can't view slices of ibGib graphs in all sorts
+ * of interesting ways and still be productive & beneficial to the ecosystem as a whole.
  */
 @Injectable({
   providedIn: 'root'
