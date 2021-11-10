@@ -102,9 +102,9 @@ export class AppComponent extends IbgibComponentBase
       let navToAddr: IbGibAddr = 'hmm something went wrong^gib';
       try {
         // make sure roots are initialized FIRST before any other ibgib happenings
-        await this.loadRoots();
+        await this.initializeRoots();
 
-        // await this.initializeLatest();
+        await this.initializeLatest();
 
         // tags
         const tagsKey = this.common.ibgibs.getSpecialStorageKey({type: "tags"});
@@ -164,8 +164,8 @@ export class AppComponent extends IbgibComponentBase
     return `/ibgib/${this.rootsAddr}`;
   }
 
-  async loadRoots(): Promise<void> {
-    const lc = `${this.lc}[${this.loadRoots.name}]`;
+  async initializeRoots(): Promise<void> {
+    const lc = `${this.lc}[${this.initializeRoots.name}]`;
     if (!this.item) { this.item = {} }
     this.item.isMeta = true;
     console.log(`${lc} getting...`);
@@ -174,6 +174,14 @@ export class AppComponent extends IbgibComponentBase
     console.log(`${lc} gotten.`);
     this.rootsAddr = getIbGibAddr({ibGib: special});
     this.currentRoot = await this.getCurrentRoot();
+  }
+
+  async initializeLatest(): Promise<void> {
+    const lc = `${this.lc}[${this.initializeLatest.name}]`;
+    console.log(`${lc} getting...`);
+    const special = 
+      await this.common.ibgibs.getSpecialIbgib({type: "latest", initialize: true});
+    console.log(`${lc} gotten.`);
   }
 
   async getCurrentRoot(): Promise<MenuItem> {

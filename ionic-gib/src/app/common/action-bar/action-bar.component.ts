@@ -90,13 +90,11 @@ export class ActionBarComponent extends IbgibComponentBase
         message: 'add text',
         inputPlaceholder: 'text here',
       });
-      console.log(`${lc} 1`);
       if (resComment.cancelled || !resComment.value) { return; }
       const text = resComment.value.trim();
       console.log(`${lc} text: ${text}`);
       const data: CommentData = { text, textTimestamp: getTimestamp() };
 
-      console.log(`${lc} 2a`);
       // create an ibgib with the filename and ext
       const opts:any = {
         parentIbGib: factory.primitive({ib: 'comment'}),
@@ -113,19 +111,14 @@ export class ActionBarComponent extends IbgibComponentBase
 
       console.log(`${lc} opts: ${pretty(opts)}`);
       const resCommentIbGib = await factory.firstGen(opts);
-      console.log(`${lc} 2b`);
       await this.common.files.persistTransformResult({resTransform: resCommentIbGib});
-      await this.common.ibgibs.rel8ToCurrentRoot({
-        ibGib: resCommentIbGib.newIbGib, 
-        linked: true
-      });
-      console.log(`${lc} 2c`);
       const { newIbGib: newComment } = resCommentIbGib;
       const newCommentAddr = getIbGibAddr({ibGib: newComment});
+      await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newComment, linked: true});
+      await this.common.ibgibs.registerNewIbGib({ibGib: newComment});
       // need to nav to picture if not in a context, or
       // or if in context need to rel8 to the context.
 
-      console.log(`${lc} 3`);
       let navToAddr: string;
       if (this.addr) {
         // if we have a context, rel8 to it
@@ -134,14 +127,11 @@ export class ActionBarComponent extends IbgibComponentBase
         const resRel8ToContext =
           await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
         await this.common.files.persistTransformResult({resTransform: resRel8ToContext});
-        await this.common.ibgibs.rel8ToCurrentRoot({
-          ibGib: resRel8ToContext.newIbGib, 
-          linked: true
-        });
         const { newIbGib: newContext } = resRel8ToContext;
-        const newContextAddr = getIbGibAddr(newContext);
+        // const newContextAddr = getIbGibAddr(newContext);
+        await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newContext, linked: true});
+        await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
 
-        console.log(`${lc} 4`);
         // nav to either the pic we just added, or the new context "in time"
         // to which the pic was added.
         navToAddr = this.isMeta ?
@@ -208,12 +198,10 @@ export class ActionBarComponent extends IbgibComponentBase
         nCounter: true,
       });
       await this.common.files.persistTransformResult({resTransform: resPicIbGib});
-      await this.common.ibgibs.rel8ToCurrentRoot({
-        ibGib: resPicIbGib.newIbGib, 
-        linked: true
-      });
       const { newIbGib: newPic } = resPicIbGib;
       const newPicAddr = getIbGibAddr({ibGib: newPic});
+      await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newPic, linked: true});
+      await this.common.ibgibs.registerNewIbGib({ibGib: newPic});
       // need to nav to picture if not in a context, or
       // or if in context need to rel8 to the context.
 
@@ -223,12 +211,10 @@ export class ActionBarComponent extends IbgibComponentBase
       const resRel8ToContext =
         await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
       await this.common.files.persistTransformResult({resTransform: resRel8ToContext});
-      await this.common.ibgibs.rel8ToCurrentRoot({
-        ibGib: resRel8ToContext.newIbGib, 
-        linked: true
-      });
       const { newIbGib: newContext } = resRel8ToContext;
-      const newContextAddr = getIbGibAddr(newContext);
+      // const newContextAddr = getIbGibAddr(newContext);
+      await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newContext, linked: true});
+      await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
 
       // nav to either the pic we just added, or the new context "in time"
       // to which the pic was added.

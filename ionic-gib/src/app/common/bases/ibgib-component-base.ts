@@ -221,31 +221,32 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
      *
      * @param ib primitive ib
      */
-    async reifyPrimitive({
-        ib,
-        dna
-    }: {
-        /**
-         * Primitive ib, e.g., "tags"
-         */
-        ib: Ib,
-        /**
-         * usually will be false. Can't think of why true atm. just passing through to fork call.
-         */
-        dna?: boolean
-    }): Promise<TransformResult<IbGib_V1>> {
-        const primitive = Factory_V1.primitive({ib});
-        const result =
-            await V1.fork({
-                src: primitive,
-                dna,
-                linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
-                tjp: {uuid: true, timestamp: true},
-                nCounter: true,
-            });
-        await this.common.ibgibs.rel8ToCurrentRoot({ibGib: result.newIbGib, linked: true});
-        return result;
-    }
+    // async reifyPrimitive({
+    //     ib,
+    //     dna
+    // }: {
+    //     /**
+    //      * Primitive ib, e.g., "tags"
+    //      */
+    //     ib: Ib,
+    //     /**
+    //      * usually will be false. Can't think of why true atm. just passing through to fork call.
+    //      */
+    //     dna?: boolean
+    // }): Promise<TransformResult<IbGib_V1>> {
+    //     const primitive = Factory_V1.primitive({ib});
+    //     const result =
+    //         await V1.fork({
+    //             src: primitive,
+    //             dna,
+    //             linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
+    //             tjp: {uuid: true, timestamp: true},
+    //             nCounter: true,
+    //         });
+    //     await this.common.ibgibs.rel8ToCurrentRoot({ibGib: result.newIbGib, linked: true});
+    //     await this.common.ibgibs.registerNewIbGib({ibGib: result.newIbGib});
+    //     return result;
+    // }
 
     async navTo({addr}: {addr: IbGibAddr}): Promise<void> {
         console.log(`navigating to addr: ${addr}`);
