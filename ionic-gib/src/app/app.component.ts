@@ -116,6 +116,7 @@ export class AppComponent extends IbgibComponentBase
         }
         await this.updateIbGib(this.tagsAddr);
         await this.loadIbGib();
+        await this.loadTjp();
         await this.updateMenu();
         navToAddr = this.tagsAddr;
       } catch (error) {

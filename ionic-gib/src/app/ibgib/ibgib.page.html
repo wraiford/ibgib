@@ -16,6 +16,9 @@
     <ion-title *ngIf='(!isTag || ib === "tags") && !isPic'>
       {{ title }}
     </ion-title>
+    <ion-button (click)="handleRefreshClick()">
+      <ion-icon name="refresh"></ion-icon>
+    </ion-button>
   </ion-toolbar>
 </ion-header>
 

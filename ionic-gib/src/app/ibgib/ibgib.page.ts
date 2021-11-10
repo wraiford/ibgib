@@ -8,6 +8,7 @@ import { CommonService } from '../services/common.service';
 import { SPECIAL_URLS } from '../common/constants';
 import { getIbGibAddr, pretty } from 'ts-gib/dist/helper';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
+import { LatestEventInfo } from '../common/types';
 
 @Component({
   selector: 'ibgib-page',
@@ -38,17 +39,19 @@ export class IbGibPage extends IbgibComponentBase
     super(common, ref);
   }
 
-  async ngOnInit() {
+  ngOnInit() {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
     console.log(`${lc} called.`)
     // this.folder = this.activatedRoute.snapshot.paramMap.get('addr');
     this.subscribeParamMap();
+    super.ngOnInit();
   }
 
   ngOnDestroy() {
     const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
     console.log(`${lc} called.`)
     this.unsubscribeParamMap();
+    super.ngOnDestroy();
   }
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
@@ -57,6 +60,7 @@ export class IbGibPage extends IbgibComponentBase
     try {
       await super.updateIbGib(addr);
       await this.loadIbGib();
+      await this.loadTjp();
       console.log(`${lc} ibGib: ${pretty(this.ibGib)}`);
       await this.loadItem();
     } catch (error) {
@@ -94,8 +98,8 @@ export class IbGibPage extends IbgibComponentBase
         await this.navTo({addr});
       }
     });
-  }
 
+  }
   unsubscribeParamMap() {
     const lc = `${this.lc}[${this.unsubscribeParamMap.name}]`;
     console.log(`${lc} unsubscribe called`);
@@ -103,6 +107,34 @@ export class IbGibPage extends IbgibComponentBase
       console.log(`${lc} unsubscribing`);
       this.paramMapSub.unsubscribe();
       delete this.paramMapSub;
+    }
+  }
+
+  async handleRefreshClick(): Promise<void> {
+    const lc = `${this.lc}[${this.handleRefreshClick.name}]`;
+    try {
+      if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
+      if (!this.tjp) { await this.loadTjp(); }
+      await this.common.ibgibs.pingLatest({ibGib: this.ibGib, tjp: this.tjp});
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+    }
+  }
+
+  async handleIbGib_NewLatest(info: LatestEventInfo): Promise<void> {
+    const lc = `${this.lc}[${this.handleIbGib_NewLatest.name}]`;
+    try {
+      if (!this.tjp) { await this.loadTjp(); }
+      if (this.tjpAddr !== info.tjpAddr) { return; }
+      console.log(`${lc} triggered.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)}`);
+      if (!this.ibGib) { return; }
+      if (!this.tjpAddr) { await this.loadTjp(); }
+      if (info.tjpAddr !== this.tjpAddr) { return; }
+      if (this.addr !== info.latestAddr) {
+        await this.navTo({addr: info.latestAddr}); // hack
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
     }
   }
 

@@ -4,9 +4,10 @@ import { IbGibAddr, Ib, Gib, V1, TransformResult } from "ts-gib";
 import { getIbAndGib, getIbGibAddr } from "ts-gib/dist/helper";
 import { Injectable } from "@angular/core";
 import { FilesService } from 'src/app/services/files.service';
-import { IbgibItem, PicData, CommentData } from '../types';
+import { IbgibItem, PicData, CommentData, LatestEventInfo } from '../types';
 import { CommonService } from 'src/app/services/common.service';
 import { DEFAULT_META_IB_STARTS } from '../constants';
+import { Subscription } from 'rxjs';
 
 // @Injectable({providedIn: "root"})
 @Injectable()
@@ -98,6 +99,20 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
      */
     get itemTypes(): string[] { return ['pic','comment','tag', 'root']; }
 
+    /**
+     * Set this to true if you don't want updates to this 
+     * ibGib's timeline (e.g. tjp -> latest has new event) to propagate to this component.
+     */
+    @Input()
+    paused: boolean;
+    @Input()
+    errored: boolean;
+
+    /**
+     * subscription used with updates for the latest ibgib.
+     */
+    protected subLatest: Subscription;
+
     constructor(
         protected common: CommonService,
         protected ref: ChangeDetectorRef,
@@ -105,9 +120,35 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
 
     }
 
-    ngOnInit() {}
+    /**
+     * Subscribes for updates to the component's ibGib.
+     * 
+     * Override this if you want to customize WHEN/HOW to subscribe.
+     * 
+     * If you want to override HOW TO HANDLE this subscription, then override
+     * {@link handleIbGib_NewLatest} function.
+     */
+    subscribeLatest(): void {
+        if (this.subLatest) { this.subLatest.unsubscribe(); }
+        this.subLatest = this.common.ibgibs.latestObs.subscribe((evnt: LatestEventInfo) => {
+            this.handleIbGib_NewLatest(evnt); // SPINS OFF ASYNC!!
+        });
+    }
 
-    ngOnDestroy() {}
+    /**
+     * Unsubscribes from updates to the component's ibGib.
+     */
+    unsubscribeLatest(): void {
+        if (this.subLatest) { this.subLatest.unsubscribe(); delete this.subLatest; }
+    }
+
+    ngOnInit() {
+        this.subscribeLatest();
+    }
+
+    ngOnDestroy() {
+        this.unsubscribeLatest();
+    }
 
     get title(): string {
         if (this.ib?.startsWith('tag ')) {
@@ -207,6 +248,20 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
             }
         } else {
             item.ibGib = null;
+        }
+    }
+
+    tjp: IbGib_V1<any>;
+    get tjpAddr(): string {
+        return this.tjp ? getIbGibAddr({ibGib: this.tjp}) : "";
+    }
+
+    async loadTjp(): Promise<void> {
+        if (this.ibGib) {
+            let tjp = await this.common.ibgibs.getTjp({ibGib: this.ibGib, naive: true});
+            this.tjp = tjp;
+        } else if (this.tjp) {
+            delete this.tjp;
         }
     }
 
@@ -315,6 +370,27 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     const data = <CommentData>this.ibGib.data;
     this.item.text = data.text;
     this.item.timestamp = data.textTimestamp || data.timestamp;
+  }
+
+  /**
+   * Default handler for dealing with updates to ibGibs (i.e. new frames in their timelines).
+   * 
+   * NOTE: ATOW this will be SPUN OFF, it will not be awaited.
+   * 
+   * @param info event info for the new latest ibGib
+   */
+  async handleIbGib_NewLatest(info: LatestEventInfo): Promise<void> {
+    const lc = `${this.lc}[${this.handleIbGib_NewLatest.name}]`;
+    try {
+        if (!this.tjp) { await this.loadTjp(); }
+        if (this.tjpAddr !== info.tjpAddr) { return; }
+        console.log(`${lc} triggeredd.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)}`);
+        if (this._updatingIbGib || this.paused || this.errored) { return; }
+        this.addr = info.latestAddr;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        this.errored = true;
+    }
   }
 
 }

@@ -105,3 +105,12 @@ export interface ActionItem {
 }
 
 export type SpecialIbGibType = "tags" | "roots" | "latest";
+
+/**
+ * There has been a new ibGib that is the latest for a given tjp timeline.
+ */
+export interface LatestEventInfo {
+    tjpAddr: IbGibAddr;
+    latestAddr: IbGibAddr;
+    latestIbGib?: IbGib_V1<any>;
+}

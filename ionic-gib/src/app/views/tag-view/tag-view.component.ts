@@ -37,6 +37,7 @@ export class TagViewComponent extends IbgibComponentBase
     try {
       await super.updateIbGib(addr);
       await this.loadIbGib();
+      await this.loadTjp();
       await this.loadItem();
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);

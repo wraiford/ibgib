@@ -50,6 +50,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
         try {
             await super.updateIbGib(addr);
             await this.loadIbGib();
+            await this.loadTjp();
             await this.updateItems();
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);

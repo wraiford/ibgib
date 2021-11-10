@@ -10,12 +10,13 @@ import {
 } from '../common/constants';
 import { Factory_V1 as factory } from 'ts-gib/dist/V1';
 import { getIbGibAddr } from 'ts-gib/dist/helper';
-import { TagData, SpecialIbGibType, RootData } from '../common/types';
+import { TagData, SpecialIbGibType, RootData, LatestEventInfo } from '../common/types';
+import { ReplaySubject } from 'rxjs';
 // import { IbGibWitnessScheduler } from 'keystone-gib/src/V1/witnesses/scheduler';
 // import { InMemoryRepo } from 'keystone-gib/src/V1/witnesses/in-memory-repo';
 
 /**
- * All-purpose mega service (which we'll need to break up eventually!) to interact
+ * All-purpose mega service (todo: which we'll need to break up!) to interact
  * with ibgibs at the app/device level.
  * 
  * ## regarding special ibgibs
@@ -89,6 +90,9 @@ export class IbgibsService {
   private lc = `[${IbgibsService.name}]`;
 
   private _initializing: boolean;
+
+  private _latestSubj = new ReplaySubject<LatestEventInfo>();
+  latestObs = this._latestSubj.asObservable();
 
   /**
    * Used with tracking the tjp -> latest ib^gib mapping.
@@ -564,7 +568,7 @@ export class IbgibsService {
         type: "roots",
         rel8nName: ROOT_REL8N_NAME,
         ibGibToRel8: newIbGib,
-        isMeta: true,
+        // isMeta: true,
       });
       return { newRootIbGib: <IbGib_V1<RootData>>newIbGib, newRootsAddr };
     } catch (error) {
@@ -590,7 +594,7 @@ export class IbgibsService {
       type: "tags",
       rel8nName: TAG_REL8N_NAME,
       ibGibToRel8: tagIbGib,
-      isMeta: true,
+      // isMeta: true,
     });
   }
 
@@ -598,7 +602,7 @@ export class IbgibsService {
     type,
     rel8nName,
     ibGibToRel8,
-    isMeta,
+    // isMeta,
     linked,
     skipRel8ToRoot,
     severPast,
@@ -607,7 +611,7 @@ export class IbgibsService {
     type: SpecialIbGibType,
     rel8nName: string,
     ibGibToRel8: IbGib_V1,
-    isMeta: boolean,
+    // isMeta: boolean,
     linked?: boolean,
     skipRel8ToRoot?: boolean,
     /**
@@ -627,7 +631,7 @@ export class IbgibsService {
      */
     deletePreviousSpecialIbGib?: boolean,
   }): Promise<IbGibAddr> {
-    const lc = `${this.lc}[${this.rel8ToSpecialIbGib.name}({type: ${type}, rel8nName: ${rel8nName}, isMeta: ${isMeta}})]`;
+    const lc = `${this.lc}[${this.rel8ToSpecialIbGib.name}][{type: ${type}, rel8nName: ${rel8nName}]`;
     try {
       const newAddr = getIbGibAddr({ibGib: ibGibToRel8});
 
@@ -655,7 +659,7 @@ export class IbgibsService {
       }
 
       // persist
-      await this.files.persistTransformResult({resTransform: resNewSpecial, isMeta});
+      await this.files.persistTransformResult({resTransform: resNewSpecial, isMeta: true});
 
       // rel8 the new special ibgib to the root, but only if it's not a root itself.
       if (type !== 'roots' && !skipRel8ToRoot) {
@@ -670,7 +674,7 @@ export class IbgibsService {
 
       // delete if required, only after updating storage with the new special addr.
       if (deletePreviousSpecialIbGib) {
-        await this.files.delete({addr: specialAddr, isMeta});
+        await this.files.delete({addr: specialAddr, isMeta: true});
       }
 
       return newSpecialAddr;
@@ -797,12 +801,13 @@ export class IbgibsService {
           type: "latest",
           rel8nName: tjpAddr,
           ibGibToRel8: ibGib,
-          isMeta,
+          // isMeta,
           linked: true, // this ensures only one latest ibGib mapped at a time
           deletePreviousSpecialIbGib: true, // the latest mapping is ephemeral
           severPast: true,
           skipRel8ToRoot: true, 
         });
+        this._latestSubj.next({tjpAddr, latestAddr: ibGibAddr, latestIbGib: ibGib});
       }
 
       let existingMapping = specialLatest.rel8ns[tjpAddr] || [];
@@ -1065,4 +1070,64 @@ export class IbgibsService {
       console.log(`${lc} complete.`);
     }
   }
+
+  /**
+   * Will trigger a latest info event to be fired.
+   * @param param0 
+   */
+  async pingLatest({
+    ibGib,
+    tjp,
+  }: {
+    ibGib: IbGib_V1<any>,
+    tjp: IbGib_V1<any>
+  }): Promise<void> {
+    let lc = `${this.lc}[${this.pingLatest.name}]`;
+    console.log(`${lc} starting...`);
+    try {
+      let ibGibAddr = getIbGibAddr({ibGib});
+      let specialLatest = await this.getSpecialIbgib({type: "latest"});
+      if (!specialLatest.rel8ns) { specialLatest.rel8ns = {}; }
+
+      // get the tjp for the rel8nName mapping, and also for some checking logic
+      if (!tjp) {
+        let tjp = await this.getTjp({ibGib});
+        if (!tjp) {
+          console.warn(`${lc} tjp not found for ${ibGibAddr}? Should at least just be the ibGib's address itself.`);
+          tjp = ibGib;
+        }
+      }
+      let tjpAddr = getIbGibAddr({ibGib: tjp});
+      console.log(`${lc} pinging tjp (${tjpAddr})...`);
+
+      let latestAddr = specialLatest.rel8ns[tjpAddr]?.length > 0 ?
+        specialLatest.rel8ns[tjpAddr][0] :
+        ibGibAddr;
+      if (latestAddr === ibGibAddr) {
+        // no (different) latest exists
+        this._latestSubj.next({
+          latestIbGib: ibGib,
+          latestAddr: ibGibAddr,
+          tjpAddr,
+        });
+      } else {
+        // there is a later version
+        let resLatestIbGib = await this.files.get({addr: latestAddr});
+        if (!resLatestIbGib.success || !resLatestIbGib.ibGib) {
+          throw new Error('latest not found');
+        }
+        let latestIbGib = resLatestIbGib.ibGib;
+        this._latestSubj.next({
+          latestIbGib,
+          latestAddr,
+          tjpAddr
+        });
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+    } finally {
+      console.log(`${lc} complete.`);
+    }
+  }
+
 }

@@ -122,7 +122,10 @@ export class ActionBarComponent extends IbgibComponentBase
       let navToAddr: string;
       if (this.addr) {
         // if we have a context, rel8 to it
-        if (!this.ibGib) { await this.loadIbGib(); }
+        if (!this.ibGib) { 
+          await this.loadIbGib(); 
+          await this.loadTjp();
+        }
         const rel8nsToAddByAddr = { comment: [newCommentAddr] };
         const resRel8ToContext =
           await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
@@ -206,7 +209,10 @@ export class ActionBarComponent extends IbgibComponentBase
       // or if in context need to rel8 to the context.
 
       // rel8 to context
-      if (!this.ibGib) { await this.loadIbGib(); }
+      if (!this.ibGib) { 
+        await this.loadIbGib(); 
+        await this.loadTjp();
+      }
       const rel8nsToAddByAddr = { pic: [newPicAddr] };
       const resRel8ToContext =
         await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
