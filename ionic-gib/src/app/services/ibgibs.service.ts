@@ -206,9 +206,7 @@ export class IbgibsService {
 
     try {
       let currentRoot = await this.getCurrentRoot();
-      if (!currentRoot) { 
-        throw new Error('currentRoot undefined'); 
-      }
+      if (!currentRoot) { throw new Error('currentRoot undefined'); }
 
       let ibGibAddr = getIbGibAddr({ibGib});
 
@@ -666,7 +664,7 @@ export class IbgibsService {
         await this.rel8ToCurrentRoot({ibGib: resNewSpecial.newIbGib, linked: true});
       }
 
-      // return the new special address (not the incoming new tag)
+      // return the new special address (not the incoming new ibGib)
       const { newIbGib: newSpecialIbGib } = resNewSpecial;
       let newSpecialAddr = getIbGibAddr({ibGib: newSpecialIbGib});
 
