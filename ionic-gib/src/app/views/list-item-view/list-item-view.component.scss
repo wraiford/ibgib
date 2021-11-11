@@ -13,6 +13,7 @@
   border-style: solid;
   border-color: var(--ion-color-primary);
   margin-bottom: 10px;
+  margin-right: 5px;
 }
 
 .pic-item {
@@ -27,6 +28,6 @@
 
 .tag-item {
   @extend .list-item;
-  border-color: yellow;
-    width: 100%;
+  border-color: pink;
+    // width: 100%;
 }

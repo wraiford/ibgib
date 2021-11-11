@@ -4,7 +4,15 @@ import { IbgibsService } from './ibgibs.service';
 import { IbGibAddr } from 'ts-gib';
 
 export interface IbgibNav {
-  navTo({addr}: {addr: IbGibAddr}): Promise<void>;
+  navTo({ 
+    addr, 
+    queryParamsHandling, 
+    queryParams, 
+  }: { 
+    addr: string, 
+    queryParamsHandling?: 'merge' | 'preserve', 
+    queryParams?: { [key: string]: any },
+  }): Promise<void>;
 }
 
 /**

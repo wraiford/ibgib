@@ -107,6 +107,13 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     paused: boolean;
     @Input()
     errored: boolean;
+    @Input()
+    get refreshing(): boolean {
+        return this._updatingIbGib || this.item?.refreshing;
+    }
+
+    @Input()
+    isTitle: boolean;
 
     /**
      * subscription used with updates for the latest ibgib.
@@ -303,9 +310,17 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     //     return result;
     // }
 
-    async navTo({addr}: {addr: IbGibAddr}): Promise<void> {
+    async navTo({
+        addr,
+        queryParamsHandling = 'preserve',
+        queryParams,
+    }: { 
+        addr: string,
+        queryParamsHandling?: 'merge' | 'preserve',
+        queryParams?: { [key: string]: any },
+   }): Promise<void> {
         console.log(`navigating to addr: ${addr}`);
-        this.common.nav.navTo({addr});
+        this.common.nav.navTo({addr, queryParamsHandling, queryParams});
         // await this.common.nav.navigateRoot(['ibgib', addr], {
         //     queryParamsHandling: 'preserve',
         //     animated: true,

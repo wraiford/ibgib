@@ -1,6 +1,7 @@
-<div *ngIf='ibGib' >
-  <p class='comment-text'>{{ item?.text }}</p>
-  <p class='comment-timestamp'>{{ item?.timestamp }}</p>
+<div *ngIf='ibGib' [title]="item?.text || item?.ib || '[html title binding error!]'">
+  <p [class.comment-text]='!isTitle'
+     [class.is-title]='isTitle'>{{ item?.text }}</p>
+  <p *ngIf='!isTitle' class='comment-timestamp'>{{ item?.timestamp }}</p>
 </div>
 <!-- <img *ngIf='ibGib' src='data:///DOCUMENTS/ibgib/bin/02a50cc8592578690e51adb7b633220dae599a7e096eb78783cf3752a48be9c1.png'/> -->
 <p *ngIf='!ibGib'>Loading...</p>

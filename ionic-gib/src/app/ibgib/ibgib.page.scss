@@ -2,6 +2,7 @@
   border-width: 5px;
   border-style: solid;
   border-color: brown;
+  box-sizing: border-box !important;
 }
 
 ion-menu-button {
@@ -76,8 +77,8 @@ action-bar, ion-footer {
 //   height: 100%;
 // }
 
-.toolbar-refresh {
-  padding-right: 5px !important;
+.toolbar-refresh, .toolbar-pause {
+  padding: 3px !important;
 }
 
 .toolbar-title-yo {

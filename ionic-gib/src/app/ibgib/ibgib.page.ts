@@ -17,7 +17,7 @@ import { LatestEventInfo } from '../common/types';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class IbGibPage extends IbgibComponentBase
-  implements OnInit, OnDestroy {
+  implements OnInit, OnDestroy { 
 
   protected lc: string = `[${IbGibPage.name}]`;
 
@@ -63,6 +63,12 @@ export class IbGibPage extends IbgibComponentBase
       await this.loadTjp();
       console.log(`${lc} ibGib: ${pretty(this.ibGib)}`);
       await this.loadItem();
+      console.warn(`${lc} checking paused: ${this.paused}`);
+      this.updatePaused();
+      if (!this.paused) {
+        this.item.refreshing = true;
+        await this.common.ibgibs.pingLatest({ibGib: this.ibGib, tjp: this.tjp});
+      }
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);
       this.clearItem();
@@ -72,13 +78,23 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
+  updatePaused(): void { 
+    this.paused = (this.activatedRoute.snapshot.queryParams['paused'] || 'false') === 'true';
+   }
+
   subscribeParamMap() {
     let lc = `${this.lc}[${this.subscribeParamMap.name}]`;
 
     this.paramMapSub = this.activatedRoute.paramMap.subscribe(async map => {
       let addr = map.get('addr');
+      if (addr.includes('?')) {
+        debugger;
+      }
+      // let paused = map.get('paused');
+      // if (paused) { this.paused = true; }
       lc = `${lc}[${addr}]`;
       console.log(`${lc} new addr`)
+      // console.warn(`${lc} paused: ${paused}`);
 
       if (!SPECIAL_URLS.includes((addr || "").toLowerCase()) && encodeURI(addr).includes('%5E')) {
         // normal handling for a normal ibGib is to update the page's ibgib
@@ -97,6 +113,7 @@ export class IbGibPage extends IbgibComponentBase
         addr = getIbGibAddr({ibGib: tagsIbGib});
         await this.navTo({addr});
       }
+
     });
 
   }
@@ -115,18 +132,42 @@ export class IbGibPage extends IbgibComponentBase
     try {
       if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
       if (!this.tjp) { await this.loadTjp(); }
+
+      if (this.paused) { 
+        this.paused = false; 
+        await this.navTo({addr: this.addr, queryParams: { paused: null }, queryParamsHandling: 'merge'})
+      }
+      if (this.item) { this.item.refreshing = true; }
       await this.common.ibgibs.pingLatest({ibGib: this.ibGib, tjp: this.tjp});
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     }
   }
 
+  async handlePauseClick(): Promise<void> {
+    const lc = `${this.lc}[${this.handlePauseClick.name}]`;
+    try {
+      if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
+      if (!this.tjp) { await this.loadTjp(); }
+
+      this.paused = true;
+      await this.navTo({addr: this.addr, queryParams: { paused: true }, queryParamsHandling: 'merge'})
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+    }
+  }
   async handleIbGib_NewLatest(info: LatestEventInfo): Promise<void> {
     const lc = `${this.lc}[${this.handleIbGib_NewLatest.name}]`;
     try {
       if (!this.tjp) { await this.loadTjp(); }
       if (this.tjpAddr !== info.tjpAddr) { return; }
       console.log(`${lc} triggered.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)}`);
+
+      // await (new Promise(resolve => {  
+      //   console.warn('DEBUG DEBUG DEBUG DEBUG delaying...');
+      //   setTimeout(() => { resolve(null); }, 1000) 
+      // }));
+
       if (!this.ibGib) { return; }
       if (!this.tjpAddr) { await this.loadTjp(); }
       if (info.tjpAddr !== this.tjpAddr) { return; }
@@ -135,7 +176,13 @@ export class IbGibPage extends IbgibComponentBase
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
+    } finally {
+      // at this point, we're guaranteed to be the latest in this component's tjp/timeline
+      if (this.item) {
+        this.item.refreshing = false; 
+        this.ref.detectChanges();
+      }
     }
   }
 
-}
+ }

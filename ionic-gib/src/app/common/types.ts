@@ -62,6 +62,10 @@ export interface IbgibItem {
     selected?: boolean;
     loaded?: boolean;
     timestamp?: string;
+    /**
+     * If true, then the component is checking for updates.
+     */
+    refreshing?: boolean;
 }
 
 /**

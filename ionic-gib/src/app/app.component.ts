@@ -12,8 +12,10 @@ import { CommonService } from './services/common.service';
 import { MENU_ITEM_IB_SUBSTRING_LENGTH, SPECIAL_URLS, DEFAULT_TAG_ICON, DEFAULT_ROOT_ICON, ROOT_REL8N_NAME } from './common/constants';
 import { IbGibAddr } from 'ts-gib';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
-import { Router, RouterEvent } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router, RouterEvent } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { filter } from 'rxjs/operators';
+
 
 interface MenuItem {
   title: string;
@@ -36,14 +38,8 @@ export class AppComponent extends IbgibComponentBase
 
   _currentRoot: MenuItem;
   @Input()
-  get currentRoot(): MenuItem {
-    return this._currentRoot;
-  }
-  set currentRoot(value: MenuItem) {
-    this._currentRoot = value;
-  }
-
-  // public tags = [];
+  get currentRoot(): MenuItem { return this._currentRoot; }
+  set currentRoot(value: MenuItem) { this._currentRoot = value; }
 
   @Input()
   get addr(): IbGibAddr { return super.addr; }
@@ -77,7 +73,7 @@ export class AppComponent extends IbgibComponentBase
     }
   }
 
-  private paramMapSub: Subscription;
+  private paramMapSub_App: Subscription;
 
   constructor(
     private platform: Platform,
@@ -86,6 +82,7 @@ export class AppComponent extends IbgibComponentBase
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
     private router: Router,
+    private activatedRoute: ActivatedRoute,
   ) {
     super(common, ref);
 
@@ -349,8 +346,12 @@ export class AppComponent extends IbgibComponentBase
 
     console.log(`${lc} subscribing...`)
 
-    this.paramMapSub = this.router.events.subscribe(async (event: RouterEvent) => {
-
+    let piper = this.router.events.pipe(filter(x => x instanceof NavigationEnd));
+    this.paramMapSub_App = piper.subscribe(async (event: any) => {
+      // let e = <RouterEvent>evnt;
+      // let addr = this.activatedRoute.root.firstChild.data['addr'];
+      // console.log(`${lc} real address yo: ${addr}`);
+      if (!this.router?.url) { return; }
       const addr = this.router.url && this.router.url.startsWith('/ibgib/') ?
         decodeURI(this.router.url.split('/')[2]) :
         undefined;
@@ -363,14 +364,30 @@ export class AppComponent extends IbgibComponentBase
         await this.updateIbGib(addr);
         this.ref.detectChanges();
       }
-
     });
+
+    // this.paramMapSub = this.router.events.subscribe(async (event: RouterEvent) => {
+
+    //   const addr = this.router.url && this.router.url.startsWith('/ibgib/') ?
+    //     decodeURI(this.router.url.split('/')[2]) :
+    //     undefined;
+    //   console.log(`${lc} addr: ${addr}`);
+    //   console.log(`${lc} router.url: ${pretty(this.router.url)}`)
+    //   if (event.id && event.url && addr && addr !== this.addr) {
+    //     console.log(`${lc} event.id: ${event.id}`);
+    //     console.log(`${lc} event.url: ${event.url}`);
+    //     console.log(`${lc} addr is different`);
+    //     await this.updateIbGib(addr);
+    //     this.ref.detectChanges();
+    //   }
+
+    // });
   }
 
   unsubscribeParamMap() {
-    if (this.paramMapSub) {
-      this.paramMapSub.unsubscribe();
-      delete this.paramMapSub;
+    if (this.paramMapSub_App) {
+      this.paramMapSub_App.unsubscribe();
+      delete this.paramMapSub_App;
     }
   }
 }

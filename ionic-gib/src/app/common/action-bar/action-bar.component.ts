@@ -347,7 +347,8 @@ export class ActionBarComponent extends IbgibComponentBase
           message: `${action.title} (${addr})`
         });
 
-        this.common.ibgibs.rel8TagToTagsIbGib
+        console.error('tagging not implemented')
+        await Modals.alert({message: 'tagging not implemented yet', title: 'not implemented', })
       }
 
     } catch (error) {
@@ -428,11 +429,7 @@ export class ActionBarComponent extends IbgibComponentBase
   }
 
   delay(ms: number): Promise<void> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve();
-      }, ms);
-    });
+    return new Promise((resolve) => { setTimeout(() => { resolve(); }, ms); });
   }
 }
 

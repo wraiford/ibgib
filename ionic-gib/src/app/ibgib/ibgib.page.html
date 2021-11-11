@@ -13,11 +13,20 @@
         <pic-view [addr]='item.addr'></pic-view>
       </ion-thumbnail>
     </ion-title>
-    <ion-title *ngIf='(!isTag || ib === "tags") && !isPic' class='toolbar-title-yo'>
+    <ion-title *ngIf='isComment' class='comment-title toolbar-title-yo'>
+        <comment-view [addr]='item.addr' [isTitle]='true'></comment-view>
+    </ion-title>
+    <ion-title *ngIf='(!isTag || ib === "tags") && !isPic && !isComment' class='toolbar-title-yo'>
       {{ title }}
     </ion-title>
-    <ion-button slot="end" (click)="handleRefreshClick()" class="toolbar-refresh">
-      <ion-icon name="refresh"></ion-icon>
+    <ion-button [disabled]="refreshing"
+      slot="end" (click)="handleRefreshClick()" class="toolbar-refresh">
+      <ion-icon *ngIf="!refreshing" name="refresh"></ion-icon>
+      <ion-spinner *ngIf="refreshing" name="bubbles" color="tertiary"></ion-spinner>
+    </ion-button>
+    <ion-button [disabled]="refreshing || paused"
+      slot="end" (click)="handlePauseClick()" class="toolbar-pause">
+      <ion-icon name="pause"></ion-icon>
     </ion-button>
   </ion-toolbar>
 </ion-header>
