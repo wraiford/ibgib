@@ -337,9 +337,9 @@ export class FilesService {
     if (!permitted) { return; }
 
     const ensure: (path: string) => Promise<boolean> = async (path) => {
-      const lc = `ensure(path: ${path}, directory: ${directory})`;
+      const lc = `[${this.ensureDirs.name}][ensure(path: ${path}, directory: ${directory})]`;
 
-      console.log(`${lc} starting...`);
+      // console.log(`${lc} starting...`);
       const pathExistsKey = directory.toString() + '/' + path;
       let exists = this.pathExistsMap[pathExistsKey] || false;
 
@@ -367,7 +367,7 @@ export class FilesService {
         }
       }
 
-      console.log(`${lc} completed yo.`);
+      // console.log(`${lc} completed yo.`);
 
       return exists;
     }
@@ -398,11 +398,10 @@ export class FilesService {
     isDna,
     getRawResult: getRaw
   }: GetIbGibOpts): Promise<GetIbGibResult> {
-    const lc = `${this.lc}[${this.get.name}]`;
+    const lc = `${this.lc}[${this.delete.name}]`;
 
     if (!addr && !binHash) { throw new Error(`${lc} addr or binHash required.`) };
 
-    const isBin = !addr;
     const result: GetIbGibResult = {};
 
     try {
@@ -420,7 +419,7 @@ export class FilesService {
         path,
         directory: IBGIB_BASE_DIR,
       });
-      console.log(`${lc} deleted`);
+      console.log(`${lc} deleted. path: ${path}`);
       if (getRaw) { result.raw = resDelete; }
       result.success = true;
     } catch (error) {
