@@ -2,6 +2,15 @@
   "name": "ionic-gib",
   "version": "0.0.1",
   "author": "William Raiford",
+  "repository": {
+    "url": "https://github.com/wraiford/ibgib",
+    "type": "git",
+    "directory": "ionic-gib"
+  },
+  "funding": {
+    "type": "individual",
+    "url": "https://paypal.me/ibGib"
+  },
   "scripts": {
     "ng": "ng",
     "start": "ng serve --ssl",
@@ -36,7 +45,7 @@
     "@ionic/pwa-elements": "^1.5.2",
     "lex-gib": "^0.10.1",
     "rxjs": "~6.5.1",
-    "ts-gib": "^0.1.36",
+    "ts-gib": "^0.1.40",
     "tslib": "^1.10.0",
     "zone.js": "~0.10.2"
   },

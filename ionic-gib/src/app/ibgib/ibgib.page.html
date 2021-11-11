@@ -5,18 +5,18 @@
     </ion-buttons>
 
     <!-- <ion-title *ngIf='isTag && ib !== "tags"'> -->
-    <ion-title *ngIf='item?.type === "tag"'>
+    <ion-title *ngIf='item?.type === "tag"' class='toolbar-title-yo'>
       <tag-view [addr]='item.addr'> </tag-view>
     </ion-title>
-    <ion-title *ngIf='isPic' class='pic-title'>
+    <ion-title *ngIf='isPic' class='pic-title toolbar-title-yo'>
       <ion-thumbnail>
         <pic-view [addr]='item.addr'></pic-view>
       </ion-thumbnail>
     </ion-title>
-    <ion-title *ngIf='(!isTag || ib === "tags") && !isPic'>
+    <ion-title *ngIf='(!isTag || ib === "tags") && !isPic' class='toolbar-title-yo'>
       {{ title }}
     </ion-title>
-    <ion-button (click)="handleRefreshClick()">
+    <ion-button slot="end" (click)="handleRefreshClick()" class="toolbar-refresh">
       <ion-icon name="refresh"></ion-icon>
     </ion-button>
   </ion-toolbar>

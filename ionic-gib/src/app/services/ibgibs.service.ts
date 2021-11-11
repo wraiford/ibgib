@@ -531,7 +531,7 @@ export class IbgibsService {
       });
       const { newIbGib: newTag } = resNewTag;
       await this.files.persistTransformResult({resTransform: resNewTag, isMeta: true});
-      await this.registerNewIbGib({ibGib: newTag, isMeta: true});
+      await this.registerNewIbGib({ibGib: newTag});
       const newTagsAddr = await this.rel8TagToTagsIbGib(newTag);
       return { newTagIbGib: newTag, newTagsAddr };
     } catch (error) {
@@ -760,23 +760,26 @@ export class IbgibsService {
     }
   }
 
+  /**
+   * Used for tracking tjpAddr -> latest ibGibAddr.
+   * 
+   * Call this when you create a new ibGib.
+   * 
+   * Need to put this in another service at some point, but crunch crunch
+   * like pacman's lunch.
+   */
   async registerNewIbGib({
     ibGib,
-    isMeta,
   }: {
     ibGib: IbGib_V1,
-    isMeta?: boolean,
   }): Promise<void> {
     let lc = `${this.lc}[${this.registerNewIbGib.name}]`;
     try {
       const ibGibAddr: IbGibAddr = getIbGibAddr({ibGib});
       lc = `${lc}[${ibGibAddr}]`;
 
-      // link the tjp address to the ibGib, if it doesn't already have 
-      // a "newer" ibGib...hmm, how am I going to do that if we're 
-      // using linked rel8ns. Ah for another time.
-
       console.log(`${lc} starting...`);
+
       // this is the latest index ibGib. It's just the mapping of tjp -> latestAddr.
       // Other refs to "latest" in this function
       // will refer to the actual/attempted latest of the ibGib arg.
@@ -799,7 +802,6 @@ export class IbgibsService {
           type: "latest",
           rel8nName: tjpAddr,
           ibGibToRel8: ibGib,
-          // isMeta,
           linked: true, // this ensures only one latest ibGib mapped at a time
           deletePreviousSpecialIbGib: true, // the latest mapping is ephemeral
           severPast: true,
