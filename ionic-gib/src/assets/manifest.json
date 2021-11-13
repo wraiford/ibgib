@@ -20,5 +20,10 @@
         "contextMenus",
         "tabs"
     ],
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "{06d5120a-e87f-48b2-93f2-b06dda2f62ff}"
+        }
+    },
     "manifest_version": 2
 }
