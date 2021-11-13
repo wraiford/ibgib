@@ -13,7 +13,7 @@
         <pic-view [addr]='item.addr'></pic-view>
       </ion-thumbnail>
     </ion-title>
-    <ion-title *ngIf='isComment' class='comment-title toolbar-title-yo'>
+    <ion-title *ngIf='isComment' class='comment-title toolbar-title-yo' (click)="handleTitleClick()">
         <comment-view [addr]='item.addr' [isTitle]='true'></comment-view>
     </ion-title>
     <ion-title *ngIf='(!isTag || ib === "tags") && !isPic && !isComment' class='toolbar-title-yo'>

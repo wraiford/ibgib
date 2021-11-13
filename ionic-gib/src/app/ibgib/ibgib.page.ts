@@ -1,5 +1,7 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy, Input } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { Plugins } from '@capacitor/core';
+const { Modals } = Plugins;
 
 import { IbgibComponentBase } from '../common/bases/ibgib-component-base';
 import { IbGibAddr } from 'ts-gib';
@@ -185,4 +187,12 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
+  async handleTitleClick(): Promise<void> {
+    if (this.item?.type === 'comment') {
+      await Modals.alert({
+        title: 'Context',
+        message: this.item?.text,
+      });
+    }
+  }
  }

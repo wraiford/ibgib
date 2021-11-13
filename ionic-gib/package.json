@@ -20,12 +20,14 @@
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e",
-    "ff:chrome": "cd www && web-ext run -t firefox-desktop -t chromium --keep-profile-changes --browser-console",
-    "ff": "cd www && web-ext run -t firefox-desktop --firefox-profile=webext-test --keep-profile-changes --browser-console",
-    "chrome": "cd www && web-ext run -t chromium --keep-profile-changes --browser-console",
+    "ff:chrome": "web-ext run -s './www' -t firefox-desktop -t chromium --keep-profile-changes --browser-console",
+    "ff": "web-ext run -s './www' -t firefox-desktop --firefox-profile=webext-test --keep-profile-changes --browser-console",
+    "chrome": "web-ext run -s './www' -t chromium --keep-profile-changes --browser-console",
     "start:android": "ionic capacitor run android",
     "build:android": "ionic build && ionic capacitor sync android",
-    "watch:android": "ionic capacitor run android --live-reload"
+    "watch:android": "ionic capacitor run android --live-reload",
+    "sync:android": "ionic capacitor sync android",
+    "sync": "ionic capacitor sync"
   },
   "private": true,
   "dependencies": {
