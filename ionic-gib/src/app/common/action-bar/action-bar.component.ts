@@ -22,7 +22,10 @@ export class ActionBarComponent extends IbgibComponentBase
 
   @Input()
   get addr(): IbGibAddr { return super.addr; }
-  set addr(value: IbGibAddr) { super.addr = value; }
+  set addr(value: IbGibAddr) { 
+    let lc = `${this.lc}[set addr(value: ${value})]`;
+    super.addr = value; 
+  }
 
   @Input()
   get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
@@ -56,6 +59,12 @@ export class ActionBarComponent extends IbgibComponentBase
       icon: 'pricetag-outline',
       handler: async (event) => await this.actionTag(event),
     },
+    {
+      type: 'button',
+      text: 'info',
+      icon: 'information',
+      handler: async (event) => await this.actionShowInfo(event),
+    },
   ];
 
   @Input()
@@ -68,13 +77,31 @@ export class ActionBarComponent extends IbgibComponentBase
     super(common, ref);
   }
 
-  ngOnInit() { }
+  ngOnInit() { 
+    console.log(`${this.lc} addr: ${this.addr}`);
+  }
+
+  // async updateIbGib(addr: IbGibAddr): Promise<void> {
+  //   const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
+  //   console.log(`${lc} updating.`)
+  //   await super.updateIbGib(addr);
+  //   await this.updateActions();
+  // }
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-    console.log(`${lc} updating.`)
-    await super.updateIbGib(addr);
-    await this.updateActions();
+    console.log(`${lc} updating...`);
+    try {
+      await super.updateIbGib(addr);
+      await this.loadIbGib();
+      await this.updateActions();
+    } catch (error) {
+      console.error(`${lc} error: ${error.message}`);
+      this.clearItem();
+    } finally {
+      this.ref.detectChanges();
+      console.log(`${lc} updated.`);
+    }
   }
 
   async updateActions(): Promise<void> {
@@ -256,6 +283,16 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
+  async actionShowInfo(event: MouseEvent): Promise<void> {
+    const lc = `${this.lc}[${this.actionShowInfo.name}]`;
+    try {
+      let info = JSON.stringify(this.ibGib_Context, null, 2);
+      let addr = getIbGibAddr({ibGib: this.ibGib_Context});
+      await Modals.alert({title: addr, message: info});
+    } catch (error) {
+      console.error(`${lc} ${error.message}`)
+    }
+  }
 
   getExt(path: string): { filename: string, ext: string } {
     const pathPieces = path.split('/');
@@ -300,15 +337,21 @@ export class ActionBarComponent extends IbgibComponentBase
   async actionTag(event: MouseEvent): Promise<void> {
     const lc = `${this.lc}[${this.actionTag.name}]`;
     try {
+      if (!this.ibGib) { throw new Error(`There isn't a current ibGib loaded...?`); }
+      if (!this.addr) { throw new Error(`There isn't a current ibGib addr loaded...?`); }
+      // const contextAddr = getIbGibAddr({ibGib: this.ibGib});
+      // console.log(`${lc} contextAddr: ${contextAddr}`);
+
       const tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
       const tagAddrs = tagsIbGib.rel8ns.tag;
-      const tagOptions = tagAddrs.map(addr => {
+      const tagInfos: TagInfo[] = tagAddrs.map(addr => {
         const { ib } = getIbAndGib({ibGibAddr: addr});
         const tag = ib.substring('tag '.length);
-        const action: any = { title: tag, addr};
-        return action;
+        const tagInfo: TagInfo = { title: tag, addr };
+        return tagInfo;
       });
-      let resPrompt = await Modals.showActions({
+
+      const resPrompt = await Modals.showActions({
         title: 'Select tag',
         message: 'Select a tag to add this ibGib to',
         options: [
@@ -326,38 +369,54 @@ export class ActionBarComponent extends IbgibComponentBase
           }, 
 
           // index = i-2
-          ...tagOptions,
+          ...tagInfos,
         ]
       });
 
+      let tagIbGib: IbGib_V1;
       if (resPrompt.index === 0) {
-        await Plugins.Modals.alert({
-          title: 'nope', 
-          message: 'cancelled'
-        });
-        return;
-      } else if (resPrompt.index === 1) {
-        await this.createNewTag();
-      } else {
-        let i = resPrompt.index - 2;
-        let action: any = tagOptions[i];
-        let addr = action.addr;
-        await Plugins.Modals.alert({
-          title: 'selected', 
-          message: `${action.title} (${addr})`
-        });
 
-        console.error('tagging not implemented')
-        await Modals.alert({message: 'tagging not implemented yet', title: 'not implemented', })
+        // cancelled
+        await Plugins.Modals.alert({ title: 'nope', message: 'cancelled' });
+        return;
+
+      } else if (resPrompt.index === 1) {
+
+        // create new tag
+        tagIbGib = await this.createNewTag();
+
+      } else {
+
+        // tag with existing tag
+        const tagInfo: TagInfo = tagInfos[resPrompt.index - 2];
+        const resTagIbGib = await this.common.files.get({addr: tagInfo.addr});
+        if (resTagIbGib.success && resTagIbGib.ibGib) {
+          tagIbGib = resTagIbGib.ibGib!;
+        } else {
+          throw new Error(`${resTagIbGib.errorMsg || 'there was a problem getting the tag ibGib.'}`);
+        }
+
       }
+
+      // relate context to tag
+      const rel8nsToAddByAddr = { target: [this.addr] };
+      const resRel8ToTag =
+        await V1.rel8({src: tagIbGib, rel8nsToAddByAddr, dna: true, nCounter: true});
+      await this.common.files.persistTransformResult({resTransform: resRel8ToTag});
+      const { newIbGib: newTag } = resRel8ToTag;
+      await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newTag, linked: true});
+      await this.common.ibgibs.registerNewIbGib({ibGib: newTag});
+
+      console.log(`${lc} tag successful.`);
 
     } catch (error) {
       console.error(`${lc} ${error.message}`)
+      await Modals.alert({title: 'something went wrong...', message: error.message});
     }
 
   }
 
-  async createNewTag(): Promise<void> {
+  async createNewTag(): Promise<IbGib_V1> {
     const lc = `${this.lc}[${this.createNewTag.name}]`;
     let icon: string;
     let tagText: string;
@@ -423,6 +482,7 @@ export class ActionBarComponent extends IbgibComponentBase
 
       const resNewTag = 
         await this.common.ibgibs.createTagIbGib({text: tagText, icon, description: ''});
+      return resNewTag.newTagIbGib;
     // });
 
     
@@ -431,6 +491,11 @@ export class ActionBarComponent extends IbgibComponentBase
   delay(ms: number): Promise<void> {
     return new Promise((resolve) => { setTimeout(() => { resolve(); }, ms); });
   }
+}
+
+interface TagInfo {
+  title: string;
+  addr: string;
 }
 
 const IONICONS = [

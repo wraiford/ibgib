@@ -11,6 +11,9 @@ import { SPECIAL_URLS } from '../common/constants';
 import { getIbGibAddr, pretty } from 'ts-gib/dist/helper';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 import { LatestEventInfo } from '../common/types';
+// import * as encGib from 'encrypt-gib';
+import * as h from 'ts-gib';
+import { encrypt, decrypt, SaltStrategy } from 'encrypt-gib';
 
 @Component({
   selector: 'ibgib-page',
@@ -41,12 +44,66 @@ export class IbGibPage extends IbgibComponentBase
     super(common, ref);
   }
 
-  ngOnInit() {
+  async ngOnInit() {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
     console.log(`${lc} called.`)
     // this.folder = this.activatedRoute.snapshot.paramMap.get('addr');
     this.subscribeParamMap();
     super.ngOnInit();
+
+    await this.testEncryptGib();
+  }
+
+  async testEncryptGib(): Promise<void> {
+    const lc = `${this.lc}[${this.testEncryptGib.name}]`;
+    // debug test enc-gib
+    let initialData = 'here is some text';
+    // let hexString = await encGib.encodeStringToHexString(data);
+    // let data2 = await encGib.decodeHexStringToString(hexString);
+    // console.log(`${lc} data: ${data}`);
+    // console.log(`${lc} hexString: ${hexString}`);
+    // console.log(`${lc} data2: ${data2}`);
+    const salt = await h.getUUID();
+    const secret = `great p4SSw0rd?`;
+    let {encryptedData, errors} = await encrypt({
+      dataToEncrypt: initialData,
+      initialRecursions: 100,
+      recursionsPerHash: 10,
+      salt,
+      saltStrategy: SaltStrategy.appendPerHash,
+      secret,
+      confirm: true,
+    });
+
+    console.log(`${lc} initialData: ${initialData}`);
+    if (encryptedData) {
+      console.log(`${lc} encryptedData: ${encryptedData}`);
+
+      let { decryptedData, errors: errorsDecrypt } = await decrypt({
+        encryptedData,
+        initialRecursions: 100,
+        recursionsPerHash: 10,
+        salt,
+        saltStrategy: SaltStrategy.appendPerHash,
+        secret,
+      });
+
+      if (decryptedData) {
+        console.log(`${lc} decryptedData: ${decryptedData}`);
+        if (decryptedData === initialData) {
+          console.log(`${lc} initialData equals decryptedData`);
+        }
+      } else {
+        console.error(`${lc} decryptedData falsy!`);
+      }
+    } else if (errors?.length > 0) {
+      console.error(`${lc} errored!!! here they are...`);
+      for (let error in errors) { console.error(`${lc} ${error}`); }
+      console.error(`${lc} end of errors.`)
+    } else {
+      console.log(`${lc} no encryptedData and no errors?`);
+    }
+
   }
 
   ngOnDestroy() {

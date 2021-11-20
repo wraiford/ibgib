@@ -40,16 +40,9 @@
 
   <div id="container">
 
-    <!-- <p *ngIf='ib?.startsWith("tag")'>tag addr: {{addr||"falsy"}}</p> -->
-    <!-- <list-item ([testprop])='"set in ibgibpage.html"' [addr]='addr'></list-item> -->
     <tag-list *ngIf='ib?.startsWith("tag")' [addr]='addr' [ibGib_Context]='ibGib'></tag-list>
 
-    <!-- <p *ngIf='!ib?.startsWith("tag")'>chat</p> -->
     <chat-view *ngIf='!ib?.startsWith("tag")' [addr]='addr' [ibGib_Context]='ibGib'></chat-view>
-
-    <!-- <chat-view [addr]='addr'></chat-view> -->
-    <!-- <strong class="capitalize">raw data:</strong> -->
-    <!-- <pre>{{ ibGib | json }}</pre> -->
 
   </div>
 

@@ -15,7 +15,7 @@ export class ListViewComponent
   extends IbgibListComponentBase
   implements OnInit {
 
-  protected lc: string = `[${ListViewComponent.name}]`;
+  protected lc: string = `1[${ListViewComponent.name}]`;
 
   @Input()
   get addr(): IbGibAddr { return super.addr; }
@@ -24,9 +24,6 @@ export class ListViewComponent
   @Input()
   get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
   set ibGib_Context(value: IbGib_V1 ) { super.ibGib_Context = value; }
-
-  @Input()
-  testprop = 'initialized';
 
   @Output()
   clicked: EventEmitter<IbgibItem> = new EventEmitter();
@@ -37,12 +34,13 @@ export class ListViewComponent
   ) {
     super(common, ref);
     setTimeout(() => {
-      this.testprop = 'changed after timeout';
       this.ref.detectChanges();
     }, 5000);
   }
 
-  ngOnInit() {}
+  ngOnInit() { 
+    super.ngOnInit();
+  }
 
   updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;

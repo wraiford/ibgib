@@ -1130,4 +1130,16 @@ export class IbgibsService {
     }
   }
 
+  // async sendTo({
+  //   ibGib, 
+  //   ibGibs,
+  //   configIbGib,
+  // }: {
+  //   ibGib?: IbGib_V1, 
+  //   ibGibs?: IbGib_V1[],
+  //   configIbGib: SendIbGib,
+  // }): Promise<void> {
+
+  // }
+
 }

@@ -118,3 +118,8 @@ export interface LatestEventInfo {
     latestAddr: IbGibAddr;
     latestIbGib?: IbGib_V1<any>;
 }
+
+export interface SendData {
+    endpoint?: string;
+    
+}

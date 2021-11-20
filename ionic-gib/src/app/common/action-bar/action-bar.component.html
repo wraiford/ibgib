@@ -1,20 +1,15 @@
 <div *ngFor='let item of items'>
+
   <ion-button *ngIf='item.type === "button"'
     color="primary" shape="round"
     (click)='item.handler($event)'>
     <ion-icon slot="start" [name]="item.icon"></ion-icon>
-    <!-- {{ item.text }} -->
   </ion-button>
 
   <ion-button *ngIf='item.type === "inputfile"' color="primary" shape="round"
     (click)='inputyo.click()'>
-
     <ion-icon slot="start" [name]="item.icon"></ion-icon>
-
-    <!-- {{ item.text }} -->
-
     <input #inputyo type="file" hidden (change)='item.filepicked($event)'/>
-
   </ion-button>
 
 </div>

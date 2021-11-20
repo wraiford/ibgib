@@ -4,6 +4,7 @@ import { CommonService } from 'src/app/services/common.service';
 import { IbgibItem } from 'src/app/common/types';
 import { IbGibAddr } from 'ts-gib';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
+import * as c from '../../common/constants';
 
 @Component({
   selector: 'tag-list',
@@ -33,12 +34,24 @@ export class TagListViewComponent
     console.log(`${lc} created`);
   }
 
-  ngOnInit() {}
+  ngOnInit() {
+    super.ngOnInit();
+  }
 
   updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
     console.log(`${lc}`)
     return super.updateIbGib(addr);
+  }
+
+
+  async updateItems(): Promise<void> {
+    debugger;
+    this.rel8nNames = ['target', ...c.DEFAULT_LIST_REL8N_NAMES];
+    await super.updateItems();
+    setTimeout(() => {
+      this.ref.detectChanges();
+    }, 1000);
   }
 
   async tagClicked(item: IbgibItem): Promise<void> {

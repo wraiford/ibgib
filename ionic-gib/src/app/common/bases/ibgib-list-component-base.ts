@@ -20,7 +20,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
      *   the place. This is used all throughout the codebase.
      *   Otherwise, I usually use very long names...often too long! :-)
      */
-    protected lc: string = `[${IbgibListComponentBase.name}]`;
+    protected lc: string = `2[${IbgibListComponentBase.name}]`;
 
     private _updatingItems: boolean;
 
@@ -40,9 +40,13 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
         super(common, ref);
     }
 
-    ngOnInit() {}
+    ngOnInit() {
+        super.ngOnInit();
+    }
 
-    ngOnDestroy() {}
+    ngOnDestroy() {
+        super.ngOnDestroy();
+    }
 
     async updateIbGib(addr: IbGibAddr): Promise<void> {
         const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
@@ -73,6 +77,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
             this.items = [];
             let newItems = [];
             if (!this.item || !this.item.ibGib || !this.item.ibGib!.rel8ns) { return; }
+            console.log(`${lc} this.rel8nNames: ${this.rel8nNames?.toString()}`);
             for (let rel8nName of this.rel8nNames) {
                 const rel8dAddrs = this.item.ibGib?.rel8ns[rel8nName] || [];
                 for (let rel8dAddr of rel8dAddrs) {

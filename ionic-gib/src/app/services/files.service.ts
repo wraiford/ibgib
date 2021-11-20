@@ -4,7 +4,7 @@ import { Plugins, FilesystemEncoding, FileReadResult } from '@capacitor/core';
 const { Filesystem } = Plugins;
 
 import { IbGibAddr, TransformResult } from 'ts-gib/dist';
-import { IbGib_V1 } from 'ts-gib/dist/V1';
+import { IbGibRepo_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 import { getIbGibAddr, hash, getIbAndGib } from 'ts-gib/dist/helper';
 import { IBGIB_BASE_SUBPATH, IBGIB_BIN_SUBPATH, IBGIB_META_SUBPATH, IBGIB_DNA_SUBPATH, IBGIB_IBGIBS_SUBPATH, IBGIB_FILES_ENCODING, IBGIB_BASE_DIR } from '../common/constants';
 import { DomSanitizer } from '@angular/platform-browser';
@@ -169,7 +169,7 @@ export class FilesService {
 
     if (!addr && !binHash) { throw new Error(`${lc} addr or binHash required.`) };
 
-    const {ib,gib} = getIbAndGib({ibGibAddr: addr});
+    // const {ib,gib} = getIbAndGib({ibGibAddr: addr});
     const isBin = !addr;
     const result: GetIbGibResult = {};
 
@@ -181,10 +181,10 @@ export class FilesService {
           directory: IBGIB_BASE_DIR,
           encoding: IBGIB_FILES_ENCODING,
         });
-        console.log(`${lc} path found: ${p}`);
+        console.log(`${lcTry} path found: ${p}`);
         return resRead;
       } catch (error) {
-        console.log(`${lc} path not found: ${p}`);
+        console.log(`${lcTry} path not found: ${p}`);
         return null;
       }
     }
