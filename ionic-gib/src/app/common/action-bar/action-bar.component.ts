@@ -376,22 +376,39 @@ export class ActionBarComponent extends IbgibComponentBase
       let tagIbGib: IbGib_V1;
       if (resPrompt.index === 0) {
 
-        // cancelled
+        console.log(`${lc} cancelled`);
         await Plugins.Modals.alert({ title: 'nope', message: 'cancelled' });
         return;
 
       } else if (resPrompt.index === 1) {
 
-        // create new tag
+        console.log(`${lc} create new tag`);
         tagIbGib = await this.createNewTag();
 
       } else {
 
-        // tag with existing tag
+        console.log(`${lc} tag with existing tag, but may not be latest addr`);
         const tagInfo: TagInfo = tagInfos[resPrompt.index - 2];
         const resTagIbGib = await this.common.files.get({addr: tagInfo.addr});
         if (resTagIbGib.success && resTagIbGib.ibGib) {
-          tagIbGib = resTagIbGib.ibGib!;
+          const rel8dTagIbGibAddr = getIbGibAddr({ibGib: resTagIbGib.ibGib});
+          console.log(`${lc} the rel8d tag may not be the latest: ${rel8dTagIbGibAddr}`);
+          const latestTagAddr = await this.common.ibgibs.getLatestAddr({ibGib: resTagIbGib.ibGib});
+          console.log(`${lc} latestTagAddr: ${latestTagAddr}`);
+          if (rel8dTagIbGibAddr === latestTagAddr) {
+            console.error(`${lc} tag is already the latest`);
+            tagIbGib = resTagIbGib.ibGib!;
+          } else {
+            console.error(`${lc} tag is NOT the latest`);
+            const resTagIbGibLatest = await this.common.files.get({addr: latestTagAddr});
+            if (resTagIbGibLatest.success && resTagIbGibLatest.ibGib) {
+              console.error(`${lc} tag is NOT the latest and we got a new ibgib`);
+              tagIbGib = resTagIbGibLatest.ibGib!;
+            } else {
+              console.error(`${lc} couldn't find latest tag addr (${latestTagAddr}). using previous tag (${rel8dTagIbGibAddr})`);
+              tagIbGib = resTagIbGib.ibGib!;
+            }
+          }
         } else {
           throw new Error(`${resTagIbGib.errorMsg || 'there was a problem getting the tag ibGib.'}`);
         }

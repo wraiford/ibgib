@@ -5,6 +5,7 @@ import { EventEmitter } from '@angular/core';
 import { IbgibItem } from 'src/app/common/types';
 import { IbGibAddr } from 'ts-gib';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
+import * as c from '../../common/constants';
 
 @Component({
   selector: 'list-view',
@@ -24,6 +25,12 @@ export class ListViewComponent
   @Input()
   get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
   set ibGib_Context(value: IbGib_V1 ) { super.ibGib_Context = value; }
+
+  /**
+   * Rel8n names to show in the list by default.
+   */
+  @Input()
+  rel8nNames: string[] = c.DEFAULT_LIST_REL8N_NAMES;
 
   @Output()
   clicked: EventEmitter<IbgibItem> = new EventEmitter();

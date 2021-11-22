@@ -1085,33 +1085,29 @@ export class IbgibsService {
     let lc = `${this.lc}[${this.pingLatest.name}]`;
     console.log(`${lc} starting...`);
     try {
+      let latestAddr = await this.getLatestAddr({ibGib, tjp});
       let ibGibAddr = getIbGibAddr({ibGib});
-      let specialLatest = await this.getSpecialIbgib({type: "latest"});
-      if (!specialLatest.rel8ns) { specialLatest.rel8ns = {}; }
 
-      // get the tjp for the rel8nName mapping, and also for some checking logic
+      // // get the tjp for the rel8nName mapping, and also for some checking logic
       if (!tjp) {
-        let tjp = await this.getTjp({ibGib});
+        tjp = await this.getTjp({ibGib});
         if (!tjp) {
           console.warn(`${lc} tjp not found for ${ibGibAddr}? Should at least just be the ibGib's address itself.`);
           tjp = ibGib;
         }
       }
       let tjpAddr = getIbGibAddr({ibGib: tjp});
-      console.log(`${lc} pinging tjp (${tjpAddr})...`);
 
-      let latestAddr = specialLatest.rel8ns[tjpAddr]?.length > 0 ?
-        specialLatest.rel8ns[tjpAddr][0] :
-        ibGibAddr;
+      // console.log(`${lc} ping it out`);
       if (latestAddr === ibGibAddr) {
-        // no (different) latest exists
+        // console.log(`${lc} no (different) latest exists`);
         this._latestSubj.next({
           latestIbGib: ibGib,
           latestAddr: ibGibAddr,
           tjpAddr,
         });
       } else {
-        // there is a later version
+        // console.log(`${lc} there is a later version`);
         let resLatestIbGib = await this.files.get({addr: latestAddr});
         if (!resLatestIbGib.success || !resLatestIbGib.ibGib) {
           throw new Error('latest not found');
@@ -1130,16 +1126,42 @@ export class IbgibsService {
     }
   }
 
-  // async sendTo({
-  //   ibGib, 
-  //   ibGibs,
-  //   configIbGib,
-  // }: {
-  //   ibGib?: IbGib_V1, 
-  //   ibGibs?: IbGib_V1[],
-  //   configIbGib: SendIbGib,
-  // }): Promise<void> {
+  async getLatestAddr({
+    ibGib,
+    tjp,
+  }: {
+    ibGib: IbGib_V1<any>,
+    tjp?: IbGib_V1<any>,
+  }): Promise<IbGibAddr> {
+    let lc = `${this.lc}[${this.getLatestAddr.name}]`;
+    console.log(`${lc} starting...`);
+    try {
+      let ibGibAddr = getIbGibAddr({ibGib});
+      let specialLatest = await this.getSpecialIbgib({type: "latest"});
+      if (!specialLatest.rel8ns) { specialLatest.rel8ns = {}; }
 
-  // }
+      // get the tjp for the rel8nName mapping, and also for some checking logic
+      console.log(`${lc} tjp: ${JSON.stringify(tjp)}`);
+      if (!tjp) {
+        tjp = await this.getTjp({ibGib});
+        if (!tjp) {
+          console.warn(`${lc} tjp not found for ${ibGibAddr}? Should at least just be the ibGib's address itself.`);
+          tjp = ibGib;
+        }
+      }
+      let tjpAddr = getIbGibAddr({ibGib: tjp});
+      console.log(`${lc} tjp (${tjpAddr})...`);
+
+      console.log(`${lc} specialLatest addr: ${getIbGibAddr({ibGib: specialLatest})}`);
+      let latestAddr = specialLatest.rel8ns[tjpAddr]?.length > 0 ?
+        specialLatest.rel8ns[tjpAddr][0] :
+        ibGibAddr;
+      return latestAddr;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+    } finally {
+      console.log(`${lc} complete.`);
+    }
+  }
 
 }

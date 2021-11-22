@@ -4,7 +4,7 @@ import { Injectable } from "@angular/core";
 import { IbgibItem } from '../types';
 import { IbgibComponentBase } from './ibgib-component-base';
 import { CommonService } from 'src/app/services/common.service';
-import { DEFAULT_LIST_REL8N_NAMES } from '../constants';
+import * as c from '../constants';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 
 @Injectable({providedIn: "root"})
@@ -31,7 +31,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
      * Rel8n names to show in the list by default.
      */
     @Input()
-    rel8nNames: string[] = DEFAULT_LIST_REL8N_NAMES;
+    rel8nNames: string[] = c.DEFAULT_LIST_REL8N_NAMES;
 
     constructor(
         protected common: CommonService,
@@ -65,6 +65,11 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
         }
     }
 
+    // /**
+    //  * Override this to add/remove rel8n names for the list.
+    //  */
+    // updateRel8nNames(): void { this.rel8nNames = DEFAULT_LIST_REL8N_NAMES; }
+
     /**
      * 
      */
@@ -78,6 +83,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
             let newItems = [];
             if (!this.item || !this.item.ibGib || !this.item.ibGib!.rel8ns) { return; }
             console.log(`${lc} this.rel8nNames: ${this.rel8nNames?.toString()}`);
+
             for (let rel8nName of this.rel8nNames) {
                 const rel8dAddrs = this.item.ibGib?.rel8ns[rel8nName] || [];
                 for (let rel8dAddr of rel8dAddrs) {

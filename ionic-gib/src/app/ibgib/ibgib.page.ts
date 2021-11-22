@@ -51,7 +51,7 @@ export class IbGibPage extends IbgibComponentBase
     this.subscribeParamMap();
     super.ngOnInit();
 
-    await this.testEncryptGib();
+    // await this.testEncryptGib();
   }
 
   async testEncryptGib(): Promise<void> {
@@ -122,11 +122,13 @@ export class IbGibPage extends IbgibComponentBase
       await this.loadTjp();
       console.log(`${lc} ibGib: ${pretty(this.ibGib)}`);
       await this.loadItem();
-      console.warn(`${lc} checking paused: ${this.paused}`);
+      // console.warn(`${lc} checking paused: ${this.paused}`);
       this.updatePaused();
       if (!this.paused) {
         this.item.refreshing = true;
-        await this.common.ibgibs.pingLatest({ibGib: this.ibGib, tjp: this.tjp});
+        setTimeout(async () => {
+          await this.common.ibgibs.pingLatest({ibGib: this.ibGib, tjp: this.tjp});
+        });
       }
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);
