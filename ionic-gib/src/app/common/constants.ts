@@ -49,7 +49,7 @@ export const TAGGED_REL8N_NAME = 'tagged';
  * These rel8n names are shown in a list view by default.
  */
 export const DEFAULT_LIST_REL8N_NAMES: string[] = [
-    'pic', 'comment', 'link', 'tag', 'result', 
+    'pic', 'comment', 'link', 'tag', 'result',
 ]
 
 export const DEFAULT_META_IB_STARTS: Ib[] = [
@@ -79,7 +79,7 @@ export const DEFAULT_TAG_ICON = 'pricetag-outline';
 export const DEFAULT_TAG_DESCRIPTION = 'This is a tag used for organizing data.';
 
 /**
- * 
+ *
  */
 export const DEFAULT_ROOT_TEXT = 'root';
 /**
@@ -92,13 +92,13 @@ export const DEFAULT_ROOT_ICON = 'analytics-outline';
 export const DEFAULT_ROOT_DESCRIPTION = 'This is a root ibgib, which is basically like a root folder that is primarily responsible for "containing" other ibgibs.';
 /**
  * rel8n name used inside the root to those ibgib it contains.
- * 
- * @example 
+ *
+ * @example
  * ```json
- *  { 
- *      ib: root, 
- *      gib: ABC123, 
- *      data: {...}, 
+ *  {
+ *      ib: root,
+ *      gib: ABC123,
+ *      data: {...},
  *      rel8ns: {
  *          [rel8nName]: ["a^1", "b^2"]
  *      }
@@ -106,3 +106,7 @@ export const DEFAULT_ROOT_DESCRIPTION = 'This is a root ibgib, which is basicall
  * ```
  */
 export const DEFAULT_ROOT_REL8N_NAME = 'x';
+
+export const CURRENT_VERSION = '1';
+export const WITNESS_ARG_METADATA_STRING = 'witness_arg';
+export const WITNESS_RESULT_METADATA_STRING = 'witness_result';

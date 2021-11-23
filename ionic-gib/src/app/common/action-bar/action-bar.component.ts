@@ -22,9 +22,9 @@ export class ActionBarComponent extends IbgibComponentBase
 
   @Input()
   get addr(): IbGibAddr { return super.addr; }
-  set addr(value: IbGibAddr) { 
+  set addr(value: IbGibAddr) {
     let lc = `${this.lc}[set addr(value: ${value})]`;
-    super.addr = value; 
+    super.addr = value;
   }
 
   @Input()
@@ -77,7 +77,7 @@ export class ActionBarComponent extends IbgibComponentBase
     super(common, ref);
   }
 
-  ngOnInit() { 
+  ngOnInit() {
     console.log(`${this.lc} addr: ${this.addr}`);
   }
 
@@ -149,8 +149,8 @@ export class ActionBarComponent extends IbgibComponentBase
       let navToAddr: string;
       if (this.addr) {
         // if we have a context, rel8 to it
-        if (!this.ibGib) { 
-          await this.loadIbGib(); 
+        if (!this.ibGib) {
+          await this.loadIbGib();
           await this.loadTjp();
         }
         const rel8nsToAddByAddr = { comment: [newCommentAddr] };
@@ -236,8 +236,8 @@ export class ActionBarComponent extends IbgibComponentBase
       // or if in context need to rel8 to the context.
 
       // rel8 to context
-      if (!this.ibGib) { 
-        await this.loadIbGib(); 
+      if (!this.ibGib) {
+        await this.loadIbGib();
         await this.loadTjp();
       }
       const rel8nsToAddByAddr = { pic: [newPicAddr] };
@@ -357,16 +357,16 @@ export class ActionBarComponent extends IbgibComponentBase
         options: [
           {
             // index 0
-            title: 'Cancel', 
+            title: 'Cancel',
 
-            style: ActionSheetOptionStyle.Cancel 
-          }, 
+            style: ActionSheetOptionStyle.Cancel
+          },
           {
             // index 1
-            title: 'New Tag...', 
+            title: 'New Tag...',
 
-            style: ActionSheetOptionStyle.Default 
-          }, 
+            style: ActionSheetOptionStyle.Default
+          },
 
           // index = i-2
           ...tagInfos,
@@ -425,7 +425,7 @@ export class ActionBarComponent extends IbgibComponentBase
       await this.common.ibgibs.registerNewIbGib({ibGib: newTag});
 
       console.log(`${lc} tag successful.`);
-
+      await Modals.alert({title: 'yess', message: `Tagged.`});
     } catch (error) {
       console.error(`${lc} ${error.message}`)
       await Modals.alert({title: 'something went wrong...', message: error.message});
@@ -454,14 +454,14 @@ export class ActionBarComponent extends IbgibComponentBase
         okButtonTitle: 'Create Tag',
       });
 
-      if (resTagText.cancelled || !resTagText.value) { 
+      if (resTagText.cancelled || !resTagText.value) {
         console.log(`${lc} cancelled? no value?`)
-        return; 
+        return;
       }
 
       if (ILLEGAL_TAG_TEXT_CHARS.some(x => resTagText.value.includes(x))) {
         await Plugins.Modals.alert({
-          title: 'Nope...', 
+          title: 'Nope...',
           message: `Tag Text can't contain spaces or ${ILLEGAL_TAG_TEXT_CHARS}`,
         });
       } else {
@@ -488,21 +488,21 @@ export class ActionBarComponent extends IbgibComponentBase
       }
 
       // cancel index
-      if (resIcon.index === 0) { 
+      if (resIcon.index === 0) {
         console.log(`${lc} (cancelling) resIcon.index: ${resIcon.index}`);
-        return; 
+        return;
       } else {
         console.log(`${lc} resIcon.index: ${resIcon.index}`);
       }
       icon = options[resIcon.index-1].icon;
 
 
-      const resNewTag = 
+      const resNewTag =
         await this.common.ibgibs.createTagIbGib({text: tagText, icon, description: ''});
       return resNewTag.newTagIbGib;
     // });
 
-    
+
   }
 
   delay(ms: number): Promise<void> {

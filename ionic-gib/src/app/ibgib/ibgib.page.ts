@@ -122,7 +122,6 @@ export class IbGibPage extends IbgibComponentBase
       await this.loadTjp();
       console.log(`${lc} ibGib: ${pretty(this.ibGib)}`);
       await this.loadItem();
-      // console.warn(`${lc} checking paused: ${this.paused}`);
       this.updatePaused();
       if (!this.paused) {
         this.item.refreshing = true;
