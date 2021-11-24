@@ -2,6 +2,32 @@ import { FilesystemDirectory, FilesystemEncoding } from '@capacitor/core';
 import { GIB } from 'ts-gib/dist/V1';
 import { Ib } from 'ts-gib';
 
+/**
+ * When the application first starts, it looks to bootstrap itself.
+ * So it will look for a file with this primitive address.
+ *
+ * This file should contain the absolute minimum information required
+ * to resolve to an ibgib proper with a valid ^gib hash.
+ * Atow I can't think of any further information required
+ * than simply the ib^gib address of that ibgib, accompanied with
+ * any required pathing metadata to find it.
+ *
+ * ## notes
+ *
+ * Usually primitives are not stored/persisted. This is because the
+ * `gib` indicates that there is no hash corroboration ("guarantee")
+ * to the internal data or rel8ns. However, a newly started app
+ * has to start somewhere. This offers an alternative to using
+ * app storage and streamlines the app overall, since instead of
+ * working with two stores (in Ionic: `Storage` and `FileSystem`)
+ * we will just be working with one (`FileSystem`).
+ *
+ * In the future, we'll want to do a workflow here where the user
+ * can start from an existing space, but for now it's just located
+ * here.
+ */
+export const BOOTSTRAP_ADDR = `bootstrap^${GIB}`;
+
 export const IBGIB_BASE_DIR = FilesystemDirectory.Data;
 export const IBGIB_FILES_ENCODING = FilesystemEncoding.UTF8;
 

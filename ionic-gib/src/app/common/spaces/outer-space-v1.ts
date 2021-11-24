@@ -30,17 +30,47 @@ import { getIbGibAddr, IbGibAddr } from 'ts-gib';
  */
 export interface OuterSpace_V1_Data {
     /**
-     * If true, then this will include this repo's ibGib's addrs (i.e. index)
-     * in its {@link data} property.
+     * If true, then the space is associated with a secret key.
      */
-    trackAddrs: boolean;
-    url: string;
-    id: string;
-    key: string;
+    private?: boolean;
+    /**
+     * if space is private, this will provide the
+     */
+    secretKey?: string;
+    /**
+     * urls to associate with the space.
+     *
+     * ## usage
+     *
+     * the intended usage is for broadcast urls.
+     */
+    urls?: string[];
+
+    /**
+     * if true, puts/gets default to all or nothing transactional calls.  */
+    defaultTransactional?: boolean;
+
+    /**
+     * id associated with the SPACE
+     */
+    id?: string;
+
+    /**
+     * optional username associated with this instantiation into the space
+     */
+    username?: string;
 }
 
 /**
  *
+ * ## ideas
+ *
+ * * create a new outer space
+ * * sensitive info, so encrypt with password.
+ *   * this is what a keystone would be...for a unique secret space.
+ *   * so the keystone would be the thing with the password, while the settings
+ *     would link to the keystone(s) for various responsibilities.
+ * * types of spaces is how they get connected.
  */
 export class OuterSpace_V1<
         TIbGib extends IbGib_V1 = IbGib_V1,

@@ -3,81 +3,82 @@ import { IbGib_V1, Rel8n, GIB } from 'ts-gib/dist/V1';
 import { IbGibAddr, V1, Ib } from 'ts-gib';
 import { Storage, Modals } from '@capacitor/core';
 import { FilesService } from './files.service';
-import { 
-  TAG_REL8N_NAME, DEFAULT_ROOT_DESCRIPTION, DEFAULT_ROOT_ICON, 
-  ROOT_REL8N_NAME, DEFAULT_TAG_ICON, DEFAULT_TAG_DESCRIPTION, 
+import {
+  TAG_REL8N_NAME, DEFAULT_ROOT_DESCRIPTION, DEFAULT_ROOT_ICON,
+  ROOT_REL8N_NAME, DEFAULT_TAG_ICON, DEFAULT_TAG_DESCRIPTION,
   DEFAULT_ROOT_TEXT, DEFAULT_ROOT_REL8N_NAME,
 } from '../common/constants';
 import { Factory_V1 as factory } from 'ts-gib/dist/V1';
 import { getIbGibAddr } from 'ts-gib/dist/helper';
 import { TagData, SpecialIbGibType, RootData, LatestEventInfo } from '../common/types';
 import { ReplaySubject } from 'rxjs';
+import { IonicSpace_V1 } from '../common/spaces/bootstrap-space-v1';
 // import { IbGibWitnessScheduler } from 'keystone-gib/src/V1/witnesses/scheduler';
 // import { InMemoryRepo } from 'keystone-gib/src/V1/witnesses/in-memory-repo';
 
 /**
  * All-purpose mega service (todo: which we'll need to break up!) to interact
  * with ibgibs at the app/device level.
- * 
+ *
  * ## regarding special ibgibs
- * 
+ *
  * Special ibgibs' behaviors are what hold in other apps configuration data.
  * Of course the difference is that most special ibgibs can leverage the "on-chain"
  * functionality of "regular" ibgibs.
- * 
+ *
  * There are a couple meta ibgibs (which I also call "special"):
  *   * roots^gib
  *     * tracks other special root^gib ibgibs, which are like local app-level indexes.
  *   * tags^gib
- *     * tracks other special tag^gib ibgibs, which you can apply to any ibgib 
+ *     * tracks other special tag^gib ibgibs, which you can apply to any ibgib
  *   * latest^gib
  *     * tracks mappings between tjp -> latest ib^gib address
  *     * ephemeral (deletes past rel8ns and past ibGib frames)
- * 
+ *
  * ## regarding latest ibgibs
- * 
+ *
  * The tjp (temporal junction point) defines atow the beginning of an ibGib timeline.
  * it's like the birthday for an ibGib.
- * 
- * The latest ibGib in that timeline is also special, because it's often what you 
+ *
+ * The latest ibGib in that timeline is also special, because it's often what you
  * want to work with.
- * 
- * So ideally, when an ibgib, A, has a tjp A1, and it is updated to A2, A3, An 
+ *
+ * So ideally, when an ibgib, A, has a tjp A1, and it is updated to A2, A3, An
  * via `mut8` and/or `rel8` transforms, that ibgib creates a single timeline.
  * This service attempts to track the relationship between that starting
- * tjp address and its corresponding latest frame in that timeline, i.e., A1 -> An. 
- * 
+ * tjp address and its corresponding latest frame in that timeline, i.e., A1 -> An.
+ *
  * ### mapping persistence implementation details
- * 
+ *
  * The latest ibGib service is backed by a special ibgib that maintains the mapping index.
- * It does this by rel8-ing that special backing ibgib via the tjp pointer, 
+ * It does this by rel8-ing that special backing ibgib via the tjp pointer,
  * e.g. [special latest ibgib^XXX000].rel8ns[A^TJP123] === [A^N12345]
- * It does this via the ib^gib content address pointer, so this becomes 
+ * It does this via the ib^gib content address pointer, so this becomes
  * a mapping from A^TJP123 to A^N12345.
- * 
+ *
  * This backing ibGib is special (even for special ibGibs) in that:
  *   * it does not relate itself with the current root of the application
  *   * it does not maintain references to its past (i.e. rel8ns['past'] === [])
  *   * it DELETES its previous incarnation from the files service
- * 
+ *
  * In other words, this service is meant to be as ephemeral as possible. I am keeping it
- * as an ibGib and not some other data format (like straight in storage/some other db) 
+ * as an ibGib and not some other data format (like straight in storage/some other db)
  * because I've found this is often useful and what I end up doing anyway to leverage other
  * ibgib behavior. For example, in the future it may be good to take snapshots, which is a
  * simple copy operation of the file persistence.
- * 
+ *
  * ### current naive implementation notes
- * 
- * questions: 
- *   * What do we want to do if we can't locate an ibGib record? 
+ *
+ * questions:
+ *   * What do we want to do if we can't locate an ibGib record?
  *   * How/when do we want to alert the user/our own code that we've found multiple timelines for an ibGib with a tjp (usually
  * a thing we want to avoid)?
- *   * Who do we want to notify when new ibGibs arrive? 
- *   * How often do we want to check external sources for latest? 
+ *   * Who do we want to notify when new ibGibs arrive?
+ *   * How often do we want to check external sources for latest?
  *   * When do we get to merging ibGib timelines?
- * 
- * This is behavior that is somewhat taken care of, e.g. in git, with the HEAD pointer for a repo. 
- * But we're talking about here basically as a metarepo or "repo of repos", and unlike git, 
+ *
+ * This is behavior that is somewhat taken care of, e.g. in git, with the HEAD pointer for a repo.
+ * But we're talking about here basically as a metarepo or "repo of repos", and unlike git,
  * we don't want our HEAD metadata living "off chain" (outside of the DLT itself that it's modifying).
  * So eventually, what we want is just like what we want with ALL ibGibs: perspective. From "the app"'s
  * perspective, the latest is mapped. But really, apps can't view slices of ibGib graphs in all sorts
@@ -96,20 +97,61 @@ export class IbgibsService {
 
   /**
    * Used with tracking the tjp -> latest ib^gib mapping.
-   * 
+   *
    * If we have an addr for an ibGib that we can't find locally, we
    * will prompt the user if we want to replace the address in the tjp -> latest mapping.
-   * If they say yes, then we'll then ask if they always want to do so. 
-   * 
+   * If they say yes, then we'll then ask if they always want to do so.
+   *
    * This flag represents the answer to that "always replace" prompt.
    */
   private alwaysReplaceLatestNotFound = false;
 
+  /**
+   * Contains the configuration metadata for where ibgibs are looked for by default.
+   */
+  currentSpace: IonicSpace_V1;
 
   constructor(
     private files: FilesService,
-  ) { 
+  ) {
 
+  }
+
+  /**
+   * Gets a value from "storage".
+   *
+   * This is actually getting from the current bootstrap
+   *
+   * @param key storage key
+   * @returns value in storage if exists, else undefined
+   */
+  async storageGet({key}: {key: string}): Promise<string | undefined> {
+    const lc = `${this.lc}[${this.storageGet.name}]`;
+    try {
+      const result = await Storage.get({key});
+      if (result) {
+        if (result!.value) {
+          return result!.value;
+        } else {
+          throw new Error(`falsy result.value from Storage`);
+        }
+      } else {
+        throw new Error(`falsy result from Storage`);
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return undefined;
+    }
+  }
+
+  async storageSet({key, value}: {key: string, value: string}): Promise<void> {
+    const lc = `${this.lc}[${this.storageSet.name}]`;
+    try {
+      await Storage.set({key, value});
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
   }
 
   private _currentRoot: IbGib_V1<RootData> | undefined;
@@ -152,7 +194,7 @@ export class IbgibsService {
       // if (roots.rel8ns.current.length > 1) { throw new Error(`Invalid Roots: multiple current roots selected.`); }
 
       // remove any existing current root value
-      
+
       const rel8nsToRemoveByAddr = roots?.rel8ns?.current && roots?.rel8ns?.current.length > 0 ?
         { current: roots!.rel8ns!.current, } :
         undefined;
@@ -170,7 +212,7 @@ export class IbgibsService {
 
       const storageKey = this.getSpecialStorageKey({type: "roots"});
       let newRootsAddr = getIbGibAddr({ibGib: resNewRoots.newIbGib});
-      await Storage.set({key: storageKey, value: newRootsAddr});
+      await this.storageSet({key: storageKey, value: newRootsAddr});
 
       this._currentRoot = root;
 
@@ -194,11 +236,11 @@ export class IbgibsService {
   }
 
   async rel8ToCurrentRoot({
-    ibGib, 
+    ibGib,
     linked,
     rel8nName,
   }: {
-    ibGib: IbGib_V1, 
+    ibGib: IbGib_V1,
     linked?: boolean,
     rel8nName?: string,
   }): Promise<void> {
@@ -212,7 +254,7 @@ export class IbgibsService {
 
       // check to see if it's already rel8d. If so, we're done.
       // NOTE: (very) naive!
-      if (currentRoot.rel8ns[rel8nName] && 
+      if (currentRoot.rel8ns[rel8nName] &&
           currentRoot.rel8ns[rel8nName].includes(ibGibAddr)) {
         // already rel8d
         return;
@@ -245,9 +287,9 @@ export class IbgibsService {
    * When initializing tags, this will generate some boilerplate tags.
    * I'm going to be doing roots here also, and who knows what else, but each
    * one will have its own initialize specifics.
-   * 
+   *
    * @param initialize initialize (i.e. create) ONLY IF IbGib not found. Used for initializing app (first run).
-   * 
+   *
    * @see {@link initializeSpecial}
    * @see {@link initializeTags}
    */
@@ -261,7 +303,7 @@ export class IbgibsService {
     const lc = `${this.lc}[${this.getSpecialIbgib.name}]`;
     try {
       let key = this.getSpecialStorageKey({type});
-      let addr = (await Storage.get({key}))?.value;
+      let addr = await this.storageGet({key});
       if (!addr) {
         if (initialize && !this._initializing) {
           this._initializing = true;
@@ -297,7 +339,7 @@ export class IbgibsService {
       switch (type) {
         case "tags":
           return this.initializeTags();
-      
+
         case "roots":
           return this.initializeRoots();
 
@@ -325,7 +367,7 @@ export class IbgibsService {
       const storageKey = this.getSpecialStorageKey({type: "tags"});
       const special = await this.initializeSpecialIbGib({type: "tags"});
       let addr = getIbGibAddr({ibGib: special});
-      await Storage.set({key: storageKey, value: addr});
+      await this.storageSet({key: storageKey, value: addr});
 
       // at this point, our tags ibGib has no associated tag ibGibs.
       // add home, favorite tags
@@ -336,7 +378,7 @@ export class IbgibsService {
       for (const data of initialTagDatas) {
         const resCreate = await this.createTagIbGib(data);
         addr = resCreate.newTagsAddr;
-        await Storage.set({key: storageKey, value: addr});
+        await this.storageSet({key: storageKey, value: addr});
       }
 
       return addr;
@@ -378,7 +420,7 @@ export class IbgibsService {
       const storageKey = this.getSpecialStorageKey({type: "roots"});
       const special = await this.initializeSpecialIbGib({type: "roots"});
       let specialAddr = getIbGibAddr({ibGib: special});
-      await Storage.set({key: storageKey, value: specialAddr});
+      await this.storageSet({key: storageKey, value: specialAddr});
 
       // at this point, our tags ibGib has no associated tag ibGibs.
       // add home, favorite tags
@@ -386,10 +428,10 @@ export class IbgibsService {
 
       let firstRoot: IbGib_V1<RootData> = null;
       const initialDatas: RootData[] = rootNames.map(n => {
-        return { 
-          text: `${n}root`, 
-          icon: DEFAULT_ROOT_ICON, 
-          description: DEFAULT_ROOT_DESCRIPTION 
+        return {
+          text: `${n}root`,
+          icon: DEFAULT_ROOT_ICON,
+          description: DEFAULT_ROOT_DESCRIPTION
         };
       });
       for (const data of initialDatas) {
@@ -398,14 +440,14 @@ export class IbgibsService {
         specialAddr = resCreate.newRootsAddr;
         // update the storage for the updated **roots** ibgib.
         // that roots ibgib is what points to the just created new root.
-        await Storage.set({key: storageKey, value: specialAddr});
+        await this.storageSet({key: storageKey, value: specialAddr});
       }
 
       // initialize current root
       await this.setCurrentRoot(firstRoot);
       // hack: the above line updates the roots in storage. so get **that** addr.
 
-      specialAddr = (await Storage.get({key: storageKey})).value;
+      specialAddr = await this.storageGet({key: storageKey});
 
       if (!specialAddr) { throw new Error('no roots address in storage?'); }
 
@@ -420,12 +462,12 @@ export class IbgibsService {
     const lc = `${this.lc}[${this.initializeLatest.name}]`;
     try {
       const storageKey = this.getSpecialStorageKey({type: "latest"});
-      const special = 
+      const special =
         await this.initializeSpecialIbGib({type: "latest", skipRel8ToRoot: true});
       let specialAddr = getIbGibAddr({ibGib: special});
-      await Storage.set({key: storageKey, value: specialAddr});
+      await this.storageSet({key: storageKey, value: specialAddr});
 
-      // right now, the latest ibgib doesn't have any more initialization, 
+      // right now, the latest ibgib doesn't have any more initialization,
       // since it is supposed to be as ephemeral and non-tracked as possible.
 
       return specialAddr;
@@ -614,15 +656,15 @@ export class IbgibsService {
     skipRel8ToRoot?: boolean,
     /**
      * Clears out the special.rel8ns.past array to an empty array.
-     * 
+     *
      * {@see deletePreviousSpecialIbGib} for driving use case.
      */
     severPast?: boolean,
     /**
      * Deletes the previous special ibGib.
-     * 
+     *
      * ## driving use case
-     * 
+     *
      * the latest ibGib is one that is completely ephemeral. It doesn't get attached
      * to the current root, and it only has the current instance. So we don't want to
      * keep around past incarnations.
@@ -635,7 +677,7 @@ export class IbgibsService {
 
       // get the special ibgib
       const storageKey = this.getSpecialStorageKey({type});
-      let specialAddr = (await Storage.get({key: storageKey}))?.value;
+      let specialAddr = await this.storageGet({key: storageKey});
       if (!specialAddr) { throw new Error(`addr not found`) };
       let resGetSpecial = await this.files.get({addr: specialAddr, isMeta: true});
       if (!resGetSpecial.success) { throw new Error(`couldn't get special`) }
@@ -652,8 +694,8 @@ export class IbgibsService {
 
       if (severPast) { resNewSpecial.newIbGib.rel8ns.past = []; }
 
-      if (resNewSpecial.intermediateIbGibs) { 
-        throw new Error('new special creates intermediate ibgibs. so severing past is harder.'); 
+      if (resNewSpecial.intermediateIbGibs) {
+        throw new Error('new special creates intermediate ibgibs. so severing past is harder.');
       }
 
       // persist
@@ -668,7 +710,7 @@ export class IbgibsService {
       const { newIbGib: newSpecialIbGib } = resNewSpecial;
       let newSpecialAddr = getIbGibAddr({ibGib: newSpecialIbGib});
 
-      await Storage.set({key: storageKey, value: newSpecialAddr});
+      await this.storageSet({key: storageKey, value: newSpecialAddr});
 
       // delete if required, only after updating storage with the new special addr.
       if (deletePreviousSpecialIbGib) {
@@ -683,7 +725,7 @@ export class IbgibsService {
   }
 
   /**
-   * Returns true if the given {@param ibGib} is the temporal junction 
+   * Returns true if the given {@param ibGib} is the temporal junction
    * point for a given ibGib timeline.
    */
   async isTjp_Naive({
@@ -744,9 +786,9 @@ export class IbgibsService {
       // So, check the immediate past ibGib recursively.
 
       let past = ibGib.rel8ns.past || [];
-      if (past.length === 0) { 
+      if (past.length === 0) {
         console.warn(`${lc} past.length === 0, but assumption atow is that code wouldnt reach here if that were the case.`)
-        return ibGib; 
+        return ibGib;
       }
       let pastIbGibAddr = past[past.length-1];
       let resGetPastIbGib = await this.files.get({addr: pastIbGibAddr});
@@ -762,9 +804,9 @@ export class IbgibsService {
 
   /**
    * Used for tracking tjpAddr -> latest ibGibAddr.
-   * 
+   *
    * Call this when you create a new ibGib.
-   * 
+   *
    * Need to put this in another service at some point, but crunch crunch
    * like pacman's lunch.
    */
@@ -805,7 +847,7 @@ export class IbgibsService {
           linked: true, // this ensures only one latest ibGib mapped at a time
           deletePreviousSpecialIbGib: true, // the latest mapping is ephemeral
           severPast: true,
-          skipRel8ToRoot: true, 
+          skipRel8ToRoot: true,
         });
         this._latestSubj.next({tjpAddr, latestAddr: ibGibAddr, latestIbGib: ibGib});
       }
@@ -819,10 +861,10 @@ export class IbgibsService {
           if (
             this.alwaysReplaceLatestNotFound ||
             await this.promptReplaceLatest({existingLatestAddr, ibGibAddr})
-          ) { 
+          ) {
             console.error(`Didn't find existing latest ibGib (${existingLatestAddr}). I haven't implemented more robust multi-node/distributed strategies for this scenario yet. User chose YES to replace.`);
-            await replaceLatest(); 
-            return; 
+            await replaceLatest();
+            return;
           } else {
             console.error(`Didn't find existing latest ibGib (${existingLatestAddr}). I haven't implemented more robust multi-node/distributed strategies for this scenario yet. User chose NO DON'T replace.`);
             return;
@@ -831,20 +873,20 @@ export class IbgibsService {
 
         let existingLatest = resExistingLatest.ibGib!;
 
-        // if there is an nCounter, then we can go by that. Otherwise, we'll have to 
+        // if there is an nCounter, then we can go by that. Otherwise, we'll have to
         // brute force it.
-        const ibGibHasNCounter = 
-          ibGib.data?.n && 
-          typeof ibGib.data!.n! === 'number' && 
+        const ibGibHasNCounter =
+          ibGib.data?.n &&
+          typeof ibGib.data!.n! === 'number' &&
           ibGib.data!.n! >= 0;
         if (ibGibHasNCounter) {
           // #region ibGib.data.n counter method
           console.log(`found ibGib.data.n (version counter), using this to determine latest ibGib: ${ibGib.data!.n!}`);
           const n_ibGib = <number>ibGib.data!.n!;
 
-          const existingLatestHasNCounter = 
-            existingLatest.data?.n && 
-            typeof existingLatest.data!.n! === 'number' && 
+          const existingLatestHasNCounter =
+            existingLatest.data?.n &&
+            typeof existingLatest.data!.n! === 'number' &&
             existingLatest.data!.n! >= 0;
 
           if (existingLatestHasNCounter) {
@@ -870,11 +912,11 @@ export class IbgibsService {
             ibGib, ibGibAddr,
             existingLatest, existingLatestAddr,
             tjpAddr
-          }); 
-          if (latestAddr === ibGibAddr) { 
-            await replaceLatest(); 
-          } else { 
-            return; 
+          });
+          if (latestAddr === ibGibAddr) {
+            await replaceLatest();
+          } else {
+            return;
           }
           // #endregion
         }
@@ -903,36 +945,36 @@ export class IbgibsService {
     try {
       let resReplace = await Modals.confirm({
         title: `Can't find ibGib data...`,
-        message: 
+        message:
           `
-            Can't find the ibGib locally for latest address: ${existingLatestAddr}. 
+            Can't find the ibGib locally for latest address: ${existingLatestAddr}.
             Do you want to replace it and point to the new address?
 
             Existing "latest" address for which we don't have the corresponding record (locally): ${existingLatestAddr}
 
             "New" Address that we do have: ${ibGibAddr}
 
-            Yes, replace: 
-              Will replace the local reference on this device to point to the "new" address. 
+            Yes, replace:
+              Will replace the local reference on this device to point to the "new" address.
 
-            No, keep old: 
-              Will NOT replace but I don't know how it will work going forward. 
+            No, keep old:
+              Will NOT replace but I don't know how it will work going forward.
               The ibGib may be frozen in time until we load that record and things may get out of sync.
           `,
           okButtonTitle: 'Yes, replace',
           cancelButtonTitle: 'No, keep old',
       });
       if (resReplace.value) {
-        // 
+        //
         let resAlwaysReplace = await Modals.confirm({
           title: `Always replace?`,
           message: `Do want to always replace address not found locally? This applies only to this session.`,
           okButtonTitle: 'Yes, always replace',
           cancelButtonTitle: 'No, ask me every time',
         });
-        if (resAlwaysReplace.value) { 
+        if (resAlwaysReplace.value) {
           console.warn(`${lc} user chose YES, always replace latest not found for this session.`);
-          this.alwaysReplaceLatestNotFound = true; 
+          this.alwaysReplaceLatestNotFound = true;
         }
         return true;
       } else {
@@ -948,7 +990,7 @@ export class IbgibsService {
   // async isLatest({ibGib}: {ibGib: IbGib_V1}): Promise<boolean> {
   //   const lc = `${this.lc}[${this.isLatest.name}]`;
   //   try {
-      
+
   //   } catch (error) {
   //     console.error(`${lc} ${error.message}`);
   //     throw error;
@@ -957,12 +999,12 @@ export class IbgibsService {
 
   /**
    * We are NOT searching through all of our data looking for a needle in a haystack.
-   * What we ARE doing is we are looking through the past of the existing latest and 
+   * What we ARE doing is we are looking through the past of the existing latest and
    * the prospective latest (the given ibGib param) and comparing between the two.
-   * 
-   * Since `past` rel8n is usually a linked rel8n now, we may have to traverse it all 
+   *
+   * Since `past` rel8n is usually a linked rel8n now, we may have to traverse it all
    * the way to its beginning for each possibility.
-   * 
+   *
    * @returns either {@param ibGibAddr} or {@param existingLatestAddr}
    */
   private async getLatestAddr_Brute({
@@ -977,8 +1019,8 @@ export class IbgibsService {
     const lc = `${this.lc}[${this.getLatestAddr_Brute.name}][${ibGibAddr}]`;
     try {
       console.log(`${lc} starting...`);
-      // no nCounter, so we need to brute force. 
-      // The easiest way is to check each's past, as the most common 
+      // no nCounter, so we need to brute force.
+      // The easiest way is to check each's past, as the most common
       // scenario would be registering a newer one, or less likely, a timing issue
       // with registering a previous ibGib frame.
 
@@ -1019,7 +1061,7 @@ export class IbgibsService {
       let newerAddr: string | undefined;
       let firstIterationCount = -1; // klugy hack, but is an ugly method anyway (brute after all!)
 
-      let getPastCount: (x: IbGib_V1<any>, n: number, otherAddr: string) => Promise<number> = 
+      let getPastCount: (x: IbGib_V1<any>, n: number, otherAddr: string) => Promise<number> =
         async (x, n, otherAddr) => {
           let xPast = x.rel8ns?.past || [];
           if (xPast.includes(otherAddr)) {
@@ -1073,7 +1115,7 @@ export class IbgibsService {
 
   /**
    * Will trigger a latest info event to be fired.
-   * @param param0 
+   * @param param0
    */
   async pingLatest({
     ibGib,

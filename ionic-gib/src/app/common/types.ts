@@ -1,5 +1,5 @@
 import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
-import { Ib, Gib, IbGibAddr, IbGib, IbGibWithDataAndRel8ns, IbGibRel8ns } from 'ts-gib';
+import { IbGibAddr, IbGib, IbGibWithDataAndRel8ns, IbGibRel8ns } from 'ts-gib';
 
 export interface IbgibItem {
     /**
@@ -106,7 +106,7 @@ export interface ActionItem {
     filepicked?: (event: any) => Promise<void>;
 }
 
-export type SpecialIbGibType = "tags" | "roots" | "latest";
+export type SpecialIbGibType = "tags" | "roots" | "latest" | "spaces";
 
 /**
  * There has been a new ibGib that is the latest for a given tjp timeline.

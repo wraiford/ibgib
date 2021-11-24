@@ -1,4 +1,3 @@
-import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Plugins, FilesystemEncoding, FileReadResult } from '@capacitor/core';
 const { Filesystem } = Plugins;
@@ -7,7 +6,6 @@ import { IbGibAddr, TransformResult } from 'ts-gib/dist';
 import { IbGibRepo_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 import { getIbGibAddr, hash, getIbAndGib } from 'ts-gib/dist/helper';
 import { IBGIB_BASE_SUBPATH, IBGIB_BIN_SUBPATH, IBGIB_META_SUBPATH, IBGIB_DNA_SUBPATH, IBGIB_IBGIBS_SUBPATH, IBGIB_FILES_ENCODING, IBGIB_BASE_DIR } from '../common/constants';
-import { DomSanitizer } from '@angular/platform-browser';
 
 interface FileResult {
   success?: boolean;
@@ -112,8 +110,6 @@ export class FilesService {
   protected lc: string = `[${FilesService.name}]`;
 
   constructor(
-    private http: HttpClient,
-    private sanitizer: DomSanitizer,
   ) {
     console.log('Hello FilesService Service');
   }
@@ -323,7 +319,7 @@ export class FilesService {
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-      return false; 
+      return false;
     }
   }
 
@@ -385,7 +381,7 @@ export class FilesService {
   }
 
   /**
-   * Check every time app starts if paths exist. 
+   * Check every time app starts if paths exist.
    * But don't check every time do anything whatsoever.
    */
   private pathExistsMap = {};

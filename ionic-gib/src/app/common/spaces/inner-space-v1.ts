@@ -1,5 +1,5 @@
 import {
-    IbGibSpace, IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib as IbGibSpaceOptionsIbGib, IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceOptionsCmd,
+    IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib as IbGibSpaceOptionsIbGib, IbGibSpaceResultData, IbGibSpaceResultIbGib,
 } from '../types';
 import {
     IbGib_V1, IbGibRel8ns_V1, IbGibData_V1, sha256v1, Factory_V1,
@@ -17,6 +17,13 @@ export interface InnerSpace_V1_Data {
 
 }
 
+/**
+ * Base class convenience for a "local" space
+ * (i.e. analogous to residing on the same computer as the app).
+ *
+ * Base implementation defaults to a naive in-memory internal object that
+ * tracks ibgibs.
+ */
 export class InnerSpace_V1<
         TIbGib extends IbGib_V1 = IbGib_V1,
         TData extends InnerSpace_V1_Data = InnerSpace_V1_Data,
@@ -34,6 +41,9 @@ export class InnerSpace_V1<
     ibGibs: { [key: string]: TIbGib } = {};
 
     constructor(
+        // I have this following commented out. I copied over some of this behavior from the keystone lib
+        // and I'm not sure what I'm keeping here.
+        // NOTE: (I refactored the name "repo" to "space" because it seemed to fit better.)
         // /**
         //  * Default predicate value when putting an unknown ibGib.
         //  *

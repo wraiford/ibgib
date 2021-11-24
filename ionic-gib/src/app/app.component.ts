@@ -99,6 +99,7 @@ export class AppComponent extends IbgibComponentBase
       let navToAddr: IbGibAddr = 'hmm something went wrong^gib';
       try {
         // make sure roots are initialized FIRST before any other ibgib happenings
+        await this.initializeSpaces();
         await this.initializeRoots();
 
         await this.initializeLatest();
@@ -162,12 +163,29 @@ export class AppComponent extends IbgibComponentBase
     return `/ibgib/${this.rootsAddr}`;
   }
 
+  async initializeSpaces(): Promise<void> {
+    const lc = `${this.lc}[${this.initializeSpaces.name}]`;
+
+    await this.common.ibgibs.initializeSpaces();
+    const special =
+      await this.common.ibgibs.getSpecialIbgib({type: "spaces", initialize: true});
+
+    this.item.isMeta = true;
+    console.log(`${lc} getting...`);
+    const special =
+      await this.common.ibgibs.getSpecialIbgib({type: "roots", initialize: true});
+    console.log(`${lc} gotten.`);
+    this.rootsAddr = getIbGibAddr({ibGib: special});
+    this.currentRoot = await this.getCurrentRoot();
+
+  }
+
   async initializeRoots(): Promise<void> {
     const lc = `${this.lc}[${this.initializeRoots.name}]`;
     if (!this.item) { this.item = {} }
     this.item.isMeta = true;
     console.log(`${lc} getting...`);
-    const special = 
+    const special =
       await this.common.ibgibs.getSpecialIbgib({type: "roots", initialize: true});
     console.log(`${lc} gotten.`);
     this.rootsAddr = getIbGibAddr({ibGib: special});
@@ -177,7 +195,7 @@ export class AppComponent extends IbgibComponentBase
   async initializeLatest(): Promise<void> {
     const lc = `${this.lc}[${this.initializeLatest.name}]`;
     console.log(`${lc} getting...`);
-    const special = 
+    const special =
       await this.common.ibgibs.getSpecialIbgib({type: "latest", initialize: true});
     console.log(`${lc} gotten.`);
   }
@@ -264,7 +282,7 @@ export class AppComponent extends IbgibComponentBase
         }
       } else {
         throw new Error(resGet.errorMsg || `error getting ${addr}`);
-      } 
+      }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     }
@@ -277,7 +295,7 @@ export class AppComponent extends IbgibComponentBase
     let rootMenuItems: MenuItem[] = [];
 
     try {
-      
+
       // roots should already be initialized
       if (!this.rootsAddr) { throw new Error(`rootsAddr is falsy, i.e. hasn't been initialized?`); };
 
@@ -334,7 +352,7 @@ export class AppComponent extends IbgibComponentBase
         }
       } else {
         throw new Error(resGet.errorMsg || `error getting ${addr}`);
-      } 
+      }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     }
