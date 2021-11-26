@@ -9,7 +9,7 @@ import {
 } from 'ts-gib/dist/V1';
 import * as h from 'ts-gib/dist/helper';
 import { SpaceBase_V1 } from './space-base-v1';
-import { getWrapperResultIbGib } from '../witnesses';
+import { resulty_ } from '../witnesses';
 import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 import * as c from '../constants';
 
@@ -22,6 +22,7 @@ export interface IonicSpace_V1_Data {
     baseDir: FilesystemDirectory;
     encoding: FilesystemEncoding;
     baseSubPath: string;
+    spaceSubPath: string;
     ibgibsSubPath: string;
     metaSubPath: string;
     binSubPath: string;
@@ -35,6 +36,7 @@ export const DEFAULT_BOOTSTRAP_SPACE_V1_DATA: IonicSpace_V1_Data = {
     baseDir: c.IBGIB_BASE_DIR,
     encoding: c.IBGIB_FILES_ENCODING,
     baseSubPath: c.IBGIB_BASE_SUBPATH,
+    spaceSubPath: c.IBGIB_SPACE_SUBPATH_DEFAULT,
     ibgibsSubPath: c.IBGIB_IBGIBS_SUBPATH,
     metaSubPath: c.IBGIB_META_SUBPATH,
     binSubPath: c.IBGIB_BIN_SUBPATH,
@@ -204,7 +206,7 @@ export class IonicSpace_V1 extends SpaceBase_V1<
         // TRel8ns defaults to IbGibRel8ns_V1
     > {
 
-    ibGibs: { [key: string]: IbGib_V1 } = {};
+    protected ibGibs: { [key: string]: IbGib_V1 } = {};
 
     constructor(
         // /**
@@ -234,7 +236,7 @@ export class IonicSpace_V1 extends SpaceBase_V1<
         this.ib = `witness space ${IonicSpace_V1.name}`;
     }
 
-    getData(): IonicSpace_V1_Data {
+    protected getData(): IonicSpace_V1_Data {
         const lc = `${this.lc}[${this.getData.name}]`;
         console.log(`${lc}`);
         return h.clone(this._data);
@@ -250,10 +252,11 @@ export class IonicSpace_V1 extends SpaceBase_V1<
             if (!this._data.baseDir) { this._data.baseDir = c.IBGIB_BASE_DIR; }
             if (!this._data.encoding) { this._data.encoding = c.IBGIB_FILES_ENCODING; }
             if (!this._data.baseSubPath) { this._data.baseSubPath = c.IBGIB_BASE_SUBPATH; }
-            if (!this._data.ibgibsSubPath) { this._data.baseSubPath = c.IBGIB_IBGIBS_SUBPATH; }
-            if (!this._data.metaSubPath) { this._data.baseSubPath = c.IBGIB_META_SUBPATH; }
-            if (!this._data.binSubPath) { this._data.baseSubPath = c.IBGIB_BIN_SUBPATH; }
-            if (!this._data.dnaSubPath) { this._data.baseSubPath = c.IBGIB_DNA_SUBPATH; }
+            if (!this._data.spaceSubPath) { this._data.spaceSubPath = c.IBGIB_SPACE_SUBPATH_DEFAULT; }
+            if (!this._data.ibgibsSubPath) { this._data.ibgibsSubPath = c.IBGIB_IBGIBS_SUBPATH; }
+            if (!this._data.metaSubPath) { this._data.metaSubPath = c.IBGIB_META_SUBPATH; }
+            if (!this._data.binSubPath) { this._data.binSubPath = c.IBGIB_BIN_SUBPATH; }
+            if (!this._data.dnaSubPath) { this._data.dnaSubPath = c.IBGIB_DNA_SUBPATH; }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
         }
@@ -276,13 +279,13 @@ export class IonicSpace_V1 extends SpaceBase_V1<
     }): string {
         const { data } = this;
         if (isMeta){
-            return `${data.baseSubPath}/${data.metaSubPath}/${filename}`;
+            return `${data.baseSubPath}/${data.spaceSubPath}/${data.metaSubPath}/${filename}`;
         } else if (isBin) {
-            return `${this.data.baseSubPath}/${data.binSubPath}/${filename}`;
+            return `${data.baseSubPath}/${data.spaceSubPath}/${data.binSubPath}/${filename}`;
         } else if (isDna) {
-            return `${this.data.baseSubPath}/${data.dnaSubPath}/${filename}`;
+            return `${data.baseSubPath}/${data.spaceSubPath}/${data.dnaSubPath}/${filename}`;
         } else { // regular ibGib
-            return `${this.data.baseSubPath}/${data.ibgibsSubPath}/${filename}`;
+            return `${data.baseSubPath}/${data.spaceSubPath}/${data.ibgibsSubPath}/${filename}`;
         }
     }
 
@@ -291,7 +294,7 @@ export class IonicSpace_V1 extends SpaceBase_V1<
      *
      * @returns filename based on params
      */
-    getFilename({
+    protected getFilename({
         addr,
         binHash,
         binExt
@@ -350,7 +353,7 @@ export class IonicSpace_V1 extends SpaceBase_V1<
             resultData.errors = [error.message];
         }
         const result =
-            await getWrapperResultIbGib<
+            await resulty_<
                 IonicSpaceResultData,
                 IonicSpaceResultIbGib
             >({
@@ -417,11 +420,11 @@ export class IonicSpace_V1 extends SpaceBase_V1<
             resultData.addrsErrored = addrsErrored;
             resultData.success = false;
         }
-        const result = await getWrapperResultIbGib<IonicSpaceResultData, IonicSpaceResultIbGib>({resultData});
+        const result = await resulty_<IonicSpaceResultData, IonicSpaceResultIbGib>({resultData});
         return result;
     }
 
-    async putFile({
+    protected async putFile({
         ibGib,
         binData,
         binExt,
@@ -471,7 +474,7 @@ export class IonicSpace_V1 extends SpaceBase_V1<
         return result;
     }
 
-    async ensurePermissions(): Promise<boolean> {
+    protected async ensurePermissions(): Promise<boolean> {
         const lc = `${this.lc}[${this.ensurePermissions.name}]`;
         try {
             if (Filesystem.requestPermissions) {
@@ -504,7 +507,7 @@ export class IonicSpace_V1 extends SpaceBase_V1<
     /**
      * Ensure directories are created on filesystem.
      */
-    async ensureDirs(): Promise<void> {
+    protected async ensureDirs(): Promise<void> {
         const lc = `${this.lc}[${this.ensureDirs.name}]`;
         const data = this.data!;
         const directory = data.baseDir;
@@ -513,11 +516,12 @@ export class IonicSpace_V1 extends SpaceBase_V1<
         if (!permitted) { console.error(`${lc} permission not granted.`); return; }
 
         const paths = [
-            data.baseSubPath,// = 'ibgib';
-            data.baseSubPath + '/' + data.ibgibsSubPath,
-            data.baseSubPath + '/' + data.metaSubPath,
-            data.baseSubPath + '/' + data.binSubPath,
-            data.baseSubPath + '/' + data.dnaSubPath,
+            data.baseSubPath, // = 'ibgib';
+            data.baseSubPath + '/' + data.spaceSubPath,
+            data.baseSubPath + '/' + data.spaceSubPath + '/' + data.ibgibsSubPath,
+            data.baseSubPath + '/' + data.spaceSubPath + '/' + data.metaSubPath,
+            data.baseSubPath + '/' + data.spaceSubPath + '/' + data.binSubPath,
+            data.baseSubPath + '/' + data.spaceSubPath + '/' + data.dnaSubPath,
         ];
 
         for (let i = 0; i < paths.length; i++) {
@@ -568,7 +572,7 @@ export class IonicSpace_V1 extends SpaceBase_V1<
             resultData.success = false;
         }
         const result =
-            await getWrapperResultIbGib<
+            await resulty_<
                 IonicSpaceResultData,
                 IonicSpaceResultIbGib
             >({
@@ -618,7 +622,7 @@ export class IonicSpace_V1 extends SpaceBase_V1<
             resultData.errors = [error.message];
         }
         const result =
-            await getWrapperResultIbGib<
+            await resulty_<
                 IonicSpaceResultData,
                 IonicSpaceResultIbGib
             >({
@@ -651,7 +655,7 @@ export class IonicSpace_V1 extends SpaceBase_V1<
             resultData.errors = [error.message];
         }
         const result =
-            await getWrapperResultIbGib<
+            await resulty_<
                 IonicSpaceResultData,
                 IonicSpaceResultIbGib
             >({
@@ -662,7 +666,7 @@ export class IonicSpace_V1 extends SpaceBase_V1<
 
     // #region files related
 
-    async getFile({
+    protected async getFile({
         addr,
         binHash,
         binExt,

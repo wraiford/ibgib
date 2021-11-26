@@ -21,7 +21,7 @@ export abstract class WitnessBase_V1<
      */
     protected lc: string = `[${WitnessBase_V1.name}]`;
 
-    set trace(value: string[]) {
+    protected set trace(value: string[]) {
         const lc = `${this.lc}[set trace}]`;
         if (this.data) {
             (<any>this.data).trace = value;
@@ -29,10 +29,10 @@ export abstract class WitnessBase_V1<
             console.warn(`${lc} data is falsy. Can't set.`);
         }
     }
-    get trace(): string[] {
+    protected get trace(): string[] {
         return (<any>this.data)?.trace;
     }
-    set throwOnError(value: boolean) {
+    protected set throwOnError(value: boolean) {
         const lc = `${this.lc}[set throwOnError}]`;
         if (this.data) {
             (<any>this.data).throwOnError = value;
@@ -40,7 +40,7 @@ export abstract class WitnessBase_V1<
             console.warn(`${lc} data is falsy. Can't set.`);
         }
     }
-    get throwOnError(): boolean {
+    protected get throwOnError(): boolean {
         return (<any>this.data)?.throwOnError || true;
     }
 
@@ -62,8 +62,8 @@ export abstract class WitnessBase_V1<
     protected _data: TData | undefined;
     get data(): TData | undefined { return this.getData(); }
     set data(value: TData | undefined) { this.setData(value); }
-    getData(): TData | undefined { return undefined; }
-    setData(value: TData | undefined): void {
+    protected getData(): TData | undefined { return undefined; }
+    protected setData(value: TData | undefined): void {
         const lc = `${this.lc}[${this.setData.name}]`;
         console.warn(`${lc} not implemented in base class, so I'm not sure why this is being called.`);
     }
@@ -71,8 +71,8 @@ export abstract class WitnessBase_V1<
     protected _rel8ns: TRel8ns | undefined;
     get rel8ns(): TRel8ns | undefined { return this.getRel8ns(); }
     set rel8ns(value: TRel8ns | undefined) { this.setRel8ns(value); }
-    getRel8ns(): TRel8ns | undefined { return undefined; }
-    setRel8ns(value: TRel8ns | undefined): void {
+    protected getRel8ns(): TRel8ns | undefined { return undefined; }
+    protected setRel8ns(value: TRel8ns | undefined): void {
         const lc = `${this.lc}[${this.setRel8ns.name}]`;
         console.warn(`${lc} not implemented in base class, so I'm not sure why this is being called.`);
     }
@@ -98,7 +98,7 @@ export abstract class WitnessBase_V1<
             return;
         }
     }
-    abstract witnessImpl(arg: TIbGibIn): Promise<TIbGibOut | undefined>;
+    protected abstract witnessImpl(arg: TIbGibIn): Promise<TIbGibOut | undefined>;
 
     protected async validateWitnessArg(arg: TIbGibIn): Promise<string[]> {
         const lc = `${this.lc}[${this.validateWitnessArg.name}]`;
@@ -141,7 +141,7 @@ export function getResultIb(): string { return `${c.WITNESS_RESULT_METADATA_STRI
  *
  * @returns Result (wrapper) ibGib for a `witness` function.
  */
-export async function getWrapperArgIbGib<TArgData, TArgIbGib extends IbGib_V1<TArgData> = IbGib_V1<TArgData>>({
+export async function argy_<TArgData, TArgIbGib extends IbGib_V1<TArgData> = IbGib_V1<TArgData>>({
     argData,
     timestamp,
     uuid,
@@ -150,7 +150,7 @@ export async function getWrapperArgIbGib<TArgData, TArgIbGib extends IbGib_V1<TA
     timestamp?: boolean,
     uuid?: boolean,
 }): Promise<TArgIbGib> {
-    const lc = `[${getWrapperArgIbGib.name}]`;
+    const lc = `[${argy_.name}]`;
     try {
         const resArgIbGib = await Factory_V1.firstGen<TArgData>({
             ib: getArgIb(),
@@ -186,7 +186,7 @@ export async function getWrapperArgIbGib<TArgData, TArgIbGib extends IbGib_V1<TA
  *
  * @returns Result (wrapper) ibGib for a `witness` function.
  */
-export async function getWrapperResultIbGib<TResultData, TResultIbGib extends IbGib_V1<TResultData> = IbGib_V1<TResultData>>({
+export async function resulty_<TResultData, TResultIbGib extends IbGib_V1<TResultData> = IbGib_V1<TResultData>>({
     resultData,
     timestamp,
     uuid,

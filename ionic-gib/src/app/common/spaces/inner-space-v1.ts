@@ -5,7 +5,7 @@ import {
     IbGib_V1, IbGibRel8ns_V1, IbGibData_V1, sha256v1, Factory_V1,
 } from 'ts-gib/dist/V1';
 import { SpaceBase_V1 } from './space-base-v1';
-import { getWrapperResultIbGib } from '../witnesses';
+import { resulty_ } from '../witnesses';
 import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 
 export interface InnerSpace_V1_Data {
@@ -89,7 +89,7 @@ export class InnerSpace_V1<
             resultData.errors = [error.message];
         }
         const result =
-            await getWrapperResultIbGib<
+            await resulty_<
                 IbGibSpaceResultData,
                 IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>
             >({
@@ -124,7 +124,7 @@ export class InnerSpace_V1<
             resultData.success = false;
         }
         const result =
-            await getWrapperResultIbGib<
+            await resulty_<
                 IbGibSpaceResultData,
                 IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>
             >({
@@ -145,7 +145,7 @@ export class InnerSpace_V1<
             resultData.success = false;
         }
         const result =
-            await getWrapperResultIbGib<
+            await resulty_<
                 IbGibSpaceResultData,
                 IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>
             >({
@@ -194,7 +194,7 @@ export class InnerSpace_V1<
             resultData.errors = [error.message];
         }
         const result =
-            await getWrapperResultIbGib<
+            await resulty_<
                 IbGibSpaceResultData,
                 IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>
             >({
@@ -227,7 +227,7 @@ export class InnerSpace_V1<
             resultData.errors = [error.message];
         }
         const result =
-            await getWrapperResultIbGib<
+            await resulty_<
                 IbGibSpaceResultData,
                 IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>
             >({

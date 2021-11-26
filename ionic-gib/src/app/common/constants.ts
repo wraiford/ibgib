@@ -26,32 +26,79 @@ import { Ib } from 'ts-gib';
  * can start from an existing space, but for now it's just located
  * here.
  */
-export const BOOTSTRAP_ADDR = `bootstrap^${GIB}`;
-
-export const IBGIB_BASE_DIR = FilesystemDirectory.Data;
-export const IBGIB_FILES_ENCODING = FilesystemEncoding.UTF8;
-
-export const IBGIB_BASE_SUBPATH = 'ibgib';
-export const IBGIB_IBGIBS_SUBPATH = 'ibgibs';
+export const BOOTSTRAP_SPACE_ADDR = `bootstrap^${GIB}`;
+/**
+ * The bootstrap space should be primitive except a single rel8n
+ * with this rel8n name with a single rel8d address.
+ */
+export const BOOTSTRAP_USER_SPACE_REL8N_NAME = `space`;
 
 /**
- * contains special ibgibs
+ * Ionic-specific folder that represents OS directory.
+ *
+ * {@link FilesystemDirectory}
+ */
+export const IBGIB_BASE_DIR = FilesystemDirectory.Data;
+/**
+ * encoding for ibgib files.
+ *
+ * ## notes
+ *
+ * atow, only UTF-8 is supported.
+ */
+export const IBGIB_FILES_ENCODING = FilesystemEncoding.UTF8;
+/**
+ * Base directory for all data of the app.
+ */
+export const IBGIB_BASE_SUBPATH = 'ibgib';
+/**
+ * Default space that is also used for bootstrapping.
+ *
+ * The user should provide his/her own space name that will contain their data.
+ * If a custom user space name is not provided, one should be auto-generated.
+ *
+ * ## notes
+ *
+ * * the leading 000's help to put the space earlier in alphabetized listing if viewing through an OS file viewer
+ */
+export const IBGIB_SPACE_SUBPATH_DEFAULT = '000_default_space';
+/**
+ * Subpath for "normal" ibgibs (non-meta, non-dna, non-binary, etc.).
+ */
+export const IBGIB_IBGIBS_SUBPATH = 'ibgibs';
+/**
+ * should contain special-use ibgibs to the application.
  *
  * Use case:
  *   Because some special ibgibs will be changed frequently,
  *   e.g. settings, a separate folder will be useful.
  */
 export const IBGIB_META_SUBPATH = 'meta';
+
+export const VALID_SPACE_NAME_EXAMPLES = [
+    'justLetters', 'valid_here', 'hyphens-allowed', '0CanStartOrEndWithNumbers9'
+];
+export const INVALID_SPACE_NAME_EXAMPLES = [
+    'IHaveASymbol!', 'invalid hereWithSpace', '-cantStartWithHyphen', '_OrUnderscore'
+];
 /**
- * Path for storing binaries (e.g. pics).
+ * Path for storing the dna for ibgibs.
  *
- * bins will be stored in the format:
- *   [hash].ext
+ * bins will be stored without hyphens in the format:
+ *   [hash].[ext]
  *
  * @example
- *   ABC123.jpg
+ *   641575866a7c42bda89f58de5cd1c3aa.jpg
  */
 export const IBGIB_BIN_SUBPATH = 'bin';
+/**
+ * Path for storing the dna for ibgibs.
+ *
+ * ## notes
+ *
+ * eventually, these should most likely be stored in "colder"
+ * storage, like compressed, low-priority.
+ */
 export const IBGIB_DNA_SUBPATH = 'dna';
 
 // export const TAGS_IB = 'tags';

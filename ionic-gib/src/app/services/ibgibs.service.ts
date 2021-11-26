@@ -1,20 +1,24 @@
+import { Storage, Modals } from '@capacitor/core';
 import { Injectable } from '@angular/core';
+import { ReplaySubject } from 'rxjs';
+
 import { IbGib_V1, Rel8n, GIB } from 'ts-gib/dist/V1';
 import { IbGibAddr, V1, Ib } from 'ts-gib';
-import { Storage, Modals } from '@capacitor/core';
+import * as h from 'ts-gib/dist/helper';
+import { Factory_V1 as factory } from 'ts-gib/dist/V1';
+import { getIbGibAddr } from 'ts-gib/dist/helper';
+
 import { FilesService } from './files.service';
 import {
   TAG_REL8N_NAME, DEFAULT_ROOT_DESCRIPTION, DEFAULT_ROOT_ICON,
   ROOT_REL8N_NAME, DEFAULT_TAG_ICON, DEFAULT_TAG_DESCRIPTION,
   DEFAULT_ROOT_TEXT, DEFAULT_ROOT_REL8N_NAME,
 } from '../common/constants';
-import { Factory_V1 as factory } from 'ts-gib/dist/V1';
-import { getIbGibAddr } from 'ts-gib/dist/helper';
 import { TagData, SpecialIbGibType, RootData, LatestEventInfo } from '../common/types';
-import { ReplaySubject } from 'rxjs';
-import { IonicSpace_V1 } from '../common/spaces/ionic-space-v1';
-// import { IbGibWitnessScheduler } from 'keystone-gib/src/V1/witnesses/scheduler';
-// import { InMemoryRepo } from 'keystone-gib/src/V1/witnesses/in-memory-repo';
+import { IonicSpaceOptionsData, IonicSpace_V1 } from '../common/spaces/ionic-space-v1';
+import { argy_ } from '../common/witnesses';
+import * as c from '../common/constants';
+
 
 /**
  * All-purpose mega service (todo: which we'll need to break up!) to interact
@@ -131,8 +135,132 @@ export class IbgibsService {
    */
   async initializeSpaces(): Promise<void> {
     const lc = `${this.lc}[${this.initializeSpaces.name}]`;
+    let defaultSpace: IonicSpace_V1;
+    try {
+      // we're going to use the default space first to find/load the actual user's space (if it exists)
+      defaultSpace = new IonicSpace_V1(/*initialData*/ null, /*initialRel8ns*/ null);
+      const result = await defaultSpace.witness(await argy_<IonicSpaceOptionsData>({
+        argData: {
+          cmd: 'get',
+          ibGibAddrs: [c.BOOTSTRAP_SPACE_ADDR],
+          isMeta: true,
+        },
+        timestamp: true,
+      }));
+      if (result?.data?.success) {
+        // bootstrap space
+        const bootstrapSpace = result!.ibGibs![0]!;
+        if (await this.validateBootstrapSpace(bootstrapSpace)) {
+          const userSpaceAddr = bootstrapSpace.rel8ns![c.BOOTSTRAP_USER_SPACE_REL8N_NAME][0];
+          const resUserSpace = await defaultSpace.witness(await argy_<IonicSpaceOptionsData>({
+            argData: {
+              cmd: 'get',
+              ibGibAddrs: [userSpaceAddr],
+              isMeta: true,
+            },
+            timestamp: true,
+          }));
+          if (resUserSpace?.data?.success) {
+            this.currentSpace = <IonicSpace_V1>resUserSpace.ibGibs[0];
+          } else {
+            throw new Error(`Could not load user space addr (${userSpaceAddr}) specified in bootstrap space (${c.BOOTSTRAP_SPACE_ADDR}).`);
+          }
+        } else {
+          throw new Error(`Invalid bootstrap space. It should be a primitive ibGib with a single rel8n named "${c.BOOTSTRAP_USER_SPACE_REL8N_NAME}" with a single ibGib address.`);
+        }
+      } else {
+        // bootstrap space ibgib not found, so first run probably for user.
+        await this.createNewBootstrapSpace();
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      console.error(`space.data: ${h.pretty(defaultSpace?.data)}`)
+      throw error;
+    }
+  }
 
-    console.error(`${lc} not implemented`);
+  private async validateBootstrapSpace(bootstrapSpace: IbGib_V1): Promise<boolean> {
+    const lc = `${this.lc}[${this.validateBootstrapSpace.name}]`;
+    const errors: string[] = [];
+    try {
+      let addr = getIbGibAddr({ibGib: bootstrapSpace});
+      if (addr !== c.BOOTSTRAP_SPACE_ADDR) {
+        errors.push(`invalid bootstrapSpace addr. Should equal "${c.BOOTSTRAP_SPACE_ADDR}"`);
+      }
+      if (Object.keys(bootstrapSpace.data || {}).length > 0) {
+        errors.push(`invalid bootstrapSpace data. Data should be falsy/empty`);
+      }
+      if (Object.keys(bootstrapSpace.rel8ns || {}).length === 0) {
+        errors.push(`invalid bootstrapSpace rel8ns (empty). Should have one rel8n, with rel8nName ${c.BOOTSTRAP_USER_SPACE_REL8N_NAME}`);
+      }
+      if (Object.keys(bootstrapSpace.rel8ns || {}).length > 1) {
+        errors.push(`invalid bootstrapSpace rel8ns (more than 1). Should have only one rel8n, with rel8nName ${c.BOOTSTRAP_USER_SPACE_REL8N_NAME}`);
+      }
+      if (errors.length === 0) {
+        return true;
+      } else {
+        console.error(`${lc} errors: ${errors.join('|')}`);
+        return false;
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return false;
+    }
+  }
+
+  private async createNewBootstrapSpace(): Promise<void> {
+    const lc = `${this.lc}[${this.createNewBootstrapSpace.name}]`;
+    try {
+      let spaceName: string;
+      const validateName: (name: string) => boolean = (name: string) => {
+        const lcv = `${lc}[validateName]`;
+        // non-falsy
+        if (!name) {
+          console.error(`${lcv} name is falsy`)
+          return false;
+        }
+
+        // valid characters are alphanumerics, numbers, underscores, hyphens
+        const regexOnlyIncluded = /[\w-]+/;
+        const matchOnlyIncluded = name.match(regexOnlyIncluded);
+        if (matchOnlyIncluded?.length !== 1 || matchOnlyIncluded[0].length !== name.length) {
+          console.error(`${lcv} name can only contain letters, numbers, underscores, hyphens`);
+          return false;
+        }
+
+        // start with alphanumeric
+        const regexStart = /[a-zA-Z\d]/;
+        const matchStart = name[0].match(regexStart);
+        if (!matchStart) {
+          console.error(`${lcv} name must start with a letter or number`);
+          return false;
+        }
+
+        return true;
+      }
+
+      const promptName: () => Promise<void> = async () => {
+        // create a new user space
+        const resName = await Modals.prompt({title: 'Enter a Name...', message: `
+        We need to create a space for you.
+
+        Spaces are kinda like usernames, but they dont need to be unique.
+
+        So enter a name for your space and choose OK to get started. Or if you just want a random bunch of letters, hit Cancel.`});
+
+        if (resName.cancelled) {
+          spaceName = 'space_' + (await h.getUUID()).slice(16);
+        } else {
+          if (resName.value && validateName(resName.value)) {
+            spaceName = resName.value;
+          }
+        }
+      };
+      // create the bootstrap^gib space that points to user space
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
   }
 
   /**

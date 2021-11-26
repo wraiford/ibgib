@@ -4,7 +4,7 @@ import {
 import {
     IbGib_V1, IbGibRel8ns_V1, IbGibData_V1, sha256v1, Factory_V1,
 } from 'ts-gib/dist/V1';
-import { WitnessBase_V1, getWrapperResultIbGib } from '../witnesses';
+import { WitnessBase_V1, resulty_ } from '../witnesses';
 import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 
 export abstract class SpaceBase_V1<
@@ -19,16 +19,16 @@ export abstract class SpaceBase_V1<
     extends WitnessBase_V1<TOptionsIbGib, TResultIbGib, TData, TRel8ns>
     implements IbGibSpace<TIbGib, TOptionsData, TOptionsIbGib, TResultData, TResultIbGib, TData, TRel8ns> {
 
-        constructor(initialData?: TData, initialRel8ns?: TRel8ns) {
-            super(initialData, initialRel8ns);
-        }
+    constructor(initialData?: TData, initialRel8ns?: TRel8ns) {
+        super(initialData, initialRel8ns);
+    }
 
     /**
      * In a Space, we are concerned with getting ibGibs out of and putting ibGibs into a "space".
      *
      * So in this base, we take the incoming arg and divert it multiple ways, depending on our settings.
      */
-    witnessImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
+    protected witnessImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
         const lc = `${this.lc}[${this.witnessImpl.name}]`;
         // "guaranteed" at this point to have valid witness arg
         // but witnessImpl already wrapped just in case
@@ -72,12 +72,12 @@ export abstract class SpaceBase_V1<
             // ) {
             //     errors.push(`ibGibAddrs required when cmd is ${cmd}`);
             // }
-            if (
-                [IbGibSpaceOptionsCmd.put, IbGibSpaceOptionsCmd.canPut].includes(cmd) &&
-                (ibGibs || []).length === 0
-            ) {
-                errors.push(`ibGibs required when cmd is ${cmd}`);
-            }
+            // if (
+            //     [IbGibSpaceOptionsCmd.put, IbGibSpaceOptionsCmd.canPut].includes(cmd) &&
+            //     (ibGibs || []).length === 0
+            // ) {
+            //     errors.push(`ibGibs required when cmd is ${cmd}`);
+            // }
             return errors;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
