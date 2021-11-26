@@ -30,8 +30,8 @@ export class InnerSpace_V1<
         TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
     > extends SpaceBase_V1<
         TIbGib,
-        IbGibSpaceOptionsData<TIbGib>,
-        IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData<TIbGib>>,
+        IbGibSpaceOptionsData,
+        IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>,
         IbGibSpaceResultData,
         IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>,
         TData,
@@ -63,7 +63,7 @@ export class InnerSpace_V1<
         this.ib = `witness space ${InnerSpace_V1.name}`;
     }
 
-    protected async get(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData<TIbGib>>):
+    protected async get(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
         Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>> {
         const lc = `${this.lc}[${this.get.name}]`;
         const resultData: IbGibSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
@@ -97,14 +97,14 @@ export class InnerSpace_V1<
             });
         return result;
     }
-    protected async put(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData<TIbGib>>):
+    protected async put(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
         Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>> {
         const lc = `${this.lc}[${this.put.name}]`;
         const resultData: IbGibSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
-            const { ibGibs } = arg.data!;
+            const ibGibs = arg.ibGibs || [];
             const addrsAlreadyHave: IbGibAddr[] = [];
-            for (let i = 0; i < ibGibs.length; i++) {
+            for (let i = 0; i < ibGibs?.length; i++) {
                 const ibGib = ibGibs[i];
                 const addr = getIbGibAddr({ibGib});
                 if (!Object.keys(this.ibGibs).includes(addr)) {
@@ -132,7 +132,7 @@ export class InnerSpace_V1<
             });
         return result;
     }
-    protected async getAddrs(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData<TIbGib>>):
+    protected async getAddrs(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
         Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>> {
         const lc = `${this.lc}[${this.getAddrs.name}]`;
         const resultData: IbGibSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
@@ -168,7 +168,7 @@ export class InnerSpace_V1<
      *
      * @returns result ibGib whose primary value is `can`
      */
-    protected async canGet(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData<TIbGib>>):
+    protected async canGet(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
         Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>> {
         const lc = `${this.lc}[${this.canGet.name}]`;
         const resultData: IbGibSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
@@ -202,14 +202,14 @@ export class InnerSpace_V1<
             });
         return result;
     }
-    protected async canPut(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData<TIbGib>>):
+    protected async canPut(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
         Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>> {
         const lc = `${this.lc}[${this.canPut.name}]`;
         const resultData: IbGibSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
-            const { ibGibs } = arg.data!;
+            const ibGibs = arg.ibGibs || [];
             const addrsAlreadyHave: IbGibAddr[] = [];
-            for (let i = 0; i < ibGibs.length; i++) {
+            for (let i = 0; i < ibGibs?.length; i++) {
                 const ibGib = ibGibs[i];
                 const addr = getIbGibAddr({ibGib});
                 if (Object.keys(this.ibGibs).includes(addr)) {

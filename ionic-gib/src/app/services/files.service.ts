@@ -95,9 +95,6 @@ interface PutIbGibResult extends FileResult {
   binHash?: string;
 }
 
-interface DeleteIbGibOpts extends GetIbGibOpts { }
-interface DeleteIbGibResult extends FileResult { }
-
 /**
  * Works with file system/storage to save/load ibgibs.
  *

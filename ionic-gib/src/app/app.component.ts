@@ -99,7 +99,7 @@ export class AppComponent extends IbgibComponentBase
       let navToAddr: IbGibAddr = 'hmm something went wrong^gib';
       try {
         // make sure roots are initialized FIRST before any other ibgib happenings
-        await this.initializeSpaces();
+        await this.common.ibgibs.initializeSpaces();
         await this.initializeRoots();
 
         await this.initializeLatest();
@@ -163,22 +163,6 @@ export class AppComponent extends IbgibComponentBase
     return `/ibgib/${this.rootsAddr}`;
   }
 
-  async initializeSpaces(): Promise<void> {
-    const lc = `${this.lc}[${this.initializeSpaces.name}]`;
-
-    await this.common.ibgibs.initializeSpaces();
-    const special =
-      await this.common.ibgibs.getSpecialIbgib({type: "spaces", initialize: true});
-
-    this.item.isMeta = true;
-    console.log(`${lc} getting...`);
-    const special =
-      await this.common.ibgibs.getSpecialIbgib({type: "roots", initialize: true});
-    console.log(`${lc} gotten.`);
-    this.rootsAddr = getIbGibAddr({ibGib: special});
-    this.currentRoot = await this.getCurrentRoot();
-
-  }
 
   async initializeRoots(): Promise<void> {
     const lc = `${this.lc}[${this.initializeRoots.name}]`;

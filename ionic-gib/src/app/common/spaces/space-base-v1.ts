@@ -9,7 +9,7 @@ import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 
 export abstract class SpaceBase_V1<
         TIbGib extends IbGib_V1 = IbGib_V1,
-        TOptionsData extends IbGibSpaceOptionsData<TIbGib> = IbGibSpaceOptionsData<TIbGib>,
+        TOptionsData extends IbGibSpaceOptionsData = IbGibSpaceOptionsData,
         TOptionsIbGib extends IbGibSpaceOptionsIbGib<TIbGib, TOptionsData> = IbGibSpaceOptionsIbGib<TIbGib, TOptionsData>,
         TResultData extends IbGibSpaceResultData = IbGibSpaceResultData,
         TResultIbGib extends IbGibSpaceResultIbGib<TIbGib, TResultData> = IbGibSpaceResultIbGib<TIbGib, TResultData>,
@@ -61,15 +61,17 @@ export abstract class SpaceBase_V1<
         try {
             errors = await super.validateWitnessArg(arg);
             if (!arg.data) { errors.push(`arg.data required`); return errors; } // <<<< returns immediately
-            const { cmd, ibGibAddrs, ibGibs } = arg.data!;
+            const { cmd, ibGibAddrs, } = arg.data!;
+            const ibGibs  = arg.ibGibs;
             if (cmd) { errors.push(`arg.data.cmd required`); }
             if (!Object.values(IbGibSpaceOptionsCmd).includes(cmd)) { errors.push(`unknown arg.data.cmd: ${cmd}`); }
-            if (
-                [IbGibSpaceOptionsCmd.get, IbGibSpaceOptionsCmd.canGet].includes(cmd) &&
-                (ibGibAddrs || []).length === 0
-            ) {
-                errors.push(`ibGibAddrs required when cmd is ${cmd}`);
-            }
+            // commenting this out for now. in my getting of pictures (binaries), I just give the binHash and not addr.
+            // if (
+            //     [IbGibSpaceOptionsCmd.get, IbGibSpaceOptionsCmd.canGet].includes(cmd) &&
+            //     (ibGibAddrs || []).length === 0
+            // ) {
+            //     errors.push(`ibGibAddrs required when cmd is ${cmd}`);
+            // }
             if (
                 [IbGibSpaceOptionsCmd.put, IbGibSpaceOptionsCmd.canPut].includes(cmd) &&
                 (ibGibs || []).length === 0

@@ -12,7 +12,7 @@ import { Factory_V1 as factory } from 'ts-gib/dist/V1';
 import { getIbGibAddr } from 'ts-gib/dist/helper';
 import { TagData, SpecialIbGibType, RootData, LatestEventInfo } from '../common/types';
 import { ReplaySubject } from 'rxjs';
-import { IonicSpace_V1 } from '../common/spaces/bootstrap-space-v1';
+import { IonicSpace_V1 } from '../common/spaces/ionic-space-v1';
 // import { IbGibWitnessScheduler } from 'keystone-gib/src/V1/witnesses/scheduler';
 // import { InMemoryRepo } from 'keystone-gib/src/V1/witnesses/in-memory-repo';
 
@@ -115,6 +115,24 @@ export class IbgibsService {
     private files: FilesService,
   ) {
 
+  }
+
+  /**
+   * Make sure we have a bootstrapped space. This is like a node...kinda in peer
+   * to peer systems.
+   *
+   * For all intents and purposes here to begin with, I'm using this initially
+   * as where to put the settings ibGib that will contain pointers for this app, be it an
+   * ionic android/web app or a browser extension. This is because the initial
+   * intent of doing the spaces, besides it being necessary for the distributed
+   * nature of the architecture, is to obviate the use of ionic Storage.
+   * That is currently where we are storing things like the pointers to special
+   * ibGibs like tags^ibgib, roots ibgibs, etc.
+   */
+  async initializeSpaces(): Promise<void> {
+    const lc = `${this.lc}[${this.initializeSpaces.name}]`;
+
+    console.error(`${lc} not implemented`);
   }
 
   /**

@@ -178,17 +178,28 @@ export const IbGibSpaceOptionsCmd = {
 }
 
 /** Information for interacting with spaces. */
-export interface IbGibSpaceOptionsData<TIbGib extends IbGib> {
+export interface IbGibSpaceOptionsData {
     cmd: IbGibSpaceOptionsCmd;
     version?: string;
     ibGibAddrs?: IbGibAddr[];
-    ibGibs?: TIbGib[];
+    /**
+     * If putting, this will force replacing the file.
+     *
+     * ## intent
+     * atow this is just for `put` commands.
+     */
+    force?: boolean;
 }
 
 export interface IbGibSpaceOptionsIbGib<
     TIbGib extends IbGib,
-    TOptsData extends IbGibSpaceOptionsData<TIbGib>
+    TOptsData extends IbGibSpaceOptionsData
     > extends IbGibWithDataAndRel8ns<TOptsData> {
+    /**
+     * When putting ibGibs, we don't want to persist the entire graph in the
+     * data object. So these ibGibs live on the ibGib arg object itself.
+     */
+    ibGibs?: TIbGib[];
 }
 
 export interface IbGibSpaceResultData {
@@ -236,13 +247,18 @@ export interface IbGibSpaceResultData {
      * Addresses that are already in the space when requesting `put` or `canPut`.
      */
     addrsAlreadyHave?: IbGibAddr[];
+    /**
+     * Addresses for ibGibs which had errors.
+     */
+    addrsErrored?: IbGibAddr[];
 }
 
 export interface IbGibSpaceResultIbGib<TIbGib extends IbGib, TResultData extends IbGibSpaceResultData>
     extends IbGibWithDataAndRel8ns<TResultData> {
 
     /**
-     * If getting ibGibs, they will be here.
+     * When getting ibGibs, we don't want to persist the entire graph in the
+     * data object. So these ibGibs live on the result ibGib object itself.
      */
     ibGibs?: TIbGib[];
 }
@@ -257,7 +273,7 @@ export interface IbGibSpaceResultIbGib<TIbGib extends IbGib, TResultData extends
 */
 export interface IbGibSpace<
     TIbGib extends IbGib,
-    TOptionsData extends IbGibSpaceOptionsData<TIbGib>,
+    TOptionsData extends IbGibSpaceOptionsData,
     TOptionsIbGib extends IbGibSpaceOptionsIbGib<TIbGib, TOptionsData>,
     TResultData extends IbGibSpaceResultData,
     TResultIbGib extends IbGibSpaceResultIbGib<TIbGib, TResultData>,
