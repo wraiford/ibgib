@@ -21,6 +21,7 @@ export abstract class WitnessBase_V1<
      */
     protected lc: string = `[${WitnessBase_V1.name}]`;
 
+    /** not implemented yet */
     protected set trace(value: string[]) {
         const lc = `${this.lc}[set trace}]`;
         if (this.data) {
@@ -29,9 +30,11 @@ export abstract class WitnessBase_V1<
             console.warn(`${lc} data is falsy. Can't set.`);
         }
     }
+    /** not implemented yet */
     protected get trace(): string[] {
         return (<any>this.data)?.trace;
     }
+    /** not implemented yet */
     protected set throwOnError(value: boolean) {
         const lc = `${this.lc}[set throwOnError}]`;
         if (this.data) {
@@ -40,6 +43,7 @@ export abstract class WitnessBase_V1<
             console.warn(`${lc} data is falsy. Can't set.`);
         }
     }
+    /** not implemented yet */
     protected get throwOnError(): boolean {
         return (<any>this.data)?.throwOnError || true;
     }

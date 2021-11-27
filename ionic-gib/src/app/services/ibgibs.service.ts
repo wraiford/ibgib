@@ -2,7 +2,7 @@ import { Storage, Modals } from '@capacitor/core';
 import { Injectable } from '@angular/core';
 import { ReplaySubject } from 'rxjs';
 
-import { IbGib_V1, Rel8n, GIB } from 'ts-gib/dist/V1';
+import { IbGib_V1, Rel8n, GIB, sha256v1 } from 'ts-gib/dist/V1';
 import { IbGibAddr, V1, Ib } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { Factory_V1 as factory } from 'ts-gib/dist/V1';
@@ -15,7 +15,7 @@ import {
   DEFAULT_ROOT_TEXT, DEFAULT_ROOT_REL8N_NAME,
 } from '../common/constants';
 import { TagData, SpecialIbGibType, RootData, LatestEventInfo } from '../common/types';
-import { IonicSpaceOptionsData, IonicSpace_V1 } from '../common/spaces/ionic-space-v1';
+import { IonicSpaceOptionsData, IonicSpaceOptionsIbGib, IonicSpace_V1 } from '../common/spaces/ionic-space-v1';
 import { argy_ } from '../common/witnesses';
 import * as c from '../common/constants';
 
@@ -133,8 +133,8 @@ export class IbgibsService {
    * That is currently where we are storing things like the pointers to special
    * ibGibs like tags^ibgib, roots ibgibs, etc.
    */
-  async initializeSpaces(): Promise<void> {
-    const lc = `${this.lc}[${this.initializeSpaces.name}]`;
+  async initializeCurrentSpace(): Promise<void> {
+    const lc = `${this.lc}[${this.initializeCurrentSpace.name}]`;
     let defaultSpace: IonicSpace_V1;
     try {
       // we're going to use the default space first to find/load the actual user's space (if it exists)
@@ -148,10 +148,25 @@ export class IbgibsService {
         timestamp: true,
       }));
       if (result?.data?.success) {
-        // bootstrap space
-        const bootstrapSpace = result!.ibGibs![0]!;
-        if (await this.validateBootstrapSpace(bootstrapSpace)) {
-          const userSpaceAddr = bootstrapSpace.rel8ns![c.BOOTSTRAP_USER_SPACE_REL8N_NAME][0];
+        // load userSpace that was already initialized and recorded in the bootstrapGib "primitive" ibGib
+        const bootstrapGib = result!.ibGibs![0]!;
+        this.currentSpace = await this.loadUserSpace(defaultSpace, bootstrapGib);
+      } else {
+        // bootstrap space ibgib not found, so first run probably for user.
+        // so create a new bootstrapGib and user space
+        this.currentSpace = await this.createNewUserSpaceAndBootstrapGib(defaultSpace);
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      console.error(`space.data: ${h.pretty(defaultSpace?.data)}`)
+      throw error;
+    }
+  }
+  private async loadUserSpace(defaultSpace: IonicSpace_V1, bootstrapGib: IbGib_V1): Promise<IonicSpace_V1> {
+    const lc = `${this.lc}[${this.loadUserSpace.name}]`;
+    try {
+        if (await this.validateBootstrapGib(bootstrapGib)) {
+          const userSpaceAddr = bootstrapGib.rel8ns![c.BOOTSTRAP_USER_SPACE_REL8N_NAME][0];
           const resUserSpace = await defaultSpace.witness(await argy_<IonicSpaceOptionsData>({
             argData: {
               cmd: 'get',
@@ -161,26 +176,21 @@ export class IbgibsService {
             timestamp: true,
           }));
           if (resUserSpace?.data?.success) {
-            this.currentSpace = <IonicSpace_V1>resUserSpace.ibGibs[0];
+            return <IonicSpace_V1>resUserSpace.ibGibs[0];
           } else {
             throw new Error(`Could not load user space addr (${userSpaceAddr}) specified in bootstrap space (${c.BOOTSTRAP_SPACE_ADDR}).`);
           }
         } else {
           throw new Error(`Invalid bootstrap space. It should be a primitive ibGib with a single rel8n named "${c.BOOTSTRAP_USER_SPACE_REL8N_NAME}" with a single ibGib address.`);
         }
-      } else {
-        // bootstrap space ibgib not found, so first run probably for user.
-        await this.createNewBootstrapSpace();
-      }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-      console.error(`space.data: ${h.pretty(defaultSpace?.data)}`)
       throw error;
     }
   }
 
-  private async validateBootstrapSpace(bootstrapSpace: IbGib_V1): Promise<boolean> {
-    const lc = `${this.lc}[${this.validateBootstrapSpace.name}]`;
+  private async validateBootstrapGib(bootstrapSpace: IbGib_V1): Promise<boolean> {
+    const lc = `${this.lc}[${this.validateBootstrapGib.name}]`;
     const errors: string[] = [];
     try {
       let addr = getIbGibAddr({ibGib: bootstrapSpace});
@@ -208,8 +218,8 @@ export class IbgibsService {
     }
   }
 
-  private async createNewBootstrapSpace(): Promise<void> {
-    const lc = `${this.lc}[${this.createNewBootstrapSpace.name}]`;
+  private async createNewUserSpaceAndBootstrapGib(defaultSpace: IonicSpace_V1): Promise<IonicSpace_V1> {
+    const lc = `${this.lc}[${this.createNewUserSpaceAndBootstrapGib.name}]`;
     try {
       let spaceName: string;
       const validateName: (name: string) => boolean = (name: string) => {
@@ -240,7 +250,6 @@ export class IbgibsService {
       }
 
       const promptName: () => Promise<void> = async () => {
-        // create a new user space
         const resName = await Modals.prompt({title: 'Enter a Name...', message: `
         We need to create a space for you.
 
@@ -256,7 +265,71 @@ export class IbgibsService {
           }
         }
       };
+
+      // create a new user space
+      while (!spaceName) { await promptName(); }
+      let userSpace = new IonicSpace_V1(/*initialData*/ {
+        baseDir: c.IBGIB_BASE_DIR,
+        spaceSubPath: spaceName, // <<-- customized
+        baseSubPath: c.IBGIB_BASE_SUBPATH,
+        binSubPath: c.IBGIB_BIN_SUBPATH,
+        dnaSubPath: c.IBGIB_DNA_SUBPATH,
+        ibgibsSubPath: c.IBGIB_IBGIBS_SUBPATH,
+        metaSubPath: c.IBGIB_META_SUBPATH,
+        encoding: c.IBGIB_FILES_ENCODING,
+      }, /*initialRel8ns*/ null);
+      console.log(`${lc} userSpace.ib: ${userSpace.ib}`);
+      console.log(`${lc} userSpace.gib: ${userSpace.gib} (before sha256v1)`);
+      console.log(`${lc} userSpace.data: ${h.pretty(userSpace.data || 'falsy')}`);
+      console.log(`${lc} userSpace.rel8ns: ${h.pretty(userSpace.rel8ns || 'falsy')}`);
+      userSpace.gib = await sha256v1(userSpace);
+      console.log(`${lc} userSpace.gib: ${userSpace.gib} (after sha256v1)`);
+      let argPut = await argy_<IonicSpaceOptionsData, IonicSpaceOptionsIbGib>({
+        argData: { cmd: 'put', isMeta: true, },
+        timestamp: true,
+      });
+      argPut.ibGibs = [userSpace];
+
+      // save the userspace in default space
+      const resDefaultSpace = await defaultSpace.witness(argPut);
+      if (resDefaultSpace?.data?.success) {
+        console.log(`${lc} default space witnessed the user space`);
+      } else {
+        throw new Error(`${resDefaultSpace?.data?.errors?.join('|') || "There was a problem with defaultSpace witnessing the new userSpace"}`);
+      }
+
+      // // save the userspace in its own space?
+      // const resUserSpace = await userSpace.witness(argPut);
+      // if (resUserSpace?.data?.success) {
+      //   // we now have saved the userspace ibgib "in" its own space.
+      //   console.log(`${lc} user space witnessed itself`);
+      // } else {
+      //   throw new Error(`${resUserSpace?.data?.errors?.join('|') || "There was a problem with userSpace witnessing itself"}`);
+      // }
+
+
       // create the bootstrap^gib space that points to user space
+      const userSpaceAddr = getIbGibAddr({ibGib: userSpace});
+      const { ib: bootstrapIb } = h.getIbAndGib({ibGibAddr: c.BOOTSTRAP_SPACE_ADDR});
+      const bootstrapIbGib = factory.primitive({ib: bootstrapIb});
+      bootstrapIbGib.gib = GIB;
+      delete bootstrapIbGib.data;
+      bootstrapIbGib.rel8ns = { [c.BOOTSTRAP_USER_SPACE_REL8N_NAME]: [userSpaceAddr], }
+
+      // save the bootstrap^gib "primitive" in the default space for future initializations
+      const argPutBootstrap = await argy_<IonicSpaceOptionsData, IonicSpaceOptionsIbGib>({
+        argData: { cmd: 'put', isMeta: true, force: true},
+        timestamp: true,
+      });
+      argPut.ibGibs = [bootstrapIbGib];
+      const resDefaultSpacePutBootstrap = await defaultSpace.witness(argPutBootstrap);
+      if (resDefaultSpacePutBootstrap ?.data?.success) {
+        console.log(`${lc} default space witnessed the bootstrap^gib:\n(${h.pretty(bootstrapIbGib)})`);
+      } else {
+        throw new Error(`${resDefaultSpacePutBootstrap?.data?.errors?.join('|') || "There was a problem with defaultSpace witnessing the bootstrap^gib primitive pointing to the new user space"}`);
+      }
+
+      return userSpace;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

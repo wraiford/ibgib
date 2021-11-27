@@ -99,7 +99,7 @@ export class AppComponent extends IbgibComponentBase
       let navToAddr: IbGibAddr = 'hmm something went wrong^gib';
       try {
         // make sure roots are initialized FIRST before any other ibgib happenings
-        await this.common.ibgibs.initializeSpaces();
+        await this.common.ibgibs.initializeCurrentSpace();
         await this.initializeRoots();
 
         await this.initializeLatest();
