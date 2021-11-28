@@ -3,7 +3,7 @@ import { ChangeDetectorRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router, UrlSerializer } from '@angular/router';
 import { CommonService, IbgibNav } from 'src/app/services/common.service';
-import { FilesService } from 'src/app/services/files.service';
+//import { FilesService } from 'src/app/services/files.service';
 import { IbgibsService } from 'src/app/services/ibgibs.service';
 import { IonicIbgibNavService } from 'src/app/services/ionic-ibgib-nav.service';
 import { IbgibItem } from '../types';
@@ -11,21 +11,20 @@ import { IbgibListComponentBase } from './ibgib-list-component-base';
 import { NavController } from '@ionic/angular';
 
 
-class TestList extends IbgibListComponentBase<IbgibItem> {
-  /**
-   *
-   */
-  constructor(
-    protected common: CommonService,
-    protected ref: ChangeDetectorRef,
-  ) {
-    super(common, ref);
-  }
-
-}
+// class TestList extends IbgibListComponentBase<IbgibItem> {
+//   /**
+//    *
+//    */
+//   constructor(
+//     protected common: CommonService,
+//     protected ref: ChangeDetectorRef,
+//   ) {
+//     super(common, ref);
+//   }
+// }
 
 describe('IbgibListComponentBase', () => {
-  let files: FilesService;
+  // let files: FilesService;
   let ibgibs: IbgibsService;
   let nav: IbgibNav;
   let common: CommonService;
@@ -36,12 +35,14 @@ describe('IbgibListComponentBase', () => {
       UrlSerializer,
       NavController,
       { provide: 'IbgibNav', useClass: IonicIbgibNavService, },
-      FilesService, IbgibsService, ChangeDetectorRef, 
+      // FilesService,
+      IbgibsService, ChangeDetectorRef,
     ]});
-    files = TestBed.inject(FilesService);
+    // files = TestBed.inject(FilesService);
     ibgibs = TestBed.inject(IbgibsService);
     nav = TestBed.inject(IonicIbgibNavService);
-    common = new CommonService(ibgibs, files, nav);
+    // common = new CommonService(ibgibs, files, nav);
+    common = new CommonService(ibgibs, nav);
     changeDetectorRef = TestBed.inject(ChangeDetectorRef);
   });
 

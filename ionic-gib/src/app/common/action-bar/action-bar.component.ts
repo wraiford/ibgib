@@ -138,7 +138,7 @@ export class ActionBarComponent extends IbgibComponentBase
 
       console.log(`${lc} opts: ${pretty(opts)}`);
       const resCommentIbGib = await factory.firstGen(opts);
-      await this.common.files.persistTransformResult({resTransform: resCommentIbGib});
+      await this.common.ibgibs.persistTransformResult({resTransform: resCommentIbGib});
       const { newIbGib: newComment } = resCommentIbGib;
       const newCommentAddr = getIbGibAddr({ibGib: newComment});
       await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newComment, linked: true});
@@ -156,7 +156,7 @@ export class ActionBarComponent extends IbgibComponentBase
         const rel8nsToAddByAddr = { comment: [newCommentAddr] };
         const resRel8ToContext =
           await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
-        await this.common.files.persistTransformResult({resTransform: resRel8ToContext});
+        await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToContext});
         const { newIbGib: newContext } = resRel8ToContext;
         // const newContextAddr = getIbGibAddr(newContext);
         await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newContext, linked: true});
@@ -194,8 +194,8 @@ export class ActionBarComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.doPic.name}]`;
 
       const resSavePic =
-        await this.files.put({binData: imageBase64, binExt: ext});
-        // await this.files.put({binData: image.base64String, binExt: ext});
+        await this.common.ibgibs.put({binData: imageBase64, binExt: ext});
+        // await this.ibgibs.put({binData: image.base64String, binExt: ext});
       if (!resSavePic.success) { throw new Error(resSavePic.errorMsg || 'error saving pic'); }
       if (!resSavePic.binHash) { throw new Error(resSavePic.errorMsg || 'no bin hash created'); }
 
@@ -227,7 +227,7 @@ export class ActionBarComponent extends IbgibComponentBase
         tjp: { uuid: true, timestamp: true },
         nCounter: true,
       });
-      await this.common.files.persistTransformResult({resTransform: resPicIbGib});
+      await this.common.ibgibs.persistTransformResult({resTransform: resPicIbGib});
       const { newIbGib: newPic } = resPicIbGib;
       const newPicAddr = getIbGibAddr({ibGib: newPic});
       await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newPic, linked: true});
@@ -243,7 +243,7 @@ export class ActionBarComponent extends IbgibComponentBase
       const rel8nsToAddByAddr = { pic: [newPicAddr] };
       const resRel8ToContext =
         await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
-      await this.common.files.persistTransformResult({resTransform: resRel8ToContext});
+      await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToContext});
       const { newIbGib: newContext } = resRel8ToContext;
       // const newContextAddr = getIbGibAddr(newContext);
       await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newContext, linked: true});
@@ -389,24 +389,24 @@ export class ActionBarComponent extends IbgibComponentBase
 
         console.log(`${lc} tag with existing tag, but may not be latest addr`);
         const tagInfo: TagInfo = tagInfos[resPrompt.index - 2];
-        const resTagIbGib = await this.common.files.get({addr: tagInfo.addr});
-        if (resTagIbGib.success && resTagIbGib.ibGib) {
-          const rel8dTagIbGibAddr = getIbGibAddr({ibGib: resTagIbGib.ibGib});
+        const resTagIbGib = await this.common.ibgibs.get({addr: tagInfo.addr});
+        if (resTagIbGib.success && resTagIbGib.ibGibs?.length === 1) {
+          const rel8dTagIbGibAddr = getIbGibAddr({ibGib: resTagIbGib.ibGibs[0]});
           console.log(`${lc} the rel8d tag may not be the latest: ${rel8dTagIbGibAddr}`);
-          const latestTagAddr = await this.common.ibgibs.getLatestAddr({ibGib: resTagIbGib.ibGib});
+          const latestTagAddr = await this.common.ibgibs.getLatestAddr({ibGib: resTagIbGib.ibGibs[0]});
           console.log(`${lc} latestTagAddr: ${latestTagAddr}`);
           if (rel8dTagIbGibAddr === latestTagAddr) {
             console.error(`${lc} tag is already the latest`);
-            tagIbGib = resTagIbGib.ibGib!;
+            tagIbGib = resTagIbGib.ibGibs[0]!;
           } else {
             console.error(`${lc} tag is NOT the latest`);
-            const resTagIbGibLatest = await this.common.files.get({addr: latestTagAddr});
-            if (resTagIbGibLatest.success && resTagIbGibLatest.ibGib) {
+            const resTagIbGibLatest = await this.common.ibgibs.get({addr: latestTagAddr});
+            if (resTagIbGibLatest.success && resTagIbGibLatest.ibGibs?.length === 1) {
               console.error(`${lc} tag is NOT the latest and we got a new ibgib`);
-              tagIbGib = resTagIbGibLatest.ibGib!;
+              tagIbGib = resTagIbGibLatest.ibGibs![0];
             } else {
               console.error(`${lc} couldn't find latest tag addr (${latestTagAddr}). using previous tag (${rel8dTagIbGibAddr})`);
-              tagIbGib = resTagIbGib.ibGib!;
+              tagIbGib = resTagIbGib.ibGibs![0];
             }
           }
         } else {
@@ -419,7 +419,7 @@ export class ActionBarComponent extends IbgibComponentBase
       const rel8nsToAddByAddr = { target: [this.addr] };
       const resRel8ToTag =
         await V1.rel8({src: tagIbGib, rel8nsToAddByAddr, dna: true, nCounter: true});
-      await this.common.files.persistTransformResult({resTransform: resRel8ToTag});
+      await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToTag});
       const { newIbGib: newTag } = resRel8ToTag;
       await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newTag, linked: true});
       await this.common.ibgibs.registerNewIbGib({ibGib: newTag});

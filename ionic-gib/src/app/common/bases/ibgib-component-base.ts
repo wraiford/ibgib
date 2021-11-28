@@ -3,7 +3,7 @@ import { IbGib_V1, GIB, Factory_V1, Rel8n } from "ts-gib/dist/V1";
 import { IbGibAddr, Ib, Gib, V1, TransformResult } from "ts-gib";
 import { getIbAndGib, getIbGibAddr } from "ts-gib/dist/helper";
 import { Injectable } from "@angular/core";
-import { FilesService } from 'src/app/services/files.service';
+// import { FilesService } from 'src/app/services/files.service';
 import { IbgibItem, PicData, CommentData, LatestEventInfo } from '../types';
 import { CommonService } from 'src/app/services/common.service';
 import { DEFAULT_META_IB_STARTS } from '../constants';
@@ -30,9 +30,9 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     @Input()
     set addr(value: IbGibAddr) {
         const lc = `${this.lc}[set addr(${value})]`;
-        if (this._updatingIbGib) { 
+        if (this._updatingIbGib) {
             console.log(`${lc} already updatingIbGib`)
-            return; 
+            return;
         }
         console.log(`${lc} updating ibgib ${value}`);
         this._updatingIbGib = true;
@@ -56,12 +56,12 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     @Input()
     set ibGib_Context(value: IbGib_V1) {
         const lc = `${this.lc}[set ibGib_Context]`;
-        if (this.item?.ibGib_Context) { 
-            console.warn(`${lc} can only set context once.`); 
+        if (this.item?.ibGib_Context) {
+            console.warn(`${lc} can only set context once.`);
             return;
         }
         if (!value) {
-            console.log(`${lc} ignored setting falsy context.`); 
+            console.log(`${lc} ignored setting falsy context.`);
             return;
         }
         const setContext = () => {
@@ -73,15 +73,15 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
                 console.error(`${lc} attempted to set context to falsy item.`);
             }
         };
-        if (this.item) { 
+        if (this.item) {
             setContext();
         } else {
             // hack in case this gets set in binding before the item does.
-            setTimeout(() => { setContext(); }, 1000); 
+            setTimeout(() => { setContext(); }, 1000);
         }
     }
 
-    get files(): FilesService { return this.common.files; }
+//    get files(): FilesService { return this.common.files; }
 
     @Input()
     get isRoot(): boolean { return this.ib?.startsWith('root ') || false; }
@@ -100,7 +100,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     get itemTypes(): string[] { return ['pic','comment','tag', 'root']; }
 
     /**
-     * Set this to true if you don't want updates to this 
+     * Set this to true if you don't want updates to this
      * ibGib's timeline (e.g. tjp -> latest has new event) to propagate to this component.
      */
     @Input()
@@ -129,9 +129,9 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
 
     /**
      * Subscribes for updates to the component's ibGib.
-     * 
+     *
      * Override this if you want to customize WHEN/HOW to subscribe.
-     * 
+     *
      * If you want to override HOW TO HANDLE this subscription, then override
      * {@link handleIbGib_NewLatest} function.
      */
@@ -241,9 +241,9 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
                     item.ibGib = Factory_V1.primitive({ib});
                 } else {
                     // try to get from files provider
-                    const resGet = await this.files.get({addr: item.addr, isMeta: item.isMeta });
-                    if (resGet.success) {
-                        item.ibGib = resGet.ibGib;
+                    const resGet = await this.common.ibgibs.get({addr: item.addr, isMeta: item.isMeta });
+                    if (resGet.success && resGet.ibGibs?.length === 1) {
+                        item.ibGib = resGet.ibGibs![0];
                     } else if (!resGet.success && item.isMeta) {
                         // we've tried to load a meta ibGib that does not exist.
                         // item.ibGib = Factory_V1.primitive({ib});
@@ -314,7 +314,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         addr,
         queryParamsHandling = 'preserve',
         queryParams,
-    }: { 
+    }: {
         addr: string,
         queryParamsHandling?: 'merge' | 'preserve',
         queryParams?: { [key: string]: any },
@@ -363,9 +363,9 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
 
     const data = <PicData>this.ibGib.data;
     const resGet =
-      await this.common.files.get({binHash: data.binHash, binExt: data.ext})
+      await this.common.ibgibs.get({binHash: data.binHash, binExt: data.ext})
     this.item.timestamp = data.timestamp;
-    // this.item.picSrc = await this.common.files.getFileSrc({binHash: data.binHash, binExt: data.ext});
+    // this.item.picSrc = await this.common.ibgibs.getFileSrc({binHash: data.binHash, binExt: data.ext});
     console.log(`${lc} src: ${this.item.picSrc}`);
     if (resGet.success && resGet.binData) {
       this.item.picSrc = `data:image/jpeg;base64,${resGet.binData}`;
@@ -389,9 +389,9 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
 
   /**
    * Default handler for dealing with updates to ibGibs (i.e. new frames in their timelines).
-   * 
+   *
    * NOTE: ATOW this will be SPUN OFF, it will not be awaited.
-   * 
+   *
    * @param info event info for the new latest ibGib
    */
   async handleIbGib_NewLatest(info: LatestEventInfo): Promise<void> {

@@ -11,7 +11,7 @@ import * as c from '../../common/constants';
   templateUrl: './tag-list-view.component.html',
   styleUrls: ['./tag-list-view.component.scss'],
 })
-export class TagListViewComponent 
+export class TagListViewComponent
   extends IbgibListComponentBase
   implements OnInit {
 
@@ -46,12 +46,11 @@ export class TagListViewComponent
 
 
   async updateItems(): Promise<void> {
-    debugger;
     this.rel8nNames = ['target', ...c.DEFAULT_LIST_REL8N_NAMES];
     await super.updateItems();
-    setTimeout(() => {
-      this.ref.detectChanges();
-    }, 1000);
+    // setTimeout(() => {
+    //   this.ref.detectChanges();
+    // }, 1000);
   }
 
   async tagClicked(item: IbgibItem): Promise<void> {

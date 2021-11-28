@@ -1,16 +1,16 @@
 import { Injectable, Inject } from '@angular/core';
-import { FilesService } from './files.service';
+// import { FilesService } from './files.service';
 import { IbgibsService } from './ibgibs.service';
 import { IbGibAddr } from 'ts-gib';
 
 export interface IbgibNav {
-  navTo({ 
-    addr, 
-    queryParamsHandling, 
-    queryParams, 
-  }: { 
-    addr: string, 
-    queryParamsHandling?: 'merge' | 'preserve', 
+  navTo({
+    addr,
+    queryParamsHandling,
+    queryParams,
+  }: {
+    addr: string,
+    queryParamsHandling?: 'merge' | 'preserve',
     queryParams?: { [key: string]: any },
   }): Promise<void>;
 }
@@ -34,7 +34,7 @@ export class CommonService {
 
   constructor(
     public ibgibs: IbgibsService,
-    public files: FilesService,
+    // public files: FilesService,
     @Inject('IbgibNav') public nav: IbgibNav,
   ) { }
 }

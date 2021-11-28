@@ -185,9 +185,10 @@ interface PutIbGibResult extends FileResult {
   binHash?: string;
 }
 
+interface DeleteIbGibOpts extends GetIbGibOpts { }
+interface DeleteIbGibResult extends FileResult { }
+
 // #endregion
-
-
 
 
 /**
@@ -207,6 +208,16 @@ export class IonicSpace_V1 extends SpaceBase_V1<
     > {
 
     protected ibGibs: { [key: string]: IbGib_V1 } = {};
+
+    /**
+     * Check every time app starts if paths exist.
+     * But don't check every time do anything whatsoever.
+     *
+     * ## notes
+     *
+     * for use in `ensureDirs` function.
+     */
+    private pathExistsMap = {};
 
     constructor(
         // /**
@@ -236,10 +247,17 @@ export class IonicSpace_V1 extends SpaceBase_V1<
         this.ib = `witness space ${IonicSpace_V1.name}`;
     }
 
-    protected getData(): IonicSpace_V1_Data {
+    protected getData(): IonicSpace_V1_Data | undefined {
         const lc = `${this.lc}[${this.getData.name}]`;
         console.log(`${lc}`);
         return h.clone(this._data);
+    }
+    protected setData(value: IonicSpace_V1_Data | undefined): void {
+        this._data = value;
+    }
+
+    protected setGib(value: string | undefined): void {
+        this._gib = value;
     }
 
     /**
@@ -248,7 +266,7 @@ export class IonicSpace_V1 extends SpaceBase_V1<
     protected async initialize(): Promise<void> {
         const lc = `${this.lc}[${this.initialize.name}]`;
         try {
-            if (!this._data) { this.data = h.clone(DEFAULT_BOOTSTRAP_SPACE_V1_DATA); }
+            if (!this._data) { this._data = h.clone(DEFAULT_BOOTSTRAP_SPACE_V1_DATA); }
             if (!this._data.baseDir) { this._data.baseDir = c.IBGIB_BASE_DIR; }
             if (!this._data.encoding) { this._data.encoding = c.IBGIB_FILES_ENCODING; }
             if (!this._data.baseSubPath) { this._data.baseSubPath = c.IBGIB_BASE_SUBPATH; }
@@ -352,15 +370,17 @@ export class IonicSpace_V1 extends SpaceBase_V1<
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];
         }
-        const result =
-            await resulty_<
-                IonicSpaceResultData,
-                IonicSpaceResultIbGib
-            >({
-                resultData
+        try {
+            const result = await resulty_<IonicSpaceResultData, IonicSpaceResultIbGib>({
+                resultData,
             });
             if (resultIbGibs.length > 0) { result.ibGibs = resultIbGibs; }
-        return result;
+            return result;
+        } catch (error) {
+            debugger;
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        }
     }
 
     protected async put(arg: IonicSpaceOptionsIbGib):
@@ -388,7 +408,9 @@ export class IonicSpace_V1 extends SpaceBase_V1<
                         // ...but save anyway.
                         warnings.push(`Forcing save of already put addr: ${addr}`);
                         const putResult = await this.putFile({ibGib, isMeta, isDna, });
-                        if (!putResult.success) {
+                        if (putResult.success) {
+                            this.ibGibs[addr] = ibGib;
+                        } else {
                             errors.push(putResult.errorMsg || `${lc} error putting ${addr}`);
                             addrsErrored.push(addr);
                         }
@@ -424,46 +446,84 @@ export class IonicSpace_V1 extends SpaceBase_V1<
         return result;
     }
 
-    protected async putFile({
-        ibGib,
-        binData,
+    protected async delete(arg: IonicSpaceOptionsIbGib):
+        Promise<IonicSpaceResultIbGib> {
+        const lc = `${this.lc}[${this.delete.name}]`;
+        const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        const errors: string[] = [];
+        const warnings: string[] = [];
+        const addrsDeleted: IbGibAddr[] = [];
+        const addrsErrored: IbGibAddr[] = [];
+        try {
+            if (!arg.data) { throw new Error('arg.data is falsy'); }
+            const { isMeta, isDna, binExt, binHash, } = arg.data!;
+            const ibGibAddrs = arg.data!.ibGibAddrs || [];
+            const binData = arg.binData;
+
+            // iterate through ibGibs, but this may be an empty array if we're doing binData.
+            for (let i = 0; i < ibGibAddrs.length; i++) {
+                const addr = ibGibAddrs[i];
+                const deleteResult = await this.deleteFile({addr, isMeta, isDna, binHash, binExt});
+                if (deleteResult?.success) {
+                    addrsDeleted.push(addr);
+                } else {
+                    errors.push(deleteResult.errorMsg || `delete failed: addr (${addr})`);
+                    addrsErrored.push(addr);
+                }
+            }
+            if (warnings.length > 0) { resultData.warnings = warnings; }
+            if (errors.length === 0) {
+                resultData.success = true;
+                resultData.addrs = addrsDeleted;
+            } else {
+                resultData.errors = errors;
+                resultData.addrsErrored = addrsErrored;
+                if (addrsDeleted.length > 0) {
+                    const warningMsg =
+                        `some addrs (${addrsDeleted.length}) were indeed deleted, but not all. See result addrs and addrsErrored.`;
+                    resultData.warnings = (resultData.warnings || []).concat([warningMsg]);
+                }
+            }
+        } catch (error) {
+            console.error(`${lc} error: ${error.message}`);
+            resultData.errors = errors.concat([error.message]);
+            resultData.addrsErrored = addrsErrored;
+            resultData.success = false;
+        }
+        const result = await resulty_<IonicSpaceResultData, IonicSpaceResultIbGib>({resultData});
+        return result;
+    }
+
+    async deleteFile({
+        addr,
+        binHash,
         binExt,
         isMeta,
         isDna,
-    }: PutIbGibOpts): Promise<PutIbGibResult> {
-        const lc = `${this.lc}[${this.put.name}]`;
+    }: DeleteIbGibOpts): Promise<DeleteIbGibResult> {
+        const lc = `${this.lc}[${this.deleteFile.name}]`;
 
-        if (!ibGib && !binData) { throw new Error(`${lc} ibGib or binData required.`) };
-
-        let result: PutIbGibResult = {};
+        const result: DeleteIbGibResult = {};
 
         try {
-            const thisData = this.data!;
-            await this.ensureDirs();
+            if (!addr && !binHash) { throw new Error(`addr or binHash required.`) };
+
+            const data = this.data;
             let path: string = "";
             let filename: string = "";
-            let data: string = "";
-            if (ibGib) {
-                const addr = getIbGibAddr({ibGib});
-                filename = `${addr}.json`;
+            if (addr) {
+                filename = this.getFilename({addr});
                 path = this.buildPath({filename, isMeta, isDna});
-                data = JSON.stringify(ibGib);
             } else {
-                const binHash = await h.hash({s: binData});
                 filename = binExt ? binHash + '.' + binExt : binHash;
-                path = this.buildPath({filename, isDna: false, isMeta: false, isBin: true})
-                data = binData;
-                result.binHash = binHash;
+                path = this.buildPath({filename, isMeta: false, isDna: false, isBin: true});
             }
-
-            const resWrite = await Filesystem.writeFile({
+            console.log(`${lc} path: ${path}, directory: ${data.baseDir}`);
+            const _ = await Filesystem.deleteFile({
                 path,
-                data,
-                directory: thisData.baseDir,
-                encoding: thisData.encoding,
+                directory: data.baseDir,
             });
-            console.log(`${lc} resWrite.uri: ${resWrite.uri}`);
-
+            console.log(`${lc} deleted. path: ${path}`);
             result.success = true;
         } catch (error) {
             const errorMsg = `${lc} ${error.message}`;
@@ -472,90 +532,6 @@ export class IonicSpace_V1 extends SpaceBase_V1<
         }
 
         return result;
-    }
-
-    protected async ensurePermissions(): Promise<boolean> {
-        const lc = `${this.lc}[${this.ensurePermissions.name}]`;
-        try {
-            if (Filesystem.requestPermissions) {
-                const resPermissions = await Filesystem.requestPermissions();
-                if (resPermissions?.results) {
-                    console.warn(`${lc} resPermissions: ${JSON.stringify(resPermissions.results)} falsy`);
-                    return true;
-                } else {
-                    console.warn(`${lc} resPermissions?.results falsy`);
-                    return true;
-                }
-            } else {
-                console.warn(`${lc} Filesystem.requestPermissions falsy`);
-                return true;
-            }
-        } catch (error) {
-            console.error(`${lc} ${error.message}`);
-            return false;
-        }
-    }
-
-    /**
-     * Check every time app starts if paths exist.
-     * But don't check every time do anything whatsoever.
-     *
-     * for use in `ensureDirs` function.
-     */
-    private pathExistsMap = {};
-
-    /**
-     * Ensure directories are created on filesystem.
-     */
-    protected async ensureDirs(): Promise<void> {
-        const lc = `${this.lc}[${this.ensureDirs.name}]`;
-        const data = this.data!;
-        const directory = data.baseDir;
-
-        const permitted = await this.ensurePermissions();
-        if (!permitted) { console.error(`${lc} permission not granted.`); return; }
-
-        const paths = [
-            data.baseSubPath, // = 'ibgib';
-            data.baseSubPath + '/' + data.spaceSubPath,
-            data.baseSubPath + '/' + data.spaceSubPath + '/' + data.ibgibsSubPath,
-            data.baseSubPath + '/' + data.spaceSubPath + '/' + data.metaSubPath,
-            data.baseSubPath + '/' + data.spaceSubPath + '/' + data.binSubPath,
-            data.baseSubPath + '/' + data.spaceSubPath + '/' + data.dnaSubPath,
-        ];
-
-        for (let i = 0; i < paths.length; i++) {
-            const path = paths[i];
-            const lc2 = `${lc}[(path: ${path}, directory: ${directory})]`;
-
-            // check if we've already ensured for this path
-            const pathExistsKey = directory.toString() + '/' + path;
-            let exists = this.pathExistsMap[pathExistsKey] || false;
-
-            if (!exists) {
-                // we've not checked this path (or it didn't exist)
-                try {
-                    await Filesystem.readdir({ path, directory });
-                    exists = true;
-                    this.pathExistsMap[pathExistsKey] = true;
-                } catch (error) {
-                    console.log(`${lc2} Did not exist`);
-                }
-            }
-
-            if (!exists) {
-                // try full path
-                console.log(`${lc2} creating...`);
-                try {
-                    await Filesystem.mkdir({ path, directory, recursive: true });
-                    this.pathExistsMap[pathExistsKey] = true;
-                } catch (error) {
-                    console.log(`${lc2} Error creating. Trying next`);
-                } finally {
-                    console.log(`${lc2} complete.`);
-                }
-            }
-        }
     }
 
     protected async getAddrs(arg: IonicSpaceOptionsIbGib):
@@ -662,6 +638,137 @@ export class IonicSpace_V1 extends SpaceBase_V1<
                 resultData
             });
         return result;
+    }
+
+    protected async putFile({
+        ibGib,
+        binData,
+        binExt,
+        isMeta,
+        isDna,
+    }: PutIbGibOpts): Promise<PutIbGibResult> {
+        const lc = `${this.lc}[${this.put.name}]`;
+
+        if (!ibGib && !binData) { throw new Error(`${lc} ibGib or binData required.`) };
+
+        let result: PutIbGibResult = {};
+
+        try {
+            const thisData = this.data!;
+            await this.ensureDirs();
+            let path: string = "";
+            let filename: string = "";
+            let data: string = "";
+            if (ibGib) {
+                const addr = getIbGibAddr({ibGib});
+                filename = `${addr}.json`;
+                path = this.buildPath({filename, isMeta, isDna});
+
+                // we only want to persist the ibGib protocol
+                const bareIbGib: IbGib_V1 = { ib: ibGib.ib, gib: ibGib.gib };
+                if (ibGib.data) { bareIbGib.data = ibGib.data!; }
+                if (ibGib.rel8ns) { bareIbGib.rel8ns = ibGib.rel8ns!; }
+                data = JSON.stringify(bareIbGib);
+            } else {
+                const binHash = await h.hash({s: binData});
+                filename = binExt ? binHash + '.' + binExt : binHash;
+                path = this.buildPath({filename, isDna: false, isMeta: false, isBin: true})
+                data = binData;
+                result.binHash = binHash;
+            }
+
+            const resWrite = await Filesystem.writeFile({
+                path,
+                data,
+                directory: thisData.baseDir,
+                encoding: thisData.encoding,
+            });
+            console.log(`${lc} resWrite.uri: ${resWrite.uri}`);
+
+            result.success = true;
+        } catch (error) {
+            const errorMsg = `${lc} ${error.message}`;
+            console.error(errorMsg);
+            result.errorMsg = errorMsg;
+        }
+
+        return result;
+    }
+
+    protected async ensurePermissions(): Promise<boolean> {
+        const lc = `${this.lc}[${this.ensurePermissions.name}]`;
+        try {
+            if (Filesystem.requestPermissions) {
+                const resPermissions = await Filesystem.requestPermissions();
+                if (resPermissions?.results) {
+                    console.warn(`${lc} resPermissions: ${JSON.stringify(resPermissions.results)} falsy`);
+                    return true;
+                } else {
+                    console.warn(`${lc} resPermissions?.results falsy`);
+                    return true;
+                }
+            } else {
+                console.warn(`${lc} Filesystem.requestPermissions falsy`);
+                return true;
+            }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            return false;
+        }
+    }
+
+    /**
+     * Ensure directories are created on filesystem.
+     */
+    protected async ensureDirs(): Promise<void> {
+        const lc = `${this.lc}[${this.ensureDirs.name}]`;
+        const data = this.data!;
+        const directory = data.baseDir;
+
+        const permitted = await this.ensurePermissions();
+        if (!permitted) { console.error(`${lc} permission not granted.`); return; }
+
+        const paths = [
+            data.baseSubPath, // = 'ibgib';
+            data.baseSubPath + '/' + data.spaceSubPath,
+            data.baseSubPath + '/' + data.spaceSubPath + '/' + data.ibgibsSubPath,
+            data.baseSubPath + '/' + data.spaceSubPath + '/' + data.metaSubPath,
+            data.baseSubPath + '/' + data.spaceSubPath + '/' + data.binSubPath,
+            data.baseSubPath + '/' + data.spaceSubPath + '/' + data.dnaSubPath,
+        ];
+
+        for (let i = 0; i < paths.length; i++) {
+            const path = paths[i];
+            const lc2 = `${lc}[(path: ${path}, directory: ${directory})]`;
+
+            // check if we've already ensured for this path
+            const pathExistsKey = directory.toString() + '/' + path;
+            let exists = this.pathExistsMap[pathExistsKey] || false;
+
+            if (!exists) {
+                // we've not checked this path (or it didn't exist)
+                try {
+                    await Filesystem.readdir({ path, directory });
+                    exists = true;
+                    this.pathExistsMap[pathExistsKey] = true;
+                } catch (error) {
+                    console.log(`${lc2} Did not exist`);
+                }
+            }
+
+            if (!exists) {
+                // try full path
+                console.log(`${lc2} creating...`);
+                try {
+                    await Filesystem.mkdir({ path, directory, recursive: true });
+                    this.pathExistsMap[pathExistsKey] = true;
+                } catch (error) {
+                    console.log(`${lc2} Error creating. Trying next`);
+                } finally {
+                    console.log(`${lc2} complete.`);
+                }
+            }
+        }
     }
 
     // #region files related

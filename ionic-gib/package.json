@@ -14,8 +14,8 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve --ssl",
-    "build": "ng build",
-    "build:aot": "ng build --aot",
+    "build": "ng build --output-path www",
+    "build:aot": "ng build --aot --output-path www",
     "watch": "ng build --aot --output-path www --watch",
     "test": "ng test",
     "lint": "ng lint",
@@ -48,7 +48,7 @@
     "encrypt-gib": "^0.0.4",
     "lex-gib": "^0.10.1",
     "rxjs": "~6.5.1",
-    "ts-gib": "^0.1.42",
+    "ts-gib": "^0.1.48",
     "tslib": "^1.10.0",
     "zone.js": "~0.10.2"
   },
@@ -73,7 +73,7 @@
     "protractor": "~5.4.3",
     "ts-node": "~8.3.0",
     "tslint": "~6.1.0",
-    "typescript": "~3.8.3"
+    "typescript": "^3.8.3"
   },
   "description": "An Ionic project"
 }

@@ -148,7 +148,6 @@ export interface Witness<
     witness(arg: TIbGibIn): Promise<TIbGibOut | undefined>;
 }
 
-
 /**
  * This interface simply types our data and rel8ns to V1 style.
  */
@@ -162,13 +161,15 @@ export interface Witness_V1<
 }
 
 /** Cmds for interacting with ibgib spaces.  */
-export type IbGibSpaceOptionsCmd = 'get' | 'put' | 'canGet' | 'canPut' | 'getAddrs';
+export type IbGibSpaceOptionsCmd = 'get' | 'put' | 'delete' | 'canGet' | 'canPut' | 'getAddrs';
 /** Cmds for interacting with ibgib spaces.  */
 export const IbGibSpaceOptionsCmd = {
     /** Retrieve ibGib(s) out of the space (does not remove them). */
     get: 'get' as IbGibSpaceOptionsCmd,
     /** Registers/imports ibGib(s) into the space. */
     put: 'put' as IbGibSpaceOptionsCmd,
+    /** Delete an ibGib from a space */
+    delete: 'delete' as IbGibSpaceOptionsCmd,
     /** Able to retrieve ibGib(s) out of the space? */
     canGet: 'canGet' as IbGibSpaceOptionsCmd,
     /** Able to import ibGib(s) into the space? */
@@ -283,4 +284,5 @@ export interface IbGibSpace<
     extends Witness<TOptionsIbGib, TResultIbGib, TData, TRel8ns> {
     witness(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
 }
+
 // #endregion

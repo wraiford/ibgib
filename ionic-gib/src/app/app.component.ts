@@ -1,20 +1,20 @@
 import { Component, OnInit, ChangeDetectorRef, Input, OnDestroy } from '@angular/core';
-
+import { ActivatedRoute, NavigationEnd, Router, } from '@angular/router';
 import { Platform } from '@ionic/angular';
 import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { Plugins} from '@capacitor/core';
-const { Storage } = Plugins;
-
-import { IbgibComponentBase } from './common/bases/ibgib-component-base';
-import { getIbGibAddr, pretty } from 'ts-gib/dist/helper';
-import { CommonService } from './services/common.service';
-import { MENU_ITEM_IB_SUBSTRING_LENGTH, SPECIAL_URLS, DEFAULT_TAG_ICON, DEFAULT_ROOT_ICON, ROOT_REL8N_NAME } from './common/constants';
-import { IbGibAddr } from 'ts-gib';
-import { IbGib_V1 } from 'ts-gib/dist/V1';
-import { ActivatedRoute, NavigationEnd, Router, RouterEvent } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
+
+import { getIbGibAddr, pretty } from 'ts-gib/dist/helper';
+import { IbGibAddr } from 'ts-gib';
+import { IbGib_V1 } from 'ts-gib/dist/V1';
+import { IbgibComponentBase } from './common/bases/ibgib-component-base';
+import { CommonService } from './services/common.service';
+import {
+  MENU_ITEM_IB_SUBSTRING_LENGTH, DEFAULT_TAG_ICON, DEFAULT_ROOT_ICON, ROOT_REL8N_NAME
+} from './common/constants';
 
 
 interface MenuItem {
@@ -241,9 +241,9 @@ export class AppComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.getTagItem.name}]`;
     let item: MenuItem;
     try {
-      const resGet = await this.common.files.get({addr});
-      if (resGet.success && resGet.ibGib) {
-        const { ibGib } = resGet;
+      const resGet = await this.common.ibgibs.get({addr});
+      if (resGet.success && resGet.ibGibs?.length === 1) {
+        const ibGib = resGet.ibGibs![0];
         if (ibGib?.ib && ibGib?.gib) {
           if (ibGib?.data?.icon && (ibGib?.data?.text || ibGib?.data?.tagText)) {
             const text = ibGib.data!.text || ibGib.data!.tagText;
@@ -311,9 +311,9 @@ export class AppComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.getRootItem.name}]`;
     let item: MenuItem;
     try {
-      const resGet = await this.common.files.get({addr});
-      if (resGet.success && resGet.ibGib) {
-        const { ibGib } = resGet;
+      const resGet = await this.common.ibgibs.get({addr});
+      if (resGet.success && resGet.ibGibs?.length === 1) {
+        const ibGib = resGet.ibGibs![0];
         if (ibGib?.ib && ibGib?.gib) {
           if (ibGib?.data?.icon && (ibGib?.data?.text || ibGib?.data?.tagText)) {
             const text = ibGib.data!.text || ibGib.data!.tagText;

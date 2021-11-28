@@ -132,6 +132,46 @@ export class InnerSpace_V1<
             });
         return result;
     }
+    protected async delete(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
+        Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>> {
+        const lc = `${this.lc}[${this.delete.name}]`;
+        const resultData: IbGibSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        try {
+            const addrsNotFound: IbGibAddr[] = [];
+            const addrsDeleted: IbGibAddr[] = [];
+            const ibGibAddrs = arg.data!.ibGibAddrs || [];
+            for (let i = 0; i < ibGibAddrs.length; i++) {
+                const addr = ibGibAddrs[i];
+                if (Object.keys(this.ibGibs).includes(addr)) {
+                    delete this.ibGibs[addr];
+                    addrsDeleted.push(addr);
+                } else {
+                    addrsNotFound.push(addr);
+                }
+            }
+            if (addrsNotFound.length > 0) {
+                resultData.addrsNotFound = addrsNotFound.concat();
+                const warningMsg = `${lc} some addrs (${addrsNotFound.length}) not found: ${addrsNotFound}`;
+                resultData.warnings = (resultData.warnings || []).concat([warningMsg]);
+            }
+            resultData.success = true;
+            resultData.addrs = addrsDeleted.concat();
+        } catch (error) {
+            console.error(`${lc} error: ${error.message}`);
+            resultData.errors = [error.message];
+            resultData.success = false;
+        }
+        try {
+            const result =
+                await resulty_<IbGibSpaceResultData, IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>>({
+                    resultData
+                });
+            return result;
+        } catch (error) {
+            console.error(`${lc} error forming result ibGib. error: ${error.message}`);
+            throw error;
+        }
+    }
     protected async getAddrs(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
         Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>> {
         const lc = `${this.lc}[${this.getAddrs.name}]`;

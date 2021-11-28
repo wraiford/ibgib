@@ -38,6 +38,8 @@ export abstract class SpaceBase_V1<
                 return this.get(arg);
             case IbGibSpaceOptionsCmd.put:
                 return this.put(arg);
+            case IbGibSpaceOptionsCmd.delete:
+                return this.delete(arg);
             case IbGibSpaceOptionsCmd.getAddrs:
                 return this.getAddrs(arg);
             case IbGibSpaceOptionsCmd.canGet:
@@ -51,6 +53,7 @@ export abstract class SpaceBase_V1<
 
     protected abstract get(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
     protected abstract put(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
+    protected abstract delete(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
     protected abstract getAddrs(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
     protected abstract canGet(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
     protected abstract canPut(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
@@ -63,7 +66,7 @@ export abstract class SpaceBase_V1<
             if (!arg.data) { errors.push(`arg.data required`); return errors; } // <<<< returns immediately
             const { cmd, ibGibAddrs, } = arg.data!;
             const ibGibs  = arg.ibGibs;
-            if (cmd) { errors.push(`arg.data.cmd required`); }
+            if (!cmd) { errors.push(`arg.data.cmd required`); }
             if (!Object.values(IbGibSpaceOptionsCmd).includes(cmd)) { errors.push(`unknown arg.data.cmd: ${cmd}`); }
             // commenting this out for now. in my getting of pictures (binaries), I just give the binHash and not addr.
             // if (

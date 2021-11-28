@@ -4,7 +4,8 @@ import {
 import {
     getIbGibAddr,
 } from 'ts-gib';
-import { IbGib_V1, IbGibRel8ns_V1, Factory_V1, } from 'ts-gib/dist/V1';
+import * as h from 'ts-gib/dist/helper';
+import { IbGib_V1, IbGibRel8ns_V1, Factory_V1 as factory, } from 'ts-gib/dist/V1';
 import * as c from './constants';
 
 
@@ -125,14 +126,34 @@ export abstract class WitnessBase_V1<
  *
  * @returns ib that we'll use when creating a witness arg.
  */
-export function getArgIb(): string { return `${c.WITNESS_ARG_METADATA_STRING} ${this.ib}`; }
+export function getArgIb(ibMetadata: string): string {
+    const lc = `[${getArgIb.name}]`;
+    try {
+        return ibMetadata ?
+            `${c.WITNESS_ARG_METADATA_STRING} ${ibMetadata}` :
+            c.WITNESS_ARG_METADATA_STRING;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
 
 /**
  * Builds the ib for the witness result ibgib.
  *
  * @returns ib that we'll use when creating a witness result.
  */
-export function getResultIb(): string { return `${c.WITNESS_RESULT_METADATA_STRING} ${this.ib}`; }
+export function getResultIb(ibMetadata: string): string {
+    const lc = `[${getResultIb.name}]`;
+    try {
+        return ibMetadata ?
+            `${c.WITNESS_RESULT_METADATA_STRING} ${ibMetadata}` :
+            c.WITNESS_RESULT_METADATA_STRING;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
 
 /**
  * This builds the arg ibGib for a witness function.
@@ -147,21 +168,21 @@ export function getResultIb(): string { return `${c.WITNESS_RESULT_METADATA_STRI
  */
 export async function argy_<TArgData, TArgIbGib extends IbGib_V1<TArgData> = IbGib_V1<TArgData>>({
     argData,
-    timestamp,
-    uuid,
+    ibMetadata,
+    noTimestamp,
 }: {
     argData: TArgData,
-    timestamp?: boolean,
-    uuid?: boolean,
+    ibMetadata?: string,
+    noTimestamp?: boolean,
 }): Promise<TArgIbGib> {
     const lc = `[${argy_.name}]`;
     try {
-        const resArgIbGib = await Factory_V1.firstGen<TArgData>({
-            ib: getArgIb(),
-            parentIbGib: Factory_V1.primitive({ ib: c.WITNESS_ARG_METADATA_STRING }),
+        const resArgIbGib = await factory.firstGen<TArgData>({
+            ib: getArgIb(ibMetadata),
+            parentIbGib: factory.primitive({ ib: c.WITNESS_ARG_METADATA_STRING }),
             data: argData,
             dna: false,
-            tjp: { timestamp, uuid },
+            noTimestamp,
         });
         if (resArgIbGib.newIbGib) {
             const {newIbGib: resultIbGib} = resArgIbGib;
@@ -192,23 +213,23 @@ export async function argy_<TArgData, TArgIbGib extends IbGib_V1<TArgData> = IbG
  */
 export async function resulty_<TResultData, TResultIbGib extends IbGib_V1<TResultData> = IbGib_V1<TResultData>>({
     resultData,
-    timestamp,
-    uuid,
+    ibMetadata,
+    noTimestamp,
 }: {
     resultData: TResultData,
-    timestamp?: boolean,
-    uuid?: boolean,
+    ibMetadata?: string,
+    noTimestamp?: boolean,
 }): Promise<TResultIbGib> {
-    const lc = `${this.lc}[${this.getResult.name}]`;
+    const lc = `[${resulty_.name}]`;
     try {
-        const resResultIbGib = await Factory_V1.firstGen<TResultData>({
-            ib: getResultIb(),
-            parentIbGib: Factory_V1.primitive({ ib: c.WITNESS_RESULT_METADATA_STRING }),
+        const resResultIbGib = await factory.firstGen<TResultData>({
+            ib: getResultIb(ibMetadata),
+            parentIbGib: factory.primitive({ ib: c.WITNESS_RESULT_METADATA_STRING }),
             data: resultData,
             dna: false,
-            tjp: { timestamp, uuid },
+            noTimestamp,
         });
-        if (resResultIbGib.newIbGib) {
+        if (resResultIbGib?.newIbGib) {
             const {newIbGib: resultIbGib} = resResultIbGib;
 
             // clear out past, disregard any intermediate ibgibs.
