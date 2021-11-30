@@ -249,17 +249,35 @@ export class IbgibsService {
     }
   }
 
-  constructor(
-  ) {
-
-  }
-
   private _defaultSpace: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> | undefined;
   private get defaultSpace(): IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> {
     if (!this._defaultSpace) {
       this._defaultSpace = new IonicSpace_V1(/*initialData*/ null, /*initialRel8ns*/ null);
     }
     return this._defaultSpace;
+  }
+
+  constructor(
+  ) {
+
+  }
+
+  async initialize(): Promise<void> {
+    const lc = `${this.lc}[${this.initialize.name}]`;
+    try {
+      await this.initializeSpace();
+
+      await this.getSpecialIbgib({type: "roots", initialize: true});
+
+      await this.getSpecialIbgib({type: "latest", initialize: true});
+      // await this.createLatest();
+
+      await this.getSpecialIbgib({type: "tags", initialize: true});
+      // await this.initializeTags();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
   }
 
   /**
@@ -747,8 +765,8 @@ export class IbgibsService {
    *
    * @param initialize initialize (i.e. create) ONLY IF IbGib not found. Used for initializing app (first run).
    *
-   * @see {@link initializeSpecial}
-   * @see {@link initializeTags}
+   * @see {@link createSpecial}
+   * @see {@link createTags}
    */
   async getSpecialIbgib({
     type,
@@ -765,7 +783,7 @@ export class IbgibsService {
         if (initialize && !this._initializing) {
           this._initializing = true;
           try {
-            addr = await this.initializeSpecial({type});
+            addr = await this.createSpecial({type});
           } catch (error) {
             console.error(`${lc} error initializing: ${error.message}`);
           } finally {
@@ -786,22 +804,22 @@ export class IbgibsService {
     }
   }
 
-  async initializeSpecial({
+  async createSpecial({
     type,
   }: {
     type: SpecialIbGibType,
   }): Promise<IbGibAddr | null> {
-    const lc = `${this.lc}[${this.initializeSpecial.name}]`;
+    const lc = `${this.lc}[${this.createSpecial.name}]`;
     try {
       switch (type) {
         case "tags":
-          return this.initializeTags();
+          return this.createTags();
 
         case "roots":
-          return this.initializeRoots();
+          return this.createRootsIbGib();
 
         case "latest":
-          return this.initializeLatest();
+          return this.createLatest();
 
         default:
           throw new Error(`not implemented. type: ${type}`);
@@ -818,11 +836,11 @@ export class IbgibsService {
    *
    * Stores the tags ibGib's addr in config.
    */
-  async initializeTags(): Promise<IbGibAddr | null> {
-    const lc = `${this.lc}[${this.initializeTags.name}]`;
+  private async createTags(): Promise<IbGibAddr | null> {
+    const lc = `${this.lc}[${this.createTags.name}]`;
     try {
       const configKey = this.getSpecialConfigKey({type: "tags"});
-      const special = await this.initializeSpecialIbGib({type: "tags"});
+      const special = await this.createSpecialIbGib({type: "tags"});
       let addr = h.getIbGibAddr({ibGib: special});
       await this.setConfigAddr({key: configKey, addr: addr});
 
@@ -845,44 +863,13 @@ export class IbgibsService {
     }
   }
 
-  // private async initializeNewTagsIbGib(): Promise<IbGib_V1> {
-  //   const lc = `${this.lc}[${this.initializeNewTagsIbGib.name}]`;
-  //   try {
-  //     const tagsIb = this.getSpecialIbgibIb({type: "tags"});
-  //     const src = factory.primitive({ib: tagsIb });
-  //     const resNewTags = await V1.fork({
-  //       src,
-  //       destIb: tagsIb,
-  //       linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
-  //       tjp: { uuid: true, timestamp: true },
-  //       dna: true,
-  //       nCounter: true,
-  //     });
-  //     await this.persistTransformResult({
-  //       resTransform: resNewTags,
-  //       isMeta: true
-  //     });
-  //     await this.rel8ToCurrentRoot({ibGib: resNewTags.newIbGib, linked: true});
-    //     await this.common.ibgibs.registerNewIbGib({ibGib: result.newIbGib});
-  //     return resNewTags.newIbGib;
-  //   } catch (error) {
-  //     console.error(`${lc} ${error.message}`);
-  //     throw error;
-  //   }
-  // }
-
-  async initializeRoots(): Promise<IbGibAddr | null> {
-    const lc = `${this.lc}[${this.initializeRoots.name}]`;
+  private async createRootsIbGib(): Promise<IbGibAddr | null> {
+    const lc = `${this.lc}[${this.createRootsIbGib.name}]`;
     try {
-      console.log(`${lc} 1`);
       const configKey = this.getSpecialConfigKey({type: "roots"});
-      console.log(`${lc} 2`);
-      const special = await this.initializeSpecialIbGib({type: "roots"});
-      console.log(`${lc} 3`);
+      const special = await this.createSpecialIbGib({type: "roots"});
       let specialAddr = h.getIbGibAddr({ibGib: special});
-      console.log(`${lc} 4`);
       await this.setConfigAddr({key: configKey, addr: specialAddr});
-      console.log(`${lc} 5`);
 
       // at this point, our ibGib has no associated ibGibs.
       // so we add initial roots
@@ -897,26 +884,20 @@ export class IbgibsService {
         };
       });
       for (const data of initialDatas) {
-        console.log(`${lc} data: ${h.pretty(data)}`);
-        console.log(`${lc} data.1`);
         const resCreate = await this.createRootIbGib(data);
         if (!firstRoot) { firstRoot = resCreate.newRootIbGib; }
         specialAddr = resCreate.newRootsAddr;
         // update the config for the updated **roots** ibgib.
         // that roots ibgib is what points to the just created new root.
         await this.setConfigAddr({key: configKey, addr: specialAddr});
-        console.log(`${lc} data.2`);
       }
 
       // initialize current root
-      console.log(`${lc} 6`);
       await this.setCurrentRoot(firstRoot);
       // hack: the above line updates the roots in config. so get **that** addr.
 
-      console.log(`${lc} 7`);
       specialAddr = await this.getConfigAddr({key: configKey});
 
-      console.log(`${lc} 8`);
       if (!specialAddr) { throw new Error('no roots address in config?'); }
 
       return specialAddr;
@@ -926,12 +907,12 @@ export class IbgibsService {
     }
   }
 
-  async initializeLatest(): Promise<IbGibAddr | null> {
-    const lc = `${this.lc}[${this.initializeLatest.name}]`;
+  private async createLatest(): Promise<IbGibAddr | null> {
+    const lc = `${this.lc}[${this.createLatest.name}]`;
     try {
       const configKey = this.getSpecialConfigKey({type: "latest"});
       const special =
-        await this.initializeSpecialIbGib({type: "latest", skipRel8ToRoot: true});
+        await this.createSpecialIbGib({type: "latest", skipRel8ToRoot: true});
       let specialAddr = h.getIbGibAddr({ibGib: special});
       await this.setConfigAddr({key: configKey, addr: specialAddr});
 
@@ -945,58 +926,14 @@ export class IbgibsService {
     }
   }
 
-  async initializeConfig(): Promise<IbGibAddr | null> {
-    const lc = `${this.lc}[${this.initializeConfig.name}]`;
-    try {
-      const configKey = this.getSpecialConfigKey({type: "latest"});
-      const special =
-        await this.initializeSpecialIbGib({type: "latest", skipRel8ToRoot: true});
-      let specialAddr = h.getIbGibAddr({ibGib: special});
-      await this.setConfigAddr({key: configKey, addr: specialAddr});
-
-      // right now, the latest ibgib doesn't have any more initialization,
-      // since it is supposed to be as ephemeral and non-tracked as possible.
-
-      return specialAddr;
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      return null;
-    }
-  }
-  // private async initializeNewRootsIbGib(): Promise<IbGib_V1> {
-  //   const lc = `${this.lc}[${this.initializeNewRootsIbGib.name}]`;
-  //   try {
-  //     const specialIb = this.getSpecialIbgibIb({type: "roots"});
-  //     const src = factory.primitive({ib: specialIb});
-  //     const resNewTags = await V1.fork({
-  //       src,
-  //       destIb: specialIb,
-  //       linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
-  //       tjp: { uuid: true, timestamp: true },
-  //       dna: true,
-  //       nCounter: true,
-  //     });
-  //     await this.persistTransformResult({
-  //       resTransform: resNewTags,
-  //       isMeta: true
-  //     });
-  //     await this.rel8ToCurrentRoot({ibGib: resNewTags.newIbGib, linked: true});
-    //     await this.common.ibgibs.registerNewIbGib({ibGib: result.newIbGib});
-  //     return resNewTags.newIbGib;
-  //   } catch (error) {
-  //     console.error(`${lc} ${error.message}`);
-  //     throw error;
-  //   }
-  // }
-
-  async initializeSpecialIbGib({
+  private async createSpecialIbGib({
     type,
     skipRel8ToRoot,
   }: {
     type: SpecialIbGibType,
     skipRel8ToRoot?: boolean,
   }): Promise<IbGib_V1> {
-    const lc = `${this.lc}[${this.initializeSpecialIbGib.name}][${type || 'falsy type?'}]`;
+    const lc = `${this.lc}[${this.createSpecialIbGib.name}][${type || 'falsy type?'}]`;
     try {
       console.log(`starting...`);
       const specialIb = this.getSpecialIbgibIb({type});
@@ -1032,7 +969,7 @@ export class IbgibsService {
    * @example
    * For the Favorites tag, the ib would be "tag Favorites"
    */
-  tagTextToIb(tagText: string): string {
+  private tagTextToIb(tagText: string): string {
     const lc = `${this.lc}[${this.tagTextToIb.name}]`;
     if (!tagText) { throw new Error(`${lc} tag required.`)}
     return `tag ${tagText}`;
@@ -1065,7 +1002,7 @@ export class IbgibsService {
       const newTagsAddr = await this.rel8TagToTagsIbGib(newTag);
       return { newTagIbGib: newTag, newTagsAddr };
     } catch (error) {
-      console.log(`${lc} ${error.message}`);
+      console.error(`${lc} ${error.message}`);
       throw error;
     }
   }
@@ -1077,7 +1014,6 @@ export class IbgibsService {
   }: RootData): Promise<{newRootIbGib: IbGib_V1<RootData>, newRootsAddr: string}> {
     const lc = `${this.lc}[${this.createRootIbGib.name}]`;
     try {
-      console.log(`${lc} 1`);
       text = text || DEFAULT_ROOT_TEXT;
       icon = icon || DEFAULT_ROOT_ICON;
       description = description || DEFAULT_ROOT_DESCRIPTION;
@@ -1091,20 +1027,17 @@ export class IbgibsService {
         tjp: { uuid: true, timestamp: true },
         dna: true,
       });
-      console.log(`${lc} 2`);
       const { newIbGib } = resNewIbGib;
       await this.persistTransformResult({resTransform: resNewIbGib, isMeta: true});
-      console.log(`${lc} 3`);
       const newRootsAddr = await this.rel8ToSpecialIbGib({
         type: "roots",
         rel8nName: ROOT_REL8N_NAME,
         ibGibToRel8: newIbGib,
         // isMeta: true,
       });
-      console.log(`${lc} 4`);
       return { newRootIbGib: <IbGib_V1<RootData>>newIbGib, newRootsAddr };
     } catch (error) {
-      console.log(`${lc} ${error.message}`);
+      console.error(`${lc} ${error.message}`);
       throw error;
     }
   }
@@ -1165,19 +1098,14 @@ export class IbgibsService {
   }): Promise<IbGibAddr> {
     const lc = `${this.lc}[${this.rel8ToSpecialIbGib.name}][{type: ${type}, rel8nName: ${rel8nName}]`;
     try {
-      console.log(`${lc} 1`)
       const newAddr = h.getIbGibAddr({ibGib: ibGibToRel8});
 
       // get the special ibgib
       const configKey = this.getSpecialConfigKey({type});
-      console.log(`${lc} 2`)
       let specialAddr = await this.getConfigAddr({key: configKey});
-      console.log(`${lc} 3`)
       if (!specialAddr) { throw new Error(`addr not found`) };
       let resGetSpecial = await this.get({addr: specialAddr, isMeta: true});
-      console.log(`${lc} 4`)
       if (!resGetSpecial.success) { throw new Error(`couldn't get special`) }
-      console.log(`${lc} 5`)
       if (!resGetSpecial.ibGibs) { throw new Error(`resGetSpecial.ibGibs falsy`) }
       if (resGetSpecial.ibGibs!.length !== 1) { throw new Error(`resGetSpecial.ibGibs count is not 1 (${resGetSpecial.ibGibs!.length})`) }
 
@@ -1190,24 +1118,19 @@ export class IbgibsService {
         nCounter: true,
       });
 
-      console.log(`${lc} 6`)
       if (severPast) { resNewSpecial.newIbGib.rel8ns.past = []; }
 
-      console.log(`${lc} 7`)
       if (resNewSpecial.intermediateIbGibs) {
         throw new Error('new special creates intermediate ibgibs. so severing past is harder.');
       }
 
-      console.log(`${lc} 8`)
       // persist
       await this.persistTransformResult({resTransform: resNewSpecial, isMeta: true});
 
-      console.log(`${lc} 9`)
 
       // rel8 the new special ibgib to the root, but only if it's not a root itself.
       if (type !== 'roots' && !skipRel8ToRoot) {
         await this.rel8ToCurrentRoot({ibGib: resNewSpecial.newIbGib, linked: true});
-      console.log(`${lc} 10`)
       }
 
       // return the new special address (not the incoming new ibGib)
@@ -1216,11 +1139,9 @@ export class IbgibsService {
 
       await this.setConfigAddr({key: configKey, addr: newSpecialAddr});
 
-      console.log(`${lc} 11`)
       // delete if required, only after updating config with the new special addr.
       if (deletePreviousSpecialIbGib) {
         await this.delete({addr: specialAddr, isMeta: true});
-      console.log(`${lc} 12`)
       }
 
       return newSpecialAddr;
@@ -1494,16 +1415,6 @@ export class IbgibsService {
     }
   }
 
-  // async isLatest({ibGib}: {ibGib: IbGib_V1}): Promise<boolean> {
-  //   const lc = `${this.lc}[${this.isLatest.name}]`;
-  //   try {
-
-  //   } catch (error) {
-  //     console.error(`${lc} ${error.message}`);
-  //     throw error;
-  //   }
-  // }
-
   /**
    * We are NOT searching through all of our data looking for a needle in a haystack.
    * What we ARE doing is we are looking through the past of the existing latest and
@@ -1713,10 +1624,11 @@ export class IbgibsService {
     }
   }
 
-
   /**
    * Convenience function for persisting a transform result, which has
    * a newIbGib and optionally intermediate ibGibs and/or dnas.
+   *
+   * it persists these ibgibs into the given space, else the current space.
    */
   async persistTransformResult({
     resTransform,
@@ -1776,6 +1688,9 @@ export class IbgibsService {
     }
   }
 
+  /**
+   * Wrapper for retrieving ibgib from a given space, else the current space.
+   */
   async get({
     addr,
     binHash,
@@ -1818,6 +1733,9 @@ export class IbgibsService {
     }
   }
 
+  /**
+   * Wrapper for saving ibgib in a given space, else the current space.
+   */
   async put({
     ibGib,
     binData,
@@ -1856,6 +1774,9 @@ export class IbgibsService {
     }
   }
 
+  /**
+   * Wrapper for removing ibgib from the a given space, else the current space.
+   */
   async delete({
     addr,
     binHash,

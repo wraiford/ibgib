@@ -10,7 +10,7 @@ import { CommonService } from '../services/common.service';
 import { SPECIAL_URLS } from '../common/constants';
 import { getIbGibAddr, pretty } from 'ts-gib/dist/helper';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
-import { LatestEventInfo } from '../common/types';
+import { IbgibItem, LatestEventInfo } from '../common/types';
 // import * as encGib from 'encrypt-gib';
 import * as h from 'ts-gib';
 import { encrypt, decrypt, SaltStrategy } from 'encrypt-gib';

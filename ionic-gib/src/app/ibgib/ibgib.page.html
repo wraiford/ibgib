@@ -4,7 +4,7 @@
       <ion-menu-button></ion-menu-button>
     </ion-buttons>
 
-    <!-- <ion-title *ngIf='isTag && ib !== "tags"'> -->
+      <!-- atow, i am doing selective titles in ibgib-component-base.ts title property  -->
     <ion-title *ngIf='item?.type === "tag"' class='toolbar-title-yo'>
       <tag-view [addr]='item.addr'> </tag-view>
     </ion-title>

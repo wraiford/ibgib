@@ -3,14 +3,13 @@ import { ActivatedRoute, NavigationEnd, Router, } from '@angular/router';
 import { Platform } from '@ionic/angular';
 import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
-import { Plugins} from '@capacitor/core';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 
-// import { getIbGibAddr, pretty } from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
+
 import { IbgibComponentBase } from './common/bases/ibgib-component-base';
 import { CommonService } from './services/common.service';
 import {
@@ -100,10 +99,14 @@ export class AppComponent extends IbgibComponentBase
       let navToAddr: IbGibAddr = 'hmm something went wrong^gib';
       try {
         // make sure roots are initialized FIRST before any other ibgib happenings
-        await this.common.ibgibs.initializeSpace();
-        await this.initializeRoots();
-        await this.initializeLatest();
-        await this.initializeTags();
+        await this.common.ibgibs.initialize();
+
+        if (!this.item) { this.item = {} }
+        this.item.isMeta = true;
+
+        // these are AppComponent-specific initializations
+        await this.initializeMyRoots();
+        await this.initializeMyTags();
 
         await this.updateIbGib(this.tagsAddr);
         await this.loadIbGib();
@@ -156,34 +159,22 @@ export class AppComponent extends IbgibComponentBase
     return `/ibgib/${this.rootsAddr}`;
   }
 
-
-  async initializeRoots(): Promise<void> {
-    const lc = `${this.lc}[${this.initializeRoots.name}]`;
-    if (!this.item) { this.item = {} }
-    this.item.isMeta = true;
-    console.log(`${lc} getting...`);
-    const special =
-      await this.common.ibgibs.getSpecialIbgib({type: "roots", initialize: true});
-    console.log(`${lc} gotten.`);
-    this.rootsAddr = h.getIbGibAddr({ibGib: special});
-    this.currentRoot = await this.getCurrentRoot();
-  }
-
-  async initializeLatest(): Promise<void> {
-    const lc = `${this.lc}[${this.initializeLatest.name}]`;
-    console.log(`${lc} getting...`);
-    const special =
-      await this.common.ibgibs.getSpecialIbgib({type: "latest", initialize: true});
-    console.log(`${lc} gotten.`);
-  }
-
-  async initializeTags(): Promise<void> {
-    const lc = `${this.lc}[${this.initializeTags.name}]`;
+  async initializeMyRoots(): Promise<void> {
+    const lc = `${this.lc}[${this.initializeMyRoots.name}]`;
     try {
-      console.log(`${lc} getting...`);
-      const tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags", initialize: true});
+      const rootsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "roots"});
+      this.rootsAddr = h.getIbGibAddr({ibGib: rootsIbGib});
+      this.currentRoot = await this.getCurrentRoot();
+    } catch (error) {
+
+    }
+  }
+
+  async initializeMyTags(): Promise<void> {
+    const lc = `${this.lc}[${this.initializeMyTags.name}]`;
+    try {
+      const tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
       this.tagsAddr = h.getIbGibAddr({ibGib: tagsIbGib});
-      console.log(`${lc} gotten.`);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -349,6 +340,7 @@ export class AppComponent extends IbgibComponentBase
 
     return item;
   }
+
   subscribeParamMap() {
     let lc = `${this.lc}[${this.subscribeParamMap.name}]`;
 
@@ -398,4 +390,5 @@ export class AppComponent extends IbgibComponentBase
       delete this.paramMapSub_App;
     }
   }
+
 }

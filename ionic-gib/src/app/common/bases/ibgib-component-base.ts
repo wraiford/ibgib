@@ -162,6 +162,8 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
             return this.ib.split(' ').slice(1).join(' ');
         } else if (this.ib?.startsWith('pic ')) {
             return this.ib.split(' ').slice(1).join(' ');
+        } else if (this.ib?.startsWith(`meta special `)) {
+            return this.ib.substr(`meta special `.length);
         } else {
             return this.ib || 'loading...';
         }
