@@ -49,42 +49,37 @@ export abstract class WitnessBase_V1<
         return (<any>this.data)?.throwOnError || true;
     }
 
-    protected _ib: string = '';
-    protected getIb(): string { return this._ib; }
-    protected setIb(value: string): void { this._ib = value; }
-    get ib(): string { return this.getIb(); }
-    set ib(value: string) { this.setIb(value); }
+    ib: string | undefined;
+    // protected _ib: string = '';
+    // protected getIb(): string { return this._ib; }
+    // protected setIb(value: string): void { this._ib = value; }
+    // get ib(): string { return this.getIb(); }
+    // set ib(value: string) { this.setIb(value); }
 
-    protected _gib: string | undefined = 'gib';
-    protected getGib(): string | undefined { return this._gib; }
-    protected setGib(value: string | undefined): void {
-        const lc = `${this.lc}[${this.setGib.name}]`;
-        console.error(`${lc} in base class, this function defaults to doing nothing.`)
-    }
-    get gib(): string | undefined { return this.getGib(); }
-    set gib(value: string | undefined) { this.setGib(value); }
+    gib: string | undefined;
+    // protected _gib: string | undefined = 'gib';
+    // protected getGib(): string | undefined { return this._gib; }
+    // protected setGib(value: string | undefined): void { this._gib = value; }
+    // get gib(): string | undefined { return this.getGib(); }
+    // set gib(value: string | undefined) { this.setGib(value); }
 
-    protected _data: TData | undefined;
-    get data(): TData | undefined { return this.getData(); }
-    set data(value: TData | undefined) { this.setData(value); }
-    protected getData(): TData | undefined { return undefined; }
-    protected setData(value: TData | undefined): void {
-        const lc = `${this.lc}[${this.setData.name}]`;
-        console.warn(`${lc} not implemented in base class, so I'm not sure why this is being called.`);
-    }
+    data: TData | undefined;
+    // protected _data: TData | undefined;
+    // get data(): TData | undefined { return this.getData(); }
+    // set data(value: TData | undefined) { this.setData(value); }
+    // protected getData(): TData | undefined { return this._data; }
+    // protected setData(value: TData | undefined): void { this._data = value; }
 
-    protected _rel8ns: TRel8ns | undefined;
-    get rel8ns(): TRel8ns | undefined { return this.getRel8ns(); }
-    set rel8ns(value: TRel8ns | undefined) { this.setRel8ns(value); }
-    protected getRel8ns(): TRel8ns | undefined { return undefined; }
-    protected setRel8ns(value: TRel8ns | undefined): void {
-        const lc = `${this.lc}[${this.setRel8ns.name}]`;
-        console.warn(`${lc} not implemented in base class, so I'm not sure why this is being called.`);
-    }
+    rel8ns: TRel8ns | undefined;
+    // protected _rel8ns: TRel8ns | undefined;
+    // get rel8ns(): TRel8ns | undefined { return this.getRel8ns(); }
+    // set rel8ns(value: TRel8ns | undefined) { this.setRel8ns(value); }
+    // protected getRel8ns(): TRel8ns | undefined { return this._rel8ns; }
+    // protected setRel8ns(value: TRel8ns | undefined): void { this._rel8ns = value; }
 
     constructor(initialData?: TData, initialRel8ns?: TRel8ns) {
-        if (initialData) { this._data = initialData; }
-        if (initialRel8ns) { this._rel8ns = initialRel8ns; }
+        if (initialData) { this.data = initialData; }
+        if (initialRel8ns) { this.rel8ns = initialRel8ns; }
     }
 
     async witness(arg: TIbGibIn): Promise<TIbGibOut | undefined> {

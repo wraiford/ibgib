@@ -22,7 +22,7 @@ import { encrypt, decrypt, SaltStrategy } from 'encrypt-gib';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class IbGibPage extends IbgibComponentBase
-  implements OnInit, OnDestroy { 
+  implements OnInit, OnDestroy {
 
   protected lc: string = `[${IbGibPage.name}]`;
 
@@ -138,7 +138,7 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
-  updatePaused(): void { 
+  updatePaused(): void {
     this.paused = (this.activatedRoute.snapshot.queryParams['paused'] || 'false') === 'true';
    }
 
@@ -147,14 +147,8 @@ export class IbGibPage extends IbgibComponentBase
 
     this.paramMapSub = this.activatedRoute.paramMap.subscribe(async map => {
       let addr = map.get('addr');
-      if (addr.includes('?')) {
-        debugger;
-      }
-      // let paused = map.get('paused');
-      // if (paused) { this.paused = true; }
       lc = `${lc}[${addr}]`;
       console.log(`${lc} new addr`)
-      // console.warn(`${lc} paused: ${paused}`);
 
       if (!SPECIAL_URLS.includes((addr || "").toLowerCase()) && encodeURI(addr).includes('%5E')) {
         // normal handling for a normal ibGib is to update the page's ibgib
@@ -165,7 +159,6 @@ export class IbGibPage extends IbgibComponentBase
         } else {
           // do nothing, it's the same as the current addr
         }
-      // } else if (addr === 'something') { // example for future special cases
       } else {
         // default special non-ibgib handler, go to the tags ibGib
         console.log(`${lc} special url entered, navTo to tags ibGib`);
@@ -193,8 +186,8 @@ export class IbGibPage extends IbgibComponentBase
       if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
       if (!this.tjp) { await this.loadTjp(); }
 
-      if (this.paused) { 
-        this.paused = false; 
+      if (this.paused) {
+        this.paused = false;
         await this.navTo({addr: this.addr, queryParams: { paused: null }, queryParamsHandling: 'merge'})
       }
       if (this.item) { this.item.refreshing = true; }
@@ -223,9 +216,9 @@ export class IbGibPage extends IbgibComponentBase
       if (this.tjpAddr !== info.tjpAddr) { return; }
       console.log(`${lc} triggered.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)}`);
 
-      // await (new Promise(resolve => {  
+      // await (new Promise(resolve => {
       //   console.warn('DEBUG DEBUG DEBUG DEBUG delaying...');
-      //   setTimeout(() => { resolve(null); }, 1000) 
+      //   setTimeout(() => { resolve(null); }, 1000)
       // }));
 
       if (!this.ibGib) { return; }
@@ -239,7 +232,7 @@ export class IbGibPage extends IbgibComponentBase
     } finally {
       // at this point, we're guaranteed to be the latest in this component's tjp/timeline
       if (this.item) {
-        this.item.refreshing = false; 
+        this.item.refreshing = false;
         this.ref.detectChanges();
       }
     }

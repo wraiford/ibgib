@@ -38,6 +38,11 @@ export class InnerSpace_V1<
         TRel8ns
     > {
 
+    /**
+     * Log context for convenience with logging. (Ignore if you don't want to use this.)
+     */
+    protected lc: string = `[${InnerSpace_V1.name}]`;
+
     ibGibs: { [key: string]: TIbGib } = {};
 
     constructor(

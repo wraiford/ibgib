@@ -31,7 +31,11 @@ export const BOOTSTRAP_SPACE_ADDR = `bootstrap^${GIB}`;
  * The bootstrap space should be primitive except a single rel8n
  * with this rel8n name with a single rel8d address.
  */
-export const BOOTSTRAP_USER_SPACE_REL8N_NAME = `space`;
+export const SPACE_REL8N_NAME_BOOTSTRAP_SPACE = `space`;
+/**
+ * rel8n name in a space ibgib to the config ibgib(s?)
+ */
+export const SPACE_REL8N_NAME_CONFIG = `config`;
 
 /**
  * Ionic-specific folder that represents OS directory.

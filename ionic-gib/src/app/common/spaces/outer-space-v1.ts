@@ -87,6 +87,11 @@ export class OuterSpace_V1<
     > {
 
     /**
+     * Log context for convenience with logging. (Ignore if you don't want to use this.)
+     */
+    protected lc: string = `[${OuterSpace_V1.name}]`;
+
+    /**
      * A naive cache to start with.
      */
     ibGibs: { [key: string]: TIbGib } = {};

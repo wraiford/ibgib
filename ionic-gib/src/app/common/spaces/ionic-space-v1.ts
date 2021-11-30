@@ -2,7 +2,7 @@ import { Plugins, FilesystemEncoding, FileReadResult, FilesystemDirectory } from
 const { Filesystem } = Plugins;
 
 import {
-    IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib, IbGibSpaceResultData, IbGibSpaceResultIbGib,
+    IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib, IbGibSpaceResultData, IbGibSpaceResultIbGib, TagData,
 } from '../types';
 import {
     IbGib_V1, IbGibRel8ns_V1, sha256v1,
@@ -197,15 +197,23 @@ interface DeleteIbGibResult extends FileResult { }
  * This naively caches ibGibs in memory. When not found there,
  * will looks in files using Ionic `FileSystem`.
  */
-export class IonicSpace_V1 extends SpaceBase_V1<
+export class IonicSpace_V1<
+        TData extends IonicSpace_V1_Data = IonicSpace_V1_Data,
+        TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
+    > extends SpaceBase_V1<
         IbGib_V1,
         IonicSpaceOptionsData,
         IonicSpaceOptionsIbGib,
         IonicSpaceResultData,
         IonicSpaceResultIbGib,
-        IonicSpace_V1_Data
-        // TRel8ns defaults to IbGibRel8ns_V1
+        TData,
+        TRel8ns
     > {
+
+    /**
+     * Log context for convenience with logging. (Ignore if you don't want to use this.)
+     */
+    protected lc: string = `[${IonicSpace_V1.name}]`;
 
     protected ibGibs: { [key: string]: IbGib_V1 } = {};
 
@@ -231,8 +239,8 @@ export class IonicSpace_V1 extends SpaceBase_V1<
         //  * default and it passes its put predicate.
         //  */
         // public optimisticPut: boolean = true,
-        initialData: IonicSpace_V1_Data,
-        initialRel8ns: IbGibRel8ns_V1,
+        initialData: TData,
+        initialRel8ns: TRel8ns,
     ) {
         super(initialData, initialRel8ns);
         const lc = `${this.lc}[ctor]`;
@@ -247,17 +255,14 @@ export class IonicSpace_V1 extends SpaceBase_V1<
         this.ib = `witness space ${IonicSpace_V1.name}`;
     }
 
-    protected getData(): IonicSpace_V1_Data | undefined {
-        const lc = `${this.lc}[${this.getData.name}]`;
-        console.log(`${lc}`);
-        return h.clone(this._data);
-    }
-    protected setData(value: IonicSpace_V1_Data | undefined): void {
-        this._data = value;
-    }
-
-    protected setGib(value: string | undefined): void {
-        this._gib = value;
+    static fromIbGibDto<
+            TData extends IonicSpace_V1_Data = IonicSpace_V1_Data,
+            TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
+        >(ibGib: IbGib_V1<TData, TRel8ns>): IonicSpace_V1<TData, TRel8ns> {
+        const space = new IonicSpace_V1<TData, TRel8ns>(ibGib.data, ibGib.rel8ns);
+        space.ib = ibGib.ib;
+        space.gib = ibGib.gib;
+        return space;
     }
 
     /**
@@ -266,15 +271,15 @@ export class IonicSpace_V1 extends SpaceBase_V1<
     protected async initialize(): Promise<void> {
         const lc = `${this.lc}[${this.initialize.name}]`;
         try {
-            if (!this._data) { this._data = h.clone(DEFAULT_BOOTSTRAP_SPACE_V1_DATA); }
-            if (!this._data.baseDir) { this._data.baseDir = c.IBGIB_BASE_DIR; }
-            if (!this._data.encoding) { this._data.encoding = c.IBGIB_FILES_ENCODING; }
-            if (!this._data.baseSubPath) { this._data.baseSubPath = c.IBGIB_BASE_SUBPATH; }
-            if (!this._data.spaceSubPath) { this._data.spaceSubPath = c.IBGIB_SPACE_SUBPATH_DEFAULT; }
-            if (!this._data.ibgibsSubPath) { this._data.ibgibsSubPath = c.IBGIB_IBGIBS_SUBPATH; }
-            if (!this._data.metaSubPath) { this._data.metaSubPath = c.IBGIB_META_SUBPATH; }
-            if (!this._data.binSubPath) { this._data.binSubPath = c.IBGIB_BIN_SUBPATH; }
-            if (!this._data.dnaSubPath) { this._data.dnaSubPath = c.IBGIB_DNA_SUBPATH; }
+            if (!this.data) { this.data = h.clone(DEFAULT_BOOTSTRAP_SPACE_V1_DATA); }
+            if (!this.data.baseDir) { this.data.baseDir = c.IBGIB_BASE_DIR; }
+            if (!this.data.encoding) { this.data.encoding = c.IBGIB_FILES_ENCODING; }
+            if (!this.data.baseSubPath) { this.data.baseSubPath = c.IBGIB_BASE_SUBPATH; }
+            if (!this.data.spaceSubPath) { this.data.spaceSubPath = c.IBGIB_SPACE_SUBPATH_DEFAULT; }
+            if (!this.data.ibgibsSubPath) { this.data.ibgibsSubPath = c.IBGIB_IBGIBS_SUBPATH; }
+            if (!this.data.metaSubPath) { this.data.metaSubPath = c.IBGIB_META_SUBPATH; }
+            if (!this.data.binSubPath) { this.data.binSubPath = c.IBGIB_BIN_SUBPATH; }
+            if (!this.data.dnaSubPath) { this.data.dnaSubPath = c.IBGIB_DNA_SUBPATH; }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
         }
@@ -365,6 +370,8 @@ export class IonicSpace_V1 extends SpaceBase_V1<
             if (notFoundIbGibAddrs && notFoundIbGibAddrs.length > 0) {
                 resultData.addrsNotFound = notFoundIbGibAddrs;
                 resultData.success = false;
+            } else {
+                resultData.success = true;
             }
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
@@ -377,7 +384,6 @@ export class IonicSpace_V1 extends SpaceBase_V1<
             if (resultIbGibs.length > 0) { result.ibGibs = resultIbGibs; }
             return result;
         } catch (error) {
-            debugger;
             console.error(`${lc} ${error.message}`);
             throw error;
         }
@@ -837,7 +843,11 @@ export class IonicSpace_V1 extends SpaceBase_V1<
                 let x = await tryRead(tryPath);
                 if (x?.data) { resRead = x; break; }
             }
-            if (!resRead) { throw new Error(`paths not found: ${JSON.stringify(paths)}`) }
+            if (!resRead) {
+                // throw new Error(`paths not found: ${JSON.stringify(paths)}`)
+                console.warn(`${lc} paths not found: ${JSON.stringify(paths)}`)
+                return;
+            }
             if (!isBin) {
                 // ibGib retrieved
                 result.ibGib = <IbGib_V1>JSON.parse(resRead.data);
@@ -858,3 +868,4 @@ export class IonicSpace_V1 extends SpaceBase_V1<
 
   // #endregion
 }
+

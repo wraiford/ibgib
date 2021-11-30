@@ -5,7 +5,6 @@ import {
     IbGib_V1, IbGibRel8ns_V1, IbGibData_V1, sha256v1, Factory_V1,
 } from 'ts-gib/dist/V1';
 import { WitnessBase_V1, resulty_ } from '../witnesses';
-import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 
 export abstract class SpaceBase_V1<
         TIbGib extends IbGib_V1 = IbGib_V1,
@@ -18,6 +17,11 @@ export abstract class SpaceBase_V1<
     >
     extends WitnessBase_V1<TOptionsIbGib, TResultIbGib, TData, TRel8ns>
     implements IbGibSpace<TIbGib, TOptionsData, TOptionsIbGib, TResultData, TResultIbGib, TData, TRel8ns> {
+
+    /**
+     * Log context for convenience with logging. (Ignore if you don't want to use this.)
+     */
+    protected lc: string = `[${SpaceBase_V1.name}]`;
 
     constructor(initialData?: TData, initialRel8ns?: TRel8ns) {
         super(initialData, initialRel8ns);

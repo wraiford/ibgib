@@ -7,8 +7,9 @@ import { Plugins} from '@capacitor/core';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 
-import { getIbGibAddr, pretty } from 'ts-gib/dist/helper';
+// import { getIbGibAddr, pretty } from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib';
+import * as h from 'ts-gib/dist/helper';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 import { IbgibComponentBase } from './common/bases/ibgib-component-base';
 import { CommonService } from './services/common.service';
@@ -57,7 +58,7 @@ export class AppComponent extends IbgibComponentBase
     if (value !== this._tagsAddr) {
       console.log(`${lc} updating tagsAddr: ${value}`);
       this._tagsAddr = value;
-      this.ref.detectChanges();
+      setTimeout(() => { this.ref.detectChanges(); });
     }
   }
 
@@ -99,19 +100,11 @@ export class AppComponent extends IbgibComponentBase
       let navToAddr: IbGibAddr = 'hmm something went wrong^gib';
       try {
         // make sure roots are initialized FIRST before any other ibgib happenings
-        await this.common.ibgibs.initializeCurrentSpace();
+        await this.common.ibgibs.initializeSpace();
         await this.initializeRoots();
-
         await this.initializeLatest();
+        await this.initializeTags();
 
-        // tags
-        const tagsKey = this.common.ibgibs.getSpecialStorageKey({type: "tags"});
-        this.tagsAddr = (await Plugins.Storage.get({key: tagsKey})).value;
-        if (!this.tagsAddr) {
-          console.log(`${lc} First time run. Loading tags...`)
-          await this.loadTags();
-          this.ref.detectChanges();
-        }
         await this.updateIbGib(this.tagsAddr);
         await this.loadIbGib();
         await this.loadTjp();
@@ -152,7 +145,7 @@ export class AppComponent extends IbgibComponentBase
     this.item.isMeta = true;
     console.log(`getting tags addr`)
     const special = await this.common.ibgibs.getSpecialIbgib({type: "tags", initialize: true});
-    this.tagsAddr = getIbGibAddr({ibGib: special});
+    this.tagsAddr = h.getIbGibAddr({ibGib: special});
   }
 
   get tagsUrl(): string {
@@ -172,7 +165,7 @@ export class AppComponent extends IbgibComponentBase
     const special =
       await this.common.ibgibs.getSpecialIbgib({type: "roots", initialize: true});
     console.log(`${lc} gotten.`);
-    this.rootsAddr = getIbGibAddr({ibGib: special});
+    this.rootsAddr = h.getIbGibAddr({ibGib: special});
     this.currentRoot = await this.getCurrentRoot();
   }
 
@@ -182,6 +175,19 @@ export class AppComponent extends IbgibComponentBase
     const special =
       await this.common.ibgibs.getSpecialIbgib({type: "latest", initialize: true});
     console.log(`${lc} gotten.`);
+  }
+
+  async initializeTags(): Promise<void> {
+    const lc = `${this.lc}[${this.initializeTags.name}]`;
+    try {
+      console.log(`${lc} getting...`);
+      const tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags", initialize: true});
+      this.tagsAddr = h.getIbGibAddr({ibGib: tagsIbGib});
+      console.log(`${lc} gotten.`);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
   }
 
   async getCurrentRoot(): Promise<MenuItem> {
@@ -252,7 +258,7 @@ export class AppComponent extends IbgibComponentBase
               icon: ibGib.data!.icon || DEFAULT_TAG_ICON,
               url: `/ibgib/${addr}`,
             }
-            console.log(`${lc} ${pretty(item)}`);
+            console.log(`${lc} ${h.pretty(item)}`);
           } else {
             console.warn(`${lc} loading non-standard tag`);
             item = {
@@ -322,7 +328,7 @@ export class AppComponent extends IbgibComponentBase
               icon: ibGib.data!.icon || DEFAULT_ROOT_ICON,
               url: `/ibgib/${addr}`,
             }
-            console.log(`${lc} ${pretty(item)}`);
+            console.log(`${lc} ${h.pretty(item)}`);
           } else {
             console.warn(`${lc} loading non-standard tag`);
             item = {
@@ -358,7 +364,7 @@ export class AppComponent extends IbgibComponentBase
         decodeURI(this.router.url.split('/')[2]) :
         undefined;
       console.log(`${lc} addr: ${addr}`);
-      console.log(`${lc} router.url: ${pretty(this.router.url)}`)
+      console.log(`${lc} router.url: ${h.pretty(this.router.url)}`)
       if (event.id && event.url && addr && addr !== this.addr) {
         console.log(`${lc} event.id: ${event.id}`);
         console.log(`${lc} event.url: ${event.url}`);
@@ -374,7 +380,7 @@ export class AppComponent extends IbgibComponentBase
     //     decodeURI(this.router.url.split('/')[2]) :
     //     undefined;
     //   console.log(`${lc} addr: ${addr}`);
-    //   console.log(`${lc} router.url: ${pretty(this.router.url)}`)
+    //   console.log(`${lc} router.url: ${h.pretty(this.router.url)}`)
     //   if (event.id && event.url && addr && addr !== this.addr) {
     //     console.log(`${lc} event.id: ${event.id}`);
     //     console.log(`${lc} event.url: ${event.url}`);

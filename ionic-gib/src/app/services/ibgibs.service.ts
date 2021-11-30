@@ -1,9 +1,9 @@
-import { Storage, Modals } from '@capacitor/core';
+import { Modals } from '@capacitor/core';
 import { Injectable } from '@angular/core';
 import { ReplaySubject } from 'rxjs';
 
-import { IbGib_V1, Rel8n, GIB, sha256v1 } from 'ts-gib/dist/V1';
-import { IbGibAddr, V1, Ib, TransformResult } from 'ts-gib';
+import { IbGib_V1, Rel8n, GIB, sha256v1, IbGibRel8ns_V1 } from 'ts-gib/dist/V1';
+import { IbGibAddr, V1, Ib, TransformResult, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { Factory_V1 as factory } from 'ts-gib/dist/V1';
 
@@ -13,7 +13,12 @@ import {
   DEFAULT_ROOT_TEXT, DEFAULT_ROOT_REL8N_NAME,
 } from '../common/constants';
 import { TagData, SpecialIbGibType, RootData, LatestEventInfo } from '../common/types';
-import { IonicSpaceOptionsData, IonicSpaceOptionsIbGib, IonicSpace_V1 } from '../common/spaces/ionic-space-v1';
+import {
+  IonicSpaceOptionsData,
+  IonicSpaceOptionsIbGib,
+  IonicSpace_V1,
+  IonicSpace_V1_Data
+} from '../common/spaces/ionic-space-v1';
 import { argy_ } from '../common/witnesses';
 import * as c from '../common/constants';
 
@@ -51,6 +56,12 @@ interface GetIbGibOpts {
    * Are we looking for a DNA ibgib?
    */
   isDna?: boolean;
+  /**
+   * space from which to get the ibgib
+   *
+   * @default currentSpace
+   */
+  space?: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns>,
 }
 /**
  * Result for retrieving an ibGib from the file system.
@@ -90,6 +101,12 @@ interface PutIbGibOpts {
    * If true, will replace an existing ibGib file
    */
   force?: boolean;
+  /**
+   * space into which we shall put the ibgib.
+   *
+   * @default currentSpace
+   */
+  space?: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns>,
 }
 interface PutIbGibResult extends FileResult {
   binHash?: string;
@@ -99,6 +116,27 @@ interface DeleteIbGibOpts extends GetIbGibOpts { }
 interface DeleteIbGibResult extends FileResult { }
 
 // #endregion
+
+interface AppSpaceData extends IonicSpace_V1_Data {
+
+}
+
+export enum AppSpaceRel8n {
+  roots = 'roots',
+  tags = 'tags',
+  latest = 'latest',
+  spaces = 'spaces',
+  storage = 'storage',
+}
+interface AppSpaceRel8ns extends IbGibRel8ns_V1 {
+    [AppSpaceRel8n.tags]?: IbGibAddr[];
+    [AppSpaceRel8n.roots]?: IbGibAddr[];
+    [AppSpaceRel8n.latest]?: IbGibAddr[];
+    [AppSpaceRel8n.spaces]?: IbGibAddr[];
+    [AppSpaceRel8n.storage]?: IbGibAddr[];
+}
+
+export interface ConfigIbGib_V1 extends IbGib_V1<AppSpaceData, AppSpaceRel8ns> {}
 
 /**
  * All-purpose mega service (todo: which we'll need to break up!) to interact
@@ -193,11 +231,35 @@ export class IbgibsService {
   /**
    * Contains the configuration metadata for where ibgibs are looked for by default.
    */
-  currentSpace: IonicSpace_V1;
+  _currentSpace: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> | undefined;
+  get currentSpace(): IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> | undefined {
+    return this._currentSpace;
+  }
+  set currentSpace(value: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> | undefined) {
+    if (value) {
+      if (value.witness) {
+        this._currentSpace = value;
+      } else {
+        // if we've done a transform on the space,
+        // we won't get an object back, only a DTO ibGib essentially
+        this._currentSpace = IonicSpace_V1.fromIbGibDto<AppSpaceData, AppSpaceRel8ns>(value);
+      }
+    } else {
+      delete this._currentSpace;
+    }
+  }
 
   constructor(
   ) {
 
+  }
+
+  private _defaultSpace: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> | undefined;
+  private get defaultSpace(): IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> {
+    if (!this._defaultSpace) {
+      this._defaultSpace = new IonicSpace_V1(/*initialData*/ null, /*initialRel8ns*/ null);
+    }
+    return this._defaultSpace;
   }
 
   /**
@@ -212,12 +274,12 @@ export class IbgibsService {
    * That is currently where we are storing things like the pointers to special
    * ibGibs like tags^ibgib, roots ibgibs, etc.
    */
-  async initializeCurrentSpace(): Promise<void> {
-    const lc = `${this.lc}[${this.initializeCurrentSpace.name}]`;
-    let defaultSpace: IonicSpace_V1;
+  async initializeSpace(): Promise<void> {
+    const lc = `${this.lc}[${this.initializeSpace.name}]`;
+    let defaultSpace: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns>;
     try {
       // we're going to use the default space first to find/load the actual user's space (if it exists)
-      defaultSpace = new IonicSpace_V1(/*initialData*/ null, /*initialRel8ns*/ null);
+      defaultSpace = this.defaultSpace;
       const result = await defaultSpace.witness(await argy_<IonicSpaceOptionsData>({
         ibMetadata: defaultSpace.ib,
         argData: {
@@ -227,28 +289,31 @@ export class IbgibsService {
         },
       }));
       if (result?.data?.success) {
-        debugger;
         // load userSpace that was already initialized and recorded in the bootstrapGib "primitive" ibGib
         const bootstrapGib = result!.ibGibs![0]!;
-        await this.loadUserSpace(defaultSpace, bootstrapGib);
+        await this.loadCurrentSpace({defaultSpace, bootstrapGib});
       } else {
         // bootstrap space ibgib not found, so first run probably for user.
         // so create a new bootstrapGib and user space
-        debugger;
-        await this.createNewUserSpaceAndBootstrapGib(defaultSpace);
+        await this.createNewUserSpaceAndBootstrapGib({defaultSpace});
       }
     } catch (error) {
-      debugger;
       console.error(`${lc} ${error.message}`);
       console.error(`space.data: ${h.pretty(defaultSpace?.data)}`)
       throw error;
     }
   }
-  private async loadUserSpace(defaultSpace: IonicSpace_V1, bootstrapGib: IbGib_V1): Promise<void> {
-    const lc = `${this.lc}[${this.loadUserSpace.name}]`;
+  private async loadCurrentSpace({
+    defaultSpace,
+    bootstrapGib,
+  }: {
+    defaultSpace: IonicSpace_V1,
+    bootstrapGib: IbGib_V1
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.loadCurrentSpace.name}]`;
     try {
         if (await this.validateBootstrapGib(bootstrapGib)) {
-          const userSpaceAddr = bootstrapGib.rel8ns![c.BOOTSTRAP_USER_SPACE_REL8N_NAME][0];
+          const userSpaceAddr = bootstrapGib.rel8ns![c.SPACE_REL8N_NAME_BOOTSTRAP_SPACE][0];
           const resUserSpace = await defaultSpace.witness(await argy_<IonicSpaceOptionsData>({
             ibMetadata: defaultSpace.ib,
             argData: {
@@ -264,7 +329,7 @@ export class IbgibsService {
             throw new Error(`Could not load user space addr (${userSpaceAddr}) specified in bootstrap space (${c.BOOTSTRAP_SPACE_ADDR}).`);
           }
         } else {
-          throw new Error(`Invalid bootstrap space. It should be a primitive ibGib with a single rel8n named "${c.BOOTSTRAP_USER_SPACE_REL8N_NAME}" with a single ibGib address.`);
+          throw new Error(`Invalid bootstrap space. It should be a primitive ibGib with a single rel8n named "${c.SPACE_REL8N_NAME_BOOTSTRAP_SPACE}" with a single ibGib address.`);
         }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -284,10 +349,10 @@ export class IbgibsService {
         errors.push(`invalid bootstrapSpace data. Data should be falsy/empty`);
       }
       if (Object.keys(bootstrapSpace.rel8ns || {}).length === 0) {
-        errors.push(`invalid bootstrapSpace rel8ns (empty). Should have one rel8n, with rel8nName ${c.BOOTSTRAP_USER_SPACE_REL8N_NAME}`);
+        errors.push(`invalid bootstrapSpace rel8ns (empty). Should have one rel8n, with rel8nName ${c.SPACE_REL8N_NAME_BOOTSTRAP_SPACE}`);
       }
       if (Object.keys(bootstrapSpace.rel8ns || {}).length > 1) {
-        errors.push(`invalid bootstrapSpace rel8ns (more than 1). Should have only one rel8n, with rel8nName ${c.BOOTSTRAP_USER_SPACE_REL8N_NAME}`);
+        errors.push(`invalid bootstrapSpace rel8ns (more than 1). Should have only one rel8n, with rel8nName ${c.SPACE_REL8N_NAME_BOOTSTRAP_SPACE}`);
       }
       if (errors.length === 0) {
         return true;
@@ -301,13 +366,15 @@ export class IbgibsService {
     }
   }
 
-  private async createNewUserSpaceAndBootstrapGib(defaultSpace: IonicSpace_V1): Promise<void> {
+  private async createNewUserSpaceAndBootstrapGib({
+    defaultSpace,
+  }: {
+    defaultSpace: IonicSpace_V1,
+  }): Promise<void> {
     const lc = `${this.lc}[${this.createNewUserSpaceAndBootstrapGib.name}]`;
     try {
-      debugger;
       let spaceName: string;
       const validateName: (name: string) => boolean = (name: string) => {
-        debugger;
         const lcv = `${lc}[validateName]`;
         // non-falsy
         if (!name) {
@@ -335,7 +402,6 @@ export class IbgibsService {
       }
 
       const promptName: () => Promise<void> = async () => {
-        debugger;
         const resName = await Modals.prompt({title: 'Enter a Name...', message: `
         We need to create a space for you.
 
@@ -353,10 +419,7 @@ export class IbgibsService {
       };
 
       // create a new user space
-      while (!spaceName) {
-        debugger;
-        await promptName();
-      }
+      while (!spaceName) { await promptName(); }
       let userSpace = new IonicSpace_V1(/*initialData*/ {
         baseDir: c.IBGIB_BASE_DIR,
         spaceSubPath: spaceName, // <<-- customized
@@ -374,6 +437,10 @@ export class IbgibsService {
       userSpace.gib = await sha256v1(userSpace);
       if (userSpace.gib === GIB) { throw new Error(`userSpace.gib not updated correctly.`); }
       console.log(`${lc} userSpace.gib: ${userSpace.gib} (after sha256v1)`);
+
+      // must set this before trying to persist
+      this.currentSpace = userSpace;
+
       let argPutUserSpace = await argy_<IonicSpaceOptionsData, IonicSpaceOptionsIbGib>({
         ibMetadata: userSpace.ib,
         argData: { cmd: 'put', isMeta: true, },
@@ -384,76 +451,119 @@ export class IbgibsService {
       const resDefaultSpace = await defaultSpace.witness(argPutUserSpace);
       if (resDefaultSpace?.data?.success) {
         console.log(`${lc} default space witnessed the user space`);
-        this.currentSpace = userSpace;
       } else {
         throw new Error(`${resDefaultSpace?.data?.errors?.join('|') || "There was a problem with defaultSpace witnessing the new userSpace"}`);
       }
 
-      // // save the userspace in its own space?
-      // const resUserSpace = await userSpace.witness(argPut);
-      // if (resUserSpace?.data?.success) {
-      //   // we now have saved the userspace ibgib "in" its own space.
-      //   console.log(`${lc} user space witnessed itself`);
-      // } else {
-      //   throw new Error(`${resUserSpace?.data?.errors?.join('|') || "There was a problem with userSpace witnessing itself"}`);
-      // }
-
-
-      // create the bootstrap^gib space that points to user space
-      debugger;
-      const userSpaceAddr = h.getIbGibAddr({ibGib: userSpace});
-      const { ib: bootstrapIb } = h.getIbAndGib({ibGibAddr: c.BOOTSTRAP_SPACE_ADDR});
-      const bootstrapIbGib = factory.primitive({ib: bootstrapIb});
-      bootstrapIbGib.gib = GIB;
-      delete bootstrapIbGib.data;
-      bootstrapIbGib.rel8ns = { [c.BOOTSTRAP_USER_SPACE_REL8N_NAME]: [userSpaceAddr], }
-
-      debugger;
-      // save the bootstrap^gib "primitive" in the default space for future initializations
-      const argPutBootstrap = await argy_<IonicSpaceOptionsData, IonicSpaceOptionsIbGib>({
-        ibMetadata: bootstrapIbGib.ib,
-        argData: { cmd: 'put', isMeta: true, force: true},
-      });
-      argPutBootstrap.ibGibs = [bootstrapIbGib];
-      debugger;
-      const resDefaultSpacePutBootstrap = await defaultSpace.witness(argPutBootstrap);
-      debugger;
-      if (resDefaultSpacePutBootstrap ?.data?.success) {
-        debugger;
-        console.log(`${lc} default space witnessed the bootstrap^gib:\n(${h.pretty(bootstrapIbGib)})`);
+      // save the userspace in its own space?
+      const resUserSpace = await userSpace.witness(argPutUserSpace);
+      if (resUserSpace?.data?.success) {
+        // we now have saved the userspace ibgib "in" its own space.
+        console.log(`${lc} user space witnessed itself`);
       } else {
-        throw new Error(`${resDefaultSpacePutBootstrap?.data?.errors?.join('|') || "There was a problem with defaultSpace witnessing the bootstrap^gib primitive pointing to the new user space"}`);
+        throw new Error(`${resUserSpace?.data?.errors?.join('|') || "There was a problem with userSpace witnessing itself"}`);
       }
 
-      debugger;
+      const userSpaceAddr = h.getIbGibAddr({ibGib: userSpace});
+      await this.updateBootstrapIbGibSpaceAddr({newSpaceAddr: userSpaceAddr, defaultSpace});
     } catch (error) {
-      debugger;
+      delete this.currentSpace;
       console.error(`${lc} ${error.message}`);
       throw error;
     }
   }
 
   /**
-   * Gets a value from "storage".
+   * Updates the bootstrap^gib record in the default space data store
+   * with the 'space' rel8n set to the `newSpaceAddr`.
    *
-   * This is actually getting from the current bootstrap
+   * ## notes
    *
-   * @param key storage key
-   * @returns value in storage if exists, else undefined
+   * I'm probably typing this all over, but the bootstrap^gib is the
+   * first record that the app looks at to know what space to load.
+   * The space itself has configuration and has a proper gib hash
+   * so it's verifiable. But the initial bootstrap^gib record is
+   * NOT, since it only has 'gib' as its address (and thus its not hashed).
+   *
+   * In the future, this could be alleviated by asking other witnesses
+   * "Hey what was my last bootstrap^gib hash", but there's no way to
+   * do it beyond this without using some kind of authentication/secret(s)
+   * that generate the record, i.e. encrypting bootstrap^gib cleverly.
    */
-  async storageGet({key}: {key: string}): Promise<string | undefined> {
-    const lc = `${this.lc}[${this.storageGet.name}]`;
+  async updateBootstrapIbGibSpaceAddr({
+    newSpaceAddr,
+    defaultSpace,
+  }: {
+    newSpaceAddr: IbGibAddr,
+    defaultSpace?: IonicSpace_V1,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.updateBootstrapIbGibSpaceAddr.name}]`;
     try {
-      throw new Error(`left off here`)
-      const result = await Storage.get({key});
-      if (result) {
-        if (result!.value) {
-          return result!.value;
-        } else {
-          throw new Error(`falsy result.value from Storage`);
-        }
+      defaultSpace = defaultSpace || new IonicSpace_V1(/*initialData*/ null, /*initialRel8ns*/ null);
+
+      // create the bootstrap^gib space that points to user space
+      const { ib: bootstrapIb } = h.getIbAndGib({ibGibAddr: c.BOOTSTRAP_SPACE_ADDR});
+      const bootstrapIbGib = factory.primitive({ib: bootstrapIb});
+      bootstrapIbGib.gib = GIB;
+      delete bootstrapIbGib.data;
+      bootstrapIbGib.rel8ns = { [c.SPACE_REL8N_NAME_BOOTSTRAP_SPACE]: [newSpaceAddr], }
+
+      // save the bootstrap^gib "primitive" in the default space for future initializations
+      const argPutBootstrap = await argy_<IonicSpaceOptionsData, IonicSpaceOptionsIbGib>({
+        ibMetadata: bootstrapIbGib.ib,
+        argData: { cmd: 'put', isMeta: true, force: true},
+      });
+      argPutBootstrap.ibGibs = [bootstrapIbGib];
+      const resDefaultSpacePutBootstrap = await defaultSpace.witness(argPutBootstrap);
+      if (resDefaultSpacePutBootstrap ?.data?.success) {
+        console.log(`${lc} default space witnessed the bootstrap^gib:\n(${h.pretty(bootstrapIbGib)})`);
       } else {
-        throw new Error(`falsy result from Storage`);
+        throw new Error(`${resDefaultSpacePutBootstrap?.data?.errors?.join('|') || "There was a problem with defaultSpace witnessing the bootstrap^gib primitive pointing to the new user space"}`);
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+
+  }
+
+  /**
+   * Gets a config addr from the current space via the given key
+   * as the space's rel8n name.
+   *
+   * For example, for `key = tags`, a space may look like:
+   *
+   * ```json
+   * {
+   *    ib: space xyz,
+   *    gib: e89ff8a1c4954db28432007615a78952,
+   *    rel8ns: {
+   *      past: [space xyz^21cb29cc353f45a491d2b49ff2f130db],
+   *      ancestor: [space^gib],
+   *      tags: [tags^99b388355f8f4a979ca30ba284d3a686], // <<< rel8n with name specified by key
+   *    }
+   * }
+   * ```
+   *
+   * @param key config key
+   * @returns addr in config if exists, else undefined
+   */
+  async getConfigAddr({key}: {key: string}): Promise<string | undefined> {
+    const lc = `${this.lc}[${this.getConfigAddr.name}]`;
+    try {
+      console.log(`${lc} getting...`)
+      if (!this.currentSpace) { throw new Error(`currentSpace not initialized`); }
+      if (!this.currentSpace.rel8ns) { return undefined; }
+      if (this.currentSpace!.rel8ns[key].length === 1) {
+        console.log(`${lc} got`);
+        return this.currentSpace!.rel8ns![key]![0];
+      } else if (this.currentSpace!.rel8ns[key].length > 1) {
+        console.warn(`${lc} more than one config addr with ${key} rel8n.`)
+        return this.currentSpace!.rel8ns![key]![0];
+      } else {
+        console.log(`${lc} didn't find`);
+        // key not found or
+        return undefined;
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -461,11 +571,40 @@ export class IbgibsService {
     }
   }
 
-  async storageSet({key, value}: {key: string, value: string}): Promise<void> {
-    const lc = `${this.lc}[${this.storageSet.name}]`;
+  async setConfigAddr({key, addr}: {key: string, addr: string}): Promise<void> {
+    const lc = `${this.lc}[${this.setConfigAddr.name}]`;
     try {
-      throw new Error(`left off here`)
-      await Storage.set({key, value});
+      // rel8 the `addr` to the current space via rel8n named `key`
+      const rel8nsToAddByAddr = { [key]: [addr] };
+      const resNewSpace = await V1.rel8({
+        src: this.currentSpace,
+        dna: false,
+        linkedRel8ns: ["past", "ancestor", key], // we only want the most recent key address
+        rel8nsToAddByAddr,
+        nCounter: true,
+      });
+
+      if (!resNewSpace.newIbGib) { throw new Error(`create new space failed.`); }
+
+      // persist the new space in both default space and its own space
+      // (will actually have the space witness its future self interestingly
+      // enough...perhaps should have the new space witness itself instead
+      await this.persistTransformResult({isMeta: true, resTransform: resNewSpace, space: this.defaultSpace});
+      if (this.currentSpace) {
+        await this.persistTransformResult({isMeta: true, resTransform: resNewSpace, space: this.currentSpace});
+      } else {
+        throw new Error(`no current space...wth?`);
+      }
+
+      // update the bootstrap^gib with the new space address,
+      const newSpace = <IonicSpace_V1<AppSpaceData, AppSpaceRel8ns>>resNewSpace.newIbGib;
+      const newSpaceAddr = h.getIbGibAddr({ibGib: newSpace});
+
+      // so the proper space (config) is loaded on next app start
+      await this.updateBootstrapIbGibSpaceAddr({ newSpaceAddr });
+
+      this.currentSpace = newSpace;
+
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -528,9 +667,9 @@ export class IbgibsService {
       });
       await this.persistTransformResult({isMeta: true, resTransform: resNewRoots});
 
-      const storageKey = this.getSpecialStorageKey({type: "roots"});
+      const configKey = this.getSpecialConfigKey({type: "roots"});
       let newRootsAddr = h.getIbGibAddr({ibGib: resNewRoots.newIbGib});
-      await this.storageSet({key: storageKey, value: newRootsAddr});
+      await this.setConfigAddr({key: configKey, addr: newRootsAddr});
 
       this._currentRoot = root;
 
@@ -549,8 +688,8 @@ export class IbgibsService {
     return `${ib}^${GIB}`;
   }
 
-  getSpecialStorageKey({type}: {type: SpecialIbGibType}): string {
-    return `storage_key ${this.getSpecialIbgibAddr({type})}`;
+  getSpecialConfigKey({type}: {type: SpecialIbGibType}): string {
+    return `config_key ${this.getSpecialIbgibAddr({type})}`;
   }
 
   async rel8ToCurrentRoot({
@@ -620,8 +759,8 @@ export class IbgibsService {
   }): Promise<IbGib_V1 | null> {
     const lc = `${this.lc}[${this.getSpecialIbgib.name}]`;
     try {
-      let key = this.getSpecialStorageKey({type});
-      let addr = await this.storageGet({key});
+      let key = this.getSpecialConfigKey({type});
+      let addr = await this.getConfigAddr({key});
       if (!addr) {
         if (initialize && !this._initializing) {
           this._initializing = true;
@@ -633,7 +772,7 @@ export class IbgibsService {
             this._initializing = false;
           }
         }
-        if (!addr) { throw new Error(`Special address not in storage and couldn't initialize it either.`); }
+        if (!addr) { throw new Error(`Special address not in config and couldn't initialize it either.`); }
       }
       console.log(`addr: ${addr}`);
 
@@ -677,15 +816,15 @@ export class IbgibsService {
    * tags, e.g. "home", "favorites", etc., and relates these individual tags to
    * the tags ibGib itself.
    *
-   * Stores the tags ibGib's addr in storage.
+   * Stores the tags ibGib's addr in config.
    */
   async initializeTags(): Promise<IbGibAddr | null> {
     const lc = `${this.lc}[${this.initializeTags.name}]`;
     try {
-      const storageKey = this.getSpecialStorageKey({type: "tags"});
+      const configKey = this.getSpecialConfigKey({type: "tags"});
       const special = await this.initializeSpecialIbGib({type: "tags"});
       let addr = h.getIbGibAddr({ibGib: special});
-      await this.storageSet({key: storageKey, value: addr});
+      await this.setConfigAddr({key: configKey, addr: addr});
 
       // at this point, our tags ibGib has no associated tag ibGibs.
       // add home, favorite tags
@@ -696,7 +835,7 @@ export class IbgibsService {
       for (const data of initialTagDatas) {
         const resCreate = await this.createTagIbGib(data);
         addr = resCreate.newTagsAddr;
-        await this.storageSet({key: storageKey, value: addr});
+        await this.setConfigAddr({key: configKey, addr: addr});
       }
 
       return addr;
@@ -735,13 +874,18 @@ export class IbgibsService {
   async initializeRoots(): Promise<IbGibAddr | null> {
     const lc = `${this.lc}[${this.initializeRoots.name}]`;
     try {
-      const storageKey = this.getSpecialStorageKey({type: "roots"});
+      console.log(`${lc} 1`);
+      const configKey = this.getSpecialConfigKey({type: "roots"});
+      console.log(`${lc} 2`);
       const special = await this.initializeSpecialIbGib({type: "roots"});
+      console.log(`${lc} 3`);
       let specialAddr = h.getIbGibAddr({ibGib: special});
-      await this.storageSet({key: storageKey, value: specialAddr});
+      console.log(`${lc} 4`);
+      await this.setConfigAddr({key: configKey, addr: specialAddr});
+      console.log(`${lc} 5`);
 
-      // at this point, our tags ibGib has no associated tag ibGibs.
-      // add home, favorite tags
+      // at this point, our ibGib has no associated ibGibs.
+      // so we add initial roots
       const rootNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
 
       let firstRoot: IbGib_V1<RootData> = null;
@@ -753,21 +897,27 @@ export class IbgibsService {
         };
       });
       for (const data of initialDatas) {
+        console.log(`${lc} data: ${h.pretty(data)}`);
+        console.log(`${lc} data.1`);
         const resCreate = await this.createRootIbGib(data);
         if (!firstRoot) { firstRoot = resCreate.newRootIbGib; }
         specialAddr = resCreate.newRootsAddr;
-        // update the storage for the updated **roots** ibgib.
+        // update the config for the updated **roots** ibgib.
         // that roots ibgib is what points to the just created new root.
-        await this.storageSet({key: storageKey, value: specialAddr});
+        await this.setConfigAddr({key: configKey, addr: specialAddr});
+        console.log(`${lc} data.2`);
       }
 
       // initialize current root
+      console.log(`${lc} 6`);
       await this.setCurrentRoot(firstRoot);
-      // hack: the above line updates the roots in storage. so get **that** addr.
+      // hack: the above line updates the roots in config. so get **that** addr.
 
-      specialAddr = await this.storageGet({key: storageKey});
+      console.log(`${lc} 7`);
+      specialAddr = await this.getConfigAddr({key: configKey});
 
-      if (!specialAddr) { throw new Error('no roots address in storage?'); }
+      console.log(`${lc} 8`);
+      if (!specialAddr) { throw new Error('no roots address in config?'); }
 
       return specialAddr;
     } catch (error) {
@@ -779,11 +929,11 @@ export class IbgibsService {
   async initializeLatest(): Promise<IbGibAddr | null> {
     const lc = `${this.lc}[${this.initializeLatest.name}]`;
     try {
-      const storageKey = this.getSpecialStorageKey({type: "latest"});
+      const configKey = this.getSpecialConfigKey({type: "latest"});
       const special =
         await this.initializeSpecialIbGib({type: "latest", skipRel8ToRoot: true});
       let specialAddr = h.getIbGibAddr({ibGib: special});
-      await this.storageSet({key: storageKey, value: specialAddr});
+      await this.setConfigAddr({key: configKey, addr: specialAddr});
 
       // right now, the latest ibgib doesn't have any more initialization,
       // since it is supposed to be as ephemeral and non-tracked as possible.
@@ -795,6 +945,24 @@ export class IbgibsService {
     }
   }
 
+  async initializeConfig(): Promise<IbGibAddr | null> {
+    const lc = `${this.lc}[${this.initializeConfig.name}]`;
+    try {
+      const configKey = this.getSpecialConfigKey({type: "latest"});
+      const special =
+        await this.initializeSpecialIbGib({type: "latest", skipRel8ToRoot: true});
+      let specialAddr = h.getIbGibAddr({ibGib: special});
+      await this.setConfigAddr({key: configKey, addr: specialAddr});
+
+      // right now, the latest ibgib doesn't have any more initialization,
+      // since it is supposed to be as ephemeral and non-tracked as possible.
+
+      return specialAddr;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return null;
+    }
+  }
   // private async initializeNewRootsIbGib(): Promise<IbGib_V1> {
   //   const lc = `${this.lc}[${this.initializeNewRootsIbGib.name}]`;
   //   try {
@@ -828,8 +996,9 @@ export class IbgibsService {
     type: SpecialIbGibType,
     skipRel8ToRoot?: boolean,
   }): Promise<IbGib_V1> {
-    const lc = `${this.lc}[${this.initializeSpecialIbGib.name}]`;
+    const lc = `${this.lc}[${this.initializeSpecialIbGib.name}][${type || 'falsy type?'}]`;
     try {
+      console.log(`starting...`);
       const specialIb = this.getSpecialIbgibIb({type});
       const src = factory.primitive({ib: specialIb});
       const resNewSpecial = await V1.fork({
@@ -847,6 +1016,7 @@ export class IbgibsService {
       if (type !== 'roots' && !skipRel8ToRoot) {
         await this.rel8ToCurrentRoot({ibGib: resNewSpecial.newIbGib, linked: true});
       }
+      console.log(`complete.`);
       return resNewSpecial.newIbGib;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -907,6 +1077,7 @@ export class IbgibsService {
   }: RootData): Promise<{newRootIbGib: IbGib_V1<RootData>, newRootsAddr: string}> {
     const lc = `${this.lc}[${this.createRootIbGib.name}]`;
     try {
+      console.log(`${lc} 1`);
       text = text || DEFAULT_ROOT_TEXT;
       icon = icon || DEFAULT_ROOT_ICON;
       description = description || DEFAULT_ROOT_DESCRIPTION;
@@ -920,14 +1091,17 @@ export class IbgibsService {
         tjp: { uuid: true, timestamp: true },
         dna: true,
       });
+      console.log(`${lc} 2`);
       const { newIbGib } = resNewIbGib;
       await this.persistTransformResult({resTransform: resNewIbGib, isMeta: true});
+      console.log(`${lc} 3`);
       const newRootsAddr = await this.rel8ToSpecialIbGib({
         type: "roots",
         rel8nName: ROOT_REL8N_NAME,
         ibGibToRel8: newIbGib,
         // isMeta: true,
       });
+      console.log(`${lc} 4`);
       return { newRootIbGib: <IbGib_V1<RootData>>newIbGib, newRootsAddr };
     } catch (error) {
       console.log(`${lc} ${error.message}`);
@@ -991,14 +1165,19 @@ export class IbgibsService {
   }): Promise<IbGibAddr> {
     const lc = `${this.lc}[${this.rel8ToSpecialIbGib.name}][{type: ${type}, rel8nName: ${rel8nName}]`;
     try {
+      console.log(`${lc} 1`)
       const newAddr = h.getIbGibAddr({ibGib: ibGibToRel8});
 
       // get the special ibgib
-      const storageKey = this.getSpecialStorageKey({type});
-      let specialAddr = await this.storageGet({key: storageKey});
+      const configKey = this.getSpecialConfigKey({type});
+      console.log(`${lc} 2`)
+      let specialAddr = await this.getConfigAddr({key: configKey});
+      console.log(`${lc} 3`)
       if (!specialAddr) { throw new Error(`addr not found`) };
       let resGetSpecial = await this.get({addr: specialAddr, isMeta: true});
+      console.log(`${lc} 4`)
       if (!resGetSpecial.success) { throw new Error(`couldn't get special`) }
+      console.log(`${lc} 5`)
       if (!resGetSpecial.ibGibs) { throw new Error(`resGetSpecial.ibGibs falsy`) }
       if (resGetSpecial.ibGibs!.length !== 1) { throw new Error(`resGetSpecial.ibGibs count is not 1 (${resGetSpecial.ibGibs!.length})`) }
 
@@ -1011,29 +1190,37 @@ export class IbgibsService {
         nCounter: true,
       });
 
+      console.log(`${lc} 6`)
       if (severPast) { resNewSpecial.newIbGib.rel8ns.past = []; }
 
+      console.log(`${lc} 7`)
       if (resNewSpecial.intermediateIbGibs) {
         throw new Error('new special creates intermediate ibgibs. so severing past is harder.');
       }
 
+      console.log(`${lc} 8`)
       // persist
       await this.persistTransformResult({resTransform: resNewSpecial, isMeta: true});
+
+      console.log(`${lc} 9`)
 
       // rel8 the new special ibgib to the root, but only if it's not a root itself.
       if (type !== 'roots' && !skipRel8ToRoot) {
         await this.rel8ToCurrentRoot({ibGib: resNewSpecial.newIbGib, linked: true});
+      console.log(`${lc} 10`)
       }
 
       // return the new special address (not the incoming new ibGib)
       const { newIbGib: newSpecialIbGib } = resNewSpecial;
       let newSpecialAddr = h.getIbGibAddr({ibGib: newSpecialIbGib});
 
-      await this.storageSet({key: storageKey, value: newSpecialAddr});
+      await this.setConfigAddr({key: configKey, addr: newSpecialAddr});
 
-      // delete if required, only after updating storage with the new special addr.
+      console.log(`${lc} 11`)
+      // delete if required, only after updating config with the new special addr.
       if (deletePreviousSpecialIbGib) {
         await this.delete({addr: specialAddr, isMeta: true});
+      console.log(`${lc} 12`)
       }
 
       return newSpecialAddr;
@@ -1535,21 +1722,25 @@ export class IbgibsService {
     resTransform,
     isMeta,
     force,
+    space,
   }: {
     resTransform: TransformResult<IbGib_V1>,
     isMeta?: boolean,
     force?: boolean,
+    space?: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns>,
   }): Promise<void> {
     const lc = `${this.lc}[${this.persistTransformResult.name}]`;
     try {
+      space = space ?? this.currentSpace; // note to self: should start using the null coalescer I guess...
+      if (!space) { throw new Error(`space not initialized`); }
       const { newIbGib, intermediateIbGibs, dnas } = resTransform;
       const ibGibs = [newIbGib, ...(intermediateIbGibs || [])];
       const argPutIbGibs = await argy_<IonicSpaceOptionsData, IonicSpaceOptionsIbGib>({
-        ibMetadata: this.currentSpace.ib,
+        ibMetadata: space.ib,
         argData: { cmd: 'put', isMeta, force },
       });
       argPutIbGibs.ibGibs = ibGibs.concat();
-      const resPutIbGibs = await this.currentSpace.witness(argPutIbGibs);
+      const resPutIbGibs = await space.witness(argPutIbGibs);
       if (resPutIbGibs.data?.success) {
         if (resPutIbGibs.data!.warnings?.length > 0) {
           resPutIbGibs.data!.warnings!.forEach(warning => console.warn(`${lc} ${warning}`));
@@ -1563,11 +1754,11 @@ export class IbgibsService {
 
       if (dnas?.length > 0) {
         const argPutDnas = await argy_<IonicSpaceOptionsData, IonicSpaceOptionsIbGib>({
-          ibMetadata: this.currentSpace.ib,
+          ibMetadata: space.ib,
           argData: { cmd: 'put', isDna: true, force },
         });
         argPutDnas.ibGibs = dnas.concat();
-        const resPutDnas = await this.currentSpace.witness(argPutDnas);
+        const resPutDnas = await space.witness(argPutDnas);
         if (resPutDnas.data?.success) {
           if (resPutDnas.data!.warnings?.length > 0) {
             resPutDnas.data!.warnings!.forEach(warning => console.warn(`${lc} ${warning}`));
@@ -1580,7 +1771,7 @@ export class IbgibsService {
         }
       }
     } catch (error) {
-      console.log(`${lc} ${error.message}`);
+      console.error(`${lc} ${error.message}`);
       throw error;
     }
   }
@@ -1591,11 +1782,14 @@ export class IbgibsService {
     binExt,
     isMeta,
     isDna,
+    space,
   }: GetIbGibOpts): Promise<GetIbGibResult> {
     const lc = `${this.lc}[${this.get.name}(${addr})]`;
     try {
-      const result = await this.currentSpace.witness(await argy_<IonicSpaceOptionsData>({
-        ibMetadata: this.currentSpace.ib,
+      console.log(`${lc} starting...`)
+      space = space ?? this.currentSpace;
+      const result = await space.witness(await argy_<IonicSpaceOptionsData>({
+        ibMetadata: space.ib,
         argData: {
           cmd: 'get',
           ibGibAddrs: [addr],
@@ -1605,12 +1799,14 @@ export class IbgibsService {
         },
       }));
       if (result?.data?.success) {
+        console.log(`${lc} got.`)
         return {
           success: true,
           binData: result.binData,
           ibGibs: result.ibGibs,
         }
       } else {
+        console.log(`${lc} didn't get.`)
         return {
           success: false,
           errorMsg: result.data?.errors?.join('|') || `${lc} something went wrong`,
@@ -1629,18 +1825,20 @@ export class IbgibsService {
     isMeta,
     isDna,
     force,
+    space,
   }: PutIbGibOpts): Promise<PutIbGibResult> {
     const lc = `${this.lc}[${this.put.name}]`;
     try {
+      space = space ?? this.currentSpace;
       let binHash: string | undefined;
       if (binData) { binHash = await h.hash({s: binData}); }
       const argPutIbGibs = await argy_<IonicSpaceOptionsData, IonicSpaceOptionsIbGib>({
-        ibMetadata: this.currentSpace.ib,
+        ibMetadata: space.ib,
         argData: { cmd: 'put', isMeta, force, isDna, binExt, binHash },
       });
       argPutIbGibs.ibGibs = [ibGib];
       argPutIbGibs.binData = binData;
-      const resPutIbGibs = await this.currentSpace.witness(argPutIbGibs);
+      const resPutIbGibs = await space.witness(argPutIbGibs);
       if (resPutIbGibs.data?.success) {
         if (resPutIbGibs.data!.warnings?.length > 0) {
           resPutIbGibs.data!.warnings!.forEach(warning => console.warn(`${lc} ${warning}`));
@@ -1664,11 +1862,13 @@ export class IbgibsService {
     binExt,
     isMeta,
     isDna,
+    space,
   }: DeleteIbGibOpts): Promise<DeleteIbGibResult> {
     const lc = `${this.lc}[${this.delete.name}]`;
     try {
-      const result = await this.currentSpace.witness(await argy_<IonicSpaceOptionsData>({
-        ibMetadata: this.currentSpace.ib,
+      space = space ?? this.currentSpace;
+      const result = await space.witness(await argy_<IonicSpaceOptionsData>({
+        ibMetadata: space.ib,
         argData: {
           cmd: 'delete',
           ibGibAddrs: [addr],

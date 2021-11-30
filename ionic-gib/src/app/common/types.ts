@@ -106,7 +106,7 @@ export interface ActionItem {
     filepicked?: (event: any) => Promise<void>;
 }
 
-export type SpecialIbGibType = "tags" | "roots" | "latest" | "spaces";
+export type SpecialIbGibType = "tags" | "roots" | "latest" | "spaces" | "storage";
 
 /**
  * There has been a new ibGib that is the latest for a given tjp timeline.
