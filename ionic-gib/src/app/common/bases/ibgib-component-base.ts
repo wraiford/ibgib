@@ -360,22 +360,30 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
   async loadPic(item?: TItem): Promise<void> {
     const lc = `${this.lc}[${this.loadPic.name}]`;
     if (!this.isPic) { return; }
-    if (!this.ibGib?.data?.binHash) { return; }
-    if (!this.ibGib?.data?.ext) { return; }
+    console.log(`${lc} starting...`);
+    try {
+        if (!this.ibGib?.data?.binHash) { return; }
+        if (!this.ibGib?.data?.ext) { return; }
 
-    const data = <PicData>this.ibGib.data;
-    const resGet =
-      await this.common.ibgibs.get({binHash: data.binHash, binExt: data.ext})
-    this.item.timestamp = data.timestamp;
-    // this.item.picSrc = await this.common.ibgibs.getFileSrc({binHash: data.binHash, binExt: data.ext});
-    console.log(`${lc} src: ${this.item.picSrc}`);
-    if (resGet.success && resGet.binData) {
-      this.item.picSrc = `data:image/jpeg;base64,${resGet.binData}`;
-      setTimeout(() => {
-        this.ref.detectChanges();
-      }, 2000);
-    } else {
-      console.error(`${lc} Couldn't get pic. ${resGet.errorMsg}`);
+        const data = <PicData>this.ibGib.data;
+        console.log(`${lc} binHash: ${data.binHash}\nbinExt: ${data.ext}`);
+        const resGet =
+            await this.common.ibgibs.get({binHash: data.binHash, binExt: data.ext});
+        this.item.timestamp = data.timestamp;
+        console.log(`${lc} src: ${this.item.picSrc}`);
+
+        const delayRefDetectChangesMs = 2000; // hack
+        if (resGet.success && resGet.binData) {
+            this.item.picSrc = `data:image/jpeg;base64,${resGet.binData}`;
+            console.log(`${lc} loaded picSrc: ${this.item.picSrc}`);
+            setTimeout(() => { this.ref.detectChanges(); }, delayRefDetectChangesMs);
+            console.log(`${lc} ref.detectChanges in ${delayRefDetectChangesMs.toString()}`);
+        } else {
+            console.error(`${lc} Couldn't get pic. ${resGet.errorMsg}`);
+        }
+        console.log(`${lc} complete.`);
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
     }
   }
 

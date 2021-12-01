@@ -81,13 +81,6 @@ export class ActionBarComponent extends IbgibComponentBase
     console.log(`${this.lc} addr: ${this.addr}`);
   }
 
-  // async updateIbGib(addr: IbGibAddr): Promise<void> {
-  //   const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-  //   console.log(`${lc} updating.`)
-  //   await super.updateIbGib(addr);
-  //   await this.updateActions();
-  // }
-
   async updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
     console.log(`${lc} updating...`);

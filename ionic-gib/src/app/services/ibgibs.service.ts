@@ -1699,9 +1699,14 @@ export class IbgibsService {
     isDna,
     space,
   }: GetIbGibOpts): Promise<GetIbGibResult> {
-    const lc = `${this.lc}[${this.get.name}(${addr})]`;
+    let lc = `${this.lc}[${this.get.name}]`;
     try {
-      console.log(`${lc} starting...`)
+      if (addr) {
+        lc = `${lc}(${addr})`;
+      } else if (binHash) {
+        lc = `${lc}(binHash: ${binHash}, binExt: ${binExt})`;
+      }
+      console.log(`${lc} starting...`);
       space = space ?? this.currentSpace;
       const result = await space.witness(await argy_<IonicSpaceOptionsData>({
         ibMetadata: space.ib,
@@ -1754,7 +1759,7 @@ export class IbgibsService {
         ibMetadata: space.ib,
         argData: { cmd: 'put', isMeta, force, isDna, binExt, binHash },
       });
-      argPutIbGibs.ibGibs = [ibGib];
+      argPutIbGibs.ibGibs = ibGib ? [ibGib] : [];
       argPutIbGibs.binData = binData;
       const resPutIbGibs = await space.witness(argPutIbGibs);
       if (resPutIbGibs.data?.success) {

@@ -1,19 +1,20 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy, Input } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { Subscription } from 'rxjs';
+
 import { Plugins } from '@capacitor/core';
 const { Modals } = Plugins;
 
-import { IbgibComponentBase } from '../common/bases/ibgib-component-base';
+import * as h from 'ts-gib';
 import { IbGibAddr } from 'ts-gib';
-import { Subscription } from 'rxjs';
-import { CommonService } from '../services/common.service';
-import { SPECIAL_URLS } from '../common/constants';
 import { getIbGibAddr, pretty } from 'ts-gib/dist/helper';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
-import { IbgibItem, LatestEventInfo } from '../common/types';
-// import * as encGib from 'encrypt-gib';
-import * as h from 'ts-gib';
 import { encrypt, decrypt, SaltStrategy } from 'encrypt-gib';
+
+import { IbgibComponentBase } from '../common/bases/ibgib-component-base';
+import { CommonService } from '../services/common.service';
+import { SPECIAL_URLS } from '../common/constants';
+import { LatestEventInfo } from '../common/types';
 
 @Component({
   selector: 'ibgib-page',

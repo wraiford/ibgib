@@ -1,4 +1,4 @@
-console.log('yoooo');
+console.log('yoooo background.js here');
 
 const ibgibUrl = "/index.html";
 

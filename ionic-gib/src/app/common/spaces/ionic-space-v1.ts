@@ -5,7 +5,7 @@ import {
     IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib, IbGibSpaceResultData, IbGibSpaceResultIbGib, TagData,
 } from '../types';
 import {
-    IbGib_V1, IbGibRel8ns_V1, sha256v1,
+    IbGib_V1, IbGibRel8ns_V1, sha256v1, IBGIB_DELIMITER,
 } from 'ts-gib/dist/V1';
 import * as h from 'ts-gib/dist/helper';
 import { SpaceBase_V1 } from './space-base-v1';
@@ -171,6 +171,10 @@ interface PutIbGibOpts {
    */
   binExt?: string;
   /**
+   * hash of binData if doing bin and already calculated.
+   */
+  binHash?: string;
+  /**
    * If true, will store with metas.
    */
   isMeta?: boolean;
@@ -265,6 +269,31 @@ export class IonicSpace_V1<
         return space;
     }
 
+    protected async validateWitnessArg(arg: IonicSpaceOptionsIbGib): Promise<string[]> {
+        const lc = `${this.lc}[${this.validateWitnessArg}]`;
+        let errors: string[] = [];
+        try {
+            errors = (await super.validateWitnessArg(arg)) || [];
+            if (arg.data?.cmd === 'put' && !arg.binData && (arg.ibGibs?.length === 0)) {
+                errors.push(`when "put" cmd is called, either ibGibs or binData required.`);
+            }
+            if (
+                arg.data?.cmd === 'get' &&
+                !arg.data?.binExt && !arg.data?.binHash &&
+                (arg.data?.ibGibAddrs?.length === 0)
+            ) {
+                errors.push(`when "get" cmd is called, either ibGibAddrs or binExt+binHash required.`);
+            }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (errors?.length > 0) { console.error(`${lc} errors: ${errors}`); }
+        }
+
+        return errors;
+    }
+
     /**
      * Check for the bootstrap data at
      */
@@ -329,8 +358,13 @@ export class IonicSpace_V1<
         if (addr) {
             return `${addr}.json`;
         } else {
-            return binExt ? binHash + '.' + binExt : binHash;
+            // return binExt ? binHash + '.' + binExt : binHash;
+            return `${this.getBinAddr({binHash, binExt})}.${binExt}`;
         }
+    }
+
+    getBinAddr({binHash, binExt}: {binHash: string, binExt: string}): IbGibAddr {
+        return `bin.${binExt}${IBGIB_DELIMITER}${binHash}`
     }
 
     protected async get(arg: IonicSpaceOptionsIbGib):
@@ -338,12 +372,15 @@ export class IonicSpace_V1<
         const lc = `${this.lc}[${this.get.name}]`;
         const resultIbGibs: IbGib_V1[] = [];
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        let notFoundIbGibAddrs: IbGibAddr[] = undefined;
+        let resultBinData: any | undefined;
         try {
             if (!arg.data) { throw new Error('arg.data is falsy'); }
             // const argData = arg.data!;
             const { ibGibAddrs, isMeta, isDna, binExt, binHash } = arg.data!;
-            let notFoundIbGibAddrs: IbGibAddr[] = undefined;
-            if (ibGibAddrs?.length > 0) {
+
+            if (ibGibAddrs?.length > 0 && !binHash) {
+                console.log(`${lc} getting non-bin ibgibs. ibGibAddrs: ${ibGibAddrs}`);
                 // getting ibgibs, not a binary
                 for (let i = 0; i < ibGibAddrs.length; i++) {
                     const addr = ibGibAddrs[i];
@@ -363,7 +400,17 @@ export class IonicSpace_V1<
                 }
             } else if (binHash) {
                 // getting binary, not a regular ibGib via addr
-                throw new Error('not implemented yet');
+                console.log(`${lc} getting binHash: ${binHash}`);
+                const getResult = await this.getFile({binHash, binExt});
+                if (getResult?.success && getResult.binData) {
+                    console.log(`${lc} getResult.success. binData.length: ${getResult.binData!.length}`);
+                    // console.log(`${lc} getResult.success.`);
+                    resultBinData = getResult.binData!;
+                } else {
+                    console.log(`${lc} not found in files. (binData is not cached atm)`)
+                    // not found in files. (binData is not cached atm)
+                    notFoundIbGibAddrs.push(this.getBinAddr({binHash, binExt}));
+                }
             } else {
                 throw new Error(`Either ibGibAddrs or binHash required.`);
             }
@@ -381,7 +428,11 @@ export class IonicSpace_V1<
             const result = await resulty_<IonicSpaceResultData, IonicSpaceResultIbGib>({
                 resultData,
             });
-            if (resultIbGibs.length > 0) { result.ibGibs = resultIbGibs; }
+            if (resultIbGibs.length > 0) {
+                result.ibGibs = resultIbGibs;
+            } else if (resultBinData) {
+                result.binData = resultBinData;
+            }
             return result;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -389,8 +440,7 @@ export class IonicSpace_V1<
         }
     }
 
-    protected async put(arg: IonicSpaceOptionsIbGib):
-        Promise<IonicSpaceResultIbGib> {
+    protected async put(arg: IonicSpaceOptionsIbGib): Promise<IonicSpaceResultIbGib> {
         const lc = `${this.lc}[${this.put.name}]`;
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
@@ -403,17 +453,46 @@ export class IonicSpace_V1<
             const binData = arg.binData;
             const addrsAlreadyHave: IbGibAddr[] = [];
 
+            if (arg.ibGibs?.length > 0) {
+                return await this.putIbGibs(arg); // returns
+            } else if (arg.binData && arg.data.binHash && arg.data.binExt) {
+                return await this.putBin(arg); // returns
+            } else {
+                throw new Error(`either ibGibs or binData/binHash/binExt required.`);
+            }
+        } catch (error) {
+            console.error(`${lc} error: ${error.message}`);
+            resultData.errors = errors.concat([error.message]);
+            resultData.success = false;
+        }
+        // only executes if there is an error.
+        const result = await resulty_<IonicSpaceResultData, IonicSpaceResultIbGib>({resultData});
+        return result;
+    }
+
+    protected async putIbGibs(arg: IonicSpaceOptionsIbGib): Promise<IonicSpaceResultIbGib> {
+        const lc = `${this.lc}[${this.put.name}]`;
+        const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        const errors: string[] = [];
+        const warnings: string[] = [];
+        const addrsErrored: IbGibAddr[] = [];
+        try {
+            if (!arg.data) { throw new Error('arg.data is falsy'); }
+            const { isMeta, isDna, force } = arg.data!;
+            const ibGibs = arg.ibGibs || [];
+            const addrsAlreadyHave: IbGibAddr[] = [];
+
             // iterate through ibGibs, but this may be an empty array if we're doing binData.
             for (let i = 0; i < ibGibs.length; i++) {
                 const ibGib = ibGibs[i];
                 const addr = getIbGibAddr({ibGib});
-                const getResult = await this.getFile({addr, isMeta, isDna, binHash, binExt});
+                const getResult = await this.getFile({addr, isMeta, isDna});
                 if (getResult?.success && getResult.ibGib) {
                     // already exists...
                     if (force) {
                         // ...but save anyway.
                         warnings.push(`Forcing save of already put addr: ${addr}`);
-                        const putResult = await this.putFile({ibGib, isMeta, isDna, });
+                        const putResult = await this.putFile({ibGib, isMeta, isDna});
                         if (putResult.success) {
                             this.ibGibs[addr] = ibGib;
                         } else {
@@ -452,6 +531,63 @@ export class IonicSpace_V1<
         return result;
     }
 
+    protected async putBin(arg: IonicSpaceOptionsIbGib): Promise<IonicSpaceResultIbGib> {
+        const lc = `${this.lc}[${this.put.name}]`;
+        const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        const errors: string[] = [];
+        const warnings: string[] = [];
+        const addrsErrored: IbGibAddr[] = [];
+        try {
+            if (!arg.data) { throw new Error('arg.data is falsy'); }
+            const { binExt, binHash, force } = arg.data!;
+            const binData = arg.binData!;
+            const addr = this.getBinAddr({binHash, binExt});
+            const addrsAlreadyHave: IbGibAddr[] = [];
+
+            // iterate through ibGibs, but this may be an empty array if we're doing binData.
+            const getResult = await this.getFile({binHash, binExt});
+            if (getResult?.success && getResult.ibGib) {
+                // already exists...
+                if (force) {
+                    // ...but save anyway.
+                    warnings.push(`Forcing save of already put binHash: ${binHash}`);
+                    const putResult = await this.putFile({binData, binExt, binHash});
+                    if (putResult.success) {
+                        console.log(`${lc} binHash successful: ${binHash}`)
+                    } else {
+                        errors.push(putResult.errorMsg || `${lc} error putting binHash ${binHash}`);
+                        addrsErrored.push(addr);
+                    }
+                } else {
+                    // ...so just annotate
+                    warnings.push(`skipping (non-force) of already put binHash: ${binHash}`);
+                    addrsAlreadyHave.push(addr);
+                }
+            } else {
+                // does not already exist.
+                const putResult = await this.putFile({binData, binExt, binHash});
+                if (!putResult.success) {
+                    errors.push(putResult.errorMsg || `${lc} error putting ${addr}`);
+                    addrsErrored.push(addr);
+                }
+            }
+
+            if (warnings.length > 0) { resultData.warnings = warnings; }
+            if (errors.length === 0) {
+                resultData.success = true;
+            } else {
+                resultData.errors = errors;
+                resultData.addrsErrored = addrsErrored;
+            }
+        } catch (error) {
+            console.error(`${lc} error: ${error.message}`);
+            resultData.errors = errors.concat([error.message]);
+            resultData.addrsErrored = addrsErrored;
+            resultData.success = false;
+        }
+        const result = await resulty_<IonicSpaceResultData, IonicSpaceResultIbGib>({resultData});
+        return result;
+    }
     protected async delete(arg: IonicSpaceOptionsIbGib):
         Promise<IonicSpaceResultIbGib> {
         const lc = `${this.lc}[${this.delete.name}]`;
@@ -646,9 +782,31 @@ export class IonicSpace_V1<
         return result;
     }
 
+    /**
+     * Calculates the hash of the given `binData`.
+     *
+     * ## notes
+     *
+     * I've pulled this out into its own method because I'm sure this is going
+     * to adapt to multiple hashing algorithms in the future depending on the
+     * version.
+     *
+     * @returns hash string of the given `binData`
+     */
+    protected getBinHash({binData, version}: {binData: any, version?: string}): Promise<string> {
+        const lc = `${this.lc}[${this.getBinHash.name}]`;
+        try {
+            return h.hash({s: binData});
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        }
+    }
+
     protected async putFile({
         ibGib,
         binData,
+        binHash,
         binExt,
         isMeta,
         isDna,
@@ -676,8 +834,8 @@ export class IonicSpace_V1<
                 if (ibGib.rel8ns) { bareIbGib.rel8ns = ibGib.rel8ns!; }
                 data = JSON.stringify(bareIbGib);
             } else {
-                const binHash = await h.hash({s: binData});
-                filename = binExt ? binHash + '.' + binExt : binHash;
+                binHash = binHash || await this.getBinHash({binData});
+                filename = this.getFilename({binHash, binExt}); //binExt ? binHash + '.' + binExt : binHash;
                 path = this.buildPath({filename, isDna: false, isMeta: false, isBin: true})
                 data = binData;
                 result.binHash = binHash;
@@ -786,15 +944,18 @@ export class IonicSpace_V1<
         isMeta,
         isDna,
     }: GetIbGibOpts): Promise<GetIbGibResult> {
-        const lc = `${this.lc}[${this.getFile.name}(${addr})]`;
+        let lc = `${this.lc}[${this.getFile.name}]`;
 
         if (!addr && !binHash) { throw new Error(`${lc} addr or binHash required.`) };
+        if (!addr && binHash) { addr = this.getBinAddr({binHash, binExt}); }
+
+        lc = `${lc}(${addr})]`;
 
         const data = this.data;
         if (!data) {}
 
         // const {ib,gib} = getIbAndGib({ibGibAddr: addr});
-        const isBin = !addr;
+        const isBin: boolean = !!binHash;
         const result: GetIbGibResult = {};
 
         const tryRead: (p:string) => Promise<FileReadResult> = async (p: string) => {
@@ -816,7 +977,7 @@ export class IonicSpace_V1<
             let path: string = "";
             let filename: string = "";
             let paths: string[] = [];
-            if (addr) {
+            if (!isBin) {
                 filename = this.getFilename({addr});
 
                 if (isMeta) {
@@ -834,7 +995,7 @@ export class IonicSpace_V1<
                     ];
                 }
             } else {
-                filename = binExt ? binHash + '.' + binExt : binHash;
+                filename = this.getFilename({binHash, binExt});
                 path = this.buildPath({filename, isDna: false, isMeta: false, isBin: true})
                 paths = [path];
             }
