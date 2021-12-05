@@ -1873,4 +1873,62 @@ export class IbgibsService {
     }
   }
 
+  async getDependencyGraph({
+    ibGib,
+    ibGibAddr,
+    gotten,
+  }: {
+    ibGib?: IbGib_V1,
+    ibGibAddr?: IbGibAddr,
+    gotten?: { [addr: string]: IbGib_V1 },
+  }): Promise<{ [addr: string]: IbGib_V1 }> {
+    const lc = `${this.lc}[${this.getDependencyGraph.name}]`;
+    try {
+      if (!ibGib && !ibGibAddr) { throw new Error(`either ibGib or ibGibAddr required.`); }
+
+
+      if (!ibGib) {
+        const resGet = await this.get({addr: ibGibAddr});
+        if (resGet.success && resGet.ibGibs?.length === 1) {
+          ibGib = resGet.ibGibs![0];
+        } else {
+          throw new Error(`Could not retrieve ibGib.`);
+        }
+      }
+      const { gib } = h.getIbAndGib({ibGib});
+      if (gib === GIB) { throw new Error(`cannot get dependency graph of primitive.`); }
+
+      ibGibAddr = h.getIbGibAddr({ibGib});
+
+      // hack: todo: needs major optimization
+      gotten = gotten || {};
+
+      if (!Object.keys(gotten).includes(ibGibAddr)) { gotten[ibGibAddr] = ibGib; }
+
+      const rel8ns = ibGib.rel8ns || {};
+      const rel8nNames = Object.keys(rel8ns) || [];
+      for (let i = 0; i < rel8nNames.length; i++) {
+        const rel8nName = rel8nNames[i];
+        const rel8dAddrs = rel8ns[rel8nName];
+        const rel8dAddrsNotGottenYet =
+          rel8dAddrs
+            .filter(addr => !Object.keys(gotten).includes(addr))
+            .filter(addr => h.getIbAndGib({ibGibAddr: addr}).gib !== GIB);
+        for (let j = 0; j < rel8dAddrsNotGottenYet.length; j++) {
+          const rel8dAddr = rel8dAddrsNotGottenYet[j];
+          const resGet = await this.get({addr: rel8dAddr});
+          if (resGet.success && resGet.ibGibs?.length === 1) {
+            gotten = await this.getDependencyGraph({ibGib: resGet.ibGibs[0], gotten}); // recursive
+          } else {
+            throw new Error(`failure getting rel8dAddr: ${rel8dAddr}`);
+          }
+        }
+      }
+
+      return gotten;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
 }

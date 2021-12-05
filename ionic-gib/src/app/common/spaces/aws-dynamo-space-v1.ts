@@ -31,6 +31,7 @@ console.error(`importing local credentials...take this code out!!`);
 type AWSItem = { [key: string]: AttributeValue };
 
 const PRIMARY_KEY_NAME = 'ibGibAddrHash';
+const DEFAULT_AWS_PUT_BATCH_SIZE = 25;
 
 /**
  * Item interface
@@ -71,7 +72,6 @@ async function getPrimaryKey({
         const primaryKey = await h.hash({s: addr, algorithm: 'SHA-256'});
         return primaryKey;
     } catch (error) {
-        debugger;
         console.error(`${lc} ${error.message}`);
         throw error;
     }
@@ -297,6 +297,7 @@ export interface AWSDynamoSpace_V1_Data {
     maxRetryUnprocessedItemsCount: number;
     accessKeyId: string;
     secretAccessKey: string;
+    putBatchSize: number;
 }
 
 console.error(`temporary credentials being used by default. ${h.pretty(tempCredentials)}`);
@@ -305,6 +306,7 @@ const DEFAULT_AWS_DYNAMO_SPACE_DATA_V1: AWSDynamoSpace_V1_Data = {
     maxRetryUnprocessedItemsCount: 10,
     accessKeyId: tempCredentials.accessKeyId,
     secretAccessKey: tempCredentials.secretAccessKey,
+    putBatchSize: DEFAULT_AWS_PUT_BATCH_SIZE,
 }
 
 /** Marker interface atm */
@@ -718,6 +720,7 @@ export class AWSDynamoSpace_V1<
                 secretAccessKey: this.data.secretAccessKey,
             });
 
+
             if (arg.ibGibs?.length > 0) {
                 return await this.putIbGibs({arg, client}); // returns
             } else if (arg.binData && arg.data.binHash && arg.data.binExt) {
@@ -735,21 +738,24 @@ export class AWSDynamoSpace_V1<
         return result;
     }
 
-    protected async putIbGibs({
-        arg,
+    protected async putIbGibBatch({
+        ibGibs,
         client,
+        errors,
+        warnings,
+        addrsErrored,
     }: {
-        arg: AWSDynamoSpaceOptionsIbGib,
+        ibGibs: IbGib_V1[],
         client: DynamoDBClient,
-    }): Promise<AWSDynamoSpaceResultIbGib> {
-        const lc = `${this.lc}[${this.put.name}]`;
-        const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
-        const errors: string[] = [];
-        const warnings: string[] = [];
-        const addrsErrored: IbGibAddr[] = [];
+        errors: string[],
+        warnings: string[],
+        /**
+         * doesn't work atm
+         */
+        addrsErrored: IbGibAddr[],
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.putIbGibBatch.name}]`;
         try {
-            const ibGibs = arg.ibGibs || [];
-
             let retryUnprocessedItemsCount = 0;
             let ibGibItems: AWSDynamoSpaceItem[] = [];
 
@@ -796,6 +802,48 @@ export class AWSDynamoSpace_V1<
 
             await doItems(ibGibItems);
 
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            errors.push(error);
+        }
+    }
+
+    /**
+     * need to convert to max batch size
+     * @returns space result
+     */
+    protected async putIbGibs({
+        arg,
+        client,
+    }: {
+        arg: AWSDynamoSpaceOptionsIbGib,
+        client: DynamoDBClient,
+    }): Promise<AWSDynamoSpaceResultIbGib> {
+        const lc = `${this.lc}[${this.put.name}]`;
+        const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        const errors: string[] = [];
+        const warnings: string[] = [];
+        const addrsErrored: IbGibAddr[] = [];
+        try {
+            let ibGibs = (arg.ibGibs || []).concat(); // copy
+
+            let countPublished = 0;
+            const batchSize = this.data.putBatchSize || DEFAULT_AWS_PUT_BATCH_SIZE;
+            const rounds = Math.ceil(ibGibs.length / batchSize);
+            for (let i = 0; i < rounds; i++) {
+                let doNext = ibGibs.splice(batchSize);
+                await this.putIbGibBatch({ibGibs, client, errors, warnings, addrsErrored});
+                const msDelay = 200;
+                await h.delay(msDelay);
+                console.warn(`${lc} delaying ${msDelay}ms`);
+                if (errors.length > 0) { break; }
+
+                countPublished += ibGibs.length;
+                console.log(`${lc} ${countPublished}...`);
+                ibGibs = doNext;
+            }
+
+            console.log(`${lc} total: ${countPublished}.`);
             if (warnings.length > 0) { resultData.warnings = warnings; }
             if (errors.length === 0) {
                 resultData.success = true;

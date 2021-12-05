@@ -189,83 +189,82 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
+  async publishIbGibs({
+    ibGibs,
+  }: {
+    ibGibs?: IbGib_V1[],
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.publishIbGibs.name}]`;
+    try {
+      console.log(`${lc} starting...`);
+      if (!ibGibs || ibGibs.length === 0) { throw new Error(`ibGibs required.`)}
+
+      // put the ibgibs
+      let awsSpace = new AWSDynamoSpace_V1(null, null);
+      let argPut = await argy_<AWSDynamoSpaceOptionsData, AWSDynamoSpaceOptionsIbGib>({
+        argData: { cmd: 'put', }
+      });
+      argPut.ibGibs = ibGibs;
+      let resPut = await awsSpace.witness(argPut);
+
+      if ((resPut?.data?.errors || []).length > 0) {
+        throw new Error(`resPut had errors: ${resPut.data.errors}`);
+      }
+
+      console.warn(`test individual ibgibs confirming put was successful...need to remove!`);
+      for (let i = 0; i < ibGibs.length; i++) {
+        const ibGib = ibGibs[i];
+        let argGet = await argy_<AWSDynamoSpaceOptionsData, AWSDynamoSpaceOptionsIbGib>({
+          argData: {
+            cmd: 'get',
+            ibGibAddrs: [h.getIbGibAddr({ibGib})],
+          }
+        });
+
+        await h.delay(100);
+        let resGet = await awsSpace.witness(argGet);
+
+        let gotIbGib = resGet.ibGibs[0];
+
+        if (ibGib.ib !== gotIbGib.ib) { throw new Error(`ib is different`); }
+        if (ibGib.gib !== gotIbGib.gib) { throw new Error(`gib is different`); }
+        if (JSON.stringify(ibGib.data) !== JSON.stringify(gotIbGib.data)) { throw new Error(`data is different`); }
+        if (JSON.stringify(ibGib.rel8ns) !== JSON.stringify(gotIbGib.rel8ns)) { throw new Error(`rel8ns is different`); }
+        console.log(`${lc} confirmed ${h.getIbGibAddr({ibGib})}`);
+      }
+
+      console.log(`${lc} confirmation complete.`);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      console.log(`${lc} complete.`);
+    }
+  }
+
   async handlePublishClick(): Promise<void> {
     const lc = `${this.lc}[${this.handlePublishClick.name}]`;
+    this.item.publishing = true;
     try {
       console.log(`${lc}`);
       if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
-      // if (!this.tjp) { await this.loadTjp(); }
 
-      await Modals.alert({
-        title: 'debug',
-        message: "publish clicked",
-      });
+      // await Modals.alert({ title: 'debug', message: "publish clicked", });
+      const resConfirmPublish = await Modals.confirm({ title: 'Publish to the world?', message: `This will publish your current ibGib (${this.ib})? Proceed?`, });
+      if (resConfirmPublish.value) {
+        const dependencyGraph = await this.common.ibgibs.getDependencyGraph({ibGib: this.ibGib});
+        await this.publishIbGibs({ibGibs: Object.values(dependencyGraph)});
+      } else {
+        await Modals.alert({title: 'Publish cancelled.', message: 'Publish has been cancelled.'});
+      }
 
-      debugger;
-      let awsSpace = new AWSDynamoSpace_V1(null, null);
-      let argPut = await argy_<AWSDynamoSpaceOptionsData, AWSDynamoSpaceOptionsIbGib>({
-        argData: {
-          cmd: 'put',
-          isMeta: this.isMeta,
-        }
-      });
-      argPut.ibGibs = [this.ibGib];
-      let resPut = await awsSpace.witness(argPut);
-
-      debugger;
-
-      let argGet = await argy_<AWSDynamoSpaceOptionsData, AWSDynamoSpaceOptionsIbGib>({
-        argData: {
-          cmd: 'get',
-          isMeta: this.isMeta,
-          ibGibAddrs: [this.addr],
-        }
-      });
-      let resGet = await awsSpace.witness(argGet);
-
-      let gotIbGib = resGet.ibGibs[0];
-      debugger;
-      if (this.ibGib.ib === gotIbGib.ib) { console.log(`${lc} ib is the same.`); }
-      if (this.ibGib.gib === gotIbGib.gib) { console.log(`${lc} gib is the same`); }
-      if (JSON.stringify(this.ibGib.data) === JSON.stringify(gotIbGib.data)) { console.log(`${lc} data is the same`); }
-      if (JSON.stringify(this.ibGib.rel8ns) === JSON.stringify(gotIbGib.rel8ns)) { console.log(`${lc} rel8ns is the same`); }
-
-      debugger;
-      // const client = new DynamoDBClient({
-      //   credentials: {
-      //     accessKeyId: "AKIARZWKFHEPMPYXOX5H",
-      //     secretAccessKey: "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",
-      //     expiration: new Date('5/5/2022'),
-      //   },
-      //   region: 'us-east-1',
-      //   tls: true,
-      // });
-      // debugger;
-      // const ibGibAddrHash = await h.hash({s: h.getIbGibAddr({ibGib: this.ibGib})});
-      // const item: {[key: string]: AttributeValue} = {
-      //     ibGibAddrHash: { S: ibGibAddrHash },
-      //     ib: { S: this.ib },
-      //     gib: { S: this.gib },
-      // };
-      // if (this.ibGib.data) { item.data = { S: JSON.stringify(this.ibGib.data) } };
-      // if (this.ibGib.rel8ns) { item.rel8ns = { S: JSON.stringify(this.ibGib.rel8ns) } };
-
-      // const cmd = new PutItemCommand({
-      //   TableName: 'ionic-gib-aws-dynamo-space',
-      //   Item: item,
-      // });
-
-      // debugger;
-      // let result = await client.send(cmd)
-      // this.item.publishing = true;
-      // setTimeout(() => {
-      //   this.item.publishing = false;
-      //   this.ref.detectChanges();
-      // }, 2000);
-
-      // if (this.item) { this.item.refreshing = true; }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
+    } finally {
+      this.item.publishing = false;
+      setTimeout(() => {
+        this.ref.detectChanges();
+      });
     }
   }
   async handleRefreshClick(): Promise<void> {
