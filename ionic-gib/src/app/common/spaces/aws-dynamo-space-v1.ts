@@ -23,11 +23,14 @@ import {
 } from '../types';
 import * as c from '../constants';
 
+console.error(`importing local credentials...take this code out!!`);
+var tempCredentials = require('../../../../../../ionic-gib-cred.json');
+console.error(`importing local credentials...take this code out!!`);
 // #region DynamoDB related
 
 type AWSItem = { [key: string]: AttributeValue };
 
-const PRIMARY_KEY_NAME: string = 'ibGibAddrHash';
+const PRIMARY_KEY_NAME = 'ibGibAddrHash';
 
 /**
  * Item interface
@@ -59,7 +62,7 @@ async function getPrimaryKey({
     binHash?: string,
     binExt?: string,
 }): Promise<string> {
-    const lc = `[${this.getPrimaryKey.name}]`;
+    const lc = `[${getPrimaryKey.name}]`;
     try {
         if (!addr && !(binHash && binExt)) { throw new Error('either addr or binHash+binExt required.'); }
         if (!addr) {
@@ -68,6 +71,7 @@ async function getPrimaryKey({
         const primaryKey = await h.hash({s: addr, algorithm: 'SHA-256'});
         return primaryKey;
     } catch (error) {
+        debugger;
         console.error(`${lc} ${error.message}`);
         throw error;
     }
@@ -89,61 +93,15 @@ async function createDynamoDBPutItem({
         let item: AWSDynamoSpaceItem;
         if (ibGib) {
             const addr = h.getIbGibAddr({ibGib});
-            const addrHash = await getPrimaryKey({addr});
+            const primaryKey = await getPrimaryKey({addr});
 
             item = {
-                [PRIMARY_KEY_NAME]: { S: addrHash },
-                ib: { S: h.clone(ibGib.ib) },
-                gib: { S: h.clone(ibGib.gib) },
+                [PRIMARY_KEY_NAME]: { S: primaryKey },
+                ib: { S: JSON.stringify(ibGib.ib) },
+                gib: { S: JSON.stringify(ibGib.gib) },
             }
-            if (ibGib.data) { item.data = { S: h.clone(ibGib.data) }; }
-            if (ibGib.rel8ns) { item.rel8ns = { S: h.clone(ibGib.rel8ns) }; }
-        } else if (binHash && binExt && binData) {
-            const addrHash = await getPrimaryKey({binHash, binExt});
-            const addr = getBinAddr({binHash, binExt});
-            const { ib, gib } = h.getIbAndGib({ibGibAddr: addr});
-
-            item = {
-                [PRIMARY_KEY_NAME]: { S: addrHash },
-                ib: { S: ib },
-                gib: { S: gib },
-                binData: { B: binData },
-            }
-        } else {
-            throw new Error(`either ibGib or binHash+binExt+binData required.`);
-        }
-
-        if (!item) { throw new Error(`item not set(?)`); }
-
-        return item;
-    } catch (error) {
-        console.error(`${lc} ${error.message}`);
-        throw error;
-    }
-}
-async function createDynamoDBGetItem({
-    ibGibAddr,
-    binHash,
-    binExt,
-}: {
-    ibGibAddr?: IbGibAddr,
-    binHash?: string,
-    binExt?: string,
-}): Promise<AWSDynamoSpaceItem> {
-    const lc = `[${createDynamoDBPutItem.name}]`;
-    try {
-        let item: AWSDynamoSpaceItem;
-        if (ibGib) {
-            const addr = h.getIbGibAddr({ibGib});
-            const addrHash = await getPrimaryKey({addr});
-
-            item = {
-                [PRIMARY_KEY_NAME]: { S: addrHash },
-                ib: { S: h.clone(ibGib.ib) },
-                gib: { S: h.clone(ibGib.gib) },
-            }
-            if (ibGib.data) { item.data = { S: h.clone(ibGib.data) }; }
-            if (ibGib.rel8ns) { item.rel8ns = { S: h.clone(ibGib.rel8ns) }; }
+            if (ibGib.data) { item.data = { S: JSON.stringify(ibGib.data) }; }
+            if (ibGib.rel8ns) { item.rel8ns = { S: JSON.stringify(ibGib.rel8ns) }; }
         } else if (binHash && binExt && binData) {
             const addrHash = await getPrimaryKey({binHash, binExt});
             const addr = getBinAddr({binHash, binExt});
@@ -284,6 +242,27 @@ async function createDynamoDBBatchGetItemCommand({
     }
 }
 
+function getIbGibFromResponseItem({
+    getIbGibsResponseItem,
+}: {
+    getIbGibsResponseItem: AWSDynamoSpaceItem,
+}): IbGib_V1 {
+    const lc = `[${getIbGibFromResponseItem.name}]`;
+    try {
+        if (!getIbGibsResponseItem) { throw new Error(`getIbGibsResponseItem required`); }
+        const ibGib: IbGib_V1 = {
+            ib: JSON.parse(getIbGibsResponseItem.ib.S),
+            gib: JSON.parse(getIbGibsResponseItem.gib.S),
+        };
+        if (getIbGibsResponseItem.data) { ibGib.data = JSON.parse(getIbGibsResponseItem.data.S); }
+        if (getIbGibsResponseItem.rel8ns) { ibGib.rel8ns = JSON.parse(getIbGibsResponseItem.rel8ns.S); }
+        return ibGib;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
+
 function createClient({
     accessKeyId,
     secretAccessKey,
@@ -320,11 +299,12 @@ export interface AWSDynamoSpace_V1_Data {
     secretAccessKey: string;
 }
 
+console.error(`temporary credentials being used by default. ${h.pretty(tempCredentials)}`);
 const DEFAULT_AWS_DYNAMO_SPACE_DATA_V1: AWSDynamoSpace_V1_Data = {
-    tableName: '',
+    tableName: tempCredentials.tableName,
     maxRetryUnprocessedItemsCount: 10,
-    accessKeyId: "AKIARZWKFHEPMPYXOX5H",
-    secretAccessKey: "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",
+    accessKeyId: tempCredentials.accessKeyId,
+    secretAccessKey: tempCredentials.secretAccessKey,
 }
 
 /** Marker interface atm */
@@ -648,6 +628,7 @@ export class AWSDynamoSpace_V1<
         const errors: string[] = [];
         const warnings: string[] = [];
         const addrsErrored: IbGibAddr[] = [];
+        const ibGibs: IbGib_V1[] = [];
         try {
             const ibGibAddrs = arg.data.ibGibAddrs || [];
             if (ibGibAddrs.length === 0) { throw new Error(`No ibGibAddrs provided.`); }
@@ -660,6 +641,17 @@ export class AWSDynamoSpace_V1<
                     await createDynamoDBBatchGetItemCommand({ tableName: this.data.tableName, addrs: ibGibAddrs });
 
                 const resGet = await client.send(cmd);
+
+                const responseKeys = Object.keys(resGet.Responses[this.data.tableName]);
+                for (let i = 0; i < responseKeys.length; i++) {
+                    const key = responseKeys[i];
+                    const getIbGibsResponseItem =
+                        <AWSDynamoSpaceItem>resGet.Responses[this.data.tableName][key];
+
+                    const ibGib = getIbGibFromResponseItem({getIbGibsResponseItem});
+                    ibGibs.push(ibGib);
+                    console.log(`${lc} item: ${h.pretty(ibGib)}`);
+                }
 
                 const newUnprocessedCount =
                     (resGet?.UnprocessedKeys && resGet?.UnprocessedKeys[this.data.tableName]?.Keys?.length > 0) ?
@@ -707,6 +699,7 @@ export class AWSDynamoSpace_V1<
             resultData.success = false;
         }
         const result = await resulty_<AWSDynamoSpaceResultData, AWSDynamoSpaceResultIbGib>({resultData});
+        result.ibGibs = ibGibs;
         return result;
     }
 
@@ -1021,27 +1014,35 @@ export class AWSDynamoSpace_V1<
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
         try {
+            throw new Error('not implemented');
+            // just feeling out here...not sure if this is necessary
             if (!this.data.tableName) {
                 resultData.can = false;
                 errors.push(`this.data.tableName is falsy. Need to initialize aws space`);
-                // just feeling out here...not sure if this is necessary
             }
-            if ()
-            const ibGibs = arg.ibGibs || [];
+            if (!this.data.secretAccessKey) {
+                resultData.can = false;
+                errors.push(`this.data.secretAccessKey is falsy. Need to initialize aws space`);
+            }
+            if (!this.data.accessKeyId) {
+                resultData.can = false;
+                errors.push(`this.data.accessKeyId is falsy. Need to initialize aws space`);
+            }
             const addrsAlreadyHave: IbGibAddr[] = [];
-            for (let i = 0; i < ibGibs?.length; i++) {
-                const ibGib = ibGibs[i];
-                const addr = getIbGibAddr({ibGib});
-                if (Object.keys(this.ibGibs).includes(addr)) {
-                    addrsAlreadyHave.push(addr);
-                }
-            }
+            // for (let i = 0; i < ibGibs?.length; i++) {
+            //     const ibGib = ibGibs[i];
+            //     const addr = getIbGibAddr({ibGib});
+            //     if (Object.keys(this.ibGibs).includes(addr)) {
+            //         addrsAlreadyHave.push(addr);
+            //     }
+            // }
             resultData.success = true;
             if (addrsAlreadyHave.length > 0) {
                 resultData.addrsAlreadyHave = addrsAlreadyHave;
                 resultData.warnings = (resultData.warnings || []).concat([`${lc} already have addr(s).`]);
             }
-            resultData.can = ibGibs.length > addrsAlreadyHave.length;
+            // resultData.can = ibGibs.length > addrsAlreadyHave.length;
+            resultData.can = true;
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];

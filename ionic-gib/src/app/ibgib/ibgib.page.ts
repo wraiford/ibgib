@@ -17,6 +17,12 @@ import { IbgibComponentBase } from '../common/bases/ibgib-component-base';
 import { CommonService } from '../services/common.service';
 import { SPECIAL_URLS } from '../common/constants';
 import { LatestEventInfo } from '../common/types';
+import {
+  AWSDynamoSpaceOptionsData, AWSDynamoSpaceOptionsIbGib,
+  AWSDynamoSpace_V1, AWSDynamoSpace_V1_Data ,
+} from '../common/spaces/aws-dynamo-space-v1';
+import { argy_, WitnessBase_V1 } from '../common/witnesses';
+import { analyzeAndValidateNgModules } from '@angular/compiler';
 
 @Component({
   selector: 'ibgib-page',
@@ -196,37 +202,66 @@ export class IbGibPage extends IbgibComponentBase
       });
 
       debugger;
-      const client = new DynamoDBClient({
-        credentials: {
-          accessKeyId: "AKIARZWKFHEPMPYXOX5H",
-          secretAccessKey: "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",
-          expiration: new Date('5/5/2022'),
-        },
-        region: 'us-east-1',
-        tls: true,
+      let awsSpace = new AWSDynamoSpace_V1(null, null);
+      let argPut = await argy_<AWSDynamoSpaceOptionsData, AWSDynamoSpaceOptionsIbGib>({
+        argData: {
+          cmd: 'put',
+          isMeta: this.isMeta,
+        }
       });
-      debugger;
-      const ibGibAddrHash = await h.hash({s: h.getIbGibAddr({ibGib: this.ibGib})});
-      const item: {[key: string]: AttributeValue} = {
-          ibGibAddrHash: { S: ibGibAddrHash },
-          ib: { S: this.ib },
-          gib: { S: this.gib },
-      };
-      if (this.ibGib.data) { item.data = { S: JSON.stringify(this.ibGib.data) } };
-      if (this.ibGib.rel8ns) { item.rel8ns = { S: JSON.stringify(this.ibGib.rel8ns) } };
-
-      const cmd = new PutItemCommand({
-        TableName: 'ionic-gib-aws-dynamo-space',
-        Item: item,
-      });
+      argPut.ibGibs = [this.ibGib];
+      let resPut = await awsSpace.witness(argPut);
 
       debugger;
-      let result = await client.send(cmd)
-      this.item.publishing = true;
-      setTimeout(() => {
-        this.item.publishing = false;
-        this.ref.detectChanges();
-      }, 2000);
+
+      let argGet = await argy_<AWSDynamoSpaceOptionsData, AWSDynamoSpaceOptionsIbGib>({
+        argData: {
+          cmd: 'get',
+          isMeta: this.isMeta,
+          ibGibAddrs: [this.addr],
+        }
+      });
+      let resGet = await awsSpace.witness(argGet);
+
+      let gotIbGib = resGet.ibGibs[0];
+      debugger;
+      if (this.ibGib.ib === gotIbGib.ib) { console.log(`${lc} ib is the same.`); }
+      if (this.ibGib.gib === gotIbGib.gib) { console.log(`${lc} gib is the same`); }
+      if (JSON.stringify(this.ibGib.data) === JSON.stringify(gotIbGib.data)) { console.log(`${lc} data is the same`); }
+      if (JSON.stringify(this.ibGib.rel8ns) === JSON.stringify(gotIbGib.rel8ns)) { console.log(`${lc} rel8ns is the same`); }
+
+      debugger;
+      // const client = new DynamoDBClient({
+      //   credentials: {
+      //     accessKeyId: "AKIARZWKFHEPMPYXOX5H",
+      //     secretAccessKey: "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",
+      //     expiration: new Date('5/5/2022'),
+      //   },
+      //   region: 'us-east-1',
+      //   tls: true,
+      // });
+      // debugger;
+      // const ibGibAddrHash = await h.hash({s: h.getIbGibAddr({ibGib: this.ibGib})});
+      // const item: {[key: string]: AttributeValue} = {
+      //     ibGibAddrHash: { S: ibGibAddrHash },
+      //     ib: { S: this.ib },
+      //     gib: { S: this.gib },
+      // };
+      // if (this.ibGib.data) { item.data = { S: JSON.stringify(this.ibGib.data) } };
+      // if (this.ibGib.rel8ns) { item.rel8ns = { S: JSON.stringify(this.ibGib.rel8ns) } };
+
+      // const cmd = new PutItemCommand({
+      //   TableName: 'ionic-gib-aws-dynamo-space',
+      //   Item: item,
+      // });
+
+      // debugger;
+      // let result = await client.send(cmd)
+      // this.item.publishing = true;
+      // setTimeout(() => {
+      //   this.item.publishing = false;
+      //   this.ref.detectChanges();
+      // }, 2000);
 
       // if (this.item) { this.item.refreshing = true; }
     } catch (error) {
