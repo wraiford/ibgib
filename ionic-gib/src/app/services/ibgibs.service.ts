@@ -17,7 +17,7 @@ import {
   IonicSpaceOptionsData,
   IonicSpaceOptionsIbGib,
   IonicSpace_V1,
-  IonicSpace_V1_Data
+  IonicSpaceData_V1
 } from '../common/spaces/ionic-space-v1';
 import { argy_ } from '../common/witnesses';
 import * as c from '../common/constants';
@@ -117,7 +117,7 @@ interface DeleteIbGibResult extends FileResult { }
 
 // #endregion
 
-interface AppSpaceData extends IonicSpace_V1_Data {
+interface AppSpaceData extends IonicSpaceData_V1 {
 
 }
 
@@ -242,7 +242,7 @@ export class IbgibsService {
       } else {
         // if we've done a transform on the space,
         // we won't get an object back, only a DTO ibGib essentially
-        this._currentSpace = IonicSpace_V1.fromIbGibDto<AppSpaceData, AppSpaceRel8ns>(value);
+        this._currentSpace = IonicSpace_V1.createFromDto<AppSpaceData, AppSpaceRel8ns>(value);
       }
     } else {
       delete this._currentSpace;
@@ -274,6 +274,9 @@ export class IbgibsService {
 
       await this.getSpecialIbgib({type: "tags", initialize: true});
       // await this.initializeTags();
+
+      await this.getSpecialIbgib({type: "outerspaces", initialize: true});
+
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -821,6 +824,9 @@ export class IbgibsService {
         case "latest":
           return this.createLatest();
 
+        case "outerspaces":
+          return this.createOuterspaces();
+
         default:
           throw new Error(`not implemented. type: ${type}`);
       }
@@ -918,6 +924,51 @@ export class IbgibsService {
 
       // right now, the latest ibgib doesn't have any more initialization,
       // since it is supposed to be as ephemeral and non-tracked as possible.
+
+      return specialAddr;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return null;
+    }
+  }
+
+  private async createOuterspaces(): Promise<IbGibAddr | null> {
+    const lc = `${this.lc}[${this.createOuterspaces.name}]`;
+    try {
+      const configKey = this.getSpecialConfigKey({type: "outerspaces"});
+      const special = await this.createSpecialIbGib({type: "outerspaces"});
+      let specialAddr = h.getIbGibAddr({ibGib: special});
+      await this.setConfigAddr({key: configKey, addr: specialAddr});
+
+      // at this point, our ibGib has no associated ibGibs.
+      // so we add initial roots
+
+      const rootNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+
+      let firstRoot: IbGib_V1<RootData> = null;
+      const initialDatas: RootData[] = rootNames.map(n => {
+        return {
+          text: `${n}root`,
+          icon: DEFAULT_ROOT_ICON,
+          description: DEFAULT_ROOT_DESCRIPTION
+        };
+      });
+      for (const data of initialDatas) {
+        const resCreate = await this.createRootIbGib(data);
+        if (!firstRoot) { firstRoot = resCreate.newRootIbGib; }
+        specialAddr = resCreate.newRootsAddr;
+        // update the config for the updated **roots** ibgib.
+        // that roots ibgib is what points to the just created new root.
+        await this.setConfigAddr({key: configKey, addr: specialAddr});
+      }
+
+      // initialize current root
+      await this.setCurrentRoot(firstRoot);
+      // hack: the above line updates the roots in config. so get **that** addr.
+
+      specialAddr = await this.getConfigAddr({key: configKey});
+
+      if (!specialAddr) { throw new Error('no roots address in config?'); }
 
       return specialAddr;
     } catch (error) {

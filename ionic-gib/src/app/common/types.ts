@@ -64,6 +64,8 @@ export interface IbgibItem {
     timestamp?: string;
     /** If true, then the component is checking for updates. */
     refreshing?: boolean;
+    /** If true, then the component is currently publishing to other space(s). */
+    publishing?: boolean;
 }
 
 /**
@@ -106,7 +108,7 @@ export interface ActionItem {
     filepicked?: (event: any) => Promise<void>;
 }
 
-export type SpecialIbGibType = "tags" | "roots" | "latest" | "spaces" | "storage";
+export type SpecialIbGibType = "tags" | "roots" | "latest" | "spaces" | "storage" | "outerspaces";
 
 /**
  * There has been a new ibGib that is the latest for a given tjp timeline.

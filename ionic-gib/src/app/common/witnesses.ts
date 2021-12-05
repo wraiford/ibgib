@@ -8,7 +8,6 @@ import * as h from 'ts-gib/dist/helper';
 import { IbGib_V1, IbGibRel8ns_V1, Factory_V1 as factory, } from 'ts-gib/dist/V1';
 import * as c from './constants';
 
-
 export abstract class WitnessBase_V1<
     TIbGibIn extends IbGib_V1 = IbGib_V1,
     TIbGibOut extends IbGib_V1 = IbGib_V1,
@@ -80,6 +79,54 @@ export abstract class WitnessBase_V1<
     constructor(initialData?: TData, initialRel8ns?: TRel8ns) {
         if (initialData) { this.data = initialData; }
         if (initialRel8ns) { this.rel8ns = initialRel8ns; }
+    }
+
+    /**
+     * Creates a data transfer object (dto) snapshot out of this
+     * witness' `ib`, `gib`, `data` and `rel8ns` properties.
+     *
+     * I say "snapshot" because this copies each property
+     * (`ib`, `gib`, `data`, `rel8ns`).
+     *
+     * ## thoughts
+     *
+     * Witness classes need to be able to persist their ibgib
+     * just as regular data. But witnesses have the additional
+     * layer of behavior (e.g. the `witness` function) that
+     * will not persist (until we get more integrated version control
+     * types of functionality in ibgib).
+     *
+     * @returns dto ibgib object with just clones of this.ib/gib/data/rel8ns props.
+     *
+     * @see {loadDto}
+     */
+    toDto(): IbGib_V1<TData, TRel8ns> {
+        const lc = `${this.lc}[${this.toDto.name}]`;
+        if (!this.ib) { console.warn(`${lc} this.ib is falsy.`); }
+        if (!this.gib) { console.warn(`${lc} this.gib is falsy.`); }
+
+        const dtoIbGib: IbGib_V1<TData, TRel8ns> = {ib: h.clone(this.ib), gib: h.clone(this.gib)};
+        if (this.data) { dtoIbGib.data = h.clone(this.data); }
+        if (this.rel8ns) { dtoIbGib.data = h.clone(this.rel8ns); }
+        return dtoIbGib;
+    }
+
+    /**
+     * Rehydrates this witness class with the ibgib information from the dto.
+     *
+     * @param dto ib, gib, data & rel8ns to load for this witness ibgib instance.
+     *
+     * @see {toDto}
+     */
+    loadDto(dto: IbGib_V1<TData, TRel8ns>): void {
+        const lc = `${this.lc}[${this.loadDto.name}]`;
+        if (!dto.ib) { console.warn(`${lc} dto.ib is falsy.`); }
+        if (!dto.gib) { console.warn(`${lc} dto.gib is falsy.`); }
+
+        this.ib = h.clone(dto.ib);
+        this.gib = h.clone(dto.gib);
+        if (dto.data) { this.data = dto.data; } else { delete this.data; }
+        if (dto.rel8ns) { this.rel8ns = dto.rel8ns; } else { delete this.rel8ns; }
     }
 
     async witness(arg: TIbGibIn): Promise<TIbGibOut | undefined> {

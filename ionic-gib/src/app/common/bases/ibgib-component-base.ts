@@ -111,6 +111,10 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     get refreshing(): boolean {
         return this._updatingIbGib || this.item?.refreshing;
     }
+    @Input()
+    get publishing(): boolean {
+        return this._updatingIbGib || this.item?.publishing;
+    }
 
     @Input()
     isTitle: boolean;

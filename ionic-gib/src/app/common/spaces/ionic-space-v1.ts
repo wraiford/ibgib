@@ -1,24 +1,29 @@
-import { Plugins, FilesystemEncoding, FileReadResult, FilesystemDirectory } from '@capacitor/core';
+import {
+    Plugins, FilesystemEncoding, FileReadResult, FilesystemDirectory
+} from '@capacitor/core';
 const { Filesystem } = Plugins;
 
 import {
-    IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib, IbGibSpaceResultData, IbGibSpaceResultIbGib, TagData,
-} from '../types';
-import {
     IbGib_V1, IbGibRel8ns_V1, sha256v1, IBGIB_DELIMITER,
 } from 'ts-gib/dist/V1';
+import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
+
 import { SpaceBase_V1 } from './space-base-v1';
 import { resulty_ } from '../witnesses';
-import { getIbGibAddr, IbGibAddr } from 'ts-gib';
+import {
+    IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib,
+    IbGibSpaceResultData, IbGibSpaceResultIbGib,
+} from '../types';
 import * as c from '../constants';
+
 
 // #region Space related interfaces/constants
 
 /**
  * This is the shape of data about this space itself (not the contained ibgibs' spaces).
  */
-export interface IonicSpace_V1_Data {
+export interface IonicSpaceData_V1 {
     baseDir: FilesystemDirectory;
     encoding: FilesystemEncoding;
     baseSubPath: string;
@@ -29,10 +34,10 @@ export interface IonicSpace_V1_Data {
     dnaSubPath: string;
 }
 
-/** Marker interface atm */
-export interface IonicRel8ns_V1 extends IbGibRel8ns_V1 {}
-
-export const DEFAULT_BOOTSTRAP_SPACE_V1_DATA: IonicSpace_V1_Data = {
+/**
+ * Used in bootstrapping.
+ */
+const DEFAULT_IONIC_SPACE_DATA_V1: IonicSpaceData_V1 = {
     baseDir: c.IBGIB_BASE_DIR,
     encoding: c.IBGIB_FILES_ENCODING,
     baseSubPath: c.IBGIB_BASE_SUBPATH,
@@ -42,6 +47,9 @@ export const DEFAULT_BOOTSTRAP_SPACE_V1_DATA: IonicSpace_V1_Data = {
     binSubPath: c.IBGIB_BIN_SUBPATH,
     dnaSubPath: c.IBGIB_DNA_SUBPATH,
 }
+
+/** Marker interface atm */
+export interface IonicSpaceRel8ns_V1 extends IbGibRel8ns_V1 {}
 
 /**
  * Space options involve whether we're getting/putting ibgibs categorized as
@@ -178,12 +186,6 @@ interface PutIbGibOpts {
    * If true, will store with metas.
    */
   isMeta?: boolean;
-  /**
-   * If truthy, will get the underlying raw read/write result.
-   *
-   * ATOW, in Ionic/Capacitor's case, this would hold the `writeFile` result obj.
-   */
-  getRawResult?: boolean;
 }
 interface PutIbGibResult extends FileResult {
   binHash?: string;
@@ -202,7 +204,7 @@ interface DeleteIbGibResult extends FileResult { }
  * will looks in files using Ionic `FileSystem`.
  */
 export class IonicSpace_V1<
-        TData extends IonicSpace_V1_Data = IonicSpace_V1_Data,
+        TData extends IonicSpaceData_V1 = IonicSpaceData_V1,
         TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
     > extends SpaceBase_V1<
         IbGib_V1,
@@ -219,6 +221,9 @@ export class IonicSpace_V1<
      */
     protected lc: string = `[${IonicSpace_V1.name}]`;
 
+    /**
+     * Naive caching in-memory. Memory leak as it stands right now!
+     */
     protected ibGibs: { [key: string]: IbGib_V1 } = {};
 
     /**
@@ -259,13 +264,28 @@ export class IonicSpace_V1<
         this.ib = `witness space ${IonicSpace_V1.name}`;
     }
 
-    static fromIbGibDto<
-            TData extends IonicSpace_V1_Data = IonicSpace_V1_Data,
+    /**
+     * Factory static method to create the space with the given
+     * `dto` param's ibGib properties.
+     *
+     * We do this because when we persist this space (and its settings
+     * located in `data`), we do not save the actual class instantiation
+     * but just the ibgib properties. Use this factory method to
+     * create a new space instance and rehydrate from that saved dto.
+     *
+     * ## notes
+     *
+     * * DTO stands for data transfer object.
+     *
+     * @param dto space ibGib dto that we're going to load from
+     * @returns newly created space built upon `dto`
+     */
+    static createFromDto<
+            TData extends IonicSpaceData_V1 = IonicSpaceData_V1,
             TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
-        >(ibGib: IbGib_V1<TData, TRel8ns>): IonicSpace_V1<TData, TRel8ns> {
-        const space = new IonicSpace_V1<TData, TRel8ns>(ibGib.data, ibGib.rel8ns);
-        space.ib = ibGib.ib;
-        space.gib = ibGib.gib;
+        >(dto: IbGib_V1<TData, TRel8ns>): IonicSpace_V1<TData, TRel8ns> {
+        const space = new IonicSpace_V1<TData, TRel8ns>(null, null);
+        space.loadDto(dto);
         return space;
     }
 
@@ -300,7 +320,7 @@ export class IonicSpace_V1<
     protected async initialize(): Promise<void> {
         const lc = `${this.lc}[${this.initialize.name}]`;
         try {
-            if (!this.data) { this.data = h.clone(DEFAULT_BOOTSTRAP_SPACE_V1_DATA); }
+            if (!this.data) { this.data = h.clone(DEFAULT_IONIC_SPACE_DATA_V1); }
             if (!this.data.baseDir) { this.data.baseDir = c.IBGIB_BASE_DIR; }
             if (!this.data.encoding) { this.data.encoding = c.IBGIB_FILES_ENCODING; }
             if (!this.data.baseSubPath) { this.data.baseSubPath = c.IBGIB_BASE_SUBPATH; }
@@ -385,6 +405,7 @@ export class IonicSpace_V1<
                 for (let i = 0; i < ibGibAddrs.length; i++) {
                     const addr = ibGibAddrs[i];
                     if (Object.keys(this.ibGibs).includes(addr)) {
+                        console.log(`${lc} found in naive cache.`);
                         resultIbGibs.push(this.ibGibs[addr]);
                     } else {
                         // not found in memory, so look in files
@@ -444,14 +465,8 @@ export class IonicSpace_V1<
         const lc = `${this.lc}[${this.put.name}]`;
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
-        const warnings: string[] = [];
-        const addrsErrored: IbGibAddr[] = [];
         try {
             if (!arg.data) { throw new Error('arg.data is falsy'); }
-            const { isMeta, isDna, binExt, binHash, force } = arg.data!;
-            const ibGibs = arg.ibGibs || [];
-            const binData = arg.binData;
-            const addrsAlreadyHave: IbGibAddr[] = [];
 
             if (arg.ibGibs?.length > 0) {
                 return await this.putIbGibs(arg); // returns
@@ -494,7 +509,10 @@ export class IonicSpace_V1<
                         warnings.push(`Forcing save of already put addr: ${addr}`);
                         const putResult = await this.putFile({ibGib, isMeta, isDna});
                         if (putResult.success) {
-                            this.ibGibs[addr] = ibGib;
+                            if (!isDna) {
+                                // naive cache will cause "memory leak" eventually
+                                this.ibGibs[addr] = ibGib;
+                            }
                         } else {
                             errors.push(putResult.errorMsg || `${lc} error putting ${addr}`);
                             addrsErrored.push(addr);
@@ -811,7 +829,7 @@ export class IonicSpace_V1<
         isMeta,
         isDna,
     }: PutIbGibOpts): Promise<PutIbGibResult> {
-        const lc = `${this.lc}[${this.put.name}]`;
+        const lc = `${this.lc}[${this.putFile.name}]`;
 
         if (!ibGib && !binData) { throw new Error(`${lc} ibGib or binData required.`) };
 

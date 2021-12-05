@@ -2,6 +2,8 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrateg
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 
+import {AttributeValue, DynamoDBClient, PutItemCommand} from '@aws-sdk/client-dynamodb';
+
 import { Plugins } from '@capacitor/core';
 const { Modals } = Plugins;
 
@@ -181,6 +183,56 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
+  async handlePublishClick(): Promise<void> {
+    const lc = `${this.lc}[${this.handlePublishClick.name}]`;
+    try {
+      console.log(`${lc}`);
+      if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
+      // if (!this.tjp) { await this.loadTjp(); }
+
+      await Modals.alert({
+        title: 'debug',
+        message: "publish clicked",
+      });
+
+      debugger;
+      const client = new DynamoDBClient({
+        credentials: {
+          accessKeyId: "AKIARZWKFHEPMPYXOX5H",
+          secretAccessKey: "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",
+          expiration: new Date('5/5/2022'),
+        },
+        region: 'us-east-1',
+        tls: true,
+      });
+      debugger;
+      const ibGibAddrHash = await h.hash({s: h.getIbGibAddr({ibGib: this.ibGib})});
+      const item: {[key: string]: AttributeValue} = {
+          ibGibAddrHash: { S: ibGibAddrHash },
+          ib: { S: this.ib },
+          gib: { S: this.gib },
+      };
+      if (this.ibGib.data) { item.data = { S: JSON.stringify(this.ibGib.data) } };
+      if (this.ibGib.rel8ns) { item.rel8ns = { S: JSON.stringify(this.ibGib.rel8ns) } };
+
+      const cmd = new PutItemCommand({
+        TableName: 'ionic-gib-aws-dynamo-space',
+        Item: item,
+      });
+
+      debugger;
+      let result = await client.send(cmd)
+      this.item.publishing = true;
+      setTimeout(() => {
+        this.item.publishing = false;
+        this.ref.detectChanges();
+      }, 2000);
+
+      // if (this.item) { this.item.refreshing = true; }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+    }
+  }
   async handleRefreshClick(): Promise<void> {
     const lc = `${this.lc}[${this.handleRefreshClick.name}]`;
     try {
