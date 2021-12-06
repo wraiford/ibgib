@@ -3,9 +3,10 @@ import {
     PutRequest, WriteRequest,
     PutItemCommand, PutItemCommandInput,
     GetItemCommand, GetItemCommandInput,
-    BatchWriteItemCommand, BatchWriteItemCommandInput,
-    BatchGetItemCommand, BatchGetItemCommandInput,
+    BatchWriteItemCommand, BatchWriteItemCommandInput, BatchWriteItemCommandOutput,
+    BatchGetItemCommand, BatchGetItemCommandInput, BatchGetItemCommandOutput,
     KeysAndAttributes,
+    BatchStatementError,
 } from '@aws-sdk/client-dynamodb';
 
 import {
@@ -31,7 +32,20 @@ console.error(`importing local credentials...take this code out!!`);
 type AWSItem = { [key: string]: AttributeValue };
 
 const PRIMARY_KEY_NAME = 'ibGibAddrHash';
+const DEFAULT_AWS_MAX_RETRY_THROUGHPUT = 3;
+const DEFAULT_AWS_MAX_RETRY_UNPROCESSED_ITEMS = 5;
 const DEFAULT_AWS_PUT_BATCH_SIZE = 25;
+const DEFAULT_AWS_GET_BATCH_SIZE = 100;
+const DEFAULT_AWS_PUT_THROTTLE_MS = 1000;
+const DEFAULT_AWS_GET_THROTTLE_MS = 500;
+const DEFAULT_AWS_RETRY_THROUGHPUT_THROTTLE_MS = 3000;
+
+/**
+ * This is returned if we're trying to do things too quickly when batch write/get
+ *
+ * @link https://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/dynamodbv2/model/ProvisionedThroughputExceededException.html
+ */
+const AWS_THROUGHPUT_ERROR_NAME = "ProvisionedThroughputExceededException";
 
 /**
  * Item interface
@@ -44,6 +58,13 @@ interface AWSDynamoSpaceItem extends AWSItem {
     rel8ns?: AttributeValue,
     binData?: AttributeValue,
 };
+
+/**
+ * helper function that checks if an error is an aws throughput error.
+ */
+function isThroughoutError(error: any): boolean {
+    return error?.name === AWS_THROUGHPUT_ERROR_NAME;
+}
 
 function getBinAddr({binHash, binExt}: {binHash: string, binExt: string}): IbGibAddr {
     return `bin.${binExt}${IBGIB_DELIMITER}${binHash}`
@@ -111,7 +132,7 @@ async function createDynamoDBPutItem({
                 [PRIMARY_KEY_NAME]: { S: addrHash },
                 ib: { S: ib },
                 gib: { S: gib },
-                binData: { B: binData },
+                data: { B: binData },
             }
         } else {
             throw new Error(`either ibGib or binHash+binExt+binData required.`);
@@ -294,19 +315,44 @@ function createClient({
  */
 export interface AWSDynamoSpace_V1_Data {
     tableName: string;
+    /**
+     * Max number of times to retry due to 400 errors related to throughput.
+     */
+    maxRetryThroughputCount: number;
+    /**
+     * Max number of times to retry due to unprocessed items in command result.
+     */
     maxRetryUnprocessedItemsCount: number;
     accessKeyId: string;
     secretAccessKey: string;
     putBatchSize: number;
+    getBatchSize: number;
+    /**
+     * delays this ms between batch put calls in a tight loop.
+     */
+    throttleMsBetweenPuts: number;
+    /**
+     * delays this ms between batch get calls in a tight loop.
+     */
+    throttleMsBetweenGets: number;
+    /**
+     * Delays this ms if we get a 400 error about exceeding throughput.
+     */
+    throttleMsDueToThroughputError: number;
 }
 
 console.error(`temporary credentials being used by default. ${h.pretty(tempCredentials)}`);
 const DEFAULT_AWS_DYNAMO_SPACE_DATA_V1: AWSDynamoSpace_V1_Data = {
     tableName: tempCredentials.tableName,
-    maxRetryUnprocessedItemsCount: 10,
+    maxRetryThroughputCount: DEFAULT_AWS_MAX_RETRY_THROUGHPUT,
+    maxRetryUnprocessedItemsCount: DEFAULT_AWS_MAX_RETRY_UNPROCESSED_ITEMS,
     accessKeyId: tempCredentials.accessKeyId,
     secretAccessKey: tempCredentials.secretAccessKey,
     putBatchSize: DEFAULT_AWS_PUT_BATCH_SIZE,
+    getBatchSize: DEFAULT_AWS_GET_BATCH_SIZE,
+    throttleMsBetweenPuts: DEFAULT_AWS_PUT_THROTTLE_MS,
+    throttleMsBetweenGets: DEFAULT_AWS_GET_THROTTLE_MS,
+    throttleMsDueToThroughputError: DEFAULT_AWS_RETRY_THROUGHPUT_THROTTLE_MS,
 }
 
 /** Marker interface atm */
@@ -586,6 +632,11 @@ export class AWSDynamoSpace_V1<
         let notFoundIbGibAddrs: IbGibAddr[] = undefined;
         let resultBinData: any | undefined;
         try {
+            if (!this.data) { throw new Error(`this.data falsy.`); }
+            if (!this.data!.tableName) { throw new Error(`tableName not set`); }
+            if (!this.data!.secretAccessKey) { throw new Error(`this.data!.secretAccessKey falsy`); }
+            if (!this.data!.accessKeyId) { throw new Error(`this.data!.accessKeyid falsy`); }
+
             const client = createClient({
                 accessKeyId: this.data.accessKeyId,
                 secretAccessKey: this.data.secretAccessKey,
@@ -618,22 +669,48 @@ export class AWSDynamoSpace_V1<
         }
     }
 
-    protected async getIbGibs({
-        arg,
+    /**
+     * Sends a given `cmd`, which for ease of coding atm is just typed as `any`,
+     * using the given `client`.
+     *
+     * @returns result of the aws `client.send`
+     */
+    protected async sendCmd<TOutput>({
+        cmd,
         client,
     }: {
-        arg: AWSDynamoSpaceOptionsIbGib,
+        cmd: any,
         client: DynamoDBClient,
-    }): Promise<AWSDynamoSpaceResultIbGib> {
-        const lc = `${this.lc}[${this.getIbGibs.name}]`;
-        const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
-        const errors: string[] = [];
-        const warnings: string[] = [];
-        const addrsErrored: IbGibAddr[] = [];
+    }): Promise<TOutput> {
+        const lc = `${this.lc}[${this.sendCmd.name}]`;
+        const maxRetries = this.data.maxRetryThroughputCount || DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
+        for (let i = 0; i < maxRetries; i++) {
+            try {
+                const resSend: TOutput = <any>(await client.send(cmd));
+                return resSend;
+            } catch (error) {
+                if (!isThroughoutError(error)){ throw error; }
+            }
+            console.log(`${lc} retry ${i} due to throughput in ${this.data.throttleMsDueToThroughputError} ms`);
+            await h.delay(this.data.throttleMsDueToThroughputError);
+        }
+        // we return above, so if gets here then throw
+        throw new Error(`Max retries (${maxRetries}) exceeded.`);
+    }
+
+    protected async getIbGibBatch({
+        ibGibAddrs,
+        client,
+        errors,
+    }: {
+        ibGibAddrs: IbGibAddr[],
+        client: DynamoDBClient,
+        errors: String[],
+    }): Promise<IbGib_V1[]> {
+        const lc = `${this.lc}[${this.getIbGibBatch.name}]`;
         const ibGibs: IbGib_V1[] = [];
         try {
-            const ibGibAddrs = arg.data.ibGibAddrs || [];
-            if (ibGibAddrs.length === 0) { throw new Error(`No ibGibAddrs provided.`); }
+            const maxRetries = this.data.maxRetryThroughputCount || DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
 
             let retryUnprocessedItemsCount = 0;
             const doItems = async (unprocessedKeys?: KeysAndAttributes) => {
@@ -642,7 +719,7 @@ export class AWSDynamoSpace_V1<
                     await createDynamoDBBatchGetItemCommand({ tableName: this.data.tableName, unprocessedKeys }) :
                     await createDynamoDBBatchGetItemCommand({ tableName: this.data.tableName, addrs: ibGibAddrs });
 
-                const resGet = await client.send(cmd);
+                const resGet = await this.sendCmd<BatchGetItemCommandOutput>({cmd, client});
 
                 const responseKeys = Object.keys(resGet.Responses[this.data.tableName]);
                 for (let i = 0; i < responseKeys.length; i++) {
@@ -686,18 +763,60 @@ export class AWSDynamoSpace_V1<
             }
 
             await doItems(); // first run
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            errors.push(error.message);
+        }
+
+        return ibGibs;
+    }
+
+
+    protected async getIbGibs({
+        arg,
+        client,
+    }: {
+        arg: AWSDynamoSpaceOptionsIbGib,
+        client: DynamoDBClient,
+    }): Promise<AWSDynamoSpaceResultIbGib> {
+        const lc = `${this.lc}[${this.getIbGibs.name}]`;
+        const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        const errors: string[] = [];
+        const warnings: string[] = [];
+        let ibGibs: IbGib_V1[] = [];
+        try {
+            let ibGibAddrs = (arg.data.ibGibAddrs || []).concat();
+            if (ibGibAddrs.length === 0) { throw new Error(`No ibGibAddrs provided.`); }
+
+            let runningCount = 0;
+            const batchSize = this.data.getBatchSize || DEFAULT_AWS_GET_BATCH_SIZE;
+            const throttleMs = this.data.throttleMsBetweenGets || DEFAULT_AWS_GET_THROTTLE_MS;
+            const rounds = Math.ceil(ibGibAddrs.length / batchSize);
+            for (let i = 0; i < rounds; i++) {
+                let doNext = ibGibAddrs.splice(batchSize);
+                const gotIbGibs = await this.getIbGibBatch({ibGibAddrs, client, errors});
+                ibGibs = [...ibGibs, ...gotIbGibs];
+
+                console.warn(`${lc} delaying ${throttleMs}ms`);
+                await h.delay(throttleMs);
+                if (errors.length > 0) { break; }
+
+                runningCount = ibGibs.length;
+                console.log(`${lc} runningCount: ${runningCount}...`);
+                ibGibAddrs = doNext;
+            }
+
+            console.log(`${lc} total: ${runningCount}.`);
 
             if (warnings.length > 0) { resultData.warnings = warnings; }
             if (errors.length === 0) {
                 resultData.success = true;
             } else {
                 resultData.errors = errors;
-                resultData.addrsErrored = addrsErrored;
             }
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = errors.concat([error.message]);
-            resultData.addrsErrored = addrsErrored;
             resultData.success = false;
         }
         const result = await resulty_<AWSDynamoSpaceResultData, AWSDynamoSpaceResultIbGib>({resultData});
@@ -742,17 +861,10 @@ export class AWSDynamoSpace_V1<
         ibGibs,
         client,
         errors,
-        warnings,
-        addrsErrored,
     }: {
         ibGibs: IbGib_V1[],
         client: DynamoDBClient,
         errors: string[],
-        warnings: string[],
-        /**
-         * doesn't work atm
-         */
-        addrsErrored: IbGibAddr[],
     }): Promise<void> {
         const lc = `${this.lc}[${this.putIbGibBatch.name}]`;
         try {
@@ -764,21 +876,41 @@ export class AWSDynamoSpace_V1<
                 const item = await createDynamoDBPutItem({ibGib});
                 ibGibItems.push(item);
             }
+            const maxRetries = this.data.maxRetryThroughputCount || DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
+            // const doSend: (cmd: BatchWriteItemCommand) => Promise<BatchWriteItemCommandOutput> =
+            //     async (cmd) => {
+            //         for (let i = 0; i < maxRetries; i++) {
+            //             try {
+            //                 const resSend = await client.send(cmd);
+            //                 return resSend;
+            //             } catch (error) {
+            //                 debugger;
+            //                 if (!isThroughoutError(error)){
+            //                     debugger;
+            //                     throw error;
+            //                 }
+            //             }
+            //             console.log(`${lc} retry ${i} due to throughput in ${this.data.throttleMsDueToThroughputError} ms`);
+            //             await h.delay(this.data.throttleMsDueToThroughputError);
+            //         }
+            //         // we return above, so if gets here then throw
+            //         throw new Error(`Max retries (${maxRetries}) exceeded.`);
+            //     }
 
             const doItems = async (items: AWSDynamoSpaceItem[]) => {
-                let writeCommand = createDynamoDBBatchWriteItemCommand({
+                let cmd = createDynamoDBBatchWriteItemCommand({
                     tableName: this.data.tableName,
                     items,
                 });
 
-                const putResult = await client.send(writeCommand);
+                const resPut = await this.sendCmd<BatchWriteItemCommandOutput>({cmd, client});
 
                 let prevUnprocessedCount = Number.MAX_SAFE_INTEGER;
-                let unprocessedCount = Object.keys(putResult?.UnprocessedItems || {}).length;
+                let unprocessedCount = Object.keys(resPut?.UnprocessedItems || {}).length;
                 if (unprocessedCount > 0) {
                     console.log(`${lc} unprocessedCount: ${unprocessedCount}`);
                     ibGibItems =
-                        <AWSDynamoSpaceItem[]>putResult.UnprocessedItems[this.data.tableName];
+                        <AWSDynamoSpaceItem[]>resPut.UnprocessedItems[this.data.tableName];
                     const progressWasMade = prevUnprocessedCount > unprocessedCount;
                     if (progressWasMade) {
                         // don't inc retry, just go again
@@ -804,7 +936,7 @@ export class AWSDynamoSpace_V1<
 
         } catch (error) {
             console.error(`${lc} ${error.message}`);
-            errors.push(error);
+            errors.push(error.message);
         }
     }
 
@@ -819,42 +951,40 @@ export class AWSDynamoSpace_V1<
         arg: AWSDynamoSpaceOptionsIbGib,
         client: DynamoDBClient,
     }): Promise<AWSDynamoSpaceResultIbGib> {
-        const lc = `${this.lc}[${this.put.name}]`;
+        const lc = `${this.lc}[${this.putIbGibs.name}]`;
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
         const warnings: string[] = [];
-        const addrsErrored: IbGibAddr[] = [];
         try {
             let ibGibs = (arg.ibGibs || []).concat(); // copy
 
-            let countPublished = 0;
+            let runningCount = 0;
             const batchSize = this.data.putBatchSize || DEFAULT_AWS_PUT_BATCH_SIZE;
+            const throttleMs = this.data.throttleMsBetweenPuts || DEFAULT_AWS_PUT_THROTTLE_MS;
             const rounds = Math.ceil(ibGibs.length / batchSize);
             for (let i = 0; i < rounds; i++) {
                 let doNext = ibGibs.splice(batchSize);
-                await this.putIbGibBatch({ibGibs, client, errors, warnings, addrsErrored});
-                const msDelay = 200;
-                await h.delay(msDelay);
-                console.warn(`${lc} delaying ${msDelay}ms`);
+                await this.putIbGibBatch({ibGibs, client, errors});
+
+                console.warn(`${lc} delaying ${throttleMs}ms`);
+                await h.delay(throttleMs);
                 if (errors.length > 0) { break; }
 
-                countPublished += ibGibs.length;
-                console.log(`${lc} ${countPublished}...`);
+                runningCount += ibGibs.length;
+                console.log(`${lc} runningCount: ${runningCount}...`);
                 ibGibs = doNext;
             }
 
-            console.log(`${lc} total: ${countPublished}.`);
+            console.log(`${lc} total: ${runningCount}.`);
             if (warnings.length > 0) { resultData.warnings = warnings; }
             if (errors.length === 0) {
                 resultData.success = true;
             } else {
                 resultData.errors = errors;
-                resultData.addrsErrored = addrsErrored;
             }
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = errors.concat([error.message]);
-            resultData.addrsErrored = addrsErrored;
             resultData.success = false;
         }
         const result = await resulty_<AWSDynamoSpaceResultData, AWSDynamoSpaceResultIbGib>({resultData});

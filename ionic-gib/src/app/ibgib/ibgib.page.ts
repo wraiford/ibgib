@@ -191,8 +191,10 @@ export class IbGibPage extends IbgibComponentBase
 
   async publishIbGibs({
     ibGibs,
+    confirm,
   }: {
     ibGibs?: IbGib_V1[],
+    confirm?: boolean,
   }): Promise<void> {
     const lc = `${this.lc}[${this.publishIbGibs.name}]`;
     try {
@@ -211,29 +213,37 @@ export class IbGibPage extends IbgibComponentBase
         throw new Error(`resPut had errors: ${resPut.data.errors}`);
       }
 
-      console.warn(`test individual ibgibs confirming put was successful...need to remove!`);
-      for (let i = 0; i < ibGibs.length; i++) {
-        const ibGib = ibGibs[i];
+      if (confirm) {
+        const ibGibAddrs = ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
+        console.warn(`test individual ibgibs confirming put was successful...need to remove!`);
         let argGet = await argy_<AWSDynamoSpaceOptionsData, AWSDynamoSpaceOptionsIbGib>({
           argData: {
             cmd: 'get',
-            ibGibAddrs: [h.getIbGibAddr({ibGib})],
+            ibGibAddrs,
           }
         });
 
-        await h.delay(100);
         let resGet = await awsSpace.witness(argGet);
 
-        let gotIbGib = resGet.ibGibs[0];
+        if (resGet.ibGibs?.length !== ibGibs.length) {
+          throw new Error(`resGet.ibGibs?.length: ${resGet.ibGibs?.length} but ibGibs.length: ${ibGibs.length}`);
+        }
 
-        if (ibGib.ib !== gotIbGib.ib) { throw new Error(`ib is different`); }
-        if (ibGib.gib !== gotIbGib.gib) { throw new Error(`gib is different`); }
-        if (JSON.stringify(ibGib.data) !== JSON.stringify(gotIbGib.data)) { throw new Error(`data is different`); }
-        if (JSON.stringify(ibGib.rel8ns) !== JSON.stringify(gotIbGib.rel8ns)) { throw new Error(`rel8ns is different`); }
-        console.log(`${lc} confirmed ${h.getIbGibAddr({ibGib})}`);
+        for (let i = 0; i < ibGibAddrs.length; i++) {
+          const addr = ibGibAddrs[i];
+          const ibGib = ibGibs.filter(x => h.getIbGibAddr({ibGib: x}) === addr)[0];
+          const gotIbGibs = resGet.ibGibs?.filter(x => h.getIbGibAddr({ibGib: x}) === addr);
+          if (gotIbGibs.length !== 1) { throw new Error(`did not get addr: ${addr}`); }
+          const gotIbGib = gotIbGibs[0];
+          if (ibGib.ib !== gotIbGib.ib) { throw new Error(`ib is different`); }
+          if (ibGib.gib !== gotIbGib.gib) { throw new Error(`gib is different`); }
+          if (JSON.stringify(ibGib.data) !== JSON.stringify(gotIbGib.data)) { throw new Error(`data is different`); }
+          if (JSON.stringify(ibGib.rel8ns) !== JSON.stringify(gotIbGib.rel8ns)) { throw new Error(`rel8ns is different`); }
+          console.log(`${lc} confirmed ${h.getIbGibAddr({ibGib})}`);
+        }
+
+        console.log(`${lc} confirmation complete.`);
       }
-
-      console.log(`${lc} confirmation complete.`);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
