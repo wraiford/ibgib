@@ -21,6 +21,7 @@ import {
 } from '../common/spaces/ionic-space-v1';
 import { argy_ } from '../common/witnesses';
 import * as c from '../common/constants';
+import { getBinAddr, isBinary } from '../common/helper';
 
 
 // #region get/put holdovers from FilesService
@@ -43,11 +44,11 @@ interface GetIbGibOpts {
   /**
    * If getting binary, this is the hash we're looking for (binId)
    */
-  binHash?: string;
+  // binHash?: string;
   /**
    * If getting binary, this is the extension.
    */
-  binExt?: string;
+  // binExt?: string;
   /**
    * If truthy, will look in the meta subpath first, then the regular if not found.
    */
@@ -76,7 +77,7 @@ interface GetIbGibResult extends FileResult {
   /**
    * This is used when you're getting a pic's binary content.
    */
-  binData?: any;
+  // binData?: any;
 }
 
 interface PutIbGibOpts {
@@ -84,7 +85,7 @@ interface PutIbGibOpts {
   /**
    * if true, will store this data in the bin folder with its hash.
    */
-  binData?: string;
+  // binData?: string;
   /**
    * If true, will store in a different folder.
    */
@@ -92,7 +93,7 @@ interface PutIbGibOpts {
   /**
    * extension to store the bindata with.
    */
-  binExt?: string;
+  // binExt?: string;
   /**
    * If true, will store with metas.
    */
@@ -1744,19 +1745,15 @@ export class IbgibsService {
    */
   async get({
     addr,
-    binHash,
-    binExt,
     isMeta,
     isDna,
     space,
   }: GetIbGibOpts): Promise<GetIbGibResult> {
     let lc = `${this.lc}[${this.get.name}]`;
     try {
-      if (addr) {
-        lc = `${lc}(${addr})`;
-      } else if (binHash) {
-        lc = `${lc}(binHash: ${binHash}, binExt: ${binExt})`;
-      }
+      // if (!addr) { addr = getBinAddr({binHash, binExt}); }
+      if (!addr) { throw new Error(`addr required`); }
+      lc = `${lc}(${addr})`;
       console.log(`${lc} starting...`);
       space = space ?? this.currentSpace;
       const result = await space.witness(await argy_<IonicSpaceOptionsData>({
@@ -1766,14 +1763,12 @@ export class IbgibsService {
           ibGibAddrs: [addr],
           isMeta,
           isDna,
-          binHash, binExt,
         },
       }));
       if (result?.data?.success) {
         console.log(`${lc} got.`)
         return {
           success: true,
-          binData: result.binData,
           ibGibs: result.ibGibs,
         }
       } else {
@@ -1794,8 +1789,8 @@ export class IbgibsService {
    */
   async put({
     ibGib,
-    binData,
-    binExt,
+    // binData,
+    // binExt,
     isMeta,
     isDna,
     force,
@@ -1803,21 +1798,20 @@ export class IbgibsService {
   }: PutIbGibOpts): Promise<PutIbGibResult> {
     const lc = `${this.lc}[${this.put.name}]`;
     try {
+      if (!ibGib) { throw new Error(`ibGib required`); }
       space = space ?? this.currentSpace;
-      let binHash: string | undefined;
-      if (binData) { binHash = await h.hash({s: binData}); }
+
       const argPutIbGibs = await argy_<IonicSpaceOptionsData, IonicSpaceOptionsIbGib>({
         ibMetadata: space.ib,
-        argData: { cmd: 'put', isMeta, force, isDna, binExt, binHash },
+        argData: { cmd: 'put', isMeta, force, isDna, },
       });
       argPutIbGibs.ibGibs = ibGib ? [ibGib] : [];
-      argPutIbGibs.binData = binData;
       const resPutIbGibs = await space.witness(argPutIbGibs);
       if (resPutIbGibs.data?.success) {
         if (resPutIbGibs.data!.warnings?.length > 0) {
           resPutIbGibs.data!.warnings!.forEach(warning => console.warn(`${lc} ${warning}`));
         }
-        return { success: true, binHash, }
+        return { success: true }
       } else {
         const errorMsg = resPutIbGibs?.data?.errors?.length > 0 ?
           resPutIbGibs.data.errors.join('\n') :
@@ -1835,8 +1829,6 @@ export class IbgibsService {
    */
   async delete({
     addr,
-    binHash,
-    binExt,
     isMeta,
     isDna,
     space,
@@ -1851,7 +1843,6 @@ export class IbgibsService {
           ibGibAddrs: [addr],
           isMeta,
           isDna,
-          binHash, binExt,
         },
       }));
       if (result.data?.success) {
@@ -1873,19 +1864,55 @@ export class IbgibsService {
     }
   }
 
+  /**
+   * Gets all dependency ibgibs from graph.
+   *
+   * ## notes
+   *
+   * This function recursively calls itself until `gotten` is fully populated with
+   * results and then returns `gotten`.
+   *
+   * @returns entire dependency graph of given ibGib OR ibGib address.
+   */
   async getDependencyGraph({
     ibGib,
     ibGibAddr,
     gotten,
+    skipRel8nNames,
   }: {
+    /**
+     * source ibGib to grab dependencies of.
+     *
+     * caller must provide this or `ibGibAddr`
+     */
     ibGib?: IbGib_V1,
+    /**
+     * source ibGib address to grab dependencies of.
+     *
+     * caller must provide this or `ibGib`
+     */
     ibGibAddr?: IbGibAddr,
+    /**
+     * object that will be populated through recursive calls to this function.
+     *
+     * First caller of this function should not provide this and I'm not atow
+     * coding a separate implementation function to ensure this.
+     */
     gotten?: { [addr: string]: IbGib_V1 },
+    /**
+     * Skip these particular rel8n names.
+     *
+     * ## driving intent
+     *
+     * I'm adding this to be able to skip getting dna ibgibs.
+     */
+    skipRel8nNames?: string[],
   }): Promise<{ [addr: string]: IbGib_V1 }> {
     const lc = `${this.lc}[${this.getDependencyGraph.name}]`;
     try {
       if (!ibGib && !ibGibAddr) { throw new Error(`either ibGib or ibGibAddr required.`); }
 
+      if (skipRel8nNames?.length === 0) { skipRel8nNames = []; }
 
       if (!ibGib) {
         const resGet = await this.get({addr: ibGibAddr});
@@ -1906,7 +1933,7 @@ export class IbgibsService {
       if (!Object.keys(gotten).includes(ibGibAddr)) { gotten[ibGibAddr] = ibGib; }
 
       const rel8ns = ibGib.rel8ns || {};
-      const rel8nNames = Object.keys(rel8ns) || [];
+      const rel8nNames = (Object.keys(rel8ns) || []).filter(x => !skipRel8nNames.includes(x));
       for (let i = 0; i < rel8nNames.length; i++) {
         const rel8nName = rel8nNames[i];
         const rel8dAddrs = rel8ns[rel8nName];

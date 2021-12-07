@@ -1,13 +1,17 @@
 import { OnInit, OnDestroy, Input, ChangeDetectorRef } from '@angular/core';
 import { IbGib_V1, GIB, Factory_V1, Rel8n } from "ts-gib/dist/V1";
 import { IbGibAddr, Ib, Gib, V1, TransformResult } from "ts-gib";
-import { getIbAndGib, getIbGibAddr } from "ts-gib/dist/helper";
 import { Injectable } from "@angular/core";
 // import { FilesService } from 'src/app/services/files.service';
 import { IbgibItem, PicData, CommentData, LatestEventInfo } from '../types';
 import { CommonService } from 'src/app/services/common.service';
 import { DEFAULT_META_IB_STARTS } from '../constants';
 import { Subscription } from 'rxjs';
+import { getBinAddr } from '../helper';
+import * as h from 'ts-gib/dist/helper';
+
+
+const logALot = true;
 
 // @Injectable({providedIn: "root"})
 @Injectable()
@@ -31,10 +35,10 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     set addr(value: IbGibAddr) {
         const lc = `${this.lc}[set addr(${value})]`;
         if (this._updatingIbGib) {
-            console.log(`${lc} already updatingIbGib`)
+            if (logALot) { console.log(`${lc} already updatingIbGib`) }
             return;
         }
-        console.log(`${lc} updating ibgib ${value}`);
+        if (logALot) { console.log(`${lc} updating ibgib ${value}`); }
         this._updatingIbGib = true;
         this.updateIbGib(value).finally(() => {
             this._updatingIbGib = false;
@@ -61,11 +65,11 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
             return;
         }
         if (!value) {
-            console.log(`${lc} ignored setting falsy context.`);
+            if (logALot) { console.log(`${lc} ignored setting falsy context.`); }
             return;
         }
         const setContext = () => {
-            console.log(`${lc} setting context`);
+            if (logALot) { console.log(`${lc} setting context`); }
             if (this.item) {
                 this.item.ibGib_Context = value;
                 this.ref.detectChanges();
@@ -175,14 +179,14 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
 
     clearItem(): void {
         const lc = `${this.lc}[${this.clearItem.name}]`;
-        console.log(`${lc} clearing data...`);
+        if (logALot) { console.log(`${lc} clearing data...`); }
         // delete this._addr;
         delete this.item;
         // delete this.ib;
         // delete this.gib;
         // delete this.ibGib;
         // delete this.isMeta;
-        console.log(`${lc} data cleared.`);
+        if (logALot) { console.log(`${lc} data cleared.`); }
     }
 
     async updateIbGib(addr: IbGibAddr): Promise<void> {
@@ -192,9 +196,9 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         this.clearItem();
 
         if (addr) {
-            console.log(`${lc} setting new address`)
+            if (logALot) { console.log(`${lc} setting new address`) }
             // we have an addr which is different than our previous.
-            const{ ib, gib } = getIbAndGib({ibGibAddr: addr});
+            const{ ib, gib } = h.getIbAndGib({ibGibAddr: addr});
             this.item = <any>{
                 addr,
                 ib,
@@ -205,7 +209,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
                 this.item.isMeta = true;
             }
         } else {
-            console.log(`${lc} no new address`)
+            if (logALot) { console.log(`${lc} no new address`) }
         }
     }
 
@@ -238,8 +242,8 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
             return;
         }
         if (item.addr) {
-            const {ib, gib} = getIbAndGib({ibGibAddr: item.addr});
-            if (!force && item.ibGib && getIbGibAddr({ibGib: item.ibGib}) === item.addr) {
+            const {ib, gib} = h.getIbAndGib({ibGibAddr: item.addr});
+            if (!force && item.ibGib && h.getIbGibAddr({ibGib: item.ibGib}) === item.addr) {
                 // do nothing, because we already have loaded this address.
             } else {
                 if (gib === GIB) {
@@ -266,7 +270,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
 
     tjp: IbGib_V1<any>;
     get tjpAddr(): string {
-        return this.tjp ? getIbGibAddr({ibGib: this.tjp}) : "";
+        return this.tjp ? h.getIbGibAddr({ibGib: this.tjp}) : "";
     }
 
     async loadTjp(): Promise<void> {
@@ -325,7 +329,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         queryParamsHandling?: 'merge' | 'preserve',
         queryParams?: { [key: string]: any },
    }): Promise<void> {
-        console.log(`navigating to addr: ${addr}`);
+        if (logALot) { console.log(`navigating to addr: ${addr}`); }
         this.common.nav.navTo({addr, queryParamsHandling, queryParams});
         // await this.common.nav.navigateRoot(['ibgib', addr], {
         //     queryParamsHandling: 'preserve',
@@ -364,41 +368,59 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
   async loadPic(item?: TItem): Promise<void> {
     const lc = `${this.lc}[${this.loadPic.name}]`;
     if (!this.isPic) { return; }
-    console.log(`${lc} starting...`);
+    if (logALot) { console.log(`${lc} starting...`); }
     try {
-        if (!this.ibGib?.data?.binHash) { return; }
-        if (!this.ibGib?.data?.ext) { return; }
+        item = item || this.item;
+        // item = this.item;
+
+        if (!this.ibGib?.data?.binHash) {
+            if (logALot) { console.log(`${lc} no data.binHash`); }
+            return;
+        }
+        if (!this.ibGib!.data!.ext) {
+            if (logALot) { console.log(`${lc} no data.ext`); }
+            return;
+        }
+        if (!this.ibGib.rel8ns || this.ibGib.rel8ns['bin'].length === 0) {
+            if (logALot) { console.log(`${lc} no rel8ns.bin`); }
+            return;
+        }
 
         const data = <PicData>this.ibGib.data;
-        console.log(`${lc} binHash: ${data.binHash}\nbinExt: ${data.ext}`);
-        const resGet =
-            await this.common.ibgibs.get({binHash: data.binHash, binExt: data.ext});
-        this.item.timestamp = data.timestamp;
-        console.log(`${lc} src: ${this.item.picSrc}`);
+        if (logALot) { console.log(`${lc} binHash: ${data.binHash}\nbinExt: ${data.ext}`); }
+        const addr = this.ibGib.rel8ns!['bin'][0];
+        if (logALot) { console.log(`${lc} getting bin addr: ${addr}`); }
+        const resGet = await this.common.ibgibs.get({addr});
+        item.timestamp = data.timestamp;
+        if (logALot) { console.log(`${lc} initial item.picSrc.length: ${item?.picSrc?.length}`); }
 
         const delayRefDetectChangesMs = 2000; // hack
-        if (resGet.success && resGet.binData) {
-            this.item.picSrc = `data:image/jpeg;base64,${resGet.binData}`;
-            console.log(`${lc} loaded picSrc: ${this.item.picSrc}`);
+        if (resGet.success && resGet.ibGibs?.length === 1 && resGet.ibGibs[0]!.data) {
+            item.picSrc = `data:image/jpeg;base64,${resGet.ibGibs![0].data!}`;
+            if (logALot) { console.log(`${lc} loaded item.picSrc.length: ${item?.picSrc?.length}`); }
             setTimeout(() => { this.ref.detectChanges(); }, delayRefDetectChangesMs);
-            console.log(`${lc} ref.detectChanges in ${delayRefDetectChangesMs.toString()}`);
+            if (logALot) { console.log(`${lc} ref.detectChanges in ${delayRefDetectChangesMs.toString()}`); }
         } else {
             console.error(`${lc} Couldn't get pic. ${resGet.errorMsg}`);
         }
-        console.log(`${lc} complete.`);
+        if (logALot) { console.log(`${lc} loaded.`); }
     } catch (error) {
         console.error(`${lc} ${error.message}`);
+    } finally {
+        if (logALot) { console.log(`${lc} complete.`) }
     }
   }
 
   async loadComment(item?: TItem): Promise<void> {
     const lc = `${this.lc}[${this.loadComment.name}]`;
+    item = item || this.item;
     if (!this.isComment) { return; }
     if (!this.ibGib?.data?.text) { return; }
 
     const data = <CommentData>this.ibGib.data;
-    this.item.text = data.text;
-    this.item.timestamp = data.textTimestamp || data.timestamp;
+    item.text = data.text;
+    item.timestamp = data.textTimestamp || data.timestamp;
+
   }
 
   /**
@@ -413,7 +435,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     try {
         if (!this.tjp) { await this.loadTjp(); }
         if (this.tjpAddr !== info.tjpAddr) { return; }
-        console.log(`${lc} triggeredd.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)}`);
+        if (logALot) { console.log(`${lc} triggeredd.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)}`); }
         if (this._updatingIbGib || this.paused || this.errored) { return; }
         this.addr = info.latestAddr;
     } catch (error) {

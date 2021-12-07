@@ -9,6 +9,9 @@ import { hash, getIbGibAddr, getTimestamp, getIbAndGib, pretty } from 'ts-gib/di
 import { Factory_V1 as factory, IbGibRel8ns_V1, Rel8n, IbGib_V1 } from 'ts-gib/dist/V1';
 import * as ionicons from 'ionicons/icons/index';
 import { ILLEGAL_TAG_TEXT_CHARS } from '../constants';
+import { getBinAddr } from '../helper';
+
+import * as h from 'ts-gib/dist/helper';
 
 @Component({
   selector: 'action-bar',
@@ -186,68 +189,72 @@ export class ActionBarComponent extends IbgibComponentBase
   }): Promise<void> {
     const lc = `${this.lc}[${this.doPic.name}]`;
 
-      const resSavePic =
-        await this.common.ibgibs.put({binData: imageBase64, binExt: ext});
-        // await this.ibgibs.put({binData: image.base64String, binExt: ext});
-      if (!resSavePic.success) { throw new Error(resSavePic.errorMsg || 'error saving pic'); }
-      if (!resSavePic.binHash) { throw new Error(resSavePic.errorMsg || 'no bin hash created'); }
+    const binAddr = getBinAddr({binHash, binExt: ext});
+    const {ib, gib} = h.getIbAndGib({ibGibAddr: binAddr});
+    const ibGib = { ib, gib, data: <any>imageBase64 };
+    const resSaveBin = await this.common.ibgibs.put({ibGib});
+      // await this.ibgibs.put({binData: image.base64String, binExt: ext});
+    if (!resSaveBin.success) { throw new Error(resSaveBin.errorMsg || 'error saving pic'); }
 
-      // todo: do thumbnail also
+    // todo: do thumbnail also
 
-      // NOTE: This is not the same filename that is saved in the bin folder!
-      // This is for when the picture is downloaded outside of the ibGib system
-      // or for display purposes.
-      const timestamp = (new Date).toUTCString();
-      filename = filename || timestamp
-        .replace(':', '-')
-        .replace(':', '-')
-        .replace(',', '')
-        // .replace(new RegExp(/\W/), '') // any remaining-non-word chars
-        ; // temporary eek.
+    // NOTE: This is not the same filename that is saved in the bin folder!
+    // This is for when the picture is downloaded outside of the ibGib system
+    // or for display purposes.
+    const timestamp = (new Date).toUTCString();
+    filename = filename || timestamp
+      .replace(':', '-')
+      .replace(':', '-')
+      .replace(',', '')
+      // .replace(new RegExp(/\W/), '') // any remaining-non-word chars
+      ; // temporary eek.
 
-      console.log(`${lc} binHash: ${binHash}`);
-      console.log(`${lc} ext: ${ext}`);
-      const data: PicData = { binHash, ext, filename, timestamp };
-      const rel8ns: IbGibRel8ns = { 'pic on': [this.addr] };
+    console.log(`${lc} binHash: ${binHash}`);
+    console.log(`${lc} ext: ${ext}`);
+    const data: PicData = { binHash, ext, filename, timestamp };
+    const rel8ns: IbGibRel8ns = {
+      'pic on': [this.addr],
+      'bin': [binAddr],
+    };
 
-      // create an ibgib with the filename and ext
-      const resPicIbGib = await factory.firstGen({
-        parentIbGib: factory.primitive({ib: 'pic'}),
-        ib: `pic ${binHash}`,
-        data,
-        rel8ns,
-        dna: true,
-        tjp: { uuid: true, timestamp: true },
-        nCounter: true,
-      });
-      await this.common.ibgibs.persistTransformResult({resTransform: resPicIbGib});
-      const { newIbGib: newPic } = resPicIbGib;
-      const newPicAddr = getIbGibAddr({ibGib: newPic});
-      await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newPic, linked: true});
-      await this.common.ibgibs.registerNewIbGib({ibGib: newPic});
-      // need to nav to picture if not in a context, or
-      // or if in context need to rel8 to the context.
+    // create an ibgib with the filename and ext
+    const resPicIbGib = await factory.firstGen({
+      parentIbGib: factory.primitive({ib: 'pic'}),
+      ib: `pic ${binHash}`,
+      data,
+      rel8ns,
+      dna: true,
+      tjp: { uuid: true, timestamp: true },
+      nCounter: true,
+    });
+    await this.common.ibgibs.persistTransformResult({resTransform: resPicIbGib});
+    const { newIbGib: newPic } = resPicIbGib;
+    const newPicAddr = getIbGibAddr({ibGib: newPic});
+    await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newPic, linked: true});
+    await this.common.ibgibs.registerNewIbGib({ibGib: newPic});
+    // need to nav to picture if not in a context, or
+    // or if in context need to rel8 to the context.
 
-      // rel8 to context
-      if (!this.ibGib) {
-        await this.loadIbGib();
-        await this.loadTjp();
-      }
-      const rel8nsToAddByAddr = { pic: [newPicAddr] };
-      const resRel8ToContext =
-        await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
-      await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToContext});
-      const { newIbGib: newContext } = resRel8ToContext;
-      // const newContextAddr = getIbGibAddr(newContext);
-      await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newContext, linked: true});
-      await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
+    // rel8 to context
+    if (!this.ibGib) {
+      await this.loadIbGib();
+      await this.loadTjp();
+    }
+    const rel8nsToAddByAddr = { pic: [newPicAddr] };
+    const resRel8ToContext =
+      await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
+    await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToContext});
+    const { newIbGib: newContext } = resRel8ToContext;
+    // const newContextAddr = getIbGibAddr(newContext);
+    await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newContext, linked: true});
+    await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
 
-      // nav to either the pic we just added, or the new context "in time"
-      // to which the pic was added.
-      const navToAddr = this.isMeta ?
-        getIbGibAddr({ibGib: newPic}) :
-        getIbGibAddr({ibGib: newContext});
-      await this.navTo({addr: navToAddr});
+    // nav to either the pic we just added, or the new context "in time"
+    // to which the pic was added.
+    const navToAddr = this.isMeta ?
+      getIbGibAddr({ibGib: newPic}) :
+      getIbGibAddr({ibGib: newContext});
+    await this.navTo({addr: navToAddr});
   }
 
   /**
@@ -314,7 +321,7 @@ export class ActionBarComponent extends IbgibComponentBase
       return;
     }
 
-    reader.onload = async (f: any) => {
+    reader.onload = async (_: any) => {
       let imageBase64 = reader.result.toString().split('base64,')[1];
       let binHash = await hash({s: imageBase64});
       const filenameWithExt = file.name;

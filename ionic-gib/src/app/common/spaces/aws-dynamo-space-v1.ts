@@ -23,6 +23,7 @@ import {
     IbGibSpaceResultData, IbGibSpaceResultIbGib,
 } from '../types';
 import * as c from '../constants';
+import { getBinAddr } from '../helper';
 
 console.error(`importing local credentials...take this code out!!`);
 var tempCredentials = require('../../../../../../ionic-gib-cred.json');
@@ -64,10 +65,6 @@ interface AWSDynamoSpaceItem extends AWSItem {
  */
 function isThroughoutError(error: any): boolean {
     return error?.name === AWS_THROUGHPUT_ERROR_NAME;
-}
-
-function getBinAddr({binHash, binExt}: {binHash: string, binExt: string}): IbGibAddr {
-    return `bin.${binExt}${IBGIB_DELIMITER}${binHash}`
 }
 
 /**
