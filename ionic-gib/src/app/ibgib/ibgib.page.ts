@@ -262,7 +262,8 @@ export class IbGibPage extends IbgibComponentBase
       // await Modals.alert({ title: 'debug', message: "publish clicked", });
       const resConfirmPublish = await Modals.confirm({ title: 'Publish to the world?', message: `This will publish your current ibGib (${this.ib})? Proceed?`, });
       if (resConfirmPublish.value) {
-        const dependencyGraph = await this.common.ibgibs.getDependencyGraph({ibGib: this.ibGib});
+        const dependencyGraph =
+          await this.common.ibgibs.getDependencyGraph({ibGib: this.ibGib});
         await this.publishIbGibs({ibGibs: Object.values(dependencyGraph)});
       } else {
         await Modals.alert({title: 'Publish cancelled.', message: 'Publish has been cancelled.'});

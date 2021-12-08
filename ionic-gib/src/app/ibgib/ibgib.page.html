@@ -44,12 +44,46 @@
     </ion-toolbar>
   </ion-header>
 
-  <div id="container">
+  <div *ngIf="item?.ibGib && !refreshing" id="container">
 
     <tag-list *ngIf='ib?.startsWith("tag")' [addr]='addr' [ibGib_Context]='ibGib'></tag-list>
 
     <chat-view *ngIf='!ib?.startsWith("tag")' [addr]='addr' [ibGib_Context]='ibGib'></chat-view>
 
+  </div>
+  <div *ngIf="!item?.ibGib || refreshing" class="loading-div">
+    <!-- <p>loading...</p> -->
+    <div class="spacer-50"></div>
+    <div class="loading-hair">
+      <ion-spinner name="lines-small" color="tertiary"></ion-spinner>
+      <ion-spinner class="slant-left" name="dots" color="tertiary"></ion-spinner>
+      <ion-spinner class="slant-right" name="dots" color="tertiary"></ion-spinner>
+      <ion-spinner name="lines-small" color="tertiary"></ion-spinner>
+    </div>
+    <div class="loading-hair">
+      <ion-spinner class="slant-left" name="dots" color="tertiary"></ion-spinner>
+      <ion-spinner class="move-up" name="dots" color="tertiary"></ion-spinner>
+      <ion-spinner class="move-up" name="dots" color="tertiary"></ion-spinner>
+      <ion-spinner class="slant-right" name="dots" color="tertiary"></ion-spinner>
+    </div>
+    <div class="loading-eyes">
+      <ion-spinner class="slant-left" name="dots" color="tertiary"></ion-spinner>
+      <ion-spinner class="move-up" name="bubbles" color="tertiary"></ion-spinner>
+      <ion-spinner class="move-up" name="bubbles" color="tertiary"></ion-spinner>
+      <ion-spinner class="slant-right" name="dots" color="tertiary"></ion-spinner>
+    </div>
+    <div class="loading-hair">
+      <ion-spinner name="asdf" color="tertiary"></ion-spinner>
+      <ion-spinner class="slant-right" name="dots" color="tertiary"></ion-spinner>
+      <ion-spinner class="slant-left" name="dots" color="tertiary"></ion-spinner>
+      <ion-spinner name="asdf" color="tertiary"></ion-spinner>
+    </div>
+    <div class="loading-hair">
+      <ion-spinner name="asdf" color="tertiary"></ion-spinner>
+      <ion-spinner class="slant-left" name="dots" color="tertiary"></ion-spinner>
+      <ion-spinner class="slant-right" name="dots" color="tertiary"></ion-spinner>
+      <ion-spinner name="asdf" color="tertiary"></ion-spinner>
+    </div>
   </div>
 
 </ion-content>

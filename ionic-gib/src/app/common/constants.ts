@@ -40,9 +40,11 @@ export const SPACE_REL8N_NAME_CONFIG = `config`;
 /**
  * Ionic-specific folder that represents OS directory.
  *
+ * Can't seem to find the files in emulator when I use the Data folder.
  * {@link FilesystemDirectory}
  */
-export const IBGIB_BASE_DIR = FilesystemDirectory.Data;
+// export const IBGIB_BASE_DIR = FilesystemDirectory.Data;
+export const IBGIB_BASE_DIR = FilesystemDirectory.Documents;
 /**
  * encoding for ibgib files.
  *

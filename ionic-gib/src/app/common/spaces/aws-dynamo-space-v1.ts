@@ -15,6 +15,7 @@ import {
 import { getIbGibAddr, IbGibAddr, V1 } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { encodeStringToHexString, decodeHexStringToString } from 'encrypt-gib/dist/helper';
+import { encrypt, decrypt } from 'encrypt-gib';
 
 import { SpaceBase_V1 } from './space-base-v1';
 import { resulty_ } from '../witnesses';
@@ -24,9 +25,16 @@ import {
 } from '../types';
 import * as c from '../constants';
 import { getBinAddr } from '../helper';
+import { Plugins } from '@capacitor/core';
 
 console.error(`importing local credentials...take this code out!!`);
-var tempCredentials = require('../../../../../../ionic-gib-cred.json');
+var tempCredentialsEncrypted = require('../../../../../../ionic-gib-cred.encrypted.json');
+var tempCredentials: any = {
+    tableName: '',
+    accessKeyId: '',
+    secretAccessKey: '',
+};
+
 console.error(`importing local credentials...take this code out!!`);
 // #region DynamoDB related
 
@@ -338,7 +346,8 @@ export interface AWSDynamoSpace_V1_Data {
     throttleMsDueToThroughputError: number;
 }
 
-console.error(`temporary credentials being used by default. ${h.pretty(tempCredentials)}`);
+console.error(`temporary credentials being used by default. remove these credentials`);
+
 const DEFAULT_AWS_DYNAMO_SPACE_DATA_V1: AWSDynamoSpace_V1_Data = {
     tableName: tempCredentials.tableName,
     maxRetryThroughputCount: DEFAULT_AWS_MAX_RETRY_THROUGHPUT,
@@ -552,12 +561,12 @@ export class AWSDynamoSpace_V1<
         super(initialData, initialRel8ns);
         const lc = `${this.lc}[ctor]`;
 
-        console.log(`${lc} initializing...`);
-        this.initialize().catch(e => {
-            console.error(`${lc} ${e.message}`);
-        }).finally(() => {
-            console.log(`${lc} initializing complete.`);
-        })
+        // console.log(`${lc} initializing...`);
+        // this.initialize().catch(e => {
+        //     console.error(`${lc} ${e.message}`);
+        // }).finally(() => {
+        //     console.log(`${lc} initializing complete.`);
+        // })
 
         this.ib = `witness space ${AWSDynamoSpace_V1.name}`;
     }
@@ -602,6 +611,7 @@ export class AWSDynamoSpace_V1<
             ) {
                 errors.push(`when "get" cmd is called, either ibGibAddrs or binExt+binHash required.`);
             }
+            if (!this.data?.tableName) { await this.initialize(); }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -616,7 +626,45 @@ export class AWSDynamoSpace_V1<
         const lc = `${this.lc}[${this.initialize.name}]`;
         try {
             if (!this.data) { this.data = h.clone(DEFAULT_AWS_DYNAMO_SPACE_DATA_V1); }
+
+            let resPrompt = await Plugins.Modals.prompt({title: 'hi', message: 'yo enter the thing'});
+
+            debugger;
+            // let result = await encrypt({
+            //     dataToEncrypt: JSON.stringify(tempCredentials),
+            //     initialRecursions: 50000,
+            //     salt: tempsalt,
+            //     secret: resPrompt.value,
+            //     confirm: true,
+            //     hashAlgorithm: 'SHA-256',
+            //     saltStrategy: 'appendPerHash',
+            //     recursionsPerHash: 2,
+            // });
+
+            // debugger;
+            // console.log(`${lc} result.encryptedData:\n`);
+            // console.log(`${lc} ${result.encryptedData}`);
+            let {
+                encryptedData, initialRecursions, salt, hashAlgorithm,
+                saltStrategy, recursionsPerHash,
+            } = tempCredentialsEncrypted;
+            let result = await decrypt({
+                encryptedData,
+                initialRecursions,
+                salt,
+                secret: resPrompt.value,
+                hashAlgorithm,
+                saltStrategy,
+                recursionsPerHash,
+            });
+            let credentials = JSON.parse(result.decryptedData);
+            this.data.tableName = credentials.tableName;
+            this.data.accessKeyId = credentials.accessKeyId;
+            this.data.secretAccessKey = credentials.secretAccessKey;
+
+            console.log(`result.errors: ${result.errors}`);
         } catch (error) {
+            debugger;
             console.error(`${lc} ${error.message}`);
         }
     }

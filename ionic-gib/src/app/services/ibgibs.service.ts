@@ -21,7 +21,6 @@ import {
 } from '../common/spaces/ionic-space-v1';
 import { argy_ } from '../common/witnesses';
 import * as c from '../common/constants';
-import { getBinAddr, isBinary } from '../common/helper';
 
 
 // #region get/put holdovers from FilesService
@@ -1912,7 +1911,7 @@ export class IbgibsService {
     try {
       if (!ibGib && !ibGibAddr) { throw new Error(`either ibGib or ibGibAddr required.`); }
 
-      if (skipRel8nNames?.length === 0) { skipRel8nNames = []; }
+      skipRel8nNames = skipRel8nNames || [];
 
       if (!ibGib) {
         const resGet = await this.get({addr: ibGibAddr});

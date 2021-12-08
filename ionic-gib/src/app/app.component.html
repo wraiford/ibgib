@@ -5,7 +5,7 @@
         <ion-list id="meta-list">
           <!-- <ion-note>current root</ion-note> -->
           <ion-select placeholder="data root" [value]="currentRoot">
-            <ion-select-option 
+            <ion-select-option
               *ngFor="let x of rootItems; let i = index">
               <ion-icon slot="start" [ios]="x.icon" [md]="x.icon.replace('outline', 'sharp')"></ion-icon>
               <ion-label>{{ x.title }}</ion-label>
@@ -13,17 +13,17 @@
           </ion-select>
 
           <ion-list-header
-            routerDirection="root" 
+            routerDirection="root"
             [routerLink]="[tagsUrl]">
             Tags
           </ion-list-header>
 
           <ion-menu-toggle auto-hide="false" >
-            <ion-item 
-              routerDirection="root" 
-              [routerLink]="[p.url]" 
-              lines="none" 
-              detail="false" 
+            <ion-item
+              routerDirection="root"
+              [routerLink]="[p.url]"
+              lines="none"
+              detail="false"
               [class.selected]="p.url.includes(addr)"
               *ngFor="let p of tagItems; let i = index">
               <!-- [class.selected]="selectedIndex == i"> -->
@@ -31,15 +31,15 @@
               <ion-label>{{ p.title }}</ion-label>
             </ion-item>
             <ion-list-header
-              routerDirection="root" 
+              routerDirection="root"
               [routerLink]="[rootsUrl]">
               Roots
             </ion-list-header>
-            <!-- <ion-item 
-              routerDirection="root" 
-              [routerLink]="[p.url]" 
-              lines="none" 
-              detail="false" 
+            <!-- <ion-item
+              routerDirection="root"
+              [routerLink]="[p.url]"
+              lines="none"
+              detail="false"
               [class.selected]="p.url.includes(addr)"
               *ngFor="let p of rootItems; let i = index">
               <ion-icon slot="start" [ios]="p.icon" [md]="p.icon.replace('outline', 'sharp')"></ion-icon>
@@ -61,6 +61,7 @@
         </ion-list> -->
       </ion-content>
     </ion-menu>
+
     <ion-router-outlet id="main-content"></ion-router-outlet>
   </ion-split-pane>
 </ion-app>

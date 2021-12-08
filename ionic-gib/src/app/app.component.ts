@@ -75,6 +75,9 @@ export class AppComponent extends IbgibComponentBase
 
   private paramMapSub_App: Subscription;
 
+  @Input()
+  initializing: boolean;
+
   constructor(
     private platform: Platform,
     private splashScreen: SplashScreen,
@@ -89,20 +92,28 @@ export class AppComponent extends IbgibComponentBase
     this.initializeApp();
   }
 
-  initializeApp() {
+
+  async initializeApp(): Promise<void> {
     const lc = `${this.lc}[${this.initializeApp.name}]`;
 
+    this.initializing = true;
     this.platform.ready().then(async () => {
       this.statusBar.styleDefault();
-      this.splashScreen.hide();
 
       let navToAddr: IbGibAddr = 'hmm something went wrong^gib';
+
       try {
+        if (this.initializing) {
+          console.log(`${lc} this.initializing is truthy`);
+        } else {
+          console.log(`${lc} this.initializing is falsy`);
+        }
         // make sure roots are initialized FIRST before any other ibgib happenings
         await this.common.ibgibs.initialize();
 
         if (!this.item) { this.item = {} }
         this.item.isMeta = true;
+        await h.delay(3000);
 
         // these are AppComponent-specific initializations
         await this.initializeMyRoots();
@@ -116,6 +127,8 @@ export class AppComponent extends IbgibComponentBase
       } catch (error) {
         console.error(`${lc} ${error.message}`);
       } finally {
+        this.initializing = false;
+        this.splashScreen.hide();
         await this.navTo({addr: navToAddr});
       }
     });
