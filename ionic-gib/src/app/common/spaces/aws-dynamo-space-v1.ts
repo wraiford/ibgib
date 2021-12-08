@@ -15,7 +15,7 @@ import {
 import { getIbGibAddr, IbGibAddr, V1 } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { encodeStringToHexString, decodeHexStringToString } from 'encrypt-gib/dist/helper';
-import { encrypt, decrypt } from 'encrypt-gib';
+import { encrypt, decrypt, HashAlgorithm, SaltStrategy } from 'encrypt-gib';
 
 import { SpaceBase_V1 } from './space-base-v1';
 import { resulty_ } from '../witnesses';
@@ -27,15 +27,38 @@ import * as c from '../constants';
 import { getBinAddr } from '../helper';
 import { Plugins } from '@capacitor/core';
 
+// #region TEMPORARY! DynamoDB credentials related
+
 console.error(`importing local credentials...take this code out!!`);
-var tempCredentialsEncrypted = require('../../../../../../ionic-gib-cred.encrypted.json');
-var tempCredentials: any = {
+var tempCredentialsEncrypted: DynamoDBApiCredentials_Encrypted = require('../../../../../../ionic-gib-cred.encrypted.json');
+interface DynamoDBApiCredentials_Encrypted  {
+    encryptedData: string;
+    initialRecursions: number;
+    salt: string;
+    hashAlgorithm: HashAlgorithm;
+    saltStrategy: SaltStrategy;
+    recursionsPerHash: number;
+}
+// var tempCredentialsEncrypted: DynamoDBApiCredentials_Encrypted;
+interface DynamoDBApiCredentials {
+    tableName: string;
+    accessKeyId: string;
+    secretAccessKey: string;
+}
+/**
+ * if you want to publish to the cloud, then for now, create aws dynamodb api credentials
+ * in the following form
+ */
+var tempCredentials: DynamoDBApiCredentials = {
     tableName: '',
     accessKeyId: '',
     secretAccessKey: '',
 };
 
 console.error(`importing local credentials...take this code out!!`);
+
+// #endregion
+
 // #region DynamoDB related
 
 type AWSItem = { [key: string]: AttributeValue };
