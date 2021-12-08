@@ -20,6 +20,8 @@
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e",
+    "build:ff": "npm run build:aot",
+    "build:chrome": "npm run build:aot",
     "ff:chrome": "web-ext run -s './www' -t firefox-desktop -t chromium --keep-profile-changes --browser-console",
     "ff": "web-ext run -s './www' -t firefox-desktop --firefox-profile=webext-test --keep-profile-changes --browser-console",
     "chrome": "web-ext run -s './www' -t chromium --keep-profile-changes --browser-console",
