@@ -22,7 +22,7 @@ import {
 import { argy_ } from '../common/witnesses';
 import * as c from '../common/constants';
 
-const logALot = c.GLOBAL_LOG_A_LOT || false;;
+const logALot = c.GLOBAL_LOG_A_LOT || false;
 
 // #region get/put holdovers from FilesService
 
@@ -1241,6 +1241,9 @@ export class IbgibsService {
 
     try {
       if (!ibGib) { throw new Error('ibGib required.'); }
+      let ibGibAddr = h.getIbGibAddr({ibGib});
+      const {gib} = h.getIbAndGib({ibGibAddr});
+      if (gib === GIB) { return ibGib; }
       let isTjp = await this.isTjp_Naive({ibGib, naive});
       if (isTjp) { return ibGib; }
 
@@ -1591,6 +1594,10 @@ export class IbgibsService {
     let lc = `${this.lc}[${this.pingLatest.name}]`;
     if (logALot) { console.log(`${lc} starting...`); }
     try {
+      if (!ibGib) {
+        if (logALot) { console.log(`${lc} ibGib falsy.`); }
+        return;
+      }
       let latestAddr = await this.getLatestAddr({ibGib, tjp});
       let ibGibAddr = h.getIbGibAddr({ibGib});
 
@@ -1641,8 +1648,14 @@ export class IbgibsService {
   }): Promise<IbGibAddr> {
     let lc = `${this.lc}[${this.getLatestAddr.name}]`;
     if (logALot) { console.log(`${lc} starting...`); }
+    if (!ibGib) {
+      console.error(`${lc} ibGib falsy`);
+      return;
+    }
+    let ibGibAddr = h.getIbGibAddr({ibGib});
     try {
-      let ibGibAddr = h.getIbGibAddr({ibGib});
+      const {gib} = h.getIbAndGib({ibGibAddr});
+      if (gib === GIB) { return ibGibAddr; }
       let specialLatest = await this.getSpecialIbgib({type: "latest"});
       if (!specialLatest.rel8ns) { specialLatest.rel8ns = {}; }
 
@@ -1665,6 +1678,7 @@ export class IbgibsService {
       return latestAddr;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
+      return
     } finally {
       if (logALot) { console.log(`${lc} complete.`); }
     }

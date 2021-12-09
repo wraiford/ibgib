@@ -230,28 +230,31 @@ export class AppComponent extends IbgibComponentBase
 
   async initializeMyTags(): Promise<void> {
     const lc = `${this.lc}[${this.initializeMyTags.name}]`;
+    if (logALot) { console.log(`${lc} initializing...`); }
     try {
       const tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
       this.tagsAddr = h.getIbGibAddr({ibGib: tagsIbGib});
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
+    } finally {
+      if (logALot) { console.log(`${lc} complete.`); }
     }
   }
 
-  async getCurrentRoot(): Promise<MenuItem> {
-    const lc = `${this.lc}[${this.getCurrentRoot.name}]`;
-    try {
-      // const rootsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "roots"});
-      // this.common.ibgibs.getConfigAddr
-      let currentRootAddr = await this.common.ibgibs.getCurrentRoot();
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    }
+  // async getCurrentRoot(): Promise<MenuItem> {
+  //   const lc = `${this.lc}[${this.getCurrentRoot.name}]`;
+  //   try {
+  //     // const rootsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "roots"});
+  //     // this.common.ibgibs.getConfigAddr
+  //     let currentRootAddr = await this.common.ibgibs.getCurrentRoot();
+  //   } catch (error) {
+  //     console.error(`${lc} ${error.message}`);
+  //     throw error;
+  //   }
 
-    return null;
-  }
+  //   return null;
+  // }
 
   /**
    * For some reason, the app component refuses to be allow custom ibgib
@@ -275,7 +278,10 @@ export class AppComponent extends IbgibComponentBase
     const tagMenuItems: MenuItem[] = [];
 
     // load tags if needed
-    if (!this.tagsAddr) { await this.loadTags(); }
+    if (!this.tagsAddr) {
+      if (logALot) { console.log(`${lc} this.tagsAddr falsy`); }
+      await this.loadTags();
+    }
 
     // get tags, but don't initialize
     let tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
@@ -284,7 +290,8 @@ export class AppComponent extends IbgibComponentBase
     // if we have gotten the tags object and there are no associated individual
     // tags, try re-initializing with default tags.
     if (!tagAddrs || tagAddrs.length === 0) {
-      tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
+      if (logALot) { console.log(`${lc} couldn't get tagsIbGib?`); }
+      tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags", initialize: true});
       tagAddrs = tagsIbGib?.rel8ns?.tag || [];
     }
 

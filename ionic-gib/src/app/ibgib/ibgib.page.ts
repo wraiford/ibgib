@@ -24,7 +24,7 @@ import {
 import { argy_, WitnessBase_V1 } from '../common/witnesses';
 import * as c from '../common/constants';
 
-const logALot = c.GLOBAL_LOG_A_LOT || false;;
+const logALot = c.GLOBAL_LOG_A_LOT || false;
 
 @Component({
   selector: 'ibgib-page',

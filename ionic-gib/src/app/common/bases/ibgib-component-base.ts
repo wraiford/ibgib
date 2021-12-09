@@ -43,7 +43,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         this._updatingIbGib = true;
         this.updateIbGib(value).finally(() => {
             this._updatingIbGib = false;
-            setTimeout(() => { this.ref.detectChanges(); })
+            setTimeout(() => { this.ref.detectChanges(); }, 500)
         });
     }
     @Input()
