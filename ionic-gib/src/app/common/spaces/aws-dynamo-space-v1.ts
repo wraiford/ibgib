@@ -652,7 +652,6 @@ export class AWSDynamoSpace_V1<
 
             let resPrompt = await Plugins.Modals.prompt({title: 'hi', message: 'yo enter the thing'});
 
-            debugger;
             // let result = await encrypt({
             //     dataToEncrypt: JSON.stringify(tempCredentials),
             //     initialRecursions: 50000,
@@ -664,7 +663,6 @@ export class AWSDynamoSpace_V1<
             //     recursionsPerHash: 2,
             // });
 
-            // debugger;
             // console.log(`${lc} result.encryptedData:\n`);
             // console.log(`${lc} ${result.encryptedData}`);
             let {
@@ -687,7 +685,6 @@ export class AWSDynamoSpace_V1<
 
             console.log(`result.errors: ${result.errors}`);
         } catch (error) {
-            debugger;
             console.error(`${lc} ${error.message}`);
         }
     }
@@ -778,7 +775,7 @@ export class AWSDynamoSpace_V1<
         const lc = `${this.lc}[${this.getIbGibBatch.name}]`;
         const ibGibs: IbGib_V1[] = [];
         try {
-            const maxRetries = this.data.maxRetryThroughputCount || DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
+            // const maxRetries = this.data.maxRetryThroughputCount || DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
 
             let retryUnprocessedItemsCount = 0;
             const doItems = async (unprocessedKeys?: KeysAndAttributes) => {
@@ -944,26 +941,7 @@ export class AWSDynamoSpace_V1<
                 const item = await createDynamoDBPutItem({ibGib});
                 ibGibItems.push(item);
             }
-            const maxRetries = this.data.maxRetryThroughputCount || DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
-            // const doSend: (cmd: BatchWriteItemCommand) => Promise<BatchWriteItemCommandOutput> =
-            //     async (cmd) => {
-            //         for (let i = 0; i < maxRetries; i++) {
-            //             try {
-            //                 const resSend = await client.send(cmd);
-            //                 return resSend;
-            //             } catch (error) {
-            //                 debugger;
-            //                 if (!isThroughoutError(error)){
-            //                     debugger;
-            //                     throw error;
-            //                 }
-            //             }
-            //             console.log(`${lc} retry ${i} due to throughput in ${this.data.throttleMsDueToThroughputError} ms`);
-            //             await h.delay(this.data.throttleMsDueToThroughputError);
-            //         }
-            //         // we return above, so if gets here then throw
-            //         throw new Error(`Max retries (${maxRetries}) exceeded.`);
-            //     }
+            // const maxRetries = this.data.maxRetryThroughputCount || DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
 
             const doItems = async (items: AWSDynamoSpaceItem[]) => {
                 let cmd = createDynamoDBBatchWriteItemCommand({

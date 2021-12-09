@@ -1,8 +1,13 @@
 import { Component, OnInit, ChangeDetectorRef, Input } from '@angular/core';
-import { CommonService } from 'src/app/services/common.service';
-import { IbgibComponentBase } from 'src/app/common/bases/ibgib-component-base';
+
 import { IbGibAddr } from 'ts-gib';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
+
+import { CommonService } from '../../services/common.service';
+import { IbgibComponentBase } from '../../common/bases/ibgib-component-base';
+import * as c from '../../common/constants';
+
+const logALot = c.GLOBAL_LOG_A_LOT || false;;
 
 @Component({
   selector: 'tag-view',
@@ -33,7 +38,7 @@ export class TagViewComponent extends IbgibComponentBase
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-    console.log(`${lc} updating...`);
+    if (logALot) { console.log(`${lc} updating...`); }
     try {
       await super.updateIbGib(addr);
       await this.loadIbGib();
@@ -44,7 +49,7 @@ export class TagViewComponent extends IbgibComponentBase
       this.clearItem();
     } finally {
       this.ref.detectChanges();
-      console.log(`${lc} updated.`);
+      if (logALot) { console.log(`${lc} updated.`); }
     }
   }
 

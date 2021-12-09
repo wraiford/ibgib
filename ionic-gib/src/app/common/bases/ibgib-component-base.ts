@@ -9,9 +9,10 @@ import { DEFAULT_META_IB_STARTS } from '../constants';
 import { Subscription } from 'rxjs';
 import { getBinAddr } from '../helper';
 import * as h from 'ts-gib/dist/helper';
+import * as c from '../../common/constants';
 
 
-const logALot = true;
+const logALot = c.GLOBAL_LOG_A_LOT || false;;
 
 // @Injectable({providedIn: "root"})
 @Injectable()
@@ -91,7 +92,11 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     @Input()
     get isRoot(): boolean { return this.ib?.startsWith('root ') || false; }
     @Input()
+    get isRoots(): boolean { return this.ib?.startsWith('meta special roots') || false; }
+    @Input()
     get isTag(): boolean { return this.ib?.startsWith('tag ') || false; }
+    @Input()
+    get isTags(): boolean { return this.ib?.startsWith('meta special tags') || false; }
     @Input()
     get isPic(): boolean { return this.ib?.startsWith('pic ') || false; }
     @Input()
@@ -271,7 +276,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     }
 
     async loadTjp(): Promise<void> {
-        if (this.ibGib) {
+        if (this.ibGib && this.gib !== GIB) {
             let tjp = await this.common.ibgibs.getTjp({ibGib: this.ibGib, naive: true});
             this.tjp = tjp;
         } else if (this.tjp) {
@@ -353,8 +358,12 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         item = item || this.item;
         if (this.isTag) {
             this.item.type = 'tag';
+        } else if (this.isTags) {
+            this.item.type = 'tags';
         } else if (this.isRoot) {
             this.item.type = 'root';
+        } else if (this.isRoots) {
+            this.item.type = 'roots';
         } else if (this.isPic) {
             this.item.type = 'pic';
         } else if (this.isComment) {

@@ -6,18 +6,16 @@ import { IbGibAddr } from 'ts-gib';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 import * as c from '../../common/constants';
 
-const logALot = c.GLOBAL_LOG_A_LOT || false;;
-
 @Component({
-  selector: 'tag-list',
-  templateUrl: './tag-list-view.component.html',
-  styleUrls: ['./tag-list-view.component.scss'],
+  selector: 'root-list',
+  templateUrl: './root-list-view.component.html',
+  styleUrls: ['./root-list-view.component.scss'],
 })
-export class TagListViewComponent
+export class RootListViewComponent
   extends IbgibListComponentBase
   implements OnInit {
 
-  protected lc: string = `[${TagListViewComponent.name}]`;
+  protected lc: string = `[${RootListViewComponent.name}]`;
 
   @Input()
   get addr(): IbGibAddr { return super.addr; }
@@ -33,7 +31,7 @@ export class TagListViewComponent
   ) {
     super(common, ref);
     const lc = `${this.lc}[ctor]`
-    if (logALot) { console.log(`${lc} created`); }
+    console.log(`${lc} created`);
   }
 
   ngOnInit() {
@@ -42,21 +40,21 @@ export class TagListViewComponent
 
   updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-    if (logALot) { console.log(`${lc}`) }
+    console.log(`${lc}`)
     return super.updateIbGib(addr);
   }
 
 
   async updateItems(): Promise<void> {
-    this.rel8nNames = ['target', ...c.DEFAULT_LIST_REL8N_NAMES];
+    this.rel8nNames = ['root', ...c.DEFAULT_LIST_REL8N_NAMES];
     await super.updateItems();
     // setTimeout(() => {
     //   this.ref.detectChanges();
     // }, 1000);
   }
 
-  async tagClicked(item: IbgibItem): Promise<void> {
-    if (logALot) { console.log(`item: ${JSON.stringify(item, null, 2)}`); }
+  async rootClicked(item: IbgibItem): Promise<void> {
+    console.log(`item: ${JSON.stringify(item, null, 2)}`);
     await this.navTo({addr: item.addr});
     // this.clicked.emit(item);
   }

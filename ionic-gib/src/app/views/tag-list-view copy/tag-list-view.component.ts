@@ -1,9 +1,11 @@
 import { Component, OnInit, ChangeDetectorRef, Input } from '@angular/core';
-import { IbgibListComponentBase } from 'src/app/common/bases/ibgib-list-component-base';
-import { CommonService } from 'src/app/services/common.service';
-import { IbgibItem } from 'src/app/common/types';
+
 import { IbGibAddr } from 'ts-gib';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
+
+import { IbgibListComponentBase } from '../../common/bases/ibgib-list-component-base';
+import { CommonService } from '../../services/common.service';
+import { IbgibItem } from '../../common/types';
 import * as c from '../../common/constants';
 
 const logALot = c.GLOBAL_LOG_A_LOT || false;;

@@ -1,9 +1,14 @@
 import { Component, OnInit, ChangeDetectorRef, Output, EventEmitter, Input } from '@angular/core';
-import { IbgibComponentBase } from 'src/app/common/bases/ibgib-component-base';
-import { CommonService } from 'src/app/services/common.service';
+
 import { IbGibAddr } from 'ts-gib';
-import { IbgibItem } from 'src/app/common/types';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
+
+import { IbgibComponentBase } from '../../common/bases/ibgib-component-base';
+import { CommonService } from '../../services/common.service';
+import { IbgibItem } from '../../common/types';
+import * as c from '../../common/constants';
+
+const logALot = c.GLOBAL_LOG_A_LOT || false;;
 
 @Component({
   selector: 'list-item',
@@ -33,14 +38,14 @@ export class ListItemViewComponent
   ) {
     super(common, ref)
     const lc = `${this.lc}[ctor]`;
-    console.log(`${lc} created`);
+    if (logALot) { console.log(`${lc} created`); }
    }
 
   ngOnInit() {}
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-    console.log(`${lc} updating...`);
+    if (logALot) { console.log(`${lc} updating...`); }
     try {
       await super.updateIbGib(addr);
       await this.loadIbGib();
@@ -51,12 +56,12 @@ export class ListItemViewComponent
       this.clearItem();
     } finally {
       this.ref.detectChanges();
-      console.log(`${lc} updated.`);
+      if (logALot) { console.log(`${lc} updated.`); }
     }
   }
 
   async handleClicked(item: IbgibItem): Promise<void> {
-    console.log(`item: ${JSON.stringify(item, null, 2)}`);
+    if (logALot) { console.log(`item: ${JSON.stringify(item, null, 2)}`); }
     this.clicked.emit(item);
   }
 

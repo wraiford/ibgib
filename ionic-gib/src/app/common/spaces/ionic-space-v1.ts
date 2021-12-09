@@ -18,6 +18,7 @@ import {
 import * as c from '../constants';
 import { getBinAddr, getBinHashAndExt, isBinary } from '../helper';
 
+const logALot = c.GLOBAL_LOG_A_LOT || false;;
 
 // #region Space related interfaces/constants
 
@@ -263,11 +264,11 @@ export class IonicSpace_V1<
         super(initialData, initialRel8ns);
         const lc = `${this.lc}[ctor]`;
 
-        console.log(`${lc} initializing...`);
+        if (logALot) { console.log(`${lc} initializing...`); }
         this.initialize().catch(e => {
             console.error(`${lc} ${e.message}`);
         }).finally(() => {
-            console.log(`${lc} initializing complete.`);
+            if (logALot) { console.log(`${lc} initializing complete.`); }
         })
 
         this.ib = `witness space ${IonicSpace_V1.name}`;
@@ -398,11 +399,11 @@ export class IonicSpace_V1<
 
             let ibGibAddrsNonBin = ibGibAddrs.filter(addr => !binAddrs.includes(addr));
 
-            console.log(`${lc} getting non-bin ibgibs. ibGibAddrsNonBin: ${ibGibAddrsNonBin}`);
+            if (logALot) { console.log(`${lc} getting non-bin ibgibs. ibGibAddrsNonBin: ${ibGibAddrsNonBin}`); }
             for (let i = 0; i < ibGibAddrsNonBin.length; i++) {
                 const addr = ibGibAddrsNonBin[i];
                 if (Object.keys(this.ibGibs).includes(addr)) {
-                    console.log(`${lc} found in naive cache.`);
+                    if (logALot) { console.log(`${lc} found in naive cache.`); }
                     resultIbGibs.push(this.ibGibs[addr]);
                 } else {
                     // not found in memory, so look in files
@@ -422,14 +423,14 @@ export class IonicSpace_V1<
                 const { binHash, binExt } = getBinHashAndExt({addr});
 
                 // getting binary, not a regular ibGib via addr
-                console.log(`${lc} getting binHash.binExt: ${binHash}.${binExt}`);
+                if (logALot) { console.log(`${lc} getting binHash.binExt: ${binHash}.${binExt}`); }
                 const getResult = await this.getFile({addr});
                 if (getResult?.success && getResult.ibGib?.data) {
-                    console.log(`${lc} getResult.success. binData.length: ${getResult.ibGib!.data!}`);
+                    if (logALot) { console.log(`${lc} getResult.success. binData.length: ${getResult.ibGib!.data!}`); }
                     // console.log(`${lc} getResult.success.`);
                     resultIbGibs.push(getResult.ibGib);
                 } else {
-                    console.log(`${lc} not found in files. (binData is not cached atm)`)
+                    if (logALot) { console.log(`${lc} not found in files. (binData is not cached atm)`) }
                     // not found in files. (binData is not cached atm)
                     notFoundIbGibAddrs.push(addr);
                 }
@@ -673,12 +674,12 @@ export class IonicSpace_V1<
                 filename = this.getFilename({addr});
                 path = this.buildPath({filename, isMeta: false, isDna: false, isBin: true});
             }
-            console.log(`${lc} path: ${path}, directory: ${data.baseDir}`);
+            if (logALot) { console.log(`${lc} path: ${path}, directory: ${data.baseDir}`); }
             const _ = await Filesystem.deleteFile({
                 path,
                 directory: data.baseDir,
             });
-            console.log(`${lc} deleted. path: ${path}`);
+            if (logALot) { console.log(`${lc} deleted. path: ${path}`); }
             result.success = true;
         } catch (error) {
             const errorMsg = `${lc} ${error.message}`;
@@ -856,7 +857,7 @@ export class IonicSpace_V1<
                 directory: thisData.baseDir,
                 encoding: thisData.encoding,
             });
-            console.log(`${lc} resWrite.uri: ${resWrite.uri}`);
+            if (logALot) { console.log(`${lc} resWrite.uri: ${resWrite.uri}`); }
 
             result.success = true;
         } catch (error) {
@@ -874,7 +875,7 @@ export class IonicSpace_V1<
             if (Filesystem.requestPermissions) {
                 const resPermissions = await Filesystem.requestPermissions();
                 if (resPermissions?.results) {
-                    console.warn(`${lc} resPermissions: ${JSON.stringify(resPermissions.results)} falsy`);
+                    if (logALot) { console.log(`${lc} resPermissions: ${JSON.stringify(resPermissions.results)} falsy`); }
                     return true;
                 } else {
                     console.warn(`${lc} resPermissions?.results falsy`);
@@ -925,20 +926,20 @@ export class IonicSpace_V1<
                     exists = true;
                     this.pathExistsMap[pathExistsKey] = true;
                 } catch (error) {
-                    console.log(`${lc2} Did not exist`);
+                    if (logALot) { console.log(`${lc2} Did not exist`); }
                 }
             }
 
             if (!exists) {
                 // try full path
-                console.log(`${lc2} creating...`);
+                if (logALot) { console.log(`${lc2} creating...`); }
                 try {
                     await Filesystem.mkdir({ path, directory, recursive: true });
                     this.pathExistsMap[pathExistsKey] = true;
                 } catch (error) {
-                    console.log(`${lc2} Error creating. Trying next`);
+                    if (logALot) { console.log(`${lc2} Error creating. Trying next`); }
                 } finally {
-                    console.log(`${lc2} complete.`);
+                    if (logALot) { console.log(`${lc2} complete.`); }
                 }
             }
         }
@@ -961,10 +962,10 @@ export class IonicSpace_V1<
                     directory: data.baseDir,
                     encoding: data.encoding,
                 });
-                console.log(`${lcTry} path found: ${p}`);
+                if (logALot) { console.log(`${lcTry} path found: ${p}`); }
                 return resRead;
             } catch (error) {
-                console.log(`${lcTry} path not found: ${p}`);
+                if (logALot) { console.log(`${lcTry} path not found: ${p}`); }
                 return null;
             }
         }

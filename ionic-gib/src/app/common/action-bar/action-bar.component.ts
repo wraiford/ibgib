@@ -8,10 +8,12 @@ import { ActionItem, PicData, CommentData } from '../types';
 import { hash, getIbGibAddr, getTimestamp, getIbAndGib, pretty } from 'ts-gib/dist/helper';
 import { Factory_V1 as factory, IbGibRel8ns_V1, Rel8n, IbGib_V1 } from 'ts-gib/dist/V1';
 import * as ionicons from 'ionicons/icons/index';
-import { ILLEGAL_TAG_TEXT_CHARS } from '../constants';
 import { getBinAddr } from '../helper';
 
 import * as h from 'ts-gib/dist/helper';
+import * as c from '../constants';
+
+const logALot = c.GLOBAL_LOG_A_LOT || false;;
 
 @Component({
   selector: 'action-bar',
@@ -81,12 +83,12 @@ export class ActionBarComponent extends IbgibComponentBase
   }
 
   ngOnInit() {
-    console.log(`${this.lc} addr: ${this.addr}`);
+    if (logALot) { console.log(`${this.lc} addr: ${this.addr}`); }
   }
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-    console.log(`${lc} updating...`);
+    if (logALot) { console.log(`${lc} updating...`); }
     try {
       await super.updateIbGib(addr);
       await this.loadIbGib();
@@ -96,7 +98,7 @@ export class ActionBarComponent extends IbgibComponentBase
       this.clearItem();
     } finally {
       this.ref.detectChanges();
-      console.log(`${lc} updated.`);
+      if (logALot) { console.log(`${lc} updated.`); }
     }
   }
 
@@ -107,7 +109,7 @@ export class ActionBarComponent extends IbgibComponentBase
   async actionAddComment(event: MouseEvent): Promise<void> {
     const lc = `${this.lc}[${this.actionAddComment.name}]`;
     try {
-      console.log(`${lc} __`);
+      if (logALot) { console.log(`${lc} __`); }
       const resComment = await Modals.prompt({
         title: 'comment',
         message: 'add text',
@@ -115,7 +117,7 @@ export class ActionBarComponent extends IbgibComponentBase
       });
       if (resComment.cancelled || !resComment.value) { return; }
       const text = resComment.value.trim();
-      console.log(`${lc} text: ${text}`);
+      if (logALot) { console.log(`${lc} text: ${text}`); }
       const data: CommentData = { text, textTimestamp: getTimestamp() };
 
       // create an ibgib with the filename and ext
@@ -132,7 +134,7 @@ export class ActionBarComponent extends IbgibComponentBase
         opts.rel8ns = { 'comment on': [this.addr] };
       }
 
-      console.log(`${lc} opts: ${pretty(opts)}`);
+      if (logALot) { console.log(`${lc} opts: ${pretty(opts)}`); }
       const resCommentIbGib = await factory.firstGen(opts);
       await this.common.ibgibs.persistTransformResult({resTransform: resCommentIbGib});
       const { newIbGib: newComment } = resCommentIbGib;
@@ -209,8 +211,8 @@ export class ActionBarComponent extends IbgibComponentBase
       // .replace(new RegExp(/\W/), '') // any remaining-non-word chars
       ; // temporary eek.
 
-    console.log(`${lc} binHash: ${binHash}`);
-    console.log(`${lc} ext: ${ext}`);
+    if (logALot) { console.log(`${lc} binHash: ${binHash}`); }
+    if (logALot) { console.log(`${lc} ext: ${ext}`); }
     const data: PicData = { binHash, ext, filename, timestamp };
     const rel8ns: IbGibRel8ns = {
       'pic on': [this.addr],
@@ -317,7 +319,7 @@ export class ActionBarComponent extends IbgibComponentBase
     const reader = new FileReader();
 
     if (!file.type.match(pattern)) {
-      console.log('File format not supported');
+      if (logALot) { console.log('File format not supported'); }
       return;
     }
 
@@ -376,25 +378,25 @@ export class ActionBarComponent extends IbgibComponentBase
       let tagIbGib: IbGib_V1;
       if (resPrompt.index === 0) {
 
-        console.log(`${lc} cancelled`);
+        if (logALot) { console.log(`${lc} cancelled`); }
         await Plugins.Modals.alert({ title: 'nope', message: 'cancelled' });
         return;
 
       } else if (resPrompt.index === 1) {
 
-        console.log(`${lc} create new tag`);
+        if (logALot) { console.log(`${lc} create new tag`); }
         tagIbGib = await this.createNewTag();
 
       } else {
 
-        console.log(`${lc} tag with existing tag, but may not be latest addr`);
+        if (logALot) { console.log(`${lc} tag with existing tag, but may not be latest addr`); }
         const tagInfo: TagInfo = tagInfos[resPrompt.index - 2];
         const resTagIbGib = await this.common.ibgibs.get({addr: tagInfo.addr});
         if (resTagIbGib.success && resTagIbGib.ibGibs?.length === 1) {
           const rel8dTagIbGibAddr = getIbGibAddr({ibGib: resTagIbGib.ibGibs[0]});
-          console.log(`${lc} the rel8d tag may not be the latest: ${rel8dTagIbGibAddr}`);
+          if (logALot) { console.log(`${lc} the rel8d tag may not be the latest: ${rel8dTagIbGibAddr}`); }
           const latestTagAddr = await this.common.ibgibs.getLatestAddr({ibGib: resTagIbGib.ibGibs[0]});
-          console.log(`${lc} latestTagAddr: ${latestTagAddr}`);
+          if (logALot) { console.log(`${lc} latestTagAddr: ${latestTagAddr}`); }
           if (rel8dTagIbGibAddr === latestTagAddr) {
             console.error(`${lc} tag is already the latest`);
             tagIbGib = resTagIbGib.ibGibs[0]!;
@@ -424,7 +426,7 @@ export class ActionBarComponent extends IbgibComponentBase
       await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newTag, linked: true});
       await this.common.ibgibs.registerNewIbGib({ibGib: newTag});
 
-      console.log(`${lc} tag successful.`);
+      if (logALot) { console.log(`${lc} tag successful.`); }
       await Modals.alert({title: 'yess', message: `Tagged.`});
     } catch (error) {
       console.error(`${lc} ${error.message}`)
@@ -439,7 +441,7 @@ export class ActionBarComponent extends IbgibComponentBase
     let tagText: string;
 
     let options = IONICONS.map(iconText => {
-      console.log(`${lc} ${iconText}`);
+      if (logALot) { console.log(`${lc} ${iconText}`); }
       return {
         title: iconText,
         icon: iconText,
@@ -455,23 +457,23 @@ export class ActionBarComponent extends IbgibComponentBase
       });
 
       if (resTagText.cancelled || !resTagText.value) {
-        console.log(`${lc} cancelled? no value?`)
+        if (logALot) { console.log(`${lc} cancelled? no value?`) }
         return;
       }
 
-      if (ILLEGAL_TAG_TEXT_CHARS.some(x => resTagText.value.includes(x))) {
+      if (c.ILLEGAL_TAG_TEXT_CHARS.some(x => resTagText.value.includes(x))) {
         await Plugins.Modals.alert({
           title: 'Nope...',
-          message: `Tag Text can't contain spaces or ${ILLEGAL_TAG_TEXT_CHARS}`,
+          message: `Tag Text can't contain spaces or ${c.ILLEGAL_TAG_TEXT_CHARS}`,
         });
       } else {
         tagText = resTagText.value;
-        console.log(`${lc} tagText: ${tagText}`);
+        if (logALot) { console.log(`${lc} tagText: ${tagText}`); }
         break;
       }
     }
 
-    console.log(`${lc} resIcon stuff`)
+    if (logALot) { console.log(`${lc} resIcon stuff`) }
 
       let resIcon: ActionSheetResult;
       try {
@@ -481,7 +483,7 @@ export class ActionBarComponent extends IbgibComponentBase
           message: 'Type in the icon',
           options: [{title: 'Cancel'}, ...options],
         });
-        console.log(`${lc} whaaaa`)
+        if (logALot) { console.log(`${lc} whaaaa`) }
       } catch (error) {
         console.error(`${lc} error: ${error.message}`);
         return;
@@ -489,10 +491,10 @@ export class ActionBarComponent extends IbgibComponentBase
 
       // cancel index
       if (resIcon.index === 0) {
-        console.log(`${lc} (cancelling) resIcon.index: ${resIcon.index}`);
+        if (logALot) { console.log(`${lc} (cancelling) resIcon.index: ${resIcon.index}`); }
         return;
       } else {
-        console.log(`${lc} resIcon.index: ${resIcon.index}`);
+        if (logALot) { console.log(`${lc} resIcon.index: ${resIcon.index}`); }
       }
       icon = options[resIcon.index-1].icon;
 

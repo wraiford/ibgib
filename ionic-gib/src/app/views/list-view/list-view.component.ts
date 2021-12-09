@@ -7,6 +7,8 @@ import { IbGibAddr } from 'ts-gib';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 import * as c from '../../common/constants';
 
+const logALot = c.GLOBAL_LOG_A_LOT || false;;
+
 @Component({
   selector: 'list-view',
   templateUrl: './list-view.component.html',
@@ -16,7 +18,7 @@ export class ListViewComponent
   extends IbgibListComponentBase
   implements OnInit {
 
-  protected lc: string = `1[${ListViewComponent.name}]`;
+  protected lc: string = `[${ListViewComponent.name}]`;
 
   @Input()
   get addr(): IbGibAddr { return super.addr; }
@@ -51,7 +53,7 @@ export class ListViewComponent
 
   updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-    console.log(`${lc}`)
+    if (logALot) { console.log(`${lc}`) }
     return super.updateIbGib(addr);
   }
   // async updateIbGib(addr: IbGibAddr): Promise<void> {
@@ -72,7 +74,7 @@ export class ListViewComponent
   // }
 
   async handleClicked(item: IbgibItem): Promise<void> {
-    console.log(`item: ${JSON.stringify(item, null, 2)}`);
+    if (logALot) { console.log(`item: ${JSON.stringify(item, null, 2)}`); }
     this.clicked.emit(item);
   }
 }

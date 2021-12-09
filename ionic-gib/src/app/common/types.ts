@@ -39,7 +39,7 @@ export interface IbgibItem {
      * In the future, any comment could conceivably be a tag and thus have
      * multiple types.
      */
-    type?: 'pic' | 'comment' | 'link' | 'tag' | 'root' | 'other';
+    type?: 'pic' | 'comment' | 'link' | 'tag' | 'tags' | 'root' | 'roots' | 'other';
     /**
      * hash of the full-sized image.
      */

@@ -2,6 +2,8 @@ import { FilesystemDirectory, FilesystemEncoding } from '@capacitor/core';
 import { GIB } from 'ts-gib/dist/V1';
 import { Ib } from 'ts-gib';
 
+export const GLOBAL_LOG_A_LOT = false;
+
 /**
  * When the application first starts, it looks to bootstrap itself.
  * So it will look for a file with this primitive address.

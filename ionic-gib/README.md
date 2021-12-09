@@ -16,12 +16,12 @@ abilities:
 3. Internodal communication (send)
 4. Cryptographic hashing (sha256)
 
-So to start with, we just need somewhere that executes javascript, 
-a place to store JSON data, and if we want interwebbing, a means of talking to other 
+So to start with, we just need somewhere that executes javascript,
+a place to store JSON data, and if we want interwebbing, a means of talking to other
 somewheres that execute javascript. Nothing else.
 
-This makes it "easy" to target multiple platforms, WHICH IS KEY TO THE FUTURE OF 
-SOVEREIGN PROGRAMMING. 
+This makes it "easy" to target multiple platforms, WHICH IS KEY TO THE FUTURE OF
+SOVEREIGN PROGRAMMING.
 Leveraging TypeScript + Angular, the same code can execute not only
 single page web apps, but also browser extensions. And utilizing Ionic, we
 can add phones and tablets as well.
@@ -29,7 +29,7 @@ can add phones and tablets as well.
 ### localhost:4200 `npm start`
 
 The easiest way to iterate is with a local server. `npm start` executes `ng serve --ssl` (which
-watches for changes). 
+watches for changes).
 This starts an http server with `ng`, at https://localhost:4200 and uses
 IndexedDB in the browser for the repo.
 
@@ -37,9 +37,9 @@ Note the ssl is required for the cryptographic hashing in some browsers [^1].
 
 ### firefox/chrome extensions `npm run watch`, `npm run ff`/`npm run chrome`/`npm run ff:chrome`
 
-Builds with `--aot` in `www` folder and watches for changes. 
+Builds with `--aot` in `www` folder and watches for changes.
 
-**requires** `web-ext` in PATH, and for firefox, a profile called `webext-test`. You can create this at `about:profiles` using the firefox address bar.
+**requires** `web-ext` in PATH, and for firefox, a profile called `webext-test`. You can create this at `about:profiles` using the firefox address bar. Note that this changes your default profile to the newly created test profile, so you have to change the default back.
 
 The ff/chrome scripts use `web-ext`, which you must have in PATH for the npm script.
 

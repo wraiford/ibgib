@@ -1,10 +1,13 @@
 import { Component, OnInit, ChangeDetectorRef, Input } from '@angular/core';
+
+import { IbGibAddr } from 'ts-gib';
+import { IbGib_V1 } from 'ts-gib/dist/V1';
+
 import { IbgibComponentBase } from 'src/app/common/bases/ibgib-component-base';
 import { CommonService } from 'src/app/services/common.service';
-import { IbGibAddr } from 'ts-gib';
-import { CommentData } from 'src/app/common/types';
-import { Capacitor } from '@capacitor/core';
-import { IbGib_V1 } from 'ts-gib/dist/V1';
+import * as c from '../../common/constants';
+
+const logALot = c.GLOBAL_LOG_A_LOT || false;;
 
 @Component({
   selector: 'comment-view',
@@ -36,7 +39,7 @@ export class CommentViewComponent
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-    console.log(`${lc} updating...`);
+    if (logALot) { console.log(`${lc} updating...`); }
     try {
       await super.updateIbGib(addr);
       await this.loadIbGib();
@@ -47,7 +50,7 @@ export class CommentViewComponent
       this.clearItem();
     } finally {
       this.ref.detectChanges();
-      console.log(`${lc} updated.`);
+      if (logALot) { console.log(`${lc} updated.`); }
     }
   }
 
