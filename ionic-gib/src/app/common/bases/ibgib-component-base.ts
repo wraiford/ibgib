@@ -42,6 +42,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         this._updatingIbGib = true;
         this.updateIbGib(value).finally(() => {
             this._updatingIbGib = false;
+            setTimeout(() => { this.ref.detectChanges(); })
         });
     }
     @Input()
@@ -112,13 +113,9 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     @Input()
     errored: boolean;
     @Input()
-    get refreshing(): boolean {
-        return this._updatingIbGib || this.item?.refreshing;
-    }
+    get refreshing(): boolean { return this._updatingIbGib || this.item?.refreshing; }
     @Input()
-    get publishing(): boolean {
-        return this._updatingIbGib || this.item?.publishing;
-    }
+    get publishing(): boolean { return this._updatingIbGib || this.item?.publishing; }
 
     @Input()
     isTitle: boolean;

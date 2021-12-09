@@ -331,7 +331,7 @@ export class IbGibPage extends IbgibComponentBase
       // at this point, we're guaranteed to be the latest in this component's tjp/timeline
       if (this.item) {
         this.item.refreshing = false;
-        this.ref.detectChanges();
+        setTimeout(() => { this.ref.detectChanges(); })
       }
     }
   }

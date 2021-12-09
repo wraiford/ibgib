@@ -44,13 +44,6 @@
     </ion-toolbar>
   </ion-header>
 
-  <div *ngIf="item?.ibGib && !refreshing" id="container">
-
-    <tag-list *ngIf='ib?.startsWith("tag")' [addr]='addr' [ibGib_Context]='ibGib'></tag-list>
-
-    <chat-view *ngIf='!ib?.startsWith("tag")' [addr]='addr' [ibGib_Context]='ibGib'></chat-view>
-
-  </div>
   <div *ngIf="!item?.ibGib || refreshing" class="loading-div">
     <!-- <p>loading...</p> -->
     <div class="spacer-50"></div>
@@ -84,6 +77,13 @@
       <ion-spinner class="slant-right" name="dots" color="tertiary"></ion-spinner>
       <ion-spinner name="asdf" color="tertiary"></ion-spinner>
     </div>
+  </div>
+  <div *ngIf="item?.ibGib" id="container">
+
+    <tag-list *ngIf='ib?.startsWith("tag")' [addr]='addr' [ibGib_Context]='ibGib'></tag-list>
+
+    <chat-view *ngIf='!ib?.startsWith("tag")' [addr]='addr' [ibGib_Context]='ibGib'></chat-view>
+
   </div>
 
 </ion-content>

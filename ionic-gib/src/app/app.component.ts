@@ -100,7 +100,7 @@ export class AppComponent extends IbgibComponentBase
     this.platform.ready().then(async () => {
       this.statusBar.styleDefault();
 
-      let navToAddr: IbGibAddr = 'hmm something went wrong^gib';
+      let navToAddr: IbGibAddr; //= 'hmm something went wrong^gib';
 
       try {
         if (this.initializing) {
@@ -113,23 +113,25 @@ export class AppComponent extends IbgibComponentBase
 
         if (!this.item) { this.item = {} }
         this.item.isMeta = true;
-        await h.delay(3000);
 
         // these are AppComponent-specific initializations
         await this.initializeMyRoots();
         await this.initializeMyTags();
 
-        await this.updateIbGib(this.tagsAddr);
-        await this.loadIbGib();
-        await this.loadTjp();
-        await this.updateMenu();
-        navToAddr = this.tagsAddr;
+        let addr = await this.getCurrentIbgibAddrInURL();
+        if (!addr || addr === 'ib^gib') {
+          navToAddr = this.tagsAddr;
+        } else {
+          await this.updateIbGib(addr);
+        }
+
+        // navToAddr = this.tagsAddr;
       } catch (error) {
         console.error(`${lc} ${error.message}`);
       } finally {
         this.initializing = false;
         this.splashScreen.hide();
-        await this.navTo({addr: navToAddr});
+        if (navToAddr) { await this.navTo({addr: navToAddr}); }
       }
     });
   }
@@ -147,6 +149,23 @@ export class AppComponent extends IbgibComponentBase
 
   ngOnDestroy() {
     this.unsubscribeParamMap();
+  }
+
+  async updateIbGib(addr: IbGibAddr): Promise<void> {
+    const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
+    console.log(`${lc} updating...`);
+    try {
+      await super.updateIbGib(addr);
+      await this.loadIbGib();
+      await this.loadTjp();
+      await this.updateMenu();
+    } catch (error) {
+      console.error(`${lc} error: ${error.message}`);
+      this.clearItem();
+    } finally {
+      this.ref.detectChanges();
+      console.log(`${lc} updated.`);
+    }
   }
 
   /**
@@ -354,8 +373,25 @@ export class AppComponent extends IbgibComponentBase
     return item;
   }
 
+  async getCurrentIbgibAddrInURL(): Promise<IbGibAddr | undefined> {
+    const lc = `${this.lc}[${this.getCurrentIbgibAddrInURL.name}]`
+    try {
+      let path = this.router?.url === "/" ?
+        window?.location?.pathname :
+        this.router?.url;
+      let addr = path.startsWith('/ibgib/') ?
+        decodeURI(path.split('/')[2]) :
+        undefined;
+
+      return addr;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return undefined;
+    }
+  }
+
   subscribeParamMap() {
-    let lc = `${this.lc}[${this.subscribeParamMap.name}]`;
+    const lc = `${this.lc}[${this.subscribeParamMap.name}]`;
 
     console.log(`${lc} subscribing...`)
 
@@ -364,10 +400,11 @@ export class AppComponent extends IbgibComponentBase
       // let e = <RouterEvent>evnt;
       // let addr = this.activatedRoute.root.firstChild.data['addr'];
       // console.log(`${lc} real address yo: ${addr}`);
-      if (!this.router?.url) { return; }
-      const addr = this.router.url && this.router.url.startsWith('/ibgib/') ?
-        decodeURI(this.router.url.split('/')[2]) :
-        undefined;
+      // if (!this.router?.url) { return; }
+      // const addr = this.router.url && this.router.url.startsWith('/ibgib/') ?
+      //   decodeURI(this.router.url.split('/')[2]) :
+      //   undefined;
+      const addr = await this.getCurrentIbgibAddrInURL();
       console.log(`${lc} addr: ${addr}`);
       console.log(`${lc} router.url: ${h.pretty(this.router.url)}`)
       if (event.id && event.url && addr && addr !== this.addr) {

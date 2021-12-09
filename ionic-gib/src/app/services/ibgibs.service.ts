@@ -1215,7 +1215,10 @@ export class IbgibsService {
   }): Promise<boolean> {
     const lc = `${this.lc}[${this.isTjp_Naive.name}]`;
     try {
-      if (!ibGib) { throw new Error('ibGib required.'); }
+      if (!ibGib) {
+        debugger;
+        throw new Error('ibGib required.');
+      }
       if (naive) {
         if (ibGib.data) {
           if (ibGib.data!.isTjp) { return true; }
@@ -1242,7 +1245,7 @@ export class IbgibsService {
     ibGib: IbGib_V1<any>,
     naive?: boolean,
   }): Promise<IbGib_V1<any>> {
-    const lc = `${this.lc}[${this.isTjp_Naive.name}]`;
+    const lc = `${this.lc}[${this.getTjp.name}]`;
 
     try {
       if (!ibGib) { throw new Error('ibGib required.'); }

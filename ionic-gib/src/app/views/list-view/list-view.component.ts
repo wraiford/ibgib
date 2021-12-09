@@ -12,7 +12,7 @@ import * as c from '../../common/constants';
   templateUrl: './list-view.component.html',
   styleUrls: ['./list-view.component.scss'],
 })
-export class ListViewComponent 
+export class ListViewComponent
   extends IbgibListComponentBase
   implements OnInit {
 
@@ -45,7 +45,7 @@ export class ListViewComponent
     }, 5000);
   }
 
-  ngOnInit() { 
+  ngOnInit() {
     super.ngOnInit();
   }
 
