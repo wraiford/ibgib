@@ -130,7 +130,7 @@ export const TAGGED_REL8N_NAME = 'tagged';
  * These rel8n names are shown in a list view by default.
  */
 export const DEFAULT_LIST_REL8N_NAMES: string[] = [
-    'pic', 'comment', 'link', 'tag', 'result',
+    'pic', 'comment', 'link', 'result',
 ]
 
 export const DEFAULT_META_IB_STARTS: Ib[] = [
@@ -145,6 +145,9 @@ export const ILLEGAL_TAG_TEXT_CHARS = [
     '^', '?', '/', '\\', `|`,
 ];
 
+export const ILLEGAL_TAG_DESC_CHARS = [
+    '^',
+];
 /**
  * When showing a menu item, this is the max length
  */

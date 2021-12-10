@@ -7,13 +7,15 @@ import { IbGibAddr, IbGibRel8ns, V1 } from 'ts-gib';
 import { ActionItem, PicData, CommentData } from '../types';
 import { hash, getIbGibAddr, getTimestamp, getIbAndGib, pretty } from 'ts-gib/dist/helper';
 import { Factory_V1 as factory, IbGibRel8ns_V1, Rel8n, IbGib_V1 } from 'ts-gib/dist/V1';
-import * as ionicons from 'ionicons/icons/index';
+// import * as ionicons from 'ionicons/icons/index';
 import { getBinAddr } from '../helper';
 
 import * as h from 'ts-gib/dist/helper';
 import * as c from '../constants';
+import { ModalController } from '@ionic/angular';
+import { ChooseIconModalComponent, IconItem } from '../choose-icon-modal/choose-icon-modal.component';
 
-const logALot = c.GLOBAL_LOG_A_LOT || false;;
+const logALot = c.GLOBAL_LOG_A_LOT || false;
 
 @Component({
   selector: 'action-bar',
@@ -78,6 +80,7 @@ export class ActionBarComponent extends IbgibComponentBase
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
+    private modalController: ModalController,
   ) {
     super(common, ref);
   }
@@ -384,6 +387,10 @@ export class ActionBarComponent extends IbgibComponentBase
 
         if (logALot) { console.log(`${lc} create new tag`); }
         tagIbGib = await this.createNewTag();
+        if (!tagIbGib) {
+          if (logALot) { console.log(`${lc} aborting creating new tag.`); }
+          return;
+        }
 
       } else {
 
@@ -433,76 +440,130 @@ export class ActionBarComponent extends IbgibComponentBase
 
   }
 
-  async createNewTag(): Promise<IbGib_V1> {
+  async createNewTag(): Promise<IbGib_V1 | undefined> {
     const lc = `${this.lc}[${this.createNewTag.name}]`;
-    let icon: string;
+
+    try {
+      if (logALot) { console.log(`${lc} starting...`); }
+
+      const text = await this.chooseTagText();
+      if (!text) { return; }
+      const icon = await this.chooseTagIcon();
+      if (!icon) { return; }
+      const description = await this.chooseTagDescription(text);
+      if (!description) { return; }
+
+      const resNewTag = await this.common.ibgibs.createTagIbGib({text, icon, description});
+
+      return resNewTag.newTagIbGib;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return;
+    } finally {
+      if (logALot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  /**
+   * Returns the text/title of the tag.
+   * @returns
+   */
+  async chooseTagText(): Promise<string | undefined> {
+    const lc = `${this.lc}[${this.chooseTagText.name}]`;
     let tagText: string;
-
-    let options = IONICONS.map(iconText => {
-      if (logALot) { console.log(`${lc} ${iconText}`); }
-      return {
-        title: iconText,
-        icon: iconText,
-      };
-    });
-
-    for (let i = 0; i < 10; i++) {
-      let resTagText = await Plugins.Modals.prompt({
-        title: 'Tag Text?',
-        message: `What's the tag called?`,
-        cancelButtonTitle: 'Cancel',
-        okButtonTitle: 'Create Tag',
-      });
-
-      if (resTagText.cancelled || !resTagText.value) {
-        if (logALot) { console.log(`${lc} cancelled? no value?`) }
-        return;
-      }
-
-      if (c.ILLEGAL_TAG_TEXT_CHARS.some(x => resTagText.value.includes(x))) {
-        await Plugins.Modals.alert({
-          title: 'Nope...',
-          message: `Tag Text can't contain spaces or ${c.ILLEGAL_TAG_TEXT_CHARS}`,
+    try {
+      for (let i = 0; i < 10; i++) {
+        let resTagText = await Plugins.Modals.prompt({
+          title: 'Tag Text?',
+          message: `What's the tag called?`,
+          cancelButtonTitle: 'Cancel',
+          okButtonTitle: 'Next...',
         });
-      } else {
-        tagText = resTagText.value;
-        if (logALot) { console.log(`${lc} tagText: ${tagText}`); }
-        break;
+
+        if (resTagText.cancelled || !resTagText.value) {
+          if (logALot) { console.log(`${lc} cancelled? no value?`) }
+          return;
+        }
+
+        if (c.ILLEGAL_TAG_TEXT_CHARS.some(x => resTagText.value.includes(x))) {
+          await Plugins.Modals.alert({
+            title: 'Nope...',
+            message: `Tag Text can't contain spaces or ${c.ILLEGAL_TAG_TEXT_CHARS}`,
+          });
+        } else {
+          tagText = resTagText.value;
+          if (logALot) { console.log(`${lc} tagText: ${tagText}`); }
+          break;
+        }
       }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      tagText = undefined;
     }
 
-    if (logALot) { console.log(`${lc} resIcon stuff`) }
+    return tagText;
+  }
 
-      let resIcon: ActionSheetResult;
-      try {
-        await this.delay(200); // some problem with ionic showing the modal too soon.
-        resIcon = await Plugins.Modals.showActions({
-          title: 'Tag Icon?',
-          message: 'Type in the icon',
-          options: [{title: 'Cancel'}, ...options],
+  async chooseTagIcon(): Promise<string | undefined> {
+    const lc = `${this.lc}[${this.chooseTagIcon.name}]`;
+    try {
+      const modal = await this.modalController.create({
+        component: ChooseIconModalComponent,
+      });
+      await modal.present();
+      let resModal = await modal.onWillDismiss();
+      const iconItem: IconItem = resModal.data;
+      if (!iconItem) {
+        if (logALot) { console.log(`${lc} cancelled.`) }
+        return;
+      }
+      if (logALot) { console.log(`${lc} icon: ${iconItem.icon}`); }
+      return iconItem!.icon;
+    } catch (error) {
+      console.error(`${lc} error: ${error.message}`);
+      return undefined;
+    }
+  }
+
+  /**
+   * Returns the description of the tag.
+   * @returns
+   */
+  async chooseTagDescription(tagText: string): Promise<string | undefined> {
+    const lc = `${this.lc}[${this.chooseTagDescription.name}]`;
+    let tagDesc: string;
+    try {
+      for (let i = 0; i < 10; i++) {
+        let resTagDesc = await Plugins.Modals.prompt({
+          title: 'Tag Description?',
+          message: `What's the tag description?`,
+          inputPlaceholder: tagText,
+          cancelButtonTitle: 'Cancel',
+          okButtonTitle: 'Create Tag',
         });
-        if (logALot) { console.log(`${lc} whaaaa`) }
-      } catch (error) {
-        console.error(`${lc} error: ${error.message}`);
-        return;
+
+        if (resTagDesc.cancelled) {
+          if (logALot) { console.log(`${lc} cancelled? no value?`) }
+          return;
+        }
+
+        if (c.ILLEGAL_TAG_DESC_CHARS.some(x => resTagDesc.value.includes(x))) {
+          await Plugins.Modals.alert({
+            title: 'Nope...',
+            message: `Description can't contain ${c.ILLEGAL_TAG_DESC_CHARS}`,
+          });
+        } else {
+          tagDesc = resTagDesc.value || `${tagText} is cool tag.`;
+          if (logALot) { console.log(`${lc} tagText: ${tagDesc}`); }
+          break;
+        }
       }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      tagDesc = undefined;
+    }
 
-      // cancel index
-      if (resIcon.index === 0) {
-        if (logALot) { console.log(`${lc} (cancelling) resIcon.index: ${resIcon.index}`); }
-        return;
-      } else {
-        if (logALot) { console.log(`${lc} resIcon.index: ${resIcon.index}`); }
-      }
-      icon = options[resIcon.index-1].icon;
-
-
-      const resNewTag =
-        await this.common.ibgibs.createTagIbGib({text: tagText, icon, description: ''});
-      return resNewTag.newTagIbGib;
-    // });
-
-
+    return tagDesc;
   }
 
   delay(ms: number): Promise<void> {
@@ -514,393 +575,3 @@ interface TagInfo {
   title: string;
   addr: string;
 }
-
-const IONICONS = [
-  'add',
-  'add-circle',
-  'alert',
-  'alert-circle',
-  'add',
-  'airplane',
-  'alarm',
-  'albums',
-  'alert',
-  'alertCircle',
-  'americanFootball',
-  'analytics',
-  'aperture',
-  'apps',
-  'archive',
-  'arrowBack',
-  'arrowBackCircle',
-  'arrowDown',
-  'arrowDownCircle',
-  'arrowForward',
-  'arrowForwardCircle',
-  'arrowRedo',
-  'arrowRedoCircle',
-  'arrowUndo',
-  'arrowUndoCircle',
-  'arrowUp',
-  'arrowUpCircle',
-  'at',
-  'atCircle',
-  'attach',
-  'backspace',
-  'bandage',
-  'barChart',
-  'barbell',
-  'barcode',
-  'baseball',
-  'basket',
-  'basketball',
-  'batteryCharging',
-  'batteryDead',
-  'batteryFull',
-  'batteryHalf',
-  'beaker',
-  'bed',
-  'beer',
-  'bicycle',
-  'bluetooth',
-  'boat',
-  'body',
-  'bonfire',
-  'book',
-  'bookmark',
-  'bookmarks',
-  'briefcase',
-  'browsers',
-  'brush',
-  'bug',
-  'build',
-  'bulb',
-  'bus',
-  'business',
-  'cafe',
-  'calculator',
-  'calendar',
-  'call',
-  'camera',
-  'cameraReverse',
-  'car',
-  'carSport',
-  'card',
-  'caretBack',
-  'caretBackCircle',
-  'caretDown',
-  'caretDownCircle',
-  'caretForward',
-  'caretForwardCircle',
-  'caretUp',
-  'caretUpCircle',
-  'cart',
-  'cash',
-  'cellular',
-  'chatbox',
-  'chatboxEllipses',
-  'chatbubble',
-  'chatbubbleEllipses',
-  'chatbubbles',
-  'checkbox',
-  'checkmark',
-  'checkmarkCircle',
-  'checkmarkDone',
-  'checkmarkDoneCircle',
-  'chevronBack',
-  'chevronBackCircle',
-  'chevronDown',
-  'chevronDownCircle',
-  'chevronForward',
-  'chevronForwardCircle',
-  'chevronUp',
-  'chevronUpCircle',
-  'clipboard',
-  'close',
-  'closeCircle',
-  'cloud',
-  'cloudCircle',
-  'cloudDone',
-  'cloudDownload',
-  'cloudOffline',
-  'cloudUpload',
-  'cloudy',
-  'cloudyNight',
-  'code',
-  'codeDownload',
-  'codeSlash',
-  'codeWorking',
-  'cog',
-  'colorFill',
-  'colorFilter',
-  'colorPalette',
-  'colorWand',
-  'compass',
-  'construct',
-  'contract',
-  'contrast',
-  'copy',
-  'create',
-  'crop',
-  'cube',
-  'cut',
-  'desktop',
-  'disc',
-  'document',
-  'documentAttach',
-  'documentText',
-  'documents',
-  'download',
-  'duplicate',
-  'ear',
-  'earth',
-  'easel',
-  'egg',
-  'ellipse',
-  'ellipsisHorizontal',
-  'ellipsisHorizontalCircle',
-  'ellipsisVertical',
-  'ellipsisVerticalCircle',
-  'enter',
-  'exit',
-  'expand',
-  'eye',
-  'eyeOff',
-  'eyedrop',
-  'fastFood',
-  'female',
-  'fileTray',
-  'fileTrayFull',
-  'fileTrayStacked',
-  'film',
-  'filter',
-  'fingerPrint',
-  'fitness',
-  'flag',
-  'flame',
-  'flash',
-  'flashOff',
-  'flashlight',
-  'flask',
-  'flower',
-  'folder',
-  'folderOpen',
-  'football',
-  'funnel',
-  'gameController',
-  'gift',
-  'gitBranch',
-  'gitCommit',
-  'gitCompare',
-  'gitMerge',
-  'gitNetwork',
-  'gitPullRequest',
-  'glasses',
-  'globe',
-  'golf',
-  'grid',
-  'hammer',
-  'handLeft',
-  'handRight',
-  'happy',
-  'hardwareChip',
-  'headset',
-  'heart',
-  'heartCircle',
-  'heartDislike',
-  'heartDislikeCircle',
-  'heartHalf',
-  'help',
-  'helpBuoy',
-  'helpCircle',
-  'home',
-  'hourglass',
-  'iceCream',
-  'image',
-  'images',
-  'infinite',
-  'information',
-  'informationCircle',
-  'journal',
-  'key',
-  'keypad',
-  'language',
-  'laptop',
-  'layers',
-  'leaf',
-  'library',
-  'link',
-  'list',
-  'listCircle',
-  'locate',
-  'location',
-  'lockClosed',
-  'lockOpen',
-  'logIn',
-  'magnet',
-  'mail',
-  'mailOpen',
-  'mailUnread',
-  'male',
-  'maleFemale',
-  'man',
-  'map',
-  'medal',
-  'medical',
-  'medkit',
-  'megaphone',
-  'menu',
-  'mic',
-  'micCircle',
-  'micOff',
-  'micOffCircle',
-  'moon',
-  'move',
-  'musicalNote',
-  'musicalNotes',
-  'navigate',
-  'navigateCircle',
-  'newspaper',
-  'notifications',
-  'notificationsCircle',
-  'notificationsOff',
-  'notificationsOffCircle',
-  'nuclear',
-  'nutrition',
-  'open',
-  'options',
-  'paperPlane',
-  'partlySunny',
-  'pause',
-  'pauseCircle',
-  'paw',
-  'pencil',
-  'people',
-  'peopleCircle',
-  'person',
-  'personAdd',
-  'personCircle',
-  'personRemove',
-  'phoneLandscape',
-  'phonePortrait',
-  'pieChart',
-  'pin',
-  'pint',
-  'pizza',
-  'planet',
-  'play',
-  'playBack',
-  'playBackCircle',
-  'playCircle',
-  'playForward',
-  'playForwardCircle',
-  'playSkipBack',
-  'playSkipBackCircle',
-  'playSkipForward',
-  'playSkipForwardCircle',
-  'podium',
-  'power',
-  'pricetag',
-  'pricetags',
-  'print',
-  'pulse',
-  'push',
-  'qrCode',
-  'radio',
-  'radioButtonOff',
-  'radioButtonOn',
-  'rainy',
-  'reader',
-  'receipt',
-  'recording',
-  'refresh',
-  'refreshCircle',
-  'reload',
-  'reloadCircle',
-  'remove',
-  'removeCircle',
-  'reorderFour',
-  'reorderThree',
-  'reorderTwo',
-  'repeat',
-  'resize',
-  'restaurant',
-  'returnDownBack',
-  'returnDownForward',
-  'returnUpBack',
-  'returnUpForward',
-  'ribbon',
-  'rocket',
-  'rose',
-  'sad',
-  'save',
-  'scan',
-  'scanCircle',
-  'school',
-  'search',
-  'searchCircle',
-  'send',
-  'server',
-  'settings',
-  'shapes',
-  'share',
-  'shareSocial',
-  'shield',
-  'shieldCheckmark',
-  'shirt',
-  'shuffle',
-  'skull',
-  'snow',
-  'speedometer',
-  'square',
-  'star',
-  'starHalf',
-  'statsChart',
-  'stop',
-  'stopCircle',
-  'stopwatch',
-  'subway',
-  'sunny',
-  'swapHorizontal',
-  'swapVertical',
-  'sync',
-  'syncCircle',
-  'tabletLandscape',
-  'tabletPortrait',
-  'tennisball',
-  'terminal',
-  'text',
-  'thermometer',
-  'thumbsDown',
-  'thumbsUp',
-  'thunderstorm',
-  'time',
-  'timer',
-  'today',
-  'toggle',
-  'trailSign',
-  'train',
-  'transgender',
-  'trash',
-  'trashBin',
-  'trendingDown',
-  'trendingUp',
-  'triangle',
-  'trophy',
-  'tv',
-  'umbrella',
-  'videocam',
-  'volumeHigh',
-  'volumeLow',
-  'volumeMedium',
-  'volumeMute',
-  'volumeOff',
-  'walk',
-  'wallet',
-  'warning',
-  'watch',
-  'water',
-  'wifi',
-  'wine',
-  'woman',
-];

@@ -16,6 +16,8 @@ import { TagListViewComponent } from '../views/tag-list-view/tag-list-view.compo
 import { PicViewComponent } from '../views/pic-view/pic-view.component';
 import { ListItemViewComponent } from '../views/list-item-view/list-item-view.component';
 import { CommentViewComponent } from '../views/comment-view/comment-view.component';
+import { ChooseIconModalComponent } from '../common/choose-icon-modal/choose-icon-modal.component';
+import { RootListViewComponent } from '../views/root-list-view/root-list-view.component';
 
 @NgModule({
   imports: [
@@ -35,6 +37,8 @@ import { CommentViewComponent } from '../views/comment-view/comment-view.compone
     PicViewComponent,
     CommentViewComponent,
     IbGibPage,
+    ChooseIconModalComponent,
+    RootListViewComponent,
   ],
   schemas: [ CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA ],
 })

@@ -7,7 +7,7 @@ import { CommonService } from 'src/app/services/common.service';
 import * as c from '../constants';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 
-const logALot = c.GLOBAL_LOG_A_LOT || false;;
+const logALot = c.GLOBAL_LOG_A_LOT || false;
 
 @Injectable({providedIn: "root"})
 export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem>
@@ -22,18 +22,25 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
      *   the place. This is used all throughout the codebase.
      *   Otherwise, I usually use very long names...often too long! :-)
      */
-    protected lc: string = `2[${IbgibListComponentBase.name}]`;
+    protected lc: string = `[${IbgibListComponentBase.name}]`;
 
     private _updatingItems: boolean;
 
     @Input()
     items: TItem[] = [];
 
-    /**
-     * Rel8n names to show in the list by default.
-     */
     @Input()
     rel8nNames: string[] = c.DEFAULT_LIST_REL8N_NAMES;
+    // set rel8nNames(value: string[]) {
+    //     this._rel8nNames = value;
+    // }
+    // /**
+    //  * Rel8n names to show in the list by default.
+    //  */
+    // @Input()
+    // get rel8nNames(): string[] {
+    //     return this._rel8nNames;
+    // }
 
     constructor(
         protected common: CommonService,
@@ -84,6 +91,9 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
             this.items = [];
             let newItems = [];
             if (!this.item || !this.item.ibGib || !this.item.ibGib!.rel8ns) { return; }
+            if (!this.rel8nNames.includes('target')) {
+                // debugger;
+            }
             if (logALot) { console.log(`${lc} this.rel8nNames: ${this.rel8nNames?.toString()}`); }
 
             for (let rel8nName of this.rel8nNames) {

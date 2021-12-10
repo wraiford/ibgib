@@ -1,0 +1,24 @@
+<ion-header translucent>
+  <ion-toolbar>
+    <ion-title>Choose an icon...</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="handleCancelClick()">Cancel</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content fullscreen>
+  <ion-list>
+    <ion-item *ngFor="let item of items; let i = index" (click)="handleItemClick(item)">
+      <ion-icon slot="start" [ios]="item.icon" [md]="item.icon.replace('outline', 'sharp')"></ion-icon>
+      <ion-label>{{ item.title }}</ion-label>
+      <!-- {{ item.icon }} {{ item.title }} -->
+      <!-- <ion-avatar slot="start"> -->
+        <!-- <ion-img src="./avatar-gollum.jpg"/> -->
+      <!-- </ion-avatar> -->
+      <!-- <ion-label>
+        <h2>Gollum</h2>
+        <p>Sneaky little hobbitses!</p>
+      </ion-label> -->
+    </ion-item>
+  </ion-list>
+</ion-content>
