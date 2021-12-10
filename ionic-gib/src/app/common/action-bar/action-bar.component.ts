@@ -16,6 +16,7 @@ import { ModalController } from '@ionic/angular';
 import { ChooseIconModalComponent, IconItem } from '../choose-icon-modal/choose-icon-modal.component';
 
 const logALot = c.GLOBAL_LOG_A_LOT || false;
+const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
   selector: 'action-bar',
@@ -76,6 +77,10 @@ export class ActionBarComponent extends IbgibComponentBase
 
   @Input()
   items: ActionItem[] = this.DEFAULT_ACTIONS.concat();
+
+  protected debugBorderWidth: string = debugBorder ? "22px" : "0px"
+  protected debugBorderColor: string = "#FFAABB";
+  protected debugBorderStroke: string = "solid";
 
   constructor(
     protected common: CommonService,

@@ -12,7 +12,8 @@ import * as h from 'ts-gib/dist/helper';
 import * as c from '../../common/constants';
 
 
-const logALot = c.GLOBAL_LOG_A_LOT || false;;
+const logALot = c.GLOBAL_LOG_A_LOT || false;
+const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 // @Injectable({providedIn: "root"})
 @Injectable()
@@ -28,6 +29,10 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
      *   Otherwise, I usually use very long names...often too long! :-)
      */
     protected lc: string = `[${IbgibComponentBase.name}]`;
+
+    protected debugBorderWidth: string = debugBorder ? "2px" : "0px"
+    protected debugBorderColor: string = "green";
+    protected debugBorderStroke: string = "solid";
 
     private _updatingIbGib: boolean;
     // private _addr: IbGibAddr;

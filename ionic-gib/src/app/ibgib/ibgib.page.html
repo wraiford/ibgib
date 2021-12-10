@@ -78,7 +78,13 @@
       <ion-spinner name="asdf" color="tertiary"></ion-spinner>
     </div>
   </div>
-  <div *ngIf="item?.ibGib" id="container">
+    <!-- [ngStyle]="{'border-color': '[debugBorderColor]','border-width':'155px','border-stroke':'solid'}" -->
+  <div id="container"
+    *ngIf="item?.ibGib"
+    [style.border-color]="debugBorderColor"
+    [style.border-width]="debugBorderWidth"
+    [style.border-stroke]="debugBorderStroke"
+    >
 
     <tag-list *ngIf='isTags || isTag' [addr]='addr' [ibGib_Context]='ibGib'></tag-list>
     <root-list *ngIf='isRoots' [addr]='addr' [ibGib_Context]='ibGib'></root-list>

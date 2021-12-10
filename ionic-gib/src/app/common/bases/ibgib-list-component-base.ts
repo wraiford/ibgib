@@ -31,16 +31,6 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
 
     @Input()
     rel8nNames: string[] = c.DEFAULT_LIST_REL8N_NAMES;
-    // set rel8nNames(value: string[]) {
-    //     this._rel8nNames = value;
-    // }
-    // /**
-    //  * Rel8n names to show in the list by default.
-    //  */
-    // @Input()
-    // get rel8nNames(): string[] {
-    //     return this._rel8nNames;
-    // }
 
     constructor(
         protected common: CommonService,

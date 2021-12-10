@@ -3,4 +3,8 @@
 <!-- <list-view [addr]='addr' (clicked)='tagClicked($event)' ></list-view> -->
 <list-view [addr]='addr'
     (clicked)='tagClicked($event)'
-    [rel8nNames]='rel8nNames'></list-view>
+    [rel8nNames]='rel8nNames'
+    [style.border-color]="debugBorderColor"
+    [style.border-width]="debugBorderWidth"
+    [style.border-stroke]="debugBorderStroke"
+    ></list-view>

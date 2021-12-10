@@ -9,6 +9,7 @@ import { IbgibItem } from '../../common/types';
 import * as c from '../../common/constants';
 
 const logALot = c.GLOBAL_LOG_A_LOT || false;;
+const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
   selector: 'list-item',
@@ -31,6 +32,10 @@ export class ListItemViewComponent
 
   @Output()
   clicked: EventEmitter<IbgibItem> = new EventEmitter();
+
+  protected debugBorderWidth: string = debugBorder ? "2px" : "0px"
+  protected debugBorderColor: string = "yellow";
+  protected debugBorderStroke: string = "solid";
 
   constructor(
     protected common: CommonService,

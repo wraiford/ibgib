@@ -25,6 +25,7 @@ import { argy_, WitnessBase_V1 } from '../common/witnesses';
 import * as c from '../common/constants';
 
 const logALot = c.GLOBAL_LOG_A_LOT || false;
+const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
   selector: 'ibgib-page',
@@ -36,6 +37,10 @@ export class IbGibPage extends IbgibComponentBase
   implements OnInit, OnDestroy {
 
   protected lc: string = `[${IbGibPage.name}]`;
+
+  protected debugBorderWidth: string = debugBorder ? "2px" : "0px"
+  protected debugBorderColor: string = "#abc123";
+  protected debugBorderStroke: string = "solid";
 
   @Input()
   get addr(): IbGibAddr { return super.addr; }

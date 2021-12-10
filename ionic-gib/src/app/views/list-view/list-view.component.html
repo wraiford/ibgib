@@ -2,5 +2,8 @@
   *ngFor='let item of items'
   [addr]='item.addr'
   (click)='handleClicked(item)'
+  [style.border-color]="debugBorderColor"
+  [style.border-width]="debugBorderWidth"
+  [style.border-stroke]="debugBorderStroke"
   >
 </list-item>

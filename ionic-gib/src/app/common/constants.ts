@@ -3,6 +3,7 @@ import { GIB } from 'ts-gib/dist/V1';
 import { Ib } from 'ts-gib';
 
 export const GLOBAL_LOG_A_LOT = false;
+export const GLOBAL_DEBUG_BORDER = false;
 
 /**
  * When the application first starts, it looks to bootstrap itself.
