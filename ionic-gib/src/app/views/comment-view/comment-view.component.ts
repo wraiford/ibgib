@@ -29,9 +29,9 @@ export class CommentViewComponent
   get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
   set ibGib_Context(value: IbGib_V1 ) { super.ibGib_Context = value; }
 
-  protected debugBorderWidth: string = debugBorder ? "5px" : "0px"
-  protected debugBorderColor: string = "yellow";
-  protected debugBorderStyle: string = "solid";
+  public debugBorderWidth: string = debugBorder ? "5px" : "0px"
+  public debugBorderColor: string = "yellow";
+  public debugBorderStyle: string = "solid";
 
   constructor(
     protected common: CommonService,

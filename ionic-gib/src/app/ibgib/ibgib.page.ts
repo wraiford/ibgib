@@ -39,9 +39,9 @@ export class IbGibPage extends IbgibComponentBase
 
   protected lc: string = `[${IbGibPage.name}]`;
 
-  protected debugBorderWidth: string = debugBorder ? "2px" : "0px"
-  protected debugBorderColor: string = "#abc123";
-  protected debugBorderStyle: string = "solid";
+  public debugBorderWidth: string = debugBorder ? "2px" : "0px"
+  public debugBorderColor: string = "#abc123";
+  public debugBorderStyle: string = "solid";
 
   @Input()
   get addr(): IbGibAddr { return super.addr; }

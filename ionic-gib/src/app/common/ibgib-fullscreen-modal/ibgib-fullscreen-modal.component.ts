@@ -21,9 +21,9 @@ export class IbgibFullscreenModalComponent
 
   protected lc: string = `[${IbgibFullscreenModalComponent.name}]`;
 
-  protected debugBorderWidth: string = debugBorder ? "2px" : "0px"
-  protected debugBorderColor: string = "#ae2b33";
-  protected debugBorderStyle: string = "solid";
+  public debugBorderWidth: string = debugBorder ? "2px" : "0px"
+  public debugBorderColor: string = "#ae2b33";
+  public debugBorderStyle: string = "solid";
 
   @Input()
   get itemJson(): string {

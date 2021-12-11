@@ -31,9 +31,9 @@ export class ListItemViewComponent extends IbgibComponentBase {
   @Output()
   clicked: EventEmitter<IbgibItem> = new EventEmitter();
 
-  protected debugBorderWidth: string = debugBorder ? "2px" : "0px"
-  protected debugBorderColor: string = "yellow";
-  protected debugBorderStyle: string = "solid";
+  public debugBorderWidth: string = debugBorder ? "2px" : "0px"
+  public debugBorderColor: string = "yellow";
+  public debugBorderStyle: string = "solid";
 
   constructor(
     protected common: CommonService,

@@ -30,9 +30,9 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
      */
     protected lc: string = `[${IbgibComponentBase.name}]`;
 
-    protected debugBorderWidth: string = debugBorder ? "2px" : "0px"
-    protected debugBorderColor: string = "green";
-    protected debugBorderStyle: string = "solid";
+    public debugBorderWidth: string = debugBorder ? "2px" : "0px"
+    public debugBorderColor: string = "green";
+    public debugBorderStyle: string = "solid";
 
     private _updatingIbGib: boolean;
     // private _addr: IbGibAddr;

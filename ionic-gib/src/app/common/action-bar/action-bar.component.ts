@@ -78,9 +78,9 @@ export class ActionBarComponent extends IbgibComponentBase
   @Input()
   items: ActionItem[] = this.DEFAULT_ACTIONS.concat();
 
-  protected debugBorderWidth: string = debugBorder ? "22px" : "0px"
-  protected debugBorderColor: string = "#FFAABB";
-  protected debugBorderStyle: string = "solid";
+  public debugBorderWidth: string = debugBorder ? "22px" : "0px"
+  public debugBorderColor: string = "#FFAABB";
+  public debugBorderStyle: string = "solid";
 
   constructor(
     protected common: CommonService,
