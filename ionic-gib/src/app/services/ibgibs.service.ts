@@ -211,7 +211,7 @@ export interface ConfigIbGib_V1 extends IbGib_V1<AppSpaceData, AppSpaceRel8ns> {
   providedIn: 'root'
 })
 export class IbgibsService {
-  private lc = `[${IbgibsService.name}]`;
+  private lc: string = `[${IbgibsService.name}]`;
 
   private _initializing: boolean;
 

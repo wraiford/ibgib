@@ -6,13 +6,20 @@
   class='root-item'
   [addr]='addr'
   (click)='handleClicked(item)'
+  [style.border-color]="debugBorderColor"
+  [style.border-width]="debugBorderWidth"
+  [style.border-style]="debugBorderStyle"
   >
 </root-view>
 <pic-view
   *ngIf='item?.type === "pic"'
   class='pic-item'
   [addr]='addr'
+  [isTitle]='false'
   (click)='handleClicked(item)'
+  [style.border-color]="debugBorderColor"
+  [style.border-width]="debugBorderWidth"
+  [style.border-style]="debugBorderStyle"
   >
 </pic-view>
 
@@ -22,6 +29,9 @@
   class='comment-item'
   [addr]='addr'
   (click)='handleClicked(item)'
+  [style.border-color]="debugBorderColor"
+  [style.border-width]="debugBorderWidth"
+  [style.border-style]="debugBorderStyle"
   >
 </comment-view>
 
@@ -31,6 +41,9 @@
   class='list-item tag-item'
   [addr]='addr'
   (click)='handleClicked(item)'
+  [style.border-color]="debugBorderColor"
+  [style.border-width]="debugBorderWidth"
+  [style.border-style]="debugBorderStyle"
   >
 </tag-view>
 
@@ -40,5 +53,8 @@
   class='list-item'
   [addr]='addr'
   (click)='handleClicked(item)'
+  [style.border-color]="debugBorderColor"
+  [style.border-width]="debugBorderWidth"
+  [style.border-style]="debugBorderStyle"
   >
 </fallback-view>

@@ -19,7 +19,7 @@ export interface IconItem {
 })
 export class ChooseIconModalComponent implements OnInit, OnDestroy {
 
-  private lc: string = `[${ChooseIconModalComponent.name}]`;
+  protected lc: string = `[${ChooseIconModalComponent.name}]`;
 
   @Input()
   items: IconItem[] = IONICONS.map(iconText => {

@@ -16,9 +16,7 @@ const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
   templateUrl: './list-item-view.component.html',
   styleUrls: ['./list-item-view.component.scss'],
 })
-export class ListItemViewComponent
-  extends IbgibComponentBase
-  implements OnInit {
+export class ListItemViewComponent extends IbgibComponentBase {
 
   protected lc: string = `[${ListItemViewComponent.name}]`;
 
@@ -35,7 +33,7 @@ export class ListItemViewComponent
 
   protected debugBorderWidth: string = debugBorder ? "2px" : "0px"
   protected debugBorderColor: string = "yellow";
-  protected debugBorderStroke: string = "solid";
+  protected debugBorderStyle: string = "solid";
 
   constructor(
     protected common: CommonService,
@@ -45,8 +43,6 @@ export class ListItemViewComponent
     const lc = `${this.lc}[ctor]`;
     if (logALot) { console.log(`${lc} created`); }
    }
-
-  ngOnInit() {}
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;

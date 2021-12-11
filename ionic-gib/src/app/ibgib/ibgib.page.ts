@@ -23,6 +23,7 @@ import {
 } from '../common/spaces/aws-dynamo-space-v1';
 import { argy_, WitnessBase_V1 } from '../common/witnesses';
 import * as c from '../common/constants';
+import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
 
 const logALot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -40,7 +41,7 @@ export class IbGibPage extends IbgibComponentBase
 
   protected debugBorderWidth: string = debugBorder ? "2px" : "0px"
   protected debugBorderColor: string = "#abc123";
-  protected debugBorderStroke: string = "solid";
+  protected debugBorderStyle: string = "solid";
 
   @Input()
   get addr(): IbGibAddr { return super.addr; }
@@ -145,6 +146,7 @@ export class IbGibPage extends IbgibComponentBase
           await this.common.ibgibs.pingLatest({ibGib: this.ibGib, tjp: this.tjp});
         });
       }
+      document.title = this.title;
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);
       this.clearItem();
@@ -351,4 +353,32 @@ export class IbGibPage extends IbgibComponentBase
       });
     }
   }
+
+  async showFullscreenModal(): Promise<void> {
+    const lc = `${this.lc}[${this.showFullscreenModal.name}]`;
+    try {
+      const addr = h.getIbGibAddr({ibGib: this.ibGib});
+      const modal = await this.common.modalController.create({
+        component: IbgibFullscreenModalComponent,
+        componentProps: {
+          addr,
+        },
+      });
+      await modal.present();
+      // await modal.componentOnReady();
+      // await (<IbgibFullscreenModalComponent>modal.component).updateIbGib(this.addr);
+      // let resModal = await modal.onWillDismiss();
+      // const iconItem: IconItem = resModal.data;
+      // if (!iconItem) {
+      //   if (logALot) { console.log(`${lc} cancelled.`) }
+      //   return;
+      // }
+      if (logALot) { console.log(`${lc} modal closed.`); }
+    } catch (error) {
+      console.error(`${lc} error: ${error.message}`);
+    }
+  }
+
  }
+
+

@@ -1,0 +1,14 @@
+  <ion-header translucent>
+    <ion-toolbar>
+      <!-- <ion-title>{{addr}}</ion-title> -->
+      <ion-title [title]="ibGib?.data?.filename + '.' + ibGib?.data?.ext">{{ibGib?.data?.filename}}.{{ibGib?.data?.ext}}</ion-title>
+      <ion-buttons slot="end">
+        <ion-button (click)="handleCancelClick()">Cancel</ion-button>
+      </ion-buttons>
+    </ion-toolbar>
+  </ion-header>
+  <ion-content fullscreen>
+    <!-- <p>item: {{ itemJson }}</p> -->
+    <!-- <ion-img [src]="item?.picSrc"></ion-img> -->
+    <img [src]="item?.picSrc" />
+  </ion-content>

@@ -2,47 +2,50 @@
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-menu-button></ion-menu-button>
+      <ion-back-button></ion-back-button>
     </ion-buttons>
 
       <!-- atow, i am doing selective titles in ibgib-component-base.ts title property  -->
-    <ion-title *ngIf='item?.type === "tag"' class='toolbar-title-yo'>
+    <ion-title *ngIf='isTag' class='toolbar-title-yo'>
       <tag-view [addr]='item.addr'> </tag-view>
     </ion-title>
     <ion-title *ngIf='isPic' class='pic-title toolbar-title-yo'>
       <ion-thumbnail>
-        <pic-view [addr]='item.addr'></pic-view>
+        <pic-view [addr]='item.addr' [isTitle]='true' (click)="showFullscreenModal()"></pic-view>
       </ion-thumbnail>
     </ion-title>
     <ion-title *ngIf='isComment' class='comment-title toolbar-title-yo' (click)="handleTitleClick()">
         <comment-view [addr]='item.addr' [isTitle]='true'></comment-view>
     </ion-title>
-    <ion-title *ngIf='(!isTag || ib === "tags") && !isPic && !isComment' class='toolbar-title-yo'>
+    <ion-title *ngIf='!isTag && !isTags && !isPic && !isComment' class='toolbar-title-yo'>
       {{ title }}
     </ion-title>
-    <ion-button [disabled]="publishing"
-      slot="end" (click)="handlePublishClick()" class="toolbar-publish">
-      <!-- <ion-icon *ngIf="!publishing" name="cloud-upload-outline"></ion-icon> -->
-      <ion-icon name="cloud-upload-outline"></ion-icon>
-      <ion-spinner *ngIf="publishing" name="circles" color="tertiary"></ion-spinner>
-    </ion-button>
-    <ion-button [disabled]="refreshing"
-      slot="end" (click)="handleRefreshClick()" class="toolbar-refresh">
-      <ion-icon *ngIf="!refreshing" name="refresh"></ion-icon>
-      <ion-spinner *ngIf="refreshing" name="bubbles" color="tertiary"></ion-spinner>
-    </ion-button>
-    <ion-button [disabled]="refreshing || paused"
-      slot="end" (click)="handlePauseClick()" class="toolbar-pause">
-      <ion-icon name="pause"></ion-icon>
-    </ion-button>
+    <ion-buttons slot="end" collapse="true">
+      <ion-button [disabled]="publishing"
+        slot="end" (click)="handlePublishClick()" class="toolbar-publish">
+        <!-- <ion-icon *ngIf="!publishing" name="cloud-upload-outline"></ion-icon> -->
+        <ion-icon name="cloud-upload-outline"></ion-icon>
+        <ion-spinner *ngIf="publishing" name="circles" color="tertiary"></ion-spinner>
+      </ion-button>
+      <ion-button [disabled]="refreshing"
+        slot="end" (click)="handleRefreshClick()" class="toolbar-refresh">
+        <ion-icon *ngIf="!refreshing" name="refresh"></ion-icon>
+        <ion-spinner *ngIf="refreshing" name="bubbles" color="tertiary"></ion-spinner>
+      </ion-button>
+      <ion-button [disabled]="refreshing || paused"
+        slot="end" (click)="handlePauseClick()" class="toolbar-pause">
+        <ion-icon name="pause"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="false">
-  <ion-header collapse="condense">
+  <!-- <ion-header collapse="condense">
     <ion-toolbar>
       <ion-title size="large">{{ addr }}</ion-title>
     </ion-toolbar>
-  </ion-header>
+  </ion-header> -->
 
   <div *ngIf="!item?.ibGib || refreshing" class="loading-div">
     <!-- <p>loading...</p> -->
@@ -83,19 +86,17 @@
     *ngIf="item?.ibGib"
     [style.border-color]="debugBorderColor"
     [style.border-width]="debugBorderWidth"
-    [style.border-stroke]="debugBorderStroke"
+    [style.border-style]="debugBorderStyle"
     >
 
     <tag-list *ngIf='isTags || isTag' [addr]='addr' [ibGib_Context]='ibGib'></tag-list>
     <root-list *ngIf='isRoots' [addr]='addr' [ibGib_Context]='ibGib'></root-list>
-
     <chat-view *ngIf='!(isTag || isTags || isRoots)' [addr]='addr' [ibGib_Context]='ibGib'></chat-view>
 
   </div>
 
 </ion-content>
 
-  <ion-footer>
-    <action-bar [addr]='addr' [ibGib_Context]='ibGib'></action-bar>
-  </ion-footer>
-
+<ion-footer>
+  <action-bar [addr]='addr' [ibGib_Context]='ibGib'></action-bar>
+</ion-footer>

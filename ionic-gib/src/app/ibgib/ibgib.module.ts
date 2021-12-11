@@ -24,7 +24,7 @@ import { RootListViewComponent } from '../views/root-list-view/root-list-view.co
     CommonModule,
     FormsModule,
     IonicModule,
-    IbGibPageRoutingModule
+    IbGibPageRoutingModule,
   ],
   declarations: [
     TagViewComponent,

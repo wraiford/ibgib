@@ -420,8 +420,12 @@ export class AppComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.getCurrentIbgibAddrInURL.name}]`
     try {
       let path = this.router?.url === "/" ?
-        window?.location?.pathname :
-        this.router?.url;
+        window?.location?.pathname?.slice() || "" :
+        this.router?.url?.slice() || "";
+
+      // remove query params
+      if (path.includes('?')) { path = path.slice(0,path.indexOf('?')); }
+
       let addr = path.startsWith('/ibgib/') ?
         decodeURI(path.split('/')[2]) :
         undefined;

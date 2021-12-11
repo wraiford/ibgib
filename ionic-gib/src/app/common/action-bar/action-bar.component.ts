@@ -80,12 +80,11 @@ export class ActionBarComponent extends IbgibComponentBase
 
   protected debugBorderWidth: string = debugBorder ? "22px" : "0px"
   protected debugBorderColor: string = "#FFAABB";
-  protected debugBorderStroke: string = "solid";
+  protected debugBorderStyle: string = "solid";
 
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
-    private modalController: ModalController,
   ) {
     super(common, ref);
   }
@@ -512,7 +511,7 @@ export class ActionBarComponent extends IbgibComponentBase
   async chooseTagIcon(): Promise<string | undefined> {
     const lc = `${this.lc}[${this.chooseTagIcon.name}]`;
     try {
-      const modal = await this.modalController.create({
+      const modal = await this.common.modalController.create({
         component: ChooseIconModalComponent,
       });
       await modal.present();

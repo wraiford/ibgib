@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@angular/core';
 // import { FilesService } from './files.service';
 import { IbgibsService } from './ibgibs.service';
 import { IbGibAddr } from 'ts-gib';
+import { ModalController } from '@ionic/angular';
 
 export interface IbgibNav {
   navTo({
@@ -35,6 +36,8 @@ export class CommonService {
   constructor(
     public ibgibs: IbgibsService,
     // public files: FilesService,
+    public modalController: ModalController,
     @Inject('IbgibNav') public nav: IbgibNav,
   ) { }
+
 }

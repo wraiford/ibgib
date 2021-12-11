@@ -8,6 +8,7 @@ import { CommonService } from 'src/app/services/common.service';
 import * as c from '../../common/constants';
 
 const logALot = c.GLOBAL_LOG_A_LOT || false;;
+const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
   selector: 'comment-view',
@@ -27,6 +28,10 @@ export class CommentViewComponent
   @Input()
   get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
   set ibGib_Context(value: IbGib_V1 ) { super.ibGib_Context = value; }
+
+  protected debugBorderWidth: string = debugBorder ? "5px" : "0px"
+  protected debugBorderColor: string = "yellow";
+  protected debugBorderStyle: string = "solid";
 
   constructor(
     protected common: CommonService,

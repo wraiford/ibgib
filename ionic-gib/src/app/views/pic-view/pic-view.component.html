@@ -1,3 +1,17 @@
-<img *ngIf='ibGib' [src]='item.picSrc'/>
-<p *ngIf='ibGib' class='pic-timestamp'>{{ item?.timestamp }}</p>
-<p *ngIf='!ibGib'>pic loading...</p>
+<ion-card *ngIf='!isTitle'>
+    <img *ngIf='ibGib' [src]='item.picSrc'/>
+    <ion-card-header *ngIf='ibGib'>
+        <!-- <p *ngIf='ibGib' class='pic-timestamp'>{{ item?.timestamp }}</p> -->
+        <ion-card-subtitle class='pic-timestamp'>
+            {{ item?.timestamp }}
+        </ion-card-subtitle>
+        <ion-card-content *ngIf='!ibGib'>
+            <!-- <p *ngIf='!ibGib'>pic loading...</p> -->
+            pic loading...
+        </ion-card-content>
+
+    </ion-card-header>
+</ion-card>
+<div *ngIf='isTitle'>
+    <img *ngIf='ibGib' [src]='item.picSrc'/>
+</div>

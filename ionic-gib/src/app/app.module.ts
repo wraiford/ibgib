@@ -11,6 +11,7 @@ import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
 // import { NgIbgibNavService } from './services/ng-ibgib-nav.service';
 import { IonicIbgibNavService } from './services/ionic-ibgib-nav.service';
+import { CommonModule } from '@angular/common';
 
 @NgModule({
   declarations: [
@@ -20,6 +21,7 @@ import { IonicIbgibNavService } from './services/ionic-ibgib-nav.service';
   imports: [
     HttpClientModule,
     BrowserModule,
+    CommonModule,
     IonicModule.forRoot(),
     AppRoutingModule
   ],

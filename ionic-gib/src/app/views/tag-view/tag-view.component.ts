@@ -30,7 +30,7 @@ export class TagViewComponent extends IbgibComponentBase
 
   protected debugBorderWidth: string = debugBorder ? "12px" : "0px"
   protected debugBorderColor: string = "yellow";
-  protected debugBorderStroke: string = "solid";
+  protected debugBorderStyle: string = "solid";
 
   constructor(
     protected common: CommonService,

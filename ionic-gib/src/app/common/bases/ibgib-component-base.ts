@@ -32,7 +32,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
 
     protected debugBorderWidth: string = debugBorder ? "2px" : "0px"
     protected debugBorderColor: string = "green";
-    protected debugBorderStroke: string = "solid";
+    protected debugBorderStyle: string = "solid";
 
     private _updatingIbGib: boolean;
     // private _addr: IbGibAddr;
@@ -130,6 +130,21 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     @Input()
     isTitle: boolean;
 
+    get title(): string {
+        if (this.isTag) {
+            return this.ib.split(' ').slice(1).join(' ');
+        } else if (this.isPic) {
+            return this.ib.split(' ').slice(1).join(' ');
+        } else if (this.isComment) {
+            // debugger;
+            return this.item?.text || this.ib || '[comment]';
+        } else if (this.ib?.startsWith(`meta special `)) {
+            return this.ib.substring(`meta special `.length);
+        } else {
+            return this.ib || 'loading...';
+        }
+    }
+
     /**
      * subscription used with updates for the latest ibgib.
      */
@@ -170,18 +185,6 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
 
     ngOnDestroy() {
         this.unsubscribeLatest();
-    }
-
-    get title(): string {
-        if (this.ib?.startsWith('tag ')) {
-            return this.ib.split(' ').slice(1).join(' ');
-        } else if (this.ib?.startsWith('pic ')) {
-            return this.ib.split(' ').slice(1).join(' ');
-        } else if (this.ib?.startsWith(`meta special `)) {
-            return this.ib.substr(`meta special `.length);
-        } else {
-            return this.ib || 'loading...';
-        }
     }
 
     clearItem(): void {
