@@ -12,7 +12,7 @@ import * as h from 'ts-gib/dist/helper';
 import * as c from '../../common/constants';
 
 
-const logALot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 // @Injectable({providedIn: "root"})
@@ -41,10 +41,10 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     set addr(value: IbGibAddr) {
         const lc = `${this.lc}[set addr(${value})]`;
         if (this._updatingIbGib) {
-            if (logALot) { console.log(`${lc} already updatingIbGib`) }
+            if (logalot) { console.log(`${lc} already updatingIbGib`) }
             return;
         }
-        if (logALot) { console.log(`${lc} updating ibgib ${value}`); }
+        if (logalot) { console.log(`${lc} updating ibgib ${value}`); }
         this._updatingIbGib = true;
         this.updateIbGib(value).finally(() => {
             this._updatingIbGib = false;
@@ -72,11 +72,11 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
             return;
         }
         if (!value) {
-            if (logALot) { console.log(`${lc} ignored setting falsy context.`); }
+            if (logalot) { console.log(`${lc} ignored setting falsy context.`); }
             return;
         }
         const setContext = () => {
-            if (logALot) { console.log(`${lc} setting context`); }
+            if (logalot) { console.log(`${lc} setting context`); }
             if (this.item) {
                 this.item.ibGib_Context = value;
                 this.ref.detectChanges();
@@ -191,14 +191,14 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
 
     clearItem(): void {
         const lc = `${this.lc}[${this.clearItem.name}]`;
-        if (logALot) { console.log(`${lc} clearing data...`); }
+        if (logalot) { console.log(`${lc} clearing data...`); }
         // delete this._addr;
         delete this.item;
         // delete this.ib;
         // delete this.gib;
         // delete this.ibGib;
         // delete this.isMeta;
-        if (logALot) { console.log(`${lc} data cleared.`); }
+        if (logalot) { console.log(`${lc} data cleared.`); }
     }
 
     async updateIbGib(addr: IbGibAddr): Promise<void> {
@@ -208,7 +208,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         this.clearItem();
 
         if (addr) {
-            if (logALot) { console.log(`${lc} setting new address`) }
+            if (logalot) { console.log(`${lc} setting new address`) }
             // we have an addr which is different than our previous.
             const{ ib, gib } = h.getIbAndGib({ibGibAddr: addr});
             this.item = <any>{
@@ -221,7 +221,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
                 this.item.isMeta = true;
             }
         } else {
-            if (logALot) { console.log(`${lc} no new address`) }
+            if (logalot) { console.log(`${lc} no new address`) }
         }
     }
 
@@ -341,7 +341,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         queryParamsHandling?: 'merge' | 'preserve',
         queryParams?: { [key: string]: any },
    }): Promise<void> {
-        if (logALot) { console.log(`navigating to addr: ${addr}`); }
+        if (logalot) { console.log(`navigating to addr: ${addr}`); }
         this.common.nav.navTo({addr, queryParamsHandling, queryParams});
         // await this.common.nav.navigateRoot(['ibgib', addr], {
         //     queryParamsHandling: 'preserve',
@@ -384,46 +384,46 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
   async loadPic(item?: TItem): Promise<void> {
     const lc = `${this.lc}[${this.loadPic.name}]`;
     if (!this.isPic) { return; }
-    if (logALot) { console.log(`${lc} starting...`); }
+    if (logalot) { console.log(`${lc} starting...`); }
     try {
         item = item || this.item;
         // item = this.item;
 
         if (!this.ibGib?.data?.binHash) {
-            if (logALot) { console.log(`${lc} no data.binHash`); }
+            if (logalot) { console.log(`${lc} no data.binHash`); }
             return;
         }
         if (!this.ibGib!.data!.ext) {
-            if (logALot) { console.log(`${lc} no data.ext`); }
+            if (logalot) { console.log(`${lc} no data.ext`); }
             return;
         }
         if (!this.ibGib.rel8ns || this.ibGib.rel8ns['bin'].length === 0) {
-            if (logALot) { console.log(`${lc} no rel8ns.bin`); }
+            if (logalot) { console.log(`${lc} no rel8ns.bin`); }
             return;
         }
 
         const data = <PicData>this.ibGib.data;
-        if (logALot) { console.log(`${lc} binHash: ${data.binHash}\nbinExt: ${data.ext}`); }
+        if (logalot) { console.log(`${lc} binHash: ${data.binHash}\nbinExt: ${data.ext}`); }
         const addr = this.ibGib.rel8ns!['bin'][0];
-        if (logALot) { console.log(`${lc} getting bin addr: ${addr}`); }
+        if (logalot) { console.log(`${lc} getting bin addr: ${addr}`); }
         const resGet = await this.common.ibgibs.get({addr});
         item.timestamp = data.timestamp;
-        if (logALot) { console.log(`${lc} initial item.picSrc.length: ${item?.picSrc?.length}`); }
+        if (logalot) { console.log(`${lc} initial item.picSrc.length: ${item?.picSrc?.length}`); }
 
         const delayRefDetectChangesMs = 2000; // hack
         if (resGet.success && resGet.ibGibs?.length === 1 && resGet.ibGibs[0]!.data) {
             item.picSrc = `data:image/jpeg;base64,${resGet.ibGibs![0].data!}`;
-            if (logALot) { console.log(`${lc} loaded item.picSrc.length: ${item?.picSrc?.length}`); }
+            if (logalot) { console.log(`${lc} loaded item.picSrc.length: ${item?.picSrc?.length}`); }
             setTimeout(() => { this.ref.detectChanges(); }, delayRefDetectChangesMs);
-            if (logALot) { console.log(`${lc} ref.detectChanges in ${delayRefDetectChangesMs.toString()}`); }
+            if (logalot) { console.log(`${lc} ref.detectChanges in ${delayRefDetectChangesMs.toString()}`); }
         } else {
             console.error(`${lc} Couldn't get pic. ${resGet.errorMsg}`);
         }
-        if (logALot) { console.log(`${lc} loaded.`); }
+        if (logalot) { console.log(`${lc} loaded.`); }
     } catch (error) {
         console.error(`${lc} ${error.message}`);
     } finally {
-        if (logALot) { console.log(`${lc} complete.`) }
+        if (logalot) { console.log(`${lc} complete.`) }
     }
   }
 
@@ -451,7 +451,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     try {
         if (!this.tjp) { await this.loadTjp(); }
         if (this.tjpAddr !== info.tjpAddr) { return; }
-        if (logALot) { console.log(`${lc} triggeredd.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)}`); }
+        if (logalot) { console.log(`${lc} triggeredd.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)}`); }
         if (this._updatingIbGib || this.paused || this.errored) { return; }
         this.addr = info.latestAddr;
     } catch (error) {

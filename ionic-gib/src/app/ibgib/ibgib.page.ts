@@ -25,7 +25,7 @@ import { argy_, WitnessBase_V1 } from '../common/witnesses';
 import * as c from '../common/constants';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
 
-const logALot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
@@ -63,7 +63,7 @@ export class IbGibPage extends IbgibComponentBase
 
   async ngOnInit() {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
-    if (logALot) { console.log(`${lc} called.`) }
+    if (logalot) { console.log(`${lc} called.`) }
     // this.folder = this.activatedRoute.snapshot.paramMap.get('addr');
     this.subscribeParamMap();
     super.ngOnInit();
@@ -92,9 +92,9 @@ export class IbGibPage extends IbgibComponentBase
       confirm: true,
     });
 
-    if (logALot) { console.log(`${lc} initialData: ${initialData}`); }
+    if (logalot) { console.log(`${lc} initialData: ${initialData}`); }
     if (encryptedData) {
-      if (logALot) { console.log(`${lc} encryptedData: ${encryptedData}`); }
+      if (logalot) { console.log(`${lc} encryptedData: ${encryptedData}`); }
 
       let { decryptedData, errors: errorsDecrypt } = await decrypt({
         encryptedData,
@@ -106,9 +106,9 @@ export class IbGibPage extends IbgibComponentBase
       });
 
       if (decryptedData) {
-        if (logALot) { console.log(`${lc} decryptedData: ${decryptedData}`); }
+        if (logalot) { console.log(`${lc} decryptedData: ${decryptedData}`); }
         if (decryptedData === initialData) {
-          if (logALot) { console.log(`${lc} initialData equals decryptedData`); }
+          if (logalot) { console.log(`${lc} initialData equals decryptedData`); }
         }
       } else {
         console.error(`${lc} decryptedData falsy!`);
@@ -118,26 +118,26 @@ export class IbGibPage extends IbgibComponentBase
       for (let error in errors) { console.error(`${lc} ${error}`); }
       console.error(`${lc} end of errors.`)
     } else {
-      if (logALot) { console.log(`${lc} no encryptedData and no errors?`); }
+      if (logalot) { console.log(`${lc} no encryptedData and no errors?`); }
     }
 
   }
 
   ngOnDestroy() {
     const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
-    if (logALot) { console.log(`${lc} called.`) }
+    if (logalot) { console.log(`${lc} called.`) }
     this.unsubscribeParamMap();
     super.ngOnDestroy();
   }
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-    if (logALot) { console.log(`${lc} updating...`); }
+    if (logalot) { console.log(`${lc} updating...`); }
     try {
       await super.updateIbGib(addr);
       await this.loadIbGib();
       await this.loadTjp();
-      if (logALot) { console.log(`${lc} ibGib: ${pretty(this.ibGib)}`); }
+      if (logalot) { console.log(`${lc} ibGib: ${pretty(this.ibGib)}`); }
       await this.loadItem();
       this.updatePaused();
       if (!this.paused) {
@@ -152,7 +152,7 @@ export class IbGibPage extends IbgibComponentBase
       this.clearItem();
     } finally {
       this.ref.detectChanges();
-      if (logALot) { console.log(`${lc} updated.`); }
+      if (logalot) { console.log(`${lc} updated.`); }
     }
   }
 
@@ -166,12 +166,12 @@ export class IbGibPage extends IbgibComponentBase
     this.paramMapSub = this.activatedRoute.paramMap.subscribe(async map => {
       let addr = map.get('addr');
       lc = `${lc}[${addr}]`;
-      if (logALot) { console.log(`${lc} new addr`) }
+      if (logalot) { console.log(`${lc} new addr`) }
 
       if (!SPECIAL_URLS.includes((addr || "").toLowerCase()) && encodeURI(addr).includes('%5E')) {
         // normal handling for a normal ibGib is to update the page's ibgib
         // and load everything.
-        if (logALot) { console.log(`new paramMap. addr: ${addr}`); }
+        if (logalot) { console.log(`new paramMap. addr: ${addr}`); }
         if (addr !== this.addr) {
           this.updateIbGib(addr);
         } else {
@@ -179,7 +179,7 @@ export class IbGibPage extends IbgibComponentBase
         }
       } else {
         // default special non-ibgib handler, go to the tags ibGib
-        if (logALot) { console.log(`${lc} special url entered, navTo to tags ibGib`); }
+        if (logalot) { console.log(`${lc} special url entered, navTo to tags ibGib`); }
         const tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
         addr = getIbGibAddr({ibGib: tagsIbGib});
         await this.navTo({addr});
@@ -190,9 +190,9 @@ export class IbGibPage extends IbgibComponentBase
   }
   unsubscribeParamMap() {
     const lc = `${this.lc}[${this.unsubscribeParamMap.name}]`;
-    if (logALot) { console.log(`${lc} unsubscribe called`); }
+    if (logalot) { console.log(`${lc} unsubscribe called`); }
     if (this.paramMapSub) {
-      if (logALot) { console.log(`${lc} unsubscribing`); }
+      if (logalot) { console.log(`${lc} unsubscribing`); }
       this.paramMapSub.unsubscribe();
       delete this.paramMapSub;
     }
@@ -207,7 +207,7 @@ export class IbGibPage extends IbgibComponentBase
   }): Promise<void> {
     const lc = `${this.lc}[${this.publishIbGibs.name}]`;
     try {
-      if (logALot) { console.log(`${lc} starting...`); }
+      if (logalot) { console.log(`${lc} starting...`); }
       if (!ibGibs || ibGibs.length === 0) { throw new Error(`ibGibs required.`)}
 
       // put the ibgibs
@@ -248,16 +248,16 @@ export class IbGibPage extends IbgibComponentBase
           if (ibGib.gib !== gotIbGib.gib) { throw new Error(`gib is different`); }
           if (JSON.stringify(ibGib.data) !== JSON.stringify(gotIbGib.data)) { throw new Error(`data is different`); }
           if (JSON.stringify(ibGib.rel8ns) !== JSON.stringify(gotIbGib.rel8ns)) { throw new Error(`rel8ns is different`); }
-          if (logALot) { console.log(`${lc} confirmed ${h.getIbGibAddr({ibGib})}`); }
+          if (logalot) { console.log(`${lc} confirmed ${h.getIbGibAddr({ibGib})}`); }
         }
 
-        if (logALot) { console.log(`${lc} confirmation complete.`); }
+        if (logalot) { console.log(`${lc} confirmation complete.`); }
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
-      if (logALot) { console.log(`${lc} complete.`); }
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
@@ -265,7 +265,7 @@ export class IbGibPage extends IbgibComponentBase
     const lc = `${this.lc}[${this.handlePublishClick.name}]`;
     this.item.publishing = true;
     try {
-      if (logALot) { console.log(`${lc}`); }
+      if (logalot) { console.log(`${lc}`); }
       if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
 
       // await Modals.alert({ title: 'debug', message: "publish clicked", });
@@ -321,7 +321,7 @@ export class IbGibPage extends IbgibComponentBase
     try {
       if (!this.tjp) { await this.loadTjp(); }
       if (this.tjpAddr !== info.tjpAddr) { return; }
-      if (logALot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)}`); }
+      if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)}`); }
 
       // await (new Promise(resolve => {
       //   console.warn('DEBUG DEBUG DEBUG DEBUG delaying...');
@@ -370,10 +370,10 @@ export class IbGibPage extends IbgibComponentBase
       // let resModal = await modal.onWillDismiss();
       // const iconItem: IconItem = resModal.data;
       // if (!iconItem) {
-      //   if (logALot) { console.log(`${lc} cancelled.`) }
+      //   if (logalot) { console.log(`${lc} cancelled.`) }
       //   return;
       // }
-      if (logALot) { console.log(`${lc} modal closed.`); }
+      if (logalot) { console.log(`${lc} modal closed.`); }
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);
     }

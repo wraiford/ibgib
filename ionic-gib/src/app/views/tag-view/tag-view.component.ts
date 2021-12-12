@@ -7,7 +7,7 @@ import { CommonService } from '../../services/common.service';
 import { IbgibComponentBase } from '../../common/bases/ibgib-component-base';
 import * as c from '../../common/constants';
 
-const logALot = c.GLOBAL_LOG_A_LOT || false;;
+const logalot = c.GLOBAL_LOG_A_LOT || false;;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
@@ -43,7 +43,7 @@ export class TagViewComponent extends IbgibComponentBase
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-    if (logALot) { console.log(`${lc} updating...`); }
+    if (logalot) { console.log(`${lc} updating...`); }
     try {
       await super.updateIbGib(addr);
       await this.loadIbGib();
@@ -54,7 +54,7 @@ export class TagViewComponent extends IbgibComponentBase
       this.clearItem();
     } finally {
       this.ref.detectChanges();
-      if (logALot) { console.log(`${lc} updated.`); }
+      if (logalot) { console.log(`${lc} updated.`); }
     }
   }
 

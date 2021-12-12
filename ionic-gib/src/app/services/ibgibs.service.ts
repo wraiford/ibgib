@@ -22,7 +22,7 @@ import {
 import { argy_ } from '../common/witnesses';
 import * as c from '../common/constants';
 
-const logALot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 // #region get/put holdovers from FilesService
 
@@ -452,13 +452,13 @@ export class IbgibsService {
         metaSubPath: c.IBGIB_META_SUBPATH,
         encoding: c.IBGIB_FILES_ENCODING,
       }, /*initialRel8ns*/ null);
-      if (logALot) { console.log(`${lc} userSpace.ib: ${userSpace.ib}`); }
-      if (logALot) { console.log(`${lc} userSpace.gib: ${userSpace.gib} (before sha256v1)`); }
-      if (logALot) { console.log(`${lc} userSpace.data: ${h.pretty(userSpace.data || 'falsy')}`); }
-      if (logALot) { console.log(`${lc} userSpace.rel8ns: ${h.pretty(userSpace.rel8ns || 'falsy')}`); }
+      if (logalot) { console.log(`${lc} userSpace.ib: ${userSpace.ib}`); }
+      if (logalot) { console.log(`${lc} userSpace.gib: ${userSpace.gib} (before sha256v1)`); }
+      if (logalot) { console.log(`${lc} userSpace.data: ${h.pretty(userSpace.data || 'falsy')}`); }
+      if (logalot) { console.log(`${lc} userSpace.rel8ns: ${h.pretty(userSpace.rel8ns || 'falsy')}`); }
       userSpace.gib = await sha256v1(userSpace);
       if (userSpace.gib === GIB) { throw new Error(`userSpace.gib not updated correctly.`); }
-      if (logALot) { console.log(`${lc} userSpace.gib: ${userSpace.gib} (after sha256v1)`); }
+      if (logalot) { console.log(`${lc} userSpace.gib: ${userSpace.gib} (after sha256v1)`); }
 
       // must set this before trying to persist
       this.currentSpace = userSpace;
@@ -472,7 +472,7 @@ export class IbgibsService {
       // save the userspace in default space
       const resDefaultSpace = await defaultSpace.witness(argPutUserSpace);
       if (resDefaultSpace?.data?.success) {
-        if (logALot) { console.log(`${lc} default space witnessed the user space`); }
+        if (logalot) { console.log(`${lc} default space witnessed the user space`); }
       } else {
         throw new Error(`${resDefaultSpace?.data?.errors?.join('|') || "There was a problem with defaultSpace witnessing the new userSpace"}`);
       }
@@ -481,7 +481,7 @@ export class IbgibsService {
       const resUserSpace = await userSpace.witness(argPutUserSpace);
       if (resUserSpace?.data?.success) {
         // we now have saved the userspace ibgib "in" its own space.
-        if (logALot) { console.log(`${lc} user space witnessed itself`); }
+        if (logalot) { console.log(`${lc} user space witnessed itself`); }
       } else {
         throw new Error(`${resUserSpace?.data?.errors?.join('|') || "There was a problem with userSpace witnessing itself"}`);
       }
@@ -538,7 +538,7 @@ export class IbgibsService {
       argPutBootstrap.ibGibs = [bootstrapIbGib];
       const resDefaultSpacePutBootstrap = await defaultSpace.witness(argPutBootstrap);
       if (resDefaultSpacePutBootstrap ?.data?.success) {
-        if (logALot) { console.log(`${lc} default space witnessed the bootstrap^gib:\n(${h.pretty(bootstrapIbGib)})`); }
+        if (logalot) { console.log(`${lc} default space witnessed the bootstrap^gib:\n(${h.pretty(bootstrapIbGib)})`); }
       } else {
         throw new Error(`${resDefaultSpacePutBootstrap?.data?.errors?.join('|') || "There was a problem with defaultSpace witnessing the bootstrap^gib primitive pointing to the new user space"}`);
       }
@@ -573,17 +573,17 @@ export class IbgibsService {
   async getConfigAddr({key}: {key: string}): Promise<string | undefined> {
     const lc = `${this.lc}[${this.getConfigAddr.name}]`;
     try {
-      if (logALot) { console.log(`${lc} getting...`) }
+      if (logalot) { console.log(`${lc} getting...`) }
       if (!this.currentSpace) { throw new Error(`currentSpace not initialized`); }
       if (!this.currentSpace.rel8ns) { return undefined; }
       if (this.currentSpace!.rel8ns[key].length === 1) {
-        if (logALot) { console.log(`${lc} got`); }
+        if (logalot) { console.log(`${lc} got`); }
         return this.currentSpace!.rel8ns![key]![0];
       } else if (this.currentSpace!.rel8ns[key].length > 1) {
         console.warn(`${lc} more than one config addr with ${key} rel8n.`)
         return this.currentSpace!.rel8ns![key]![0];
       } else {
-        if (logALot) { console.log(`${lc} didn't find`); }
+        if (logalot) { console.log(`${lc} didn't find`); }
         // key not found or
         return undefined;
       }
@@ -742,8 +742,11 @@ export class IbgibsService {
         nCounter: true,
       });
       await this.persistTransformResult({isMeta: true, resTransform: resNewRoot});
-      if (logALot) { console.log(`${lc} updating _currentRoot root`); }
-      await this.setCurrentRoot(<IbGib_V1<RootData>>resNewRoot.newIbGib);
+      const newRoot = <IbGib_V1<RootData>>resNewRoot.newIbGib;
+      const newRootAddr = h.getIbGibAddr({ibGib: newRoot});
+      if (logalot) { console.log(`${lc} updating _currentRoot root. newRootAddr: ${newRootAddr}`); }
+      await this.registerNewIbGib({ibGib: newRoot});
+      await this.setCurrentRoot(newRoot);
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -787,7 +790,7 @@ export class IbgibsService {
         }
         if (!addr) { throw new Error(`Special address not in config and couldn't initialize it either.`); }
       }
-      if (logALot) { console.log(`addr: ${addr}`); }
+      if (logalot) { console.log(`addr: ${addr}`); }
 
       let resSpecial = await this.get({addr: addr, isMeta: true});
       if (!resSpecial.success) { throw new Error(resSpecial.errorMsg); }
@@ -979,7 +982,7 @@ export class IbgibsService {
   }): Promise<IbGib_V1> {
     const lc = `${this.lc}[${this.createSpecialIbGib.name}][${type || 'falsy type?'}]`;
     try {
-      if (logALot) { console.log(`starting...`); }
+      if (logalot) { console.log(`starting...`); }
       const specialIb = this.getSpecialIbgibIb({type});
       const src = factory.primitive({ib: specialIb});
       const resNewSpecial = await V1.fork({
@@ -997,7 +1000,7 @@ export class IbgibsService {
       if (type !== 'roots' && !skipRel8ToRoot) {
         await this.rel8ToCurrentRoot({ibGib: resNewSpecial.newIbGib, linked: true});
       }
-      if (logALot) { console.log(`complete.`); }
+      if (logalot) { console.log(`complete.`); }
       return resNewSpecial.newIbGib;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -1297,7 +1300,7 @@ export class IbgibsService {
       const ibGibAddr: IbGibAddr = h.getIbGibAddr({ibGib});
       lc = `${lc}[${ibGibAddr}]`;
 
-      if (logALot) { console.log(`${lc} starting...`); }
+      if (logalot) { console.log(`${lc} starting...`); }
 
       // this is the latest index ibGib. It's just the mapping of tjp -> latestAddr.
       // Other refs to "latest" in this function
@@ -1316,7 +1319,7 @@ export class IbgibsService {
       // either we're adding the given ibGib, replacing the existing with the ibGib,
       // or doing nothing. We can do this with our current vars in a closure at this point.
       const replaceLatest: () => Promise<void> = async () => {
-        if (logALot) { console.log(`${lc} adding/replacing latest. tjp: ${tjpAddr}`); }
+        if (logalot) { console.log(`${lc} adding/replacing latest. tjp: ${tjpAddr}`); }
         await this.rel8ToSpecialIbGib({
           type: "latest",
           rel8nName: tjpAddr,
@@ -1331,7 +1334,7 @@ export class IbgibsService {
 
       let existingMapping = specialLatest.rel8ns[tjpAddr] || [];
       if (existingMapping.length > 0) {
-        if (logALot) { console.log(`${lc} tjp mapping exists. Checking which is newer.`) }
+        if (logalot) { console.log(`${lc} tjp mapping exists. Checking which is newer.`) }
         let existingLatestAddr = existingMapping[0];
         let resExistingLatest = await this.get({addr: existingLatestAddr});
         if (!resExistingLatest.success || resExistingLatest.ibGibs?.length !== 1) {
@@ -1358,7 +1361,7 @@ export class IbgibsService {
           ibGib.data!.n! >= 0;
         if (ibGibHasNCounter) {
           // #region ibGib.data.n counter method
-          if (logALot) { console.log(`found ibGib.data.n (version counter), using this to determine latest ibGib: ${ibGib.data!.n!}`); }
+          if (logalot) { console.log(`found ibGib.data.n (version counter), using this to determine latest ibGib: ${ibGib.data!.n!}`); }
           const n_ibGib = <number>ibGib.data!.n!;
 
           const existingLatestHasNCounter =
@@ -1383,7 +1386,7 @@ export class IbgibsService {
           // #endregion
 
         } else {
-          if (logALot) { console.log(`${lc} no nCounter found. Trying brute force method.`); }
+          if (logalot) { console.log(`${lc} no nCounter found. Trying brute force method.`); }
           // #region brute force latest
           let latestAddr = await this.getLatestAddr_Brute({
             ibGib, ibGibAddr,
@@ -1399,7 +1402,7 @@ export class IbgibsService {
         }
       } else {
         // no existing mapping, so go ahead and add.
-        if (logALot) { console.log(`${lc} no existing tjp mapping. ${tjpAddr} -> ${ibGibAddr}`); }
+        if (logalot) { console.log(`${lc} no existing tjp mapping. ${tjpAddr} -> ${ibGibAddr}`); }
         await replaceLatest();
       }
 
@@ -1407,7 +1410,7 @@ export class IbgibsService {
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
-      if (logALot) { console.log(`${lc} complete.`); }
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
@@ -1485,7 +1488,7 @@ export class IbgibsService {
   }): Promise<string> {
     const lc = `${this.lc}[${this.getLatestAddr_Brute.name}][${ibGibAddr}]`;
     try {
-      if (logALot) { console.log(`${lc} starting...`); }
+      if (logalot) { console.log(`${lc} starting...`); }
       // no nCounter, so we need to brute force.
       // The easiest way is to check each's past, as the most common
       // scenario would be registering a newer one, or less likely, a timing issue
@@ -1497,34 +1500,34 @@ export class IbgibsService {
       // going to check a bunch of specific, easy cases to narrow things down.
 
       if (ibGibPast.length === 1 && existingLatestPast.length === 0) {
-        if (logALot) { console.log(`prospective has a past, so it "must" be newer. (won't quote "must" anymore)`); }
+        if (logalot) { console.log(`prospective has a past, so it "must" be newer. (won't quote "must" anymore)`); }
         return ibGibAddr;
       } else if (existingLatestPast.length === 1 && ibGibPast.length === 0) {
-        if (logALot) { console.log(`existing has a past, so it must be newer.`); }
+        if (logalot) { console.log(`existing has a past, so it must be newer.`); }
         return existingLatestAddr;
       } else if (existingLatestPast.length === 0 && ibGibPast.length === 0) {
         console.warn(`${lc} neither existing latest nor prospective new ibGib has a past, so keeping existing.`);
         return existingLatestAddr;
       } else if (existingLatestPast.includes(ibGibAddr)) {
-        if (logALot) { console.log(`existing by definition is newer`); }
+        if (logalot) { console.log(`existing by definition is newer`); }
         return existingLatestAddr;
       } else if (ibGibPast.includes(existingLatestAddr)) {
-        if (logALot) { console.log(`ibGib by definition is newer`); }
+        if (logalot) { console.log(`ibGib by definition is newer`); }
         return ibGibAddr;
       } else if (existingLatestAddr === ibGibAddr) {
-        if (logALot) { console.log(`they're the same!`); }
+        if (logalot) { console.log(`they're the same!`); }
         return existingLatestAddr;
       } else if (existingLatestAddr === tjpAddr && existingLatest.rel8ns?.tjp?.length === 1) {
-        if (logALot) { console.log(`ibGib must be newer because the existingLatestAddr is the tjp, which is by definition first in unique past.`); }
+        if (logalot) { console.log(`ibGib must be newer because the existingLatestAddr is the tjp, which is by definition first in unique past.`); }
         return ibGibAddr;
       } else if (ibGibAddr === tjpAddr && ibGib.rel8ns?.tjp?.length === 1) {
-        if (logALot) { console.log(`existing must be newer because the ibGibAddr is the tjp, which is by definition first in unique past.`); }
+        if (logalot) { console.log(`existing must be newer because the ibGibAddr is the tjp, which is by definition first in unique past.`); }
         return existingLatestAddr;
       }
 
       // well, neither one really gives us any indicator alone
       // so load each one in the past
-      if (logALot) { console.log(`${lc} brute forcing through iterating the pasts.`); }
+      if (logalot) { console.log(`${lc} brute forcing through iterating the pasts.`); }
       let newerAddr: string | undefined;
       let firstIterationCount = -1; // klugy hack, but is an ugly method anyway (brute after all!)
 
@@ -1552,22 +1555,22 @@ export class IbgibsService {
           return getPastCount(resNextX.ibGibs![0], n + xPast.length, otherAddr);
         }
 
-      if (logALot) { console.log(`${lc} doing ibGibPastCount`); }
+      if (logalot) { console.log(`${lc} doing ibGibPastCount`); }
       let ibGibPastCount = await getPastCount(ibGib, 0, existingLatestAddr);
       if (newerAddr) { return newerAddr; }
 
       // we didn't hit upon it, so set the firstIterationCount so we don't spend unnecessary cycles
-      if (logALot) { console.log(`${lc} Doing existingPastCount`); }
+      if (logalot) { console.log(`${lc} Doing existingPastCount`); }
       firstIterationCount = ibGibPastCount;
       let existingPastCount = await getPastCount(existingLatest, 0, ibGibAddr);
       if (newerAddr) { return newerAddr; }
 
       // we didn't yet determine it, so whichever has the longer past is newer
       if (ibGibPastCount > existingPastCount) {
-        if (logALot) { console.log(`${lc} ibGibPastCount (${ibGibPastCount}) is longer than existingPastCount (${existingPastCount}), so ibGib is newer.`); }
+        if (logalot) { console.log(`${lc} ibGibPastCount (${ibGibPastCount}) is longer than existingPastCount (${existingPastCount}), so ibGib is newer.`); }
         newerAddr = ibGibAddr;
       } else {
-        if (logALot) { console.log(`${lc} existingPastCount (${existingPastCount}) is longer than ibGibPastCount (${ibGibPastCount}), so ibGib is newer.`); }
+        if (logalot) { console.log(`${lc} existingPastCount (${existingPastCount}) is longer than ibGibPastCount (${ibGibPastCount}), so ibGib is newer.`); }
         newerAddr = existingLatestAddr;
       }
       return newerAddr;
@@ -1576,7 +1579,7 @@ export class IbgibsService {
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
-      if (logALot) { console.log(`${lc} complete.`); }
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
@@ -1592,10 +1595,10 @@ export class IbgibsService {
     tjp: IbGib_V1<any>
   }): Promise<void> {
     let lc = `${this.lc}[${this.pingLatest.name}]`;
-    if (logALot) { console.log(`${lc} starting...`); }
+    if (logalot) { console.log(`${lc} starting...`); }
     try {
       if (!ibGib) {
-        if (logALot) { console.log(`${lc} ibGib falsy.`); }
+        if (logalot) { console.log(`${lc} ibGib falsy.`); }
         return;
       }
       let latestAddr = await this.getLatestAddr({ibGib, tjp});
@@ -1635,7 +1638,7 @@ export class IbgibsService {
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     } finally {
-      if (logALot) { console.log(`${lc} complete.`); }
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
@@ -1647,7 +1650,7 @@ export class IbgibsService {
     tjp?: IbGib_V1<any>,
   }): Promise<IbGibAddr> {
     let lc = `${this.lc}[${this.getLatestAddr.name}]`;
-    if (logALot) { console.log(`${lc} starting...`); }
+    if (logalot) { console.log(`${lc} starting...`); }
     if (!ibGib) {
       console.error(`${lc} ibGib falsy`);
       return;
@@ -1660,7 +1663,7 @@ export class IbgibsService {
       if (!specialLatest.rel8ns) { specialLatest.rel8ns = {}; }
 
       // get the tjp for the rel8nName mapping, and also for some checking logic
-      if (logALot) { console.log(`${lc} tjp: ${JSON.stringify(tjp)}`); }
+      if (logalot) { console.log(`${lc} tjp: ${JSON.stringify(tjp)}`); }
       if (!tjp) {
         tjp = await this.getTjp({ibGib});
         if (!tjp) {
@@ -1669,9 +1672,9 @@ export class IbgibsService {
         }
       }
       let tjpAddr = h.getIbGibAddr({ibGib: tjp});
-      if (logALot) { console.log(`${lc} tjp (${tjpAddr})...`); }
+      if (logalot) { console.log(`${lc} tjp (${tjpAddr})...`); }
 
-      if (logALot) { console.log(`${lc} specialLatest addr: ${h.getIbGibAddr({ibGib: specialLatest})}`); }
+      if (logalot) { console.log(`${lc} specialLatest addr: ${h.getIbGibAddr({ibGib: specialLatest})}`); }
       let latestAddr = specialLatest.rel8ns[tjpAddr]?.length > 0 ?
         specialLatest.rel8ns[tjpAddr][0] :
         ibGibAddr;
@@ -1680,7 +1683,7 @@ export class IbgibsService {
       console.error(`${lc} ${error.message}`);
       return
     } finally {
-      if (logALot) { console.log(`${lc} complete.`); }
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
@@ -1762,7 +1765,7 @@ export class IbgibsService {
       // if (!addr) { addr = getBinAddr({binHash, binExt}); }
       if (!addr) { throw new Error(`addr required`); }
       lc = `${lc}(${addr})`;
-      if (logALot) { console.log(`${lc} starting...`); }
+      if (logalot) { console.log(`${lc} starting...`); }
       space = space ?? this.currentSpace;
       const result = await space.witness(await argy_<IonicSpaceOptionsData>({
         ibMetadata: space.ib,
@@ -1774,13 +1777,13 @@ export class IbgibsService {
         },
       }));
       if (result?.data?.success) {
-        if (logALot) { console.log(`${lc} got.`) }
+        if (logalot) { console.log(`${lc} got.`) }
         return {
           success: true,
           ibGibs: result.ibGibs,
         }
       } else {
-        if (logALot) { console.log(`${lc} didn't get.`) }
+        if (logalot) { console.log(`${lc} didn't get.`) }
         return {
           success: false,
           errorMsg: result.data?.errors?.join('|') || `${lc} something went wrong`,

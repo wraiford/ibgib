@@ -8,7 +8,7 @@ import { CommonService } from 'src/app/services/common.service';
 import { IbgibItem } from 'src/app/common/types';
 import * as c from '../../common/constants';
 
-const logALot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 @Component({
   selector: 'tag-list',
@@ -38,7 +38,7 @@ export class TagListViewComponent
   ) {
     super(common, ref);
     const lc = `${this.lc}[ctor]`
-    if (logALot) { console.log(`${lc} created`); }
+    if (logalot) { console.log(`${lc} created`); }
   }
 
   ngOnInit() {
@@ -47,7 +47,7 @@ export class TagListViewComponent
 
   updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-    if (logALot) { console.log(`${lc}`) }
+    if (logalot) { console.log(`${lc}`) }
     return super.updateIbGib(addr);
   }
 
@@ -62,7 +62,7 @@ export class TagListViewComponent
   // }
 
   async tagClicked(item: IbgibItem): Promise<void> {
-    if (logALot) { console.log(`item: ${JSON.stringify(item, null, 2)}`); }
+    if (logalot) { console.log(`item: ${JSON.stringify(item, null, 2)}`); }
     await this.navTo({addr: item.addr});
     // this.clicked.emit(item);
   }

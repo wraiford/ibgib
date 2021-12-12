@@ -8,7 +8,7 @@ import { CommonService } from '../../services/common.service';
 import { IbgibItem } from '../../common/types';
 import * as c from '../../common/constants';
 
-const logALot = c.GLOBAL_LOG_A_LOT || false;;
+const logalot = c.GLOBAL_LOG_A_LOT || false;;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
@@ -41,12 +41,12 @@ export class ListItemViewComponent extends IbgibComponentBase {
   ) {
     super(common, ref)
     const lc = `${this.lc}[ctor]`;
-    if (logALot) { console.log(`${lc} created`); }
+    if (logalot) { console.log(`${lc} created`); }
    }
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-    if (logALot) { console.log(`${lc} updating...`); }
+    if (logalot) { console.log(`${lc} updating...`); }
     try {
       await super.updateIbGib(addr);
       await this.loadIbGib();
@@ -57,12 +57,12 @@ export class ListItemViewComponent extends IbgibComponentBase {
       this.clearItem();
     } finally {
       this.ref.detectChanges();
-      if (logALot) { console.log(`${lc} updated.`); }
+      if (logalot) { console.log(`${lc} updated.`); }
     }
   }
 
   async handleClicked(item: IbgibItem): Promise<void> {
-    if (logALot) { console.log(`item: ${JSON.stringify(item, null, 2)}`); }
+    if (logalot) { console.log(`item: ${JSON.stringify(item, null, 2)}`); }
     this.clicked.emit(item);
   }
 

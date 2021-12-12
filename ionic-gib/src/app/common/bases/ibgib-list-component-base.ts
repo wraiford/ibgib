@@ -7,7 +7,7 @@ import { CommonService } from 'src/app/services/common.service';
 import * as c from '../constants';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 
-const logALot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 @Injectable({providedIn: "root"})
 export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem>
@@ -49,7 +49,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
 
     async updateIbGib(addr: IbGibAddr): Promise<void> {
         const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-        if (logALot) { console.log(`${lc} updating...`); }
+        if (logalot) { console.log(`${lc} updating...`); }
         try {
             await super.updateIbGib(addr);
             await this.loadIbGib();
@@ -60,7 +60,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
             this.clearItem();
         } finally {
             this.ref.detectChanges();
-            if (logALot) { console.log(`${lc} updated.`); }
+            if (logalot) { console.log(`${lc} updated.`); }
         }
     }
 
@@ -74,7 +74,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
      */
     async updateItems(): Promise<void> {
         const lc = `${this.lc}[${this.updateItems.name}]`;
-        if (logALot) { console.log(`${lc} updating...`); }
+        if (logalot) { console.log(`${lc} updating...`); }
         if (this._updatingItems) { return; }
         this._updatingItems = true;
         try {
@@ -84,12 +84,12 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
             if (!this.rel8nNames.includes('target')) {
                 // debugger;
             }
-            if (logALot) { console.log(`${lc} this.rel8nNames: ${this.rel8nNames?.toString()}`); }
+            if (logalot) { console.log(`${lc} this.rel8nNames: ${this.rel8nNames?.toString()}`); }
 
             for (let rel8nName of this.rel8nNames) {
                 const rel8dAddrs = this.item.ibGib?.rel8ns[rel8nName] || [];
                 for (let rel8dAddr of rel8dAddrs) {
-                    if (logALot) { console.log(`${lc} adding rel8dAddr: ${rel8dAddr}`); }
+                    if (logalot) { console.log(`${lc} adding rel8dAddr: ${rel8dAddr}`); }
                     const newItem = <TItem>{ addr: rel8dAddr };
                     await this.loadIbGib({item: newItem});
                     await this.loadItem(newItem);
@@ -104,13 +104,13 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
                 return a.ibGib?.data?.timestamp < b.ibGib?.data?.timestamp ? -1 : 1
             });
             this.items = newItems || [];
-            if (logALot) { console.log(`${lc} this.items count: ${this.items.length}`); }
+            if (logalot) { console.log(`${lc} this.items count: ${this.items.length}`); }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
         } finally {
             this.ref.detectChanges();
             this._updatingItems = false;
-            if (logALot) { console.log(`${lc} updated.`); }
+            if (logalot) { console.log(`${lc} updated.`); }
         }
     }
 

@@ -15,7 +15,7 @@ import * as c from '../constants';
 import { ModalController } from '@ionic/angular';
 import { ChooseIconModalComponent, IconItem } from '../choose-icon-modal/choose-icon-modal.component';
 
-const logALot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
@@ -90,12 +90,12 @@ export class ActionBarComponent extends IbgibComponentBase
   }
 
   ngOnInit() {
-    if (logALot) { console.log(`${this.lc} addr: ${this.addr}`); }
+    if (logalot) { console.log(`${this.lc} addr: ${this.addr}`); }
   }
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-    if (logALot) { console.log(`${lc} updating...`); }
+    if (logalot) { console.log(`${lc} updating...`); }
     try {
       await super.updateIbGib(addr);
       await this.loadIbGib();
@@ -105,7 +105,7 @@ export class ActionBarComponent extends IbgibComponentBase
       this.clearItem();
     } finally {
       this.ref.detectChanges();
-      if (logALot) { console.log(`${lc} updated.`); }
+      if (logalot) { console.log(`${lc} updated.`); }
     }
   }
 
@@ -116,7 +116,7 @@ export class ActionBarComponent extends IbgibComponentBase
   async actionAddComment(event: MouseEvent): Promise<void> {
     const lc = `${this.lc}[${this.actionAddComment.name}]`;
     try {
-      if (logALot) { console.log(`${lc} __`); }
+      if (logalot) { console.log(`${lc} __`); }
       const resComment = await Modals.prompt({
         title: 'comment',
         message: 'add text',
@@ -124,7 +124,7 @@ export class ActionBarComponent extends IbgibComponentBase
       });
       if (resComment.cancelled || !resComment.value) { return; }
       const text = resComment.value.trim();
-      if (logALot) { console.log(`${lc} text: ${text}`); }
+      if (logalot) { console.log(`${lc} text: ${text}`); }
       const data: CommentData = { text, textTimestamp: getTimestamp() };
 
       // create an ibgib with the filename and ext
@@ -141,7 +141,7 @@ export class ActionBarComponent extends IbgibComponentBase
         opts.rel8ns = { 'comment on': [this.addr] };
       }
 
-      if (logALot) { console.log(`${lc} opts: ${pretty(opts)}`); }
+      if (logalot) { console.log(`${lc} opts: ${pretty(opts)}`); }
       const resCommentIbGib = await factory.firstGen(opts);
       await this.common.ibgibs.persistTransformResult({resTransform: resCommentIbGib});
       const { newIbGib: newComment } = resCommentIbGib;
@@ -218,8 +218,8 @@ export class ActionBarComponent extends IbgibComponentBase
       // .replace(new RegExp(/\W/), '') // any remaining-non-word chars
       ; // temporary eek.
 
-    if (logALot) { console.log(`${lc} binHash: ${binHash}`); }
-    if (logALot) { console.log(`${lc} ext: ${ext}`); }
+    if (logalot) { console.log(`${lc} binHash: ${binHash}`); }
+    if (logalot) { console.log(`${lc} ext: ${ext}`); }
     const data: PicData = { binHash, ext, filename, timestamp };
     const rel8ns: IbGibRel8ns = {
       'pic on': [this.addr],
@@ -326,7 +326,7 @@ export class ActionBarComponent extends IbgibComponentBase
     const reader = new FileReader();
 
     if (!file.type.match(pattern)) {
-      if (logALot) { console.log('File format not supported'); }
+      if (logalot) { console.log('File format not supported'); }
       return;
     }
 
@@ -383,29 +383,29 @@ export class ActionBarComponent extends IbgibComponentBase
       let tagIbGib: IbGib_V1;
       if (resPrompt.index === 0) {
 
-        if (logALot) { console.log(`${lc} cancelled`); }
+        if (logalot) { console.log(`${lc} cancelled`); }
         await Plugins.Modals.alert({ title: 'nope', message: 'cancelled' });
         return;
 
       } else if (resPrompt.index === 1) {
 
-        if (logALot) { console.log(`${lc} create new tag`); }
+        if (logalot) { console.log(`${lc} create new tag`); }
         tagIbGib = await this.createNewTag();
         if (!tagIbGib) {
-          if (logALot) { console.log(`${lc} aborting creating new tag.`); }
+          if (logalot) { console.log(`${lc} aborting creating new tag.`); }
           return;
         }
 
       } else {
 
-        if (logALot) { console.log(`${lc} tag with existing tag, but may not be latest addr`); }
+        if (logalot) { console.log(`${lc} tag with existing tag, but may not be latest addr`); }
         const tagInfo: TagInfo = tagInfos[resPrompt.index - 2];
         const resTagIbGib = await this.common.ibgibs.get({addr: tagInfo.addr});
         if (resTagIbGib.success && resTagIbGib.ibGibs?.length === 1) {
           const rel8dTagIbGibAddr = getIbGibAddr({ibGib: resTagIbGib.ibGibs[0]});
-          if (logALot) { console.log(`${lc} the rel8d tag may not be the latest: ${rel8dTagIbGibAddr}`); }
+          if (logalot) { console.log(`${lc} the rel8d tag may not be the latest: ${rel8dTagIbGibAddr}`); }
           const latestTagAddr = await this.common.ibgibs.getLatestAddr({ibGib: resTagIbGib.ibGibs[0]});
-          if (logALot) { console.log(`${lc} latestTagAddr: ${latestTagAddr}`); }
+          if (logalot) { console.log(`${lc} latestTagAddr: ${latestTagAddr}`); }
           if (rel8dTagIbGibAddr === latestTagAddr) {
             console.error(`${lc} tag is already the latest`);
             tagIbGib = resTagIbGib.ibGibs[0]!;
@@ -435,7 +435,7 @@ export class ActionBarComponent extends IbgibComponentBase
       await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newTag, linked: true});
       await this.common.ibgibs.registerNewIbGib({ibGib: newTag});
 
-      if (logALot) { console.log(`${lc} tag successful.`); }
+      if (logalot) { console.log(`${lc} tag successful.`); }
       await Modals.alert({title: 'yess', message: `Tagged.`});
     } catch (error) {
       console.error(`${lc} ${error.message}`)
@@ -448,7 +448,7 @@ export class ActionBarComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.createNewTag.name}]`;
 
     try {
-      if (logALot) { console.log(`${lc} starting...`); }
+      if (logalot) { console.log(`${lc} starting...`); }
 
       const text = await this.chooseTagText();
       if (!text) { return; }
@@ -464,7 +464,7 @@ export class ActionBarComponent extends IbgibComponentBase
       console.error(`${lc} ${error.message}`);
       return;
     } finally {
-      if (logALot) { console.log(`${lc} complete.`); }
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
@@ -485,7 +485,7 @@ export class ActionBarComponent extends IbgibComponentBase
         });
 
         if (resTagText.cancelled || !resTagText.value) {
-          if (logALot) { console.log(`${lc} cancelled? no value?`) }
+          if (logalot) { console.log(`${lc} cancelled? no value?`) }
           return;
         }
 
@@ -496,7 +496,7 @@ export class ActionBarComponent extends IbgibComponentBase
           });
         } else {
           tagText = resTagText.value;
-          if (logALot) { console.log(`${lc} tagText: ${tagText}`); }
+          if (logalot) { console.log(`${lc} tagText: ${tagText}`); }
           break;
         }
       }
@@ -518,10 +518,10 @@ export class ActionBarComponent extends IbgibComponentBase
       let resModal = await modal.onWillDismiss();
       const iconItem: IconItem = resModal.data;
       if (!iconItem) {
-        if (logALot) { console.log(`${lc} cancelled.`) }
+        if (logalot) { console.log(`${lc} cancelled.`) }
         return;
       }
-      if (logALot) { console.log(`${lc} icon: ${iconItem.icon}`); }
+      if (logalot) { console.log(`${lc} icon: ${iconItem.icon}`); }
       return iconItem!.icon;
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);
@@ -547,7 +547,7 @@ export class ActionBarComponent extends IbgibComponentBase
         });
 
         if (resTagDesc.cancelled) {
-          if (logALot) { console.log(`${lc} cancelled? no value?`) }
+          if (logalot) { console.log(`${lc} cancelled? no value?`) }
           return;
         }
 
@@ -558,7 +558,7 @@ export class ActionBarComponent extends IbgibComponentBase
           });
         } else {
           tagDesc = resTagDesc.value || `${tagText} is cool tag.`;
-          if (logALot) { console.log(`${lc} tagText: ${tagDesc}`); }
+          if (logalot) { console.log(`${lc} tagText: ${tagDesc}`); }
           break;
         }
       }

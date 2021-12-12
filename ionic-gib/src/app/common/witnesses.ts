@@ -8,7 +8,7 @@ import * as h from 'ts-gib/dist/helper';
 import { IbGib_V1, IbGibRel8ns_V1, Factory_V1 as factory, } from 'ts-gib/dist/V1';
 import * as c from './constants';
 
-const logALot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 export abstract class WitnessBase_V1<
     TIbGibIn extends IbGib_V1 = IbGib_V1,
@@ -48,7 +48,7 @@ export abstract class WitnessBase_V1<
     /** not implemented yet */
     protected get throwOnError(): boolean {
         const lc = `${this.lc}[throwOnError]`;
-        if (logALot) { console.warn(`${lc} not implemented yet. returning true.`)}
+        if (logalot) { console.warn(`${lc} not implemented yet. returning true.`)}
         return (<any>this.data)?.throwOnError || true;
     }
 

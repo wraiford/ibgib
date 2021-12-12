@@ -1,5 +1,5 @@
 import { Component, OnInit, ChangeDetectorRef, Input, OnDestroy } from '@angular/core';
-import { ActivatedRoute, NavigationEnd, Router, } from '@angular/router';
+import { NavigationEnd, Router, } from '@angular/router';
 import { MenuController, Platform } from '@ionic/angular';
 import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
@@ -16,13 +16,15 @@ import {
   // MENU_ITEM_IB_SUBSTRING_LENGTH, DEFAULT_TAG_ICON, DEFAULT_ROOT_ICON, ROOT_REL8N_NAME, DEFAULT_ROOT_TEXT, DEFAULT_ROOT_DESCRIPTION
 } from './common/constants';
 import * as c from './common/constants';
+import { RootData } from './common/types';
 
-const logALot = c.GLOBAL_LOG_A_LOT || false;;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 interface MenuItem {
   title: string;
   url: string;
   icon: string;
+  addr?: IbGibAddr;
 }
 
 @Component({
@@ -39,8 +41,58 @@ export class AppComponent extends IbgibComponentBase
 
   _currentRoot: MenuItem;
   @Input()
-  get currentRoot(): MenuItem { return this._currentRoot; }
-  set currentRoot(value: MenuItem) { this._currentRoot = value; }
+  get currentRoot(): MenuItem {
+    const lc = `${this.lc}[get currentRoot]`;
+    if (logalot) { console.log(`${lc} this._currentRoot: ${h.pretty(this._currentRoot)}`); }
+    return this._currentRoot;
+  }
+  set currentRoot(value: MenuItem) {
+    const lc = `${this.lc}[set currentRoot]`;
+    if (logalot) { console.log(`${lc} value: ${h.pretty(value)}`); }
+    this._currentRoot = value;
+  }
+
+  compareRoots(a: MenuItem, b: MenuItem): boolean {
+    const lc = `[${AppComponent.name}][compareRoots]`;
+    if (logalot) { console.log(`${lc}`); }
+    return a && b ? a.title === b.title : a === b;
+  }
+  async handleRootChange(e: any): Promise<void> {
+    const lc = `${this.lc}[${this.handleRootChange.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} triggered...`)};
+      if (!e.detail.value) {
+        throw new Error(`e.detail.value (root selected) falsy`)
+        return;
+      }
+      let rootItem: MenuItem = e.detail.value;
+      if (logalot) { console.log(`${lc} selected rootItem: ${h.pretty(rootItem)}`)};
+
+      let resRootIbGib = await this.common.ibgibs.get({addr: rootItem.addr});
+      if (resRootIbGib?.success && resRootIbGib.ibGibs?.length === 1) {
+        let rootIbGib = <IbGib_V1<RootData>>resRootIbGib.ibGibs[0];
+        let rootIbGibAddr = h.getIbGibAddr({ibGib: rootIbGib});
+        let latestRootAddr = await this.common.ibgibs.getLatestAddr({ibGib: rootIbGib});
+        if (latestRootAddr !== rootIbGibAddr) {
+          if (logalot) { console.log(`${lc} latest exists. latestRootAddr: ${latestRootAddr}`); }
+          resRootIbGib = await this.common.ibgibs.get({addr: latestRootAddr});
+          if (!resRootIbGib.success || resRootIbGib.ibGibs?.length !== 1) { throw new Error(`latest rootIbgib addr could not be gotten: ${latestRootAddr}`); }
+          rootIbGib = <IbGib_V1<RootData>>resRootIbGib.ibGibs[0];
+          rootIbGibAddr = h.getIbGibAddr({ibGib: rootIbGib});
+          rootItem = await this.getRootItem(rootIbGibAddr);
+        }
+        await this.common.ibgibs.setCurrentRoot(rootIbGib);
+        this.currentRoot = rootItem;
+        // debug
+        let graph = await this.common.ibgibs.getDependencyGraph({ibGib: rootIbGib});
+        console.log(`${lc} graph.keys.length: ${Object.keys(graph).length}`);
+      } else {
+        throw new Error(`Could not get currentRoot ibGib (?). rootItem selected: ${h.pretty(rootItem)}`);
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+    }
+  }
 
   @Input()
   get addr(): IbGibAddr { return super.addr; }
@@ -56,7 +108,7 @@ export class AppComponent extends IbgibComponentBase
   set tagsAddr(value: IbGibAddr) {
     const lc = `${this.lc}[set tagsAddr]`;
     if (value !== this._tagsAddr) {
-      if (logALot) { console.log(`${lc} updating tagsAddr: ${value}`); }
+      if (logalot) { console.log(`${lc} updating tagsAddr: ${value}`); }
       this._tagsAddr = value;
       setTimeout(() => { this.ref.detectChanges(); });
     }
@@ -68,7 +120,7 @@ export class AppComponent extends IbgibComponentBase
   set rootsAddr(value: IbGibAddr) {
     const lc = `${this.lc}[set rootsAddr]`;
     if (value !== this._rootsAddr) {
-      if (logALot) { console.log(`${lc} updating rootsAddr: ${value}`); }
+      if (logalot) { console.log(`${lc} updating rootsAddr: ${value}`); }
       this._rootsAddr = value;
       this.ref.detectChanges();
     }
@@ -89,14 +141,12 @@ export class AppComponent extends IbgibComponentBase
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
     private router: Router,
-    private activatedRoute: ActivatedRoute,
-    private menu: MenuController,
+    public menu: MenuController,
   ) {
     super(common, ref);
 
     this.initializeApp();
   }
-
 
   async initializeApp(): Promise<void> {
     const lc = `${this.lc}[${this.initializeApp.name}]`;
@@ -109,9 +159,9 @@ export class AppComponent extends IbgibComponentBase
 
       try {
         if (this.initializing) {
-          if (logALot) { console.log(`${lc} this.initializing is truthy`); }
+          if (logalot) { console.log(`${lc} this.initializing is truthy`); }
         } else {
-          if (logALot) { console.log(`${lc} this.initializing is falsy`); }
+          if (logalot) { console.log(`${lc} this.initializing is falsy`); }
         }
         // make sure roots are initialized FIRST before any other ibgib happenings
         await this.common.ibgibs.initialize();
@@ -158,7 +208,7 @@ export class AppComponent extends IbgibComponentBase
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-    if (logALot) { console.log(`${lc} updating...`); }
+    if (logalot) { console.log(`${lc} updating...`); }
     try {
       await super.updateIbGib(addr);
       await this.loadIbGib();
@@ -169,7 +219,7 @@ export class AppComponent extends IbgibComponentBase
       this.clearItem();
     } finally {
       this.ref.detectChanges();
-      if (logALot) { console.log(`${lc} updated.`); }
+      if (logalot) { console.log(`${lc} updated.`); }
     }
   }
 
@@ -183,7 +233,7 @@ export class AppComponent extends IbgibComponentBase
   async loadTags(): Promise<void> {
     if (!this.item) { this.item = {} }
     this.item.isMeta = true;
-    if (logALot) { console.log(`getting tags addr`) }
+    if (logalot) { console.log(`getting tags addr`) }
     const special = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
     this.tagsAddr = h.getIbGibAddr({ibGib: special});
   }
@@ -234,7 +284,7 @@ export class AppComponent extends IbgibComponentBase
 
   async initializeMyTags(): Promise<void> {
     const lc = `${this.lc}[${this.initializeMyTags.name}]`;
-    if (logALot) { console.log(`${lc} initializing...`); }
+    if (logalot) { console.log(`${lc} initializing...`); }
     try {
       const tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
       this.tagsAddr = h.getIbGibAddr({ibGib: tagsIbGib});
@@ -242,7 +292,7 @@ export class AppComponent extends IbgibComponentBase
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
-      if (logALot) { console.log(`${lc} complete.`); }
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
@@ -283,7 +333,7 @@ export class AppComponent extends IbgibComponentBase
 
     // load tags if needed
     if (!this.tagsAddr) {
-      if (logALot) { console.log(`${lc} this.tagsAddr falsy`); }
+      if (logalot) { console.log(`${lc} this.tagsAddr falsy`); }
       await this.loadTags();
     }
 
@@ -294,7 +344,7 @@ export class AppComponent extends IbgibComponentBase
     // if we have gotten the tags object and there are no associated individual
     // tags, try re-initializing with default tags.
     if (!tagAddrs || tagAddrs.length === 0) {
-      if (logALot) { console.log(`${lc} couldn't get tagsIbGib?`); }
+      if (logalot) { console.log(`${lc} couldn't get tagsIbGib?`); }
       tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags", initialize: true});
       tagAddrs = tagsIbGib?.rel8ns?.tag || [];
     }
@@ -328,7 +378,7 @@ export class AppComponent extends IbgibComponentBase
               icon: ibGib.data!.icon || c.DEFAULT_TAG_ICON,
               url: `/ibgib/${addr}`,
             }
-            if (logALot) { console.log(`${lc} ${h.pretty(item)}`); }
+            if (logalot) { console.log(`${lc} ${h.pretty(item)}`); }
           } else {
             console.warn(`${lc} loading non-standard tag`);
             item = {
@@ -397,14 +447,16 @@ export class AppComponent extends IbgibComponentBase
               title: text.substring(0, c.MENU_ITEM_IB_SUBSTRING_LENGTH),
               icon: ibGib.data!.icon || c.DEFAULT_ROOT_ICON,
               url: `/ibgib/${addr}`,
+              addr,
             }
-            if (logALot) { console.log(`${lc} ${h.pretty(item)}`); }
+            if (logalot) { console.log(`${lc} ${h.pretty(item)}`); }
           } else {
             console.warn(`${lc} loading non-standard tag`);
             item = {
               title: ibGib.ib.substring(0, c.MENU_ITEM_IB_SUBSTRING_LENGTH),
               icon: ibGib.data!.icon || c.DEFAULT_ROOT_ICON,
               url: `/ibgib/${addr}`,
+              addr,
             }
           }
         } else {
@@ -444,24 +496,17 @@ export class AppComponent extends IbgibComponentBase
   subscribeParamMap() {
     const lc = `${this.lc}[${this.subscribeParamMap.name}]`;
 
-    if (logALot) { console.log(`${lc} subscribing...`) }
+    if (logalot) { console.log(`${lc} subscribing...`) }
 
     let piper = this.router.events.pipe(filter(x => x instanceof NavigationEnd));
     this.paramMapSub_App = piper.subscribe(async (event: any) => {
-      // let e = <RouterEvent>evnt;
-      // let addr = this.activatedRoute.root.firstChild.data['addr'];
-      // console.log(`${lc} real address yo: ${addr}`);
-      // if (!this.router?.url) { return; }
-      // const addr = this.router.url && this.router.url.startsWith('/ibgib/') ?
-      //   decodeURI(this.router.url.split('/')[2]) :
-      //   undefined;
       const addr = await this.getCurrentIbgibAddrInURL();
-      if (logALot) { console.log(`${lc} addr: ${addr}`); }
-      if (logALot) { console.log(`${lc} router.url: ${h.pretty(this.router.url)}`) }
+      if (logalot) { console.log(`${lc} addr: ${addr}`); }
+      if (logalot) { console.log(`${lc} router.url: ${h.pretty(this.router.url)}`) }
       if (event.id && event.url && addr && addr !== this.addr) {
-        if (logALot) { console.log(`${lc} event.id: ${event.id}`); }
-        if (logALot) { console.log(`${lc} event.url: ${event.url}`); }
-        if (logALot) { console.log(`${lc} addr is different`); }
+        if (logalot) { console.log(`${lc} event.id: ${event.id}`); }
+        if (logalot) { console.log(`${lc} event.url: ${event.url}`); }
+        if (logalot) { console.log(`${lc} addr is different`); }
         await this.updateIbGib(addr);
         this.ref.detectChanges();
       }

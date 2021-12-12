@@ -44,11 +44,16 @@
               <ion-list *ngIf="menuOpen === 'roots'" slot="content">
                 <ion-item>
                   <ion-label>current: </ion-label>
-                  <ion-select placeholder="data root" [value]="currentRoot">
-                    <ion-select-option
-                      *ngFor="let x of rootItems; let i = index">
-                      <ion-icon slot="start" [ios]="x.icon" [md]="x.icon.replace('outline', 'sharp')"></ion-icon>
-                      <ion-label>{{ x.title }}</ion-label>
+                    <!-- [compareWith]="compareRoots" -->
+                  <ion-select
+                    [compareWith]="compareRoots"
+                    [value]="currentRoot"
+                    okText="Set Root"
+                    (ionChange)="handleRootChange($event)"
+                    >
+                    <ion-select-option *ngFor="let item of rootItems" [value]="item">
+                      <ion-icon slot="start" [ios]="item.icon" [md]="item.icon.replace('outline', 'sharp')"></ion-icon>
+                      <ion-label>{{ item.title }}</ion-label>
                     </ion-select-option>
                   </ion-select>
                 </ion-item>

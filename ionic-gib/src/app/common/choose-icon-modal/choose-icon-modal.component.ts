@@ -5,7 +5,7 @@ import * as h from 'ts-gib/dist/helper';
 
 import * as c from '../constants';
 
-const logALot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 export interface IconItem {
   title: string;
@@ -23,7 +23,7 @@ export class ChooseIconModalComponent implements OnInit, OnDestroy {
 
   @Input()
   items: IconItem[] = IONICONS.map(iconText => {
-      // if (logALot) { console.log(`${this.lc} ${iconText}`); }
+      // if (logalot) { console.log(`${this.lc} ${iconText}`); }
       return {
         title: iconText,
         icon: iconText,
@@ -44,7 +44,7 @@ export class ChooseIconModalComponent implements OnInit, OnDestroy {
     // }, 2000);
 
     // this.ioniconItems = IONICONS.map(iconText => {
-    //   if (logALot) { console.log(`${lc} ${iconText}`); }
+    //   if (logalot) { console.log(`${lc} ${iconText}`); }
     //   return {
     //     title: iconText,
     //     icon: iconText,
@@ -56,12 +56,12 @@ export class ChooseIconModalComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
-    if (logALot) { console.log(`${lc}`); }
+    if (logalot) { console.log(`${lc}`); }
   }
 
   async handleItemClick(item: any): Promise<void> {
     const lc = `${this.lc}[${this.handleItemClick.name}]`;
-    if (logALot) { console.log(`${lc} item: ${h.pretty(item)}`); }
+    if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
     await this.modalController.dismiss(item);
   }
 

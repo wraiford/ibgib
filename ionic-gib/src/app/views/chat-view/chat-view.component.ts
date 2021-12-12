@@ -6,7 +6,7 @@ import { IbgibListComponentBase } from 'src/app/common/bases/ibgib-list-componen
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 import * as c from '../../common/constants';
 
-const logALot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 interface ChatItem extends IbgibItem {
 
@@ -52,7 +52,7 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
   ngOnDestroy() {}
 
   async itemClicked(item: IbgibItem): Promise<void> {
-    if (logALot) { console.log(`item: ${JSON.stringify(item, null, 2)}`); }
+    if (logalot) { console.log(`item: ${JSON.stringify(item, null, 2)}`); }
     await this.navTo({addr: item.addr});
     // this.clicked.emit(item);
   }
