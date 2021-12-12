@@ -1,51 +1,82 @@
 <ion-app>
   <ion-split-pane contentId="main-content">
-    <ion-menu contentId="main-content" type="overlay">
+    <ion-menu menuId="main" contentId="main-content" type="overlay">
+              <!-- <ion-menu-toggle auto-hide="false" > -->
       <ion-content>
         <ion-list id="meta-list">
-          <!-- <ion-note>current root</ion-note> -->
-          <ion-select placeholder="data root" [value]="currentRoot">
-            <ion-select-option
-              *ngFor="let x of rootItems; let i = index">
-              <ion-icon slot="start" [ios]="x.icon" [md]="x.icon.replace('outline', 'sharp')"></ion-icon>
-              <ion-label>{{ x.title }}</ion-label>
-            </ion-select-option>
-          </ion-select>
 
-          <ion-list-header
-            routerDirection="root"
-            [routerLink]="[tagsUrl]">
-            Tags
-          </ion-list-header>
+          <ion-item class="accordion-item">
+            <ion-list class="accordion-item-list">
+              <ion-list-header>
+                <ion-label (click)="this.menu.toggle('main')"
+                  routerDirection="root" [routerLink]="[tagsUrl]">
+                  tags
+                </ion-label>
+                <ion-icon class="accordion-expand-btn" *ngIf="menuOpen !== 'tags'" name="chevron-down-circle-outline" (click)="menuOpen = 'tags'"></ion-icon>
+                <ion-icon class="accordion-expand-btn" *ngIf="menuOpen === 'tags'" name="chevron-back-circle-outline" (click)="menuOpen = ''"></ion-icon>
+              </ion-list-header>
+              <ion-list *ngIf="menuOpen === 'tags'" slot="content">
+                <ion-item
+                  routerDirection="root"
+                  [routerLink]="[p.url]"
+                  lines="none"
+                  [class.selected]="p.url.includes(addr)"
+                  *ngFor="let p of tagItems; let i = index"
+                  (click)="this.menu.toggle('main')"
+                  >
+                  <ion-icon slot="start" [ios]="p.icon" [md]="p.icon.replace('outline', 'sharp')"></ion-icon>
+                  <ion-label>{{ p.title }}</ion-label>
+                </ion-item>
+              </ion-list>
+            </ion-list>
+          </ion-item>
 
-          <ion-menu-toggle auto-hide="false" >
-            <ion-item
-              routerDirection="root"
-              [routerLink]="[p.url]"
-              lines="none"
-              detail="false"
-              [class.selected]="p.url.includes(addr)"
-              *ngFor="let p of tagItems; let i = index">
-              <!-- [class.selected]="selectedIndex == i"> -->
-              <ion-icon slot="start" [ios]="p.icon" [md]="p.icon.replace('outline', 'sharp')"></ion-icon>
-              <ion-label>{{ p.title }}</ion-label>
-            </ion-item>
-            <ion-list-header
-              routerDirection="root"
-              [routerLink]="[rootsUrl]">
-              Roots
-            </ion-list-header>
+          <ion-item class="accordion-item">
+            <ion-list class="accordion-item-list">
+              <ion-list-header>
+                <ion-label (click)="this.menu.toggle('main')"
+                  routerDirection="root" [routerLink]="[rootsUrl]">
+                  roots
+                </ion-label>
+                <ion-icon class="accordion-expand-btn" *ngIf="menuOpen !== 'roots'" name="chevron-down-circle-outline" (click)="menuOpen = 'roots'"></ion-icon>
+                <ion-icon class="accordion-expand-btn" *ngIf="menuOpen === 'roots'" name="chevron-back-circle-outline" (click)="menuOpen = ''"></ion-icon>
+              </ion-list-header>
+              <ion-list *ngIf="menuOpen === 'roots'" slot="content">
+                <ion-item>
+                  <ion-label>current: </ion-label>
+                  <ion-select placeholder="data root" [value]="currentRoot">
+                    <ion-select-option
+                      *ngFor="let x of rootItems; let i = index">
+                      <ion-icon slot="start" [ios]="x.icon" [md]="x.icon.replace('outline', 'sharp')"></ion-icon>
+                      <ion-label>{{ x.title }}</ion-label>
+                    </ion-select-option>
+                  </ion-select>
+                </ion-item>
+                <ion-item
+                  routerDirection="root"
+                  [routerLink]="[p.url]"
+                  lines="none"
+                  [class.selected]="p.url.includes(addr)"
+                  *ngFor="let p of rootItems; let i = index"
+                  (click)="this.menu.toggle('main')"
+                  >
+                  <ion-icon slot="start" [name]="p.icon"></ion-icon>
+                  <ion-label>{{ p.title }}</ion-label>
+                </ion-item>
+              </ion-list>
+            </ion-list>
+          </ion-item>
+
             <!-- <ion-item
               routerDirection="root"
               [routerLink]="[p.url]"
               lines="none"
-              detail="false"
               [class.selected]="p.url.includes(addr)"
               *ngFor="let p of rootItems; let i = index">
               <ion-icon slot="start" [ios]="p.icon" [md]="p.icon.replace('outline', 'sharp')"></ion-icon>
               <ion-label>{{ p.title }}</ion-label>
             </ion-item> -->
-          </ion-menu-toggle>
+          <!-- </ion-menu-toggle> -->
 
         </ion-list>
 

@@ -1,6 +1,6 @@
 import { Component, OnInit, ChangeDetectorRef, Input, OnDestroy } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router, } from '@angular/router';
-import { Platform } from '@ionic/angular';
+import { MenuController, Platform } from '@ionic/angular';
 import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { Subscription } from 'rxjs';
@@ -79,6 +79,9 @@ export class AppComponent extends IbgibComponentBase
   @Input()
   initializing: boolean;
 
+  @Input()
+  menuOpen: string = 'tags';
+
   constructor(
     private platform: Platform,
     private splashScreen: SplashScreen,
@@ -87,6 +90,7 @@ export class AppComponent extends IbgibComponentBase
     protected ref: ChangeDetectorRef,
     private router: Router,
     private activatedRoute: ActivatedRoute,
+    private menu: MenuController,
   ) {
     super(common, ref);
 
@@ -355,14 +359,14 @@ export class AppComponent extends IbgibComponentBase
       // roots should already be initialized
       if (!this.rootsAddr) { throw new Error(`rootsAddr is falsy, i.e. hasn't been initialized?`); };
 
-      // get tags, but don't initialize
+      // get roots, but don't initialize
       let rootsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "roots"});
       let rootAddrs = rootsIbGib?.rel8ns[c.ROOT_REL8N_NAME] || [];
 
       // we should have initialized with roots
       if (!rootAddrs || rootAddrs.length === 0) { throw new Error(`No associated rootAddrs to the roots ibGib. Should have been initialized with roots.`); }
 
-      // load individual tag items
+      // load individual items
       for (let rootAddr of rootAddrs) {
         const rootItem = await this.getRootItem(rootAddr);
         if (rootItem) { rootMenuItems.push(rootItem); }
@@ -387,8 +391,8 @@ export class AppComponent extends IbgibComponentBase
       if (resGet.success && resGet.ibGibs?.length === 1) {
         const ibGib = resGet.ibGibs![0];
         if (ibGib?.ib && ibGib?.gib) {
-          if (ibGib?.data?.icon && (ibGib?.data?.text || ibGib?.data?.tagText)) {
-            const text = ibGib.data!.text || ibGib.data!.tagText;
+          if (ibGib?.data?.icon && ibGib?.data?.text) {
+            const text = ibGib.data!.text;
             item = {
               title: text.substring(0, c.MENU_ITEM_IB_SUBSTRING_LENGTH),
               icon: ibGib.data!.icon || c.DEFAULT_ROOT_ICON,

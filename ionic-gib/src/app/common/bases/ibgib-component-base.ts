@@ -132,7 +132,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
 
     get title(): string {
         if (this.isTag) {
-            return this.ib.split(' ').slice(1).join(' ');
+            return this.ibGib?.data?.tagText || this.ibGib?.data?.text || this.ib.split(' ').slice(1).join(' ');
         } else if (this.isPic) {
             return this.ib.split(' ').slice(1).join(' ');
         } else if (this.isComment) {
@@ -140,6 +140,8 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
             return this.item?.text || this.ib || '[comment]';
         } else if (this.ib?.startsWith(`meta special `)) {
             return this.ib.substring(`meta special `.length);
+        } else if (this.isRoot) {
+            return this.ib.substring(`root `.length);
         } else {
             return this.ib || 'loading...';
         }

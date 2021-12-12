@@ -17,7 +17,7 @@
     <ion-title *ngIf='isComment' class='comment-title toolbar-title-yo' (click)="handleTitleClick()">
         <comment-view [addr]='item.addr' [isTitle]='true'></comment-view>
     </ion-title>
-    <ion-title *ngIf='!isTag && !isTags && !isPic && !isComment' class='toolbar-title-yo'>
+    <ion-title *ngIf='!isTag && !isPic && !isComment' class='toolbar-title-yo'>
       {{ title }}
     </ion-title>
     <ion-buttons slot="end" collapse="true">
@@ -41,6 +41,7 @@
 </ion-header>
 
 <ion-content [fullscreen]="false">
+
   <!-- <ion-header collapse="condense">
     <ion-toolbar>
       <ion-title size="large">{{ addr }}</ion-title>
