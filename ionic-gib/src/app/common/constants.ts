@@ -55,7 +55,7 @@ export const IBGIB_BASE_DIR = FilesystemDirectory.Documents;
  *
  * atow, only UTF-8 is supported.
  */
-export const IBGIB_FILES_ENCODING = FilesystemEncoding.UTF8;
+export const IBGIB_ENCODING = FilesystemEncoding.UTF8;
 /**
  * Base directory for all data of the app.
  */
@@ -121,6 +121,10 @@ export const TAG_REL8N_NAME = 'tag';
 /**
  * The main roots^gib ibgib uses this rel8n name to keep track of roots.
  */
+export const SPACE_REL8N_NAME = 'space';
+/**
+ * The main roots^gib ibgib uses this rel8n name to keep track of roots.
+ */
 export const ROOT_REL8N_NAME = 'root';
 /**
  * A tag ibGib uses this rel8n name for the ibgibs that it targets.
@@ -163,6 +167,42 @@ export const DEFAULT_TAG_ICON = 'pricetag-outline';
  */
 export const DEFAULT_TAG_DESCRIPTION = 'This is a tag used for organizing data.';
 
+/**
+ *
+ */
+export const DEFAULT_SPACE_TEXT = 'space';
+/**
+ * Default icon specifically for spaces.
+ */
+export const DEFAULT_SPACE_ICON = 'sparkles-outline';
+/**
+ * Default description specifically for spaces.
+ */
+export const DEFAULT_SPACE_DESCRIPTION =
+`This is a space ibgib, which is basically a special ibgib who has behavior
+to interface with data stores and/or other space(s) to provide concrete location
+for ibgibs. All ibgibs can have relationships with other ibgibs, but this one
+specifically either implies a physical interface to things like databases,
+file systems, and similar; OR, when this space interfaces with other spaces, this
+is a logical organization of ibgib locations, like when configuring clusters or
+consensus algorithms.`;
+
+/**
+ * rel8n name used inside the root to those ibgib it contains.
+ *
+ * @example
+ * ```json
+ *  {
+ *      ib: root,
+ *      gib: ABC123,
+ *      data: {...},
+ *      rel8ns: {
+ *          [rel8nName]: ["a^1", "b^2"]
+ *      }
+ *  }
+ * ```
+ */
+export const DEFAULT_SPACE_REL8N_NAME = 'x';
 /**
  *
  */

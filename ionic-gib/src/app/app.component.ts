@@ -18,7 +18,7 @@ import {
 import * as c from './common/constants';
 import { RootData } from './common/types';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 interface MenuItem {
   title: string;
@@ -36,7 +36,10 @@ export class AppComponent extends IbgibComponentBase
   implements OnInit, OnDestroy {
   protected lc: string = `[${AppComponent.name}]`;
 
+  @Input()
   tagItems: MenuItem[] = [];
+
+  @Input()
   rootItems: MenuItem[] = [];
 
   _currentRoot: MenuItem;
@@ -52,46 +55,20 @@ export class AppComponent extends IbgibComponentBase
     this._currentRoot = value;
   }
 
-  compareRoots(a: MenuItem, b: MenuItem): boolean {
-    const lc = `[${AppComponent.name}][compareRoots]`;
-    if (logalot) { console.log(`${lc}`); }
-    return a && b ? a.title === b.title : a === b;
-  }
-  async handleRootChange(e: any): Promise<void> {
-    const lc = `${this.lc}[${this.handleRootChange.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} triggered...`)};
-      if (!e.detail.value) {
-        throw new Error(`e.detail.value (root selected) falsy`)
-        return;
-      }
-      let rootItem: MenuItem = e.detail.value;
-      if (logalot) { console.log(`${lc} selected rootItem: ${h.pretty(rootItem)}`)};
+  @Input()
+  spaceItems: MenuItem[] = [];
 
-      let resRootIbGib = await this.common.ibgibs.get({addr: rootItem.addr});
-      if (resRootIbGib?.success && resRootIbGib.ibGibs?.length === 1) {
-        let rootIbGib = <IbGib_V1<RootData>>resRootIbGib.ibGibs[0];
-        let rootIbGibAddr = h.getIbGibAddr({ibGib: rootIbGib});
-        let latestRootAddr = await this.common.ibgibs.getLatestAddr({ibGib: rootIbGib});
-        if (latestRootAddr !== rootIbGibAddr) {
-          if (logalot) { console.log(`${lc} latest exists. latestRootAddr: ${latestRootAddr}`); }
-          resRootIbGib = await this.common.ibgibs.get({addr: latestRootAddr});
-          if (!resRootIbGib.success || resRootIbGib.ibGibs?.length !== 1) { throw new Error(`latest rootIbgib addr could not be gotten: ${latestRootAddr}`); }
-          rootIbGib = <IbGib_V1<RootData>>resRootIbGib.ibGibs[0];
-          rootIbGibAddr = h.getIbGibAddr({ibGib: rootIbGib});
-          rootItem = await this.getRootItem(rootIbGibAddr);
-        }
-        await this.common.ibgibs.setCurrentRoot(rootIbGib);
-        this.currentRoot = rootItem;
-        // debug
-        let graph = await this.common.ibgibs.getDependencyGraph({ibGib: rootIbGib});
-        console.log(`${lc} graph.keys.length: ${Object.keys(graph).length}`);
-      } else {
-        throw new Error(`Could not get currentRoot ibGib (?). rootItem selected: ${h.pretty(rootItem)}`);
-      }
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-    }
+  _currentSpace: MenuItem;
+  @Input()
+  get currentSpace(): MenuItem {
+    const lc = `${this.lc}[get currentSpace]`;
+    if (logalot) { console.log(`${lc} this._currentSpace: ${h.pretty(this._currentSpace)}`); }
+    return this._currentSpace;
+  }
+  set currentSpace(value: MenuItem) {
+    const lc = `${this.lc}[set currentSpace]`;
+    if (logalot) { console.log(`${lc} value: ${h.pretty(value)}`); }
+    this._currentSpace = value;
   }
 
   @Input()
@@ -126,7 +103,34 @@ export class AppComponent extends IbgibComponentBase
     }
   }
 
-  private paramMapSub_App: Subscription;
+  private _spacesAddr: IbGibAddr;
+  @Input()
+  get spacesAddr(): IbGibAddr { return this._spacesAddr; }
+  set spacesAddr(value: IbGibAddr) {
+    const lc = `${this.lc}[set spacesAddr]`;
+    if (value !== this._spacesAddr) {
+      if (logalot) { console.log(`${lc} updating spacesAddr: ${value}`); }
+      this._spacesAddr = value;
+      this.ref.detectChanges();
+    }
+  }
+
+  private _paramMapSub_App: Subscription;
+
+  /**
+   * Used in binding to the routerLink anchor in the app menu
+   */
+  get tagsUrl(): string { return `/ibgib/${this.tagsAddr}`; }
+
+  /**
+   * Used in binding to the routerLink anchor in the app menu
+   */
+  get rootsUrl(): string { return `/ibgib/${this.rootsAddr}`; }
+
+  /**
+   * Used in binding to the routerLink anchor in the app menu
+   */
+  get spacesUrl(): string { return `/ibgib/${this.spacesAddr}`; }
 
   @Input()
   initializing: boolean;
@@ -163,13 +167,15 @@ export class AppComponent extends IbgibComponentBase
         } else {
           if (logalot) { console.log(`${lc} this.initializing is falsy`); }
         }
-        // make sure roots are initialized FIRST before any other ibgib happenings
+        // make sure the service is initialized FIRST before any
+        // other ibgib happenings
         await this.common.ibgibs.initialize();
 
         if (!this.item) { this.item = {} }
         this.item.isMeta = true;
 
         // these are AppComponent-specific initializations
+        await this.initializeMySpaces();
         await this.initializeMyRoots();
         await this.initializeMyTags();
 
@@ -238,12 +244,41 @@ export class AppComponent extends IbgibComponentBase
     this.tagsAddr = h.getIbGibAddr({ibGib: special});
   }
 
-  get tagsUrl(): string {
-    return `/ibgib/${this.tagsAddr}`;
-  }
+  async initializeMySpaces(): Promise<void> {
+    const lc = `${this.lc}[${this.initializeMySpaces.name}]`;
+    try {
+      const spacesIbGib = await this.common.ibgibs.getSpecialIbgib({type: "spaces"});
+      this.spacesAddr = h.getIbGibAddr({ibGib: spacesIbGib});
+      throw new Error('not implemented');
+      const currentSpaceIbGib = null;//await this.common.ibgibs.getCurrentSpace();
+      if (!currentSpaceIbGib) { throw new Error(`currentSpace not found(?)`); }
+      if (!currentSpaceIbGib.data) { throw new Error(`currentSpace.data falsy (?)`); }
+      let {icon, text, description} = currentSpaceIbGib.data;
+      if (!icon) {
+        console.warn(`${lc} space.icon not found. Using default.`);
+        icon = c.DEFAULT_SPACE_ICON;
+      }
+      if (!text) {
+        console.warn(`${lc} space.text not found. Using default.`);
+        text = c.DEFAULT_SPACE_TEXT;
+      }
+      if (!description) {
+        console.warn(`${lc} space.description not found. Using default.`);
+        description = c.DEFAULT_SPACE_DESCRIPTION;
+      }
+      const addr = h.getIbGibAddr({ibGib: currentSpaceIbGib});
 
-  get rootsUrl(): string {
-    return `/ibgib/${this.rootsAddr}`;
+      this.currentSpace = await this.getSpaceItem(addr);
+      // this.currentSpace = {
+      //   icon,
+      //   title: text,
+      //   url: `/ibgib/${addr}`,
+      // }
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
   }
 
   async initializeMyRoots(): Promise<void> {
@@ -296,20 +331,6 @@ export class AppComponent extends IbgibComponentBase
     }
   }
 
-  // async getCurrentRoot(): Promise<MenuItem> {
-  //   const lc = `${this.lc}[${this.getCurrentRoot.name}]`;
-  //   try {
-  //     // const rootsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "roots"});
-  //     // this.common.ibgibs.getConfigAddr
-  //     let currentRootAddr = await this.common.ibgibs.getCurrentRoot();
-  //   } catch (error) {
-  //     console.error(`${lc} ${error.message}`);
-  //     throw error;
-  //   }
-
-  //   return null;
-  // }
-
   /**
    * For some reason, the app component refuses to be allow custom ibgib
    * components inside the menu and bind them. For example, I can get
@@ -321,6 +342,7 @@ export class AppComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.updateMenu.name}]`;
     try {
       await this.updateMenu_Tags();
+      await this.updateMenu_Spaces();
       await this.updateMenu_Roots();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -385,6 +407,78 @@ export class AppComponent extends IbgibComponentBase
               title: ibGib.ib.substring(0, c.MENU_ITEM_IB_SUBSTRING_LENGTH),
               icon: ibGib.data!.icon || c.DEFAULT_TAG_ICON,
               url: `/ibgib/${addr}`,
+            }
+          }
+        } else {
+          throw new Error(`Invalid ibgib gotten`);
+        }
+      } else {
+        throw new Error(resGet.errorMsg || `error getting ${addr}`);
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+    }
+
+    return item;
+  }
+
+  async updateMenu_Spaces(): Promise<void> {
+    const lc = `${this.lc}[${this.updateMenu_Spaces.name}]`;
+    let spaceMenuItems: MenuItem[] = [];
+
+    try {
+
+      // spaces should already be initialized
+      if (!this.spacesAddr) { throw new Error(`spacesAddr is falsy, i.e. hasn't been initialized?`); };
+
+      // get spaces, but don't initialize
+      let spacesIbGib = await this.common.ibgibs.getSpecialIbgib({type: "spaces"});
+      let spaceAddrs = spacesIbGib?.rel8ns[c.SPACE_REL8N_NAME] || [];
+
+      // we should have initialized with spaces
+      if (!spaceAddrs || spaceAddrs.length === 0) { throw new Error(`No associated spaceAddrs to the spaces ibGib. Should have been initialized with spaces.`); }
+
+      // load individual items
+      for (let spaceAddr of spaceAddrs) {
+        const spaceItem = await this.getSpaceItem(spaceAddr);
+        if (spaceItem) { spaceMenuItems.push(spaceItem); }
+      }
+
+      // "load" them into the bound property and detect the changes
+    } catch (error) {
+      spaceMenuItems = [{title: 'hmm errored...', icon: 'bug-outline', url: '/ibgib/error^gib'}];
+      console.error(`${lc} ${error.message}`);
+    } finally {
+      this.spaceItems = spaceMenuItems;
+      this.ref.detectChanges();
+    }
+
+  }
+
+  async getSpaceItem(addr: IbGibAddr): Promise<MenuItem> {
+    const lc = `${this.lc}[${this.getSpaceItem.name}]`;
+    let item: MenuItem;
+    try {
+      const resGet = await this.common.ibgibs.get({addr});
+      if (resGet.success && resGet.ibGibs?.length === 1) {
+        const ibGib = resGet.ibGibs![0];
+        if (ibGib?.ib && ibGib?.gib) {
+          if (ibGib?.data?.icon && ibGib?.data?.text) {
+            const text = ibGib.data!.text;
+            item = {
+              title: text.substring(0, c.MENU_ITEM_IB_SUBSTRING_LENGTH),
+              icon: ibGib.data!.icon || c.DEFAULT_SPACE_ICON,
+              url: `/ibgib/${addr}`,
+              addr,
+            }
+            if (logalot) { console.log(`${lc} ${h.pretty(item)}`); }
+          } else {
+            console.warn(`${lc} loading non-standard tag`);
+            item = {
+              title: ibGib.ib.substring(0, c.MENU_ITEM_IB_SUBSTRING_LENGTH),
+              icon: ibGib.data!.icon || c.DEFAULT_SPACE_ICON,
+              url: `/ibgib/${addr}`,
+              addr,
             }
           }
         } else {
@@ -499,7 +593,7 @@ export class AppComponent extends IbgibComponentBase
     if (logalot) { console.log(`${lc} subscribing...`) }
 
     let piper = this.router.events.pipe(filter(x => x instanceof NavigationEnd));
-    this.paramMapSub_App = piper.subscribe(async (event: any) => {
+    this._paramMapSub_App = piper.subscribe(async (event: any) => {
       const addr = await this.getCurrentIbgibAddrInURL();
       if (logalot) { console.log(`${lc} addr: ${addr}`); }
       if (logalot) { console.log(`${lc} router.url: ${h.pretty(this.router.url)}`) }
@@ -531,9 +625,59 @@ export class AppComponent extends IbgibComponentBase
   }
 
   unsubscribeParamMap() {
-    if (this.paramMapSub_App) {
-      this.paramMapSub_App.unsubscribe();
-      delete this.paramMapSub_App;
+    if (this._paramMapSub_App) {
+      this._paramMapSub_App.unsubscribe();
+      delete this._paramMapSub_App;
+    }
+  }
+
+  compareRoots(a: MenuItem, b: MenuItem): boolean {
+    const lc = `[${AppComponent.name}][compareRoots]`;
+    if (logalot) { console.log(`${lc}`); }
+    return a && b ? a.title === b.title : a === b;
+  }
+
+  /**
+   * Fires when the user chooses a different root to activate
+   * from the dropdown ion-select in the Roots menu.
+   *
+   * @param e
+   * @returns
+   */
+  async handleRootChange(e: any): Promise<void> {
+    const lc = `${this.lc}[${this.handleRootChange.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} triggered...`)};
+      if (!e.detail.value) {
+        throw new Error(`e.detail.value (root selected) falsy`)
+        return;
+      }
+      let rootItem: MenuItem = e.detail.value;
+      if (logalot) { console.log(`${lc} selected rootItem: ${h.pretty(rootItem)}`)};
+
+      let resRootIbGib = await this.common.ibgibs.get({addr: rootItem.addr});
+      if (resRootIbGib?.success && resRootIbGib.ibGibs?.length === 1) {
+        let rootIbGib = <IbGib_V1<RootData>>resRootIbGib.ibGibs[0];
+        let rootIbGibAddr = h.getIbGibAddr({ibGib: rootIbGib});
+        let latestRootAddr = await this.common.ibgibs.getLatestAddr({ibGib: rootIbGib});
+        if (latestRootAddr !== rootIbGibAddr) {
+          if (logalot) { console.log(`${lc} latest exists. latestRootAddr: ${latestRootAddr}`); }
+          resRootIbGib = await this.common.ibgibs.get({addr: latestRootAddr});
+          if (!resRootIbGib.success || resRootIbGib.ibGibs?.length !== 1) { throw new Error(`latest rootIbgib addr could not be gotten: ${latestRootAddr}`); }
+          rootIbGib = <IbGib_V1<RootData>>resRootIbGib.ibGibs[0];
+          rootIbGibAddr = h.getIbGibAddr({ibGib: rootIbGib});
+          rootItem = await this.getRootItem(rootIbGibAddr);
+        }
+        await this.common.ibgibs.setCurrentRoot(rootIbGib);
+        this.currentRoot = rootItem;
+        // // debug
+        // let graph = await this.common.ibgibs.getDependencyGraph({ibGib: rootIbGib});
+        // console.log(`${lc} graph.keys.length: ${Object.keys(graph).length}`);
+      } else {
+        throw new Error(`Could not get currentRoot ibGib (?). rootItem selected: ${h.pretty(rootItem)}`);
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
     }
   }
 

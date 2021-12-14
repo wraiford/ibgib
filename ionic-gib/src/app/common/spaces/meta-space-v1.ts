@@ -1,11 +1,4 @@
-import {
-    Plugins, FilesystemEncoding, FileReadResult, FilesystemDirectory
-} from '@capacitor/core';
-const { Filesystem } = Plugins;
-
-import {
-    IbGib_V1, IbGibRel8ns_V1, sha256v1, IBGIB_DELIMITER,
-} from 'ts-gib/dist/V1';
+import { IbGib_V1, IbGibRel8ns_V1, } from 'ts-gib/dist/V1';
 import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 
@@ -17,7 +10,6 @@ import {
     IbGibSpaceResultData, IbGibSpaceResultIbGib,
 } from '../types';
 import * as c from '../constants';
-import { getBinAddr, getBinHashAndExt, isBinary } from '../helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;;
 

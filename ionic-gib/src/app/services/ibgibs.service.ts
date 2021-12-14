@@ -22,7 +22,7 @@ import {
 import { argy_ } from '../common/witnesses';
 import * as c from '../common/constants';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 // #region get/put holdovers from FilesService
 
@@ -450,7 +450,7 @@ export class IbgibsService {
         dnaSubPath: c.IBGIB_DNA_SUBPATH,
         ibgibsSubPath: c.IBGIB_IBGIBS_SUBPATH,
         metaSubPath: c.IBGIB_META_SUBPATH,
-        encoding: c.IBGIB_FILES_ENCODING,
+        encoding: c.IBGIB_ENCODING,
       }, /*initialRel8ns*/ null);
       if (logalot) { console.log(`${lc} userSpace.ib: ${userSpace.ib}`); }
       if (logalot) { console.log(`${lc} userSpace.gib: ${userSpace.gib} (before sha256v1)`); }

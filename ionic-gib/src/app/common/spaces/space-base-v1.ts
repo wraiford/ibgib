@@ -23,6 +23,15 @@ export abstract class SpaceBase_V1<
      */
     protected lc: string = `[${SpaceBase_V1.name}]`;
 
+    getSpaceIb(classname): string {
+        const lc = `${this.lc}[${this.getSpaceIb.name}]`;
+        if (!classname) {
+            classname = this.lc?.replace('[','').replace(']','') || SpaceBase_V1.name+'_descendent';
+            console.warn(`${lc} classname is falsy. Using ${classname}.`);
+        }
+        return `witness space ${classname}`;
+    }
+
     constructor(initialData?: TData, initialRel8ns?: TRel8ns) {
         super(initialData, initialRel8ns);
     }
