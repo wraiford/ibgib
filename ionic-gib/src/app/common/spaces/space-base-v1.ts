@@ -1,10 +1,10 @@
 import {
-    IbGibSpace, IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib as IbGibSpaceOptionsIbGib, IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceOptionsCmd,
+    IbGibSpace, IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib as IbGibSpaceOptionsIbGib, IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceOptionsCmd, IbGibSpaceData,
 } from '../types';
 import {
     IbGib_V1, IbGibRel8ns_V1, IbGibData_V1, sha256v1, Factory_V1,
 } from 'ts-gib/dist/V1';
-import { WitnessBase_V1, resulty_ } from '../witnesses';
+import { WitnessBase_V1, resulty_, argy_ } from '../witnesses';
 
 export abstract class SpaceBase_V1<
         TIbGib extends IbGib_V1 = IbGib_V1,
@@ -12,7 +12,7 @@ export abstract class SpaceBase_V1<
         TOptionsIbGib extends IbGibSpaceOptionsIbGib<TIbGib, TOptionsData> = IbGibSpaceOptionsIbGib<TIbGib, TOptionsData>,
         TResultData extends IbGibSpaceResultData = IbGibSpaceResultData,
         TResultIbGib extends IbGibSpaceResultIbGib<TIbGib, TResultData> = IbGibSpaceResultIbGib<TIbGib, TResultData>,
-        TData = any,
+        TData extends IbGibSpaceData = IbGibSpaceData,
         TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1,
     >
     extends WitnessBase_V1<TOptionsIbGib, TResultIbGib, TData, TRel8ns>
@@ -23,10 +23,10 @@ export abstract class SpaceBase_V1<
      */
     protected lc: string = `[${SpaceBase_V1.name}]`;
 
-    getSpaceIb(classname): string {
+    getSpaceIb(classname: string): string {
         const lc = `${this.lc}[${this.getSpaceIb.name}]`;
         if (!classname) {
-            classname = this.lc?.replace('[','').replace(']','') || SpaceBase_V1.name+'_descendent';
+            classname = this.lc?.replace('[','').replace(']','') || SpaceBase_V1.name+'_descendant';
             console.warn(`${lc} classname is falsy. Using ${classname}.`);
         }
         return `witness space ${classname}`;
@@ -41,11 +41,44 @@ export abstract class SpaceBase_V1<
      *
      * So in this base, we take the incoming arg and divert it multiple ways, depending on our settings.
      */
-    protected witnessImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
+    protected async witnessImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
         const lc = `${this.lc}[${this.witnessImpl.name}]`;
-        // "guaranteed" at this point to have valid witness arg
-        // but witnessImpl already wrapped just in case
-        const { cmd } = arg.data!;
+
+        // do the thing
+        let result = await this.doCommand({cmd: arg.data!.cmd, arg});
+
+        // persist the arg and result if we're configured to do so
+        if (result && this.data.persistOptsAndResultIbGibs) {
+            try {
+                await this.persistOptsAndResultIbGibs({arg, result});
+            } catch (error) {
+                const emsg = `${lc} ${error.message}`;
+                console.error(emsg);
+            }
+        }
+
+        return result;
+    }
+
+    protected abstract persistOptsAndResultIbGibs({arg, result}:
+        {arg: TOptionsIbGib, result: TResultIbGib}): Promise<void>;
+
+    /**
+     * Executes the given `cmd` if found.
+     *
+     * Override this if you have custom commands to handle.
+     * Check for those first, and if not among them, call this
+     * via `super.doCommand(...)`. If cmd is still not found,
+     * this will throw.
+     */
+    protected doCommand({
+        cmd,
+        arg,
+    }: {
+        cmd: IbGibSpaceOptionsCmd | string,
+        arg: TOptionsIbGib,
+    }): Promise<TResultIbGib | undefined> {
+        const lc = `${this.lc}[${this.doCommand}]`;
         switch (cmd) {
             case IbGibSpaceOptionsCmd.get:
                 return this.get(arg);
@@ -64,12 +97,23 @@ export abstract class SpaceBase_V1<
         }
     }
 
-    protected abstract get(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
-    protected abstract put(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
-    protected abstract delete(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
-    protected abstract getAddrs(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
-    protected abstract canGet(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
-    protected abstract canPut(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
+    protected get(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.getImpl(arg); }
+    protected abstract getImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
+
+    protected put(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.putImpl(arg); }
+    protected abstract putImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
+
+    protected delete(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.deleteImpl(arg); }
+    protected abstract deleteImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
+
+    protected getAddrs(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.getAddrsImpl(arg); }
+    protected abstract getAddrsImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
+
+    protected canGet(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.canGetImpl(arg); }
+    protected abstract canGetImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
+
+    protected canPut(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.canPutImpl(arg); }
+    protected abstract canPutImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
 
     protected async validateWitnessArg(arg: TOptionsIbGib): Promise<string[]> {
         const lc = `${this.lc}[${this.validateWitnessArg.name}]`;
@@ -80,20 +124,19 @@ export abstract class SpaceBase_V1<
             const { cmd, ibGibAddrs, } = arg.data!;
             const ibGibs  = arg.ibGibs;
             if (!cmd) { errors.push(`arg.data.cmd required`); }
-            if (!Object.values(IbGibSpaceOptionsCmd).includes(cmd)) { errors.push(`unknown arg.data.cmd: ${cmd}`); }
-            // commenting this out for now. in my getting of pictures (binaries), I just give the binHash and not addr.
-            // if (
-            //     [IbGibSpaceOptionsCmd.get, IbGibSpaceOptionsCmd.canGet].includes(cmd) &&
-            //     (ibGibAddrs || []).length === 0
-            // ) {
-            //     errors.push(`ibGibAddrs required when cmd is ${cmd}`);
-            // }
-            // if (
-            //     [IbGibSpaceOptionsCmd.put, IbGibSpaceOptionsCmd.canPut].includes(cmd) &&
-            //     (ibGibs || []).length === 0
-            // ) {
-            //     errors.push(`ibGibs required when cmd is ${cmd}`);
-            // }
+            if (!Object.values(IbGibSpaceOptionsCmd).includes(<any>cmd)) { errors.push(`unknown arg.data.cmd: ${cmd}`); }
+            if (
+                [IbGibSpaceOptionsCmd.get, IbGibSpaceOptionsCmd.canGet].includes(<any>cmd) &&
+                (ibGibAddrs || []).length === 0
+            ) {
+                errors.push(`ibGibAddrs required when cmd is ${cmd}`);
+            }
+            if (
+                [IbGibSpaceOptionsCmd.put, IbGibSpaceOptionsCmd.canPut].includes(<any>cmd) &&
+                (ibGibs || []).length === 0
+            ) {
+                errors.push(`ibGibs required when cmd is ${cmd}`);
+            }
             return errors;
         } catch (error) {
             console.error(`${lc} ${error.message}`);

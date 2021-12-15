@@ -8,7 +8,7 @@ import * as h from 'ts-gib/dist/helper';
 import { IbGib_V1, IbGibRel8ns_V1, Factory_V1 as factory, } from 'ts-gib/dist/V1';
 import * as c from './constants';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 export abstract class WitnessBase_V1<
     TIbGibIn extends IbGib_V1 = IbGib_V1,
@@ -23,34 +23,54 @@ export abstract class WitnessBase_V1<
      */
     protected lc: string = `[${WitnessBase_V1.name}]`;
 
-    /** not implemented yet */
+    /**
+     * Optional arg for verbose logging.
+     *
+     *
+     */
     protected set trace(value: string[]) {
         const lc = `${this.lc}[set trace}]`;
+        if (value === (<any>this.data)?.trace) { return; }
         if (this.data) {
             (<any>this.data).trace = value;
+            delete this.gib; // gib is invalid now
         } else {
             console.warn(`${lc} data is falsy. Can't set.`);
         }
     }
-    /** not implemented yet */
-    protected get trace(): string[] {
-        return (<any>this.data)?.trace;
-    }
-    /** not implemented yet */
-    protected set throwOnError(value: boolean) {
-        const lc = `${this.lc}[set throwOnError}]`;
+    protected get trace(): string[] { return (<any>this.data)?.trace; }
+
+    /**
+     * Optional configuration for `witness` call.
+     * If true, then this space will catch any error that propagates up
+     * from the `witnessImpl` function.
+     *
+     * ## notes
+     *
+     * Descendants of Witness who don't override the base `witness` function
+     * (but rather override `witnessImpl` as expected) don't need to check
+     * for this explicitly, since it is referenced in the base `witness`
+     * function implementation.
+     */
+    protected set catchAllErrors(value: boolean) {
+        const lc = `${this.lc}[set catchAllErrors}]`;
+        if (value === (<any>this.data)?.catchAllErrors) { return; }
         if (this.data) {
-            (<any>this.data).throwOnError = value;
+            (<any>this.data).catchAllErrors = value;
+            delete this.gib;
         } else {
-            console.warn(`${lc} data is falsy. Can't set.`);
+            console.error(`${lc} data is falsy. Can't set value.`);
         }
     }
-    /** not implemented yet */
-    protected get throwOnError(): boolean {
-        const lc = `${this.lc}[throwOnError]`;
-        if (logalot) { console.warn(`${lc} not implemented yet. returning true.`)}
-        return (<any>this.data)?.throwOnError || true;
+    protected get catchAllErrors(): boolean {
+        const lc = `${this.lc}[catchAllErrors]`;
+        const result = (<any>this.data)?.catchAllErrors;
+        if (logalot || this.trace) { console.log(`${lc} result: ${result}`)}
+        return result;
     }
+
+    // These properties are straight properties for ease of implementing
+    // IbGib interface and dealing with DTOs (Data Transfer Objects)
 
     ib: string | undefined;
     // protected _ib: string = '';
@@ -109,9 +129,10 @@ export abstract class WitnessBase_V1<
         if (!this.ib) { console.warn(`${lc} this.ib is falsy.`); }
         if (!this.gib) { console.warn(`${lc} this.gib is falsy.`); }
 
-        const dtoIbGib: IbGib_V1<TData, TRel8ns> = {ib: h.clone(this.ib), gib: h.clone(this.gib)};
+        let dtoIbGib: IbGib_V1<TData, TRel8ns> =
+            { ib: h.clone(this.ib), gib: h.clone(this.gib) };
         if (this.data) { dtoIbGib.data = h.clone(this.data); }
-        if (this.rel8ns) { dtoIbGib.data = h.clone(this.rel8ns); }
+        if (this.rel8ns) { dtoIbGib.rel8ns = h.clone(this.rel8ns); }
         return dtoIbGib;
     }
 
@@ -129,10 +150,30 @@ export abstract class WitnessBase_V1<
 
         this.ib = h.clone(dto.ib);
         this.gib = h.clone(dto.gib);
-        if (dto.data) { this.data = dto.data; } else { delete this.data; }
-        if (dto.rel8ns) { this.rel8ns = dto.rel8ns; } else { delete this.rel8ns; }
+        if (dto.data) {
+            this.data = h.clone(dto.data);
+        } else {
+            delete this.data;
+        }
+        if (dto.rel8ns) { this.rel8ns = h.clone(dto.rel8ns); } else { delete this.rel8ns; }
     }
 
+    /**
+     * The primary function of a witness is...well... to witness things.
+     *
+     * So this is the base implementation that includes validation
+     * plumbing, tracing, error checking/catching - all depending
+     * on witness configuration.
+     *
+     *
+     * ## usage
+     *
+     * Only override this function if you really want custom handling of
+     * the plumbing.  Instead override `witnessImpl`.
+     *
+     * @param arg
+     * @returns
+     */
     async witness(arg: TIbGibIn): Promise<TIbGibOut | undefined> {
         const lc = `${this.lc}[${this.witness.name}]`;
         try {
@@ -145,8 +186,8 @@ export abstract class WitnessBase_V1<
             return await this.witnessImpl(arg);
         } catch (error) {
             console.error(`${lc} ${error.message || 'unknown error'}`);
-            if (this.throwOnError) { throw error; }
-            return;
+            if (this.catchAllErrors || arg?.data?.catchAllErrors === true) { throw error; }
+            return; // undefined
         }
     }
     protected abstract witnessImpl(arg: TIbGibIn): Promise<TIbGibOut | undefined>;

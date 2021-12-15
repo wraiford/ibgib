@@ -53,7 +53,6 @@ export class TagListViewComponent
 
 
   // async updateItems(): Promise<void> {
-    // debugger;
     // this.rel8nNames = ['target', 'tag', ...c.DEFAULT_LIST_REL8N_NAMES];
     // await super.updateItems();
     // setTimeout(() => {

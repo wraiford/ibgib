@@ -22,7 +22,7 @@ import {
 import { argy_ } from '../common/witnesses';
 import * as c from '../common/constants';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 // #region get/put holdovers from FilesService
 
@@ -451,6 +451,7 @@ export class IbgibsService {
         ibgibsSubPath: c.IBGIB_IBGIBS_SUBPATH,
         metaSubPath: c.IBGIB_META_SUBPATH,
         encoding: c.IBGIB_ENCODING,
+        persistOptsAndResultIbGibs: c.PERSIST_OPTS_AND_RESULTS_IBGIBS_DEFAULT,
       }, /*initialRel8ns*/ null);
       if (logalot) { console.log(`${lc} userSpace.ib: ${userSpace.ib}`); }
       if (logalot) { console.log(`${lc} userSpace.gib: ${userSpace.gib} (before sha256v1)`); }
@@ -599,7 +600,7 @@ export class IbgibsService {
       // rel8 the `addr` to the current space via rel8n named `key`
       const rel8nsToAddByAddr = { [key]: [addr] };
       const resNewSpace = await V1.rel8({
-        src: this.currentSpace,
+        src: this.currentSpace.toDto(),
         dna: false,
         linkedRel8ns: ["past", "ancestor", key], // we only want the most recent key address
         rel8nsToAddByAddr,

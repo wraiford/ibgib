@@ -1,4 +1,5 @@
 import {
+    IbGibSpaceData,
     IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib as IbGibSpaceOptionsIbGib, IbGibSpaceResultData, IbGibSpaceResultIbGib,
 } from '../types';
 import {
@@ -8,7 +9,7 @@ import { SpaceBase_V1 } from './space-base-v1';
 import { resulty_ } from '../witnesses';
 import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 
-export interface InnerSpace_V1_Data {
+export interface InnerSpace_V1_Data extends IbGibSpaceData {
     /**
      * If true, then this will include this repo's ibGib's addrs (i.e. index)
      * in its {@link data} property.
@@ -68,7 +69,7 @@ export class InnerSpace_V1<
         this.ib = `witness space ${InnerSpace_V1.name}`;
     }
 
-    protected async get(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
+    protected async getImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
         Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>> {
         const lc = `${this.lc}[${this.get.name}]`;
         const resultData: IbGibSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
@@ -102,7 +103,7 @@ export class InnerSpace_V1<
             });
         return result;
     }
-    protected async put(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
+    protected async putImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
         Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>> {
         const lc = `${this.lc}[${this.put.name}]`;
         const resultData: IbGibSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
@@ -137,7 +138,7 @@ export class InnerSpace_V1<
             });
         return result;
     }
-    protected async delete(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
+    protected async deleteImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
         Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>> {
         const lc = `${this.lc}[${this.delete.name}]`;
         const resultData: IbGibSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
@@ -177,7 +178,7 @@ export class InnerSpace_V1<
             throw error;
         }
     }
-    protected async getAddrs(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
+    protected async getAddrsImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
         Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>> {
         const lc = `${this.lc}[${this.getAddrs.name}]`;
         const resultData: IbGibSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
@@ -213,7 +214,7 @@ export class InnerSpace_V1<
      *
      * @returns result ibGib whose primary value is `can`
      */
-    protected async canGet(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
+    protected async canGetImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
         Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>> {
         const lc = `${this.lc}[${this.canGet.name}]`;
         const resultData: IbGibSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
@@ -247,7 +248,7 @@ export class InnerSpace_V1<
             });
         return result;
     }
-    protected async canPut(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
+    protected async canPutImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
         Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>> {
         const lc = `${this.lc}[${this.canPut.name}]`;
         const resultData: IbGibSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
@@ -281,4 +282,13 @@ export class InnerSpace_V1<
         return result;
     }
 
+    protected async persistOptsAndResultIbGibs({
+        arg,
+        result
+    }: {
+        arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>,
+        result: IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>,
+    }): Promise<void> {
+        throw new Error('Method not implemented.');
+    }
 }

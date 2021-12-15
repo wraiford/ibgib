@@ -18,7 +18,7 @@ import {
 import * as c from './common/constants';
 import { RootData } from './common/types';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 interface MenuItem {
   title: string;
@@ -155,6 +155,7 @@ export class AppComponent extends IbgibComponentBase
   async initializeApp(): Promise<void> {
     const lc = `${this.lc}[${this.initializeApp.name}]`;
 
+    if (logalot) { console.log(`${lc} starting...`); }
     this.initializing = true;
     this.platform.ready().then(async () => {
       this.statusBar.styleDefault();
@@ -169,13 +170,15 @@ export class AppComponent extends IbgibComponentBase
         }
         // make sure the service is initialized FIRST before any
         // other ibgib happenings
+        if (logalot) { console.log(`${lc} calling ibgib service.initialize...`); }
         await this.common.ibgibs.initialize();
+        if (logalot) { console.log(`${lc} ibgib service.initialize returned.`); }
 
         if (!this.item) { this.item = {} }
         this.item.isMeta = true;
 
         // these are AppComponent-specific initializations
-        await this.initializeMySpaces();
+        // await this.initializeMySpaces();
         await this.initializeMyRoots();
         await this.initializeMyTags();
 
@@ -183,6 +186,7 @@ export class AppComponent extends IbgibComponentBase
         if (!addr || addr === 'ib^gib') {
           navToAddr = this.tagsAddr;
         } else {
+          this.initializing = false;
           await this.updateIbGib(addr);
         }
 
@@ -195,6 +199,7 @@ export class AppComponent extends IbgibComponentBase
         if (navToAddr) { await this.navTo({addr: navToAddr}); }
       }
     });
+    if (logalot) { console.log(`${lc} complete. waiting for platform.ready...`); }
   }
 
   ngOnInit() {
@@ -216,6 +221,11 @@ export class AppComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
     if (logalot) { console.log(`${lc} updating...`); }
     try {
+      if (this.initializing) {
+        if (logalot) { console.log(`${lc} initializing in progress...not continuing at this time.`); }
+        return;
+      }
+
       await super.updateIbGib(addr);
       await this.loadIbGib();
       await this.loadTjp();
@@ -284,6 +294,7 @@ export class AppComponent extends IbgibComponentBase
   async initializeMyRoots(): Promise<void> {
     const lc = `${this.lc}[${this.initializeMyRoots.name}]`;
     try {
+      if (logalot) { console.log(`${lc} starting...`); }
       const rootsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "roots"});
       this.rootsAddr = h.getIbGibAddr({ibGib: rootsIbGib});
       const currentRootIbGib = await this.common.ibgibs.getCurrentRoot();
@@ -314,12 +325,14 @@ export class AppComponent extends IbgibComponentBase
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
   async initializeMyTags(): Promise<void> {
     const lc = `${this.lc}[${this.initializeMyTags.name}]`;
-    if (logalot) { console.log(`${lc} initializing...`); }
+    if (logalot) { console.log(`${lc} starting...`); }
     try {
       const tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
       this.tagsAddr = h.getIbGibAddr({ibGib: tagsIbGib});
@@ -342,7 +355,7 @@ export class AppComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.updateMenu.name}]`;
     try {
       await this.updateMenu_Tags();
-      await this.updateMenu_Spaces();
+      // await this.updateMenu_Spaces();
       await this.updateMenu_Roots();
     } catch (error) {
       console.error(`${lc} ${error.message}`);

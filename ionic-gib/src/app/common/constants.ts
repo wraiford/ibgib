@@ -109,6 +109,10 @@ export const IBGIB_BIN_SUBPATH = 'bin';
  * storage, like compressed, low-priority.
  */
 export const IBGIB_DNA_SUBPATH = 'dna';
+/**
+ *
+ */
+export const PERSIST_OPTS_AND_RESULTS_IBGIBS_DEFAULT = false;
 
 // export const TAGS_IB = 'tags';
 // export const TAGS_IBGIB_ADDR = `${TAGS_IB}^${GIB}`;

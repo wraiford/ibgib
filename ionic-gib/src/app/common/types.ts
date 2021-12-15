@@ -162,6 +162,39 @@ export interface Witness_V1<
     extends Witness<TIbGibIn, TIbGibOut, TData, TRel8ns> {
 }
 
+export interface IbGibSpaceData {
+    /**
+     * Optional configuration for `witness` call.
+     * If true, then this space will not catch an error in `witnessImpl`
+     * function.
+     *
+     * ## notes
+     *
+     * Descendants of Witness who don't override the base `witness` function
+     * (but rather override `witnessImpl` as expected) don't need to check
+     * for this explicitly, since it is referenced in the base `witness`
+     * function implementation.
+     */
+    catchAllErrors?: boolean;
+    /**
+     * Optional arg for verbose logging.
+     *
+     * Space implementations can check this value directly, or if
+     * they descend from `WitnessBase`, then there is a property
+     * that safely navigates this value.
+     */
+    trace?: boolean;
+    /**
+     * DOESNT WORK ATM - NOT IMPLEMENTED - HOOGLEDY BOOGLEDY
+     * If true, any calls to `witness` will have the opt and result
+     * ibGibs persisted to the space, regardless of what the actual
+     * opt/result is.
+     *
+     * This is like providing a logging feature for the space itself.
+     */
+    persistOptsAndResultIbGibs?: boolean;
+}
+
 /** Cmds for interacting with ibgib spaces.  */
 export type IbGibSpaceOptionsCmd = 'get' | 'put' | 'delete' | 'canGet' | 'canPut' | 'getAddrs';
 /** Cmds for interacting with ibgib spaces.  */
@@ -182,7 +215,7 @@ export const IbGibSpaceOptionsCmd = {
 
 /** Information for interacting with spaces. */
 export interface IbGibSpaceOptionsData {
-    cmd: IbGibSpaceOptionsCmd;
+    cmd: IbGibSpaceOptionsCmd | string;
     version?: string;
     ibGibAddrs?: IbGibAddr[];
     /**
@@ -192,6 +225,14 @@ export interface IbGibSpaceOptionsData {
      * atow this is just for `put` commands.
      */
     force?: boolean;
+    /**
+     * {@see WitnessBase_V1.trace}
+     */
+    catchAllErrors?: boolean;
+    /**
+     * {@see WitnessBase_V1.trace}
+     */
+    trace?: boolean;
 }
 
 export interface IbGibSpaceOptionsIbGib<
@@ -280,7 +321,7 @@ export interface IbGibSpace<
     TOptionsIbGib extends IbGibSpaceOptionsIbGib<TIbGib, TOptionsData>,
     TResultData extends IbGibSpaceResultData,
     TResultIbGib extends IbGibSpaceResultIbGib<TIbGib, TResultData>,
-    TData = any,
+    TData extends IbGibSpaceData = IbGibSpaceData,
     TRel8ns extends IbGibRel8ns = IbGibRel8ns,
     >
     extends Witness<TOptionsIbGib, TResultIbGib, TData, TRel8ns> {

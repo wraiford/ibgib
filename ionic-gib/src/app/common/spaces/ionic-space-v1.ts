@@ -10,22 +10,23 @@ import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 
 import { SpaceBase_V1 } from './space-base-v1';
-import { resulty_ } from '../witnesses';
+import { argy_, resulty_ } from '../witnesses';
 import {
+    IbGibSpaceData,
     IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib,
     IbGibSpaceResultData, IbGibSpaceResultIbGib,
 } from '../types';
 import * as c from '../constants';
 import { getBinAddr, getBinHashAndExt, isBinary } from '../helper';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 // #region Space related interfaces/constants
 
 /**
  * This is the shape of data about this space itself (not the contained ibgibs' spaces).
  */
-export interface IonicSpaceData_V1 {
+export interface IonicSpaceData_V1 extends IbGibSpaceData {
     baseDir: FilesystemDirectory;
     encoding: FilesystemEncoding;
     baseSubPath: string;
@@ -48,6 +49,7 @@ const DEFAULT_IONIC_SPACE_DATA_V1: IonicSpaceData_V1 = {
     metaSubPath: c.IBGIB_META_SUBPATH,
     binSubPath: c.IBGIB_BIN_SUBPATH,
     dnaSubPath: c.IBGIB_DNA_SUBPATH,
+    persistOptsAndResultIbGibs: false,
 }
 
 /** Marker interface atm */
@@ -200,7 +202,7 @@ export class IonicSpace_V1<
         initialData: TData,
         initialRel8ns: TRel8ns,
     ) {
-        super(initialData, initialRel8ns);
+        super(initialData ?? h.clone(DEFAULT_IONIC_SPACE_DATA_V1), initialRel8ns);
         const lc = `${this.lc}[ctor]`;
 
         if (logalot) { console.log(`${lc} initializing...`); }
@@ -233,6 +235,8 @@ export class IonicSpace_V1<
             TData extends IonicSpaceData_V1 = IonicSpaceData_V1,
             TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
         >(dto: IbGib_V1<TData, TRel8ns>): IonicSpace_V1<TData, TRel8ns> {
+        const lc = `[${IonicSpace_V1.name}][${this.createFromDto.name}]`;
+        if (logalot) { console.log(`${lc}`); }
         const space = new IonicSpace_V1<TData, TRel8ns>(null, null);
         space.loadDto(dto);
         return space;
@@ -265,6 +269,7 @@ export class IonicSpace_V1<
     protected async initialize(): Promise<void> {
         const lc = `${this.lc}[${this.initialize.name}]`;
         try {
+            if (logalot) { console.log(`${lc} starting...`); }
             if (!this.data) { this.data = h.clone(DEFAULT_IONIC_SPACE_DATA_V1); }
             if (!this.data.baseDir) { this.data.baseDir = c.IBGIB_BASE_DIR; }
             if (!this.data.encoding) { this.data.encoding = c.IBGIB_ENCODING; }
@@ -276,10 +281,12 @@ export class IonicSpace_V1<
             if (!this.data.dnaSubPath) { this.data.dnaSubPath = c.IBGIB_DNA_SUBPATH; }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
         }
     }
 
-    protected async get(arg: IonicSpaceOptionsIbGib):
+    protected async getImpl(arg: IonicSpaceOptionsIbGib):
         Promise<IonicSpaceResultIbGib> {
         const lc = `${this.lc}[${this.get.name}]`;
         const resultIbGibs: IbGib_V1[] = [];
@@ -355,7 +362,7 @@ export class IonicSpace_V1<
         }
     }
 
-    protected async put(arg: IonicSpaceOptionsIbGib): Promise<IonicSpaceResultIbGib> {
+    protected async putImpl(arg: IonicSpaceOptionsIbGib): Promise<IonicSpaceResultIbGib> {
         const lc = `${this.lc}[${this.put.name}]`;
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
@@ -366,7 +373,19 @@ export class IonicSpace_V1<
                 throw new Error(`either ibGibs or binData/binHash/binExt required.`);
             }
 
-            return await this.putIbGibs(arg); // returns
+            const reqKeys = Object.keys(DEFAULT_IONIC_SPACE_DATA_V1);
+            const thisDataKeys = Object.keys(this.data || {});
+            const nonInitializedKeys: string[] = [];
+            reqKeys.forEach(key => {
+                if (!thisDataKeys.includes(key)) {
+                    nonInitializedKeys.push(key);
+                }
+            });
+            if (nonInitializedKeys.length > 0) {
+                throw new Error(`not initialized yet. data keys not found: ${nonInitializedKeys}`);
+            }
+
+            return await this.putIbGibsImpl(arg); // returns
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = errors.concat([error.message]);
@@ -377,7 +396,7 @@ export class IonicSpace_V1<
         return result;
     }
 
-    protected async putIbGibs(arg: IonicSpaceOptionsIbGib): Promise<IonicSpaceResultIbGib> {
+    protected async putIbGibsImpl(arg: IonicSpaceOptionsIbGib): Promise<IonicSpaceResultIbGib> {
         const lc = `${this.lc}[${this.put.name}]`;
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
@@ -443,7 +462,7 @@ export class IonicSpace_V1<
         return result;
     }
 
-    protected async delete(arg: IonicSpaceOptionsIbGib):
+    protected async deleteImpl(arg: IonicSpaceOptionsIbGib):
         Promise<IonicSpaceResultIbGib> {
         const lc = `${this.lc}[${this.delete.name}]`;
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
@@ -490,7 +509,7 @@ export class IonicSpace_V1<
         return result;
     }
 
-    protected async getAddrs(arg: IonicSpaceOptionsIbGib):
+    protected async getAddrsImpl(arg: IonicSpaceOptionsIbGib):
         Promise<IonicSpaceResultIbGib> {
         const lc = `${this.lc}[${this.getAddrs.name}]`;
         throw new Error(`${lc} not implemented`);
@@ -528,7 +547,7 @@ export class IonicSpace_V1<
      *
      * @returns result ibGib whose primary value is `can`
      */
-    protected async canGet(arg: IonicSpaceOptionsIbGib):
+    protected async canGetImpl(arg: IonicSpaceOptionsIbGib):
         Promise<IonicSpaceResultIbGib> {
         const lc = `${this.lc}[${this.canGet.name}]`;
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
@@ -562,7 +581,7 @@ export class IonicSpace_V1<
             });
         return result;
     }
-    protected async canPut(arg: IonicSpaceOptionsIbGib):
+    protected async canPutImpl(arg: IonicSpaceOptionsIbGib):
         Promise<IonicSpaceResultIbGib> {
         const lc = `${this.lc}[${this.canPut.name}]`;
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
@@ -597,24 +616,40 @@ export class IonicSpace_V1<
     }
 
     /**
-     * Calculates the hash of the given `binData`.
+     * Extremely crude implementation that just
+     * saves the ibgibs alongside existing data.
      *
-     * ## notes
+     * ## future
      *
-     * I've pulled this out into its own method because I'm sure this is going
-     * to adapt to multiple hashing algorithms in the future depending on the
-     * version.
+     * * At the very least, this could be changed similar to dna to have
+     *   its own folder.
      *
-     * @returns hash string of the given `binData`
+     *
+     *
      */
-    protected getBinHash({binData, version}: {binData: any, version?: string}): Promise<string> {
-        const lc = `${this.lc}[${this.getBinHash.name}]`;
-        try {
-            return h.hash({s: binData});
-        } catch (error) {
-            console.error(`${lc} ${error.message}`);
-            throw error;
+    protected async persistOptsAndResultIbGibs({
+        arg,
+        result,
+    }: {
+        arg: IonicSpaceOptionsIbGib,
+        result: IonicSpaceResultIbGib,
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.persistOptsAndResultIbGibs.name}]`;
+        if (logalot || this.data?.trace) {
+            console.log(`${lc} doing arg?.data?.cmd: ${arg?.data?.cmd}, result?.data?.success: ${result?.data?.success}`);
         }
+        let argPersist = await argy_<IonicSpaceOptionsData, IonicSpaceOptionsIbGib>({
+            ibMetadata: lc,
+            argData: {
+                cmd: 'put',
+                isMeta: true,
+            },
+        });
+        argPersist.ibGibs = [arg, result];
+        // this is a best effort storage, so we aren't using the result
+        // in the future, we should incorporate what to do if this persistence
+        // fails into the larger success requirements of spaces.
+        const _ignored = await this.putIbGibsImpl(argPersist);
     }
 
     // #region files related

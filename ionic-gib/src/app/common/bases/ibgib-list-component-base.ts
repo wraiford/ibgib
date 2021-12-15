@@ -81,9 +81,6 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
             this.items = [];
             let newItems = [];
             if (!this.item || !this.item.ibGib || !this.item.ibGib!.rel8ns) { return; }
-            if (!this.rel8nNames.includes('target')) {
-                // debugger;
-            }
             if (logalot) { console.log(`${lc} this.rel8nNames: ${this.rel8nNames?.toString()}`); }
 
             for (let rel8nName of this.rel8nNames) {

@@ -6,6 +6,7 @@ import { SpaceBase_V1 } from './space-base-v1';
 import { resulty_ } from '../witnesses';
 import {
     IbGibSpace,
+    IbGibSpaceData,
     IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib,
     IbGibSpaceResultData, IbGibSpaceResultIbGib,
 } from '../types';
@@ -18,7 +19,7 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;;
 /**
  * This is the shape of data about this space itself (not the contained ibgibs' spaces).
  */
-export interface MetaSpaceData_V1 {
+export interface MetaSpaceData_V1 extends IbGibSpaceData {
     encoding: "utf8";
 }
 
@@ -204,7 +205,7 @@ export class MetaSpace_V1<
         }
     }
 
-    protected async get(arg: MetaSpaceOptionsIbGib):
+    protected async getImpl(arg: MetaSpaceOptionsIbGib):
         Promise<MetaSpaceResultIbGib> {
         const lc = `${this.lc}[${this.get.name}]`;
         const resultIbGibs: IbGib_V1[] = [];
@@ -240,7 +241,7 @@ export class MetaSpace_V1<
         }
     }
 
-    protected async put(arg: MetaSpaceOptionsIbGib): Promise<MetaSpaceResultIbGib> {
+    protected async putImpl(arg: MetaSpaceOptionsIbGib): Promise<MetaSpaceResultIbGib> {
         const lc = `${this.lc}[${this.put.name}]`;
         const resultData: MetaSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
@@ -256,7 +257,7 @@ export class MetaSpace_V1<
         return result;
     }
 
-    protected async delete(arg: MetaSpaceOptionsIbGib):
+    protected async deleteImpl(arg: MetaSpaceOptionsIbGib):
         Promise<MetaSpaceResultIbGib> {
         const lc = `${this.lc}[${this.delete.name}]`;
         const resultData: MetaSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
@@ -292,7 +293,7 @@ export class MetaSpace_V1<
         return result;
     }
 
-    protected async getAddrs(arg: MetaSpaceOptionsIbGib):
+    protected async getAddrsImpl(arg: MetaSpaceOptionsIbGib):
         Promise<MetaSpaceResultIbGib> {
         const lc = `${this.lc}[${this.getAddrs.name}]`;
         const resultData: MetaSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
@@ -328,7 +329,7 @@ export class MetaSpace_V1<
      *
      * @returns result ibGib whose primary value is `can`
      */
-    protected async canGet(arg: MetaSpaceOptionsIbGib):
+    protected async canGetImpl(arg: MetaSpaceOptionsIbGib):
         Promise<MetaSpaceResultIbGib> {
         const lc = `${this.lc}[${this.canGet.name}]`;
         const resultData: MetaSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
@@ -348,7 +349,7 @@ export class MetaSpace_V1<
         return result;
     }
 
-    protected async canPut(arg: MetaSpaceOptionsIbGib):
+    protected async canPutImpl(arg: MetaSpaceOptionsIbGib):
         Promise<MetaSpaceResultIbGib> {
         const lc = `${this.lc}[${this.canPut.name}]`;
         const resultData: MetaSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
@@ -367,5 +368,16 @@ export class MetaSpace_V1<
             });
         return result;
     }
+
+    protected async persistOptsAndResultIbGibs({
+        arg,
+        result
+    }: {
+        arg: MetaSpaceOptionsIbGib,
+        result: MetaSpaceResultIbGib,
+    }): Promise<void> {
+        throw new Error('Method not implemented.');
+    }
+
 
 }

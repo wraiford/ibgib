@@ -1,12 +1,10 @@
 import {
     AttributeValue, DynamoDBClient,
-    PutRequest, WriteRequest,
     PutItemCommand, PutItemCommandInput,
     GetItemCommand, GetItemCommandInput,
     BatchWriteItemCommand, BatchWriteItemCommandInput, BatchWriteItemCommandOutput,
     BatchGetItemCommand, BatchGetItemCommandInput, BatchGetItemCommandOutput,
     KeysAndAttributes,
-    BatchStatementError,
 } from '@aws-sdk/client-dynamodb';
 
 import {
@@ -20,6 +18,7 @@ import { encrypt, decrypt, HashAlgorithm, SaltStrategy } from 'encrypt-gib';
 import { SpaceBase_V1 } from './space-base-v1';
 import { resulty_ } from '../witnesses';
 import {
+    IbGibSpaceData,
     IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib,
     IbGibSpaceResultData, IbGibSpaceResultIbGib,
 } from '../types';
@@ -341,7 +340,7 @@ function createClient({
 /**
  * This is the shape of data about this space itself (not the contained ibgibs' spaces).
  */
-export interface AWSDynamoSpace_V1_Data {
+export interface AWSDynamoSpace_V1_Data extends IbGibSpaceData {
     tableName: string;
     /**
      * Max number of times to retry due to 400 errors related to throughput.
@@ -689,7 +688,7 @@ export class AWSDynamoSpace_V1<
         }
     }
 
-    protected async get(arg: AWSDynamoSpaceOptionsIbGib):
+    protected async getImpl(arg: AWSDynamoSpaceOptionsIbGib):
         Promise<AWSDynamoSpaceResultIbGib> {
         const lc = `${this.lc}[${this.get.name}]`;
         const resultIbGibs: IbGib_V1[] = [];
@@ -889,7 +888,7 @@ export class AWSDynamoSpace_V1<
         return result;
     }
 
-    protected async put(arg: AWSDynamoSpaceOptionsIbGib): Promise<AWSDynamoSpaceResultIbGib> {
+    protected async putImpl(arg: AWSDynamoSpaceOptionsIbGib): Promise<AWSDynamoSpaceResultIbGib> {
         const lc = `${this.lc}[${this.put.name}]`;
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
@@ -906,7 +905,7 @@ export class AWSDynamoSpace_V1<
 
 
             if (arg.ibGibs?.length > 0) {
-                return await this.putIbGibs({arg, client}); // returns
+                return await this.putIbGibsImpl({arg, client}); // returns
             } else if (arg.binData && arg.data.binHash && arg.data.binExt) {
                 return await this.putBin({arg, client}); // returns
             } else {
@@ -990,14 +989,14 @@ export class AWSDynamoSpace_V1<
      * need to convert to max batch size
      * @returns space result
      */
-    protected async putIbGibs({
+    protected async putIbGibsImpl({
         arg,
         client,
     }: {
         arg: AWSDynamoSpaceOptionsIbGib,
         client: DynamoDBClient,
     }): Promise<AWSDynamoSpaceResultIbGib> {
-        const lc = `${this.lc}[${this.putIbGibs.name}]`;
+        const lc = `${this.lc}[${this.putIbGibsImpl.name}]`;
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
         const warnings: string[] = [];
@@ -1116,7 +1115,7 @@ export class AWSDynamoSpace_V1<
         return result;
     }
 
-    protected async delete(arg: AWSDynamoSpaceOptionsIbGib):
+    protected async deleteImpl(arg: AWSDynamoSpaceOptionsIbGib):
         Promise<AWSDynamoSpaceResultIbGib> {
         const lc = `${this.lc}[${this.delete.name}]`;
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
@@ -1160,7 +1159,7 @@ export class AWSDynamoSpace_V1<
      * @param arg
      * @returns
      */
-    protected async getAddrs(arg: AWSDynamoSpaceOptionsIbGib):
+    protected async getAddrsImpl(arg: AWSDynamoSpaceOptionsIbGib):
         Promise<AWSDynamoSpaceResultIbGib> {
         const lc = `${this.lc}[${this.getAddrs.name}]`;
         throw new Error(`${lc} not implemented`);
@@ -1198,7 +1197,7 @@ export class AWSDynamoSpace_V1<
      *
      * @returns result ibGib whose primary value is `can`
      */
-    protected async canGet(arg: AWSDynamoSpaceOptionsIbGib):
+    protected async canGetImpl(arg: AWSDynamoSpaceOptionsIbGib):
         Promise<AWSDynamoSpaceResultIbGib> {
         const lc = `${this.lc}[${this.canGet.name}]`;
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
@@ -1232,7 +1231,7 @@ export class AWSDynamoSpace_V1<
             });
         return result;
     }
-    protected async canPut(arg: AWSDynamoSpaceOptionsIbGib):
+    protected async canPutImpl(arg: AWSDynamoSpaceOptionsIbGib):
         Promise<AWSDynamoSpaceResultIbGib> {
         const lc = `${this.lc}[${this.canPut.name}]`;
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
@@ -1302,4 +1301,13 @@ export class AWSDynamoSpace_V1<
         }
     }
 
+    protected async persistOptsAndResultIbGibs({
+        arg,
+        result
+    }: {
+        arg: AWSDynamoSpaceOptionsIbGib,
+        result: AWSDynamoSpaceResultIbGib,
+    }): Promise<void> {
+        throw new Error('Method not implemented.');
+    }
 }

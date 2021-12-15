@@ -136,7 +136,6 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         } else if (this.isPic) {
             return this.ib.split(' ').slice(1).join(' ');
         } else if (this.isComment) {
-            // debugger;
             return this.item?.text || this.ib || '[comment]';
         } else if (this.ib?.startsWith(`meta special `)) {
             return this.ib.substring(`meta special `.length);
