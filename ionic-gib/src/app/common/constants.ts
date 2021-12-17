@@ -30,6 +30,9 @@ export const GLOBAL_DEBUG_BORDER = false;
  * here.
  */
 export const BOOTSTRAP_SPACE_ADDR = `bootstrap^${GIB}`;
+// export const IBGIB_SPACE_UUID_DEFAULT = 'ib';
+export const IBGIB_SPACE_NAME_DEFAULT = 'default_space';
+export const IBGIB_META_SPACE_NAME_DEFAULT = 'default_meta_space';
 /**
  * The bootstrap space should be primitive except a single rel8n
  * with this rel8n name with a single rel8d address.
@@ -70,7 +73,7 @@ export const IBGIB_BASE_SUBPATH = 'ibgib';
  *
  * * the leading 000's help to put the space earlier in alphabetized listing if viewing through an OS file viewer
  */
-export const IBGIB_SPACE_SUBPATH_DEFAULT = '000_default_space';
+export const IBGIB_SPACE_SUBPATH_DEFAULT = `000_${IBGIB_SPACE_NAME_DEFAULT}`;
 /**
  * Subpath for "normal" ibgibs (non-meta, non-dna, non-binary, etc.).
  */
@@ -239,3 +242,5 @@ export const DEFAULT_ROOT_REL8N_NAME = 'x';
 export const CURRENT_VERSION = '1';
 export const WITNESS_ARG_METADATA_STRING = 'witness_arg';
 export const WITNESS_RESULT_METADATA_STRING = 'witness_result';
+
+

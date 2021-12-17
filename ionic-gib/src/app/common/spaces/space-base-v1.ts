@@ -1,22 +1,30 @@
 import {
-    IbGibSpace, IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib as IbGibSpaceOptionsIbGib, IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceOptionsCmd, IbGibSpaceData,
+    IbGibSpace, IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib as IbGibSpaceOptionsIbGib, IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceOptionsCmd, IbGibSpaceData, IbGibSpaceOptionsRel8ns, IbGibSpaceResultRel8ns,
 } from '../types';
 import {
     IbGib_V1, IbGibRel8ns_V1, IbGibData_V1, sha256v1, Factory_V1,
 } from 'ts-gib/dist/V1';
 import { WitnessBase_V1, resulty_, argy_ } from '../witnesses';
+import * as c from '../constants';
 
 export abstract class SpaceBase_V1<
         TIbGib extends IbGib_V1 = IbGib_V1,
         TOptionsData extends IbGibSpaceOptionsData = IbGibSpaceOptionsData,
-        TOptionsIbGib extends IbGibSpaceOptionsIbGib<TIbGib, TOptionsData> = IbGibSpaceOptionsIbGib<TIbGib, TOptionsData>,
+        TOptionsRel8ns extends IbGibSpaceOptionsRel8ns = IbGibSpaceOptionsRel8ns,
+        TOptionsIbGib extends IbGibSpaceOptionsIbGib<TIbGib, TOptionsData, TOptionsRel8ns>
+            = IbGibSpaceOptionsIbGib<TIbGib, TOptionsData, TOptionsRel8ns>,
         TResultData extends IbGibSpaceResultData = IbGibSpaceResultData,
-        TResultIbGib extends IbGibSpaceResultIbGib<TIbGib, TResultData> = IbGibSpaceResultIbGib<TIbGib, TResultData>,
+        TResultRel8ns extends IbGibSpaceResultRel8ns = IbGibSpaceResultRel8ns,
+        TResultIbGib extends IbGibSpaceResultIbGib<TIbGib, TResultData, TResultRel8ns>
+            = IbGibSpaceResultIbGib<TIbGib, TResultData, TResultRel8ns>,
         TData extends IbGibSpaceData = IbGibSpaceData,
         TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1,
     >
-    extends WitnessBase_V1<TOptionsIbGib, TResultIbGib, TData, TRel8ns>
-    implements IbGibSpace<TIbGib, TOptionsData, TOptionsIbGib, TResultData, TResultIbGib, TData, TRel8ns> {
+    extends WitnessBase_V1<
+        TOptionsData, TOptionsRel8ns, TOptionsIbGib,
+        TResultData, TResultRel8ns, TResultIbGib,
+        TData, TRel8ns>
+    implements IbGibSpace<TIbGib, TOptionsData, TOptionsRel8ns, TOptionsIbGib, TResultData, TResultRel8ns, TResultIbGib, TData, TRel8ns> {
 
     /**
      * Log context for convenience with logging. (Ignore if you don't want to use this.)
@@ -29,7 +37,16 @@ export abstract class SpaceBase_V1<
             classname = this.lc?.replace('[','').replace(']','') || SpaceBase_V1.name+'_descendant';
             console.warn(`${lc} classname is falsy. Using ${classname}.`);
         }
-        return `witness space ${classname}`;
+        const name = this.data?.name || c.IBGIB_SPACE_NAME_DEFAULT;
+        return `witness space ${classname} ${name}`;
+    }
+
+    getTimestampInTicks(): string {
+        return (new Date()).getTime().toString();
+    }
+
+    getSpaceArgMetadata(): string {
+        return `${this.ib} ${this.getTimestampInTicks()}`;
     }
 
     constructor(initialData?: TData, initialRel8ns?: TRel8ns) {
@@ -144,6 +161,50 @@ export abstract class SpaceBase_V1<
         } finally {
             if (errors?.length > 0) { console.error(`${lc} errors: ${errors}`); }
         }
+    }
+
+    /**
+     * builds an arg ibGib.
+     *
+     * wrapper convenience to avoid long generic calls.
+     */
+    async argy({
+        argData,
+        ibMetadata,
+        noTimestamp,
+        ibGibs,
+    }: {
+        argData: TOptionsData,
+        ibMetadata?: string,
+        noTimestamp?: boolean,
+        ibGibs?: TIbGib[],
+    }): Promise<TOptionsIbGib> {
+        const arg = await argy_<TOptionsData, TOptionsRel8ns, TOptionsIbGib>({
+            argData,
+            ibMetadata,
+            noTimestamp
+        });
+
+        if (ibGibs) { arg.ibGibs = ibGibs; }
+
+        return arg;
+    }
+
+    /**
+     * builds a result ibGib.
+     *
+     * wrapper convenience to avoid long generic calls.
+     */
+    async resulty({
+        resultData,
+        ibGibs,
+    }: {
+        resultData: TResultData,
+        ibGibs?: TIbGib[],
+    }): Promise<TResultIbGib> {
+        const result = await resulty_<TResultData, TResultIbGib>({ resultData });
+        if (ibGibs) { result.ibGibs = ibGibs; }
+        return result;
     }
 
 }

@@ -1,12 +1,12 @@
 import {
     IbGibSpaceData,
-    IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib as IbGibSpaceOptionsIbGib, IbGibSpaceResultData, IbGibSpaceResultIbGib,
+    IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib,
+    IbGibSpaceResultData, IbGibSpaceResultRel8ns, IbGibSpaceResultIbGib,
 } from '../types';
 import {
     IbGib_V1, IbGibRel8ns_V1, IbGibData_V1, sha256v1, Factory_V1,
 } from 'ts-gib/dist/V1';
 import { SpaceBase_V1 } from './space-base-v1';
-import { resulty_ } from '../witnesses';
 import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 
 export interface InnerSpace_V1_Data extends IbGibSpaceData {
@@ -15,7 +15,6 @@ export interface InnerSpace_V1_Data extends IbGibSpaceData {
      * in its {@link data} property.
      */
     trackAddrs: boolean;
-
 }
 
 /**
@@ -32,9 +31,11 @@ export class InnerSpace_V1<
     > extends SpaceBase_V1<
         TIbGib,
         IbGibSpaceOptionsData,
-        IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>,
+        IbGibSpaceOptionsRel8ns,
+        IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns>,
         IbGibSpaceResultData,
-        IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>,
+        IbGibSpaceResultRel8ns,
+        IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns>,
         TData,
         TRel8ns
     > {
@@ -69,8 +70,8 @@ export class InnerSpace_V1<
         this.ib = `witness space ${InnerSpace_V1.name}`;
     }
 
-    protected async getImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
-        Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>> {
+    protected async getImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns>):
+        Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns>> {
         const lc = `${this.lc}[${this.get.name}]`;
         const resultData: IbGibSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
@@ -94,17 +95,11 @@ export class InnerSpace_V1<
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];
         }
-        const result =
-            await resulty_<
-                IbGibSpaceResultData,
-                IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>
-            >({
-                resultData
-            });
+        const result = await this.resulty({resultData});
         return result;
     }
-    protected async putImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
-        Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>> {
+    protected async putImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns>):
+        Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns>> {
         const lc = `${this.lc}[${this.put.name}]`;
         const resultData: IbGibSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
@@ -129,17 +124,11 @@ export class InnerSpace_V1<
             resultData.errors = [error.message];
             resultData.success = false;
         }
-        const result =
-            await resulty_<
-                IbGibSpaceResultData,
-                IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>
-            >({
-                resultData
-            });
+        const result = await this.resulty({resultData});
         return result;
     }
-    protected async deleteImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
-        Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>> {
+    protected async deleteImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns>):
+        Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns>> {
         const lc = `${this.lc}[${this.delete.name}]`;
         const resultData: IbGibSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
@@ -168,18 +157,15 @@ export class InnerSpace_V1<
             resultData.success = false;
         }
         try {
-            const result =
-                await resulty_<IbGibSpaceResultData, IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>>({
-                    resultData
-                });
+            const result = await this.resulty({resultData});
             return result;
         } catch (error) {
             console.error(`${lc} error forming result ibGib. error: ${error.message}`);
             throw error;
         }
     }
-    protected async getAddrsImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
-        Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>> {
+    protected async getAddrsImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns>):
+        Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns>> {
         const lc = `${this.lc}[${this.getAddrs.name}]`;
         const resultData: IbGibSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
@@ -190,13 +176,7 @@ export class InnerSpace_V1<
             resultData.errors = [error.message];
             resultData.success = false;
         }
-        const result =
-            await resulty_<
-                IbGibSpaceResultData,
-                IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>
-            >({
-                resultData
-            });
+        const result = await this.resulty({resultData});
         return result;
     }
     /**
@@ -214,8 +194,8 @@ export class InnerSpace_V1<
      *
      * @returns result ibGib whose primary value is `can`
      */
-    protected async canGetImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
-        Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>> {
+    protected async canGetImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns>):
+        Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns>> {
         const lc = `${this.lc}[${this.canGet.name}]`;
         const resultData: IbGibSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
@@ -239,17 +219,11 @@ export class InnerSpace_V1<
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];
         }
-        const result =
-            await resulty_<
-                IbGibSpaceResultData,
-                IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>
-            >({
-                resultData
-            });
+        const result = await this.resulty({resultData});
         return result;
     }
-    protected async canPutImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>):
-        Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>> {
+    protected async canPutImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns>):
+        Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns>> {
         const lc = `${this.lc}[${this.canPut.name}]`;
         const resultData: IbGibSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
@@ -272,13 +246,7 @@ export class InnerSpace_V1<
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];
         }
-        const result =
-            await resulty_<
-                IbGibSpaceResultData,
-                IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>
-            >({
-                resultData
-            });
+        const result = await this.resulty({resultData});
         return result;
     }
 
@@ -286,8 +254,8 @@ export class InnerSpace_V1<
         arg,
         result
     }: {
-        arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData>,
-        result: IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData>,
+        arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns>,
+        result: IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns>,
     }): Promise<void> {
         throw new Error('Method not implemented.');
     }

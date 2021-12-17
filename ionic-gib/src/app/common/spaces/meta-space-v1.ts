@@ -3,12 +3,14 @@ import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 
 import { SpaceBase_V1 } from './space-base-v1';
-import { resulty_ } from '../witnesses';
+// import { resulty_ } from '../witnesses';
 import {
     IbGibSpace,
+    IbGibSpaceAny,
     IbGibSpaceData,
     IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib,
-    IbGibSpaceResultData, IbGibSpaceResultIbGib,
+    IbGibSpaceOptionsRel8ns,
+    IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns,
 } from '../types';
 import * as c from '../constants';
 
@@ -27,6 +29,7 @@ export interface MetaSpaceData_V1 extends IbGibSpaceData {
  * Used in bootstrapping.
  */
 const DEFAULT_META_SPACE_DATA_V1: MetaSpaceData_V1 = {
+    name: c.IBGIB_META_SPACE_NAME_DEFAULT,
     encoding: "utf8",
 }
 
@@ -64,17 +67,21 @@ export interface MetaSpaceOptionsData extends IbGibSpaceOptionsData {
     isDna?: boolean;
 }
 
+export interface MetaSpaceOptionsRel8ns extends IbGibSpaceOptionsRel8ns { }
+
 /** Marker interface atm */
 export interface MetaSpaceOptionsIbGib
-    extends IbGibSpaceOptionsIbGib<IbGib_V1, MetaSpaceOptionsData> {
+    extends IbGibSpaceOptionsIbGib<IbGib_V1, MetaSpaceOptionsData, MetaSpaceOptionsRel8ns> {
 }
 
 /** Marker interface atm */
 export interface MetaSpaceResultData extends IbGibSpaceResultData {
 }
 
+export interface MetaSpaceResultRel8ns extends IbGibSpaceResultRel8ns { }
+
 export interface MetaSpaceResultIbGib
-    extends IbGibSpaceResultIbGib<IbGib_V1, MetaSpaceResultData> {
+    extends IbGibSpaceResultIbGib<IbGib_V1, MetaSpaceResultData, MetaSpaceResultRel8ns> {
 }
 
 // #endregion
@@ -91,8 +98,10 @@ export class MetaSpace_V1<
     > extends SpaceBase_V1<
         IbGib_V1,
         MetaSpaceOptionsData,
+        MetaSpaceOptionsRel8ns,
         MetaSpaceOptionsIbGib,
         MetaSpaceResultData,
+        MetaSpaceResultRel8ns,
         MetaSpaceResultIbGib,
         TData,
         TRel8ns
@@ -107,14 +116,7 @@ export class MetaSpace_V1<
      * here's the dudes/dudettes that we need to delegate to depending on
      * what our success requirements are.
      */
-    spaces:
-        IbGibSpace<
-            IbGib_V1,
-            IbGibSpaceOptionsData,
-            IbGibSpaceOptionsIbGib<IbGib_V1, IbGibSpaceOptionsData>,
-            IbGibSpaceResultData,
-            IbGibSpaceResultIbGib<IbGib_V1, IbGibSpaceResultData>
-        >[] = [];
+    spaces: IbGibSpaceAny[] = [];
 
     constructor(
         // /**
@@ -228,9 +230,7 @@ export class MetaSpace_V1<
             resultData.errors = [error.message];
         }
         try {
-            const result = await resulty_<MetaSpaceResultData, MetaSpaceResultIbGib>({
-                resultData,
-            });
+            const result = await this.resulty({resultData});
             if (resultIbGibs.length > 0) {
                 result.ibGibs = resultIbGibs;
             }
@@ -253,7 +253,7 @@ export class MetaSpace_V1<
             resultData.success = false;
         }
         // only executes if there is an error.
-        const result = await resulty_<MetaSpaceResultData, MetaSpaceResultIbGib>({resultData});
+        const result = await this.resulty({resultData});
         return result;
     }
 
@@ -289,7 +289,7 @@ export class MetaSpace_V1<
             resultData.addrsErrored = addrsErrored;
             resultData.success = false;
         }
-        const result = await resulty_<MetaSpaceResultData, MetaSpaceResultIbGib>({resultData});
+        const result = await this.resulty({resultData});
         return result;
     }
 
@@ -304,13 +304,7 @@ export class MetaSpace_V1<
             resultData.errors = [error.message];
             resultData.success = false;
         }
-        const result =
-            await resulty_<
-                MetaSpaceResultData,
-                MetaSpaceResultIbGib
-            >({
-                resultData
-            });
+        const result = await this.resulty({resultData});
         return result;
     }
 
@@ -339,13 +333,7 @@ export class MetaSpace_V1<
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];
         }
-        const result =
-            await resulty_<
-                MetaSpaceResultData,
-                MetaSpaceResultIbGib
-            >({
-                resultData
-            });
+        const result = await this.resulty({resultData});
         return result;
     }
 
@@ -359,13 +347,7 @@ export class MetaSpace_V1<
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];
         }
-        const result =
-            await resulty_<
-                MetaSpaceResultData,
-                MetaSpaceResultIbGib
-            >({
-                resultData
-            });
+        const result = await this.resulty({resultData});
         return result;
     }
 
@@ -378,6 +360,5 @@ export class MetaSpace_V1<
     }): Promise<void> {
         throw new Error('Method not implemented.');
     }
-
 
 }

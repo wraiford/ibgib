@@ -10,11 +10,12 @@ import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 
 import { SpaceBase_V1 } from './space-base-v1';
-import { argy_, resulty_ } from '../witnesses';
+import { argy_, } from '../witnesses';
 import {
     IbGibSpaceData,
     IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib,
-    IbGibSpaceResultData, IbGibSpaceResultIbGib,
+    IbGibSpaceOptionsRel8ns,
+    IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns,
 } from '../types';
 import * as c from '../constants';
 import { getBinAddr, getBinHashAndExt, isBinary } from '../helper';
@@ -41,6 +42,7 @@ export interface IonicSpaceData_V1 extends IbGibSpaceData {
  * Used in bootstrapping.
  */
 const DEFAULT_IONIC_SPACE_DATA_V1: IonicSpaceData_V1 = {
+    name: c.IBGIB_SPACE_NAME_DEFAULT,
     baseDir: c.IBGIB_BASE_DIR,
     encoding: c.IBGIB_ENCODING,
     baseSubPath: c.IBGIB_BASE_SUBPATH,
@@ -76,17 +78,23 @@ export interface IonicSpaceOptionsData extends IbGibSpaceOptionsData {
     isDna?: boolean;
 }
 
+export interface IonicSpaceOptionsRel8ns extends IbGibSpaceOptionsRel8ns {
+}
+
 /** Marker interface atm */
 export interface IonicSpaceOptionsIbGib
-    extends IbGibSpaceOptionsIbGib<IbGib_V1, IonicSpaceOptionsData> {
+    extends IbGibSpaceOptionsIbGib<IbGib_V1, IonicSpaceOptionsData, IonicSpaceOptionsRel8ns> {
 }
 
 /** Marker interface atm */
 export interface IonicSpaceResultData extends IbGibSpaceResultData {
 }
 
+export interface IonicSpaceResultRel8ns extends IbGibSpaceResultRel8ns {
+}
+
 export interface IonicSpaceResultIbGib
-    extends IbGibSpaceResultIbGib<IbGib_V1, IonicSpaceResultData> {
+    extends IbGibSpaceResultIbGib<IbGib_V1, IonicSpaceResultData, IonicSpaceResultRel8ns> {
 }
 
 // #endregion
@@ -160,8 +168,10 @@ export class IonicSpace_V1<
     > extends SpaceBase_V1<
         IbGib_V1,
         IonicSpaceOptionsData,
+        IonicSpaceOptionsRel8ns,
         IonicSpaceOptionsIbGib,
         IonicSpaceResultData,
+        IonicSpaceResultRel8ns,
         IonicSpaceResultIbGib,
         TData,
         TRel8ns
@@ -212,7 +222,7 @@ export class IonicSpace_V1<
             if (logalot) { console.log(`${lc} initializing complete.`); }
         })
 
-        this.ib = `witness space ${IonicSpace_V1.name}`;
+        this.ib = this.getSpaceIb(IonicSpace_V1.name);
     }
 
     /**
@@ -349,9 +359,7 @@ export class IonicSpace_V1<
             resultData.errors = [error.message];
         }
         try {
-            const result = await resulty_<IonicSpaceResultData, IonicSpaceResultIbGib>({
-                resultData,
-            });
+            const result = await this.resulty({resultData});
             if (resultIbGibs.length > 0) {
                 result.ibGibs = resultIbGibs;
             }
@@ -392,7 +400,7 @@ export class IonicSpace_V1<
             resultData.success = false;
         }
         // only executes if there is an error.
-        const result = await resulty_<IonicSpaceResultData, IonicSpaceResultIbGib>({resultData});
+        const result = await this.resulty({resultData});
         return result;
     }
 
@@ -458,7 +466,7 @@ export class IonicSpace_V1<
             resultData.addrsErrored = addrsErrored;
             resultData.success = false;
         }
-        const result = await resulty_<IonicSpaceResultData, IonicSpaceResultIbGib>({resultData});
+        const result = await this.resulty({resultData});
         return result;
     }
 
@@ -505,7 +513,7 @@ export class IonicSpace_V1<
             resultData.addrsErrored = addrsErrored;
             resultData.success = false;
         }
-        const result = await resulty_<IonicSpaceResultData, IonicSpaceResultIbGib>({resultData});
+        const result = await this.resulty({resultData});
         return result;
     }
 
@@ -522,13 +530,7 @@ export class IonicSpace_V1<
             resultData.errors = [error.message];
             resultData.success = false;
         }
-        const result =
-            await resulty_<
-                IonicSpaceResultData,
-                IonicSpaceResultIbGib
-            >({
-                resultData
-            });
+        const result = await this.resulty({resultData});
         return result;
     }
 
@@ -572,13 +574,7 @@ export class IonicSpace_V1<
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];
         }
-        const result =
-            await resulty_<
-                IonicSpaceResultData,
-                IonicSpaceResultIbGib
-            >({
-                resultData
-            });
+        const result = await this.resulty({resultData});
         return result;
     }
     protected async canPutImpl(arg: IonicSpaceOptionsIbGib):
@@ -605,13 +601,7 @@ export class IonicSpace_V1<
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];
         }
-        const result =
-            await resulty_<
-                IonicSpaceResultData,
-                IonicSpaceResultIbGib
-            >({
-                resultData
-            });
+        const result = await this.resulty({resultData});
         return result;
     }
 
@@ -638,8 +628,7 @@ export class IonicSpace_V1<
         if (logalot || this.data?.trace) {
             console.log(`${lc} doing arg?.data?.cmd: ${arg?.data?.cmd}, result?.data?.success: ${result?.data?.success}`);
         }
-        let argPersist = await argy_<IonicSpaceOptionsData, IonicSpaceOptionsIbGib>({
-            ibMetadata: lc,
+        let argPersist = await argy_<IonicSpaceOptionsData, IonicSpaceOptionsRel8ns, IonicSpaceOptionsIbGib>({
             argData: {
                 cmd: 'put',
                 isMeta: true,

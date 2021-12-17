@@ -1,5 +1,6 @@
 import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 import { IbGibAddr, IbGib, IbGibWithDataAndRel8ns, IbGibRel8ns } from 'ts-gib';
+import { AWSRegion } from './spaces/aws-dynamo-space-v1';
 
 export interface IbgibItem {
     /**
@@ -108,7 +109,7 @@ export interface ActionItem {
     filepicked?: (event: any) => Promise<void>;
 }
 
-export type SpecialIbGibType = "tags" | "roots" | "latest" | "spaces" | "storage" | "outerspaces";
+export type SpecialIbGibType = "tags" | "roots" | "latest" | "spaces";
 
 /**
  * There has been a new ibGib that is the latest for a given tjp timeline.
@@ -154,8 +155,12 @@ export interface Witness<
  * This interface simply types our data and rel8ns to V1 style.
  */
 export interface Witness_V1<
-    TIbGibIn extends IbGib_V1,
-    TIbGibOut extends IbGib_V1,
+    TDataIn extends any,
+    TRel8nsIn extends IbGibRel8ns_V1,
+    TIbGibIn extends IbGib_V1<TDataIn, TRel8nsIn>,
+    TDataOut extends any,
+    TRel8nsOut extends IbGibRel8ns_V1,
+    TIbGibOut extends IbGib_V1<TDataOut, TRel8nsOut>,
     TData = any,
     TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1,
     >
@@ -163,6 +168,18 @@ export interface Witness_V1<
 }
 
 export interface IbGibSpaceData {
+    /**
+     * Name for the space.
+     *
+     * doesn't have to be unique.
+     */
+    name: string;
+    /**
+     * "Should" be a unique identifier for the space.
+     *
+     * DEBUG Make this optional after compiler stuff DEBUG
+     */
+    uuid?: string;
     /**
      * Optional configuration for `witness` call.
      * If true, then this space will not catch an error in `witnessImpl`
@@ -196,7 +213,8 @@ export interface IbGibSpaceData {
 }
 
 /** Cmds for interacting with ibgib spaces.  */
-export type IbGibSpaceOptionsCmd = 'get' | 'put' | 'delete' | 'canGet' | 'canPut' | 'getAddrs';
+export type IbGibSpaceOptionsCmd =
+    'get' | 'put' | 'delete' | 'canGet' | 'canPut' | 'getAddrs';
 /** Cmds for interacting with ibgib spaces.  */
 export const IbGibSpaceOptionsCmd = {
     /** Retrieve ibGib(s) out of the space (does not remove them). */
@@ -234,11 +252,14 @@ export interface IbGibSpaceOptionsData {
      */
     trace?: boolean;
 }
+export interface IbGibSpaceOptionsRel8ns extends IbGibRel8ns_V1 { }
 
 export interface IbGibSpaceOptionsIbGib<
     TIbGib extends IbGib,
-    TOptsData extends IbGibSpaceOptionsData
-    > extends IbGibWithDataAndRel8ns<TOptsData> {
+    TOptsData extends IbGibSpaceOptionsData,
+    // TOptsRel8ns extends IbGibSpaceOptionsRel8ns = IbGibSpaceOptionsRel8ns
+    TOptsRel8ns extends IbGibSpaceOptionsRel8ns
+    > extends IbGibWithDataAndRel8ns<TOptsData, TOptsRel8ns> {
     /**
      * When putting ibGibs, we don't want to persist the entire graph in the
      * data object. So these ibGibs live on the ibGib arg object itself.
@@ -297,8 +318,14 @@ export interface IbGibSpaceResultData {
     addrsErrored?: IbGibAddr[];
 }
 
-export interface IbGibSpaceResultIbGib<TIbGib extends IbGib, TResultData extends IbGibSpaceResultData>
-    extends IbGibWithDataAndRel8ns<TResultData> {
+export interface IbGibSpaceResultRel8ns extends IbGibRel8ns_V1 { }
+
+export interface IbGibSpaceResultIbGib<
+    TIbGib extends IbGib,
+    TResultData extends IbGibSpaceResultData,
+    TResultRel8ns extends IbGibSpaceResultRel8ns
+    >
+    extends IbGibWithDataAndRel8ns<TResultData, TResultRel8ns> {
 
     /**
      * When getting ibGibs, we don't want to persist the entire graph in the
@@ -318,14 +345,54 @@ export interface IbGibSpaceResultIbGib<TIbGib extends IbGib, TResultData extends
 export interface IbGibSpace<
     TIbGib extends IbGib,
     TOptionsData extends IbGibSpaceOptionsData,
-    TOptionsIbGib extends IbGibSpaceOptionsIbGib<TIbGib, TOptionsData>,
+    TOptionsRel8ns extends IbGibSpaceOptionsRel8ns,
+    TOptionsIbGib extends IbGibSpaceOptionsIbGib<TIbGib, TOptionsData, TOptionsRel8ns>,
     TResultData extends IbGibSpaceResultData,
-    TResultIbGib extends IbGibSpaceResultIbGib<TIbGib, TResultData>,
+    TResultRel8ns extends IbGibSpaceResultRel8ns,
+    TResultIbGib extends IbGibSpaceResultIbGib<TIbGib, TResultData, TResultRel8ns>,
     TData extends IbGibSpaceData = IbGibSpaceData,
     TRel8ns extends IbGibRel8ns = IbGibRel8ns,
     >
     extends Witness<TOptionsIbGib, TResultIbGib, TData, TRel8ns> {
     witness(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
 }
+
+export interface IbGibSpaceAny extends IbGibSpace<any,any,any,any,any,any,any> {
+
+}
+
+// #endregion
+
+// #region sync spaces
+
+export type AWSRegion = 'us-east-1';
+
+export type SyncSpaceType = 'aws-dynamodb';
+export const ValidSyncSpace = {
+    aws_dynamodb: 'aws-dynamodb' as SyncSpaceType,
+}
+export const VALID_SYNC_SPACE_TYPES = Object.values(ValidSyncSpace);
+
+export interface SyncSpaceInfo {
+    type: SyncSpaceType,
+}
+export interface SyncSpace_AWSDynamoDB extends SyncSpaceInfo {
+    tableName: string;
+    accessKeyId: string;
+    secretAccessKey: string;
+    region: AWSRegion;
+}
+
+const exampleAwsDynamoDB: SyncSpace_AWSDynamoDB = {
+    type: 'aws-dynamodb',
+    tableName: 'some-table-name-with-primary-key-named-ibGibAddrHash',
+    accessKeyId: 'some-aws-key-id',
+    secretAccessKey: 'some-aws-secret-access-key',
+    region: 'us-east-2',
+}
+
+export const VALID_SYNC_SPACE_EXAMPLES: SyncSpaceInfo[] = [
+    exampleAwsDynamoDB,
+];
 
 // #endregion

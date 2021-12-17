@@ -16,11 +16,12 @@ import { encodeStringToHexString, decodeHexStringToString } from 'encrypt-gib/di
 import { encrypt, decrypt, HashAlgorithm, SaltStrategy } from 'encrypt-gib';
 
 import { SpaceBase_V1 } from './space-base-v1';
-import { resulty_ } from '../witnesses';
 import {
+    AWSRegion,
     IbGibSpaceData,
     IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib,
-    IbGibSpaceResultData, IbGibSpaceResultIbGib,
+    IbGibSpaceOptionsRel8ns,
+    IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns,
 } from '../types';
 import * as c from '../constants';
 import { getBinAddr } from '../helper';
@@ -43,6 +44,7 @@ interface DynamoDBApiCredentials {
     tableName: string;
     accessKeyId: string;
     secretAccessKey: string;
+    region: AWSRegion;
 }
 /**
  * if you want to publish to the cloud, then for now, create aws dynamodb api credentials
@@ -52,6 +54,7 @@ var tempCredentials: DynamoDBApiCredentials = {
     tableName: '',
     accessKeyId: '',
     secretAccessKey: '',
+    region: 'us-east-1',
 };
 
 console.error(`importing local credentials...take this code out!!`);
@@ -62,7 +65,7 @@ console.error(`importing local credentials...take this code out!!`);
 
 type AWSItem = { [key: string]: AttributeValue };
 
-const PRIMARY_KEY_NAME = 'ibGibAddrHash';
+const DEFAULT_PRIMARY_KEY_NAME = 'ibGibAddrHash';
 const DEFAULT_AWS_MAX_RETRY_THROUGHPUT = 3;
 const DEFAULT_AWS_MAX_RETRY_UNPROCESSED_ITEMS = 5;
 const DEFAULT_AWS_PUT_BATCH_SIZE = 25;
@@ -82,7 +85,7 @@ const AWS_THROUGHPUT_ERROR_NAME = "ProvisionedThroughputExceededException";
  * Item interface
  */
 interface AWSDynamoSpaceItem extends AWSItem {
-    [PRIMARY_KEY_NAME]: AttributeValue,
+    [DEFAULT_PRIMARY_KEY_NAME]: AttributeValue,
     ib: AttributeValue,
     gib: AttributeValue,
     data?: AttributeValue,
@@ -144,7 +147,7 @@ async function createDynamoDBPutItem({
             const primaryKey = await getPrimaryKey({addr});
 
             item = {
-                [PRIMARY_KEY_NAME]: { S: primaryKey },
+                [DEFAULT_PRIMARY_KEY_NAME]: { S: primaryKey },
                 ib: { S: JSON.stringify(ibGib.ib) },
                 gib: { S: JSON.stringify(ibGib.gib) },
             }
@@ -156,7 +159,7 @@ async function createDynamoDBPutItem({
             const { ib, gib } = h.getIbAndGib({ibGibAddr: addr});
 
             item = {
-                [PRIMARY_KEY_NAME]: { S: addrHash },
+                [DEFAULT_PRIMARY_KEY_NAME]: { S: addrHash },
                 ib: { S: ib },
                 gib: { S: gib },
                 data: { B: binData },
@@ -269,7 +272,7 @@ async function createDynamoDBBatchGetItemCommand({
                 RequestItems: {
                     [tableName]: {
                         // e.g. { IbGibAddrHash: { S: '3b5781e8653a40269132a5c586e6472b'} },
-                        Keys: keys.map(key => { return { [PRIMARY_KEY_NAME]: { S: key }} }),
+                        Keys: keys.map(key => { return { [DEFAULT_PRIMARY_KEY_NAME]: { S: key }} }),
                         ConsistentRead: true,
                         ProjectionExpression: projectionExpression,
                     }
@@ -314,15 +317,17 @@ function getIbGibFromResponseItem({
 function createClient({
     accessKeyId,
     secretAccessKey,
+    region,
 }: {
     accessKeyId: string,
     secretAccessKey: string,
+    region: AWSRegion,
 }): DynamoDBClient {
     const lc = `[${createClient.name}]`;
     try {
         const client = new DynamoDBClient({
             credentials: { accessKeyId, secretAccessKey, },
-            region: 'us-east-1',
+            region,
             tls: true,
         });
 
@@ -352,6 +357,7 @@ export interface AWSDynamoSpace_V1_Data extends IbGibSpaceData {
     maxRetryUnprocessedItemsCount: number;
     accessKeyId: string;
     secretAccessKey: string;
+    region: AWSRegion;
     putBatchSize: number;
     getBatchSize: number;
     /**
@@ -371,11 +377,13 @@ export interface AWSDynamoSpace_V1_Data extends IbGibSpaceData {
 console.error(`temporary credentials being used by default. remove these credentials`);
 
 const DEFAULT_AWS_DYNAMO_SPACE_DATA_V1: AWSDynamoSpace_V1_Data = {
+    name: c.IBGIB_SPACE_NAME_DEFAULT,
     tableName: tempCredentials.tableName,
     maxRetryThroughputCount: DEFAULT_AWS_MAX_RETRY_THROUGHPUT,
     maxRetryUnprocessedItemsCount: DEFAULT_AWS_MAX_RETRY_UNPROCESSED_ITEMS,
     accessKeyId: tempCredentials.accessKeyId,
     secretAccessKey: tempCredentials.secretAccessKey,
+    region: tempCredentials.region,
     putBatchSize: DEFAULT_AWS_PUT_BATCH_SIZE,
     getBatchSize: DEFAULT_AWS_GET_BATCH_SIZE,
     throttleMsBetweenPuts: DEFAULT_AWS_PUT_THROTTLE_MS,
@@ -416,9 +424,12 @@ export interface AWSDynamoSpaceOptionsData extends IbGibSpaceOptionsData {
     isDna?: boolean;
 }
 
+export interface AWSDynamoSpaceOptionsRel8ns extends IbGibSpaceOptionsRel8ns {
+}
+
 /** Marker interface atm */
 export interface AWSDynamoSpaceOptionsIbGib
-    extends IbGibSpaceOptionsIbGib<IbGib_V1, AWSDynamoSpaceOptionsData> {
+    extends IbGibSpaceOptionsIbGib<IbGib_V1, AWSDynamoSpaceOptionsData, AWSDynamoSpaceOptionsRel8ns> {
     /**
      * Binary data from files like pics.
      *
@@ -434,8 +445,11 @@ export interface AWSDynamoSpaceOptionsIbGib
 export interface AWSDynamoSpaceResultData extends IbGibSpaceResultData {
 }
 
+export interface AWSDynamoSpaceResultRel8ns extends IbGibSpaceResultRel8ns {
+}
+
 export interface AWSDynamoSpaceResultIbGib
-    extends IbGibSpaceResultIbGib<IbGib_V1, AWSDynamoSpaceResultData> {
+    extends IbGibSpaceResultIbGib<IbGib_V1, AWSDynamoSpaceResultData, AWSDynamoSpaceResultRel8ns> {
     /**
      * This is used when you're getting a pic's binary content.
      *
@@ -548,8 +562,10 @@ export class AWSDynamoSpace_V1<
     > extends SpaceBase_V1<
         IbGib_V1,
         AWSDynamoSpaceOptionsData,
+        AWSDynamoSpaceOptionsRel8ns,
         AWSDynamoSpaceOptionsIbGib,
         AWSDynamoSpaceResultData,
+        AWSDynamoSpaceResultRel8ns,
         AWSDynamoSpaceResultIbGib,
         TData,
         TRel8ns
@@ -704,6 +720,7 @@ export class AWSDynamoSpace_V1<
             const client = createClient({
                 accessKeyId: this.data.accessKeyId,
                 secretAccessKey: this.data.secretAccessKey,
+                region: this.data.region,
             });
 
             if (arg.data!.ibGibAddrs?.length > 0) {
@@ -718,9 +735,10 @@ export class AWSDynamoSpace_V1<
             resultData.errors = [error.message];
         }
         try {
-            const result = await resulty_<AWSDynamoSpaceResultData, AWSDynamoSpaceResultIbGib>({
-                resultData,
-            });
+            const result = await this.resulty({resultData});
+            // const result = await resulty_<AWSDynamoSpaceResultData, AWSDynamoSpaceResultIbGib>({
+            //     resultData,
+            // });
             if (resultIbGibs.length > 0) {
                 result.ibGibs = resultIbGibs;
             } else if (resultBinData) {
@@ -883,7 +901,10 @@ export class AWSDynamoSpace_V1<
             resultData.errors = errors.concat([error.message]);
             resultData.success = false;
         }
-        const result = await resulty_<AWSDynamoSpaceResultData, AWSDynamoSpaceResultIbGib>({resultData});
+        const result = await this.resulty({resultData});
+        // const result = await resulty_<AWSDynamoSpaceResultData, AWSDynamoSpaceResultIbGib>({
+        //     resultData
+        // });
         result.ibGibs = ibGibs;
         return result;
     }
@@ -901,6 +922,7 @@ export class AWSDynamoSpace_V1<
             const client = createClient({
                 accessKeyId: this.data.accessKeyId,
                 secretAccessKey: this.data.secretAccessKey,
+                region: this.data.region,
             });
 
 
@@ -917,7 +939,10 @@ export class AWSDynamoSpace_V1<
             resultData.success = false;
         }
         // only executes if there is an error.
-        const result = await resulty_<AWSDynamoSpaceResultData, AWSDynamoSpaceResultIbGib>({resultData});
+        const result = await this.resulty({resultData});
+        // const result = await resulty_<AWSDynamoSpaceResultData, AWSDynamoSpaceResultIbGib>({
+        //     resultData
+        // });
         return result;
     }
 
@@ -1032,7 +1057,10 @@ export class AWSDynamoSpace_V1<
             resultData.errors = errors.concat([error.message]);
             resultData.success = false;
         }
-        const result = await resulty_<AWSDynamoSpaceResultData, AWSDynamoSpaceResultIbGib>({resultData});
+        const result = await this.resulty({resultData});
+        // const result = await resulty_<AWSDynamoSpaceResultData, AWSDynamoSpaceResultIbGib>({
+        //     resultData
+        // });
         return result;
     }
 
@@ -1111,9 +1139,26 @@ export class AWSDynamoSpace_V1<
             resultData.addrsErrored = addrsErrored;
             resultData.success = false;
         }
-        const result = await resulty_<AWSDynamoSpaceResultData, AWSDynamoSpaceResultIbGib>({resultData});
+        const result = await this.resulty({ resultData });
         return result;
     }
+
+    // /**
+    //  * wrapper convenience for this space.
+    //  * @param param0
+    //  * @returns
+    //  */
+    // private async resulty({
+    //     resultData,
+    // }: {
+    //     resultData: AWSDynamoSpaceResultData,
+    // }): Promise<AWSDynamoSpaceResultIbGib> {
+    //     const result =
+    //         await resulty_<AWSDynamoSpaceResultData, AWSDynamoSpaceResultIbGib>({
+    //             resultData
+    //         });
+    //     return result;
+    // }
 
     protected async deleteImpl(arg: AWSDynamoSpaceOptionsIbGib):
         Promise<AWSDynamoSpaceResultIbGib> {
@@ -1150,7 +1195,7 @@ export class AWSDynamoSpace_V1<
             resultData.addrsErrored = addrsErrored;
             resultData.success = false;
         }
-        const result = await resulty_<AWSDynamoSpaceResultData, AWSDynamoSpaceResultIbGib>({resultData});
+        const result = await this.resulty({resultData});
         return result;
     }
 
@@ -1172,13 +1217,7 @@ export class AWSDynamoSpace_V1<
             resultData.errors = [error.message];
             resultData.success = false;
         }
-        const result =
-            await resulty_<
-                AWSDynamoSpaceResultData,
-                AWSDynamoSpaceResultIbGib
-            >({
-                resultData
-            });
+        const result = await this.resulty({resultData});
         return result;
     }
 
@@ -1222,13 +1261,14 @@ export class AWSDynamoSpace_V1<
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];
         }
-        const result =
-            await resulty_<
-                AWSDynamoSpaceResultData,
-                AWSDynamoSpaceResultIbGib
-            >({
-                resultData
-            });
+        const result = await this.resulty({resultData});
+        // const result =
+        //     await resulty_<
+        //         AWSDynamoSpaceResultData,
+        //         AWSDynamoSpaceResultIbGib
+        //     >({
+        //         resultData
+        //     });
         return result;
     }
     protected async canPutImpl(arg: AWSDynamoSpaceOptionsIbGib):
@@ -1270,13 +1310,14 @@ export class AWSDynamoSpace_V1<
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];
         }
-        const result =
-            await resulty_<
-                AWSDynamoSpaceResultData,
-                AWSDynamoSpaceResultIbGib
-            >({
-                resultData
-            });
+        const result = await this.resulty({resultData});
+        // const result =
+        //     await resulty_<
+        //         AWSDynamoSpaceResultData,
+        //         AWSDynamoSpaceResultIbGib
+        //     >({
+        //         resultData
+        //     });
         return result;
     }
 

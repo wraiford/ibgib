@@ -18,8 +18,10 @@ import { CommonService } from '../services/common.service';
 import { SPECIAL_URLS } from '../common/constants';
 import { LatestEventInfo } from '../common/types';
 import {
-  AWSDynamoSpaceOptionsData, AWSDynamoSpaceOptionsIbGib,
-  AWSDynamoSpace_V1, AWSDynamoSpace_V1_Data,
+  AWSDynamoSpaceOptionsData,
+  AWSDynamoSpaceOptionsRel8ns,
+  AWSDynamoSpaceOptionsIbGib,
+  AWSDynamoSpace_V1,
 } from '../common/spaces/aws-dynamo-space-v1';
 import { argy_, WitnessBase_V1 } from '../common/witnesses';
 import * as c from '../common/constants';
@@ -212,10 +214,12 @@ export class IbGibPage extends IbgibComponentBase
 
       // put the ibgibs
       let awsSpace = new AWSDynamoSpace_V1(null, null);
-      let argPut = await argy_<AWSDynamoSpaceOptionsData, AWSDynamoSpaceOptionsIbGib>({
-        argData: { cmd: 'put', }
+      // let argPut =
+        // await argy_<AWSDynamoSpaceOptionsData, AWSDynamoSpaceOptionsRel8ns, AWSDynamoSpaceOptionsIbGib>({
+      let argPut = await awsSpace.argy({
+          argData: { cmd: 'put', },
+          ibGibs,
       });
-      argPut.ibGibs = ibGibs;
       let resPut = await awsSpace.witness(argPut);
 
       if ((resPut?.data?.errors || []).length > 0) {
@@ -225,14 +229,13 @@ export class IbGibPage extends IbgibComponentBase
       if (confirm) {
         const ibGibAddrs = ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
         console.warn(`test individual ibgibs confirming put was successful...need to remove!`);
-        let argGet = await argy_<AWSDynamoSpaceOptionsData, AWSDynamoSpaceOptionsIbGib>({
+        const argGet = await awsSpace.argy({
           argData: {
             cmd: 'get',
             ibGibAddrs,
           }
         });
-
-        let resGet = await awsSpace.witness(argGet);
+        const resGet = await awsSpace.witness(argGet);
 
         if (resGet.ibGibs?.length !== ibGibs.length) {
           throw new Error(`resGet.ibGibs?.length: ${resGet.ibGibs?.length} but ibGibs.length: ${ibGibs.length}`);

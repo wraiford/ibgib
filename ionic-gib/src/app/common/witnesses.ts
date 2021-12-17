@@ -11,12 +11,20 @@ import * as c from './constants';
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 export abstract class WitnessBase_V1<
-    TIbGibIn extends IbGib_V1 = IbGib_V1,
-    TIbGibOut extends IbGib_V1 = IbGib_V1,
+    TDataIn extends any,
+    TRel8nsIn extends IbGibRel8ns_V1,
+    TIbGibIn extends IbGib_V1<TDataIn, TRel8nsIn>,
+    TDataOut extends any,
+    TRel8nsOut extends IbGibRel8ns_V1,
+    TIbGibOut extends IbGib_V1<TDataOut, TRel8nsOut>,
     TData = any,
     TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
     >
-    implements Witness_V1<TIbGibIn, TIbGibOut, TData, TRel8ns> {
+    implements Witness_V1<
+        TDataIn, TRel8nsIn, TIbGibIn,    // arg
+        TDataOut, TRel8nsOut, TIbGibOut, // result
+        TData, TRel8ns                   // this witness itself
+        > {
 
     /**
      * Log context for convenience with logging. (Ignore if you don't want to use this.)
@@ -186,7 +194,9 @@ export abstract class WitnessBase_V1<
             return await this.witnessImpl(arg);
         } catch (error) {
             console.error(`${lc} ${error.message || 'unknown error'}`);
-            if (this.catchAllErrors || arg?.data?.catchAllErrors === true) { throw error; }
+            if (!this.catchAllErrors && !(<any>arg?.data)?.catchAllErrors) {
+                throw error;
+            }
             return; // undefined
         }
     }
@@ -253,7 +263,11 @@ export function getResultIb(ibMetadata: string): string {
  *
  * @returns Result (wrapper) ibGib for a `witness` function.
  */
-export async function argy_<TArgData, TArgIbGib extends IbGib_V1<TArgData> = IbGib_V1<TArgData>>({
+export async function argy_<
+        TArgData,
+        TArgRel8ns extends IbGibRel8ns_V1,
+        TArgIbGib extends IbGib_V1<TArgData, TArgRel8ns
+    > = IbGib_V1<TArgData, TArgRel8ns>>({
     argData,
     ibMetadata,
     noTimestamp,

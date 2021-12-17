@@ -38,19 +38,7 @@ export class ChooseIconModalComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
-    // setTimeout(async () => {
-    //   console.log(` dismissing`)
-    //   await this.modalController.dismiss({x: 1});
-    // }, 2000);
 
-    // this.ioniconItems = IONICONS.map(iconText => {
-    //   if (logalot) { console.log(`${lc} ${iconText}`); }
-    //   return {
-    //     title: iconText,
-    //     icon: iconText,
-    //   };
-    // });
-    // this.ref.detectChanges();
     setTimeout(() => { this.ref.detectChanges(); }, 5000)
   }
 
