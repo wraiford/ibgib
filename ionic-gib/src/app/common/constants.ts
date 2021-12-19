@@ -1,6 +1,7 @@
 import { FilesystemDirectory, FilesystemEncoding } from '@capacitor/core';
 import { GIB } from 'ts-gib/dist/V1';
 import { Ib } from 'ts-gib';
+import { SaltStrategy } from 'encrypt-gib';
 
 export const GLOBAL_LOG_A_LOT = false;
 export const GLOBAL_DEBUG_BORDER = false;
@@ -137,6 +138,11 @@ export const ROOT_REL8N_NAME = 'root';
  * A tag ibGib uses this rel8n name for the ibgibs that it targets.
  */
 export const TAGGED_REL8N_NAME = 'tagged';
+/**
+ * An spaces ibGib uses this rel8n name for related sync spaces, used
+ * in replicating ibgib spaces.
+ */
+export const SYNC_SPACE_REL8N_NAME = 'syncSpace';
 
 /**
  * These rel8n names are shown in a list view by default.
@@ -244,3 +250,15 @@ export const WITNESS_ARG_METADATA_STRING = 'witness_arg';
 export const WITNESS_RESULT_METADATA_STRING = 'witness_result';
 
 
+
+export const DEFAULT_ENCRYPTION_INITIAL_RECURSIONS = 50000;
+export const MIN_ENCRYPTION_INITIAL_RECURSIONS = 1000;
+export const MAX_ENCRYPTION_INITIAL_RECURSIONS = 10000000;
+export const MIN_ENCRYPTION_RECURSIONS_PER_HASH = 1;
+export const MAX_ENCRYPTION_RECURSIONS_PER_HASH = 1000;
+export const MIN_ENCRYPTION_SALT_LENGTH = 50;
+export const MAX_ENCRYPTION_SALT_LENGTH = 99999;
+export const MIN_ENCRYPTION_PASSWORD_LENGTH = 8;
+export const MAX_ENCRYPTION_PASSWORD_LENGTH = 9999999;
+export const DEFAULT_ENCRYPTION_SALT_STRATEGY: SaltStrategy = SaltStrategy.appendPerHash;
+export const DEFAULT_ENCRYPTION_RECURSIONS_PER_HASH = 10;

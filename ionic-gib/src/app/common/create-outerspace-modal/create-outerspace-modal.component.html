@@ -1,24 +1,123 @@
 <ion-header translucent>
   <ion-toolbar>
-    <ion-title>Choose an icon...</ion-title>
+    <ion-title title="Create Outerspace...">Create Outerspace...</ion-title>
     <ion-buttons slot="end">
+      <ion-button (click)="handleCreateClick()">Create Space</ion-button>
       <ion-button (click)="handleCancelClick()">Cancel</ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 <ion-content fullscreen>
-  <ion-list>
-    <ion-item *ngFor="let item of items; let i = index" (click)="handleItemClick(item)">
-      <ion-icon slot="start" [ios]="item.icon" [md]="item.icon.replace('outline', 'sharp')"></ion-icon>
-      <ion-label>{{ item.title }}</ion-label>
-      <!-- {{ item.icon }} {{ item.title }} -->
-      <!-- <ion-avatar slot="start"> -->
-        <!-- <ion-img src="./avatar-gollum.jpg"/> -->
-      <!-- </ion-avatar> -->
-      <!-- <ion-label>
-        <h2>Gollum</h2>
-        <p>Sneaky little hobbitses!</p>
-      </ion-label> -->
+  <ion-item-group>
+    <ion-item-divider>
+      <ion-label>Outerspace Type: </ion-label>
+    </ion-item-divider>
+
+  </ion-item-group>
+  <!-- Outerspace details -->
+  <ion-item-group>
+    <ion-item-divider>
+      <ion-label>Outerspace Type: </ion-label>
+    </ion-item-divider>
+
+    <!-- type+subtype -->
+    <ion-item>
+      <ion-select
+        [value]="selectedType"
+        okText="Select type"
+        (ionChange)="handleSelectedTypeChange($event)"
+        >
+        <ion-select-option *ngFor="let item of types" [value]="item">
+          <ion-label>{{ item }}</ion-label>
+        </ion-select-option>
+      </ion-select>
+      <ion-select
+        [value]="selectedSubtype"
+        okText="Select subtype"
+        (ionChange)="handleSelectedSubtypeChange($event)"
+        >
+        <ion-select-option *ngFor="let item of subtypes" [value]="item">
+          <ion-label>{{ item }}</ion-label>
+        </ion-select-option>
+      </ion-select>
     </ion-item>
-  </ion-list>
+  </ion-item-group>
+
+  <ion-item-group>
+    <ion-item-divider>
+      <ion-label>DynamoDB API Details: </ion-label>
+    </ion-item-divider>
+
+    <!-- region -->
+    <ion-item title="DynamoDB AWS Region">
+      <ion-label position="floating">DynamoDB AWS Region: </ion-label>
+      <ion-input [(ngModel)]="region"></ion-input>
+    </ion-item>
+    <!-- tableName -->
+    <ion-item title="DynamoDB API tableName">
+      <ion-label position="floating">DynamoDB API tableName: </ion-label>
+      <ion-input [(ngModel)]="tableName" type="password"></ion-input>
+    </ion-item>
+    <!-- primaryKeyName -->
+    <ion-item title="DynamoDB API table's primaryKeyName">
+      <ion-label position="floating">DynamoDB API primaryKeyName: </ion-label>
+      <ion-input readonly [value]="primaryKeyName"></ion-input>
+    </ion-item>
+    <!-- accessKeyId -->
+    <ion-item title="DynamoDB API accessKeyId">
+      <ion-label position="floating">DynamoDB API accessKeyId: </ion-label>
+      <ion-input [(ngModel)]="accessKeyId" type="password"></ion-input>
+    </ion-item>
+    <!-- secretAccessKey -->
+    <ion-item title="DynamoDB API secretAccessKey">
+      <ion-label position="floating">DynamoDB API secretAccessKey: </ion-label>
+      <ion-input [(ngModel)]="secretAccessKey" type="password"></ion-input>
+    </ion-item>
+  </ion-item-group>
+
+  <!-- encryption details -->
+  <ion-item-group>
+    <ion-item-divider>
+      <ion-label title="">Private IbGib Encryption Details</ion-label>
+    </ion-item-divider>
+    <!-- encryption method -->
+    <ion-item title="This salt will be unencrypted and publicly visible. It should be as random as possible. Just mash keys for awhile.">
+      <ion-label position="floating">Method: </ion-label>
+      <ion-input readonly value="encrypt-gib (weak)"></ion-input>
+    </ion-item>
+    <!-- userSalt -->
+    <ion-item title="This salt will be unencrypted and publicly visible. It should be as random as possible. Just mash keys for awhile.">
+      <ion-label position="floating">Salt (public): </ion-label>
+      <ion-input [(ngModel)]= "userSalt"
+        placeholder="just type in as many **random** characters as you feel like"
+        ></ion-input>
+    </ion-item>
+    <!-- initialRecursions -->
+    <ion-item title="The larger the initial recursions, the longer it takes to encrypt/decrypt (harder to brute force)">
+      <ion-label position="floating">Initial Recursions (public): </ion-label>
+      <ion-input [(ngModel)]="initialRecursions"
+        type="number" min="0" max="1000000" step="1000"></ion-input>
+    </ion-item>
+    <!-- recursionsPerHash -->
+    <ion-item title="This GREATLY affects time. These recursions happen for every single letter of data.">
+      <ion-label position="floating">Recursions Per Hash(public): </ion-label>
+      <ion-input [(ngModel)]="recursionsPerHash"
+        type="number" min="0" max="1000" step="1"></ion-input>
+    </ion-item>
+    <!-- userPassword -->
+    <ion-item title="We will encrypt your info entered here with this password. You will be prompted to enter this again when decrypting.">
+      <ion-label position="floating">Password for THIS DATA (do not enter your api key/secret yet): </ion-label>
+      <ion-input [(ngModel)]="userPassword"
+        placeholder="Enter a password for this data. This is NOT your secret for the API. This is to encrypt this ibGib's information only."
+        type="password"></ion-input>
+    </ion-item>
+    <!-- hint -->
+    <ion-item title="Optional hint to remember your password">
+      <ion-label position="floating">Optional hint (to remember your pwd): </ion-label>
+      <ion-input [(ngModel)]="hint"
+        placeholder="Enter a password for this data. This is NOT your secret for the API. This is to encrypt this ibGib's information only."
+        type="text"></ion-input>
+    </ion-item>
+
+  </ion-item-group>
 </ion-content>

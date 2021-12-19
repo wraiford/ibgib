@@ -193,6 +193,7 @@ export class AppComponent extends IbgibComponentBase
         // navToAddr = this.tagsAddr;
       } catch (error) {
         console.error(`${lc} ${error.message}`);
+        await this.common.ibgibs.promptCreateOuterSpaceIbGib();
       } finally {
         this.initializing = false;
         this.splashScreen.hide();
@@ -257,8 +258,8 @@ export class AppComponent extends IbgibComponentBase
   async initializeMySpaces(): Promise<void> {
     const lc = `${this.lc}[${this.initializeMySpaces.name}]`;
     try {
-      const spacesIbGib = await this.common.ibgibs.getSpecialIbgib({type: "spaces"});
-      this.spacesAddr = h.getIbGibAddr({ibGib: spacesIbGib});
+      // const spacesIbGib = await this.common.ibgibs.getSpecialIbgib({type: "spaces"});
+      // this.spacesAddr = h.getIbGibAddr({ibGib: spacesIbGib});
       throw new Error('not implemented');
       const currentSpaceIbGib = null;//await this.common.ibgibs.getCurrentSpace();
       if (!currentSpaceIbGib) { throw new Error(`currentSpace not found(?)`); }
@@ -441,21 +442,21 @@ export class AppComponent extends IbgibComponentBase
 
     try {
 
-      // spaces should already be initialized
-      if (!this.spacesAddr) { throw new Error(`spacesAddr is falsy, i.e. hasn't been initialized?`); };
+      // // spaces should already be initialized
+      // if (!this.spacesAddr) { throw new Error(`spacesAddr is falsy, i.e. hasn't been initialized?`); };
 
-      // get spaces, but don't initialize
-      let spacesIbGib = await this.common.ibgibs.getSpecialIbgib({type: "spaces"});
-      let spaceAddrs = spacesIbGib?.rel8ns[c.SPACE_REL8N_NAME] || [];
+      // // get spaces, but don't initialize
+      // let spacesIbGib = await this.common.ibgibs.getSpecialIbgib({type: "outerspaces"});
+      // let spaceAddrs = spacesIbGib?.rel8ns[c.SPACE_REL8N_NAME] || [];
 
-      // we should have initialized with spaces
-      if (!spaceAddrs || spaceAddrs.length === 0) { throw new Error(`No associated spaceAddrs to the spaces ibGib. Should have been initialized with spaces.`); }
+      // // we should have initialized with spaces
+      // if (!spaceAddrs || spaceAddrs.length === 0) { throw new Error(`No associated spaceAddrs to the spaces ibGib. Should have been initialized with spaces.`); }
 
-      // load individual items
-      for (let spaceAddr of spaceAddrs) {
-        const spaceItem = await this.getSpaceItem(spaceAddr);
-        if (spaceItem) { spaceMenuItems.push(spaceItem); }
-      }
+      // // load individual items
+      // for (let spaceAddr of spaceAddrs) {
+      //   const spaceItem = await this.getSpaceItem(spaceAddr);
+      //   if (spaceItem) { spaceMenuItems.push(spaceItem); }
+      // }
 
       // "load" them into the bound property and detect the changes
     } catch (error) {

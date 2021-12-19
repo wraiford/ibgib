@@ -19,6 +19,7 @@ import { CommentViewComponent } from '../views/comment-view/comment-view.compone
 import { ChooseIconModalComponent } from '../common/choose-icon-modal/choose-icon-modal.component';
 import { RootListViewComponent } from '../views/root-list-view/root-list-view.component';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
+import { CreateOuterspaceModalComponent } from '../common/create-outerspace-modal/create-outerspace-modal.component';
 
 @NgModule({
   imports: [
@@ -41,6 +42,7 @@ import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/
     ChooseIconModalComponent,
     RootListViewComponent,
     IbgibFullscreenModalComponent,
+    CreateOuterspaceModalComponent,
   ],
   schemas: [ CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA ],
 })

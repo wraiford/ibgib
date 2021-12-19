@@ -1,6 +1,6 @@
 import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 import { IbGibAddr, IbGib, IbGibWithDataAndRel8ns, IbGibRel8ns } from 'ts-gib';
-import { AWSRegion } from './spaces/aws-dynamo-space-v1';
+import { HashAlgorithm } from 'encrypt-gib';
 
 export interface IbgibItem {
     /**
@@ -109,7 +109,7 @@ export interface ActionItem {
     filepicked?: (event: any) => Promise<void>;
 }
 
-export type SpecialIbGibType = "tags" | "roots" | "latest" | "spaces";
+export type SpecialIbGibType = "tags" | "roots" | "latest" | "outerspaces";
 
 /**
  * There has been a new ibGib that is the latest for a given tjp timeline.
@@ -174,6 +174,10 @@ export interface IbGibSpaceData {
      * doesn't have to be unique.
      */
     name: string;
+    /**
+     * Optional description of the space.
+     */
+    description?: string;
     /**
      * "Should" be a unique identifier for the space.
      *
@@ -363,19 +367,46 @@ export interface IbGibSpaceAny extends IbGibSpace<any,any,any,any,any,any,any> {
 
 // #endregion
 
-// #region sync spaces
-
-export type AWSRegion = 'us-east-1';
-
-export type SyncSpaceType = 'aws-dynamodb';
-export const ValidSyncSpace = {
-    aws_dynamodb: 'aws-dynamodb' as SyncSpaceType,
+export type EncryptionMethod = "encrypt-gib";
+export const EncryptionMethod = {
+    encrypt_gib: "encrypt-gib" as EncryptionMethod,
 }
-export const VALID_SYNC_SPACE_TYPES = Object.values(ValidSyncSpace);
 
-export interface SyncSpaceInfo {
-    type: SyncSpaceType,
+/**
+ * Some ibgibs have sensitive data you want to encrypt.
+ */
+export interface EncryptionInfo {
+    method: EncryptionMethod;
+    password?: string;
+    hint?: string;
+    salt: string;
+    hashAlgorithm: HashAlgorithm;
 }
+
+// #region outer spaces
+
+export type OuterSpaceType = "sync";
+export const OuterSpaceType = {
+    sync: 'sync' as OuterSpaceType,
+}
+export const VALID_OUTER_SPACE_TYPES = Object.values(OuterSpaceType);
+
+export type OuterSpaceSubtype = 'aws-dynamodb';
+export const OuterSpaceSubtype = {
+    aws_dynamodb: 'aws-dynamodb' as OuterSpaceSubtype,
+}
+export const VALID_OUTER_SPACE_SUBTYPES = Object.values(OuterSpaceSubtype);
+
+export interface OuterSpaceInfo {
+    type: OuterSpaceType;
+}
+
+export interface SyncSpaceInfo extends OuterSpaceInfo {
+    subtype: OuterSpaceSubtype,
+}
+
+export type AWSRegion = 'us-east-1' | string;
+
 export interface SyncSpace_AWSDynamoDB extends SyncSpaceInfo {
     tableName: string;
     accessKeyId: string;
@@ -383,16 +414,9 @@ export interface SyncSpace_AWSDynamoDB extends SyncSpaceInfo {
     region: AWSRegion;
 }
 
-const exampleAwsDynamoDB: SyncSpace_AWSDynamoDB = {
-    type: 'aws-dynamodb',
-    tableName: 'some-table-name-with-primary-key-named-ibGibAddrHash',
-    accessKeyId: 'some-aws-key-id',
-    secretAccessKey: 'some-aws-secret-access-key',
-    region: 'us-east-2',
+export interface OuterSpaceData extends IbGibSpaceData {
+    encryptedInfo: string;
+    encryptionDetails: any;
 }
-
-export const VALID_SYNC_SPACE_EXAMPLES: SyncSpaceInfo[] = [
-    exampleAwsDynamoDB,
-];
 
 // #endregion

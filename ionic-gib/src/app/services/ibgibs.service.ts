@@ -20,13 +20,15 @@ import {
 import {
   TagData, RootData,
   SpecialIbGibType,
-  LatestEventInfo, IbGibSpaceAny, VALID_SYNC_SPACE_TYPES, VALID_SYNC_SPACE_EXAMPLES
+  LatestEventInfo, IbGibSpaceAny,
 } from '../common/types';
 import {
   IonicSpace_V1,
   IonicSpaceData_V1
 } from '../common/spaces/ionic-space-v1';
 import * as c from '../common/constants';
+import { ModalController } from '@ionic/angular';
+import { CreateOuterspaceModalComponent } from '../common/create-outerspace-modal/create-outerspace-modal.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -122,13 +124,13 @@ export enum AppSpaceRel8n {
   roots = 'roots',
   tags = 'tags',
   latest = 'latest',
-  spaces = 'spaces',
+  outerspaces = 'outerspaces',
 }
 interface AppSpaceRel8ns extends IbGibRel8ns_V1 {
     [AppSpaceRel8n.tags]?: IbGibAddr[];
     [AppSpaceRel8n.roots]?: IbGibAddr[];
     [AppSpaceRel8n.latest]?: IbGibAddr[];
-    [AppSpaceRel8n.spaces]?: IbGibAddr[];
+    [AppSpaceRel8n.outerspaces]?: IbGibAddr[];
 }
 
 export interface ConfigIbGib_V1 extends IbGib_V1<AppSpaceData, AppSpaceRel8ns> {}
@@ -255,6 +257,7 @@ export class IbgibsService {
   private _syncSpaces: IbGibSpaceAny[] = [];
 
   constructor(
+    public modalController: ModalController,
   ) {
 
   }
@@ -292,7 +295,7 @@ export class IbgibsService {
    * That is currently where we are storing things like the pointers to special
    * ibGibs like tags^ibgib, roots ibgibs, etc.
    */
-  async initializeLocalSpaces(): Promise<void> {
+  private async initializeLocalSpaces(): Promise<void> {
     const lc = `${this.lc}[${this.initializeLocalSpaces.name}]`;
     let localDefaultSpace: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns>;
     try {
@@ -322,112 +325,96 @@ export class IbgibsService {
     }
   }
 
+  // debug public. need to use private version
   private async initializeOuterSpaces(): Promise<void> {
     const lc = `${this.lc}[${this.initializeOuterSpaces.name}]`;
     try {
       if (!this.localUserSpace) { throw new Error(`localUserSpace not defined/initialized.`) }
       let outerSpaces = await this.getSpecialIbgib({type: "outerspaces", initialize: true});
-      let addr = h.getIbGibAddr({ibGib: outerSpaces});
-      const key = this.getSpecialConfigKey()
+      throw new Error('not implemented. need to populate sync spaces on this service.');
+      // populate sync spaces here
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
     }
   }
 
-  private async createOuterSpace_AWSDynamoDB(): Promise<void> {
-    const lc = `${this.lc}[${this.createOuterSpace_AWSDynamoDB.name}]`;
-    try {
-      let createdCount = 0;
-      let spaceName: string;
-      const promptCreate: () => Promise<boolean> = async () => {
-        const resName = await Modals.prompt({
-          title: 'Add a sync space?',
-          message: `
-            Enter a name to start to create a${createdCount > 0 ? 'nother' : ''} sync space.
-            ${VALID_SYNC_SPACE_EXAMPLES.map(ex => h.pretty(ex)+'\n')}
-            ${createdCount > 0 ? "If you're done, just leave this blank and hit whatever." : "If you have no idea what we're talking about, just skip this."}
-            `,
-            okButtonTitle:
-              createdCount > 0 ? "Yes, let's another space" : 'Yes, add a space',
-            cancelButtonTitle:
-              createdCount > 0 ? "No I'm done" : 'Maybe later...',
-        });
-
-        if (resName.cancelled) {
-          return false;
-        } else {
-          if (resName.value && this.validateName(resName.value)) {
-            spaceName = resName.value;
-          }
-        }
-      };
-
-      const promptTableName: () => Promise<boolean> = async () => {
-        const resName = await Modals.prompt({
-          title: 'Table name?',
-          message: `Enter the table name`,
-            okButtonTitle: "Name entered" : '',
-            cancelButtonTitle:
-              createdCount > 0 ? "No I'm done" : 'Maybe later...',
-        });
-
-        if (resName.cancelled) {
-          return false;
-        } else {
-          if (resName.value && this.validateName(resName.value)) {
-            spaceName = resName.value;
-          }
-        }
-      };
-
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-    }
-  }
-
   private async createOuterSpaces(): Promise<IbGibAddr | null> {
     const lc = `${this.lc}[${this.createOuterSpaces.name}]`;
     try {
-      const configKey = this.getSpecialConfigKey({type: "spaces"});
-      const existing = await this.getSpecialIbgib({type: "spaces"});
+      let outerSpacesAddr: IbGibAddr;
+      const configKey = this.getSpecialConfigKey({type: "outerspaces"});
+      const existing = await this.getSpecialIbgib({type: "outerspaces"});
       if (existing) {
         console.warn(`${lc} tried to create new special when one already exists. Aborting create.`);
-        return h.getIbGibAddr({ibGib: existing});
-      }
-      const special = await this.createSpecialIbGib({type: "spaces"});
-      let addr = h.getIbGibAddr({ibGib: special});
-      await this.setConfigAddr({key: configKey, addr: addr});
-
-      // at this point, our tags ibGib has no associated tag ibGibs.
-      // add home, favorite tags
-      const initialTagDatas: TagData[] = [
-        { text: 'home', icon: 'home-outline' },
-        { text: 'favorite', icon: 'heart-outline' },
-      ];
-      for (const data of initialTagDatas) {
-        const resCreate = await this.createTagIbGib(data);
-        addr = resCreate.newTagsAddr;
-        await this.setConfigAddr({key: configKey, addr: addr});
+        outerSpacesAddr = h.getIbGibAddr({ibGib: existing});
+        return outerSpacesAddr;
       }
 
-      return addr;
+      // special outerspaces ibgib doesn't exist, so create it (empty)
+      const outerSpacesIbGib = await this.createSpecialIbGib({type: "outerspaces"});
+      outerSpacesAddr = h.getIbGibAddr({ibGib: outerSpacesIbGib});
+      await this.setConfigAddr({key: configKey, addr: outerSpacesAddr});
+
+      // now that we've created the outerspaces ibgib, give the user a chance
+      // to go ahead and populate one (or more) now.
+      const createdOuterspaces: IbGib_V1[] = [];
+      let createAnother = true;
+      do {
+        const outerSpace = await this.promptCreateOuterSpaceIbGib();
+        if (outerSpace) {
+          createdOuterspaces.push(outerSpace);
+        } else {
+          createAnother = false;
+        }
+      } while (createAnother)
+
+      // if the user created one or more outerspace ibgibs,
+      // rel8 them all to the special outerspaces ibgib
+      if (createdOuterspaces.length > 0) {
+        outerSpacesAddr = await this.rel8ToSpecialIbGib({
+          type: "outerspaces",
+          rel8nName: c.SYNC_SPACE_REL8N_NAME,
+          ibGibsToRel8: createdOuterspaces,
+        });
+      }
+
+      return outerSpacesAddr;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       return null;
     }
   }
 
-  private async doCreate(): Promise<void> {
-
+  async promptCreateOuterSpaceIbGib(): Promise<IbGib_V1 | undefined> {
+    const lc = `${this.lc}[${this.promptCreateOuterSpaceIbGib.name}]`;
+    try {
+      const modal = await this.modalController.create({
+        component: CreateOuterspaceModalComponent,
+      });
+      await modal.present();
+      let resModal = await modal.onWillDismiss();
+      if (resModal.data) {
+        const newSpace = <IbGib_V1>resModal.data;
+        const addr = h.getIbGibAddr({ibGib: newSpace});
+        if (logalot) { console.log(`${lc} created outerspace. addr: ${addr}`); }
+        return newSpace;
+      } else {
+        // didn't create one
+        console.warn(`${lc} didn't create outerspace at this time.`);
+        return undefined;
+      }
+    } catch (error) {
+      console.error(`${lc} error: ${error.message}`);
+      return undefined;
+    }
   }
-
   private async loadUserLocalSpace({
     localDefaultSpace,
     bootstrapGib,
   }: {
     localDefaultSpace: IonicSpace_V1,
-    bootstrapGib: IbGib_V1
+    bootstrapGib: IbGib_V1,
   }): Promise<void> {
     const lc = `${this.lc}[${this.loadUserLocalSpace.name}]`;
     try {
@@ -926,8 +913,8 @@ export class IbgibsService {
         case "latest":
           return this.createLatest();
 
-        case "syncspaces":
-          return this.createSyncSpaces();
+        case "outerspaces":
+          return this.createOuterSpaces();
 
         default:
           throw new Error(`not implemented. type: ${type}`);
@@ -1141,7 +1128,7 @@ export class IbgibsService {
       const newRootsAddr = await this.rel8ToSpecialIbGib({
         type: "roots",
         rel8nName: ROOT_REL8N_NAME,
-        ibGibToRel8: newIbGib,
+        ibGibsToRel8: [newIbGib],
         // isMeta: true,
       });
       return { newRootIbGib: <IbGib_V1<RootData>>newIbGib, newRootsAddr };
@@ -1167,7 +1154,7 @@ export class IbgibsService {
     return this.rel8ToSpecialIbGib({
       type: "tags",
       rel8nName: TAG_REL8N_NAME,
-      ibGibToRel8: tagIbGib,
+      ibGibsToRel8: [tagIbGib],
       // isMeta: true,
     });
   }
@@ -1175,7 +1162,7 @@ export class IbgibsService {
   async rel8ToSpecialIbGib({
     type,
     rel8nName,
-    ibGibToRel8,
+    ibGibsToRel8,
     // isMeta,
     linked,
     skipRel8ToRoot,
@@ -1184,7 +1171,10 @@ export class IbgibsService {
   }: {
     type: SpecialIbGibType,
     rel8nName: string,
-    ibGibToRel8: IbGib_V1,
+    /**
+     * multiple ibgibs to rel8
+     */
+    ibGibsToRel8: IbGib_V1[],
     // isMeta: boolean,
     linked?: boolean,
     skipRel8ToRoot?: boolean,
@@ -1207,7 +1197,7 @@ export class IbgibsService {
   }): Promise<IbGibAddr> {
     const lc = `${this.lc}[${this.rel8ToSpecialIbGib.name}][{type: ${type}, rel8nName: ${rel8nName}]`;
     try {
-      const newAddr = h.getIbGibAddr({ibGib: ibGibToRel8});
+      const addrsToRel8 = ibGibsToRel8.map(ibGib => h.getIbGibAddr({ibGib}));
 
       // get the special ibgib
       const configKey = this.getSpecialConfigKey({type});
@@ -1221,7 +1211,7 @@ export class IbgibsService {
       // rel8 the new tag to the special ibgib.
       const resNewSpecial = await V1.rel8({
         src: resGetSpecial.ibGibs![0],
-        rel8nsToAddByAddr: { [rel8nName]: [newAddr] },
+        rel8nsToAddByAddr: { [rel8nName]: addrsToRel8 },
         dna: false,
         linkedRel8ns: linked ? [Rel8n.past, rel8nName] : [Rel8n.past],
         nCounter: true,
@@ -1385,7 +1375,7 @@ export class IbgibsService {
         await this.rel8ToSpecialIbGib({
           type: "latest",
           rel8nName: tjpAddr,
-          ibGibToRel8: ibGib,
+          ibGibsToRel8: [ibGib],
           linked: true, // this ensures only one latest ibGib mapped at a time
           deletePreviousSpecialIbGib: true, // the latest mapping is ephemeral
           severPast: true,
