@@ -21,6 +21,7 @@ import {
   TagData, RootData,
   SpecialIbGibType,
   LatestEventInfo, IbGibSpaceAny,
+  SecretData_V1,
 } from '../common/types';
 import {
   IonicSpace_V1,
@@ -29,6 +30,7 @@ import {
 import * as c from '../common/constants';
 import { ModalController } from '@ionic/angular';
 import { CreateOuterspaceModalComponent } from '../common/create-outerspace-modal/create-outerspace-modal.component';
+import { CreateSecretModalComponent } from '../common/create-secret-modal/create-secret-modal.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -125,12 +127,14 @@ export enum AppSpaceRel8n {
   tags = 'tags',
   latest = 'latest',
   outerspaces = 'outerspaces',
+  secrets = "secrets"
 }
 interface AppSpaceRel8ns extends IbGibRel8ns_V1 {
     [AppSpaceRel8n.tags]?: IbGibAddr[];
     [AppSpaceRel8n.roots]?: IbGibAddr[];
     [AppSpaceRel8n.latest]?: IbGibAddr[];
     [AppSpaceRel8n.outerspaces]?: IbGibAddr[];
+    [AppSpaceRel8n.secrets]?: IbGibAddr[];
 }
 
 export interface ConfigIbGib_V1 extends IbGib_V1<AppSpaceData, AppSpaceRel8ns> {}
@@ -325,7 +329,89 @@ export class IbgibsService {
     }
   }
 
-  // debug public. need to use private version
+  private async initializeSecrets(): Promise<void> {
+    const lc = `${this.lc}[${this.initializeSecrets.name}]`;
+    try {
+      if (!this.localUserSpace) { throw new Error(`localUserSpace not defined/initialized.`) }
+      let secrets = await this.getSpecialIbgib({type: "secrets", initialize: true});
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
+  private async createSecrets(): Promise<IbGibAddr | null> {
+    const lc = `${this.lc}[${this.createSecrets.name}]`;
+    try {
+      let secretsAddr: IbGibAddr;
+      const configKey = this.getSpecialConfigKey({type: "secrets"});
+      const existing = await this.getSpecialIbgib({type: "secrets"});
+      if (existing) {
+        console.warn(`${lc} tried to create new special when one already exists. Aborting create.`);
+        secretsAddr = h.getIbGibAddr({ibGib: existing});
+        return secretsAddr;
+      }
+
+      // special ibgib doesn't exist, so create it (empty)
+      const secretsIbgib = await this.createSpecialIbGib({type: "secrets"});
+      secretsAddr = h.getIbGibAddr({ibGib: secretsIbgib});
+      await this.setConfigAddr({key: configKey, addr: secretsAddr});
+
+      // now that we've created the secrets ibgib, give the user a chance
+      // to go ahead and populate one (or more) now.
+      const createdSecrets: IbGib_V1[] = [];
+      let createAnother = true;
+      do {
+        const secret = await this.promptCreateSecretIbGib();
+        if (secret) {
+          createdSecrets.push(secret);
+        } else {
+          createAnother = false;
+        }
+      } while (createAnother)
+
+      // if the user created one or more outerspace ibgibs,
+      // rel8 them all to the special outerspaces ibgib
+      if (createdSecrets.length > 0) {
+        secretsAddr = await this.rel8ToSpecialIbGib({
+          type: "secrets",
+          rel8nName: c.SECRET_REL8N_NAME,
+          ibGibsToRel8: createdSecrets,
+        });
+      }
+
+      return secretsAddr;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return null;
+    }
+  }
+
+  async promptCreateSecretIbGib(): Promise<IbGib_V1 | undefined> {
+    const lc = `${this.lc}[${this.promptCreateSecretIbGib.name}]`;
+    try {
+      const modal = await this.modalController.create({
+        component: CreateSecretModalComponent,
+      });
+      await modal.present();
+      let resModal = await modal.onWillDismiss();
+      if (resModal.data) {
+        const resNewSecret = <TransformResult<IbGib_V1<SecretData_V1>>>resModal.data;
+        await this.persistTransformResult({resTransform: resNewSecret});
+        const addr = h.getIbGibAddr({ibGib: resNewSecret.newIbGib});
+        if (logalot) { console.log(`${lc} created secret. addr: ${addr}`); }
+        return resNewSecret.newIbGib;
+      } else {
+        // didn't create one
+        console.warn(`${lc} didn't create at this time.`);
+        return undefined;
+      }
+    } catch (error) {
+      console.error(`${lc} error: ${error.message}`);
+      return undefined;
+    }
+  }
+
+
   private async initializeOuterSpaces(): Promise<void> {
     const lc = `${this.lc}[${this.initializeOuterSpaces.name}]`;
     try {
@@ -409,6 +495,7 @@ export class IbgibsService {
       return undefined;
     }
   }
+
   private async loadUserLocalSpace({
     localDefaultSpace,
     bootstrapGib,

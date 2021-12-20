@@ -29,35 +29,29 @@ import { Plugins } from '@capacitor/core';
 
 // #region TEMPORARY! DynamoDB credentials related
 
-console.error(`importing local credentials...take this code out!!`);
-var tempCredentialsEncrypted: DynamoDBApiCredentials_Encrypted = require('../../../../../../ionic-gib-cred.encrypted.json');
-interface DynamoDBApiCredentials_Encrypted  {
-    encryptedData: string;
-    initialRecursions: number;
-    salt: string;
-    hashAlgorithm: HashAlgorithm;
-    saltStrategy: SaltStrategy;
-    recursionsPerHash: number;
-}
+// console.error(`importing local credentials...take this code out!!`);
+// var tempCredentialsEncrypted: DynamoDBApiCredentials_Encrypted = require('../../../../../../ionic-gib-cred.encrypted.json');
+// interface DynamoDBApiCredentials_Encrypted  {
+//     encryptedData: string;
+//     initialRecursions: number;
+//     salt: string;
+//     hashAlgorithm: HashAlgorithm;
+//     saltStrategy: SaltStrategy;
+//     recursionsPerHash: number;
+// }
 // var tempCredentialsEncrypted: DynamoDBApiCredentials_Encrypted;
-interface DynamoDBApiCredentials {
-    tableName: string;
-    accessKeyId: string;
-    secretAccessKey: string;
-    region: AWSRegion;
-}
 /**
  * if you want to publish to the cloud, then for now, create aws dynamodb api credentials
  * in the following form
  */
-var tempCredentials: DynamoDBApiCredentials = {
-    tableName: '',
-    accessKeyId: '',
-    secretAccessKey: '',
-    region: 'us-east-1',
-};
+// var tempCredentials: DynamoDBApiCredentials = {
+//     tableName: '',
+//     accessKeyId: '',
+//     secretAccessKey: '',
+//     region: 'us-east-1',
+// };
 
-console.error(`importing local credentials...take this code out!!`);
+// console.error(`importing local credentials...take this code out!!`);
 
 // #endregion
 
@@ -378,12 +372,12 @@ console.error(`temporary credentials being used by default. remove these credent
 
 const DEFAULT_AWS_DYNAMO_SPACE_DATA_V1: AWSDynamoSpace_V1_Data = {
     name: c.IBGIB_SPACE_NAME_DEFAULT,
-    tableName: tempCredentials.tableName,
+    tableName: '',
     maxRetryThroughputCount: DEFAULT_AWS_MAX_RETRY_THROUGHPUT,
     maxRetryUnprocessedItemsCount: DEFAULT_AWS_MAX_RETRY_UNPROCESSED_ITEMS,
-    accessKeyId: tempCredentials.accessKeyId,
-    secretAccessKey: tempCredentials.secretAccessKey,
-    region: tempCredentials.region,
+    accessKeyId: '',
+    secretAccessKey: '',
+    region: '',
     putBatchSize: DEFAULT_AWS_PUT_BATCH_SIZE,
     getBatchSize: DEFAULT_AWS_GET_BATCH_SIZE,
     throttleMsBetweenPuts: DEFAULT_AWS_PUT_THROTTLE_MS,
@@ -665,7 +659,7 @@ export class AWSDynamoSpace_V1<
         try {
             if (!this.data) { this.data = h.clone(DEFAULT_AWS_DYNAMO_SPACE_DATA_V1); }
 
-            let resPrompt = await Plugins.Modals.prompt({title: 'hi', message: 'yo enter the thing'});
+            // let resPrompt = await Plugins.Modals.prompt({title: 'hi', message: 'yo enter the thing'});
 
             // let result = await encrypt({
             //     dataToEncrypt: JSON.stringify(tempCredentials),
@@ -680,25 +674,25 @@ export class AWSDynamoSpace_V1<
 
             // console.log(`${lc} result.encryptedData:\n`);
             // console.log(`${lc} ${result.encryptedData}`);
-            let {
-                encryptedData, initialRecursions, salt, hashAlgorithm,
-                saltStrategy, recursionsPerHash,
-            } = tempCredentialsEncrypted;
-            let result = await decrypt({
-                encryptedData,
-                initialRecursions,
-                salt,
-                secret: resPrompt.value,
-                hashAlgorithm,
-                saltStrategy,
-                recursionsPerHash,
-            });
-            let credentials = JSON.parse(result.decryptedData);
-            this.data.tableName = credentials.tableName;
-            this.data.accessKeyId = credentials.accessKeyId;
-            this.data.secretAccessKey = credentials.secretAccessKey;
+            // let {
+            //     encryptedData, initialRecursions, salt, hashAlgorithm,
+            //     saltStrategy, recursionsPerHash,
+            // } = tempCredentialsEncrypted;
+            // let result = await decrypt({
+            //     encryptedData,
+            //     initialRecursions,
+            //     salt,
+            //     secret: resPrompt.value,
+            //     hashAlgorithm,
+            //     saltStrategy,
+            //     recursionsPerHash,
+            // });
+            // let credentials = JSON.parse(result.decryptedData);
+            // this.data.tableName = credentials.tableName;
+            // this.data.accessKeyId = credentials.accessKeyId;
+            // this.data.secretAccessKey = credentials.secretAccessKey;
 
-            console.log(`result.errors: ${result.errors}`);
+            // console.log(`result.errors: ${result.errors}`);
         } catch (error) {
             console.error(`${lc} ${error.message}`);
         }

@@ -139,10 +139,14 @@ export const ROOT_REL8N_NAME = 'root';
  */
 export const TAGGED_REL8N_NAME = 'tagged';
 /**
- * An spaces ibGib uses this rel8n name for related sync spaces, used
+ * A spaces ibGib uses this rel8n name for related sync spaces, used
  * in replicating ibgib spaces.
  */
 export const SYNC_SPACE_REL8N_NAME = 'syncSpace';
+/**
+ * A secrets ibgib uses this rel8n name for its children secrets.
+ */
+export const SECRET_REL8N_NAME = 'secret';
 
 /**
  * These rel8n names are shown in a list view by default.
@@ -262,3 +266,40 @@ export const MIN_ENCRYPTION_PASSWORD_LENGTH = 8;
 export const MAX_ENCRYPTION_PASSWORD_LENGTH = 9999999;
 export const DEFAULT_ENCRYPTION_SALT_STRATEGY: SaltStrategy = SaltStrategy.appendPerHash;
 export const DEFAULT_ENCRYPTION_RECURSIONS_PER_HASH = 10;
+
+
+/**
+ * List of common special chars for english.
+ *
+ * ## intent
+ *
+ * When sanitizing input.
+ */
+export const ALLISH_SPECIAL_CHARS = `\`~!@#$%^&*()_\\-+=|\\\\\\]}[{"':;?/>.<,`;
+
+/**
+ * Much restricted list of chars in english.
+ *
+ * ## intent
+ *
+ * When sanitizing input.
+ */
+export const SAFE_SPECIAL_CHARS = `.'",!?`;
+
+
+// #region AWS Amazon
+
+/**
+ * @link https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.NamingRulesDataTypes.html
+ */
+export const AWS_DYNAMODB_REGEXP_TABLE_OR_INDEX: RegExp = /^[a-zA-Z0-9_\-.]{3,255}$/;
+/**
+ * @link https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.NamingRulesDataTypes.html
+ */
+export const AWS_DYNAMODB_REGEXP_ATTR: RegExp = /^[a-zA-Z0-9_\-.]{1,255}$/;
+/**
+ * @example us-east-1
+ */
+export const AWS_REGION_REGEXP = /^[a-z][a-z]-[a-z]{1,20}-[0-9]{1,2}$/;
+
+// #endregion

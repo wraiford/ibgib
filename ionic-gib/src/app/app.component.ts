@@ -193,7 +193,9 @@ export class AppComponent extends IbgibComponentBase
         // navToAddr = this.tagsAddr;
       } catch (error) {
         console.error(`${lc} ${error.message}`);
-        await this.common.ibgibs.promptCreateOuterSpaceIbGib();
+        console.error(`${lc} debug create here`);
+        // await this.common.ibgibs.promptCreateOuterSpaceIbGib();
+        await this.common.ibgibs.promptCreateSecretIbGib();
       } finally {
         this.initializing = false;
         this.splashScreen.hide();

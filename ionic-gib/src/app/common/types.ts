@@ -1,6 +1,9 @@
 import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 import { IbGibAddr, IbGib, IbGibWithDataAndRel8ns, IbGibRel8ns } from 'ts-gib';
-import { HashAlgorithm } from 'encrypt-gib';
+import { HashAlgorithm, SaltStrategy, } from 'encrypt-gib';
+
+export type IbgibItemType =
+    'pic' | 'comment' | 'link' | 'tag' | 'tags' | 'root' | 'roots' | 'other';
 
 export interface IbgibItem {
     /**
@@ -40,7 +43,7 @@ export interface IbgibItem {
      * In the future, any comment could conceivably be a tag and thus have
      * multiple types.
      */
-    type?: 'pic' | 'comment' | 'link' | 'tag' | 'tags' | 'root' | 'roots' | 'other';
+    type?: IbgibItemType;
     /**
      * hash of the full-sized image.
      */
@@ -109,7 +112,7 @@ export interface ActionItem {
     filepicked?: (event: any) => Promise<void>;
 }
 
-export type SpecialIbGibType = "tags" | "roots" | "latest" | "outerspaces";
+export type SpecialIbGibType = "tags" | "roots" | "latest" | "outerspaces" | "secrets";
 
 /**
  * There has been a new ibGib that is the latest for a given tjp timeline.
@@ -367,21 +370,6 @@ export interface IbGibSpaceAny extends IbGibSpace<any,any,any,any,any,any,any> {
 
 // #endregion
 
-export type EncryptionMethod = "encrypt-gib";
-export const EncryptionMethod = {
-    encrypt_gib: "encrypt-gib" as EncryptionMethod,
-}
-
-/**
- * Some ibgibs have sensitive data you want to encrypt.
- */
-export interface EncryptionInfo {
-    method: EncryptionMethod;
-    password?: string;
-    hint?: string;
-    salt: string;
-    hashAlgorithm: HashAlgorithm;
-}
 
 // #region outer spaces
 
@@ -389,13 +377,13 @@ export type OuterSpaceType = "sync";
 export const OuterSpaceType = {
     sync: 'sync' as OuterSpaceType,
 }
-export const VALID_OUTER_SPACE_TYPES = Object.values(OuterSpaceType);
+export const VALID_OUTER_SPACE_TYPES = Object.values(OuterSpaceType).concat();
 
 export type OuterSpaceSubtype = 'aws-dynamodb';
 export const OuterSpaceSubtype = {
     aws_dynamodb: 'aws-dynamodb' as OuterSpaceSubtype,
 }
-export const VALID_OUTER_SPACE_SUBTYPES = Object.values(OuterSpaceSubtype);
+export const VALID_OUTER_SPACE_SUBTYPES = Object.values(OuterSpaceSubtype).concat();
 
 export interface OuterSpaceInfo {
     type: OuterSpaceType;
@@ -420,3 +408,141 @@ export interface OuterSpaceData extends IbGibSpaceData {
 }
 
 // #endregion
+
+// #region secrets related
+
+export type SecretType = "password";
+export const SecretType = {
+    password: 'password' as SecretType,
+}
+export const VALID_SECRET_TYPES = Object.values(SecretType).concat();
+
+export interface SecretInfo {
+    name: string;
+    description?: string;
+    expirationUTC: string;
+    type: SecretType;
+    subtype: SecretSubtype,
+}
+
+export type SecretSubtype = 'encryption';
+export const SecretSubtype = {
+    encryption: 'encryption' as SecretSubtype,
+}
+export const VALID_SECRET_SUBTYPES = Object.values(SecretSubtype).concat();
+
+export interface EncryptionInfo extends SecretInfo {
+    method: EncryptionMethod;
+}
+
+export type EncryptionMethod = 'encrypt-gib (weak)';
+export const EncryptionMethod = {
+    encrypt_gib_weak: 'encrypt-gib (weak)' as EncryptionMethod,
+}
+
+export interface EncryptionInfo extends SecretInfo {
+    subtype: 'encryption',
+    method: EncryptionMethod,
+}
+
+export interface EncryptionInfo_EncryptGib extends EncryptionInfo {
+    method: 'encrypt-gib (weak)'
+    /**
+     * Public hint to help you remember your secret (or help the bad person
+     * attack your secret).
+     */
+    hint?: string;
+    /**
+     * This is the algorithm that encrypt-gib will use in its
+     * internal hashing round function to encrypt the data.
+     */
+    hashAlgorithm: HashAlgorithm;
+    /**
+     * This is an initial number of recursions to perform to "get farther away"
+     * from the password. It is a one-time cost at the beginning of the
+     * entire encryption process, so it does not cost more with more data.
+     */
+    initialRecursions: number;
+    /**
+     * This is the number of internal hashes per round function, which is per
+     * hex character of data. So the more recursions here, the longer it is
+     * going to take to encrypt/decrypt.
+     */
+    recursionsPerHash?: number;
+    /**
+     * Salt used throughout hashing in encryption/decryption. The longer and
+     * more random, the better for security. But there is also a resource cost.
+     */
+    salt: string;
+    /**
+     * Stronger are the perHash options.
+     *
+     *    'prependPerHash' | 'appendPerHash' | 'initialPrepend' | 'initialAppend';
+     */
+    saltStrategy?: SaltStrategy;
+    /**
+     * The encrypted data is a delimited list of indices.
+     *
+     * @default "," (comma-delimited)
+     */
+    encryptedDataDelimiter?: string;
+}
+
+export type SecretData_V1 = EncryptionInfo_EncryptGib; // extend this with logical OR later
+
+let encryptionx: EncryptionInfo_EncryptGib = {
+    name: 'super encryption name',
+    description: 'this is my super encryption method here.',
+    /**
+     * ty
+     * https://stackoverflow.com/questions/8609261/how-to-determine-one-year-from-now-in-javascript
+     */
+    expirationUTC: (new Date(new Date().setFullYear(new Date().getFullYear() + 1))).toUTCString(),
+    type: 'password',
+    subtype: 'encryption',
+    method: 'encrypt-gib (weak)',
+    hint: 'hey hey hey',
+    hashAlgorithm: 'SHA-256',
+    initialRecursions: 20000,
+    recursionsPerHash: 2,
+    salt: 'iowejf oiewjf oewifh aewhf 78wey78y23 87h iuh23 fiuh iu2fh ieuwh fbvbvbvbbb',
+    saltStrategy: 'prependPerHash',
+};
+
+// #endregion
+
+export interface FieldInfo {
+  /**
+   * Property name
+   */
+  name: string;
+  /**
+   * Label for the property on a form
+   */
+  label?: string;
+  /**
+   * Optional description for the property. Can bind title/hover/tooltip to this.
+   */
+  description?: string;
+  /**
+   * Placeholder when entering the field's data.
+   */
+  placeholder?: string;
+  /**
+   * Validation regular expression
+   */
+  regexp?: RegExp;
+  /**
+   * Only required if wanting to do validation beyond regexp/required.
+   */
+  fnValid?: (value: string) => boolean;
+  /**
+   * Error message that shows up **when using `fnValid`**.
+   * Other messages show for regexp/required.
+   */
+  fnErrorMsg?: string;
+  /**
+   * If the field is required.
+   */
+  required?: boolean;
+}

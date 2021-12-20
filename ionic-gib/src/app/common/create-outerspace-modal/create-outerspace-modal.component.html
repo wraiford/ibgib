@@ -9,19 +9,30 @@
 </ion-header>
 <ion-content fullscreen>
   <ion-item-group>
-    <ion-item-divider>
-      <ion-label>Outerspace Type: </ion-label>
-    </ion-item-divider>
 
   </ion-item-group>
+
   <!-- Outerspace details -->
   <ion-item-group>
     <ion-item-divider>
-      <ion-label>Outerspace Type: </ion-label>
+      <ion-label>Outerspace Details: </ion-label>
     </ion-item-divider>
+
+    <!-- name -->
+    <ion-item title="Name that you want to call this ibgib.">
+      <ion-label position="floating">Name: </ion-label>
+      <ion-input [(ngModel)]="name"></ion-input>
+    </ion-item>
+
+    <!-- description -->
+    <ion-item title="gT">
+      <ion-label position="floating">Description: </ion-label>
+      <ion-input [(ngModel)]="description"></ion-input>
+    </ion-item>
 
     <!-- type+subtype -->
     <ion-item>
+      <ion-label>Type: </ion-label>
       <ion-select
         [value]="selectedType"
         okText="Select type"
@@ -38,6 +49,18 @@
         >
         <ion-select-option *ngFor="let item of subtypes" [value]="item">
           <ion-label>{{ item }}</ion-label>
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+    <ion-item title="Choose at least one secret to use to encrypt the credentials.">
+      <ion-label>Encryption Secrets: </ion-label>
+      <ion-select
+        [value]="selectedSecrets"
+        okText="Select secrets"
+        (ionChange)="handleSelectedSecretsChange($event)"
+        >
+        <ion-select-option *ngFor="let item of secrets" [value]="item">
+          <ion-label>{{ item.data.name }}</ion-label>
         </ion-select-option>
       </ion-select>
     </ion-item>
@@ -75,49 +98,4 @@
     </ion-item>
   </ion-item-group>
 
-  <!-- encryption details -->
-  <ion-item-group>
-    <ion-item-divider>
-      <ion-label title="">Private IbGib Encryption Details</ion-label>
-    </ion-item-divider>
-    <!-- encryption method -->
-    <ion-item title="This salt will be unencrypted and publicly visible. It should be as random as possible. Just mash keys for awhile.">
-      <ion-label position="floating">Method: </ion-label>
-      <ion-input readonly value="encrypt-gib (weak)"></ion-input>
-    </ion-item>
-    <!-- userSalt -->
-    <ion-item title="This salt will be unencrypted and publicly visible. It should be as random as possible. Just mash keys for awhile.">
-      <ion-label position="floating">Salt (public): </ion-label>
-      <ion-input [(ngModel)]= "userSalt"
-        placeholder="just type in as many **random** characters as you feel like"
-        ></ion-input>
-    </ion-item>
-    <!-- initialRecursions -->
-    <ion-item title="The larger the initial recursions, the longer it takes to encrypt/decrypt (harder to brute force)">
-      <ion-label position="floating">Initial Recursions (public): </ion-label>
-      <ion-input [(ngModel)]="initialRecursions"
-        type="number" min="0" max="1000000" step="1000"></ion-input>
-    </ion-item>
-    <!-- recursionsPerHash -->
-    <ion-item title="This GREATLY affects time. These recursions happen for every single letter of data.">
-      <ion-label position="floating">Recursions Per Hash(public): </ion-label>
-      <ion-input [(ngModel)]="recursionsPerHash"
-        type="number" min="0" max="1000" step="1"></ion-input>
-    </ion-item>
-    <!-- userPassword -->
-    <ion-item title="We will encrypt your info entered here with this password. You will be prompted to enter this again when decrypting.">
-      <ion-label position="floating">Password for THIS DATA (do not enter your api key/secret yet): </ion-label>
-      <ion-input [(ngModel)]="userPassword"
-        placeholder="Enter a password for this data. This is NOT your secret for the API. This is to encrypt this ibGib's information only."
-        type="password"></ion-input>
-    </ion-item>
-    <!-- hint -->
-    <ion-item title="Optional hint to remember your password">
-      <ion-label position="floating">Optional hint (to remember your pwd): </ion-label>
-      <ion-input [(ngModel)]="hint"
-        placeholder="Enter a password for this data. This is NOT your secret for the API. This is to encrypt this ibGib's information only."
-        type="text"></ion-input>
-    </ion-item>
-
-  </ion-item-group>
 </ion-content>
