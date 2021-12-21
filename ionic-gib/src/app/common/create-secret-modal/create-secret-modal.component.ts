@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { ModalController } from '@ionic/angular';
 
 import { IbGib_V1, Factory_V1 as factory } from 'ts-gib/dist/V1';
@@ -18,13 +18,9 @@ import { TransformResult } from 'ts-gib';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
-const EXAMPLE_SYNC_SPACE_AWSDYNAMODB: SyncSpace_AWSDynamoDB = {
-    type: 'sync',
-    subtype: 'aws-dynamodb',
-    tableName: 'some-table-name-with-primary-key-named-ibGibAddrHash',
-    accessKeyId: 'some-aws-key-id',
-    secretAccessKey: 'some-aws-secret-access-key',
-    region: 'us-east-1',
+interface TypeItem {
+  label: string;
+  type: SecretType;
 }
 
 /**
@@ -51,23 +47,25 @@ export class CreateSecretModalComponent implements OnInit, OnDestroy {
   @Input()
   description: string;
 
+  // types: string[] = VALID_SECRET_TYPES.concat();
   @Input()
-  types: SecretType[] = VALID_SECRET_TYPES.concat([<any>'x', <any>'y']);
+  types: TypeItem[] = [
+    {label: 'password', type: 'password'},
+  ];
   @Input()
-  selectedType: SecretType = this.types[0];
+  // selectedType: string = this.types[0];
+  selectedType: TypeItem = this.types[0];
+  // selectedType: SecretType = 'password';
+
+  // compareWith_Types(a: SecretType, b: SecretType): boolean {
+  //   return a === b;
+  // }
 
   @Input()
   subtypes: SecretSubtype[] = VALID_SECRET_SUBTYPES.concat();
   @Input()
   selectedSubtype: SecretSubtype = this.subtypes[0];
 
-  handleDebug(): void {
-    debugger;
-    let x = this.types;
-    let x2 = this.selectedType;
-    let y = this.subtypes;
-    let y2 = this.selectedSubtype;
-  }
   // #endregion
 
 
@@ -90,15 +88,22 @@ export class CreateSecretModalComponent implements OnInit, OnDestroy {
   @Input()
   expirationUTC: string = (new Date(new Date().setFullYear(new Date().getFullYear() + 1))).toUTCString();
 
+  @Input()
+  validationErrors: string[] = [];
+  @Input()
+  validationErrorString: string;
+  @Input()
+  erroredFields: string[] = [];
+
   // #endregion
 
   public fields: { [name: string]: FieldInfo } = {
     name: {
-      name: "name (public)",
+      name: "name",
       description: "It's a name for the secret. Make it short with only letters, underscores and hyphens.",
-      label: "Name",
+      label: "Name (public)",
       placeholder: "brief_name-hyphensOK_32charMax",
-      regexp: getRegExp({min: 1, max: 32, chars: '-'}),
+      regexp: getRegExp({min: 1, max: 32, chars: '-', noSpaces: true}),
       required: true,
     },
     description: {
@@ -191,7 +196,14 @@ export class CreateSecretModalComponent implements OnInit, OnDestroy {
 
   constructor(
     private modalController: ModalController,
-  ) { }
+    private ref: ChangeDetectorRef,
+  ) {
+    // setTimeout(() => {
+    //   console.log(`setting types`)
+      // this.types = ['password'];
+    //   this.ref.detectChanges();
+    // }, 5000)
+  }
 
   ngOnInit() {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
@@ -216,7 +228,7 @@ export class CreateSecretModalComponent implements OnInit, OnDestroy {
       let resNewIbGib: TransformResult<IbGib_V1<SecretData_V1>>;
 
       // create the space
-      if (this.selectedType === 'password' && this.selectedSubtype === 'encryption') {
+      if (this.selectedType?.type === 'password' && this.selectedSubtype === 'encryption') {
         resNewIbGib = await this.createSecret_PasswordEncryption();
       } else {
         throw new Error(`unknown space type/subtype(?): ${this.selectedType}, ${this.selectedSubtype}`);
@@ -298,7 +310,10 @@ export class CreateSecretModalComponent implements OnInit, OnDestroy {
 
   async validateForm(): Promise<string[]> {
     const lc = `${this.lc}[${this.validateForm.name}]`;
+    this.validationErrors.splice(0, this.validationErrors.length);
+    this.erroredFields.splice(0, this.erroredFields.length);
     const errors: string[] = [];
+    const erroredFields: string[] = [];
 
     let fields: FieldInfo[] = Object.values(this.fields);
     for (let i = 0; i < fields.length; i++) {
@@ -312,18 +327,22 @@ export class CreateSecretModalComponent implements OnInit, OnDestroy {
           if (field.regexp) {
             if (logalot) { console.log(`${lc} ${field.name} is a string. regexp: ${field.regexp}`); }
             if ((value.match(field.regexp) ?? []).length === 0) {
+              erroredFields.push(field.name);
               errors.push(`${field.name} must match regexp: ${field.regexp}`);
             }
           }
           if ((<string>value).includes('\n')) {
+            erroredFields.push(field.name);
             errors.push(`${field.name} cannot contain new lines.`);
           }
         }
         if (field.fnValid && !field.fnValid(value)) {
+          erroredFields.push(field.name);
           errors.push(`${field.name} error: ${field.fnErrorMsg}`);
         }
       } else {
         if (field.required) {
+          erroredFields.push(field.name);
           errors.push(`${field.name} required.`);
         }
       }
@@ -331,8 +350,14 @@ export class CreateSecretModalComponent implements OnInit, OnDestroy {
 
     if (this.userPassword !== this.userPasswordConfirm) {
       errors.push(`passwords don't match`);
+      erroredFields.push('userPassword');
     }
 
+    errors.forEach(e => this.validationErrors.push(e));
+    if (this.validationErrors.length > 0) {
+      console.error('wth')
+      console.error(`${lc} this.validationErrors:\n${this.validationErrors.join('\n')}`);
+    }
     return errors;
   }
 
@@ -342,13 +367,18 @@ function getRegExp({
   min,
   max,
   chars,
+  noSpaces,
 }: {
   min?: number,
   max?: number,
-  chars?: string
+  chars?: string,
+  noSpaces?: boolean,
 }): RegExp {
   min = min ?? 1;
   max = max ?? 999999999999;
   chars = chars ?? '';
-  return new RegExp(`^[\\w\\s${chars}]{${min},${max}}$`);
+
+  return noSpaces ?
+    new RegExp(`^[\\w${chars}]{${min},${max}}$`) :
+    new RegExp(`^[\\w\\s${chars}]{${min},${max}}$`);
 }
