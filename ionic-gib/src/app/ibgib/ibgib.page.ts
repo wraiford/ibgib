@@ -1,14 +1,14 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy, Input } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { analyzeAndValidateNgModules } from '@angular/compiler';
+// import { analyzeAndValidateNgModules } from '@angular/compiler';
 import { Plugins } from '@capacitor/core';
 const { Modals } = Plugins;
 
 import {AttributeValue, DynamoDBClient, PutItemCommand} from '@aws-sdk/client-dynamodb';
 
 import * as h from 'ts-gib';
-import { IbGibAddr } from 'ts-gib';
+import { IbGibAddr, TransformResult } from 'ts-gib';
 import { getIbGibAddr, pretty } from 'ts-gib/dist/helper';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 import { encrypt, decrypt, SaltStrategy } from 'encrypt-gib';
@@ -26,6 +26,10 @@ import {
 import { argy_, WitnessBase_V1 } from '../common/witnesses';
 import * as c from '../common/constants';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
+import { EncryptionData_V1, SecretData_V1 } from '../common/types';
+import { CreateSecretModalComponent } from '../common/create-secret-modal/create-secret-modal.component';
+import { CreateEncryptionModalComponent } from '../common/create-encryption-modal/create-encryption-modal.component';
+import { CreateOuterspaceModalComponent } from '../common/create-outerspace-modal/create-outerspace-modal.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -212,6 +216,63 @@ export class IbGibPage extends IbgibComponentBase
       if (logalot) { console.log(`${lc} starting...`); }
       if (!ibGibs || ibGibs.length === 0) { throw new Error(`ibGibs required.`)}
 
+      let secretIbGibs: IbGib_V1[] = await this.common.ibgibs.getSpecialRel8dIbGibs({
+        type: "secrets",
+        rel8nName: c.SECRET_REL8N_NAME,
+      });
+      if (secretIbGibs.length === 0) {
+        await Modals.alert({
+          title: 'first create some stuff...',
+          message: "First we'll need to do a couple things, like create a secret password, an encryption setting, and a cloud endpoint.",
+        });
+      }
+      while (secretIbGibs.length === 0) {
+        let secretIbGib = await this.promptCreateSecretIbGib();
+        if (secretIbGib === undefined) {
+          await Modals.alert({title: 'cancelled', message: 'Cancelled.'});
+          return;
+        }
+        await this.common.ibgibs.registerNewIbGib({ ibGib: secretIbGib, });
+        await this.common.ibgibs.rel8ToSpecialIbGib({
+          type: "secrets",
+          rel8nName: c.SECRET_REL8N_NAME,
+          ibGibsToRel8: [secretIbGib],
+        });
+        secretIbGibs = await this.common.ibgibs.getSpecialRel8dIbGibs({
+          type: "secrets",
+          rel8nName: c.SECRET_REL8N_NAME,
+        });
+      }
+
+      let encryptionIbGibs: IbGib_V1[] = await this.common.ibgibs.getSpecialRel8dIbGibs({
+        type: "encryptions",
+        rel8nName: c.ENCRYPTION_REL8N_NAME,
+      });
+      if (encryptionIbGibs.length === 0) {
+        await Modals.alert({
+          title: 'next create an encryption...',
+          message: "Now we need to create an encryption setting...bear with me if you don't know what this is.",
+        });
+      }
+      while (encryptionIbGibs.length === 0) {
+        let encryptionIbGib = await this.promptCreateEncryptionIbGib();
+        if (encryptionIbGib === undefined) {
+          await Modals.alert({title: 'cancelled', message: 'Cancelled.'});
+          return;
+        }
+        await this.common.ibgibs.registerNewIbGib({ ibGib: encryptionIbGib, });
+        await this.common.ibgibs.rel8ToSpecialIbGib({
+          type: "encryptions",
+          rel8nName: c.ENCRYPTION_REL8N_NAME,
+          ibGibsToRel8: [encryptionIbGib],
+        });
+        encryptionIbGibs = await this.common.ibgibs.getSpecialRel8dIbGibs({
+          type: "encryptions",
+          rel8nName: c.ENCRYPTION_REL8N_NAME,
+        });
+      }
+
+      debugger;
       // put the ibgibs
       let awsSpace = new AWSDynamoSpace_V1(null, null);
       // let argPut =
@@ -264,6 +325,84 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
+  async promptCreateSecretIbGib(): Promise<IbGib_V1 | undefined> {
+    const lc = `${this.lc}[${this.promptCreateSecretIbGib.name}]`;
+    try {
+      const modal = await this.common.modalController.create({
+        component: CreateSecretModalComponent,
+      });
+      await modal.present();
+      let resModal = await modal.onWillDismiss();
+      if (resModal.data) {
+        const resNewSecret = <TransformResult<IbGib_V1<SecretData_V1>>>resModal.data;
+        await this.common.ibgibs.persistTransformResult({resTransform: resNewSecret});
+        const addr = h.getIbGibAddr({ibGib: resNewSecret.newIbGib});
+        if (logalot) { console.log(`${lc} created secret. addr: ${addr}`); }
+        await this.common.ibgibs.rel8ToSpecialIbGib({
+          type: "secrets",
+          rel8nName: c.SECRET_REL8N_NAME,
+          ibGibsToRel8: [resNewSecret.newIbGib],
+        });
+        return resNewSecret.newIbGib;
+      } else {
+        // didn't create one
+        console.warn(`${lc} didn't create at this time.`);
+        return undefined;
+      }
+    } catch (error) {
+      console.error(`${lc} error: ${error.message}`);
+      return undefined;
+    }
+  }
+
+  async promptCreateEncryptionIbGib(): Promise<IbGib_V1 | undefined> {
+    const lc = `${this.lc}[${this.promptCreateEncryptionIbGib.name}]`;
+    try {
+      const modal = await this.common.modalController.create({
+        component: CreateEncryptionModalComponent,
+      });
+      await modal.present();
+      let resModal = await modal.onWillDismiss();
+      if (resModal.data) {
+        const resNewEncryption = <TransformResult<IbGib_V1<EncryptionData_V1>>>resModal.data;
+        await this.common.ibgibs.persistTransformResult({resTransform: resNewEncryption});
+        const addr = h.getIbGibAddr({ibGib: resNewEncryption.newIbGib});
+        if (logalot) { console.log(`${lc} created secret. addr: ${addr}`); }
+        return resNewEncryption.newIbGib;
+      } else {
+        // didn't create one
+        console.warn(`${lc} didn't create at this time.`);
+        return undefined;
+      }
+    } catch (error) {
+      console.error(`${lc} error: ${error.message}`);
+      return undefined;
+    }
+  }
+
+  async promptCreateOuterSpaceIbGib(): Promise<IbGib_V1 | undefined> {
+    const lc = `${this.lc}[${this.promptCreateOuterSpaceIbGib.name}]`;
+    try {
+      const modal = await this.common.modalController.create({
+        component: CreateOuterspaceModalComponent,
+      });
+      await modal.present();
+      let resModal = await modal.onWillDismiss();
+      if (resModal.data) {
+        const newSpace = <IbGib_V1>resModal.data;
+        const addr = h.getIbGibAddr({ibGib: newSpace});
+        if (logalot) { console.log(`${lc} created outerspace. addr: ${addr}`); }
+        return newSpace;
+      } else {
+        // didn't create one
+        console.warn(`${lc} didn't create outerspace at this time.`);
+        return undefined;
+      }
+    } catch (error) {
+      console.error(`${lc} error: ${error.message}`);
+      return undefined;
+    }
+  }
   async handlePublishClick(): Promise<void> {
     const lc = `${this.lc}[${this.handlePublishClick.name}]`;
     this.item.publishing = true;

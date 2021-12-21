@@ -6,12 +6,14 @@ import * as h from 'ts-gib/dist/helper';
 
 import * as c from '../constants';
 import {
-  VALID_SECRET_TYPES,
+  EncryptionData_V1,
+  EncryptionInfo_EncryptGib,
+  EncryptionMethod,
   FieldInfo,
-  SecretType, SecretData_V1, SecretInfo_Password,
 } from '../types';
+import { HashAlgorithm } from 'encrypt-gib';
 import { TransformResult } from 'ts-gib';
-import { getRegExp, hash16816 } from '../helper';
+import { getRegExp } from '../helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -21,43 +23,30 @@ const logalot = c.GLOBAL_LOG_A_LOT || false || true;
  * Does NOT save this ibGib in any space(s) at present.
  */
 @Component({
-  selector: 'create-secret-modal',
-  templateUrl: './create-secret-modal.component.html',
-  styleUrls: ['./create-secret-modal.component.scss'],
+  selector: 'create-encryption-modal',
+  templateUrl: './create-encryption-modal.component.html',
+  styleUrls: ['./create-encryption-modal.component.scss'],
 })
-export class CreateSecretModalComponent implements OnInit, OnDestroy {
+export class CreateEncryptionModalComponent implements OnInit, OnDestroy {
 
-  protected lc: string = `[${CreateSecretModalComponent.name}]`;
-
-  // @Input()
-  // item: SyncSpaceInfo;
-
-  // #region Secret Details
+  protected lc: string = `[${CreateEncryptionModalComponent.name}]`;
 
   @Input()
   name: string;
   @Input()
   description: string;
-  @Input()
-  hash16816_SHA256: string;
 
   @Input()
-  secretTypes: SecretType[] = VALID_SECRET_TYPES.concat();
-  @Input()
-  secretType: SecretType = this.secretTypes[0];
-
-  // #endregion
-
-  // #region encryption settings
+  method: EncryptionMethod = EncryptionMethod.encrypt_gib_weak;
 
   @Input()
   userSalt: string;
   @Input()
-  userPassword: string;
+  initialRecursions: number = c.DEFAULT_ENCRYPTION_INITIAL_RECURSIONS;
   @Input()
-  userPasswordConfirm: string;
+  recursionsPerHash: number = c.DEFAULT_ENCRYPTION_RECURSIONS_PER_HASH;
   @Input()
-  hint: string;
+  hashAlgorithm: HashAlgorithm = 'SHA-256';
   @Input()
   expirationUTC: string = (new Date(new Date().setFullYear(new Date().getFullYear() + 1))).toUTCString();
 
@@ -67,8 +56,6 @@ export class CreateSecretModalComponent implements OnInit, OnDestroy {
   validationErrorString: string;
   @Input()
   erroredFields: string[] = [];
-
-  // #endregion
 
   public fields: { [name: string]: FieldInfo } = {
     name: {
@@ -81,59 +68,65 @@ export class CreateSecretModalComponent implements OnInit, OnDestroy {
     },
     description: {
       name: "description",
-      description: `Optional description/notes for this secret. You can use this and/or hint. Only letters, underscores and ${c.SAFE_SPECIAL_CHARS}`,
+      description: `Description/notes for this encryption. Only letters, underscores and ${c.SAFE_SPECIAL_CHARS}`,
       label: "Description (public)",
-      placeholder: `Description/notes for this secret. Can use this and/or hint. Only letters, underscores and ${c.SAFE_SPECIAL_CHARS}`,
+      placeholder: `Describe these encryption settings here...`,
       regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
     },
-    secretType: {
-      name: "secretType",
-      description: "Only 'password' right now. ",
-      label: "Secret Type (public)",
-      regexp: /^(password)$/,
+    method: {
+      name: "method",
+      description: `All we got right now is '${EncryptionMethod.encrypt_gib_weak}.'`,
+      label: "Method (public)",
+      fnValid: (value: string) => { return value === EncryptionMethod.encrypt_gib_weak; },
+      fnErrorMsg: `Must be '${EncryptionMethod.encrypt_gib_weak}'`,
       required: true,
     },
 
-    expirationUTC: {
-      name: 'expirationUTC',
-      label: 'Expiration (UTC, public)',
-      description: "Conventional wisdom says you shouldn't use the same secret forever.",
-      fnValid: (value) => {
-        if (!value || typeof value !== 'string') return false;
-        const valueAsDate = new Date(value);
-        const isValidDateString = valueAsDate.toString() !== 'Invalid Date';
-        const isInFuture = valueAsDate.getTime() - (new Date()).getTime() > 0;
-        return isValidDateString && isInFuture;
-      },
-      fnErrorMsg: `Invalid date/time value. (?) Should be a valid UTC string and in the future.`,
-      required: true,
-    },
-    userPassword: {
-      name: "userPassword",
-      label: "Password (private)",
-      description: "Your own user password used to encrypt/decrypt whatever the information you're saving is.",
-      placeholder: "Enter a password for this data. This is NOT your secret for the API. This is to encrypt this ibGib's information only.",
+    userSalt: {
+      name: "userSalt",
+      label: "Salt (public)",
+      description: "Helps encryption. The longer and more random of salt, the better.",
+      placeholder: "type in many many **random** characters (lots and lots)",
       regexp: getRegExp({
-        min: c.MIN_ENCRYPTION_PASSWORD_LENGTH,
-        max: c.MAX_ENCRYPTION_PASSWORD_LENGTH,
+        min: c.MIN_ENCRYPTION_SALT_LENGTH,
+        max: c.MAX_ENCRYPTION_SALT_LENGTH,
         chars: c.ALLISH_SPECIAL_CHARS
       }),
-      fnErrorMsg: `Password must only contain letters, numbers and ${c.ALLISH_SPECIAL_CHARS}. Min: ${c.MIN_ENCRYPTION_PASSWORD_LENGTH}. Max: ${c.MAX_ENCRYPTION_PASSWORD_LENGTH}`,
       required: true,
     },
-    userPasswordConfirm: {
-      name: "userPasswordConfirm",
-      label: "Password (confirm)",
-      description: "Make sure we type in the same password...",
+    initialRecursions: {
+      name: "initialRecursions",
+      label: "Initial Recursions (public)",
+      description: "Number of initial recursions when encrypting/decrypting. Large number creates a one-time linear-ish cost.",
+      fnValid: (value) => {
+        if (!value || typeof value !== 'number') { return false; }
+        const n = <number>value;
+        return n >= c.MIN_ENCRYPTION_INITIAL_RECURSIONS && n <= c.MAX_ENCRYPTION_INITIAL_RECURSIONS && Number.isSafeInteger(n);
+      },
+      fnErrorMsg: `Initial recursions must be a whole number at least ${c.MIN_ENCRYPTION_INITIAL_RECURSIONS} and at most ${c.MAX_ENCRYPTION_INITIAL_RECURSIONS}`,
       required: true,
     },
-    hint: {
-      name: "hint",
-      label: "Hint (public)",
-      description: "Optional hint for your use as you see fit",
-      placeholder: "Optional...",
-      regexp: getRegExp({min: 1, max: 50, chars: c.SAFE_SPECIAL_CHARS}),
-      fnErrorMsg: `Optional hint must contain letters, numbers and ${c.SAFE_SPECIAL_CHARS}`,
+    recursionsPerHash: {
+      name: "recursionsPerHash",
+      label: "Recursions Per Hash Round (public)",
+      description: "Number of recursions per hash when encrypting/decrypting. Huge cost as this gets bigger, since this happens for every single character of data.",
+      fnValid: (value) => {
+        if (!value || typeof value !== 'number') { return false; }
+        const n = <number>value;
+        return n >= c.MIN_ENCRYPTION_RECURSIONS_PER_HASH && n <= c.MAX_ENCRYPTION_INITIAL_RECURSIONS && Number.isSafeInteger(n);
+      },
+      fnErrorMsg: `Recursions per hash must be a whole number at least ${c.MIN_ENCRYPTION_RECURSIONS_PER_HASH} and at most ${c.MAX_ENCRYPTION_RECURSIONS_PER_HASH}, though really you probably want just a couple at most depending on the size of your data.`,
+      required: true,
+    },
+    hashAlgorithm: {
+      name: "hashAlgorithm",
+      label: "Hash Algorithm",
+      description: "Hash that the encryption uses internally.",
+      fnValid: (value: string) => {
+        return Object.values(HashAlgorithm).includes(<any>value);
+      },
+      fnErrorMsg: `Must be one of: ${Object.values(HashAlgorithm).join(', ')}`,
+      required: true,
     },
 
   }
@@ -143,7 +136,6 @@ export class CreateSecretModalComponent implements OnInit, OnDestroy {
 
   constructor(
     private modalController: ModalController,
-    private ref: ChangeDetectorRef,
   ) {
   }
 
@@ -168,13 +160,13 @@ export class CreateSecretModalComponent implements OnInit, OnDestroy {
         return;
       }
 
-      let resNewIbGib: TransformResult<IbGib_V1<SecretData_V1>>;
+      let resNewIbGib: TransformResult<IbGib_V1<EncryptionData_V1>>;
 
-      // create the space
-      if (this.secretType === 'password') {
-        resNewIbGib = await this.createSecret_Password();
+      // create the encryption
+      if (this.method === EncryptionMethod.encrypt_gib_weak) {
+        resNewIbGib = await this.createEncryption_EncryptGibWeak();
       } else {
-        throw new Error(`unknown secret type(?): ${this.secretType}`);
+        throw new Error(`unknown encryption method (?): ${this.method}`);
       }
 
       if (!resNewIbGib) { throw new Error(`creation failed...`); }
@@ -185,34 +177,37 @@ export class CreateSecretModalComponent implements OnInit, OnDestroy {
     }
   }
 
-  async createSecret_Password(): Promise<TransformResult<IbGib_V1<SecretData_V1>>> {
-    const lc = `${this.lc}[${this.createSecret_Password.name}]`;
+  async createEncryption_EncryptGibWeak(): Promise<TransformResult<IbGib_V1<EncryptionData_V1>>> {
+    const lc = `${this.lc}[${this.createEncryption_EncryptGibWeak.name}]`;
     try {
-      // already been validated
-      const hash16816_SHA256 = await hash16816({s: this.userPassword, algorithm: 'SHA-256'});
-      let data: SecretInfo_Password = {
+
+      let data: EncryptionInfo_EncryptGib = {
         name: this.name,
         description: this.description,
-        /**
-         * ty
-         * https://stackoverflow.com/questions/8609261/how-to-determine-one-year-from-now-in-javascript
-         */
-        expirationUTC: (new Date(new Date().setFullYear(new Date().getFullYear() + 1))).toUTCString(),
-        type: 'password',
-        hint: this.hint,
-        hash16816_SHA256,
+        // /**
+        //  * ty
+        //  * https://stackoverflow.com/questions/8609261/how-to-determine-one-year-from-now-in-javascript
+        //  */
+        // expirationUTC: (new Date(new Date().setFullYear(new Date().getFullYear() + 1))).toUTCString(),
+        method: this.method,
+        hashAlgorithm: this.hashAlgorithm,
+        initialRecursions: this.initialRecursions,
+        recursionsPerHash: this.recursionsPerHash,
+        salt: this.userSalt,
+        saltStrategy: 'prependPerHash',
+        encryptedDataDelimiter: ',',
       };
 
       const resCreate = await factory.firstGen({
         parentIbGib: factory.primitive({ib: 'secret'}),
-        ib: `secret password ${this.name}`,
+        ib: `encryption ${this.method} ${this.name}`,
         data,
         dna: false,
         tjp: { uuid: true, timestamp: true },
         nCounter: true,
       });
 
-      return <TransformResult<IbGib_V1<SecretData_V1>>>resCreate;
+      return <TransformResult<IbGib_V1<EncryptionData_V1>>>resCreate;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -223,9 +218,15 @@ export class CreateSecretModalComponent implements OnInit, OnDestroy {
     await this.modalController.dismiss();
   }
 
-  handleSelectedSecretTypeChange(item: any): void {
-    if (item?.detail?.value && this.secretTypes.includes(item!.detail!.value)) {
-      this.secretType = item!.detail!.value!;
+  handleMethodChange(item: any): void {
+    if (item?.detail?.value && item!.detail!.value! === EncryptionMethod.encrypt_gib_weak) {
+      this.method = item!.detail!.value!;
+    }
+  }
+
+  handleSelectedHashAlgorithmChange(item: any): void {
+    if (item?.detail?.value && Object.values(HashAlgorithm).includes(item!.detail!.value!)) {
+      this.hashAlgorithm = item!.detail!.value!;
     }
   }
 
@@ -267,11 +268,6 @@ export class CreateSecretModalComponent implements OnInit, OnDestroy {
           errors.push(`${field.name} required.`);
         }
       }
-    }
-
-    if (this.userPassword !== this.userPasswordConfirm) {
-      errors.push(`passwords don't match`);
-      erroredFields.push('userPassword');
     }
 
     errors.forEach(e => this.validationErrors.push(e));

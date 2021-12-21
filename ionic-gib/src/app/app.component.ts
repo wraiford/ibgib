@@ -6,7 +6,7 @@ import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 
-import { IbGibAddr } from 'ts-gib';
+import { IbGibAddr, TransformResult } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 
@@ -16,7 +16,7 @@ import {
   // MENU_ITEM_IB_SUBSTRING_LENGTH, DEFAULT_TAG_ICON, DEFAULT_ROOT_ICON, ROOT_REL8N_NAME, DEFAULT_ROOT_TEXT, DEFAULT_ROOT_DESCRIPTION
 } from './common/constants';
 import * as c from './common/constants';
-import { RootData } from './common/types';
+import { EncryptionData_V1, RootData, SecretData_V1 } from './common/types';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -194,8 +194,9 @@ export class AppComponent extends IbgibComponentBase
       } catch (error) {
         console.error(`${lc} ${error.message}`);
         console.error(`${lc} debug create here`);
+        debugger;
         // await this.common.ibgibs.promptCreateOuterSpaceIbGib();
-        await this.common.ibgibs.promptCreateSecretIbGib();
+        // await this.promptCreateSecretIbGib();
       } finally {
         this.initializing = false;
         this.splashScreen.hide();
@@ -696,5 +697,7 @@ export class AppComponent extends IbgibComponentBase
       console.error(`${lc} ${error.message}`);
     }
   }
+
+
 
 }

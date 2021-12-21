@@ -147,6 +147,10 @@ export const SYNC_SPACE_REL8N_NAME = 'syncSpace';
  * A secrets ibgib uses this rel8n name for its children secrets.
  */
 export const SECRET_REL8N_NAME = 'secret';
+/**
+ * An encryptions ibgib uses this rel8n name for its children encryptions.
+ */
+export const ENCRYPTION_REL8N_NAME = 'encryption';
 
 /**
  * These rel8n names are shown in a list view by default.

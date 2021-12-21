@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { ModalController } from '@ionic/angular';
 
 import { IbGib_V1, Factory_V1 as factory } from 'ts-gib/dist/V1';
@@ -10,6 +10,7 @@ import {
   SyncSpaceInfo, SyncSpace_AWSDynamoDB,
   VALID_OUTER_SPACE_TYPES, VALID_OUTER_SPACE_SUBTYPES, AWSRegion, OuterSpaceData, SecretData_V1, FieldInfo,
 } from '../types';
+import { getRegExp } from '../helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -32,14 +33,10 @@ const EXAMPLE_SYNC_SPACE_AWSDYNAMODB: SyncSpace_AWSDynamoDB = {
   templateUrl: './create-outerspace-modal.component.html',
   styleUrls: ['./create-outerspace-modal.component.scss'],
 })
-export class CreateOuterspaceModalComponent implements OnInit, OnDestroy {
+export class CreateOuterspaceModalComponent implements OnInit, OnDestroy, AfterViewInit {
 
   protected lc: string = `[${CreateOuterspaceModalComponent.name}]`;
 
-  // @Input()
-  // item: SyncSpaceInfo;
-
-  // #region Outerspace Details
 
   @Input()
   name: string;
@@ -47,24 +44,20 @@ export class CreateOuterspaceModalComponent implements OnInit, OnDestroy {
   description: string;
 
   @Input()
-  types: OuterSpaceType[] = VALID_OUTER_SPACE_TYPES.concat();
+  types: OuterSpaceType[] = [];
   @Input()
-  selectedType: OuterSpaceType = this.types[0];
+  selectedType: OuterSpaceType;
 
   @Input()
-  subtypes: OuterSpaceSubtype[] = VALID_OUTER_SPACE_SUBTYPES.concat();
+  subtypes: OuterSpaceSubtype[] = [];
   @Input()
-  selectedSubtype: OuterSpaceSubtype = this.subtypes[0];
+  selectedSubtype: OuterSpaceSubtype;
 
   @Input()
   secrets: IbGib_V1<SecretData_V1>[] = [];
   @Input()
   selectedSecrets: IbGib_V1<SecretData_V1>[] = [];
 
-  // #endregion
-
-
-  // #region AWS DynamoDB settings
 
   @Input()
   region: AWSRegion = 'us-east-1';
@@ -77,24 +70,6 @@ export class CreateOuterspaceModalComponent implements OnInit, OnDestroy {
   @Input()
   secretAccessKey: string;
 
-  // #endregion
-
-  // #region encryption settings
-
-  @Input()
-  userSalt: string;
-  @Input()
-  userPassword: string;
-  @Input()
-  hint: string;
-  @Input()
-  initialRecursions: number = c.DEFAULT_ENCRYPTION_INITIAL_RECURSIONS;
-  @Input()
-  recursionsPerHash: number = c.DEFAULT_ENCRYPTION_RECURSIONS_PER_HASH;
-
-  // #endregion
-
-
   private fields: { [name: string]: FieldInfo } = {
     name: {
       name: "name",
@@ -106,6 +81,17 @@ export class CreateOuterspaceModalComponent implements OnInit, OnDestroy {
       name: "description",
       description: "Description/notes for your benefit that you want to keep with this space.",
       regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
+    },
+    type: {
+      name: "type",
+      description: "Type of space.",
+      required: true,
+    },
+    subtype: {
+      name: "subtype",
+      description: "Specific implementation of the space.",
+      label: "Subtype",
+      required: true,
     },
     region: {
       name: "region",
@@ -149,6 +135,13 @@ export class CreateOuterspaceModalComponent implements OnInit, OnDestroy {
   ngOnInit() {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
     if (logalot) { console.log(`${lc}`); }
+  }
+
+  ngAfterViewInit() {
+    this.types = VALID_OUTER_SPACE_TYPES.concat();
+    this.selectedType = this.types[0];
+    this.subtypes = VALID_OUTER_SPACE_SUBTYPES.concat();
+    this.selectedSubtype = this.subtypes[0];
   }
 
   ngOnDestroy() {
@@ -223,17 +216,14 @@ export class CreateOuterspaceModalComponent implements OnInit, OnDestroy {
   }
 
   handleSelectedTypeChange(item: any): void {
-    debugger;
     if (item?.detail?.value && this.types.includes(item!.detail!.value)) {
       this.selectedType = item!.detail!.value;
     }
   }
   handleSelectedSubtypeChange(item: any): void {
-    debugger;
     if (item?.detail?.value && this.subtypes.includes(item!.detail!.value)) {
       this.selectedSubtype = item!.detail!.value;
     }
-    // this.selectedSubtype = item;
   }
   handleSelectedSecretsChange(item: any): void {
     debugger;
@@ -279,20 +269,4 @@ export class CreateOuterspaceModalComponent implements OnInit, OnDestroy {
     return errors;
   }
 
-}
-
-
-function getRegExp({
-  min,
-  max,
-  chars,
-}: {
-  min?: number,
-  max?: number,
-  chars?: string
-}): RegExp {
-  min = min ?? 1;
-  max = max ?? 999999999999;
-  chars = chars ?? '';
-  return new RegExp(`^[\\w\\s${chars}]{${min},${max}}$`);
 }

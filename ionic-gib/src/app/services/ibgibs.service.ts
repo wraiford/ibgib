@@ -22,6 +22,7 @@ import {
   SpecialIbGibType,
   LatestEventInfo, IbGibSpaceAny,
   SecretData_V1,
+  EncryptionData_V1,
 } from '../common/types';
 import {
   IonicSpace_V1,
@@ -29,8 +30,6 @@ import {
 } from '../common/spaces/ionic-space-v1';
 import * as c from '../common/constants';
 import { ModalController } from '@ionic/angular';
-import { CreateOuterspaceModalComponent } from '../common/create-outerspace-modal/create-outerspace-modal.component';
-import { CreateSecretModalComponent } from '../common/create-secret-modal/create-secret-modal.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -127,7 +126,8 @@ export enum AppSpaceRel8n {
   tags = 'tags',
   latest = 'latest',
   outerspaces = 'outerspaces',
-  secrets = "secrets"
+  secrets = "secrets",
+  encryptions = "encryptions",
 }
 interface AppSpaceRel8ns extends IbGibRel8ns_V1 {
     [AppSpaceRel8n.tags]?: IbGibAddr[];
@@ -135,6 +135,7 @@ interface AppSpaceRel8ns extends IbGibRel8ns_V1 {
     [AppSpaceRel8n.latest]?: IbGibAddr[];
     [AppSpaceRel8n.outerspaces]?: IbGibAddr[];
     [AppSpaceRel8n.secrets]?: IbGibAddr[];
+    [AppSpaceRel8n.encryptions]?: IbGibAddr[];
 }
 
 export interface ConfigIbGib_V1 extends IbGib_V1<AppSpaceData, AppSpaceRel8ns> {}
@@ -258,7 +259,34 @@ export class IbgibsService {
     return this._localDefaultSpace;
   }
 
-  private _syncSpaces: IbGibSpaceAny[] = [];
+  async getSpecialRel8dIbGibs({
+    type,
+    rel8nName,
+  }: {
+    type: SpecialIbGibType,
+    rel8nName: string,
+  }): Promise<IbGib_V1[]> {
+    const lc = `${this.lc}[${this.getSpecialRel8dIbGibs.name}]`;
+    try {
+      let special = await this.getSpecialIbgib({type});
+      if (!special) { throw new Error(`couldn't get special (${type})`) };
+      const rel8dAddrs = special.rel8ns[rel8nName] || [];
+      const rel8dIbgibs = [];
+      for (let i = 0; i < rel8dAddrs.length; i++) {
+        const addr = rel8dAddrs[i];
+        let resGet = await this.get({addr});
+        if (resGet.success && resGet.ibGibs?.length === 1) {
+          rel8dIbgibs.push(resGet.ibGibs[0]);
+        } else {
+          throw new Error(`couldn't get addr: ${addr}`);
+        }
+      }
+      return rel8dIbgibs;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
 
   constructor(
     public modalController: ModalController,
@@ -271,15 +299,17 @@ export class IbgibsService {
     try {
       await this.initializeLocalSpaces();
 
-      await this.initializeOuterSpaces();
+      await this.getSpecialIbgib({type: "secrets", initialize: true});
+
+      await this.getSpecialIbgib({type: "encryptions", initialize: true});
+
+      await this.getSpecialIbgib({type: "outerspaces", initialize: true});
 
       await this.getSpecialIbgib({type: "roots", initialize: true});
 
       await this.getSpecialIbgib({type: "latest", initialize: true});
-      // await this.createLatest();
 
       await this.getSpecialIbgib({type: "tags", initialize: true});
-      // await this.initializeTags();
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -329,16 +359,32 @@ export class IbgibsService {
     }
   }
 
-  private async initializeSecrets(): Promise<void> {
-    const lc = `${this.lc}[${this.initializeSecrets.name}]`;
-    try {
-      if (!this.localUserSpace) { throw new Error(`localUserSpace not defined/initialized.`) }
-      let secrets = await this.getSpecialIbgib({type: "secrets", initialize: true});
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    }
-  }
+  // private async initializeSecrets(): Promise<void> {
+  //   const lc = `${this.lc}[${this.initializeSecrets.name}]`;
+  //   try {
+  //     if (!this.localUserSpace) { throw new Error(`localUserSpace not defined/initialized.`) }
+  //     let secrets = await this.getSpecialIbgib({type: "secrets", initialize: true});
+
+  //     const ibGibs: IbGib_V1[] = [];
+
+  //     let addrs = secrets.rel8ns ? secrets.rel8ns[c.SECRET_REL8N_NAME] || [] : [];
+  //     for (let i = 0; i < addrs.length; i++) {
+  //       const addr = addrs[i];
+  //       let resSecret = await this.get({addr});
+  //       if (resSecret.success && resSecret.ibGibs?.length === 1) {
+  //         ibGibs.push(resSecret.ibGibs[0]);
+  //       } else {
+  //         console.error(`${lc} failed to get secretAddr: ${addr}`);
+  //       }
+  //     }
+
+  //     this._secretIbGibs = ibGibs;
+  //   } catch (error) {
+  //     console.error(`${lc} ${error.message}`);
+  //     throw error;
+  //   }
+  // }
+
   private async createSecrets(): Promise<IbGibAddr | null> {
     const lc = `${this.lc}[${this.createSecrets.name}]`;
     try {
@@ -356,28 +402,28 @@ export class IbgibsService {
       secretsAddr = h.getIbGibAddr({ibGib: secretsIbgib});
       await this.setConfigAddr({key: configKey, addr: secretsAddr});
 
-      // now that we've created the secrets ibgib, give the user a chance
-      // to go ahead and populate one (or more) now.
-      const createdSecrets: IbGib_V1[] = [];
-      let createAnother = true;
-      do {
-        const secret = await this.promptCreateSecretIbGib();
-        if (secret) {
-          createdSecrets.push(secret);
-        } else {
-          createAnother = false;
-        }
-      } while (createAnother)
+      // // now that we've created the secrets ibgib, give the user a chance
+      // // to go ahead and populate one (or more) now.
+      // const createdSecrets: IbGib_V1[] = [];
+      // let createAnother = true;
+      // do {
+      //   const secret = await this.promptCreateSecretIbGib();
+      //   if (secret) {
+      //     createdSecrets.push(secret);
+      //   } else {
+      //     createAnother = false;
+      //   }
+      // } while (createAnother)
 
       // if the user created one or more outerspace ibgibs,
       // rel8 them all to the special outerspaces ibgib
-      if (createdSecrets.length > 0) {
-        secretsAddr = await this.rel8ToSpecialIbGib({
-          type: "secrets",
-          rel8nName: c.SECRET_REL8N_NAME,
-          ibGibsToRel8: createdSecrets,
-        });
-      }
+      // if (createdSecrets.length > 0) {
+      //   secretsAddr = await this.rel8ToSpecialIbGib({
+      //     type: "secrets",
+      //     rel8nName: c.SECRET_REL8N_NAME,
+      //     ibGibsToRel8: createdSecrets,
+      //   });
+      // }
 
       return secretsAddr;
     } catch (error) {
@@ -386,44 +432,92 @@ export class IbgibsService {
     }
   }
 
-  async promptCreateSecretIbGib(): Promise<IbGib_V1 | undefined> {
-    const lc = `${this.lc}[${this.promptCreateSecretIbGib.name}]`;
+
+  // private async initializeEncryptions(): Promise<void> {
+  //   const lc = `${this.lc}[${this.initializeEncryptions.name}]`;
+  //   try {
+  //     if (!this.localUserSpace) { throw new Error(`localUserSpace not defined/initialized.`) }
+  //     let encryptions = await this.getSpecialIbgib({type: "encryptions", initialize: true});
+
+  //     const ibGibs: IbGib_V1[] = [];
+
+  //     let addrs = encryptions.rel8ns ? encryptions.rel8ns[c.ENCRYPTION_REL8N_NAME] || [] : [];
+  //     for (let i = 0; i < addrs.length; i++) {
+  //       const addr = addrs[i];
+  //       let resEncryption = await this.get({addr});
+  //       if (resEncryption.success && resEncryption.ibGibs?.length === 1) {
+  //         ibGibs.push(resEncryption.ibGibs[0]);
+  //       } else {
+  //         console.error(`${lc} failed to get ibgib for addr: ${addr}`);
+  //       }
+  //     }
+
+  //     this._encryptionIbGibs = ibGibs;
+  //   } catch (error) {
+  //     console.error(`${lc} ${error.message}`);
+  //     throw error;
+  //   }
+  // }
+
+  private async createEncryptions(): Promise<IbGibAddr | null> {
+    const lc = `${this.lc}[${this.createEncryptions.name}]`;
     try {
-      const modal = await this.modalController.create({
-        component: CreateSecretModalComponent,
-      });
-      await modal.present();
-      let resModal = await modal.onWillDismiss();
-      if (resModal.data) {
-        const resNewSecret = <TransformResult<IbGib_V1<SecretData_V1>>>resModal.data;
-        await this.persistTransformResult({resTransform: resNewSecret});
-        const addr = h.getIbGibAddr({ibGib: resNewSecret.newIbGib});
-        if (logalot) { console.log(`${lc} created secret. addr: ${addr}`); }
-        return resNewSecret.newIbGib;
-      } else {
-        // didn't create one
-        console.warn(`${lc} didn't create at this time.`);
-        return undefined;
+      let addr: IbGibAddr;
+      const configKey = this.getSpecialConfigKey({type: "encryptions"});
+      const existing = await this.getSpecialIbgib({type: "encryptions"});
+      if (existing) {
+        console.warn(`${lc} tried to create new special when one already exists. Aborting create.`);
+        addr = h.getIbGibAddr({ibGib: existing});
+        return addr;
       }
-    } catch (error) {
-      console.error(`${lc} error: ${error.message}`);
-      return undefined;
-    }
-  }
 
+      // special ibgib doesn't exist, so create it (empty)
+      const encryptionsIbgib = await this.createSpecialIbGib({type: "encryptions"});
+      addr = h.getIbGibAddr({ibGib: encryptionsIbgib});
+      await this.setConfigAddr({key: configKey, addr: addr});
 
-  private async initializeOuterSpaces(): Promise<void> {
-    const lc = `${this.lc}[${this.initializeOuterSpaces.name}]`;
-    try {
-      if (!this.localUserSpace) { throw new Error(`localUserSpace not defined/initialized.`) }
-      let outerSpaces = await this.getSpecialIbgib({type: "outerspaces", initialize: true});
-      throw new Error('not implemented. need to populate sync spaces on this service.');
-      // populate sync spaces here
+      // // now that we've created the secrets ibgib, give the user a chance
+      // // to go ahead and populate one (or more) now.
+      // const createdEncryptions: IbGib_V1[] = [];
+      // let createAnother = true;
+      // do {
+      //   const secret = await this.promptCreateEncryptionIbGib();
+      //   if (secret) {
+      //     createdEncryptions.push(secret);
+      //   } else {
+      //     createAnother = false;
+      //   }
+      // } while (createAnother)
+
+      // if the user created one or more outerspace ibgibs,
+      // rel8 them all to the special outerspaces ibgib
+      // if (createdEncryptions.length > 0) {
+      //   secretsAddr = await this.rel8ToSpecialIbGib({
+      //     type: "secrets",
+      //     rel8nName: c.SECRET_REL8N_NAME,
+      //     ibGibsToRel8: createdEncryptions,
+      //   });
+      // }
+
+      return addr;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-      throw error;
+      return null;
     }
   }
+
+  // private async initializeOuterSpaces(): Promise<void> {
+  //   const lc = `${this.lc}[${this.initializeOuterSpaces.name}]`;
+  //   try {
+  //     if (!this.localUserSpace) { throw new Error(`localUserSpace not defined/initialized.`) }
+  //     let outerSpaces = await this.getSpecialIbgib({type: "outerspaces", initialize: true});
+  //     // throw new Error('not implemented. need to populate sync spaces on this service.');
+  //     // populate sync spaces here
+  //   } catch (error) {
+  //     console.error(`${lc} ${error.message}`);
+  //     throw error;
+  //   }
+  // }
 
   private async createOuterSpaces(): Promise<IbGibAddr | null> {
     const lc = `${this.lc}[${this.createOuterSpaces.name}]`;
@@ -442,57 +536,33 @@ export class IbgibsService {
       outerSpacesAddr = h.getIbGibAddr({ibGib: outerSpacesIbGib});
       await this.setConfigAddr({key: configKey, addr: outerSpacesAddr});
 
-      // now that we've created the outerspaces ibgib, give the user a chance
-      // to go ahead and populate one (or more) now.
-      const createdOuterspaces: IbGib_V1[] = [];
-      let createAnother = true;
-      do {
-        const outerSpace = await this.promptCreateOuterSpaceIbGib();
-        if (outerSpace) {
-          createdOuterspaces.push(outerSpace);
-        } else {
-          createAnother = false;
-        }
-      } while (createAnother)
+      // // now that we've created the outerspaces ibgib, give the user a chance
+      // // to go ahead and populate one (or more) now.
+      // const createdOuterspaces: IbGib_V1[] = [];
+      // let createAnother = true;
+      // do {
+      //   const outerSpace = await this.promptCreateOuterSpaceIbGib();
+      //   if (outerSpace) {
+      //     createdOuterspaces.push(outerSpace);
+      //   } else {
+      //     createAnother = false;
+      //   }
+      // } while (createAnother)
 
-      // if the user created one or more outerspace ibgibs,
-      // rel8 them all to the special outerspaces ibgib
-      if (createdOuterspaces.length > 0) {
-        outerSpacesAddr = await this.rel8ToSpecialIbGib({
-          type: "outerspaces",
-          rel8nName: c.SYNC_SPACE_REL8N_NAME,
-          ibGibsToRel8: createdOuterspaces,
-        });
-      }
+      // // if the user created one or more outerspace ibgibs,
+      // // rel8 them all to the special outerspaces ibgib
+      // if (createdOuterspaces.length > 0) {
+      //   outerSpacesAddr = await this.rel8ToSpecialIbGib({
+      //     type: "outerspaces",
+      //     rel8nName: c.SYNC_SPACE_REL8N_NAME,
+      //     ibGibsToRel8: createdOuterspaces,
+      //   });
+      // }
 
       return outerSpacesAddr;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       return null;
-    }
-  }
-
-  async promptCreateOuterSpaceIbGib(): Promise<IbGib_V1 | undefined> {
-    const lc = `${this.lc}[${this.promptCreateOuterSpaceIbGib.name}]`;
-    try {
-      const modal = await this.modalController.create({
-        component: CreateOuterspaceModalComponent,
-      });
-      await modal.present();
-      let resModal = await modal.onWillDismiss();
-      if (resModal.data) {
-        const newSpace = <IbGib_V1>resModal.data;
-        const addr = h.getIbGibAddr({ibGib: newSpace});
-        if (logalot) { console.log(`${lc} created outerspace. addr: ${addr}`); }
-        return newSpace;
-      } else {
-        // didn't create one
-        console.warn(`${lc} didn't create outerspace at this time.`);
-        return undefined;
-      }
-    } catch (error) {
-      console.error(`${lc} error: ${error.message}`);
-      return undefined;
     }
   }
 
@@ -999,6 +1069,12 @@ export class IbgibsService {
 
         case "latest":
           return this.createLatest();
+
+        case "secrets":
+          return this.createSecrets();
+
+        case "encryptions":
+          return this.createEncryptions();
 
         case "outerspaces":
           return this.createOuterSpaces();

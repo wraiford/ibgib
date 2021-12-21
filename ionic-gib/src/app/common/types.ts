@@ -112,7 +112,9 @@ export interface ActionItem {
     filepicked?: (event: any) => Promise<void>;
 }
 
-export type SpecialIbGibType = "tags" | "roots" | "latest" | "outerspaces" | "secrets";
+export type SpecialIbGibType =
+    "tags" | "roots" | "latest" | "outerspaces" | "secrets" |
+    "encryptions";
 
 /**
  * There has been a new ibGib that is the latest for a given tjp timeline.
@@ -422,16 +424,31 @@ export interface SecretInfo {
     description?: string;
     expirationUTC: string;
     type: SecretType;
-    subtype: SecretSubtype,
 }
 
-export type SecretSubtype = 'encryption';
-export const SecretSubtype = {
-    encryption: 'encryption' as SecretSubtype,
+export interface SecretInfo_Password extends SecretInfo {
+    type: 'password';
+    /**
+     * We won't save the entire hash, just the hash.slice(16),
+     * because we are not checking to give authority, we are
+     * just checking to see if the user entered the same
+     * password for their own check.
+     *
+     * ## warnings
+     * NOTHING giving actual authorization should look at this.
+     */
+    hash16816_SHA256: string;
+    /**
+     * Public hint to help you remember your secret (or help the bad person
+     * attack your secret).
+     */
+    hint?: string;
 }
-export const VALID_SECRET_SUBTYPES = Object.values(SecretSubtype).concat();
+export type SecretData_V1 = SecretInfo; // extend this with logical OR later
 
-export interface EncryptionInfo extends SecretInfo {
+export interface EncryptionInfo {
+    name: string;
+    description?: string;
     method: EncryptionMethod;
 }
 
@@ -440,18 +457,12 @@ export const EncryptionMethod = {
     encrypt_gib_weak: 'encrypt-gib (weak)' as EncryptionMethod,
 }
 
-export interface EncryptionInfo extends SecretInfo {
-    subtype: 'encryption',
+export interface EncryptionInfo {
     method: EncryptionMethod,
 }
 
 export interface EncryptionInfo_EncryptGib extends EncryptionInfo {
     method: 'encrypt-gib (weak)'
-    /**
-     * Public hint to help you remember your secret (or help the bad person
-     * attack your secret).
-     */
-    hint?: string;
     /**
      * This is the algorithm that encrypt-gib will use in its
      * internal hashing round function to encrypt the data.
@@ -488,20 +499,18 @@ export interface EncryptionInfo_EncryptGib extends EncryptionInfo {
     encryptedDataDelimiter?: string;
 }
 
-export type SecretData_V1 = EncryptionInfo_EncryptGib; // extend this with logical OR later
+export type EncryptionData_V1 = EncryptionInfo_EncryptGib; // extend this with logical OR later
 
-let encryptionx: EncryptionInfo_EncryptGib = {
+// let encryptionx: EncryptionInfo_EncryptGib = {
+let encryptionx: EncryptionData_V1 = {
     name: 'super encryption name',
     description: 'this is my super encryption method here.',
     /**
      * ty
      * https://stackoverflow.com/questions/8609261/how-to-determine-one-year-from-now-in-javascript
      */
-    expirationUTC: (new Date(new Date().setFullYear(new Date().getFullYear() + 1))).toUTCString(),
-    type: 'password',
-    subtype: 'encryption',
+    // expirationUTC: (new Date(new Date().setFullYear(new Date().getFullYear() + 1))).toUTCString(),
     method: 'encrypt-gib (weak)',
-    hint: 'hey hey hey',
     hashAlgorithm: 'SHA-256',
     initialRecursions: 20000,
     recursionsPerHash: 2,

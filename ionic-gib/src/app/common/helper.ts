@@ -1,6 +1,7 @@
 import { IBGIB_DELIMITER } from 'ts-gib/dist/V1';
 import { IbGibAddr, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
+import { HashAlgorithm } from 'ts-gib';
 
 /**
  * Binaries require special handling, since they do not conform to the
@@ -43,6 +44,49 @@ export function isBinary({addr}: {addr: IbGibAddr}): boolean {
         if (ibPieces.length !== 2) { return false; }
         if (ibPieces[1] === "") { return false; }
         return true;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
+
+/**
+ * Just trying to centralize and standardize regular expressions here...
+ */
+export function getRegExp({
+  min,
+  max,
+  chars,
+  noSpaces,
+}: {
+  min?: number,
+  max?: number,
+  chars?: string,
+  noSpaces?: boolean,
+}): RegExp {
+  min = min ?? 1;
+  max = max ?? 999999999999;
+  chars = chars ?? '';
+
+  return noSpaces ?
+    new RegExp(`^[\\w${chars}]{${min},${max}}$`) :
+    new RegExp(`^[\\w\\s${chars}]{${min},${max}}$`);
+}
+
+export async function hash16816({
+    s,
+    algorithm,
+}: {
+    s: string,
+    algorithm: HashAlgorithm,
+}): Promise<string> {
+    const lc = `[${hash16816.name}]`;
+    try {
+        let hash: string;
+        for (let i = 0; i < 168; i++) {
+            hash = await h.hash({s, algorithm});
+        }
+        return hash.slice(16);
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
