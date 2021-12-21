@@ -14,24 +14,23 @@ import { IonicIbgibNavService } from './services/ionic-ibgib-nav.service';
 import { CommonModule } from '@angular/common';
 
 @NgModule({
-  declarations: [
-    AppComponent,
-  ],
-  entryComponents: [],
-  imports: [
-    HttpClientModule,
-    BrowserModule,
-    CommonModule,
-    IonicModule.forRoot(),
-    AppRoutingModule
-  ],
-  providers: [
-    StatusBar,
-    SplashScreen,
-    { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
-    { provide: 'IbgibNav', useClass: IonicIbgibNavService, },
-  ],
-  bootstrap: [AppComponent],
-  schemas: [ CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA ],
+    declarations: [
+        AppComponent,
+    ],
+    imports: [
+        HttpClientModule,
+        BrowserModule,
+        CommonModule,
+        IonicModule.forRoot(),
+        AppRoutingModule
+    ],
+    providers: [
+        StatusBar,
+        SplashScreen,
+        { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
+        { provide: 'IbgibNav', useClass: IonicIbgibNavService, },
+    ],
+    bootstrap: [AppComponent],
+    schemas: [CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA]
 })
 export class AppModule {}
