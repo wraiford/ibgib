@@ -2,11 +2,10 @@ import { IbGib_V1, IbGibRel8ns_V1, } from 'ts-gib/dist/V1';
 import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 
-import { SpaceBase_V1 } from './space-base-v1';
+import { IbGibSpaceAny, SpaceBase_V1 } from './space-base-v1';
 // import { resulty_ } from '../witnesses';
 import {
     IbGibSpace,
-    IbGibSpaceAny,
     IbGibSpaceData,
     IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib,
     IbGibSpaceOptionsRel8ns,

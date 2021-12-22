@@ -208,3 +208,7 @@ export abstract class SpaceBase_V1<
     }
 
 }
+
+export interface IbGibSpaceAny extends SpaceBase_V1<any,any,any,any,any,any,any> {
+
+}

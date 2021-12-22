@@ -6,11 +6,14 @@ import * as h from 'ts-gib/dist/helper';
 
 import * as c from '../constants';
 import {
-  OuterSpaceType, OuterSpaceSubtype,
+  OuterSpaceType, SyncSpaceSubtype,
   SyncSpaceInfo, SyncSpace_AWSDynamoDB,
-  VALID_OUTER_SPACE_TYPES, VALID_OUTER_SPACE_SUBTYPES, AWSRegion, OuterSpaceData, SecretData_V1, FieldInfo,
+  VALID_OUTER_SPACE_TYPES, VALID_OUTER_SPACE_SUBTYPES, AWSRegion, OuterSpaceData, SecretData_V1, FieldInfo, EncryptionData_V1,
 } from '../types';
 import { getRegExp } from '../helper';
+import { CreateModalComponentBase } from '../bases/create-modal-component-base';
+import { TransformResult } from 'ts-gib';
+import { CommonService } from 'src/app/services/common.service';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -33,7 +36,9 @@ const EXAMPLE_SYNC_SPACE_AWSDYNAMODB: SyncSpace_AWSDynamoDB = {
   templateUrl: './create-outerspace-modal.component.html',
   styleUrls: ['./create-outerspace-modal.component.scss'],
 })
-export class CreateOuterspaceModalComponent implements OnInit, OnDestroy, AfterViewInit {
+export class CreateOuterspaceModalComponent
+  extends CreateModalComponentBase<TransformResult<IbGib_V1<OuterSpaceData>>>
+  implements OnInit, OnDestroy, AfterViewInit {
 
   protected lc: string = `[${CreateOuterspaceModalComponent.name}]`;
 
@@ -46,12 +51,17 @@ export class CreateOuterspaceModalComponent implements OnInit, OnDestroy, AfterV
   @Input()
   types: OuterSpaceType[] = [];
   @Input()
-  selectedType: OuterSpaceType;
+  type: OuterSpaceType;
 
   @Input()
-  subtypes: OuterSpaceSubtype[] = [];
+  subtypes: SyncSpaceSubtype[] = [];
   @Input()
-  selectedSubtype: OuterSpaceSubtype;
+  subtype: SyncSpaceSubtype;
+
+  @Input()
+  encryptions: IbGib_V1<EncryptionData_V1>[] = [];
+  @Input()
+  encryption: IbGib_V1<EncryptionData_V1>;
 
   @Input()
   secrets: IbGib_V1<SecretData_V1>[] = [];
@@ -70,20 +80,25 @@ export class CreateOuterspaceModalComponent implements OnInit, OnDestroy, AfterV
   @Input()
   secretAccessKey: string;
 
-  private fields: { [name: string]: FieldInfo } = {
+  fields: { [name: string]: FieldInfo } = {
     name: {
       name: "name",
-      description: "It's a name...for the thing...the space...what you want to call it.",
-      regexp: getRegExp({min: 1, max: 32, chars: '-'}),
+      description: "Short name of the space, with only letters, underscores and hyphens.",
+      label: "Name",
+      placeholder: "brief_name-hyphensOK_32charMax",
+      regexp: getRegExp({min: 1, max: 32, chars: '-', noSpaces: true}),
       required: true,
     },
     description: {
       name: "description",
-      description: "Description/notes for your benefit that you want to keep with this space.",
+      description: `Description/notes for this space endpoint, with only letters, underscores and ${c.SAFE_SPECIAL_CHARS}`,
+      label: "Description",
+      placeholder: `Optionally describe this space here...`,
       regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
     },
     type: {
       name: "type",
+      label: "Type",
       description: "Type of space.",
       required: true,
     },
@@ -96,18 +111,21 @@ export class CreateOuterspaceModalComponent implements OnInit, OnDestroy, AfterV
     region: {
       name: "region",
       description: "AWS Region",
+      label: "AWS Region",
       regexp: c.AWS_REGION_REGEXP,
       required: true,
     },
     tableName: {
       name: "tableName",
       description: "AWS DynamoDB Table Name",
+      label: "Table Name",
       regexp: c.AWS_DYNAMODB_REGEXP_TABLE_OR_INDEX,
       required: true,
     },
     primaryKeyName: {
       name: "primaryKeyName",
       description: "Name of the primary key in the AWS DynamoDB table.",
+      label: "Primary Key Name",
       fnValid: (value) => { return value === 'IbGibAddrHash'; },
       fnErrorMsg: `Invalid primary key name. Right now, this must be IbGibAddrHash`,
       regexp: c.AWS_DYNAMODB_REGEXP_ATTR,
@@ -116,32 +134,71 @@ export class CreateOuterspaceModalComponent implements OnInit, OnDestroy, AfterV
     accessKeyId: {
       name: "accessKeyId",
       description: "accessKeyId in AWS credentials for the DynamoDB API access",
+      label: "Access Key Id",
       regexp: getRegExp({min: 1, max: 50, chars: c.ALLISH_SPECIAL_CHARS}),
       required: true,
     },
     secretAccessKey: {
       name: "secretAccessKey",
       description: "secretAccessKey in AWS credentials for the DynamoDB API access",
+      label: "Secret Access Key",
       regexp: getRegExp({min: 1, max: 100, chars: c.ALLISH_SPECIAL_CHARS}),
       required: true,
     },
 
+
+    encryption: {
+      name: "encryption",
+      description: "Select an encryption to associate with this endpoint.",
+      label: "Encryption",
+      fnErrorMsg: `An Encryption is required.`,
+    },
+    selectedSecrets: {
+      name: "selectedSecrets",
+      description: "Select one or more secrets to associate with this endpoint. You'll be required to enter the password for each one in order for us to encrypt your space endpoint.",
+      label: "Secrets",
+      fnErrorMsg: `At least one secret is required.`,
+    },
   }
 
+  @Input()
+  validationErrors: string[] = [];
+  @Input()
+  validationErrorString: string;
+  @Input()
+  erroredFields: string[] = [];
+
+  @Input()
+  showHelp: boolean;
+
   constructor(
-    private modalController: ModalController,
-  ) { }
+    protected modalController: ModalController,
+    protected common: CommonService,
+  ) {
+    super(modalController);
+  }
 
   ngOnInit() {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
     if (logalot) { console.log(`${lc}`); }
   }
 
-  ngAfterViewInit() {
+  async ngAfterViewInit(): Promise<void> {
     this.types = VALID_OUTER_SPACE_TYPES.concat();
-    this.selectedType = this.types[0];
+    this.type = this.types[0];
     this.subtypes = VALID_OUTER_SPACE_SUBTYPES.concat();
-    this.selectedSubtype = this.subtypes[0];
+    this.subtype = this.subtypes[0];
+
+    debugger;
+    this.encryptions = await this.common.ibgibs.getSpecialRel8dIbGibs({
+      type: "encryptions", rel8nName: c.ENCRYPTION_REL8N_NAME
+    });
+    this.encryption = this.encryptions[0];
+
+    this.secrets = await this.common.ibgibs.getSpecialRel8dIbGibs({
+      type: "secrets", rel8nName: c.SECRET_REL8N_NAME
+    });
+    debugger;
   }
 
   ngOnDestroy() {
@@ -149,34 +206,46 @@ export class CreateOuterspaceModalComponent implements OnInit, OnDestroy, AfterV
     if (logalot) { console.log(`${lc}`); }
   }
 
-  async handleCreateClick(): Promise<void> {
-    const lc = `${this.lc}[${this.handleCreateClick.name}]`;
+  protected async createImpl(): Promise<TransformResult<IbGib_V1<OuterSpaceData>>> {
+  // async handleCreateClick(): Promise<void> {
+    const lc = `${this.lc}[${this.createImpl.name}]`;
     try {
-      if (logalot) { console.log(`${lc}`); }
-      const validationErrors = await this.validateForm();
-      if (validationErrors.length > 0) {
-        console.warn(`${lc} validation failed. Errors:\n${validationErrors.join('\n')}`);
-        return;
-      }
-
-      let newSpaceIbGib: IbGib_V1;
+      let newSpaceIbGib: TransformResult<IbGib_V1<OuterSpaceData>>;
 
       // create the space
-      if (this.selectedType === 'sync' && this.selectedSubtype === 'aws-dynamodb') {
+      if (this.type === 'sync' && this.subtype === 'aws-dynamodb') {
         newSpaceIbGib = await this.createSyncSpace_AWSDynamoDB();
       } else {
-        throw new Error(`unknown space type/subtype(?): ${this.selectedType}, ${this.selectedSubtype}`);
+        throw new Error(`unknown space type/subtype(?): ${this.type}, ${this.subtype}`);
       }
 
       if (!newSpaceIbGib) { throw new Error(`newSpaceIbGib was not created`); }
 
-      await this.modalController.dismiss(newSpaceIbGib);
+      return newSpaceIbGib;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     }
   }
 
-  async createSyncSpace_AWSDynamoDB(): Promise<IbGib_V1> {
+  async validateForm(): Promise<string[]> {
+      const lc = `${this.lc}[${this.validateForm.name}]`;
+      try {
+        const errors = await super.validateForm();
+
+        if (this.selectedSecrets.length === 0) {
+          const emsg = `Must select at least one secret`;
+          this.validationErrors.push(emsg);
+          errors.push(emsg)
+        }
+
+        return errors;
+      } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+      }
+  }
+
+  async createSyncSpace_AWSDynamoDB(): Promise<TransformResult<IbGib_V1<OuterSpaceData>>> {
     const lc = `${this.lc}[${this.createSyncSpace_AWSDynamoDB.name}]`;
     try {
       throw new Error('not implemented');
@@ -211,62 +280,34 @@ export class CreateOuterspaceModalComponent implements OnInit, OnDestroy, AfterV
     }
   }
 
-  async handleCancelClick(): Promise<void> {
-    await this.modalController.dismiss();
-  }
-
   handleSelectedTypeChange(item: any): void {
     if (item?.detail?.value && this.types.includes(item!.detail!.value)) {
-      this.selectedType = item!.detail!.value;
+      this.type = item!.detail!.value;
     }
   }
   handleSelectedSubtypeChange(item: any): void {
     if (item?.detail?.value && this.subtypes.includes(item!.detail!.value)) {
-      this.selectedSubtype = item!.detail!.value;
+      this.subtype = item!.detail!.value;
+    }
+  }
+  handleSelectedEncryptionChange(item: any): void {
+    if (item?.detail?.value && this.encryptions.includes(item!.detail!.value)) {
+      this.encryption = item!.detail!.value;
     }
   }
   handleSelectedSecretsChange(item: any): void {
+    if (item?.detail?.value && this.secrets.includes(item!.detail!.value)) {
+      this.selectedSecrets = item!.detail!.value;
+    }
+  }
+
+  compareWith_Secrets(a: any, b: any): boolean {
     debugger;
+    return a.gib === b.gib;
   }
 
-  async validateForm(): Promise<string[]> {
-    const lc = `${this.lc}[${this.validateForm.name}]`;
-    const errors: string[] = [];
-
-    let fields: FieldInfo[] = Object.values(this.fields);
-    for (let i = 0; i < fields.length; i++) {
-      const field = fields[i];
-      let value = this[field.name];
-      if (logalot) { console.log(`${lc} doing ${field.name}`); }
-      if (value) {
-        if (logalot) { console.log(`${lc} value: ${value}`); }
-
-        if (typeof value === 'string') {
-          if (field.regexp) {
-            if (logalot) { console.log(`${lc} ${field.name} is a string. regexp: ${field.regexp}`); }
-            if ((value.match(field.regexp) ?? []).length === 0) {
-              errors.push(`${field.name} must match regexp: ${field.regexp}`);
-            }
-          }
-          if ((<string>value).includes('\n')) {
-            errors.push(`${field.name} cannot contain new lines.`);
-          }
-        }
-        if (field.fnValid && !field.fnValid(value)) {
-          errors.push(`${field.name} error: ${field.fnErrorMsg}`);
-        }
-      } else {
-        if (field.required) {
-          errors.push(`${field.name} required.`);
-        }
-      }
-    }
-
-    if (this.selectedSecrets.length === 0) {
-      errors.push('At least one secret is required.');
-    }
-
-    return errors;
+  compareWith_Encryptions(a: any, b: any): boolean {
+    debugger;
+    return a.gib === b.gib;
   }
-
 }

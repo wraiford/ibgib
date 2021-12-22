@@ -30,6 +30,7 @@ import { EncryptionData_V1, SecretData_V1 } from '../common/types';
 import { CreateSecretModalComponent } from '../common/create-secret-modal/create-secret-modal.component';
 import { CreateEncryptionModalComponent } from '../common/create-encryption-modal/create-encryption-modal.component';
 import { CreateOuterspaceModalComponent } from '../common/create-outerspace-modal/create-outerspace-modal.component';
+import { IbGibSpaceAny } from '../common/spaces/space-base-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -204,18 +205,14 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
-  async publishIbGibs({
-    ibGibs,
-    confirm,
-  }: {
-    ibGibs?: IbGib_V1[],
-    confirm?: boolean,
-  }): Promise<void> {
-    const lc = `${this.lc}[${this.publishIbGibs.name}]`;
+  /**
+   * If we don't have outerspaces/cloud endpoints, we'll do that here.
+   *
+   * @returns true if creation was successfully created, else false.
+   */
+  async createOuterspaceEndpointStuff(): Promise<boolean> {
+    const lc = `${this.lc}[${this.createOuterspaceEndpointStuff.name}]`;
     try {
-      if (logalot) { console.log(`${lc} starting...`); }
-      if (!ibGibs || ibGibs.length === 0) { throw new Error(`ibGibs required.`)}
-
       let secretIbGibs: IbGib_V1[] = await this.common.ibgibs.getSpecialRel8dIbGibs({
         type: "secrets",
         rel8nName: c.SECRET_REL8N_NAME,
@@ -230,7 +227,7 @@ export class IbGibPage extends IbgibComponentBase
         let secretIbGib = await this.promptCreateSecretIbGib();
         if (secretIbGib === undefined) {
           await Modals.alert({title: 'cancelled', message: 'Cancelled.'});
-          return;
+          return false;
         }
         await this.common.ibgibs.registerNewIbGib({ ibGib: secretIbGib, });
         await this.common.ibgibs.rel8ToSpecialIbGib({
@@ -251,14 +248,14 @@ export class IbGibPage extends IbgibComponentBase
       if (encryptionIbGibs.length === 0) {
         await Modals.alert({
           title: 'next create an encryption...',
-          message: "Now we need to create an encryption setting...bear with me if you don't know what this is.",
+          message: "Now we need to create an encryption setting...bear with me if you don't know what this is. Just fill in the requirements and leave the others as defaults.",
         });
       }
       while (encryptionIbGibs.length === 0) {
         let encryptionIbGib = await this.promptCreateEncryptionIbGib();
         if (encryptionIbGib === undefined) {
           await Modals.alert({title: 'cancelled', message: 'Cancelled.'});
-          return;
+          return false;
         }
         await this.common.ibgibs.registerNewIbGib({ ibGib: encryptionIbGib, });
         await this.common.ibgibs.rel8ToSpecialIbGib({
@@ -272,50 +269,117 @@ export class IbGibPage extends IbgibComponentBase
         });
       }
 
-      debugger;
-      // put the ibgibs
-      let awsSpace = new AWSDynamoSpace_V1(null, null);
-      // let argPut =
-        // await argy_<AWSDynamoSpaceOptionsData, AWSDynamoSpaceOptionsRel8ns, AWSDynamoSpaceOptionsIbGib>({
-      let argPut = await awsSpace.argy({
-          argData: { cmd: 'put', },
-          ibGibs,
+
+      let outerspaceIbGibs: IbGib_V1[] = await this.common.ibgibs.getSpecialRel8dIbGibs({
+        type: "outerspaces",
+        rel8nName: c.SYNC_SPACE_REL8N_NAME,
       });
-      let resPut = await awsSpace.witness(argPut);
-
-      if ((resPut?.data?.errors || []).length > 0) {
-        throw new Error(`resPut had errors: ${resPut.data.errors}`);
-      }
-
-      if (confirm) {
-        const ibGibAddrs = ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
-        console.warn(`test individual ibgibs confirming put was successful...need to remove!`);
-        const argGet = await awsSpace.argy({
-          argData: {
-            cmd: 'get',
-            ibGibAddrs,
-          }
+      if (outerspaceIbGibs.length === 0) {
+        await Modals.alert({
+          title: 'Now to outerspace...',
+          message: "Great! Now we can (finally) create an outerspace ibgib, which is kinda like the cloud (for now).",
         });
-        const resGet = await awsSpace.witness(argGet);
+      }
+      while (outerspaceIbGibs.length === 0) {
+        let outerspaceIbGib = await this.promptCreateOuterSpaceIbGib();
+        if (outerspaceIbGib === undefined) {
+          await Modals.alert({title: 'cancelled', message: 'Cancelled.'});
+          return false;
+        }
+        await this.common.ibgibs.registerNewIbGib({ ibGib: outerspaceIbGib, });
+        await this.common.ibgibs.rel8ToSpecialIbGib({
+          type: "outerspaces",
+          rel8nName: c.SYNC_SPACE_REL8N_NAME,
+          ibGibsToRel8: [outerspaceIbGib],
+        });
+      }
+      return true;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return false;
+    }
+  }
 
-        if (resGet.ibGibs?.length !== ibGibs.length) {
-          throw new Error(`resGet.ibGibs?.length: ${resGet.ibGibs?.length} but ibGibs.length: ${ibGibs.length}`);
+  async publishIbGibs({
+    ibGibs,
+    confirm,
+  }: {
+    ibGibs?: IbGib_V1[],
+    confirm?: boolean,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.publishIbGibs.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (!ibGibs || ibGibs.length === 0) { throw new Error(`ibGibs required.`)}
+      let appSyncSpaces: IbGibSpaceAny[];
+      do {
+        appSyncSpaces =
+          await this.common.ibgibs.getSpecialRel8dIbGibs<IbGibSpaceAny>({
+            type: "outerspaces",
+            rel8nName: c.SYNC_SPACE_REL8N_NAME
+          });
+        if (appSyncSpaces.length === 0) {
+          let created = await this.createOuterspaceEndpointStuff();
+          if (created) {
+            appSyncSpaces = await this.common.ibgibs.getSpecialRel8dIbGibs({
+              type: "outerspaces",
+              rel8nName: c.SYNC_SPACE_REL8N_NAME,
+            });
+            if (appSyncSpaces.length === 0) {
+              console.warn(`${lc} syncSpaces was supposed to have been created here, but somehow they haven't been. Trying again...`);
+            }
+          } else {
+            // cancelled
+            return;
+          }
+        }
+      } while (appSyncSpaces.length === 0)
+
+      debugger;
+
+      for (let i = 0; i < appSyncSpaces.length; i++) {
+        const awsSpace = appSyncSpaces[i];
+
+        let argPut = await awsSpace.argy({
+            argData: { cmd: 'put', },
+            ibGibs,
+        });
+        let resPut = await awsSpace.witness(argPut);
+
+        if ((resPut?.data?.errors || []).length > 0) {
+          throw new Error(`resPut had errors: ${resPut.data.errors}`);
         }
 
-        for (let i = 0; i < ibGibAddrs.length; i++) {
-          const addr = ibGibAddrs[i];
-          const ibGib = ibGibs.filter(x => h.getIbGibAddr({ibGib: x}) === addr)[0];
-          const gotIbGibs = resGet.ibGibs?.filter(x => h.getIbGibAddr({ibGib: x}) === addr);
-          if (gotIbGibs.length !== 1) { throw new Error(`did not get addr: ${addr}`); }
-          const gotIbGib = gotIbGibs[0];
-          if (ibGib.ib !== gotIbGib.ib) { throw new Error(`ib is different`); }
-          if (ibGib.gib !== gotIbGib.gib) { throw new Error(`gib is different`); }
-          if (JSON.stringify(ibGib.data) !== JSON.stringify(gotIbGib.data)) { throw new Error(`data is different`); }
-          if (JSON.stringify(ibGib.rel8ns) !== JSON.stringify(gotIbGib.rel8ns)) { throw new Error(`rel8ns is different`); }
-          if (logalot) { console.log(`${lc} confirmed ${h.getIbGibAddr({ibGib})}`); }
-        }
+        if (confirm) {
+          const ibGibAddrs = ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
+          console.warn(`test individual ibgibs confirming put was successful...need to remove!`);
+          const argGet = await awsSpace.argy({
+            argData: {
+              cmd: 'get',
+              ibGibAddrs,
+            }
+          });
+          const resGet = await awsSpace.witness(argGet);
 
-        if (logalot) { console.log(`${lc} confirmation complete.`); }
+          if (resGet.ibGibs?.length !== ibGibs.length) {
+            throw new Error(`resGet.ibGibs?.length: ${resGet.ibGibs?.length} but ibGibs.length: ${ibGibs.length}`);
+          }
+
+          for (let i = 0; i < ibGibAddrs.length; i++) {
+            const addr = ibGibAddrs[i];
+            const ibGib = ibGibs.filter(x => h.getIbGibAddr({ibGib: x}) === addr)[0];
+            const gotIbGibs = resGet.ibGibs?.filter(x => h.getIbGibAddr({ibGib: x}) === addr);
+            if (gotIbGibs.length !== 1) { throw new Error(`did not get addr: ${addr}`); }
+            const gotIbGib = gotIbGibs[0];
+            if (ibGib.ib !== gotIbGib.ib) { throw new Error(`ib is different`); }
+            if (ibGib.gib !== gotIbGib.gib) { throw new Error(`gib is different`); }
+            if (JSON.stringify(ibGib.data) !== JSON.stringify(gotIbGib.data)) { throw new Error(`data is different`); }
+            if (JSON.stringify(ibGib.rel8ns) !== JSON.stringify(gotIbGib.rel8ns)) { throw new Error(`rel8ns is different`); }
+            if (logalot) { console.log(`${lc} confirmed ${h.getIbGibAddr({ibGib})}`); }
+          }
+
+          if (logalot) { console.log(`${lc} confirmation complete.`); }
+        }
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);

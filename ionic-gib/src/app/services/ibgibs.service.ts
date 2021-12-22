@@ -20,9 +20,7 @@ import {
 import {
   TagData, RootData,
   SpecialIbGibType,
-  LatestEventInfo, IbGibSpaceAny,
-  SecretData_V1,
-  EncryptionData_V1,
+  LatestEventInfo,
 } from '../common/types';
 import {
   IonicSpace_V1,
@@ -30,6 +28,7 @@ import {
 } from '../common/spaces/ionic-space-v1';
 import * as c from '../common/constants';
 import { ModalController } from '@ionic/angular';
+import { IbGibSpaceAny } from '../common/spaces/space-base-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -212,6 +211,7 @@ export interface ConfigIbGib_V1 extends IbGib_V1<AppSpaceData, AppSpaceRel8ns> {
   providedIn: 'root'
 })
 export class IbgibsService {
+  // we won't get an object back, only a DTO ibGib essentially
   private lc: string = `[${IbgibsService.name}]`;
 
   private _initializing: boolean;
@@ -259,13 +259,13 @@ export class IbgibsService {
     return this._localDefaultSpace;
   }
 
-  async getSpecialRel8dIbGibs({
+  async getSpecialRel8dIbGibs<TIbGib extends IbGib_V1 = IbGib_V1>({
     type,
     rel8nName,
   }: {
     type: SpecialIbGibType,
     rel8nName: string,
-  }): Promise<IbGib_V1[]> {
+  }): Promise<TIbGib[]> {
     const lc = `${this.lc}[${this.getSpecialRel8dIbGibs.name}]`;
     try {
       let special = await this.getSpecialIbgib({type});
@@ -2179,6 +2179,20 @@ export class IbgibsService {
       }
 
       return gotten;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
+
+  async getSyncSpaces(): Promise<IbGibSpaceAny[]> {
+    const lc = `${this.lc}[${this.getSyncSpaces.name}]`;
+    try {
+      let syncSpaces = await this.getSpecialRel8dIbGibs<IbGibSpaceAny>({
+        type: "outerspaces",
+        rel8nName: c.SYNC_SPACE_REL8N_NAME
+      });
+      return syncSpaces;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

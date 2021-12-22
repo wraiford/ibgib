@@ -13,27 +13,41 @@
       <ion-text color="danger">{{ validationErrors.length > 0 ? 'Errors: ' : ''}}{{ validationErrors.join('\n') }}</ion-text>
     </ion-item-divider>
     <ion-item>
-      <ion-text color="primary">
-        Encryption is not that strong in ibgib atm...
-        But it's the best we got right now.
+      <ion-text color="primary" position="start">
+        Encryption here is NOT guaranteed. That's rather the point...
       </ion-text>
-      <ion-button (click)="handleShowHelpClick()">
+      <ion-button position="end" (click)="handleShowHelpClick()">
         <ion-icon name="information-circle-outline"></ion-icon>
       </ion-button>
     </ion-item>
     <ion-item *ngIf="showHelp">
       <ion-text color="primary">
         <p>
-          <a href="https://www.npmjs.com/package/encrypt-gib"
-            target="_blank"><span>Encrypt-gib</span></a>
-            is my own custom crypto, which as most crypto people will say,
-            is a bad idea. But we work with what we can.
+          I don't believe in absolute security, and certainly not in any
+          computer's or algorithm's infallibility. Ibgib is a shift
+          back to a relationship with software that does not make this
+          assumption. (Indeed, soon we will have AIs who instead of
+          speaking "Truth" will be giving opinions that we should take
+          with the same grain of salt that we do with anything.)
         </p>
         <p>
-          Though there are definite improvements I have in mind, I think
-          the overall hash-based approach is viable. It also fits in with
-          the overall architectural approach of ibgib data.
-          But for now, just assume that this is pretty easily cracked.
+          That said, I still take security seriously and endeavor to
+          strengthen the system as well as possible, giving as much
+          flexibility in the security/convenience tradeoff as I can.
+        </p>
+        <p> That said,
+          <a href="https://www.npmjs.com/package/encrypt-gib"
+            target="_blank"><span>encrypt-gib</span></a>
+            is my own custom crypto. And I would be remiss if I didn't
+            state here that most crypto experts say this is a bad idea.
+        </p>
+        <p>
+          NOTE: There are definite improvements I have in mind to increase
+          the strength of the algorithm.
+          I think the hash-based alphabet approach is viable. It also fits in with
+          the overall distributed architecture of ibgib data. In the long term,
+          I think this design will be stronger than existing PKIs, including those
+          with existing Web3 designs.
         </p>
       </ion-text>
     </ion-item>
@@ -67,6 +81,7 @@
       <ion-label>{{fields.method.label}}: </ion-label>
       <ion-select slot="end" [(ngModel)]="method" (ionChange)="method = $event.detail.value">
         <!-- FOR SOME REASON, THE BINDING WON'T WORK? -->
+        <!-- maybe related to https://github.com/ionic-team/ionic-framework/issues/19324 -->
         <!-- <ion-select-option *ngFor="let item of secretTypes" [value]="item">
           <ion-label>{{item}}</ion-label>
         </ion-select-option> -->

@@ -1,17 +1,18 @@
 import { ChangeDetectorRef, Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { ModalController } from '@ionic/angular';
 
-import { IbGib_V1, Factory_V1 as factory } from 'ts-gib/dist/V1';
+import { IbGib_V1, Factory_V1 as factory, IbGibRel8ns_V1 } from 'ts-gib/dist/V1';
 import * as h from 'ts-gib/dist/helper';
 
 import * as c from '../constants';
 import {
   VALID_SECRET_TYPES,
   FieldInfo,
-  SecretType, SecretData_V1, SecretInfo_Password,
+  SecretType, SecretData_V1, SecretInfo_Password, SecretInfo,
 } from '../types';
 import { TransformResult } from 'ts-gib';
 import { getRegExp, hash16816 } from '../helper';
+import { CreateModalComponentBase } from '../bases/create-modal-component-base';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -25,7 +26,9 @@ const logalot = c.GLOBAL_LOG_A_LOT || false || true;
   templateUrl: './create-secret-modal.component.html',
   styleUrls: ['./create-secret-modal.component.scss'],
 })
-export class CreateSecretModalComponent implements OnInit, OnDestroy {
+export class CreateSecretModalComponent
+  extends CreateModalComponentBase<TransformResult<IbGib_V1<SecretData_V1>>>
+  implements OnInit, OnDestroy {
 
   protected lc: string = `[${CreateSecretModalComponent.name}]`;
 
@@ -70,7 +73,7 @@ export class CreateSecretModalComponent implements OnInit, OnDestroy {
 
   // #endregion
 
-  public fields: { [name: string]: FieldInfo } = {
+  fields: { [name: string]: FieldInfo } = {
     name: {
       name: "name",
       description: "It's a name for the secret. Make it short with only letters, underscores and hyphens.",
@@ -142,9 +145,10 @@ export class CreateSecretModalComponent implements OnInit, OnDestroy {
   showHelp: boolean;
 
   constructor(
-    private modalController: ModalController,
+    protected modalController: ModalController,
     private ref: ChangeDetectorRef,
   ) {
+    super(modalController);
   }
 
   ngOnInit() {
@@ -157,16 +161,16 @@ export class CreateSecretModalComponent implements OnInit, OnDestroy {
     if (logalot) { console.log(`${lc}`); }
   }
 
-  async handleCreateClick(): Promise<void> {
-    const lc = `${this.lc}[${this.handleCreateClick.name}]`;
+  protected async createImpl(): Promise<TransformResult<IbGib_V1<SecretData_V1>>> {
+    const lc = `${this.lc}[${this.createImpl.name}]`;
     try {
-      if (logalot) { console.log(`${lc}`); }
-      this.showHelp = false;
-      const validationErrors = await this.validateForm();
-      if (validationErrors.length > 0) {
-        console.warn(`${lc} validation failed. Errors:\n${validationErrors.join('\n')}`);
-        return;
-      }
+      // if (logalot) { console.log(`${lc}`); }
+      // this.showHelp = false;
+      // const validationErrors = await this.validateForm();
+      // if (validationErrors.length > 0) {
+      //   console.warn(`${lc} validation failed. Errors:\n${validationErrors.join('\n')}`);
+      //   return;
+      // }
 
       let resNewIbGib: TransformResult<IbGib_V1<SecretData_V1>>;
 
@@ -178,8 +182,9 @@ export class CreateSecretModalComponent implements OnInit, OnDestroy {
       }
 
       if (!resNewIbGib) { throw new Error(`creation failed...`); }
+      return resNewIbGib;
 
-      await this.modalController.dismiss(resNewIbGib);
+      // await this.modalController.dismiss(resNewIbGib);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     }
@@ -219,10 +224,6 @@ export class CreateSecretModalComponent implements OnInit, OnDestroy {
     }
   }
 
-  async handleCancelClick(): Promise<void> {
-    await this.modalController.dismiss();
-  }
-
   handleSelectedSecretTypeChange(item: any): void {
     if (item?.detail?.value && this.secretTypes.includes(item!.detail!.value)) {
       this.secretType = item!.detail!.value!;
@@ -231,54 +232,53 @@ export class CreateSecretModalComponent implements OnInit, OnDestroy {
 
   async validateForm(): Promise<string[]> {
     const lc = `${this.lc}[${this.validateForm.name}]`;
-    this.validationErrors.splice(0, this.validationErrors.length);
-    this.erroredFields.splice(0, this.erroredFields.length);
-    const errors: string[] = [];
-    const erroredFields: string[] = [];
 
-    let fields: FieldInfo[] = Object.values(this.fields);
-    for (let i = 0; i < fields.length; i++) {
-      const field = fields[i];
-      let value = this[field.name];
-      if (logalot) { console.log(`${lc} doing ${field.name}`); }
-      if (value) {
-        if (logalot) { console.log(`${lc} value: ${value}`); }
+    const errors = await super.validateForm();
+    // this.validationErrors.splice(0, this.validationErrors.length);
+    // this.erroredFields.splice(0, this.erroredFields.length);
+    // const errors: string[] = [];
+    // const erroredFields: string[] = [];
 
-        if (typeof value === 'string') {
-          if (field.regexp) {
-            if (logalot) { console.log(`${lc} ${field.name} is a string. regexp: ${field.regexp}`); }
-            if ((value.match(field.regexp) ?? []).length === 0) {
-              erroredFields.push(field.name);
-              errors.push(`${field.name} must match regexp: ${field.regexp}`);
-            }
-          }
-          if ((<string>value).includes('\n')) {
-            erroredFields.push(field.name);
-            errors.push(`${field.name} cannot contain new lines.`);
-          }
-        }
-        if (field.fnValid && !field.fnValid(value)) {
-          erroredFields.push(field.name);
-          errors.push(`${field.name} error: ${field.fnErrorMsg}`);
-        }
-      } else {
-        if (field.required) {
-          erroredFields.push(field.name);
-          errors.push(`${field.name} required.`);
-        }
-      }
-    }
+    // let fields: FieldInfo[] = Object.values(this.fields);
+    // for (let i = 0; i < fields.length; i++) {
+    //   const field = fields[i];
+    //   let value = this[field.name];
+    //   if (logalot) { console.log(`${lc} doing ${field.name}`); }
+    //   if (value) {
+    //     if (logalot) { console.log(`${lc} value: ${value}`); }
+
+    //     if (typeof value === 'string') {
+    //       if (field.regexp) {
+    //         if (logalot) { console.log(`${lc} ${field.name} is a string. regexp: ${field.regexp}`); }
+    //         if ((value.match(field.regexp) ?? []).length === 0) {
+    //           erroredFields.push(field.name);
+    //           errors.push(`${field.name} must match regexp: ${field.regexp}`);
+    //         }
+    //       }
+    //       if ((<string>value).includes('\n')) {
+    //         erroredFields.push(field.name);
+    //         errors.push(`${field.name} cannot contain new lines.`);
+    //       }
+    //     }
+    //     if (field.fnValid && !field.fnValid(value)) {
+    //       erroredFields.push(field.name);
+    //       errors.push(`${field.name} error: ${field.fnErrorMsg}`);
+    //     }
+    //   } else {
+    //     if (field.required) {
+    //       erroredFields.push(field.name);
+    //       errors.push(`${field.name} required.`);
+    //     }
+    //   }
+    // }
 
     if (this.userPassword !== this.userPasswordConfirm) {
-      errors.push(`passwords don't match`);
-      erroredFields.push('userPassword');
+      let emsg = `passwords don't match`;
+      errors.push(emsg);
+      this.validationErrors.push(emsg);
+      this.erroredFields.push('userPassword');
     }
 
-    errors.forEach(e => this.validationErrors.push(e));
-    if (this.validationErrors.length > 0) {
-      console.error('wth')
-      console.error(`${lc} this.validationErrors:\n${this.validationErrors.join('\n')}`);
-    }
     return errors;
   }
 

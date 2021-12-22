@@ -86,7 +86,7 @@ export async function hash16816({
         for (let i = 0; i < 168; i++) {
             hash = await h.hash({s, algorithm});
         }
-        return hash.slice(16);
+        return hash.slice(0, 16);
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

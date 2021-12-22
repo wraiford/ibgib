@@ -8,8 +8,36 @@
   </ion-toolbar>
 </ion-header>
 <ion-content fullscreen>
-  <ion-item-group>
 
+  <ion-item-group>
+    <ion-item-divider>
+      <ion-text color="danger">
+        {{ validationErrors.length > 0 ? 'Errors: ' : ''}}{{ validationErrors.join('\n') }}
+      </ion-text>
+    </ion-item-divider>
+    <ion-item>
+      <ion-text color="primary">
+        Add your outer spaces to connect with here.
+      </ion-text>
+      <ion-button (click)="handleShowHelpClick()">
+        <ion-icon name="information-circle-outline"></ion-icon>
+      </ion-button>
+    </ion-item>
+    <ion-item *ngIf="showHelp">
+      <ion-text color="primary">
+        <p>
+          Ibgib is not a server-based website. It's a distributed protocol.
+          That means that have to connect not just a single central server,
+          but multiple spaces: a phone here, a tablet there, an extension here,
+          an app there.
+        </p>
+        <p>
+          So there are different types of relationships among spaces. Right now
+          we have "sync" spaces...where you are copying your ibgibs among
+          them when you publish.
+        </p>
+      </ion-text>
+    </ion-item>
   </ion-item-group>
 
   <!-- Outerspace details -->
@@ -19,22 +47,22 @@
     </ion-item-divider>
 
     <!-- name -->
-    <ion-item title="Name that you want to call this ibgib.">
-      <ion-label position="floating">Name: </ion-label>
+    <ion-item [title]="fields.name.description">
+      <ion-label position="floating">{{fields.name.label}}: </ion-label>
       <ion-input [(ngModel)]="name"></ion-input>
     </ion-item>
 
     <!-- description -->
-    <ion-item title="gT">
-      <ion-label position="floating">Description: </ion-label>
+    <ion-item [title]="fields.description.description">
+      <ion-label position="floating">{{fields.description.label}}: </ion-label>
       <ion-input [(ngModel)]="description"></ion-input>
     </ion-item>
 
-    <!-- type subtype -->
+    <!-- type+subtype -->
     <ion-item>
-      <ion-label>Type: </ion-label>
+      <ion-label>{{fields.type.label}}: </ion-label>
       <ion-select
-        [value]="selectedType"
+        [value]="type"
         okText="Select type"
         (ionChange)="handleSelectedTypeChange($event)"
         >
@@ -43,7 +71,7 @@
         </ion-select-option>
       </ion-select>
       <ion-select
-        [value]="selectedSubtype"
+        [value]="subtype"
         okText="Select subtype"
         (ionChange)="handleSelectedSubtypeChange($event)"
         >
@@ -52,18 +80,34 @@
         </ion-select-option>
       </ion-select>
     </ion-item>
-    <!-- <ion-item title="Choose at least one secret to use to encrypt the credentials.">
-      <ion-label>Encryption Secrets: </ion-label>
+    <ion-item [title]="fields.encryption.description">
+      <ion-label>{{fields.encryption.label}}: </ion-label>
+      <ion-select
+        [value]="encryption"
+        okText="Select encryption"
+        compareWith="compareWith_Encryptions"
+        (ionChange)="handleSelectedEncryptionChange($event)"
+        >
+        <ion-select-option *ngFor="let item of encryptions" [value]="item">
+          <ion-label>asdf</ion-label>
+          <!-- <ion-label>{{ item.data.name }}</ion-label> -->
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+    <ion-item [title]="fields.selectedSecrets.description">
+      <ion-label>{{fields.selectedSecrets.label}}: </ion-label>
       <ion-select
         [value]="selectedSecrets"
         okText="Select secrets"
+        compareWith="compareWith_Secrets"
+        multiple="true"
         (ionChange)="handleSelectedSecretsChange($event)"
         >
         <ion-select-option *ngFor="let item of secrets" [value]="item">
           <ion-label>{{ item.data.name }}</ion-label>
         </ion-select-option>
       </ion-select>
-    </ion-item> -->
+    </ion-item>
   </ion-item-group>
 
   <ion-item-group>

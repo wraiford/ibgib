@@ -366,10 +366,6 @@ export interface IbGibSpace<
     witness(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
 }
 
-export interface IbGibSpaceAny extends IbGibSpace<any,any,any,any,any,any,any> {
-
-}
-
 // #endregion
 
 
@@ -381,18 +377,19 @@ export const OuterSpaceType = {
 }
 export const VALID_OUTER_SPACE_TYPES = Object.values(OuterSpaceType).concat();
 
-export type OuterSpaceSubtype = 'aws-dynamodb';
-export const OuterSpaceSubtype = {
-    aws_dynamodb: 'aws-dynamodb' as OuterSpaceSubtype,
+export type SyncSpaceSubtype = 'aws-dynamodb';
+export const SyncSpaceSubtype = {
+    aws_dynamodb: 'aws-dynamodb' as SyncSpaceSubtype,
 }
-export const VALID_OUTER_SPACE_SUBTYPES = Object.values(OuterSpaceSubtype).concat();
+export const VALID_OUTER_SPACE_SUBTYPES = Object.values(SyncSpaceSubtype).concat();
 
 export interface OuterSpaceInfo {
     type: OuterSpaceType;
 }
 
 export interface SyncSpaceInfo extends OuterSpaceInfo {
-    subtype: OuterSpaceSubtype,
+    type: 'sync';
+    subtype: SyncSpaceSubtype;
 }
 
 export type AWSRegion = 'us-east-1' | string;
@@ -404,9 +401,15 @@ export interface SyncSpace_AWSDynamoDB extends SyncSpaceInfo {
     region: AWSRegion;
 }
 
-export interface OuterSpaceData extends IbGibSpaceData {
-    encryptedInfo: string;
+export interface OuterSpaceData<TInfo extends OuterSpaceInfo = OuterSpaceInfo> extends IbGibSpaceData {
+    info?: TInfo;
+    encryptedInfo?: string;
     encryptionDetails: any;
+}
+
+export interface SyncSpace_AWSDynamoDB_Data
+    extends OuterSpaceData<SyncSpace_AWSDynamoDB> {
+
 }
 
 // #endregion
