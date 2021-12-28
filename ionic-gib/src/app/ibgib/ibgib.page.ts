@@ -335,8 +335,6 @@ export class IbGibPage extends IbgibComponentBase
         }
       } while (appSyncSpaces.length === 0)
 
-      debugger;
-
       // for each sync space info, we want to create/load the space witness
       // give the command, passing along the encryption credentials
 
@@ -351,7 +349,6 @@ export class IbGibPage extends IbgibComponentBase
               alertController: this.alertController,
             }),
           });
-          debugger;
         }
 
         let argPut = await syncSpace.argy({
@@ -544,11 +541,6 @@ export class IbGibPage extends IbgibComponentBase
       if (!this.tjp) { await this.loadTjp(); }
       if (this.tjpAddr !== info.tjpAddr) { return; }
       if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)}`); }
-
-      // await (new Promise(resolve => {
-      //   console.warn('DEBUG DEBUG DEBUG DEBUG delaying...');
-      //   setTimeout(() => { resolve(null); }, 1000)
-      // }));
 
       if (!this.ibGib) { return; }
       if (!this.tjpAddr) { await this.loadTjp(); }

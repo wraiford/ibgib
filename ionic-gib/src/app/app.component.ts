@@ -6,17 +6,14 @@ import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 
-import { IbGibAddr, TransformResult } from 'ts-gib';
+import { IbGibAddr, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 
 import { IbgibComponentBase } from './common/bases/ibgib-component-base';
 import { CommonService } from './services/common.service';
-import {
-  // MENU_ITEM_IB_SUBSTRING_LENGTH, DEFAULT_TAG_ICON, DEFAULT_ROOT_ICON, ROOT_REL8N_NAME, DEFAULT_ROOT_TEXT, DEFAULT_ROOT_DESCRIPTION
-} from './common/constants';
 import * as c from './common/constants';
-import { EncryptionData_V1, RootData, SecretData_V1 } from './common/types';
+import { RootData, } from './common/types';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 

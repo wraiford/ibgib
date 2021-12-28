@@ -28,6 +28,8 @@ import * as c from '../constants';
 import { getBinAddr } from '../helper';
 import { Plugins } from '@capacitor/core';
 
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+
 // #region DynamoDB related
 
 type AWSDynamoDBItem = { [key: string]: AttributeValue };
@@ -841,12 +843,14 @@ export class AWSDynamoSpace_V1<
             const throttleMs = this.data.throttleMsBetweenGets || c.DEFAULT_AWS_GET_THROTTLE_MS;
             const rounds = Math.ceil(ibGibAddrs.length / batchSize);
             for (let i = 0; i < rounds; i++) {
+                if (i > 0) {
+                    if (logalot) { console.log(`${lc} delaying ${throttleMs}ms`); }
+                    await h.delay(throttleMs);
+                }
                 let doNext = ibGibAddrs.splice(batchSize);
                 const gotIbGibs = await this.getIbGibBatch({ibGibAddrs, client, errors});
                 ibGibs = [...ibGibs, ...gotIbGibs];
 
-                console.warn(`${lc} delaying ${throttleMs}ms`);
-                await h.delay(throttleMs);
                 if (errors.length > 0) { break; }
 
                 runningCount = ibGibs.length;
@@ -999,11 +1003,13 @@ export class AWSDynamoSpace_V1<
             const throttleMs = this.data.throttleMsBetweenPuts || c.DEFAULT_AWS_PUT_THROTTLE_MS;
             const rounds = Math.ceil(ibGibs.length / batchSize);
             for (let i = 0; i < rounds; i++) {
+                if (i > 0) {
+                    if (logalot) { console.log(`${lc} delaying ${throttleMs}ms`); }
+                    await h.delay(throttleMs);
+                }
                 let doNext = ibGibs.splice(batchSize);
                 await this.putIbGibBatch({ibGibs, client, errors});
 
-                console.warn(`${lc} delaying ${throttleMs}ms`);
-                await h.delay(throttleMs);
                 if (errors.length > 0) { break; }
 
                 runningCount += ibGibs.length;

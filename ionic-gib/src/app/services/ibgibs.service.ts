@@ -32,7 +32,7 @@ import {
 import * as c from '../common/constants';
 import { ModalController } from '@ionic/angular';
 import { IbGibSpaceAny } from '../common/spaces/space-base-v1';
-import { encrypt, decrypt } from 'encrypt-gib';
+import { encrypt, decrypt, } from 'encrypt-gib';
 import { AWSDynamoSpace_V1 } from '../common/spaces/aws-dynamo-space-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
@@ -122,6 +122,21 @@ interface DeleteIbGibOpts extends GetIbGibOpts { }
 interface DeleteIbGibResult extends FileResult { }
 
 // #endregion
+
+interface TempCacheEntry {
+  /**
+   * Password to the user's password.
+   */
+  tempMetaPassword: string;
+  /**
+   * Encrypted user password
+   */
+  encryptedPassword: string;
+  /**
+   * salt used in cached encryption.
+   */
+  salt: string;
+}
 
 interface AppSpaceData extends IonicSpaceData_V1 { }
 
@@ -2154,12 +2169,32 @@ export class IbgibsService {
   async promptForSecrets({
     secretIbGibs,
     fnPromptPassword,
+    checkCacheFirst,
+    cacheAfter,
   }: {
     secretIbGibs: IbGib_V1<SecretData_V1>[],
     fnPromptPassword: (title: string, msg: string) => Promise<string|null>,
+    checkCacheFirst?: boolean,
+    cacheAfter?: boolean,
   }): Promise<string|null> {
     const lc = `${this.lc}[${this.promptForSecrets.name}]`;
     try {
+      // used if we `checkCacheFirst` AND/OR if we `cacheAfter`
+      const secretsCacheKey =
+        secretIbGibs.map(ibGib => h.getIbGibAddr({ibGib})).join('');
+
+      if (checkCacheFirst) {
+        const cachedPassword =
+          await this.getCachedSecretPassword({cacheKey: secretsCacheKey});
+
+        if (cachedPassword) {
+          // do NOT log the actual cachedPassword!!
+          if (logalot) { console.log(`${lc} using cachedPassword.`); }
+          return cachedPassword;
+        }
+      }
+
+      // build prompt message
       let secretInfos: SecretInfo_Password[] = [];
       for (let i = 0; i < secretIbGibs.length; i++) {
         const secretIbGib = secretIbGibs[i];
@@ -2171,7 +2206,6 @@ export class IbgibsService {
           throw new Error(`Only password secrets are implemented atm.`);
         }
       }
-
       const separator = '-------------';
       const secretInfosMsgBlock = secretInfos.map(secretInfo => {
         return `name:        ${secretInfo.name}
@@ -2179,6 +2213,7 @@ export class IbgibsService {
                 hint:        ${secretInfo.hint}`;
       }).join('\n' + separator + '\n');
 
+      // prompt user
       const title = `Gimme a password.`;
       const msg =
         `Enter the password corresponding to the following secret(s):\n
@@ -2186,6 +2221,16 @@ export class IbgibsService {
         ${secretInfosMsgBlock}
         `;
       let password = await fnPromptPassword(title, msg);
+
+      // cache if applicable
+      if (password && cacheAfter) {
+        await this.setCachedSecretPassword({
+          cacheKey: secretsCacheKey,
+          secretPassword: password,
+        });
+      }
+
+      // we're done
       return password;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -2330,12 +2375,17 @@ export class IbgibsService {
       if ((resEncryption.ibGibs || []).length !== 1) { throw new Error(`get encryption retrieved non-1 length (eesh)`); }
       const encryptionIbGib = <IbGib_V1<EncryptionData_V1>>resEncryption.ibGibs[0];
       if (!encryptionIbGib.data) { throw new Error('encryptionIbGib.data falsy'); }
-      const password =
-        await this.promptForSecrets({secretIbGibs, fnPromptPassword});
+      const password = await this.promptForSecrets({
+        secretIbGibs,
+        fnPromptPassword,
+        checkCacheFirst: true,
+        cacheAfter: true,
+      });
       if (!encryptionIbGib.data.initialRecursions) { console.warn(`${lc} using default initialRecursions`); }
       if (!encryptionIbGib.data.recursionsPerHash) { console.warn(`${lc} using default recursionsPerHash`); }
       if (!encryptionIbGib.data.saltStrategy) { console.warn(`${lc} using default saltStrategy`); }
       if (!encryptionIbGib.data.hashAlgorithm) { console.warn(`${lc} using default hashAlgorithm`); }
+      if (logalot) { console.log(`${lc} starting decrypt...`); }
       const resDecrypt = await decrypt({
         encryptedData: ciphertextIbGib.data.ciphertext,
         secret: password,
@@ -2350,6 +2400,7 @@ export class IbgibsService {
           encryptionIbGib.data.hashAlgorithm || c.DEFAULT_ENCRYPTION_HASH_ALGORITHM,
         encryptedDataDelimiter: encryptionIbGib.data.encryptedDataDelimiter,
       });
+      if (logalot) { console.log(`${lc} decrypt complete.`); }
       if (resDecrypt.errors?.length > 0) { throw new Error(resDecrypt.errors.join('|')); }
       return resDecrypt.decryptedData;
     } catch (error) {
@@ -2411,6 +2462,105 @@ export class IbgibsService {
     }
   }
 
+  /**
+   * Just to prevent plaintext passwords from just sitting in memory,
+   * this is a slight layer of indirection for caching.
+   */
+  private passwordCache: {[addr: string]: TempCacheEntry } = {};
+
+  /**
+   * Caching user password secret in memory only.
+   *
+   * Just to prevent plaintext passwords from just sitting in memory,
+   * this is a slight layer of indirection for caching
+   *
+   * @returns user password
+   */
+  async getCachedSecretPassword({
+    cacheKey,
+  }: {
+    cacheKey: string,
+  }): Promise<string | undefined> {
+    const lc = `${this.lc}[${this.getCachedSecretPassword.name}]`;
+    try {
+      if (!cacheKey) { throw new Error(`secretAddr required`); }
+      let entry = this.passwordCache[cacheKey];
+      if (!entry) {
+        if (logalot) { console.log(`${lc} secretAddr not cached: ${cacheKey}`); }
+        return undefined;
+      }
+
+      // settings must match, but I'm feeling lazy on DRYing
+
+      if (logalot) { console.log(`${lc} starting decrypt...`); }
+      let resDecrypt = await decrypt({
+        encryptedData: entry.encryptedPassword,
+        secret: entry.tempMetaPassword,
+        initialRecursions: 10000,
+        recursionsPerHash: 5,
+        salt: entry.salt,
+        saltStrategy: 'appendPerHash',
+        hashAlgorithm: 'SHA-512',
+      });
+      if (logalot) { console.log(`${lc} decrypt complete.`); }
+
+      if (!resDecrypt.decryptedData) { throw new Error(`resDecrypt.decryptedData falsy`); }
+
+      return resDecrypt.decryptedData;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return undefined;
+    }
+  }
+
+  async setCachedSecretPassword({
+    cacheKey,
+    secretPassword,
+    force,
+  }: {
+    cacheKey: string,
+    secretPassword: string,
+    force?: boolean,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.getCachedSecretPassword.name}]`;
+    try {
+      if (!cacheKey) { throw new Error(`secretAddr required`); }
+
+      if (this.passwordCache[cacheKey]) {
+        if (force) {
+          if (logalot) { console.log(`already cached, but force is true: ${cacheKey}`); }
+          delete this.passwordCache[cacheKey];
+        } else {
+          if (logalot) { console.log(`already cached: ${cacheKey}`); }
+          return undefined;
+        }
+      }
+
+      const tempMetaPassword = await h.getUUID(256);
+      const salt = await h.getUUID();
+      // settings must match, but I'm feeling lazy on DRYing
+      let resEncrypt = await encrypt({
+        dataToEncrypt: secretPassword,
+        secret: tempMetaPassword,
+        initialRecursions: 10000,
+        recursionsPerHash: 5,
+        salt: salt,
+        saltStrategy: 'appendPerHash',
+        hashAlgorithm: 'SHA-512',
+      });
+      if (!resEncrypt.encryptedData) { throw new Error(`resEncrypt.encryptedData falsy`); }
+      const encryptedPassword = resEncrypt.encryptedData!;
+
+      let entry: TempCacheEntry =
+        { tempMetaPassword, salt, encryptedPassword, };
+
+      this.passwordCache[cacheKey] = entry;
+      if (logalot) { console.log(`${lc} entry added for ${cacheKey}.`); }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return undefined;
+    }
+  }
   // #region helpers
 
   /**

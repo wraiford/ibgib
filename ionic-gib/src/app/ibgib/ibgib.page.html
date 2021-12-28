@@ -23,8 +23,8 @@
     <ion-buttons slot="end" collapse="true">
       <ion-button [disabled]="publishing"
         slot="end" (click)="handlePublishClick()" class="toolbar-publish">
-        <!-- <ion-icon *ngIf="!publishing" name="cloud-upload-outline"></ion-icon> -->
-        <ion-icon name="cloud-upload-outline"></ion-icon>
+        <ion-icon name="cloud-outline"></ion-icon>
+        <ion-icon name="sync-outline"></ion-icon>
         <ion-spinner *ngIf="publishing" name="circles" color="tertiary"></ion-spinner>
       </ion-button>
       <ion-button [disabled]="refreshing"

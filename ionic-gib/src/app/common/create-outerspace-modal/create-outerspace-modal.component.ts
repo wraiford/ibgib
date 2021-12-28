@@ -280,6 +280,8 @@ export class CreateOuterspaceModalComponent
         secretIbGibs: this.secrets,
         fnPromptPassword:
           getFnPromptPassword_AlertController({alertController: this.alertController}),
+        checkCacheFirst: false,
+        cacheAfter: false, // should be true probably(?)
       });
 
       if (!password) { return undefined; }
