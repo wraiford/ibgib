@@ -2305,6 +2305,11 @@ export class IbgibsService {
 
   }
 
+  /**
+   * Brings together a ciphertext and secretIbGibs to decrypt
+   * the `ciphertextIbGib.data.ciphertext`
+   * @returns plaintext string of `ciphertextIbGib.data.ciphertext`
+   */
   async getPlaintextString({
     ciphertextIbGib,
     secretIbGibs,
@@ -2316,6 +2321,7 @@ export class IbgibsService {
   }): Promise<string> {
     const lc = `${this.lc}[${this.getPlaintextString.name}]`;
     try {
+      if ((secretIbGibs || []).length === 0) { throw new Error(`secretIbGibs required.`); }
       if (!ciphertextIbGib.rel8ns?.encryption) { throw new Error(`ciphertextIbGib.rel8ns.encryption falsy`) }
       if (ciphertextIbGib.rel8ns!.encryption!.length !== 1) { throw new Error(`ciphertextIbGib.rel8ns!.encryption!.length !== 1`); }
       const encryptionAddr = ciphertextIbGib.rel8ns!.encryption![0];
@@ -2324,19 +2330,6 @@ export class IbgibsService {
       if ((resEncryption.ibGibs || []).length !== 1) { throw new Error(`get encryption retrieved non-1 length (eesh)`); }
       const encryptionIbGib = <IbGib_V1<EncryptionData_V1>>resEncryption.ibGibs[0];
       if (!encryptionIbGib.data) { throw new Error('encryptionIbGib.data falsy'); }
-      if (!encryptionIbGib.rel8ns?.secret) {
-        debugger;
-        throw new Error('!encryptionIbGib.rel8ns?.secret');
-      }
-      const secretAddrs = encryptionIbGib.rel8ns!.secret!;
-      const argGetSecrets = await this.localUserSpace.argy({
-        argData: { ibGibAddrs: secretAddrs, cmd: 'get', }
-      });
-      const resSecrets = await this.localUserSpace.witness(argGetSecrets);
-      if (!resSecrets.data?.success || (resSecrets.ibGibs || []).length === 0)  {
-        throw new Error(`couldn't get secret ibgibs`);
-      }
-      const secretIbGibs = <IbGib_V1<SecretData_V1>[]>resSecrets.ibGibs.concat();
       const password =
         await this.promptForSecrets({secretIbGibs, fnPromptPassword});
       if (!encryptionIbGib.data.initialRecursions) { console.warn(`${lc} using default initialRecursions`); }
@@ -2366,31 +2359,50 @@ export class IbgibsService {
   }
 
   async unwrapEncryptedSyncSpace({
-    spaceCiphertextIbGib,
+    encryptedSpace,
     fnPromptPassword,
   }: {
-    spaceCiphertextIbGib: CiphertextIbGib_V1,
+    encryptedSpace: IbGibSpaceAny,
     fnPromptPassword: (title: string, msg: string) => Promise<string|null>,
   }): Promise<IbGibSpaceAny> {
     const lc = `${this.lc}[${this.unwrapEncryptedSyncSpace.name}]`;
     try {
-      if (!spaceCiphertextIbGib.rel8ns?.ciphertext) { throw new Error(`space is not a ciphertext`); }
-      if (spaceCiphertextIbGib.rel8ns!.ciphertext!.length !== 1) { throw new Error(`only 1 ciphertext rel8n allowed...`); }
+      // validation
+      if (!encryptedSpace.rel8ns?.ciphertext) { throw new Error(`space is not a ciphertext`); }
+      if (encryptedSpace.rel8ns!.ciphertext!.length !== 1) { throw new Error(`only 1 ciphertext rel8n allowed...`); }
 
-      const ciphertextAddr = spaceCiphertextIbGib.rel8ns!.ciphertext![0];
+      // get ciphertext ibgib
+      const ciphertextAddr = encryptedSpace.rel8ns!.ciphertext![0];
       const resCiphertext = await this.get({addr: ciphertextAddr});
       if (!resCiphertext.success) { throw new Error(`get ciphertext failed`); }
       if ((resCiphertext.ibGibs || []).length !== 1) { throw new Error(`get ciphertext retrieved non-1 length (eesh)`); }
       const ciphertextIbGib = resCiphertext.ibGibs[0];
+
+      // get secrets associated with enciphered space
+      if (!encryptedSpace.rel8ns?.secret) { throw new Error('!encryptionIbGib.rel8ns?.secret'); }
+      const secretAddrs = encryptedSpace.rel8ns!.secret!;
+      const argGetSecrets = await this.localUserSpace.argy({
+        argData: { ibGibAddrs: secretAddrs, cmd: 'get', }
+      });
+      const resSecrets = await this.localUserSpace.witness(argGetSecrets);
+      if (!resSecrets.data?.success || (resSecrets.ibGibs || []).length === 0)  {
+        throw new Error(`couldn't get secret ibgibs`);
+      }
+      const secretIbGibs = <IbGib_V1<SecretData_V1>[]>resSecrets.ibGibs.concat();
+
+      // get plaintext now that we have the ciphertext ibgib and secret ibgib(s)
       const plaintextString = await this.getPlaintextString({
         ciphertextIbGib,
         fnPromptPassword,
+        secretIbGibs,
       });
+
       const syncSpaceData = JSON.parse(plaintextString);
       if (syncSpaceData.type !== 'sync') { throw new Error(`syncSpaceData.type !== 'sync'...this is the only one implemented right now`); }
       if (syncSpaceData.subtype !== 'aws-dynamodb') { throw new Error(`syncSpaceData.subtype !== 'aws-dynamodb'...only one right now dude`); }
 
-      // so we have a syncspace data, aws-dynamodb space.
+      // so we have a syncspace data (only aws-dynamodb space right now).
+      // load this data into a space class with behavior (not just the dto).
       const awsSpace = new AWSDynamoSpace_V1(syncSpaceData, null);
       return awsSpace;
     } catch (error) {

@@ -279,26 +279,7 @@ export class CreateOuterspaceModalComponent
       const password = await this.common.ibgibs.promptForSecrets({
         secretIbGibs: this.secrets,
         fnPromptPassword:
-          getFnPromptPassword_AlertController({
-            alertController: this.alertController
-          }),
-        // fnPromptPassword: async (title: string, msg: string) => {
-        //   const alert = await this.alertController.create({
-        //     header: title,
-        //     message: msg,
-        //     inputs: [
-        //       { name: 'password', type: 'password', label: 'Password: ', },
-        //     ],
-        //     buttons: [ 'OK', 'Cancel' ],
-        //   });
-        //   await alert.present();
-        //   let result = await alert.onDidDismiss();
-        //   if (result?.data?.values?.password) {
-        //     return result!.data!.values!.password;
-        //   } else {
-        //     return null;
-        //   }
-        // },
+          getFnPromptPassword_AlertController({alertController: this.alertController}),
       });
 
       if (!password) { return undefined; }
@@ -326,7 +307,6 @@ export class CreateOuterspaceModalComponent
         throttleMsDueToThroughputError: c.DEFAULT_AWS_RETRY_THROUGHPUT_THROTTLE_MS,
       };
 
-      debugger;
       // create the ciphertext ibgib, encrypting with the encryption and secret(s)
       const resCiphertext =
         await this.common.ibgibs.getCiphertextIbGib({
@@ -359,7 +339,6 @@ export class CreateOuterspaceModalComponent
         nCounter: true,
       });
 
-      debugger;
       return <TransformResult<OuterSpaceIbGib>>resOuterSpace;
     } catch (error) {
       console.error(`${lc} ${error.message}`);

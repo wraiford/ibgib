@@ -194,7 +194,6 @@ export class AppComponent extends IbgibComponentBase
       } catch (error) {
         console.error(`${lc} ${error.message}`);
         console.error(`${lc} debug create here`);
-        debugger;
         // await this.common.ibgibs.promptCreateOuterSpaceIbGib();
         // await this.promptCreateSecretIbGib();
       } finally {

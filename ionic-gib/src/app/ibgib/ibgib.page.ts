@@ -325,8 +325,12 @@ export class IbGibPage extends IbgibComponentBase
               console.warn(`${lc} syncSpaces was supposed to have been created here, but somehow they haven't been. Trying again...`);
             }
           } else {
-            // cancelled
-            return;
+            if (appSyncSpaces.length === 0) {
+              // cancelled
+              return;
+            } else {
+              // created at least one space
+            }
           }
         }
       } while (appSyncSpaces.length === 0)
@@ -339,11 +343,10 @@ export class IbGibPage extends IbgibComponentBase
       for (let i = 0; i < appSyncSpaces.length; i++) {
         let syncSpace = appSyncSpaces[i];
 
-        debugger;
         if (syncSpace.rel8ns.ciphertext) {
           // need to load the ciphertext actual data
           syncSpace = await this.common.ibgibs.unwrapEncryptedSyncSpace({
-            spaceCiphertextIbGib: <CiphertextIbGib_V1>syncSpace,
+            encryptedSpace: syncSpace,
             fnPromptPassword: getFnPromptPassword_AlertController({
               alertController: this.alertController,
             }),
