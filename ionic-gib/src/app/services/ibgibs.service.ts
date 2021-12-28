@@ -21,6 +21,9 @@ import {
   TagData, RootData,
   SpecialIbGibType,
   LatestEventInfo,
+  SecretData_V1, SecretInfo_Password,
+  EncryptionInfo, EncryptionInfo_EncryptGib, EncryptionData_V1,
+  CiphertextData, CiphertextRel8ns, CiphertextIbGib_V1, SecretIbGib_V1,
 } from '../common/types';
 import {
   IonicSpace_V1,
@@ -29,6 +32,8 @@ import {
 import * as c from '../common/constants';
 import { ModalController } from '@ionic/angular';
 import { IbGibSpaceAny } from '../common/spaces/space-base-v1';
+import { encrypt, decrypt } from 'encrypt-gib';
+import { AWSDynamoSpace_V1 } from '../common/spaces/aws-dynamo-space-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -211,6 +216,7 @@ export interface ConfigIbGib_V1 extends IbGib_V1<AppSpaceData, AppSpaceRel8ns> {
   providedIn: 'root'
 })
 export class IbgibsService {
+
   // we won't get an object back, only a DTO ibGib essentially
   private lc: string = `[${IbgibsService.name}]`;
 
@@ -359,31 +365,337 @@ export class IbgibsService {
     }
   }
 
-  // private async initializeSecrets(): Promise<void> {
-  //   const lc = `${this.lc}[${this.initializeSecrets.name}]`;
-  //   try {
-  //     if (!this.localUserSpace) { throw new Error(`localUserSpace not defined/initialized.`) }
-  //     let secrets = await this.getSpecialIbgib({type: "secrets", initialize: true});
+  // #region create functions
 
-  //     const ibGibs: IbGib_V1[] = [];
+  private async createNewUserSpaceAndBootstrapGib({
+    localDefaultSpace,
+  }: {
+    localDefaultSpace: IonicSpace_V1,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.createNewUserSpaceAndBootstrapGib.name}]`;
+    try {
+      let spaceName: string;
 
-  //     let addrs = secrets.rel8ns ? secrets.rel8ns[c.SECRET_REL8N_NAME] || [] : [];
-  //     for (let i = 0; i < addrs.length; i++) {
-  //       const addr = addrs[i];
-  //       let resSecret = await this.get({addr});
-  //       if (resSecret.success && resSecret.ibGibs?.length === 1) {
-  //         ibGibs.push(resSecret.ibGibs[0]);
-  //       } else {
-  //         console.error(`${lc} failed to get secretAddr: ${addr}`);
-  //       }
-  //     }
+      const promptName: () => Promise<void> = async () => {
+        const resName = await Modals.prompt({title: 'Enter a Name...', message: `
+        We need to create a space for you.
 
-  //     this._secretIbGibs = ibGibs;
-  //   } catch (error) {
-  //     console.error(`${lc} ${error.message}`);
-  //     throw error;
-  //   }
-  // }
+        Spaces are kinda like usernames, but they dont need to be unique.
+
+        So enter a name for your space and choose OK to get started. Or if you just want a random bunch of letters, hit Cancel.`});
+
+        if (resName.cancelled) {
+          spaceName = (await h.getUUID()).slice(10);
+        } else {
+          if (resName.value && this.validateName(resName.value)) {
+            spaceName = resName.value;
+          }
+        }
+      };
+
+      // create a new user space
+      while (!spaceName) { await promptName(); }
+
+      let userSpace = new IonicSpace_V1(/*initialData*/ {
+        uuid: await h.getUUID(),
+        name: spaceName,
+        baseDir: c.IBGIB_BASE_DIR,
+        spaceSubPath: spaceName,
+        baseSubPath: c.IBGIB_BASE_SUBPATH,
+        binSubPath: c.IBGIB_BIN_SUBPATH,
+        dnaSubPath: c.IBGIB_DNA_SUBPATH,
+        ibgibsSubPath: c.IBGIB_IBGIBS_SUBPATH,
+        metaSubPath: c.IBGIB_META_SUBPATH,
+        encoding: c.IBGIB_ENCODING,
+        persistOptsAndResultIbGibs: c.PERSIST_OPTS_AND_RESULTS_IBGIBS_DEFAULT,
+      }, /*initialRel8ns*/ null);
+      if (logalot) { console.log(`${lc} userSpace.ib: ${userSpace.ib}`); }
+      if (logalot) { console.log(`${lc} userSpace.gib: ${userSpace.gib} (before sha256v1)`); }
+      if (logalot) { console.log(`${lc} userSpace.data: ${h.pretty(userSpace.data || 'falsy')}`); }
+      if (logalot) { console.log(`${lc} userSpace.rel8ns: ${h.pretty(userSpace.rel8ns || 'falsy')}`); }
+      userSpace.gib = await sha256v1(userSpace);
+      if (userSpace.gib === GIB) { throw new Error(`userSpace.gib not updated correctly.`); }
+      if (logalot) { console.log(`${lc} userSpace.gib: ${userSpace.gib} (after sha256v1)`); }
+
+      // must set this before trying to persist
+      this.localUserSpace = userSpace;
+
+      let argPutUserSpace = await localDefaultSpace.argy({
+        ibMetadata: userSpace.getSpaceArgMetadata(),
+        argData: { cmd: 'put', isMeta: true, },
+        ibGibs: [userSpace],
+      });
+
+      // save the userspace in default space
+      const resDefaultSpace = await localDefaultSpace.witness(argPutUserSpace);
+      if (resDefaultSpace?.data?.success) {
+        if (logalot) { console.log(`${lc} default space witnessed the user space`); }
+      } else {
+        throw new Error(`${resDefaultSpace?.data?.errors?.join('|') || "There was a problem with localDefaultSpace witnessing the new userSpace"}`);
+      }
+
+      // save the userspace in its own space?
+      const resUserSpace = await userSpace.witness(argPutUserSpace);
+      if (resUserSpace?.data?.success) {
+        // we now have saved the userspace ibgib "in" its own space.
+        if (logalot) { console.log(`${lc} user space witnessed itself`); }
+      } else {
+        throw new Error(`${resUserSpace?.data?.errors?.join('|') || "There was a problem with userSpace witnessing itself"}`);
+      }
+
+      const userSpaceAddr = h.getIbGibAddr({ibGib: userSpace});
+      await this.updateBootstrapIbGibSpaceAddr({newSpaceAddr: userSpaceAddr, localDefaultSpace});
+    } catch (error) {
+      delete this.localUserSpace;
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Routing function to various `create_____` functions.
+   *
+   * @returns address of newly created special.
+   */
+  private async createSpecial({
+    type,
+  }: {
+    type: SpecialIbGibType,
+  }): Promise<IbGibAddr | null> {
+    const lc = `${this.lc}[${this.createSpecial.name}]`;
+    try {
+      switch (type) {
+        case "tags":
+          return this.createTags();
+
+        case "roots":
+          return this.createRootsIbGib();
+
+        case "latest":
+          return this.createLatest();
+
+        case "secrets":
+          return this.createSecrets();
+
+        case "encryptions":
+          return this.createEncryptions();
+
+        case "outerspaces":
+          return this.createOuterSpaces();
+
+        default:
+          throw new Error(`not implemented. type: ${type}`);
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+    }
+  }
+
+  /**
+   * Creates a new special ibgib, persists it and if not skipped, relates
+   * it to the current root.
+   *
+   * @returns newly created ibgib (not just address)
+   */
+  private async createSpecialIbGib({
+    type,
+    skipRel8ToRoot,
+  }: {
+    type: SpecialIbGibType,
+    skipRel8ToRoot?: boolean,
+  }): Promise<IbGib_V1> {
+    const lc = `${this.lc}[${this.createSpecialIbGib.name}][${type || 'falsy type?'}]`;
+    try {
+      if (logalot) { console.log(`starting...`); }
+      const specialIb = this.getSpecialIbgibIb({type});
+      const src = factory.primitive({ib: specialIb});
+      const resNewSpecial = await V1.fork({
+        src,
+        destIb: specialIb,
+        linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
+        tjp: { uuid: true, timestamp: true },
+        dna: false,
+        nCounter: true,
+      });
+      await this.persistTransformResult({
+        resTransform: resNewSpecial,
+        isMeta: true
+      });
+      if (type !== 'roots' && !skipRel8ToRoot) {
+        await this.rel8ToCurrentRoot({ibGib: resNewSpecial.newIbGib, linked: true});
+      }
+      if (logalot) { console.log(`complete.`); }
+      return resNewSpecial.newIbGib;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Creates a new tags^gib instance (unique to current space), as well as
+   * default initial tags, e.g. "home", "favorites", etc., and relates these
+   * individual tags to the tags ibGib itself.
+   *
+   * Stores the tags ibGib's addr in config.
+   */
+  private async createTags(): Promise<IbGibAddr | null> {
+    const lc = `${this.lc}[${this.createTags.name}]`;
+    try {
+      const configKey = this.getSpecialConfigKey({type: "tags"});
+      const special = await this.createSpecialIbGib({type: "tags"});
+      let addr = h.getIbGibAddr({ibGib: special});
+      await this.setConfigAddr({key: configKey, addr: addr});
+
+      // at this point, our tags ibGib has no associated tag ibGibs.
+      // add home, favorite tags
+      const initialTagDatas: TagData[] = [
+        { text: 'home', icon: 'home-outline' },
+        { text: 'favorite', icon: 'heart-outline' },
+      ];
+      for (const data of initialTagDatas) {
+        const resCreate = await this.createTagIbGib(data);
+        addr = resCreate.newTagsAddr;
+        await this.setConfigAddr({key: configKey, addr: addr});
+      }
+
+      return addr;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return null;
+    }
+  }
+
+  async createTagIbGib({
+    text,
+    icon,
+    description,
+  }: TagData): Promise<{newTagIbGib: IbGib_V1, newTagsAddr: string}> {
+    const lc = `${this.lc}[${this.createTagIbGib.name}]`;
+    try {
+      if (!text) { throw new Error(`${lc} text required`); }
+      icon = icon || DEFAULT_TAG_ICON;
+      description = description || DEFAULT_TAG_DESCRIPTION;
+      const tagIb = this.tagTextToIb(text);
+      const tagPrimitive = factory.primitive({ib: "tag"});
+      const resNewTag = await factory.firstGen({
+        parentIbGib: tagPrimitive,
+        ib: tagIb,
+        data: { text, icon, description },
+        linkedRel8ns: [ Rel8n.past, Rel8n.ancestor ],
+        tjp: { uuid: true, timestamp: true },
+        dna: true,
+        nCounter: true,
+      });
+      const { newIbGib: newTag } = resNewTag;
+      await this.persistTransformResult({resTransform: resNewTag, isMeta: true});
+      await this.registerNewIbGib({ibGib: newTag});
+      const newTagsAddr = await this.rel8TagToTagsIbGib(newTag);
+      return { newTagIbGib: newTag, newTagsAddr };
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
+
+  private async createRootsIbGib(): Promise<IbGibAddr | null> {
+    const lc = `${this.lc}[${this.createRootsIbGib.name}]`;
+    try {
+      const configKey = this.getSpecialConfigKey({type: "roots"});
+      const rootsIbGib = await this.createSpecialIbGib({type: "roots"});
+      let rootsAddr = h.getIbGibAddr({ibGib: rootsIbGib});
+      await this.setConfigAddr({key: configKey, addr: rootsAddr});
+
+      // at this point, our ibGib has no associated ibGibs.
+      // so we add initial roots
+      const rootNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+
+      let firstRoot: IbGib_V1<RootData> = null;
+      const initialDatas: RootData[] = rootNames.map(n => {
+        return {
+          text: `${n}root`,
+          icon: DEFAULT_ROOT_ICON,
+          description: DEFAULT_ROOT_DESCRIPTION
+        };
+      });
+      for (let i = 0; i < initialDatas.length; i++) {
+        const data = initialDatas[i];
+        const resCreate = await this.createRootIbGib(data);
+        if (!firstRoot) { firstRoot = resCreate.newRootIbGib; }
+        rootsAddr = resCreate.newRootsAddr;
+        // update the config for the updated **roots** ibgib.
+        // that roots ibgib is what points to the just created new root.
+        await this.setConfigAddr({key: configKey, addr: rootsAddr});
+      }
+
+      // initialize current root
+      await this.setCurrentRoot(firstRoot);
+      // hack: the above line updates the roots in config. so get **that** addr.
+
+      rootsAddr = await this.getConfigAddr({key: configKey});
+
+      if (!rootsAddr) { throw new Error('no roots address in config?'); }
+
+      return rootsAddr;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return null;
+    }
+  }
+
+  async createRootIbGib({
+    text,
+    icon,
+    description,
+  }: RootData): Promise<{newRootIbGib: IbGib_V1<RootData>, newRootsAddr: string}> {
+    const lc = `${this.lc}[${this.createRootIbGib.name}]`;
+    try {
+      text = text || DEFAULT_ROOT_TEXT;
+      icon = icon || DEFAULT_ROOT_ICON;
+      description = description || DEFAULT_ROOT_DESCRIPTION;
+      const ib = this.getRootIb(text);
+      const parentIbGib = factory.primitive({ib: "root"});
+      const resNewIbGib = await factory.firstGen({
+        parentIbGib,
+        ib,
+        data: { text, icon, description },
+        linkedRel8ns: [ Rel8n.past, Rel8n.ancestor ],
+        tjp: { uuid: true, timestamp: true },
+        dna: true,
+      });
+      const { newIbGib } = resNewIbGib;
+      await this.persistTransformResult({resTransform: resNewIbGib, isMeta: true});
+      const newRootsAddr = await this.rel8ToSpecialIbGib({
+        type: "roots",
+        rel8nName: ROOT_REL8N_NAME,
+        ibGibsToRel8: [newIbGib],
+        // isMeta: true,
+      });
+      return { newRootIbGib: <IbGib_V1<RootData>>newIbGib, newRootsAddr };
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
+
+  private async createLatest(): Promise<IbGibAddr | null> {
+    const lc = `${this.lc}[${this.createLatest.name}]`;
+    try {
+      const configKey = this.getSpecialConfigKey({type: "latest"});
+      const special =
+        await this.createSpecialIbGib({type: "latest", skipRel8ToRoot: true});
+      let specialAddr = h.getIbGibAddr({ibGib: special});
+      await this.setConfigAddr({key: configKey, addr: specialAddr});
+
+      // right now, the latest ibgib doesn't have any more initialization,
+      // since it is supposed to be as ephemeral and non-tracked as possible.
+
+      return specialAddr;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return null;
+    }
+  }
 
   private async createSecrets(): Promise<IbGibAddr | null> {
     const lc = `${this.lc}[${this.createSecrets.name}]`;
@@ -432,33 +744,6 @@ export class IbgibsService {
     }
   }
 
-
-  // private async initializeEncryptions(): Promise<void> {
-  //   const lc = `${this.lc}[${this.initializeEncryptions.name}]`;
-  //   try {
-  //     if (!this.localUserSpace) { throw new Error(`localUserSpace not defined/initialized.`) }
-  //     let encryptions = await this.getSpecialIbgib({type: "encryptions", initialize: true});
-
-  //     const ibGibs: IbGib_V1[] = [];
-
-  //     let addrs = encryptions.rel8ns ? encryptions.rel8ns[c.ENCRYPTION_REL8N_NAME] || [] : [];
-  //     for (let i = 0; i < addrs.length; i++) {
-  //       const addr = addrs[i];
-  //       let resEncryption = await this.get({addr});
-  //       if (resEncryption.success && resEncryption.ibGibs?.length === 1) {
-  //         ibGibs.push(resEncryption.ibGibs[0]);
-  //       } else {
-  //         console.error(`${lc} failed to get ibgib for addr: ${addr}`);
-  //       }
-  //     }
-
-  //     this._encryptionIbGibs = ibGibs;
-  //   } catch (error) {
-  //     console.error(`${lc} ${error.message}`);
-  //     throw error;
-  //   }
-  // }
-
   private async createEncryptions(): Promise<IbGibAddr | null> {
     const lc = `${this.lc}[${this.createEncryptions.name}]`;
     try {
@@ -506,19 +791,6 @@ export class IbgibsService {
     }
   }
 
-  // private async initializeOuterSpaces(): Promise<void> {
-  //   const lc = `${this.lc}[${this.initializeOuterSpaces.name}]`;
-  //   try {
-  //     if (!this.localUserSpace) { throw new Error(`localUserSpace not defined/initialized.`) }
-  //     let outerSpaces = await this.getSpecialIbgib({type: "outerspaces", initialize: true});
-  //     // throw new Error('not implemented. need to populate sync spaces on this service.');
-  //     // populate sync spaces here
-  //   } catch (error) {
-  //     console.error(`${lc} ${error.message}`);
-  //     throw error;
-  //   }
-  // }
-
   private async createOuterSpaces(): Promise<IbGibAddr | null> {
     const lc = `${this.lc}[${this.createOuterSpaces.name}]`;
     try {
@@ -565,6 +837,8 @@ export class IbgibsService {
       return null;
     }
   }
+
+  // #endregion
 
   private async loadUserLocalSpace({
     localDefaultSpace,
@@ -658,91 +932,6 @@ export class IbgibsService {
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       return false;
-    }
-  }
-
-  private async createNewUserSpaceAndBootstrapGib({
-    localDefaultSpace,
-  }: {
-    localDefaultSpace: IonicSpace_V1,
-  }): Promise<void> {
-    const lc = `${this.lc}[${this.createNewUserSpaceAndBootstrapGib.name}]`;
-    try {
-      let spaceName: string;
-
-      const promptName: () => Promise<void> = async () => {
-        const resName = await Modals.prompt({title: 'Enter a Name...', message: `
-        We need to create a space for you.
-
-        Spaces are kinda like usernames, but they dont need to be unique.
-
-        So enter a name for your space and choose OK to get started. Or if you just want a random bunch of letters, hit Cancel.`});
-
-        if (resName.cancelled) {
-          spaceName = (await h.getUUID()).slice(10);
-        } else {
-          if (resName.value && this.validateName(resName.value)) {
-            spaceName = resName.value;
-          }
-        }
-      };
-
-      // create a new user space
-      while (!spaceName) { await promptName(); }
-
-      let userSpace = new IonicSpace_V1(/*initialData*/ {
-        uuid: await h.getUUID(),
-        name: spaceName,
-        baseDir: c.IBGIB_BASE_DIR,
-        spaceSubPath: spaceName,
-        baseSubPath: c.IBGIB_BASE_SUBPATH,
-        binSubPath: c.IBGIB_BIN_SUBPATH,
-        dnaSubPath: c.IBGIB_DNA_SUBPATH,
-        ibgibsSubPath: c.IBGIB_IBGIBS_SUBPATH,
-        metaSubPath: c.IBGIB_META_SUBPATH,
-        encoding: c.IBGIB_ENCODING,
-        persistOptsAndResultIbGibs: c.PERSIST_OPTS_AND_RESULTS_IBGIBS_DEFAULT,
-      }, /*initialRel8ns*/ null);
-      if (logalot) { console.log(`${lc} userSpace.ib: ${userSpace.ib}`); }
-      if (logalot) { console.log(`${lc} userSpace.gib: ${userSpace.gib} (before sha256v1)`); }
-      if (logalot) { console.log(`${lc} userSpace.data: ${h.pretty(userSpace.data || 'falsy')}`); }
-      if (logalot) { console.log(`${lc} userSpace.rel8ns: ${h.pretty(userSpace.rel8ns || 'falsy')}`); }
-      userSpace.gib = await sha256v1(userSpace);
-      if (userSpace.gib === GIB) { throw new Error(`userSpace.gib not updated correctly.`); }
-      if (logalot) { console.log(`${lc} userSpace.gib: ${userSpace.gib} (after sha256v1)`); }
-
-      // must set this before trying to persist
-      this.localUserSpace = userSpace;
-
-      let argPutUserSpace = await localDefaultSpace.argy({
-        ibMetadata: userSpace.getSpaceArgMetadata(),
-        argData: { cmd: 'put', isMeta: true, },
-        ibGibs: [userSpace],
-      });
-
-      // save the userspace in default space
-      const resDefaultSpace = await localDefaultSpace.witness(argPutUserSpace);
-      if (resDefaultSpace?.data?.success) {
-        if (logalot) { console.log(`${lc} default space witnessed the user space`); }
-      } else {
-        throw new Error(`${resDefaultSpace?.data?.errors?.join('|') || "There was a problem with localDefaultSpace witnessing the new userSpace"}`);
-      }
-
-      // save the userspace in its own space?
-      const resUserSpace = await userSpace.witness(argPutUserSpace);
-      if (resUserSpace?.data?.success) {
-        // we now have saved the userspace ibgib "in" its own space.
-        if (logalot) { console.log(`${lc} user space witnessed itself`); }
-      } else {
-        throw new Error(`${resUserSpace?.data?.errors?.join('|') || "There was a problem with userSpace witnessing itself"}`);
-      }
-
-      const userSpaceAddr = h.getIbGibAddr({ibGib: userSpace});
-      await this.updateBootstrapIbGibSpaceAddr({newSpaceAddr: userSpaceAddr, localDefaultSpace});
-    } catch (error) {
-      delete this.localUserSpace;
-      console.error(`${lc} ${error.message}`);
-      throw error;
     }
   }
 
@@ -1053,173 +1242,6 @@ export class IbgibsService {
     }
   }
 
-  async createSpecial({
-    type,
-  }: {
-    type: SpecialIbGibType,
-  }): Promise<IbGibAddr | null> {
-    const lc = `${this.lc}[${this.createSpecial.name}]`;
-    try {
-      switch (type) {
-        case "tags":
-          return this.createTags();
-
-        case "roots":
-          return this.createRootsIbGib();
-
-        case "latest":
-          return this.createLatest();
-
-        case "secrets":
-          return this.createSecrets();
-
-        case "encryptions":
-          return this.createEncryptions();
-
-        case "outerspaces":
-          return this.createOuterSpaces();
-
-        default:
-          throw new Error(`not implemented. type: ${type}`);
-      }
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-    }
-  }
-
-  /**
-   * Creates a new tags^gib instance (uniquely reified), as well as default initial
-   * tags, e.g. "home", "favorites", etc., and relates these individual tags to
-   * the tags ibGib itself.
-   *
-   * Stores the tags ibGib's addr in config.
-   */
-  private async createTags(): Promise<IbGibAddr | null> {
-    const lc = `${this.lc}[${this.createTags.name}]`;
-    try {
-      const configKey = this.getSpecialConfigKey({type: "tags"});
-      const special = await this.createSpecialIbGib({type: "tags"});
-      let addr = h.getIbGibAddr({ibGib: special});
-      await this.setConfigAddr({key: configKey, addr: addr});
-
-      // at this point, our tags ibGib has no associated tag ibGibs.
-      // add home, favorite tags
-      const initialTagDatas: TagData[] = [
-        { text: 'home', icon: 'home-outline' },
-        { text: 'favorite', icon: 'heart-outline' },
-      ];
-      for (const data of initialTagDatas) {
-        const resCreate = await this.createTagIbGib(data);
-        addr = resCreate.newTagsAddr;
-        await this.setConfigAddr({key: configKey, addr: addr});
-      }
-
-      return addr;
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      return null;
-    }
-  }
-
-  private async createRootsIbGib(): Promise<IbGibAddr | null> {
-    const lc = `${this.lc}[${this.createRootsIbGib.name}]`;
-    try {
-      const configKey = this.getSpecialConfigKey({type: "roots"});
-      const rootsIbGib = await this.createSpecialIbGib({type: "roots"});
-      let rootsAddr = h.getIbGibAddr({ibGib: rootsIbGib});
-      await this.setConfigAddr({key: configKey, addr: rootsAddr});
-
-      // at this point, our ibGib has no associated ibGibs.
-      // so we add initial roots
-      const rootNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
-
-      let firstRoot: IbGib_V1<RootData> = null;
-      const initialDatas: RootData[] = rootNames.map(n => {
-        return {
-          text: `${n}root`,
-          icon: DEFAULT_ROOT_ICON,
-          description: DEFAULT_ROOT_DESCRIPTION
-        };
-      });
-      for (let i = 0; i < initialDatas.length; i++) {
-        const data = initialDatas[i];
-        const resCreate = await this.createRootIbGib(data);
-        if (!firstRoot) { firstRoot = resCreate.newRootIbGib; }
-        rootsAddr = resCreate.newRootsAddr;
-        // update the config for the updated **roots** ibgib.
-        // that roots ibgib is what points to the just created new root.
-        await this.setConfigAddr({key: configKey, addr: rootsAddr});
-      }
-
-      // initialize current root
-      await this.setCurrentRoot(firstRoot);
-      // hack: the above line updates the roots in config. so get **that** addr.
-
-      rootsAddr = await this.getConfigAddr({key: configKey});
-
-      if (!rootsAddr) { throw new Error('no roots address in config?'); }
-
-      return rootsAddr;
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      return null;
-    }
-  }
-
-  private async createLatest(): Promise<IbGibAddr | null> {
-    const lc = `${this.lc}[${this.createLatest.name}]`;
-    try {
-      const configKey = this.getSpecialConfigKey({type: "latest"});
-      const special =
-        await this.createSpecialIbGib({type: "latest", skipRel8ToRoot: true});
-      let specialAddr = h.getIbGibAddr({ibGib: special});
-      await this.setConfigAddr({key: configKey, addr: specialAddr});
-
-      // right now, the latest ibgib doesn't have any more initialization,
-      // since it is supposed to be as ephemeral and non-tracked as possible.
-
-      return specialAddr;
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      return null;
-    }
-  }
-
-  private async createSpecialIbGib({
-    type,
-    skipRel8ToRoot,
-  }: {
-    type: SpecialIbGibType,
-    skipRel8ToRoot?: boolean,
-  }): Promise<IbGib_V1> {
-    const lc = `${this.lc}[${this.createSpecialIbGib.name}][${type || 'falsy type?'}]`;
-    try {
-      if (logalot) { console.log(`starting...`); }
-      const specialIb = this.getSpecialIbgibIb({type});
-      const src = factory.primitive({ib: specialIb});
-      const resNewSpecial = await V1.fork({
-        src,
-        destIb: specialIb,
-        linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
-        tjp: { uuid: true, timestamp: true },
-        dna: false,
-        nCounter: true,
-      });
-      await this.persistTransformResult({
-        resTransform: resNewSpecial,
-        isMeta: true
-      });
-      if (type !== 'roots' && !skipRel8ToRoot) {
-        await this.rel8ToCurrentRoot({ibGib: resNewSpecial.newIbGib, linked: true});
-      }
-      if (logalot) { console.log(`complete.`); }
-      return resNewSpecial.newIbGib;
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    }
-  }
-
   /**
    * Tags for this app have the form: tag [tagText]
    *
@@ -1232,79 +1254,6 @@ export class IbgibsService {
     const lc = `${this.lc}[${this.tagTextToIb.name}]`;
     if (!tagText) { throw new Error(`${lc} tag required.`)}
     return `tag ${tagText}`;
-  }
-
-  async createTagIbGib({
-    text,
-    icon,
-    description,
-  }: TagData): Promise<{newTagIbGib: IbGib_V1, newTagsAddr: string}> {
-    const lc = `${this.lc}[${this.createTagIbGib.name}]`;
-    try {
-      if (!text) { throw new Error(`${lc} text required`); }
-      icon = icon || DEFAULT_TAG_ICON;
-      description = description || DEFAULT_TAG_DESCRIPTION;
-      const tagIb = this.tagTextToIb(text);
-      const tagPrimitive = factory.primitive({ib: "tag"});
-      const resNewTag = await factory.firstGen({
-        parentIbGib: tagPrimitive,
-        ib: tagIb,
-        data: { text, icon, description },
-        linkedRel8ns: [ Rel8n.past, Rel8n.ancestor ],
-        tjp: { uuid: true, timestamp: true },
-        dna: true,
-        nCounter: true,
-      });
-      const { newIbGib: newTag } = resNewTag;
-      await this.persistTransformResult({resTransform: resNewTag, isMeta: true});
-      await this.registerNewIbGib({ibGib: newTag});
-      const newTagsAddr = await this.rel8TagToTagsIbGib(newTag);
-      return { newTagIbGib: newTag, newTagsAddr };
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    }
-  }
-
-  async createRootIbGib({
-    text,
-    icon,
-    description,
-  }: RootData): Promise<{newRootIbGib: IbGib_V1<RootData>, newRootsAddr: string}> {
-    const lc = `${this.lc}[${this.createRootIbGib.name}]`;
-    try {
-      text = text || DEFAULT_ROOT_TEXT;
-      icon = icon || DEFAULT_ROOT_ICON;
-      description = description || DEFAULT_ROOT_DESCRIPTION;
-      const ib = this.rootTextToIb(text);
-      const parentIbGib = factory.primitive({ib: "root"});
-      const resNewIbGib = await factory.firstGen({
-        parentIbGib,
-        ib,
-        data: { text, icon, description },
-        linkedRel8ns: [ Rel8n.past, Rel8n.ancestor ],
-        tjp: { uuid: true, timestamp: true },
-        dna: true,
-      });
-      const { newIbGib } = resNewIbGib;
-      await this.persistTransformResult({resTransform: resNewIbGib, isMeta: true});
-      const newRootsAddr = await this.rel8ToSpecialIbGib({
-        type: "roots",
-        rel8nName: ROOT_REL8N_NAME,
-        ibGibsToRel8: [newIbGib],
-        // isMeta: true,
-      });
-      return { newRootIbGib: <IbGib_V1<RootData>>newIbGib, newRootsAddr };
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    }
-  }
-
-  rootTextToIb(text: string): string {
-    const lc = `${this.lc}[${this.rootTextToIb.name}]`;
-    if (!text) { throw new Error(`${lc} text required.`)}
-    return `root ${text}`;
   }
 
   /**
@@ -1358,7 +1307,7 @@ export class IbgibsService {
      */
     deletePreviousSpecialIbGib?: boolean,
   }): Promise<IbGibAddr> {
-    const lc = `${this.lc}[${this.rel8ToSpecialIbGib.name}][{type: ${type}, rel8nName: ${rel8nName}]`;
+    const lc = `${this.lc}[${this.rel8ToSpecialIbGib.name}][type: ${type}, rel8nName: ${rel8nName}]`;
     try {
       const addrsToRel8 = ibGibsToRel8.map(ibGib => h.getIbGibAddr({ibGib}));
 
@@ -2198,4 +2147,271 @@ export class IbgibsService {
       throw error;
     }
   }
+
+  /**
+   * Feels klugy.
+   */
+  async promptForSecrets({
+    secretIbGibs,
+    fnPromptPassword,
+  }: {
+    secretIbGibs: IbGib_V1<SecretData_V1>[],
+    fnPromptPassword: (title: string, msg: string) => Promise<string|null>,
+  }): Promise<string|null> {
+    const lc = `${this.lc}[${this.promptForSecrets.name}]`;
+    try {
+      let secretInfos: SecretInfo_Password[] = [];
+      for (let i = 0; i < secretIbGibs.length; i++) {
+        const secretIbGib = secretIbGibs[i];
+        if (!secretIbGib.data) { throw new Error(`invalid secretIbGib. data falsy.`); }
+        if (secretIbGib.data!.type === 'password') {
+          const secretInfo = <SecretInfo_Password>secretIbGib.data;
+          secretInfos.push(secretInfo);
+        } else {
+          throw new Error(`Only password secrets are implemented atm.`);
+        }
+      }
+
+      const separator = '-------------';
+      const secretInfosMsgBlock = secretInfos.map(secretInfo => {
+        return `name:        ${secretInfo.name}
+                description: ${secretInfo.description}
+                hint:        ${secretInfo.hint}`;
+      }).join('\n' + separator + '\n');
+
+      const title = `Gimme a password.`;
+      const msg =
+        `Enter the password corresponding to the following secret(s):\n
+        ${separator}\n\n
+        ${secretInfosMsgBlock}
+        `;
+      let password = await fnPromptPassword(title, msg);
+      return password;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
+
+  async getCiphertextIbGib<TEncryptionIbGib extends IbGib_V1<EncryptionData_V1>, TMetadata = any>({
+    plaintext,
+    password,
+    encryptionIbGib,
+    confirm,
+    persist,
+    ibRoot,
+    publicIbMetadata,
+    publicMetadata,
+  }: {
+    /**
+     * Um...data...to...erm...encrypt...(as a string)
+     */
+    plaintext: string,
+    /**
+     * Password to perform the encryption.
+     */
+    password: string,
+    /**
+     * Information about encryption, i.e. encryption settings.
+     */
+    encryptionIbGib: TEncryptionIbGib,
+    /**
+     * Decrypts and checks against original data
+     */
+    confirm?: boolean,
+    /**
+     * If true, will persist the ibgib
+     */
+    persist?: boolean,
+    /**
+     * If you provide this, the resulting ibgib will have the following format:
+     * `${ibRoot} ${publicIbMetadata}`. Otherwise, this will default to:
+     * `ciphertext ${publicIbMetadata}`, or just `ciphertext` if
+     * `publicIbMetadata` is falsy.
+     */
+    ibRoot?: string,
+    /**
+     * If you want to include metadata in the ib itself of the
+     * ciphertext ibgib. This will of course make this metadata
+     * available without loading the full ibgib, but will increase
+     * storage size because every address linking to the ibgib will
+     * include this as well.
+     */
+    publicIbMetadata?: string,
+    /**
+     * If you want to include public, unencrypted metadata in the ibgib's
+     * data body itself.
+     */
+    publicMetadata?: TMetadata,
+  }): Promise<TransformResult<CiphertextIbGib_V1>> {
+    const lc = `${this.lc}[${this.getCiphertextIbGib.name}]`;
+    try {
+      const encryptionInfo = encryptionIbGib.data;
+      if (encryptionInfo?.method !== 'encrypt-gib (weak)') {
+        throw new Error('only encrypt-gib is implemented.');
+      }
+      const info: EncryptionInfo_EncryptGib = <any>encryptionInfo;
+      const resEncrypt = await encrypt({
+        dataToEncrypt: plaintext,
+        secret: password,
+        initialRecursions: info.initialRecursions,
+        recursionsPerHash: info.recursionsPerHash,
+        salt: info.salt,
+        saltStrategy: info.saltStrategy,
+        hashAlgorithm: info.hashAlgorithm,
+        encryptedDataDelimiter: info.encryptedDataDelimiter,
+        confirm,
+      });
+
+      if (resEncrypt.warnings?.length > 0) { console.warn(`${lc} warnings: ${resEncrypt.warnings.join('\n')}`); }
+      if (resEncrypt.errors?.length > 0) { throw new Error(resEncrypt.errors!.join('\n')); }
+      if (!resEncrypt.encryptedData) { throw new Error(`encryptedData is falsy`) }
+
+      const data: CiphertextData = { ciphertext: resEncrypt.encryptedData, };
+      if (publicMetadata) { data.metadata = publicMetadata; }
+
+      const rel8ns: CiphertextRel8ns = {
+        encryption: [h.getIbGibAddr({ibGib: encryptionIbGib})],
+      }
+
+      const resCiphertext: TransformResult<CiphertextIbGib_V1> =
+        await factory.firstGen({
+          parentIbGib: factory.primitive({ib: ibRoot || 'ciphertext'}),
+          ib:
+            publicIbMetadata ?
+              `${ibRoot || 'ciphertext'} ${publicIbMetadata}` :
+              `${ibRoot || 'ciphertext'}`,
+          data,
+          rel8ns,
+          dna: false,
+          tjp: { uuid: true, timestamp: true },
+          nCounter: true,
+        });
+
+      if (!resCiphertext.newIbGib) { throw new Error('Error creating ciphertext ibgib.'); }
+
+      if (persist) {
+        await this.persistTransformResult({
+          resTransform: resCiphertext,
+          space: this.localUserSpace
+        });
+      }
+
+      return resCiphertext;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+
+  }
+
+  async getPlaintextString({
+    ciphertextIbGib,
+    secretIbGibs,
+    fnPromptPassword,
+  }: {
+    ciphertextIbGib: CiphertextIbGib_V1,
+    secretIbGibs: SecretIbGib_V1[],
+    fnPromptPassword: (title: string, msg: string) => Promise<string|null>,
+  }): Promise<string> {
+    const lc = `${this.lc}[${this.getPlaintextString.name}]`;
+    try {
+      if (!ciphertextIbGib.rel8ns?.encryption) { throw new Error(`ciphertextIbGib.rel8ns.encryption falsy`) }
+      if (ciphertextIbGib.rel8ns!.encryption!.length !== 1) { throw new Error(`ciphertextIbGib.rel8ns!.encryption!.length !== 1`); }
+      const encryptionAddr = ciphertextIbGib.rel8ns!.encryption![0];
+      const resEncryption = await this.get({addr: encryptionAddr});
+      if (!resEncryption.success) { throw new Error(`get encryption failed`); }
+      if ((resEncryption.ibGibs || []).length !== 1) { throw new Error(`get encryption retrieved non-1 length (eesh)`); }
+      const encryptionIbGib = <IbGib_V1<EncryptionData_V1>>resEncryption.ibGibs[0];
+      if (!encryptionIbGib.data) { throw new Error('encryptionIbGib.data falsy'); }
+      if (!encryptionIbGib.rel8ns?.secret) {
+        debugger;
+        throw new Error('!encryptionIbGib.rel8ns?.secret');
+      }
+      const secretAddrs = encryptionIbGib.rel8ns!.secret!;
+      const argGetSecrets = await this.localUserSpace.argy({
+        argData: { ibGibAddrs: secretAddrs, cmd: 'get', }
+      });
+      const resSecrets = await this.localUserSpace.witness(argGetSecrets);
+      if (!resSecrets.data?.success || (resSecrets.ibGibs || []).length === 0)  {
+        throw new Error(`couldn't get secret ibgibs`);
+      }
+      const secretIbGibs = <IbGib_V1<SecretData_V1>[]>resSecrets.ibGibs.concat();
+      const password =
+        await this.promptForSecrets({secretIbGibs, fnPromptPassword});
+      if (!encryptionIbGib.data.initialRecursions) { console.warn(`${lc} using default initialRecursions`); }
+      if (!encryptionIbGib.data.recursionsPerHash) { console.warn(`${lc} using default recursionsPerHash`); }
+      if (!encryptionIbGib.data.saltStrategy) { console.warn(`${lc} using default saltStrategy`); }
+      if (!encryptionIbGib.data.hashAlgorithm) { console.warn(`${lc} using default hashAlgorithm`); }
+      const resDecrypt = await decrypt({
+        encryptedData: ciphertextIbGib.data.ciphertext,
+        secret: password,
+        initialRecursions:
+          encryptionIbGib.data.initialRecursions || c.DEFAULT_ENCRYPTION_INITIAL_RECURSIONS,
+        recursionsPerHash:
+          encryptionIbGib.data.recursionsPerHash || c.DEFAULT_ENCRYPTION_RECURSIONS_PER_HASH,
+        salt: encryptionIbGib.data.salt,
+        saltStrategy:
+          encryptionIbGib.data.saltStrategy || c.DEFAULT_ENCRYPTION_SALT_STRATEGY,
+        hashAlgorithm:
+          encryptionIbGib.data.hashAlgorithm || c.DEFAULT_ENCRYPTION_HASH_ALGORITHM,
+        encryptedDataDelimiter: encryptionIbGib.data.encryptedDataDelimiter,
+      });
+      if (resDecrypt.errors?.length > 0) { throw new Error(resDecrypt.errors.join('|')); }
+      return resDecrypt.decryptedData;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
+
+  async unwrapEncryptedSyncSpace({
+    spaceCiphertextIbGib,
+    fnPromptPassword,
+  }: {
+    spaceCiphertextIbGib: CiphertextIbGib_V1,
+    fnPromptPassword: (title: string, msg: string) => Promise<string|null>,
+  }): Promise<IbGibSpaceAny> {
+    const lc = `${this.lc}[${this.unwrapEncryptedSyncSpace.name}]`;
+    try {
+      if (!spaceCiphertextIbGib.rel8ns?.ciphertext) { throw new Error(`space is not a ciphertext`); }
+      if (spaceCiphertextIbGib.rel8ns!.ciphertext!.length !== 1) { throw new Error(`only 1 ciphertext rel8n allowed...`); }
+
+      const ciphertextAddr = spaceCiphertextIbGib.rel8ns!.ciphertext![0];
+      const resCiphertext = await this.get({addr: ciphertextAddr});
+      if (!resCiphertext.success) { throw new Error(`get ciphertext failed`); }
+      if ((resCiphertext.ibGibs || []).length !== 1) { throw new Error(`get ciphertext retrieved non-1 length (eesh)`); }
+      const ciphertextIbGib = resCiphertext.ibGibs[0];
+      const plaintextString = await this.getPlaintextString({
+        ciphertextIbGib,
+        fnPromptPassword,
+      });
+      const syncSpaceData = JSON.parse(plaintextString);
+      if (syncSpaceData.type !== 'sync') { throw new Error(`syncSpaceData.type !== 'sync'...this is the only one implemented right now`); }
+      if (syncSpaceData.subtype !== 'aws-dynamodb') { throw new Error(`syncSpaceData.subtype !== 'aws-dynamodb'...only one right now dude`); }
+
+      // so we have a syncspace data, aws-dynamodb space.
+      const awsSpace = new AWSDynamoSpace_V1(syncSpaceData, null);
+      return awsSpace;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
+
+  // #region helpers
+
+  /**
+   * returns ib for a given root. ATOW this is simply "root {text}"
+   *
+   * @returns ib for the given rootText
+   */
+  private getRootIb(rootText: string): string {
+    const lc = `${this.lc}[${this.getRootIb.name}]`;
+    if (!rootText) { throw new Error(`${lc} text required.`)}
+    return `root ${rootText}`;
+  }
+
+  // #endregion
+
 }

@@ -1,5 +1,5 @@
 import {
-    IbGibSpace, IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib as IbGibSpaceOptionsIbGib, IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceOptionsCmd, IbGibSpaceData, IbGibSpaceOptionsRel8ns, IbGibSpaceResultRel8ns,
+    IbGibSpace, IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib as IbGibSpaceOptionsIbGib, IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceOptionsCmd, IbGibSpaceData, IbGibSpaceOptionsRel8ns, IbGibSpaceResultRel8ns, IbGibSpaceRel8ns,
 } from '../types';
 import {
     IbGib_V1, IbGibRel8ns_V1, IbGibData_V1, sha256v1, Factory_V1,
@@ -18,7 +18,7 @@ export abstract class SpaceBase_V1<
         TResultIbGib extends IbGibSpaceResultIbGib<TIbGib, TResultData, TResultRel8ns>
             = IbGibSpaceResultIbGib<TIbGib, TResultData, TResultRel8ns>,
         TData extends IbGibSpaceData = IbGibSpaceData,
-        TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1,
+        TRel8ns extends IbGibSpaceRel8ns = IbGibSpaceRel8ns,
     >
     extends WitnessBase_V1<
         TOptionsData, TOptionsRel8ns, TOptionsIbGib,

@@ -2,10 +2,11 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrateg
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 // import { analyzeAndValidateNgModules } from '@angular/compiler';
+import { AlertController } from '@ionic/angular';
 import { Plugins } from '@capacitor/core';
 const { Modals } = Plugins;
 
-import {AttributeValue, DynamoDBClient, PutItemCommand} from '@aws-sdk/client-dynamodb';
+// import {AttributeValue, DynamoDBClient, PutItemCommand} from '@aws-sdk/client-dynamodb';
 
 import * as h from 'ts-gib';
 import { IbGibAddr, TransformResult } from 'ts-gib';
@@ -16,21 +17,15 @@ import { encrypt, decrypt, SaltStrategy } from 'encrypt-gib';
 import { IbgibComponentBase } from '../common/bases/ibgib-component-base';
 import { CommonService } from '../services/common.service';
 import { SPECIAL_URLS } from '../common/constants';
-import { LatestEventInfo } from '../common/types';
-import {
-  AWSDynamoSpaceOptionsData,
-  AWSDynamoSpaceOptionsRel8ns,
-  AWSDynamoSpaceOptionsIbGib,
-  AWSDynamoSpace_V1,
-} from '../common/spaces/aws-dynamo-space-v1';
-import { argy_, WitnessBase_V1 } from '../common/witnesses';
+import { CiphertextIbGib_V1, LatestEventInfo, OuterSpaceIbGib, SecretIbGib_V1, } from '../common/types';
 import * as c from '../common/constants';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
-import { EncryptionData_V1, SecretData_V1 } from '../common/types';
+import { EncryptionData_V1 } from '../common/types';
 import { CreateSecretModalComponent } from '../common/create-secret-modal/create-secret-modal.component';
 import { CreateEncryptionModalComponent } from '../common/create-encryption-modal/create-encryption-modal.component';
 import { CreateOuterspaceModalComponent } from '../common/create-outerspace-modal/create-outerspace-modal.component';
 import { IbGibSpaceAny } from '../common/spaces/space-base-v1';
+import { getFnPromptPassword_AlertController } from '../common/helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -64,6 +59,7 @@ export class IbGibPage extends IbgibComponentBase
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
     private activatedRoute: ActivatedRoute,
+    protected alertController: AlertController,
   ) {
     super(common, ref);
   }
@@ -337,14 +333,29 @@ export class IbGibPage extends IbgibComponentBase
 
       debugger;
 
-      for (let i = 0; i < appSyncSpaces.length; i++) {
-        const awsSpace = appSyncSpaces[i];
+      // for each sync space info, we want to create/load the space witness
+      // give the command, passing along the encryption credentials
 
-        let argPut = await awsSpace.argy({
+      for (let i = 0; i < appSyncSpaces.length; i++) {
+        let syncSpace = appSyncSpaces[i];
+
+        debugger;
+        if (syncSpace.rel8ns.ciphertext) {
+          // need to load the ciphertext actual data
+          syncSpace = await this.common.ibgibs.unwrapEncryptedSyncSpace({
+            spaceCiphertextIbGib: <CiphertextIbGib_V1>syncSpace,
+            fnPromptPassword: getFnPromptPassword_AlertController({
+              alertController: this.alertController,
+            }),
+          });
+          debugger;
+        }
+
+        let argPut = await syncSpace.argy({
             argData: { cmd: 'put', },
             ibGibs,
         });
-        let resPut = await awsSpace.witness(argPut);
+        let resPut = await syncSpace.witness(argPut);
 
         if ((resPut?.data?.errors || []).length > 0) {
           throw new Error(`resPut had errors: ${resPut.data.errors}`);
@@ -353,13 +364,13 @@ export class IbGibPage extends IbgibComponentBase
         if (confirm) {
           const ibGibAddrs = ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
           console.warn(`test individual ibgibs confirming put was successful...need to remove!`);
-          const argGet = await awsSpace.argy({
+          const argGet = await syncSpace.argy({
             argData: {
               cmd: 'get',
               ibGibAddrs,
             }
           });
-          const resGet = await awsSpace.witness(argGet);
+          const resGet = await syncSpace.witness(argGet);
 
           if (resGet.ibGibs?.length !== ibGibs.length) {
             throw new Error(`resGet.ibGibs?.length: ${resGet.ibGibs?.length} but ibGibs.length: ${ibGibs.length}`);
@@ -398,7 +409,7 @@ export class IbGibPage extends IbgibComponentBase
       await modal.present();
       let resModal = await modal.onWillDismiss();
       if (resModal.data) {
-        const resNewSecret = <TransformResult<IbGib_V1<SecretData_V1>>>resModal.data;
+        const resNewSecret = <TransformResult<SecretIbGib_V1>>resModal.data;
         await this.common.ibgibs.persistTransformResult({resTransform: resNewSecret});
         const addr = h.getIbGibAddr({ibGib: resNewSecret.newIbGib});
         if (logalot) { console.log(`${lc} created secret. addr: ${addr}`); }
@@ -453,10 +464,11 @@ export class IbGibPage extends IbgibComponentBase
       await modal.present();
       let resModal = await modal.onWillDismiss();
       if (resModal.data) {
-        const newSpace = <IbGib_V1>resModal.data;
-        const addr = h.getIbGibAddr({ibGib: newSpace});
+        const resOuterSpace = <TransformResult<OuterSpaceIbGib>>resModal.data;
+        await this.common.ibgibs.persistTransformResult({resTransform: resOuterSpace});
+        const addr = h.getIbGibAddr({ibGib: resOuterSpace.newIbGib});
         if (logalot) { console.log(`${lc} created outerspace. addr: ${addr}`); }
-        return newSpace;
+        return resOuterSpace.newIbGib;
       } else {
         // didn't create one
         console.warn(`${lc} didn't create outerspace at this time.`);
@@ -467,6 +479,7 @@ export class IbGibPage extends IbgibComponentBase
       return undefined;
     }
   }
+
   async handlePublishClick(): Promise<void> {
     const lc = `${this.lc}[${this.handlePublishClick.name}]`;
     this.item.publishing = true;

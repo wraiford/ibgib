@@ -1,3 +1,5 @@
+import { AlertController } from '@ionic/angular';
+
 import { IBGIB_DELIMITER } from 'ts-gib/dist/V1';
 import { IbGibAddr, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
@@ -87,6 +89,42 @@ export async function hash16816({
             hash = await h.hash({s, algorithm});
         }
         return hash.slice(0, 16);
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
+
+export function getFnPromptPassword_AlertController({
+    alertController,
+    // title,
+    // msg,
+}: {
+    alertController: AlertController,
+    // title: string,
+    // msg: string,
+}): (title: string, msg: string) => Promise<string|null> {
+    const lc = `[${getFnPromptPassword_AlertController.name}]`;
+    try {
+        if (!alertController) { throw new Error('alertController required.'); }
+        let fnPromptPassword =  async (title: string, msg: string) => {
+          const alert = await alertController.create({
+            header: title,
+            message: msg,
+            inputs: [
+              { name: 'password', type: 'password', label: 'Password: ', },
+            ],
+            buttons: [ 'OK', 'Cancel' ],
+          });
+          await alert.present();
+          let result = await alert.onDidDismiss();
+          if (result?.data?.values?.password) {
+            return result!.data!.values!.password;
+          } else {
+            return null;
+          }
+        };
+        return fnPromptPassword;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

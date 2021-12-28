@@ -338,8 +338,7 @@ export class IonicSpace_V1<
                 if (logalot) { console.log(`${lc} getting binHash.binExt: ${binHash}.${binExt}`); }
                 const getResult = await this.getFile({addr});
                 if (getResult?.success && getResult.ibGib?.data) {
-                    if (logalot) { console.log(`${lc} getResult.success. binData.length: ${getResult.ibGib!.data!}`); }
-                    // console.log(`${lc} getResult.success.`);
+                    if (logalot) { console.log(`${lc} getResult.success. ibGib.data.length: ${getResult.ibGib!.data!.length}`); }
                     resultIbGibs.push(getResult.ibGib);
                 } else {
                     if (logalot) { console.log(`${lc} not found in files. (binData is not cached atm)`) }

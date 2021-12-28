@@ -12,8 +12,8 @@ import {
 } from 'ts-gib/dist/V1';
 import { getIbGibAddr, IbGibAddr, V1 } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
-import { encodeStringToHexString, decodeHexStringToString } from 'encrypt-gib/dist/helper';
-import { encrypt, decrypt, HashAlgorithm, SaltStrategy } from 'encrypt-gib';
+// import { encodeStringToHexString, decodeHexStringToString } from 'encrypt-gib/dist/helper';
+// import { encrypt, decrypt, HashAlgorithm, SaltStrategy } from 'encrypt-gib';
 
 import { SpaceBase_V1 } from './space-base-v1';
 import {
@@ -21,65 +21,24 @@ import {
     IbGibSpaceData,
     IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib,
     IbGibSpaceOptionsRel8ns,
-    IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns,
+    IbGibSpaceRel8ns,
+    IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns, OuterSpaceData, OuterSpaceRel8ns, SyncSpaceData, SyncSpaceSubtype,
 } from '../types';
 import * as c from '../constants';
 import { getBinAddr } from '../helper';
 import { Plugins } from '@capacitor/core';
 
-// #region TEMPORARY! DynamoDB credentials related
-
-// console.error(`importing local credentials...take this code out!!`);
-// var tempCredentialsEncrypted: DynamoDBApiCredentials_Encrypted = require('../../../../../../ionic-gib-cred.encrypted.json');
-// interface DynamoDBApiCredentials_Encrypted  {
-//     encryptedData: string;
-//     initialRecursions: number;
-//     salt: string;
-//     hashAlgorithm: HashAlgorithm;
-//     saltStrategy: SaltStrategy;
-//     recursionsPerHash: number;
-// }
-// var tempCredentialsEncrypted: DynamoDBApiCredentials_Encrypted;
-/**
- * if you want to publish to the cloud, then for now, create aws dynamodb api credentials
- * in the following form
- */
-// var tempCredentials: DynamoDBApiCredentials = {
-//     tableName: '',
-//     accessKeyId: '',
-//     secretAccessKey: '',
-//     region: 'us-east-1',
-// };
-
-// console.error(`importing local credentials...take this code out!!`);
-
-// #endregion
-
 // #region DynamoDB related
 
-type AWSItem = { [key: string]: AttributeValue };
+type AWSDynamoDBItem = { [key: string]: AttributeValue };
 
-const DEFAULT_PRIMARY_KEY_NAME = 'ibGibAddrHash';
-const DEFAULT_AWS_MAX_RETRY_THROUGHPUT = 3;
-const DEFAULT_AWS_MAX_RETRY_UNPROCESSED_ITEMS = 5;
-const DEFAULT_AWS_PUT_BATCH_SIZE = 25;
-const DEFAULT_AWS_GET_BATCH_SIZE = 100;
-const DEFAULT_AWS_PUT_THROTTLE_MS = 1000;
-const DEFAULT_AWS_GET_THROTTLE_MS = 500;
-const DEFAULT_AWS_RETRY_THROUGHPUT_THROTTLE_MS = 3000;
 
-/**
- * This is returned if we're trying to do things too quickly when batch write/get
- *
- * @link https://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/dynamodbv2/model/ProvisionedThroughputExceededException.html
- */
-const AWS_THROUGHPUT_ERROR_NAME = "ProvisionedThroughputExceededException";
 
 /**
  * Item interface
  */
-interface AWSDynamoSpaceItem extends AWSItem {
-    [DEFAULT_PRIMARY_KEY_NAME]: AttributeValue,
+interface AWSDynamoSpaceItem extends AWSDynamoDBItem {
+    [c.DEFAULT_PRIMARY_KEY_NAME]: AttributeValue,
     ib: AttributeValue,
     gib: AttributeValue,
     data?: AttributeValue,
@@ -90,8 +49,8 @@ interface AWSDynamoSpaceItem extends AWSItem {
 /**
  * helper function that checks if an error is an aws throughput error.
  */
-function isThroughoutError(error: any): boolean {
-    return error?.name === AWS_THROUGHPUT_ERROR_NAME;
+function isThroughputError(error: any): boolean {
+    return error?.name === c.AWS_THROUGHPUT_ERROR_NAME;
 }
 
 /**
@@ -141,7 +100,7 @@ async function createDynamoDBPutItem({
             const primaryKey = await getPrimaryKey({addr});
 
             item = {
-                [DEFAULT_PRIMARY_KEY_NAME]: { S: primaryKey },
+                [c.DEFAULT_PRIMARY_KEY_NAME]: { S: primaryKey },
                 ib: { S: JSON.stringify(ibGib.ib) },
                 gib: { S: JSON.stringify(ibGib.gib) },
             }
@@ -153,7 +112,7 @@ async function createDynamoDBPutItem({
             const { ib, gib } = h.getIbAndGib({ibGibAddr: addr});
 
             item = {
-                [DEFAULT_PRIMARY_KEY_NAME]: { S: addrHash },
+                [c.DEFAULT_PRIMARY_KEY_NAME]: { S: addrHash },
                 ib: { S: ib },
                 gib: { S: gib },
                 data: { B: binData },
@@ -266,7 +225,7 @@ async function createDynamoDBBatchGetItemCommand({
                 RequestItems: {
                     [tableName]: {
                         // e.g. { IbGibAddrHash: { S: '3b5781e8653a40269132a5c586e6472b'} },
-                        Keys: keys.map(key => { return { [DEFAULT_PRIMARY_KEY_NAME]: { S: key }} }),
+                        Keys: keys.map(key => { return { [c.DEFAULT_PRIMARY_KEY_NAME]: { S: key }} }),
                         ConsistentRead: true,
                         ProjectionExpression: projectionExpression,
                     }
@@ -336,11 +295,22 @@ function createClient({
 
 // #region Space related interfaces/constants
 
+
+// export interface SyncSpaceData_AWSDynamoDB extends SyncSpaceData {
+//     tableName: string;
+//     accessKeyId: string;
+//     secretAccessKey: string;
+//     region: AWSRegion;
+// }
+
 /**
  * This is the shape of data about this space itself (not the contained ibgibs' spaces).
  */
-export interface AWSDynamoSpace_V1_Data extends IbGibSpaceData {
+export interface SyncSpaceData_AWSDynamoDB extends SyncSpaceData {
     tableName: string;
+    accessKeyId: string;
+    secretAccessKey: string;
+    region: AWSRegion;
     /**
      * Max number of times to retry due to 400 errors related to throughput.
      */
@@ -349,10 +319,13 @@ export interface AWSDynamoSpace_V1_Data extends IbGibSpaceData {
      * Max number of times to retry due to unprocessed items in command result.
      */
     maxRetryUnprocessedItemsCount: number;
-    accessKeyId: string;
-    secretAccessKey: string;
-    region: AWSRegion;
+    /**
+     * Puts of ibgibs will be batched into this size max.
+     */
     putBatchSize: number;
+    /**
+     * Gets of ibgibAddrs will be batched into this size max.
+     */
     getBatchSize: number;
     /**
      * delays this ms between batch put calls in a tight loop.
@@ -368,25 +341,25 @@ export interface AWSDynamoSpace_V1_Data extends IbGibSpaceData {
     throttleMsDueToThroughputError: number;
 }
 
-console.error(`temporary credentials being used by default. remove these credentials`);
+export interface SyncSpaceRel8ns_AWSDynamoDB
+    extends OuterSpaceRel8ns {
+}
 
-const DEFAULT_AWS_DYNAMO_SPACE_DATA_V1: AWSDynamoSpace_V1_Data = {
+const DEFAULT_AWS_DYNAMO_SPACE_DATA_V1: SyncSpaceData_AWSDynamoDB = {
     name: c.IBGIB_SPACE_NAME_DEFAULT,
+    type: 'sync',
+    subtype: 'aws-dynamodb',
     tableName: '',
-    maxRetryThroughputCount: DEFAULT_AWS_MAX_RETRY_THROUGHPUT,
-    maxRetryUnprocessedItemsCount: DEFAULT_AWS_MAX_RETRY_UNPROCESSED_ITEMS,
+    maxRetryThroughputCount: c.DEFAULT_AWS_MAX_RETRY_THROUGHPUT,
+    maxRetryUnprocessedItemsCount: c.DEFAULT_AWS_MAX_RETRY_UNPROCESSED_ITEMS,
     accessKeyId: '',
     secretAccessKey: '',
     region: '',
-    putBatchSize: DEFAULT_AWS_PUT_BATCH_SIZE,
-    getBatchSize: DEFAULT_AWS_GET_BATCH_SIZE,
-    throttleMsBetweenPuts: DEFAULT_AWS_PUT_THROTTLE_MS,
-    throttleMsBetweenGets: DEFAULT_AWS_GET_THROTTLE_MS,
-    throttleMsDueToThroughputError: DEFAULT_AWS_RETRY_THROUGHPUT_THROTTLE_MS,
-}
-
-/** Marker interface atm */
-export interface AWSDynamoRel8ns_V1 extends IbGibRel8ns_V1 {
+    putBatchSize: c.DEFAULT_AWS_PUT_BATCH_SIZE,
+    getBatchSize: c.DEFAULT_AWS_GET_BATCH_SIZE,
+    throttleMsBetweenPuts: c.DEFAULT_AWS_PUT_THROTTLE_MS,
+    throttleMsBetweenGets: c.DEFAULT_AWS_GET_THROTTLE_MS,
+    throttleMsDueToThroughputError: c.DEFAULT_AWS_RETRY_THROUGHPUT_THROTTLE_MS,
 }
 
 /**
@@ -421,7 +394,6 @@ export interface AWSDynamoSpaceOptionsData extends IbGibSpaceOptionsData {
 export interface AWSDynamoSpaceOptionsRel8ns extends IbGibSpaceOptionsRel8ns {
 }
 
-/** Marker interface atm */
 export interface AWSDynamoSpaceOptionsIbGib
     extends IbGibSpaceOptionsIbGib<IbGib_V1, AWSDynamoSpaceOptionsData, AWSDynamoSpaceOptionsRel8ns> {
     /**
@@ -459,7 +431,7 @@ export interface AWSDynamoSpaceResultIbGib
 
 // #region get/put files related (re-using from files service)
 
-interface FileResult {
+interface BaseResult {
   success?: boolean;
   /**
    * If errored, this will contain the errorMsg.
@@ -495,7 +467,7 @@ interface GetIbGibOpts {
 /**
  * Result for retrieving an ibGib from the file system.
  */
-interface GetIbGibResult extends FileResult {
+interface GetIbGibResult extends BaseResult {
   /**
    * ibGib if retrieving a "regular" ibGib.
    *
@@ -531,12 +503,12 @@ interface PutIbGibOpts {
    */
   isMeta?: boolean;
 }
-interface PutIbGibResult extends FileResult {
+interface PutIbGibResult extends BaseResult {
   binHash?: string;
 }
 
 interface DeleteIbGibOpts extends GetIbGibOpts { }
-interface DeleteIbGibResult extends FileResult { }
+interface DeleteIbGibResult extends BaseResult { }
 
 // #endregion
 
@@ -551,8 +523,8 @@ interface DeleteIbGibResult extends FileResult { }
  *   * thank you for the exponential backoff
  */
 export class AWSDynamoSpace_V1<
-        TData extends AWSDynamoSpace_V1_Data = AWSDynamoSpace_V1_Data,
-        TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
+        TData extends SyncSpaceData_AWSDynamoDB = SyncSpaceData_AWSDynamoDB,
+        TRel8ns extends SyncSpaceRel8ns_AWSDynamoDB = SyncSpaceRel8ns_AWSDynamoDB
     > extends SpaceBase_V1<
         IbGib_V1,
         AWSDynamoSpaceOptionsData,
@@ -620,7 +592,7 @@ export class AWSDynamoSpace_V1<
      * @returns newly created space built upon `dto`
      */
     static createFromDto<
-            TData extends AWSDynamoSpace_V1_Data = AWSDynamoSpace_V1_Data,
+            TData extends SyncSpaceData_AWSDynamoDB = SyncSpaceData_AWSDynamoDB,
             TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
         >(dto: IbGib_V1<TData, TRel8ns>): AWSDynamoSpace_V1<TData, TRel8ns> {
         const space = new AWSDynamoSpace_V1<TData, TRel8ns>(null, null);
@@ -759,13 +731,13 @@ export class AWSDynamoSpace_V1<
         client: DynamoDBClient,
     }): Promise<TOutput> {
         const lc = `${this.lc}[${this.sendCmd.name}]`;
-        const maxRetries = this.data.maxRetryThroughputCount || DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
+        const maxRetries = this.data.maxRetryThroughputCount || c.DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
         for (let i = 0; i < maxRetries; i++) {
             try {
                 const resSend: TOutput = <any>(await client.send(cmd));
                 return resSend;
             } catch (error) {
-                if (!isThroughoutError(error)){ throw error; }
+                if (!isThroughputError(error)){ throw error; }
             }
             console.log(`${lc} retry ${i} due to throughput in ${this.data.throttleMsDueToThroughputError} ms`);
             await h.delay(this.data.throttleMsDueToThroughputError);
@@ -786,7 +758,7 @@ export class AWSDynamoSpace_V1<
         const lc = `${this.lc}[${this.getIbGibBatch.name}]`;
         const ibGibs: IbGib_V1[] = [];
         try {
-            // const maxRetries = this.data.maxRetryThroughputCount || DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
+            // const maxRetries = this.data.maxRetryThroughputCount || c.DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
 
             let retryUnprocessedItemsCount = 0;
             const doItems = async (unprocessedKeys?: KeysAndAttributes) => {
@@ -865,8 +837,8 @@ export class AWSDynamoSpace_V1<
             if (ibGibAddrs.length === 0) { throw new Error(`No ibGibAddrs provided.`); }
 
             let runningCount = 0;
-            const batchSize = this.data.getBatchSize || DEFAULT_AWS_GET_BATCH_SIZE;
-            const throttleMs = this.data.throttleMsBetweenGets || DEFAULT_AWS_GET_THROTTLE_MS;
+            const batchSize = this.data.getBatchSize || c.DEFAULT_AWS_GET_BATCH_SIZE;
+            const throttleMs = this.data.throttleMsBetweenGets || c.DEFAULT_AWS_GET_THROTTLE_MS;
             const rounds = Math.ceil(ibGibAddrs.length / batchSize);
             for (let i = 0; i < rounds; i++) {
                 let doNext = ibGibAddrs.splice(batchSize);
@@ -959,7 +931,7 @@ export class AWSDynamoSpace_V1<
                 const item = await createDynamoDBPutItem({ibGib});
                 ibGibItems.push(item);
             }
-            // const maxRetries = this.data.maxRetryThroughputCount || DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
+            // const maxRetries = this.data.maxRetryThroughputCount || c.DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
 
             const doItems = async (items: AWSDynamoSpaceItem[]) => {
                 let cmd = createDynamoDBBatchWriteItemCommand({
@@ -1023,8 +995,8 @@ export class AWSDynamoSpace_V1<
             let ibGibs = (arg.ibGibs || []).concat(); // copy
 
             let runningCount = 0;
-            const batchSize = this.data.putBatchSize || DEFAULT_AWS_PUT_BATCH_SIZE;
-            const throttleMs = this.data.throttleMsBetweenPuts || DEFAULT_AWS_PUT_THROTTLE_MS;
+            const batchSize = this.data.putBatchSize || c.DEFAULT_AWS_PUT_BATCH_SIZE;
+            const throttleMs = this.data.throttleMsBetweenPuts || c.DEFAULT_AWS_PUT_THROTTLE_MS;
             const rounds = Math.ceil(ibGibs.length / batchSize);
             for (let i = 0; i < rounds; i++) {
                 let doNext = ibGibs.splice(batchSize);

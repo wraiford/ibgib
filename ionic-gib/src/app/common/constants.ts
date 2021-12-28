@@ -151,6 +151,11 @@ export const SECRET_REL8N_NAME = 'secret';
  * An encryptions ibgib uses this rel8n name for its children encryptions.
  */
 export const ENCRYPTION_REL8N_NAME = 'encryption';
+/**
+ * Related encrypted ciphertext ibgibs will use this rel8n name.
+ * Those ciphertext ibgibs will then relate to the encryption used.
+ */
+export const CIPHERTEXT_REL8N_NAME = 'ciphertext';
 
 /**
  * These rel8n names are shown in a list view by default.
@@ -270,6 +275,7 @@ export const MIN_ENCRYPTION_PASSWORD_LENGTH = 8;
 export const MAX_ENCRYPTION_PASSWORD_LENGTH = 9999999;
 export const DEFAULT_ENCRYPTION_SALT_STRATEGY: SaltStrategy = SaltStrategy.appendPerHash;
 export const DEFAULT_ENCRYPTION_RECURSIONS_PER_HASH = 10;
+export const DEFAULT_ENCRYPTION_HASH_ALGORITHM = 'SHA-256';
 
 
 /**
@@ -305,5 +311,26 @@ export const AWS_DYNAMODB_REGEXP_ATTR: RegExp = /^[a-zA-Z0-9_\-.]{1,255}$/;
  * @example us-east-1
  */
 export const AWS_REGION_REGEXP = /^[a-z][a-z]-[a-z]{1,20}-[0-9]{1,2}$/;
+
+/**
+ * Default primary key name for dynamodb
+ */
+export const DEFAULT_PRIMARY_KEY_NAME = 'ibGibAddrHash';
+/**
+ *
+ */
+export const DEFAULT_AWS_MAX_RETRY_THROUGHPUT = 3;
+export const DEFAULT_AWS_MAX_RETRY_UNPROCESSED_ITEMS = 5;
+export const DEFAULT_AWS_PUT_BATCH_SIZE = 25;
+export const DEFAULT_AWS_GET_BATCH_SIZE = 100;
+export const DEFAULT_AWS_PUT_THROTTLE_MS = 1000;
+export const DEFAULT_AWS_GET_THROTTLE_MS = 500;
+export const DEFAULT_AWS_RETRY_THROUGHPUT_THROTTLE_MS = 3000;
+/**
+ * This is returned if we're trying to do things too quickly when batch write/get
+ *
+ * @link https://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/dynamodbv2/model/ProvisionedThroughputExceededException.html
+ */
+export const AWS_THROUGHPUT_ERROR_NAME = "ProvisionedThroughputExceededException";
 
 // #endregion

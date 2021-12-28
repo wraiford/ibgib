@@ -1,6 +1,7 @@
 import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 import { IbGibAddr, IbGib, IbGibWithDataAndRel8ns, IbGibRel8ns } from 'ts-gib';
 import { HashAlgorithm, SaltStrategy, } from 'encrypt-gib';
+import * as c from './constants';
 
 export type IbgibItemType =
     'pic' | 'comment' | 'link' | 'tag' | 'tags' | 'root' | 'roots' | 'other';
@@ -221,6 +222,10 @@ export interface IbGibSpaceData {
     persistOptsAndResultIbGibs?: boolean;
 }
 
+export interface IbGibSpaceRel8ns extends IbGibRel8ns_V1 {
+    [c.ENCRYPTION_REL8N_NAME]?: IbGibAddr[];
+}
+
 /** Cmds for interacting with ibgib spaces.  */
 export type IbGibSpaceOptionsCmd =
     'get' | 'put' | 'delete' | 'canGet' | 'canPut' | 'getAddrs';
@@ -261,7 +266,9 @@ export interface IbGibSpaceOptionsData {
      */
     trace?: boolean;
 }
-export interface IbGibSpaceOptionsRel8ns extends IbGibRel8ns_V1 { }
+
+export interface IbGibSpaceOptionsRel8ns extends IbGibRel8ns_V1 {
+}
 
 export interface IbGibSpaceOptionsIbGib<
     TIbGib extends IbGib,
@@ -360,7 +367,7 @@ export interface IbGibSpace<
     TResultRel8ns extends IbGibSpaceResultRel8ns,
     TResultIbGib extends IbGibSpaceResultIbGib<TIbGib, TResultData, TResultRel8ns>,
     TData extends IbGibSpaceData = IbGibSpaceData,
-    TRel8ns extends IbGibRel8ns = IbGibRel8ns,
+    TRel8ns extends IbGibSpaceRel8ns = IbGibRel8ns,
     >
     extends Witness<TOptionsIbGib, TResultIbGib, TData, TRel8ns> {
     witness(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
@@ -368,6 +375,7 @@ export interface IbGibSpace<
 
 // #endregion
 
+export type AWSRegion = 'us-east-1' | string;
 
 // #region outer spaces
 
@@ -383,32 +391,21 @@ export const SyncSpaceSubtype = {
 }
 export const VALID_OUTER_SPACE_SUBTYPES = Object.values(SyncSpaceSubtype).concat();
 
-export interface OuterSpaceInfo {
+export interface OuterSpaceData extends IbGibSpaceData {
     type: OuterSpaceType;
 }
 
-export interface SyncSpaceInfo extends OuterSpaceInfo {
+export interface SyncSpaceData extends OuterSpaceData {
     type: 'sync';
     subtype: SyncSpaceSubtype;
 }
 
-export type AWSRegion = 'us-east-1' | string;
-
-export interface SyncSpace_AWSDynamoDB extends SyncSpaceInfo {
-    tableName: string;
-    accessKeyId: string;
-    secretAccessKey: string;
-    region: AWSRegion;
+export interface OuterSpaceRel8ns extends IbGibSpaceRel8ns {
+    [c.CIPHERTEXT_REL8N_NAME]?: IbGibAddr[];
 }
 
-export interface OuterSpaceData<TInfo extends OuterSpaceInfo = OuterSpaceInfo> extends IbGibSpaceData {
-    info?: TInfo;
-    encryptedInfo?: string;
-    encryptionDetails: any;
-}
-
-export interface SyncSpace_AWSDynamoDB_Data
-    extends OuterSpaceData<SyncSpace_AWSDynamoDB> {
+export interface OuterSpaceIbGib
+    extends IbGib_V1<OuterSpaceData, OuterSpaceRel8ns> {
 
 }
 
@@ -448,6 +445,12 @@ export interface SecretInfo_Password extends SecretInfo {
     hint?: string;
 }
 export type SecretData_V1 = SecretInfo; // extend this with logical OR later
+
+export interface SecretRel8ns_V1 extends IbGibRel8ns_V1 {
+}
+
+export interface SecretIbGib_V1 extends IbGib_V1<SecretData_V1, SecretRel8ns_V1> {
+}
 
 export interface EncryptionInfo {
     name: string;
@@ -504,22 +507,29 @@ export interface EncryptionInfo_EncryptGib extends EncryptionInfo {
 
 export type EncryptionData_V1 = EncryptionInfo_EncryptGib; // extend this with logical OR later
 
-// let encryptionx: EncryptionInfo_EncryptGib = {
-let encryptionx: EncryptionData_V1 = {
-    name: 'super encryption name',
-    description: 'this is my super encryption method here.',
-    /**
-     * ty
-     * https://stackoverflow.com/questions/8609261/how-to-determine-one-year-from-now-in-javascript
-     */
-    // expirationUTC: (new Date(new Date().setFullYear(new Date().getFullYear() + 1))).toUTCString(),
-    method: 'encrypt-gib (weak)',
-    hashAlgorithm: 'SHA-256',
-    initialRecursions: 20000,
-    recursionsPerHash: 2,
-    salt: 'iowejf oiewjf oewifh aewhf 78wey78y23 87h iuh23 fiuh iu2fh ieuwh fbvbvbvbbb',
-    saltStrategy: 'prependPerHash',
-};
+/**
+ * Data for the actual encrypted ciphertext.
+ */
+export interface CiphertextData<TMetadata = any> {
+    ciphertext?: string;
+    metadata?: TMetadata;
+}
+
+/**
+ * Rel8ns for the actual encrypted ciphertext
+ */
+export interface CiphertextRel8ns extends IbGibRel8ns_V1 {
+    [c.ENCRYPTION_REL8N_NAME]?: IbGibAddr[];
+}
+
+/**
+ * Ibgib for the actual encrypted content, as opposed to the
+ * encryption secret (password) or encryption method/algorithm.
+ */
+export interface CiphertextIbGib_V1<TMetadata = any>
+    extends IbGib_V1<CiphertextData<TMetadata>, CiphertextRel8ns> {
+}
+
 
 // #endregion
 

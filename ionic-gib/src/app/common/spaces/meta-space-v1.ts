@@ -9,6 +9,7 @@ import {
     IbGibSpaceData,
     IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib,
     IbGibSpaceOptionsRel8ns,
+    IbGibSpaceRel8ns,
     IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns,
 } from '../types';
 import * as c from '../constants';
@@ -33,7 +34,10 @@ const DEFAULT_META_SPACE_DATA_V1: MetaSpaceData_V1 = {
 }
 
 /** Marker interface atm */
-export interface MetaSpaceRel8ns_V1 extends IbGibRel8ns_V1 {
+export interface MetaSpaceRel8ns_V1 extends IbGibSpaceRel8ns {
+    /**
+     * Success requirements
+     */
     ['successReq']?: IbGibAddr[];
 }
 

@@ -6,9 +6,7 @@ import * as h from 'ts-gib/dist/helper';
 
 import * as c from '../constants';
 import {
-  OuterSpaceType, SyncSpaceSubtype,
-  SyncSpaceInfo, SyncSpace_AWSDynamoDB,
-  VALID_OUTER_SPACE_TYPES, VALID_OUTER_SPACE_SUBTYPES, AWSRegion, OuterSpaceData, SecretData_V1, FieldInfo,
+  FieldInfo,
 } from '../types';
 import { getRegExp } from '../helper';
 

@@ -1,5 +1,8 @@
 import { AfterViewInit, Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { ModalController } from '@ionic/angular';
+import { AlertController } from '@ionic/angular';
+import { Plugins } from '@capacitor/core';
+const { Modals } = Plugins;
 
 import { IbGib_V1, Factory_V1 as factory } from 'ts-gib/dist/V1';
 import * as h from 'ts-gib/dist/helper';
@@ -7,23 +10,41 @@ import * as h from 'ts-gib/dist/helper';
 import * as c from '../constants';
 import {
   OuterSpaceType, SyncSpaceSubtype,
-  SyncSpaceInfo, SyncSpace_AWSDynamoDB,
-  VALID_OUTER_SPACE_TYPES, VALID_OUTER_SPACE_SUBTYPES, AWSRegion, OuterSpaceData, SecretData_V1, FieldInfo, EncryptionData_V1,
+  VALID_OUTER_SPACE_TYPES, VALID_OUTER_SPACE_SUBTYPES, AWSRegion,
+  OuterSpaceData, OuterSpaceRel8ns,
+  SecretData_V1, FieldInfo, EncryptionData_V1, OuterSpaceIbGib, SecretIbGib_V1,
 } from '../types';
-import { getRegExp } from '../helper';
+import { getFnPromptPassword_AlertController, getRegExp } from '../helper';
 import { CreateModalComponentBase } from '../bases/create-modal-component-base';
 import { TransformResult } from 'ts-gib';
 import { CommonService } from 'src/app/services/common.service';
+import { SyncSpaceData_AWSDynamoDB } from '../spaces/aws-dynamo-space-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
-const EXAMPLE_SYNC_SPACE_AWSDYNAMODB: SyncSpace_AWSDynamoDB = {
+const EXAMPLE_SYNC_SPACE_AWSDYNAMODB: SyncSpaceData_AWSDynamoDB = {
+    uuid: '01c4bb00999741018716c47bf7bebcf2',
+    name: 'default_name',
+    description: 'this is a test space.',
     type: 'sync',
     subtype: 'aws-dynamodb',
+
     tableName: 'some-table-name-with-primary-key-named-ibGibAddrHash',
     accessKeyId: 'some-aws-key-id',
     secretAccessKey: 'some-aws-secret-access-key',
     region: 'us-east-1',
+
+    maxRetryThroughputCount: c.DEFAULT_AWS_MAX_RETRY_THROUGHPUT,
+    maxRetryUnprocessedItemsCount: c.DEFAULT_AWS_MAX_RETRY_UNPROCESSED_ITEMS,
+    putBatchSize: c.DEFAULT_AWS_PUT_BATCH_SIZE,
+    getBatchSize: c.DEFAULT_AWS_GET_BATCH_SIZE,
+    throttleMsBetweenPuts: c.DEFAULT_AWS_PUT_THROTTLE_MS,
+    throttleMsBetweenGets: c.DEFAULT_AWS_GET_THROTTLE_MS,
+    throttleMsDueToThroughputError: c.DEFAULT_AWS_RETRY_THROUGHPUT_THROTTLE_MS,
+
+    catchAllErrors: true,
+    persistOptsAndResultIbGibs: true,
+    trace: false,
 }
 
 /**
@@ -37,12 +58,13 @@ const EXAMPLE_SYNC_SPACE_AWSDYNAMODB: SyncSpace_AWSDynamoDB = {
   styleUrls: ['./create-outerspace-modal.component.scss'],
 })
 export class CreateOuterspaceModalComponent
-  extends CreateModalComponentBase<TransformResult<IbGib_V1<OuterSpaceData>>>
+  extends CreateModalComponentBase<TransformResult<OuterSpaceIbGib>>
   implements OnInit, OnDestroy, AfterViewInit {
 
   protected lc: string = `[${CreateOuterspaceModalComponent.name}]`;
 
-
+  @Input()
+  uuid: string;
   @Input()
   name: string;
   @Input()
@@ -64,9 +86,9 @@ export class CreateOuterspaceModalComponent
   encryption: IbGib_V1<EncryptionData_V1>;
 
   @Input()
-  secrets: IbGib_V1<SecretData_V1>[] = [];
+  secrets: SecretIbGib_V1[] = [];
   @Input()
-  selectedSecrets: IbGib_V1<SecretData_V1>[] = [];
+  selectedSecrets: SecretIbGib_V1[] = [];
 
 
   @Input()
@@ -161,19 +183,20 @@ export class CreateOuterspaceModalComponent
     },
   }
 
-  @Input()
-  validationErrors: string[] = [];
-  @Input()
-  validationErrorString: string;
-  @Input()
-  erroredFields: string[] = [];
+  // @Input()
+  // validationErrors: string[] = [];
+  // @Input()
+  // validationErrorString: string;
+  // @Input()
+  // erroredFields: string[] = [];
 
-  @Input()
-  showHelp: boolean;
+  // @Input()
+  // showHelp: boolean;
 
   constructor(
     protected modalController: ModalController,
     protected common: CommonService,
+    protected alertController: AlertController,
   ) {
     super(modalController);
   }
@@ -188,8 +211,8 @@ export class CreateOuterspaceModalComponent
     this.type = this.types[0];
     this.subtypes = VALID_OUTER_SPACE_SUBTYPES.concat();
     this.subtype = this.subtypes[0];
+    this.uuid = await h.getUUID();
 
-    debugger;
     this.encryptions = await this.common.ibgibs.getSpecialRel8dIbGibs({
       type: "encryptions", rel8nName: c.ENCRYPTION_REL8N_NAME
     });
@@ -198,7 +221,7 @@ export class CreateOuterspaceModalComponent
     this.secrets = await this.common.ibgibs.getSpecialRel8dIbGibs({
       type: "secrets", rel8nName: c.SECRET_REL8N_NAME
     });
-    debugger;
+
   }
 
   ngOnDestroy() {
@@ -206,24 +229,28 @@ export class CreateOuterspaceModalComponent
     if (logalot) { console.log(`${lc}`); }
   }
 
-  protected async createImpl(): Promise<TransformResult<IbGib_V1<OuterSpaceData>>> {
-  // async handleCreateClick(): Promise<void> {
+  protected async createImpl(): Promise<TransformResult<OuterSpaceIbGib>> {
     const lc = `${this.lc}[${this.createImpl.name}]`;
     try {
-      let newSpaceIbGib: TransformResult<IbGib_V1<OuterSpaceData>>;
+      let resSpaceIbGib: TransformResult<OuterSpaceIbGib>;
 
       // create the space
       if (this.type === 'sync' && this.subtype === 'aws-dynamodb') {
-        newSpaceIbGib = await this.createSyncSpace_AWSDynamoDB();
+        resSpaceIbGib = await this.createSyncSpace_AWSDynamoDB();
+        debugger;
       } else {
         throw new Error(`unknown space type/subtype(?): ${this.type}, ${this.subtype}`);
       }
 
-      if (!newSpaceIbGib) { throw new Error(`newSpaceIbGib was not created`); }
+      if (!resSpaceIbGib) {
+        console.warn(`${lc} Create failed.`);
+        return undefined;
+      }
 
-      return newSpaceIbGib;
+      return resSpaceIbGib;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
+      throw error;
     }
   }
 
@@ -245,35 +272,95 @@ export class CreateOuterspaceModalComponent
       }
   }
 
-  async createSyncSpace_AWSDynamoDB(): Promise<TransformResult<IbGib_V1<OuterSpaceData>>> {
+  async createSyncSpace_AWSDynamoDB(): Promise<TransformResult<OuterSpaceIbGib>> {
     const lc = `${this.lc}[${this.createSyncSpace_AWSDynamoDB.name}]`;
     try {
-      throw new Error('not implemented');
-      const syncInfo: SyncSpace_AWSDynamoDB = {
+      // prompt for the secret(s)
+      const password = await this.common.ibgibs.promptForSecrets({
+        secretIbGibs: this.secrets,
+        fnPromptPassword:
+          getFnPromptPassword_AlertController({
+            alertController: this.alertController
+          }),
+        // fnPromptPassword: async (title: string, msg: string) => {
+        //   const alert = await this.alertController.create({
+        //     header: title,
+        //     message: msg,
+        //     inputs: [
+        //       { name: 'password', type: 'password', label: 'Password: ', },
+        //     ],
+        //     buttons: [ 'OK', 'Cancel' ],
+        //   });
+        //   await alert.present();
+        //   let result = await alert.onDidDismiss();
+        //   if (result?.data?.values?.password) {
+        //     return result!.data!.values!.password;
+        //   } else {
+        //     return null;
+        //   }
+        // },
+      });
+
+      if (!password) { return undefined; }
+
+      // create the info
+      const uuid = await h.getUUID();
+      const syncSpaceData: SyncSpaceData_AWSDynamoDB = {
+        uuid,
+        name: this.name,
+        description: this.description,
         type: 'sync',
         subtype: 'aws-dynamodb',
+
         tableName: this.tableName,
         accessKeyId: this.accessKeyId,
         secretAccessKey: this.secretAccessKey,
         region: this.region,
+
+        maxRetryThroughputCount: c.DEFAULT_AWS_MAX_RETRY_THROUGHPUT,
+        maxRetryUnprocessedItemsCount: c.DEFAULT_AWS_MAX_RETRY_UNPROCESSED_ITEMS,
+        putBatchSize: c.DEFAULT_AWS_PUT_BATCH_SIZE,
+        getBatchSize: c.DEFAULT_AWS_GET_BATCH_SIZE,
+        throttleMsBetweenPuts: c.DEFAULT_AWS_PUT_THROTTLE_MS,
+        throttleMsBetweenGets: c.DEFAULT_AWS_GET_THROTTLE_MS,
+        throttleMsDueToThroughputError: c.DEFAULT_AWS_RETRY_THROUGHPUT_THROTTLE_MS,
       };
 
-      const data: OuterSpaceData = {
-        encryptedInfo: null,
-        encryptionDetails: null,
-        name: this.name,
-        description: this.description,
-      }
+      debugger;
+      // create the ciphertext ibgib, encrypting with the encryption and secret(s)
+      const resCiphertext =
+        await this.common.ibgibs.getCiphertextIbGib({
+          plaintext: JSON.stringify(syncSpaceData),
+          password,
+          encryptionIbGib: this.encryption,
+          confirm: true,
+          persist: true,
+          // publicIbMetadata: `outerspace sync ${this.name}`,
+          // publicMetadata: { name: this.name, description: this.description, },
+        });
 
-      // create an ibgib with the filename and ext
-      const resPicIbGib = await factory.firstGen({
-        parentIbGib: factory.primitive({ib: ''}),
-        ib: ``,
-        data,
+      // create the outerspace ibgib, rel8ing to the ciphertext ibgib
+      const resOuterSpace = await factory.firstGen({
+        parentIbGib: factory.primitive({ib: 'outerspace'}),
+        ib: `outerspace sync ${this.name}`,
+        data: <OuterSpaceData>{
+          name: this.name,
+          uuid: this.uuid,
+          description: this.description,
+        },
+        rel8ns: <OuterSpaceRel8ns>{
+          [c.CIPHERTEXT_REL8N_NAME]:
+            [h.getIbGibAddr({ibGib: resCiphertext.newIbGib})],
+          [c.SECRET_REL8N_NAME]:
+            this.selectedSecrets.map(ibGib => h.getIbGibAddr(ibGib)),
+        },
         dna: false,
         tjp: { uuid: true, timestamp: true },
         nCounter: true,
       });
+
+      debugger;
+      return <TransformResult<OuterSpaceIbGib>>resOuterSpace;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -296,18 +383,19 @@ export class CreateOuterspaceModalComponent
     }
   }
   handleSelectedSecretsChange(item: any): void {
-    if (item?.detail?.value && this.secrets.includes(item!.detail!.value)) {
-      this.selectedSecrets = item!.detail!.value;
+    if (!item?.detail?.value || !Array.isArray(item.detail.value)) {
+      this.selectedSecrets = [];
+      return;
     }
+    const newSecrets: SecretIbGib_V1[] = item.detail!.value!;
+    this.selectedSecrets = newSecrets;
   }
 
   compareWith_Secrets(a: any, b: any): boolean {
-    debugger;
     return a.gib === b.gib;
   }
 
   compareWith_Encryptions(a: any, b: any): boolean {
-    debugger;
     return a.gib === b.gib;
   }
 }
