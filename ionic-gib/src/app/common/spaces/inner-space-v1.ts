@@ -250,6 +250,25 @@ export class InnerSpace_V1<
         return result;
     }
 
+    protected async canDeleteImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns>):
+        Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns>> {
+        const lc = `${this.lc}[${this.canDeleteImpl.name}]`;
+        const resultData: IbGibSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        try {
+            throw new Error('not implemented');
+        } catch (error) {
+            console.error(`${lc} error: ${error.message}`);
+            resultData.errors = [error.message];
+            resultData.success = false;
+        }
+        try {
+            const result = await this.resulty({resultData});
+            return result;
+        } catch (error) {
+            console.error(`${lc} error forming result ibGib. error: ${error.message}`);
+            throw error;
+        }
+    }
     protected async persistOptsAndResultIbGibs({
         arg,
         result

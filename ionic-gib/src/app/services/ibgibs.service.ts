@@ -384,7 +384,7 @@ export class IbgibsService {
         if (resName.cancelled) {
           spaceName = (await h.getUUID()).slice(10);
         } else {
-          if (resName.value && this.validateName(resName.value)) {
+          if (resName.value && this.validateUserSpaceName(resName.value)) {
             spaceName = resName.value;
           }
         }
@@ -955,8 +955,8 @@ export class IbgibsService {
     }
   }
 
-  validateName(name: string): boolean {
-    const lc = `${this.lc}[${this.validateName.name}]`;
+  private validateUserSpaceName(name: string): boolean {
+    const lc = `${this.lc}[${this.validateUserSpaceName.name}]`;
     try {
       // non-falsy
       if (!name) {
@@ -1007,7 +1007,7 @@ export class IbgibsService {
    * do it beyond this without using some kind of authentication/secret(s)
    * that generate the record, i.e. encrypting bootstrap^gib cleverly.
    */
-  async updateBootstrapIbGibSpaceAddr({
+  private async updateBootstrapIbGibSpaceAddr({
     newSpaceAddr,
     localDefaultSpace,
   }: {
@@ -1081,6 +1081,10 @@ export class IbgibsService {
 
       if (!space.rel8ns) {
         console.warn(`${lc} space.rel8ns falsy.`);
+        return undefined;
+      }
+      if (!space.rel8ns[key]) {
+        console.warn(`${lc} space.rel8ns[${key}] falsy.`);
         return undefined;
       }
       if (space.rel8ns![key].length === 1) {
@@ -1202,6 +1206,7 @@ export class IbgibsService {
       return undefined;
     }
   }
+
   async setCurrentRoot({
     root,
     space,
@@ -1279,6 +1284,7 @@ export class IbgibsService {
       let currentRoot = await this.getCurrentRoot({space});
       if (!currentRoot) { throw new Error('currentRoot undefined'); }
 
+      // todo: change this to only rel8 if the tjp doesn't already exist on the root
       let ibGibAddr = h.getIbGibAddr({ibGib});
 
       // check to see if it's already rel8d. If so, we're done.
@@ -1413,7 +1419,7 @@ export class IbgibsService {
    *
    * @param tagIbGib to add to Tags
    */
-  rel8TagToTagsIbGib({
+  private rel8TagToTagsIbGib({
     tagIbGib,
     space,
   }: {
@@ -2687,7 +2693,7 @@ export class IbgibsService {
    *
    * @returns user password
    */
-  async getCachedSecretPassword({
+  private async getCachedSecretPassword({
     cacheKey,
   }: {
     cacheKey: string,
@@ -2724,7 +2730,7 @@ export class IbgibsService {
     }
   }
 
-  async setCachedSecretPassword({
+  private async setCachedSecretPassword({
     cacheKey,
     secretPassword,
     force,
@@ -2816,3 +2822,4 @@ export class IbgibsService {
   // #endregion
 
 }
+

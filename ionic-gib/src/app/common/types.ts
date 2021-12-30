@@ -226,9 +226,17 @@ export interface IbGibSpaceRel8ns extends IbGibRel8ns_V1 {
     [c.ENCRYPTION_REL8N_NAME]?: IbGibAddr[];
 }
 
-/** Cmds for interacting with ibgib spaces.  */
-export type IbGibSpaceOptionsCmd =
-    'get' | 'put' | 'delete' | 'canGet' | 'canPut' | 'getAddrs';
+
+/**
+ * Cmds for interacting with ibgib spaces.
+ *
+ * Not all of these will be implemented for every space.
+ *
+ * ## todo
+ *
+ * change these commands to better structure, e.g., verb/do/mod, can/get/addrs
+ * */
+export type IbGibSpaceOptionsCmd = 'get' | 'put' | 'delete';
 /** Cmds for interacting with ibgib spaces.  */
 export const IbGibSpaceOptionsCmd = {
     /** Retrieve ibGib(s) out of the space (does not remove them). */
@@ -237,18 +245,51 @@ export const IbGibSpaceOptionsCmd = {
     put: 'put' as IbGibSpaceOptionsCmd,
     /** Delete an ibGib from a space */
     delete: 'delete' as IbGibSpaceOptionsCmd,
-    /** Able to retrieve ibGib(s) out of the space? */
-    canGet: 'canGet' as IbGibSpaceOptionsCmd,
-    /** Able to import ibGib(s) into the space? */
-    canPut: 'canPut' as IbGibSpaceOptionsCmd,
-    /** Get all ibGib addresses in the space. */
-    getAddrs: 'getAddrs' as IbGibSpaceOptionsCmd,
+}
+
+/**
+ * Flags to affect the command's interpretation.
+ */
+export type IbGibSpaceOptionsCmdModifier = 'can' | 'addrs' | 'latest';
+/**
+ * Flags to affect the command's interpretation.
+ */
+export const IbGibSpaceOptionsCmdModifier = {
+    /**
+     * Only interested if possibility to do command.
+     *
+     * This can be due to authorization or other.
+     */
+    can: 'can' as IbGibSpaceOptionsCmdModifier,
+    /**
+     * Only return the addresses of ibgibs
+     */
+    addrs: 'addrs' as IbGibSpaceOptionsCmdModifier,
+    /**
+     * Only interested in the latest one.
+     */
+    latest: 'latest' as IbGibSpaceOptionsCmdModifier,
 }
 
 /** Information for interacting with spaces. */
 export interface IbGibSpaceOptionsData {
-    cmd: IbGibSpaceOptionsCmd | string;
+    /**
+     * Not really in use atm, but will use in the future.
+     */
     version?: string;
+    cmd: IbGibSpaceOptionsCmd | string;
+    /**
+     * Optional modifier flag(s) to the command.
+     *
+     * ## notes
+     *
+     * An implementing class can always use/extend these or extend the interface
+     * of the options data.
+     */
+    cmdModifiers?: (IbGibSpaceOptionsCmdModifier | string)[];
+    /**
+     * Addrs of ibgibs to get/delete
+     */
     ibGibAddrs?: IbGibAddr[];
     /**
      * If putting, this will force replacing the file.

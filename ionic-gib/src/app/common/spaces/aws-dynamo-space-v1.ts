@@ -18,23 +18,20 @@ import * as h from 'ts-gib/dist/helper';
 import { SpaceBase_V1 } from './space-base-v1';
 import {
     AWSRegion,
-    IbGibSpaceData,
     IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib,
     IbGibSpaceOptionsRel8ns,
-    IbGibSpaceRel8ns,
-    IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns, OuterSpaceData, OuterSpaceRel8ns, SyncSpaceData, SyncSpaceSubtype,
+    IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns,
+    OuterSpaceRel8ns,
+    SyncSpaceData,
 } from '../types';
 import * as c from '../constants';
 import { getBinAddr } from '../helper';
-import { Plugins } from '@capacitor/core';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 // #region DynamoDB related
 
 type AWSDynamoDBItem = { [key: string]: AttributeValue };
-
-
 
 /**
  * Item interface
@@ -603,7 +600,7 @@ export class AWSDynamoSpace_V1<
     }
 
     protected async validateWitnessArg(arg: AWSDynamoSpaceOptionsIbGib): Promise<string[]> {
-        const lc = `${this.lc}[${this.validateWitnessArg}]`;
+        const lc = `${this.lc}[${this.validateWitnessArg.name}]`;
         let errors: string[] = [];
         try {
             errors = (await super.validateWitnessArg(arg)) || [];
@@ -1293,6 +1290,20 @@ export class AWSDynamoSpace_V1<
         return result;
     }
 
+    protected async canDeleteImpl(arg: AWSDynamoSpaceOptionsIbGib):
+        Promise<AWSDynamoSpaceResultIbGib> {
+        const lc = `${this.lc}[${this.canDeleteImpl.name}]`;
+        const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        const errors: string[] = [];
+        try {
+            throw new Error('not implemented');
+        } catch (error) {
+            console.error(`${lc} error: ${error.message}`);
+            resultData.errors = [error.message];
+        }
+        const result = await this.resulty({resultData});
+        return result;
+    }
     /**
      * Calculates the hash of the given `binData`.
      *

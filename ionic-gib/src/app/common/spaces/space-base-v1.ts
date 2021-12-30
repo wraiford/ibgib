@@ -1,5 +1,5 @@
 import {
-    IbGibSpace, IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib as IbGibSpaceOptionsIbGib, IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceOptionsCmd, IbGibSpaceData, IbGibSpaceOptionsRel8ns, IbGibSpaceResultRel8ns, IbGibSpaceRel8ns,
+    IbGibSpace, IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib as IbGibSpaceOptionsIbGib, IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceOptionsCmd, IbGibSpaceData, IbGibSpaceOptionsRel8ns, IbGibSpaceResultRel8ns, IbGibSpaceRel8ns, IbGibSpaceOptionsCmdModifier,
 } from '../types';
 import {
     IbGib_V1, IbGibRel8ns_V1, IbGibData_V1, sha256v1, Factory_V1,
@@ -62,7 +62,11 @@ export abstract class SpaceBase_V1<
         const lc = `${this.lc}[${this.witnessImpl.name}]`;
 
         // do the thing
-        let result = await this.doCommand({cmd: arg.data!.cmd, arg});
+        let result = await this.doCommand({
+            cmd: arg.data!.cmd,
+            cmdModifiers: arg.data!.cmdModifiers ?? [],
+            arg,
+        });
 
         // persist the arg and result if we're configured to do so
         if (result && this.data.persistOptsAndResultIbGibs) {
@@ -90,27 +94,40 @@ export abstract class SpaceBase_V1<
      */
     protected doCommand({
         cmd,
+        cmdModifiers,
         arg,
     }: {
         cmd: IbGibSpaceOptionsCmd | string,
+        cmdModifiers: (IbGibSpaceOptionsCmdModifier | string)[],
         arg: TOptionsIbGib,
     }): Promise<TResultIbGib | undefined> {
-        const lc = `${this.lc}[${this.doCommand}]`;
+        const lc = `${this.lc}[${this.doCommand.name}]`;
         switch (cmd) {
             case IbGibSpaceOptionsCmd.get:
-                return this.get(arg);
+                if (cmdModifiers.includes('can')) {
+                    return this.canGet(arg);
+                } else if (cmdModifiers.includes('addrs')) {
+                    return this.getAddrs(arg);
+                } else {
+                    return this.get(arg);
+                }
+
             case IbGibSpaceOptionsCmd.put:
-                return this.put(arg);
+                if (cmdModifiers.includes('can')) {
+                    return this.canPut(arg);
+                } else {
+                    return this.put(arg);
+                }
+
             case IbGibSpaceOptionsCmd.delete:
-                return this.delete(arg);
-            case IbGibSpaceOptionsCmd.getAddrs:
-                return this.getAddrs(arg);
-            case IbGibSpaceOptionsCmd.canGet:
-                return this.canGet(arg);
-            case IbGibSpaceOptionsCmd.canPut:
-                return this.canPut(arg);
+                if (cmdModifiers.includes('can')) {
+                    return this.canDelete(arg);
+                } else {
+                    return this.delete(arg);
+                }
+
             default:
-                throw new Error(`${lc} unknown cmd: ${cmd}`);
+                throw new Error(`${lc} unknown cmd: ${cmd}. cmdModifiers: ${cmdModifiers}`);
         }
     }
 
@@ -132,6 +149,9 @@ export abstract class SpaceBase_V1<
     protected canPut(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.canPutImpl(arg); }
     protected abstract canPutImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
 
+    protected canDelete(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.canPutImpl(arg); }
+    protected abstract canDeleteImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
+
     protected async validateWitnessArg(arg: TOptionsIbGib): Promise<string[]> {
         const lc = `${this.lc}[${this.validateWitnessArg.name}]`;
         let errors: string[] = [];
@@ -139,19 +159,18 @@ export abstract class SpaceBase_V1<
             errors = await super.validateWitnessArg(arg);
             if (!arg.data) { errors.push(`arg.data required`); return errors; } // <<<< returns immediately
             const { cmd, ibGibAddrs, } = arg.data!;
+            let cmdModifiers = arg.data!.cmdModifiers ?? [];
             const ibGibs  = arg.ibGibs;
             if (!cmd) { errors.push(`arg.data.cmd required`); }
             if (!Object.values(IbGibSpaceOptionsCmd).includes(<any>cmd)) { errors.push(`unknown arg.data.cmd: ${cmd}`); }
             if (
-                [IbGibSpaceOptionsCmd.get, IbGibSpaceOptionsCmd.canGet].includes(<any>cmd) &&
+                cmd === IbGibSpaceOptionsCmd.get &&
+                !cmdModifiers.includes('addrs') && // we allow get addrs to be get ALL addrs
                 (ibGibAddrs || []).length === 0
             ) {
                 errors.push(`ibGibAddrs required when cmd is ${cmd}`);
             }
-            if (
-                [IbGibSpaceOptionsCmd.put, IbGibSpaceOptionsCmd.canPut].includes(<any>cmd) &&
-                (ibGibs || []).length === 0
-            ) {
+            if (cmd === IbGibSpaceOptionsCmd.put && (ibGibs || []).length === 0) {
                 errors.push(`ibGibs required when cmd is ${cmd}`);
             }
             return errors;

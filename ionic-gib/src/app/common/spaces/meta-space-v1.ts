@@ -175,7 +175,7 @@ export class MetaSpace_V1<
     }
 
     protected async validateWitnessArg(arg: MetaSpaceOptionsIbGib): Promise<string[]> {
-        const lc = `${this.lc}[${this.validateWitnessArg}]`;
+        const lc = `${this.lc}[${this.validateWitnessArg.name}]`;
         let errors: string[] = [];
         try {
             errors = (await super.validateWitnessArg(arg)) || [];
@@ -354,6 +354,19 @@ export class MetaSpace_V1<
         return result;
     }
 
+    protected async canDeleteImpl(arg: MetaSpaceOptionsIbGib):
+        Promise<MetaSpaceResultIbGib> {
+        const lc = `${this.lc}[${this.canDeleteImpl.name}]`;
+        const resultData: MetaSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        try {
+            throw new Error('not implemented');
+        } catch (error) {
+            console.error(`${lc} error: ${error.message}`);
+            resultData.errors = [error.message];
+        }
+        const result = await this.resulty({resultData});
+        return result;
+    }
     protected async persistOptsAndResultIbGibs({
         arg,
         result

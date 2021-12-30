@@ -253,7 +253,7 @@ export class IonicSpace_V1<
     }
 
     protected async validateWitnessArg(arg: IonicSpaceOptionsIbGib): Promise<string[]> {
-        const lc = `${this.lc}[${this.validateWitnessArg}]`;
+        const lc = `${this.lc}[${this.validateWitnessArg.name}]`;
         let errors: string[] = [];
         try {
             errors = (await super.validateWitnessArg(arg)) || [];
@@ -298,7 +298,7 @@ export class IonicSpace_V1<
 
     protected async getImpl(arg: IonicSpaceOptionsIbGib):
         Promise<IonicSpaceResultIbGib> {
-        const lc = `${this.lc}[${this.get.name}]`;
+        const lc = `${this.lc}[${this.getImpl.name}]`;
         const resultIbGibs: IbGib_V1[] = [];
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         let notFoundIbGibAddrs: IbGibAddr[] = undefined;
@@ -370,7 +370,7 @@ export class IonicSpace_V1<
     }
 
     protected async putImpl(arg: IonicSpaceOptionsIbGib): Promise<IonicSpaceResultIbGib> {
-        const lc = `${this.lc}[${this.put.name}]`;
+        const lc = `${this.lc}[${this.putImpl.name}]`;
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
         try {
@@ -404,7 +404,7 @@ export class IonicSpace_V1<
     }
 
     protected async putIbGibsImpl(arg: IonicSpaceOptionsIbGib): Promise<IonicSpaceResultIbGib> {
-        const lc = `${this.lc}[${this.put.name}]`;
+        const lc = `${this.lc}[${this.putIbGibsImpl.name}]`;
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
         const warnings: string[] = [];
@@ -471,7 +471,7 @@ export class IonicSpace_V1<
 
     protected async deleteImpl(arg: IonicSpaceOptionsIbGib):
         Promise<IonicSpaceResultIbGib> {
-        const lc = `${this.lc}[${this.delete.name}]`;
+        const lc = `${this.lc}[${this.deleteImpl.name}]`;
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
         const warnings: string[] = [];
@@ -518,7 +518,7 @@ export class IonicSpace_V1<
 
     protected async getAddrsImpl(arg: IonicSpaceOptionsIbGib):
         Promise<IonicSpaceResultIbGib> {
-        const lc = `${this.lc}[${this.getAddrs.name}]`;
+        const lc = `${this.lc}[${this.getAddrsImpl.name}]`;
         throw new Error(`${lc} not implemented`);
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
@@ -550,7 +550,7 @@ export class IonicSpace_V1<
      */
     protected async canGetImpl(arg: IonicSpaceOptionsIbGib):
         Promise<IonicSpaceResultIbGib> {
-        const lc = `${this.lc}[${this.canGet.name}]`;
+        const lc = `${this.lc}[${this.canGetImpl.name}]`;
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
             const { ibGibAddrs } = arg.data!;
@@ -578,7 +578,7 @@ export class IonicSpace_V1<
     }
     protected async canPutImpl(arg: IonicSpaceOptionsIbGib):
         Promise<IonicSpaceResultIbGib> {
-        const lc = `${this.lc}[${this.canPut.name}]`;
+        const lc = `${this.lc}[${this.canPutImpl.name}]`;
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
             const ibGibs = arg.ibGibs || [];
@@ -602,6 +602,12 @@ export class IonicSpace_V1<
         }
         const result = await this.resulty({resultData});
         return result;
+    }
+
+    protected async canDeleteImpl(arg: IonicSpaceOptionsIbGib):
+        Promise<IonicSpaceResultIbGib> {
+        const lc = `${this.lc}[${this.canDeleteImpl.name}]`;
+        throw new Error(`${lc} not implemented`);
     }
 
     /**
