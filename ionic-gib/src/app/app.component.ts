@@ -254,6 +254,10 @@ export class AppComponent extends IbgibComponentBase
     this.tagsAddr = h.getIbGibAddr({ibGib: special});
   }
 
+  /**
+   * Initializes app components properties, NOT the actual special ibgib
+   * on the ibgibs service. That should already be done.
+   */
   async initializeMySpaces(): Promise<void> {
     const lc = `${this.lc}[${this.initializeMySpaces.name}]`;
     try {
@@ -291,13 +295,18 @@ export class AppComponent extends IbgibComponentBase
     }
   }
 
+  /**
+   * Initializes app components properties, NOT the actual special ibgib
+   * on the ibgibs service. That should already be done.
+   */
   async initializeMyRoots(): Promise<void> {
     const lc = `${this.lc}[${this.initializeMyRoots.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
+      // initializes with current ibgibs.localUserspace
       const rootsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "roots"});
       this.rootsAddr = h.getIbGibAddr({ibGib: rootsIbGib});
-      const currentRootIbGib = await this.common.ibgibs.getCurrentRoot();
+      const currentRootIbGib = await this.common.ibgibs.getCurrentRoot({});
       if (!currentRootIbGib) { throw new Error(`currentRoot not found(?)`); }
       if (!currentRootIbGib.data) { throw new Error(`currentRoot.data falsy (?)`); }
       let {icon, text, description} = currentRootIbGib.data;
@@ -330,6 +339,10 @@ export class AppComponent extends IbgibComponentBase
     }
   }
 
+  /**
+   * Initializes app components properties, NOT the actual special ibgib
+   * on the ibgibs service. That should already be done.
+   */
   async initializeMyTags(): Promise<void> {
     const lc = `${this.lc}[${this.initializeMyTags.name}]`;
     if (logalot) { console.log(`${lc} starting...`); }
@@ -681,7 +694,7 @@ export class AppComponent extends IbgibComponentBase
           rootIbGibAddr = h.getIbGibAddr({ibGib: rootIbGib});
           rootItem = await this.getRootItem(rootIbGibAddr);
         }
-        await this.common.ibgibs.setCurrentRoot(rootIbGib);
+        await this.common.ibgibs.setCurrentRoot({root: rootIbGib});
         this.currentRoot = rootItem;
         // // debug
         // let graph = await this.common.ibgibs.getDependencyGraph({ibGib: rootIbGib});

@@ -163,8 +163,6 @@ export class ActionBarComponent extends IbgibComponentBase
           await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
         await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToContext});
         const { newIbGib: newContext } = resRel8ToContext;
-        // const newContextAddr = getIbGibAddr(newContext);
-        await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newContext, linked: true});
         await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
 
         // nav to either the pic we just added, or the new context "in time"
@@ -254,8 +252,6 @@ export class ActionBarComponent extends IbgibComponentBase
       await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
     await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToContext});
     const { newIbGib: newContext } = resRel8ToContext;
-    // const newContextAddr = getIbGibAddr(newContext);
-    await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newContext, linked: true});
     await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
 
     // nav to either the pic we just added, or the new context "in time"

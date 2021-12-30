@@ -237,7 +237,6 @@ export class CreateOuterspaceModalComponent
       // create the space
       if (this.type === 'sync' && this.subtype === 'aws-dynamodb') {
         resSpaceIbGib = await this.createSyncSpace_AWSDynamoDB();
-        debugger;
       } else {
         throw new Error(`unknown space type/subtype(?): ${this.type}, ${this.subtype}`);
       }

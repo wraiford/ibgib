@@ -293,44 +293,6 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         }
     }
 
-    /**
-     * Creates a primitive ibGib, forks it with the same ib
-     * but with a tjp (temporal junction point, aka birthday) to give it
-     * uniqueness and returns the fork result, which includes the unique ibGib.
-     *
-     * Also this will by default use linkedRel8ns for 'past' and 'ancestor'.
-     *
-     * Perhaps this should be somewhere in the core lib, perhaps in the factory.
-     *
-     * @param ib primitive ib
-     */
-    // async reifyPrimitive({
-    //     ib,
-    //     dna
-    // }: {
-    //     /**
-    //      * Primitive ib, e.g., "tags"
-    //      */
-    //     ib: Ib,
-    //     /**
-    //      * usually will be false. Can't think of why true atm. just passing through to fork call.
-    //      */
-    //     dna?: boolean
-    // }): Promise<TransformResult<IbGib_V1>> {
-    //     const primitive = Factory_V1.primitive({ib});
-    //     const result =
-    //         await V1.fork({
-    //             src: primitive,
-    //             dna,
-    //             linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
-    //             tjp: {uuid: true, timestamp: true},
-    //             nCounter: true,
-    //         });
-    //     await this.common.ibgibs.rel8ToCurrentRoot({ibGib: result.newIbGib, linked: true});
-    //     await this.common.ibgibs.registerNewIbGib({ibGib: result.newIbGib});
-    //     return result;
-    // }
-
     async navTo({
         addr,
         queryParamsHandling = 'preserve',

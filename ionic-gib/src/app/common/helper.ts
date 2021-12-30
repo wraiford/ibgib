@@ -1,9 +1,11 @@
 import { AlertController } from '@ionic/angular';
 
-import { IBGIB_DELIMITER } from 'ts-gib/dist/V1';
+import { GIB, IBGIB_DELIMITER } from 'ts-gib/dist/V1';
 import { IbGibAddr, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { HashAlgorithm } from 'ts-gib';
+import { IbGibSpace } from './types';
+import { IbGibSpaceAny } from './spaces/space-base-v1';
 
 /**
  * Binaries require special handling, since they do not conform to the
@@ -129,4 +131,50 @@ export function getFnPromptPassword_AlertController({
         console.error(`${lc} ${error.message}`);
         throw error;
     }
+}
+
+/**
+ * Two spaces can be equivalent if they point to the same area.
+ *
+ * @returns true if the "same" space
+ */
+export function isSameSpace({
+    a,
+    b,
+    mustHaveSameData,
+}: {
+    a: IbGibSpaceAny,
+    b: IbGibSpaceAny,
+    /**
+     * If true, then only same exact internal data will do.
+     * Be careful if they have last modified timestamps.
+     */
+    mustHaveSameData?: boolean,
+}): boolean {
+    const lc = `[${isSameSpace.name}]`;
+
+    if (!a) { throw new Error(`${lc} a is falsy`)};
+    if (!b) { throw new Error(`${lc} b is falsy`)};
+
+    // try by data
+    if (a.data && JSON.stringify(a.data) === JSON.stringify(b.data)) {
+        return true;
+    } else if (mustHaveSameData) {
+        return false;
+    }
+
+    // try by uuid
+    if (a.data?.uuid && b.data?.uuid) { return a.data!.uuid === b.data!.uuid; }
+
+    // try by tjp
+    if (a.rel8ns?.tjp?.length === 1 && b.rel8ns?.tjp?.length === 1) {
+        return a.rel8ns.tjp[0] === b.rel8ns.tjp[0];
+    }
+
+    // try by gib (last resort), can't both be falsy or primitive (maybe overkill)
+    if (!a.gib && !b.gib) {
+        throw new Error(`${lc} Invalid spaces. both a.gib and b.gib are falsy, neither has uuid and neither has tjp.`);
+    }
+    if (a.gib === GIB && b.gib === GIB) { throw new Error(`${lc} both a and b are primitives`); }
+    return a.gib === b.gib;
 }
