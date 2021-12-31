@@ -62,7 +62,7 @@ export abstract class SpaceBase_V1<
         const lc = `${this.lc}[${this.witnessImpl.name}]`;
 
         // do the thing
-        let result = await this.doCommand({
+        let result = await this.routeAndDoCommand({
             cmd: arg.data!.cmd,
             cmdModifiers: arg.data!.cmdModifiers ?? [],
             arg,
@@ -85,14 +85,15 @@ export abstract class SpaceBase_V1<
         {arg: TOptionsIbGib, result: TResultIbGib}): Promise<void>;
 
     /**
-     * Executes the given `cmd` if found.
+     * Routes the given `cmd` to the correct handling function in the space,
+     * and executes that function.
      *
      * Override this if you have custom commands to handle.
      * Check for those first, and if not among them, call this
      * via `super.doCommand(...)`. If cmd is still not found,
      * this will throw.
      */
-    protected doCommand({
+    protected routeAndDoCommand({
         cmd,
         cmdModifiers,
         arg,
@@ -101,26 +102,34 @@ export abstract class SpaceBase_V1<
         cmdModifiers: (IbGibSpaceOptionsCmdModifier | string)[],
         arg: TOptionsIbGib,
     }): Promise<TResultIbGib | undefined> {
-        const lc = `${this.lc}[${this.doCommand.name}]`;
+        const lc = `${this.lc}[${this.routeAndDoCommand.name}]`;
         switch (cmd) {
             case IbGibSpaceOptionsCmd.get:
-                if (cmdModifiers.includes('can')) {
+                if ((cmdModifiers ?? []).length === 0) {
+                    return this.get(arg);
+                } else if (cmdModifiers.includes('can')) {
                     return this.canGet(arg);
                 } else if (cmdModifiers.includes('addrs')) {
                     return this.getAddrs(arg);
+                } else if (cmdModifiers.includes('latest')) {
+                    return this.getLatest(arg);
                 } else {
                     return this.get(arg);
                 }
 
             case IbGibSpaceOptionsCmd.put:
-                if (cmdModifiers.includes('can')) {
+                if ((cmdModifiers ?? []).length === 0) {
+                    return this.put(arg);
+                } else if (cmdModifiers.includes('can')) {
                     return this.canPut(arg);
                 } else {
                     return this.put(arg);
                 }
 
             case IbGibSpaceOptionsCmd.delete:
-                if (cmdModifiers.includes('can')) {
+                if ((cmdModifiers ?? []).length === 0) {
+                    return this.delete(arg);
+                } else if (cmdModifiers.includes('can')) {
                     return this.canDelete(arg);
                 } else {
                     return this.delete(arg);
@@ -138,19 +147,40 @@ export abstract class SpaceBase_V1<
     protected abstract putImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
 
     protected delete(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.deleteImpl(arg); }
-    protected abstract deleteImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
+    protected deleteImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
+        const lc = `${this.lc}[${this.deleteImpl.name}]`;
+        throw new Error(`${lc} not implemented`);
+    }
 
     protected getAddrs(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.getAddrsImpl(arg); }
-    protected abstract getAddrsImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
+    protected getAddrsImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
+        const lc = `${this.lc}[${this.getAddrsImpl.name}]`;
+        throw new Error(`${lc} not implemented`);
+    }
+
+    protected getLatest(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.getLatestImpl(arg); }
+    protected getLatestImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
+        const lc = `${this.lc}[${this.getLatestImpl.name}]`;
+        throw new Error(`${lc} not implemented`);
+    }
 
     protected canGet(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.canGetImpl(arg); }
-    protected abstract canGetImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
+    protected canGetImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
+        const lc = `${this.lc}[${this.canGetImpl.name}]`;
+        throw new Error(`${lc} not implemented`);
+    }
 
     protected canPut(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.canPutImpl(arg); }
-    protected abstract canPutImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
+    protected canPutImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
+        const lc = `${this.lc}[${this.canPutImpl.name}]`;
+        throw new Error(`${lc} not implemented`);
+    }
 
     protected canDelete(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.canPutImpl(arg); }
-    protected abstract canDeleteImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
+    protected canDeleteImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
+        const lc = `${this.lc}[${this.canDeleteImpl.name}]`;
+        throw new Error(`${lc} not implemented`);
+    }
 
     protected async validateWitnessArg(arg: TOptionsIbGib): Promise<string[]> {
         const lc = `${this.lc}[${this.validateWitnessArg.name}]`;

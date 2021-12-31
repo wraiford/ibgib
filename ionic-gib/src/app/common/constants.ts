@@ -316,15 +316,15 @@ export const AWS_REGION_REGEXP = /^[a-z][a-z]-[a-z]{1,20}-[0-9]{1,2}$/;
  * Default primary key name for dynamodb
  */
 export const DEFAULT_PRIMARY_KEY_NAME = 'ibGibAddrHash';
-/**
- *
- */
+/** Max number of retries due to throughput failures */
 export const DEFAULT_AWS_MAX_RETRY_THROUGHPUT = 3;
 export const DEFAULT_AWS_MAX_RETRY_UNPROCESSED_ITEMS = 5;
 export const DEFAULT_AWS_PUT_BATCH_SIZE = 25;
 export const DEFAULT_AWS_GET_BATCH_SIZE = 100;
 export const DEFAULT_AWS_PUT_THROTTLE_MS = 1000;
 export const DEFAULT_AWS_GET_THROTTLE_MS = 500;
+/** Will send query commands in parallel in batches of this size.  */
+export const DEFAULT_AWS_QUERY_LATEST_BATCH_SIZE = 5;
 export const DEFAULT_AWS_RETRY_THROUGHPUT_THROTTLE_MS = 3000;
 /**
  * This is returned if we're trying to do things too quickly when batch write/get
@@ -332,5 +332,10 @@ export const DEFAULT_AWS_RETRY_THROUGHPUT_THROTTLE_MS = 3000;
  * @link https://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/dynamodbv2/model/ProvisionedThroughputExceededException.html
  */
 export const AWS_THROUGHPUT_ERROR_NAME = "ProvisionedThroughputExceededException";
+
+/**
+ * Name of the secondary global index (tjp+n) in DynamoDB.
+ */
+export const AWS_DYNAMODB_TJP_N_SECONDARY_INDEX_NAME = 'tjp-n-index';
 
 // #endregion

@@ -266,7 +266,11 @@ export const IbGibSpaceOptionsCmdModifier = {
      */
     addrs: 'addrs' as IbGibSpaceOptionsCmdModifier,
     /**
-     * Only interested in the latest one.
+     * Only interested in the latest one(s).
+     *
+     * The incoming addr(s) should be the tjp(s), since "latest"
+     * only makes sense with unique timelines which are referenced by
+     * their tjps.
      */
     latest: 'latest' as IbGibSpaceOptionsCmdModifier,
 }

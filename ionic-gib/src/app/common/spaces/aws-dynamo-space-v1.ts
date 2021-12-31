@@ -4,13 +4,14 @@ import {
     GetItemCommand, GetItemCommandInput,
     BatchWriteItemCommand, BatchWriteItemCommandInput, BatchWriteItemCommandOutput,
     BatchGetItemCommand, BatchGetItemCommandInput, BatchGetItemCommandOutput,
+    QueryCommand, QueryCommandInput, QueryCommandOutput,
     KeysAndAttributes,
 } from '@aws-sdk/client-dynamodb';
 
 import {
     IbGib_V1, IbGibRel8ns_V1, sha256v1, IBGIB_DELIMITER,
 } from 'ts-gib/dist/V1';
-import { getIbGibAddr, IbGibAddr, V1 } from 'ts-gib';
+import { getIbGibAddr, Gib, IbGibAddr, V1 } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 // import { encodeStringToHexString, decodeHexStringToString } from 'encrypt-gib/dist/helper';
 // import { encrypt, decrypt, HashAlgorithm, SaltStrategy } from 'encrypt-gib';
@@ -26,6 +27,7 @@ import {
 } from '../types';
 import * as c from '../constants';
 import { getBinAddr } from '../helper';
+import { info } from 'console';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -38,11 +40,13 @@ type AWSDynamoDBItem = { [key: string]: AttributeValue };
  */
 interface AWSDynamoSpaceItem extends AWSDynamoDBItem {
     [c.DEFAULT_PRIMARY_KEY_NAME]: AttributeValue,
-    ib: AttributeValue,
-    gib: AttributeValue,
-    data?: AttributeValue,
-    rel8ns?: AttributeValue,
+    ib: AttributeValue.SMember,
+    gib: AttributeValue.SMember,
+    data?: AttributeValue.SMember | AttributeValue.BMember,
+    rel8ns?: AttributeValue.SMember,
     binData?: AttributeValue,
+    n?: AttributeValue.NMember,
+    tjp?: AttributeValue.SMember,
 };
 
 /**
@@ -69,9 +73,7 @@ async function getPrimaryKey({
     const lc = `[${getPrimaryKey.name}]`;
     try {
         if (!addr && !(binHash && binExt)) { throw new Error('either addr or binHash+binExt required.'); }
-        if (!addr) {
-            addr = getBinAddr({binHash, binExt});
-        }
+        addr = addr ?? getBinAddr({binHash, binExt});
         const primaryKey = await h.hash({s: addr, algorithm: 'SHA-256'});
         return primaryKey;
     } catch (error) {
@@ -103,8 +105,36 @@ async function createDynamoDBPutItem({
                 ib: { S: JSON.stringify(ibGib.ib) },
                 gib: { S: JSON.stringify(ibGib.gib) },
             }
-            if (ibGib.data) { item.data = { S: JSON.stringify(ibGib.data) }; }
-            if (ibGib.rel8ns) { item.rel8ns = { S: JSON.stringify(ibGib.rel8ns) }; }
+            if (ibGib.data) {
+                item.data = { S: JSON.stringify(ibGib.data) };
+                if (
+                    // n == 0 - first tjp slightly different
+                    (ibGib.data!.n === 0 && ibGib.data!.isTjp) ||
+                    // n > 0
+                    (Number.isSafeInteger(ibGib.data!.n) && ibGib.rel8ns?.tjp?.length === 1)
+                ) {
+                    item.n = { N: ibGib.data!.n!.toString() };
+                }
+                // the very first ibGib after a fork with tjp options sets this flag.
+                if (ibGib.data!.isTjp) { item.tjp = { S: addr }; }
+            }
+            if (ibGib.rel8ns) {
+                item.rel8ns = { S: JSON.stringify(ibGib.rel8ns) };
+
+                // if tjp not already given, capture & extract tjp if exists
+                if (!item.tjp && ibGib.rel8ns!.tjp) {
+                    if (ibGib.rel8ns!.tjp!.length === 1) {
+                        if (ibGib.rel8ns!.tjp![0].length > 0) {
+                            item.tjp = { S: ibGib.rel8ns!.tjp![0]! };
+                        } else {
+                            console.warn(`${lc}(gib: ${ibGib.gib}) tjp is empty string(?)`);
+                        }
+                    } else if (ibGib.rel8ns!.tjp!.length === 1) {
+                        console.warn(`${lc}(gib: ${ibGib.gib}) tjp has more than one value(?)`);
+                    }
+                }
+            }
+
         } else if (binHash && binExt && binData) {
             const addrHash = await getPrimaryKey({binHash, binExt});
             const addr = getBinAddr({binHash, binExt});
@@ -245,20 +275,57 @@ async function createDynamoDBBatchGetItemCommand({
     }
 }
 
-function getIbGibFromResponseItem({
-    getIbGibsResponseItem,
+/**
+ * Creates a command formatted for AWS Query.
+ *
+ * @returns query command according to given info
+ */
+async function createDynamoDBQueryNewerCommand({
+    tableName,
+    info,
+    projectionExpression,
 }: {
-    getIbGibsResponseItem: AWSDynamoSpaceItem,
+    tableName: string,
+    info: GetLatestInfo,
+    projectionExpression?: string,
+}): Promise<QueryCommand> {
+    const lc = `[${createDynamoDBQueryNewerCommand.name}]`;
+    try {
+        if (!tableName) { throw new Error(`tableName required.`); }
+        if (!info) { throw new Error(`info required.`); }
+
+        const params: QueryCommandInput = {
+            TableName: tableName,
+            ConsistentRead: false, // ConsistentRead not available on global secondary indexes https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html#API_Query_RequestSyntax
+            IndexName: c.AWS_DYNAMODB_TJP_N_SECONDARY_INDEX_NAME,
+            KeyConditionExpression: 'tjp = :tjp and n >= :nLeast',
+            ExpressionAttributeValues: {
+                ":tjp": { S: info.tjpAddr },
+                ":nLeast": { S: info.nLeast.toString() },
+            },
+            ProjectionExpression: projectionExpression,
+            ScanIndexForward: false, // returns higher n first (I believe!...not 100% sure here)
+        };
+        return new QueryCommand(params);
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
+function getIbGibFromResponseItem({
+    item,
+}: {
+    item: AWSDynamoSpaceItem,
 }): IbGib_V1 {
     const lc = `[${getIbGibFromResponseItem.name}]`;
     try {
-        if (!getIbGibsResponseItem) { throw new Error(`getIbGibsResponseItem required`); }
+        if (!item) { throw new Error(`item required`); }
         const ibGib: IbGib_V1 = {
-            ib: JSON.parse(getIbGibsResponseItem.ib.S),
-            gib: JSON.parse(getIbGibsResponseItem.gib.S),
+            ib: JSON.parse(item.ib.S),
+            gib: JSON.parse(item.gib.S),
         };
-        if (getIbGibsResponseItem.data) { ibGib.data = JSON.parse(getIbGibsResponseItem.data.S); }
-        if (getIbGibsResponseItem.rel8ns) { ibGib.rel8ns = JSON.parse(getIbGibsResponseItem.rel8ns.S); }
+        if (item.data) { ibGib.data = JSON.parse(item.data.S); }
+        if (item.rel8ns) { ibGib.rel8ns = JSON.parse(item.rel8ns.S); }
         return ibGib;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
@@ -288,6 +355,42 @@ function createClient({
         console.error(`${lc} ${error.message}`);
         throw error;
     }
+}
+
+/**
+ * Information required to search against a global secondary index
+ * involved with getting the latest ibgib
+ */
+interface GetLatestInfo {
+    /**
+     * The temporal junction point address for the ibgib we're looking for.
+     *
+     * Temporal junction points are like the birthdays for unique ibGib timelines.
+     * Or less anthromorphically, they're the first discrete ibGib datum for a
+     * stream of ibGib mutations, either through `rel8` or `mut8` transforms.
+     */
+    tjpAddr: IbGibAddr;
+    /**
+     * Only get the latest if it's greater than this n.
+     *
+     * ## notes
+     *
+     * ibGib.data.n is the value that tracks how many mutations
+     * have occurred in an ibGib's timeline.
+     *
+     * Of course, there is nothing precluding on down the road someone hijacking
+     * this property.
+     */
+    nLeast: number;
+
+    /**
+     * Result of query ibGibs.
+     */
+    resultIbGibs?: IbGib_V1[];
+    /**
+     * Error, if any, when sending the command.
+     */
+    errorMsg?: any;
 }
 
 // #endregion
@@ -326,6 +429,8 @@ export interface SyncSpaceData_AWSDynamoDB extends SyncSpaceData {
      * Gets of ibgibAddrs will be batched into this size max.
      */
     getBatchSize: number;
+    /** Size of batches when doing queries. atow getlatest */
+    queryBatchSize: number;
     /**
      * delays this ms between batch put calls in a tight loop.
      */
@@ -356,6 +461,7 @@ const DEFAULT_AWS_DYNAMO_SPACE_DATA_V1: SyncSpaceData_AWSDynamoDB = {
     region: '',
     putBatchSize: c.DEFAULT_AWS_PUT_BATCH_SIZE,
     getBatchSize: c.DEFAULT_AWS_GET_BATCH_SIZE,
+    queryBatchSize: c.DEFAULT_AWS_QUERY_LATEST_BATCH_SIZE,
     throttleMsBetweenPuts: c.DEFAULT_AWS_PUT_THROTTLE_MS,
     throttleMsBetweenGets: c.DEFAULT_AWS_GET_THROTTLE_MS,
     throttleMsDueToThroughputError: c.DEFAULT_AWS_RETRY_THROUGHPUT_THROTTLE_MS,
@@ -515,6 +621,12 @@ interface DeleteIbGibResult extends BaseResult { }
 /**
  * Quick and dirty class for persisting ibgibs to the cloud with AWS DynamoDB.
  *
+ * ## notes on creating dynamoDB table
+ *
+ * * Currently, the primary key must be 'ibGibAddrHash'.
+ * * A global secondary index must be created.
+ *   * currently the name is stored in c.AWS_DYNAMODB_REGEXP_TABLE_OR_INDEX (atow = tjp-n-index)
+ *
  * ## thanks
  *
  * * https://advancedweb.hu/how-to-use-dynamodb-batch-write-with-retrying-and-exponential-backoff/
@@ -672,10 +784,7 @@ export class AWSDynamoSpace_V1<
     protected async getImpl(arg: AWSDynamoSpaceOptionsIbGib):
         Promise<AWSDynamoSpaceResultIbGib> {
         const lc = `${this.lc}[${this.get.name}]`;
-        const resultIbGibs: IbGib_V1[] = [];
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
-        let notFoundIbGibAddrs: IbGibAddr[] = undefined;
-        let resultBinData: any | undefined;
         try {
             if (!this.data) { throw new Error(`this.data falsy.`); }
             if (!this.data!.tableName) { throw new Error(`tableName not set`); }
@@ -690,8 +799,6 @@ export class AWSDynamoSpace_V1<
 
             if (arg.data!.ibGibAddrs?.length > 0) {
                 return await this.getIbGibs({arg, client}); // returns
-            } else if (arg.binData && arg.data.binHash && arg.data.binExt) {
-                // return await this.getBin({arg, client}); // returns
             } else {
                 throw new Error(`either ibGibs or binData/binHash/binExt required.`);
             }
@@ -701,14 +808,6 @@ export class AWSDynamoSpace_V1<
         }
         try {
             const result = await this.resulty({resultData});
-            // const result = await resulty_<AWSDynamoSpaceResultData, AWSDynamoSpaceResultIbGib>({
-            //     resultData,
-            // });
-            if (resultIbGibs.length > 0) {
-                result.ibGibs = resultIbGibs;
-            } else if (resultBinData) {
-                result.binData = resultBinData;
-            }
             return result;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -716,6 +815,39 @@ export class AWSDynamoSpace_V1<
         }
     }
 
+    protected async getLatestImpl(arg: AWSDynamoSpaceOptionsIbGib):
+        Promise<AWSDynamoSpaceResultIbGib> {
+        const lc = `${this.lc}[${this.getLatestImpl.name}]`;
+        const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        try {
+            if (!this.data) { throw new Error(`this.data falsy.`); }
+            if (!this.data!.tableName) { throw new Error(`tableName not set`); }
+            if (!this.data!.secretAccessKey) { throw new Error(`this.data!.secretAccessKey falsy`); }
+            if (!this.data!.accessKeyId) { throw new Error(`this.data!.accessKeyid falsy`); }
+
+            const client = createClient({
+                accessKeyId: this.data.accessKeyId,
+                secretAccessKey: this.data.secretAccessKey,
+                region: this.data.region,
+            });
+
+            if (arg.ibGibs?.length > 0) {
+                return await this.getLatestIbGibs({arg, client}); // returns
+            } else {
+                throw new Error(`ibGibs required.`);
+            }
+        } catch (error) {
+            console.error(`${lc} error: ${error.message}`);
+            resultData.errors = [error.message];
+        }
+        try {
+            const result = await this.resulty({resultData});
+            return result;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        }
+    }
     /**
      * Sends a given `cmd`, which for ease of coding atm is just typed as `any`,
      * using the given `client`.
@@ -745,7 +877,7 @@ export class AWSDynamoSpace_V1<
         throw new Error(`Max retries (${maxRetries}) exceeded.`);
     }
 
-    protected async getIbGibBatch({
+    protected async getIbGibsBatch({
         ibGibAddrs,
         client,
         errors,
@@ -754,7 +886,7 @@ export class AWSDynamoSpace_V1<
         client: DynamoDBClient,
         errors: String[],
     }): Promise<IbGib_V1[]> {
-        const lc = `${this.lc}[${this.getIbGibBatch.name}]`;
+        const lc = `${this.lc}[${this.getIbGibsBatch.name}]`;
         const ibGibs: IbGib_V1[] = [];
         try {
             // const maxRetries = this.data.maxRetryThroughputCount || c.DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
@@ -774,7 +906,7 @@ export class AWSDynamoSpace_V1<
                     const getIbGibsResponseItem =
                         <AWSDynamoSpaceItem>resGet.Responses[this.data.tableName][key];
 
-                    const ibGib = getIbGibFromResponseItem({getIbGibsResponseItem});
+                    const ibGib = getIbGibFromResponseItem({item: getIbGibsResponseItem});
                     ibGibs.push(ibGib);
                     console.log(`${lc} item: ${h.pretty(ibGib)}`);
                 }
@@ -818,7 +950,6 @@ export class AWSDynamoSpace_V1<
         return ibGibs;
     }
 
-
     protected async getIbGibs({
         arg,
         client,
@@ -845,7 +976,7 @@ export class AWSDynamoSpace_V1<
                     await h.delay(throttleMs);
                 }
                 let doNext = ibGibAddrs.splice(batchSize);
-                const gotIbGibs = await this.getIbGibBatch({ibGibAddrs, client, errors});
+                const gotIbGibs = await this.getIbGibsBatch({ibGibAddrs, client, errors});
                 ibGibs = [...ibGibs, ...gotIbGibs];
 
                 if (errors.length > 0) { break; }
@@ -869,9 +1000,193 @@ export class AWSDynamoSpace_V1<
             resultData.success = false;
         }
         const result = await this.resulty({resultData});
-        // const result = await resulty_<AWSDynamoSpaceResultData, AWSDynamoSpaceResultIbGib>({
-        //     resultData
-        // });
+        result.ibGibs = ibGibs;
+        return result;
+    }
+
+    /**
+     * Gets the latest ibGibs corresponding to the given infos.
+     * Note that this returns muliple ibGibs that are greater than
+     * or equal to the given ibGib's n value.
+     *
+     * This means that you may receive a list of only one ibGib, the given one.
+     * BUT THIS MAY NOT BE THE SAME IBGIB YOU PASSED IN. This is because it's
+     * querying off of the tjp + n only, and there may be an alternative timeline
+     * in the space.
+     *
+     * You may also receive multiple ibGibs. Could be the same timeline with
+     * newer versions, or could be different timeline(s) with multiple versions,
+     * or it could be both the same current timeline and other divergent ones.
+     *
+     * @returns a map of tjp addr -> latest ibGibs
+     */
+    protected async getNewerIbGibInfosBatch({
+        infos,
+        client,
+        errors,
+    }: {
+        infos: GetLatestInfo[],
+        client: DynamoDBClient,
+        errors: String[],
+    }): Promise<GetLatestInfo[]> {
+        const lc = `${this.lc}[${this.getNewerIbGibInfosBatch.name}]`;
+        try {
+            const resultInfos: GetLatestInfo[] = [];
+            const queryPromises = infos.map(async (info) => {
+                try {
+                    info = h.clone(info);
+                    let cmd = await createDynamoDBQueryNewerCommand({
+                        tableName: this.data.tableName,
+                        info,
+                        projectionExpression: 'ib,gib,data,rel8ns,n',
+                    });
+                    let resCmd = await this.sendCmd<QueryCommandOutput>({cmd, client});
+                    if (resCmd.Count > 0) {
+                        info.resultIbGibs =
+                            resCmd.Items.map((item: AWSDynamoSpaceItem) => getIbGibFromResponseItem({item}));
+                    }
+                } catch (error) {
+                    const errorMsg = error.message || 'some kind of error';
+                    console.error(`${lc} ${errorMsg}`);
+                    info.errorMsg = errorMsg;
+                    errors.push(errorMsg);
+                }
+                resultInfos.push(info);
+            });
+
+            await Promise.all(queryPromises);
+
+            debugger;
+
+            return resultInfos;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            // I'm assuming I've coded this to not throw, so getting to this point is unexpected (so rethrow)
+            throw error;
+        }
+    }
+
+    /**
+     * Gets the latest ibGibs in the space corresponding to the given arg.ibGibs'
+     * temporal junction points (tjps).
+     *
+     * You can only check for ibGibs with data.n, which implies consequently they have tjps.
+     *
+     * @returns result with ibGibs being the latest found. WARNING: Could possibly be more than 1 per tjp!
+     */
+    protected async getLatestIbGibs({
+        arg,
+        client,
+    }: {
+        arg: AWSDynamoSpaceOptionsIbGib,
+        client: DynamoDBClient,
+    }): Promise<AWSDynamoSpaceResultIbGib> {
+        const lc = `${this.lc}[${this.getLatestIbGibs.name}]`;
+        const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        const errors: string[] = [];
+        const warnings: string[] = [];
+        let ibGibs: IbGib_V1[] = [];
+        try {
+            // GetLatestInfo
+            // ibGibs guaranteed at this point to be non-null and > 0
+            let infos: (GetLatestInfo | null)[] =
+                arg.ibGibs.map(ibGib => {
+                    if (!Number.isSafeInteger(ibGib.data?.n)) {
+                        if (logalot) { console.log(`${lc} no ibGib.data.n safe integer: ${h.getIbGibAddr({ibGib})}`); }
+                        return null;
+                    }
+                    if (ibGib.rel8ns?.tjp?.length !== 1 && !ibGib.data!.isTjp) {
+                        if (logalot) { console.log(`${lc} no tjp info: ${h.getIbGibAddr({ibGib})}`); }
+                        return null;
+                    }
+                    return {
+                        tjpAddr: ibGib.data!.isTjp ? h.getIbGibAddr({ibGib}) : ibGib.rel8ns!.tjp[0],
+                        nLeast: ibGib.data!.n,
+                    }
+                }).filter(x => x !== null);
+
+            if (infos.length === 0) {
+                const warning = `${lc} infos.length is zero, meaning we havent' found any ibgibs that are valid to be checking for latest. No tjps + data.n values.`;
+                console.warn(warning);
+                warnings.push(warning);
+            } else {
+                // execute rounds in batches, depending on AWS space settings.
+                let runningCount = 0;
+                const batchSize = this.data.queryBatchSize || c.DEFAULT_AWS_QUERY_LATEST_BATCH_SIZE;
+                const throttleMs = this.data.throttleMsBetweenGets || c.DEFAULT_AWS_GET_THROTTLE_MS;
+                const rounds = Math.ceil(infos.length / batchSize);
+                for (let i = 0; i < rounds; i++) {
+                    if (i > 0) {
+                        if (logalot) { console.log(`${lc} delaying ${throttleMs}ms`); }
+                        await h.delay(throttleMs);
+                    }
+                    let doNext = infos.splice(batchSize);
+                    const gotInfos = await this.getNewerIbGibInfosBatch({infos, client, errors});
+                    // at this point, we're not sure of the state of our results.
+                    // there could be multiple newer ibgibs of the same timeline, or even
+                    // divergent parallel branches (oh no!).
+                    // for now, we're going to think simply and just return all ibgibs returned
+                    const gotIbGibs = gotInfos.flatMap(info => {
+                        // errored, so return null
+                        if (info.errorMsg) { errors.push(info.errorMsg); return null; }
+
+                        // if info.resultIbGibs has more than entry with the same n, then we have multiple timelines
+                        // so this is just a checking object,
+                        // we're not going to build our results off of it directly.
+                        let nObj: { [n: string]: IbGib_V1 } = {};
+                        info.resultIbGibs.forEach(ibGib => {
+                            let key = ibGib.data!.n!.toString();
+                            if (nObj[key] && nObj[key].gib !== ibGib.gib) {
+                                // we already have this n for a different ibGib.
+                                // This means that we have at least one divergent timeline.
+                                const addr = h.getIbGibAddr({ibGib});
+                                const addr2 = h.getIbGibAddr({ibGib: nObj[key]});
+                                // NOTE addrs should not contain \n characters...
+                                if (addr.includes('\n')) { throw new Error(`addr contains newline(?)`); }
+                                if (addr2.includes('\n')) { throw new Error(`addr contains newline(?)`); }
+                                if (!ibGib.data!.isTjp && ibGib.rel8ns!.tjp[0].includes('\n')) { throw new Error(`tjp addr contains newline(?)`); }
+                                const warning =
+                                    `Divergent timeline found (same tjp/n, different ibGib).\n
+                                    ibGib1:\n${addr}\n
+                                    ibGib2:\n${addr2}\n
+                                    tjp:\n${ibGib.data!.isTjp ? addr : ibGib.rel8ns!.tjp[0]}\n
+                                    n:\n${ibGib.data!.n!}
+                                    `;
+                                console.warn(`${lc} ${warning}`);
+                                warnings.push(warning);
+                                debugger;
+                            } else {
+                                nObj[key] = ibGib;
+                            }
+                        });
+
+                        return info.errorMsg ? null : info.resultIbGibs;
+                    }).filter(x => x !== null);
+
+                    ibGibs = [...ibGibs, ...gotIbGibs];
+
+                    if (errors.length > 0) { break; }
+
+                    runningCount = ibGibs.length;
+                    console.log(`${lc} runningCount: ${runningCount}...`);
+                    infos = doNext;
+                }
+
+                console.log(`${lc} total: ${runningCount}.`);
+            }
+
+            if (warnings.length > 0) { resultData.warnings = warnings; }
+            if (errors.length === 0) {
+                resultData.success = true;
+            } else {
+                resultData.errors = errors;
+            }
+        } catch (error) {
+            console.error(`${lc} error: ${error.message}`);
+            resultData.errors = errors.concat([error.message]);
+            resultData.success = false;
+        }
+        const result = await this.resulty({resultData});
         result.ibGibs = ibGibs;
         return result;
     }
