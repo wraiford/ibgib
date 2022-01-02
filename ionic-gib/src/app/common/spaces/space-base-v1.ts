@@ -6,6 +6,13 @@ import {
 } from 'ts-gib/dist/V1';
 import { WitnessBase_V1, resulty_, argy_ } from '../witnesses';
 import * as c from '../constants';
+import { getTimestampInTicks } from '../helper';
+
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+
+export interface IbGibSpaceAny
+    extends SpaceBase_V1<any,any,any,any,any,any,any> {
+}
 
 export abstract class SpaceBase_V1<
         TIbGib extends IbGib_V1 = IbGib_V1,
@@ -41,12 +48,8 @@ export abstract class SpaceBase_V1<
         return `witness space ${classname} ${name}`;
     }
 
-    getTimestampInTicks(): string {
-        return (new Date()).getTime().toString();
-    }
-
     getSpaceArgMetadata(): string {
-        return `${this.ib} ${this.getTimestampInTicks()}`;
+        return `${this.ib} ${getTimestampInTicks()}`;
     }
 
     constructor(initialData?: TData, initialRel8ns?: TRel8ns) {
@@ -60,6 +63,11 @@ export abstract class SpaceBase_V1<
      */
     protected async witnessImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
         const lc = `${this.lc}[${this.witnessImpl.name}]`;
+        if (logalot) { console.log(`${lc}`); }
+
+        if (this.ib?.includes('ynamo')) {
+            debugger;
+        }
 
         // do the thing
         let result = await this.routeAndDoCommand({
@@ -195,7 +203,8 @@ export abstract class SpaceBase_V1<
             if (!Object.values(IbGibSpaceOptionsCmd).includes(<any>cmd)) { errors.push(`unknown arg.data.cmd: ${cmd}`); }
             if (
                 cmd === IbGibSpaceOptionsCmd.get &&
-                !cmdModifiers.includes('addrs') && // we allow get addrs to be get ALL addrs
+                !cmdModifiers?.includes('addrs') && // we allow get addrs to be get ALL addrs
+                !cmdModifiers?.includes('latest') &&
                 (ibGibAddrs || []).length === 0
             ) {
                 errors.push(`ibGibAddrs required when cmd is ${cmd}`);
@@ -255,9 +264,5 @@ export abstract class SpaceBase_V1<
         if (ibGibs) { result.ibGibs = ibGibs; }
         return result;
     }
-
-}
-
-export interface IbGibSpaceAny extends SpaceBase_V1<any,any,any,any,any,any,any> {
 
 }

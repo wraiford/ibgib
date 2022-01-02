@@ -178,3 +178,8 @@ export function isSameSpace({
     if (a.gib === GIB && b.gib === GIB) { throw new Error(`${lc} both a and b are primitives`); }
     return a.gib === b.gib;
 }
+
+export function getTimestampInTicks(): string {
+    return (new Date()).getTime().toString();
+}
+

@@ -21,11 +21,11 @@
       {{ title }}
     </ion-title>
     <ion-buttons slot="end" collapse="true">
-      <ion-button [disabled]="publishing"
-        slot="end" (click)="handlePublishClick()" class="toolbar-publish">
+      <ion-button [disabled]="syncing"
+        slot="end" (click)="handleSyncClick()" class="toolbar-sync">
         <ion-icon name="cloud-outline"></ion-icon>
         <ion-icon name="sync-outline"></ion-icon>
-        <ion-spinner *ngIf="publishing" name="circles" color="tertiary"></ion-spinner>
+        <ion-spinner *ngIf="syncing" name="circles" color="tertiary"></ion-spinner>
       </ion-button>
       <ion-button [disabled]="refreshing"
         slot="end" (click)="handleRefreshClick()" class="toolbar-refresh">

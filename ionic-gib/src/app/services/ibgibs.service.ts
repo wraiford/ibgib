@@ -24,6 +24,7 @@ import {
   SecretData_V1, SecretInfo_Password,
   EncryptionInfo, EncryptionInfo_EncryptGib, EncryptionData_V1,
   CiphertextData, CiphertextRel8ns, CiphertextIbGib_V1, SecretIbGib_V1,
+  IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib, IbGibSpaceResultIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns,
 } from '../common/types';
 import {
   IonicSpace_V1,
@@ -34,7 +35,8 @@ import { ModalController } from '@ionic/angular';
 import { IbGibSpaceAny } from '../common/spaces/space-base-v1';
 import { encrypt, decrypt, } from 'encrypt-gib';
 import { AWSDynamoSpace_V1 } from '../common/spaces/aws-dynamo-space-v1';
-import { isSameSpace } from '../common/helper';
+import { getTimestampInTicks, isSameSpace } from '../common/helper';
+import { argy_ } from '../common/witnesses';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -1947,7 +1949,7 @@ export class IbgibsService {
    * Will trigger a latest info event to be fired.
    * @param param0
    */
-  async pingLatest({
+  async pingLatest_Local({
     ibGib,
     tjp,
     space,
@@ -1956,7 +1958,7 @@ export class IbgibsService {
     tjp: IbGib_V1<any>,
     space?: IbGibSpaceAny,
   }): Promise<void> {
-    let lc = `${this.lc}[${this.pingLatest.name}]`;
+    let lc = `${this.lc}[${this.pingLatest_Local.name}]`;
     if (logalot) { console.log(`${lc} starting...`); }
     try {
       if (!ibGib) {
@@ -2779,6 +2781,43 @@ export class IbgibsService {
     }
   }
 
+  async getLatestFromSpace({
+    ibGibs,
+    persistLocally,
+    space,
+  }: {
+    ibGibs: IbGib_V1[],
+    persistLocally: boolean,
+    space: IbGibSpaceAny,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.getLatestFromSpace.name}]`;
+    try {
+      const arg = await argy_<IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib>({
+        argData: {
+          cmd: 'get',
+          cmdModifiers: ['latest'],
+          catchAllErrors: true,
+        },
+        ibMetadata: space.getSpaceArgMetadata() || `${space.ib} ${getTimestampInTicks()}`,
+      });
+      arg.ibGibs = ibGibs;
+      debugger;
+      const resSpace: IbGibSpaceResultIbGib<any, IbGibSpaceResultData, IbGibSpaceResultRel8ns> =
+        await space.witness(arg);
+      debugger;
+      if (resSpace.data.success) {
+        debugger;
+      } else {
+        debugger;
+      }
+    } catch (error) {
+      debugger;
+      console.error(`${lc} ${error.message}`);
+      debugger;
+      // don't rethrow for now.
+    }
+  }
+
   // #region helpers
 
   /**
@@ -2814,7 +2853,7 @@ export class IbgibsService {
    * For the Favorites tag, the ib would be "tag Favorites"
    */
   private tagTextToIb(tagText: string): string {
-    const lc = `${this.lc}[${this.tagTextToIb.name}]`;
+  const lc = `${this.lc}[${this.tagTextToIb.name}]`;
     if (!tagText) { throw new Error(`${lc} tag required.`)}
     return `tag ${tagText}`;
   }

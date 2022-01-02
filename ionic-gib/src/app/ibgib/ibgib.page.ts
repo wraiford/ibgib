@@ -146,7 +146,7 @@ export class IbGibPage extends IbgibComponentBase
       if (!this.paused) {
         this.item.refreshing = true;
         setTimeout(async () => {
-          await this.common.ibgibs.pingLatest({ibGib: this.ibGib, tjp: this.tjp});
+          await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjp: this.tjp});
         });
       }
       document.title = this.title;
@@ -296,14 +296,14 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
-  async publishIbGibs({
+  async syncIbGibs({
     ibGibs,
     confirm,
   }: {
     ibGibs?: IbGib_V1[],
     confirm?: boolean,
   }): Promise<void> {
-    const lc = `${this.lc}[${this.publishIbGibs.name}]`;
+    const lc = `${this.lc}[${this.syncIbGibs.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       if (!ibGibs || ibGibs.length === 0) { throw new Error(`ibGibs required.`)}
@@ -351,6 +351,39 @@ export class IbGibPage extends IbgibComponentBase
           });
         }
 
+        // pull down newer ibgibs from sync spaces for ibgibs that have tjps
+        debugger;
+        let latestLocalIbGibs: IbGib_V1[] = [];
+        let needLatestIbGibs =
+          ibGibs.filter(ibGib => ibGib.data?.isTjp || ibGib.rel8ns?.tjp?.length === 1);
+        for (let j = 0; j < needLatestIbGibs.length; j++) {
+          const maybeNeedLatest = needLatestIbGibs[j];
+          const needLatestAddr = h.getIbGibAddr({ibGib: maybeNeedLatest});
+          // get latest in the current local user space
+          const latestAddr = await this.common.ibgibs.getLatestAddr({ibGib: maybeNeedLatest});
+          if (latestAddr !== needLatestAddr) {
+            // there is a later version locally.
+            const resLatestLocalIbGib = await this.common.ibgibs.get({addr: latestAddr});
+            if (resLatestLocalIbGib.success && resLatestLocalIbGib.ibGibs?.length === 1) {
+              latestLocalIbGibs.push(resLatestLocalIbGib.ibGibs[0]);
+            } else {
+              console.warn(`${lc} needLatestAddr: ${needLatestAddr}. latestAddr: ${latestAddr}. Using given ibgib.`);
+              latestLocalIbGibs.push(maybeNeedLatest);
+            }
+          } else {
+            latestLocalIbGibs.push(maybeNeedLatest);
+          }
+        }
+        if (latestLocalIbGibs.length > 0) {
+          await this.common.ibgibs.getLatestFromSpace({
+            ibGibs: latestLocalIbGibs,
+            persistLocally: false,
+            space: syncSpace,
+          })
+        }
+
+
+        // publish to sync space
         let argPut = await syncSpace.argy({
             argData: { cmd: 'put', },
             ibGibs,
@@ -480,27 +513,29 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
-  async handlePublishClick(): Promise<void> {
-    const lc = `${this.lc}[${this.handlePublishClick.name}]`;
-    this.item.publishing = true;
+  async handleSyncClick(): Promise<void> {
+    const lc = `${this.lc}[${this.handleSyncClick.name}]`;
+    this.item.syncing = true;
     try {
       if (logalot) { console.log(`${lc}`); }
       if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
 
-      // await Modals.alert({ title: 'debug', message: "publish clicked", });
-      const resConfirmPublish = await Modals.confirm({ title: 'Publish to the world?', message: `This will publish your current ibGib (${this.ib})? Proceed?`, });
-      if (resConfirmPublish.value) {
+      const resConfirmSync = await Modals.confirm({ title: 'Sync with outerspace?', message: `This will publish/sync your current ibGib (${this.ib})? Proceed?`, });
+      if (resConfirmSync.value) {
+        // get newer ones
+
+        // publish this one
         const dependencyGraph =
           await this.common.ibgibs.getDependencyGraph({ibGib: this.ibGib});
-        await this.publishIbGibs({ibGibs: Object.values(dependencyGraph)});
+        await this.syncIbGibs({ibGibs: Object.values(dependencyGraph)});
       } else {
-        await Modals.alert({title: 'Publish cancelled.', message: 'Publish has been cancelled.'});
+        await Modals.alert({title: 'Sync cancelled.', message: 'Sync has been cancelled.'});
       }
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     } finally {
-      this.item.publishing = false;
+      this.item.syncing = false;
       setTimeout(() => {
         this.ref.detectChanges();
       });
@@ -517,7 +552,7 @@ export class IbGibPage extends IbgibComponentBase
         await this.navTo({addr: this.addr, queryParams: { paused: null }, queryParamsHandling: 'merge'})
       }
       if (this.item) { this.item.refreshing = true; }
-      await this.common.ibgibs.pingLatest({ibGib: this.ibGib, tjp: this.tjp});
+      await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjp: this.tjp});
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     }

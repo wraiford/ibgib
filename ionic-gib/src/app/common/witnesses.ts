@@ -5,7 +5,7 @@ import {
     getIbGibAddr,
 } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
-import { IbGib_V1, IbGibRel8ns_V1, Factory_V1 as factory, } from 'ts-gib/dist/V1';
+import { IbGib_V1, IbGibRel8ns_V1, Factory_V1 as factory, sha256v1, } from 'ts-gib/dist/V1';
 import * as c from './constants';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
@@ -137,10 +137,11 @@ export abstract class WitnessBase_V1<
         if (!this.ib) { console.warn(`${lc} this.ib is falsy.`); }
         if (!this.gib) { console.warn(`${lc} this.gib is falsy.`); }
 
-        let dtoIbGib: IbGib_V1<TData, TRel8ns> =
-            { ib: h.clone(this.ib), gib: h.clone(this.gib) };
+        let dtoIbGib: IbGib_V1<TData, TRel8ns> = { ib: (this.ib || '').slice() };
+        if (this.gib) { dtoIbGib.gib = this.gib.slice(); };
         if (this.data) { dtoIbGib.data = h.clone(this.data); }
         if (this.rel8ns) { dtoIbGib.rel8ns = h.clone(this.rel8ns); }
+
         return dtoIbGib;
     }
 
@@ -179,15 +180,24 @@ export abstract class WitnessBase_V1<
      * Only override this function if you really want custom handling of
      * the plumbing.  Instead override `witnessImpl`.
      *
+     * {@see validateThis}
+     * {@see validateWitnessArg}
+     *
      * @param arg
      * @returns
      */
     async witness(arg: TIbGibIn): Promise<TIbGibOut | undefined> {
         const lc = `${this.lc}[${this.witness.name}]`;
         try {
-            const validationErrors = await this.validateWitnessArg(arg);
-            if (validationErrors?.length > 0) {
-                for (const validationError of validationErrors) { console.error(validationError); }
+            if (!this.gib) { this.gib = await sha256v1(this.toDto()); }
+            const validationErrors_this = await this.validateThis();
+            if (validationErrors_this?.length > 0) {
+                for (const error of validationErrors_this) { console.error(`${lc} ${error}`); }
+                throw new Error(`validation failed.`);
+            }
+            const validationErrors_arg = await this.validateWitnessArg(arg);
+            if (validationErrors_arg?.length > 0) {
+                for (const error of validationErrors_arg) { console.error(`${lc} ${error}`); }
                 throw new Error(`validation failed.`);
             }
             if (this.trace?.includes(this.witness.name)) { console.log(`${lc} addr: ${getIbGibAddr(arg)}`); }
@@ -202,6 +212,11 @@ export abstract class WitnessBase_V1<
     }
     protected abstract witnessImpl(arg: TIbGibIn): Promise<TIbGibOut | undefined>;
 
+    /**
+     * Validate the incoming arg.
+     *
+     * Override this in descending classes per use case.
+     */
     protected async validateWitnessArg(arg: TIbGibIn): Promise<string[]> {
         const lc = `${this.lc}[${this.validateWitnessArg.name}]`;
         try {
@@ -216,6 +231,27 @@ export abstract class WitnessBase_V1<
         }
     }
 
+    /**
+     * Validate this witness object, checking its own `data` and `rel8ns`, and
+     * possibly other state.
+     *
+     * ## notes
+     *
+     * ATOW base implementation of this just checks for non-falsy
+     * `this.ib` and `this.gib`
+     */
+    protected async validateThis(): Promise<string[]> {
+        const lc = `${this.lc}[${this.validateThis.name}]`;
+        const errors: string[] = [];
+        try {
+            if (!this.ib) { errors.push(`this.ib is falsy.`); }
+            if (!this.gib) { errors.push(`this.gib is falsy.`); }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        }
+        return errors;
+    }
 }
 
 /**

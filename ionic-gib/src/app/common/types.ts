@@ -69,8 +69,11 @@ export interface IbgibItem {
     timestamp?: string;
     /** If true, then the component is checking for updates. */
     refreshing?: boolean;
-    /** If true, then the component is currently publishing to other space(s). */
-    publishing?: boolean;
+    /**
+     * If true, then the component is currently syncing with
+     * (publishing to) other space(s).
+     */
+    syncing?: boolean;
 }
 
 /**
@@ -271,6 +274,11 @@ export const IbGibSpaceOptionsCmdModifier = {
      * The incoming addr(s) should be the tjp(s), since "latest"
      * only makes sense with unique timelines which are referenced by
      * their tjps.
+     *
+     * ## notes
+     *
+     * ATOW I'm actually using this in the aws dynamodb ibgib space to
+     * get "newer" ibgibs, not just the latest.
      */
     latest: 'latest' as IbGibSpaceOptionsCmdModifier,
 }
@@ -316,10 +324,10 @@ export interface IbGibSpaceOptionsRel8ns extends IbGibRel8ns_V1 {
 }
 
 export interface IbGibSpaceOptionsIbGib<
-    TIbGib extends IbGib,
-    TOptsData extends IbGibSpaceOptionsData,
+    TIbGib extends IbGib = IbGib_V1,
+    TOptsData extends IbGibSpaceOptionsData = IbGibSpaceOptionsData,
     // TOptsRel8ns extends IbGibSpaceOptionsRel8ns = IbGibSpaceOptionsRel8ns
-    TOptsRel8ns extends IbGibSpaceOptionsRel8ns
+    TOptsRel8ns extends IbGibSpaceOptionsRel8ns = IbGibSpaceOptionsRel8ns,
     > extends IbGibWithDataAndRel8ns<TOptsData, TOptsRel8ns> {
     /**
      * When putting ibGibs, we don't want to persist the entire graph in the

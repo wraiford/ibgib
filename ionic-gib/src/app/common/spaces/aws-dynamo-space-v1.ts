@@ -6,6 +6,7 @@ import {
     BatchGetItemCommand, BatchGetItemCommandInput, BatchGetItemCommandOutput,
     QueryCommand, QueryCommandInput, QueryCommandOutput,
     KeysAndAttributes,
+    ConsumedCapacity,
 } from '@aws-sdk/client-dynamodb';
 
 import {
@@ -171,6 +172,7 @@ function createDynamoDBGetItemCommand({
     const params: GetItemCommandInput = {
         TableName: tableName,
         Key: { [keyName]: { S: primaryKey } },
+        ReturnConsumedCapacity: 'TOTAL',
     };
     return new GetItemCommand(params);
 }
@@ -184,6 +186,7 @@ function createDynamoDBPutItemCommand({
     const params: PutItemCommandInput = {
         TableName: tableName,
         Item: item,
+        ReturnConsumedCapacity: 'TOTAL',
     };
     return new PutItemCommand(params);
 }
@@ -197,7 +200,8 @@ function createDynamoDBBatchWriteItemCommand({
     const params: BatchWriteItemCommandInput = {
         RequestItems: {
             [tableName]: items.map(Item => { return {PutRequest: { Item }} })
-        }
+        },
+        ReturnConsumedCapacity: 'TOTAL',
     };
     return new BatchWriteItemCommand(params);
 }
@@ -276,6 +280,33 @@ async function createDynamoDBBatchGetItemCommand({
 }
 
 /**
+ * Can't have reserved words in projection expressions.
+ *
+ * https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ExpressionAttributeNames.html
+ */
+interface ProjectionExpressionInfo {
+    projectionExpression: string;
+    expressionAttributeNames?: {[key:string]:string};
+}
+/**
+ * Can't have reserved words in projection expressions.
+ *
+ * https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ExpressionAttributeNames.html
+ */
+async function fixReservedWords({
+    projectionExpression,
+}: {
+    projectionExpression: string,
+}): Promise<ProjectionExpressionInfo> {
+    const lc = `[${fixReservedWords.name}]`;
+    try {
+
+    } catch (error) {
+
+    }
+}
+
+/**
  * Creates a command formatted for AWS Query.
  *
  * @returns query command according to given info
@@ -294,6 +325,15 @@ async function createDynamoDBQueryNewerCommand({
         if (!tableName) { throw new Error(`tableName required.`); }
         if (!info) { throw new Error(`info required.`); }
 
+        let expressionAttributeNames: {[key:string]:string};
+        if (projectionExpression) {
+            let {projectionExpression} = await fixReservedWords(projectionExpression)
+        }
+
+        if (projectionExpression && projectionExpression.split(',').some(x => c.AWS_RESERVED_WORDS)) {
+
+        }
+
         const params: QueryCommandInput = {
             TableName: tableName,
             ConsistentRead: false, // ConsistentRead not available on global secondary indexes https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html#API_Query_RequestSyntax
@@ -305,6 +345,7 @@ async function createDynamoDBQueryNewerCommand({
             },
             ProjectionExpression: projectionExpression,
             ScanIndexForward: false, // returns higher n first (I believe!...not 100% sure here)
+            ReturnConsumedCapacity: 'TOTAL',
         };
         return new QueryCommand(params);
     } catch (error) {
@@ -382,7 +423,6 @@ interface GetLatestInfo {
      * this property.
      */
     nLeast: number;
-
     /**
      * Result of query ibGibs.
      */
@@ -397,21 +437,25 @@ interface GetLatestInfo {
 
 // #region Space related interfaces/constants
 
-
-// export interface SyncSpaceData_AWSDynamoDB extends SyncSpaceData {
-//     tableName: string;
-//     accessKeyId: string;
-//     secretAccessKey: string;
-//     region: AWSRegion;
-// }
-
 /**
  * This is the shape of data about this space itself (not the contained ibgibs' spaces).
  */
 export interface SyncSpaceData_AWSDynamoDB extends SyncSpaceData {
+    /**
+     * Table name in DynamoDB
+     */
     tableName: string;
+    /**
+     * AWS Credentials accessKeyId
+     */
     accessKeyId: string;
+    /**
+     * AWS Credentials secretAccessKey
+     */
     secretAccessKey: string;
+    /**
+     * AWS Region
+     */
     region: AWSRegion;
     /**
      * Max number of times to retry due to 400 errors related to throughput.
@@ -721,12 +765,16 @@ export class AWSDynamoSpace_V1<
             }
             if (
                 arg.data?.cmd === 'get' &&
+                !arg.data?.cmdModifiers?.includes('latest') &&
                 !arg.data?.binExt && !arg.data?.binHash &&
                 (arg.data?.ibGibAddrs?.length === 0)
             ) {
                 errors.push(`when "get" cmd is called, either ibGibAddrs or binExt+binHash required.`);
             }
-            if (!this.data?.tableName) { await this.initialize(); }
+            // if (!this.data?.tableName) { await this.initialize(); }
+            if (!this.data?.tableName) {
+                throw new Error('this.data.tableName falsy');
+            }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -817,9 +865,11 @@ export class AWSDynamoSpace_V1<
 
     protected async getLatestImpl(arg: AWSDynamoSpaceOptionsIbGib):
         Promise<AWSDynamoSpaceResultIbGib> {
+        debugger;
         const lc = `${this.lc}[${this.getLatestImpl.name}]`;
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
+            if (logalot) { console.log(`${lc} starting...`); }
             if (!this.data) { throw new Error(`this.data falsy.`); }
             if (!this.data!.tableName) { throw new Error(`tableName not set`); }
             if (!this.data!.secretAccessKey) { throw new Error(`this.data!.secretAccessKey falsy`); }
@@ -839,6 +889,8 @@ export class AWSDynamoSpace_V1<
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];
+        } finally {
+            if (logalot) { console.log(`${lc} complete(ish).`); }
         }
         try {
             const result = await this.resulty({resultData});
@@ -865,8 +917,12 @@ export class AWSDynamoSpace_V1<
         const maxRetries = this.data.maxRetryThroughputCount || c.DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
         for (let i = 0; i < maxRetries; i++) {
             try {
-                const resSend: TOutput = <any>(await client.send(cmd));
-                return resSend;
+                const resCmd: TOutput = <any>(await client.send(cmd));
+                if (logalot && (<any>resCmd)?.ConsumedCapacity) {
+                    const capacities = <ConsumedCapacity[]>(<any>resCmd)?.ConsumedCapacity;
+                    console.log(`${lc} Consumed Capacity: ${JSON.stringify(capacities)}`);
+                }
+                return resCmd;
             } catch (error) {
                 if (!isThroughputError(error)){ throw error; }
             }
@@ -898,13 +954,13 @@ export class AWSDynamoSpace_V1<
                     await createDynamoDBBatchGetItemCommand({ tableName: this.data.tableName, unprocessedKeys }) :
                     await createDynamoDBBatchGetItemCommand({ tableName: this.data.tableName, addrs: ibGibAddrs });
 
-                const resGet = await this.sendCmd<BatchGetItemCommandOutput>({cmd, client});
+                const resCmd = await this.sendCmd<BatchGetItemCommandOutput>({cmd, client});
 
-                const responseKeys = Object.keys(resGet.Responses[this.data.tableName]);
+                const responseKeys = Object.keys(resCmd.Responses[this.data.tableName]);
                 for (let i = 0; i < responseKeys.length; i++) {
                     const key = responseKeys[i];
                     const getIbGibsResponseItem =
-                        <AWSDynamoSpaceItem>resGet.Responses[this.data.tableName][key];
+                        <AWSDynamoSpaceItem>resCmd.Responses[this.data.tableName][key];
 
                     const ibGib = getIbGibFromResponseItem({item: getIbGibsResponseItem});
                     ibGibs.push(ibGib);
@@ -912,13 +968,13 @@ export class AWSDynamoSpace_V1<
                 }
 
                 const newUnprocessedCount =
-                    (resGet?.UnprocessedKeys && resGet?.UnprocessedKeys[this.data.tableName]?.Keys?.length > 0) ?
-                    resGet?.UnprocessedKeys[this.data.tableName].Keys.length :
+                    (resCmd?.UnprocessedKeys && resCmd?.UnprocessedKeys[this.data.tableName]?.Keys?.length > 0) ?
+                    resCmd?.UnprocessedKeys[this.data.tableName].Keys.length :
                     0;
 
                 if (newUnprocessedCount > 0) {
                     console.log(`${lc} newUnprocessedCount: ${newUnprocessedCount}`);
-                    let newUnprocessedKeys = resGet.UnprocessedKeys!;
+                    let newUnprocessedKeys = resCmd.UnprocessedKeys!;
                     const oldUnprocessedCount = unprocessedKeys?.Keys?.length ?? ibGibAddrs.length;
                     const progressWasMade = oldUnprocessedCount > newUnprocessedCount;
                     if (progressWasMade) {
@@ -1038,7 +1094,7 @@ export class AWSDynamoSpace_V1<
                     let cmd = await createDynamoDBQueryNewerCommand({
                         tableName: this.data.tableName,
                         info,
-                        projectionExpression: 'ib,gib,data,rel8ns,n',
+                        projectionExpression: 'ib,gib,#d,rel8ns,n',
                     });
                     let resCmd = await this.sendCmd<QueryCommandOutput>({cmd, client});
                     if (resCmd.Count > 0) {
@@ -1072,6 +1128,10 @@ export class AWSDynamoSpace_V1<
      *
      * You can only check for ibGibs with data.n, which implies consequently they have tjps.
      *
+     * ## notes
+     *
+     * ATOW I'm actually using this to get "newer or equal" ibgibs.
+     *
      * @returns result with ibGibs being the latest found. WARNING: Could possibly be more than 1 per tjp!
      */
     protected async getLatestIbGibs({
@@ -1081,6 +1141,7 @@ export class AWSDynamoSpace_V1<
         arg: AWSDynamoSpaceOptionsIbGib,
         client: DynamoDBClient,
     }): Promise<AWSDynamoSpaceResultIbGib> {
+        debugger;
         const lc = `${this.lc}[${this.getLatestIbGibs.name}]`;
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
