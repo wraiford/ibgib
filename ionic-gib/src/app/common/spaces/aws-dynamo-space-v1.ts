@@ -9,13 +9,9 @@ import {
     ConsumedCapacity,
 } from '@aws-sdk/client-dynamodb';
 
-import {
-    IbGib_V1, IbGibRel8ns_V1, sha256v1, IBGIB_DELIMITER,
-} from 'ts-gib/dist/V1';
-import { getIbGibAddr, Gib, IbGibAddr, V1 } from 'ts-gib';
+import { IbGib_V1, IbGibRel8ns_V1, } from 'ts-gib/dist/V1';
+import { getIbGibAddr, IbGibAddr, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
-// import { encodeStringToHexString, decodeHexStringToString } from 'encrypt-gib/dist/helper';
-// import { encrypt, decrypt, HashAlgorithm, SaltStrategy } from 'encrypt-gib';
 
 import { SpaceBase_V1 } from './space-base-v1';
 import {
@@ -28,7 +24,6 @@ import {
 } from '../types';
 import * as c from '../constants';
 import { getBinAddr } from '../helper';
-import { info } from 'console';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -292,6 +287,10 @@ interface ProjectionExpressionInfo {
  * Can't have reserved words in projection expressions.
  *
  * https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ExpressionAttributeNames.html
+ *
+ * ## notes
+ *
+ * NOT perfect, since it doesn't work for array expressions, e.g. "data[5]"
  */
 async function fixReservedWords({
     projectionExpression,
@@ -300,9 +299,43 @@ async function fixReservedWords({
 }): Promise<ProjectionExpressionInfo> {
     const lc = `[${fixReservedWords.name}]`;
     try {
+        let pieces = projectionExpression.split(',');
+        if (pieces.length === 0) { throw new Error(`invalid projectionExpression: ${projectionExpression}`); }
 
+        if (pieces.some(piece => piece.includes('.') || piece.includes('['))) {
+            console.warn(`${lc} arrays or dot-scopes not implemented.`);
+            return { projectionExpression };
+        }
+
+        if (pieces.some(piece => c.AWS_RESERVED_WORDS.includes(piece.toLowerCase()))) {
+            // reserve word found, so create expressionAttributeNames
+            if (logalot) { console.log(`${lc} fixing expression: ${projectionExpression}`); }
+            let fixedExpression = '';
+            let namesMap: {[key: string]: string};
+            for (let i = 0; i < pieces.length; i++) {
+                const piece = pieces[i];
+                if (c.AWS_RESERVED_WORDS.includes(piece.toLowerCase())) {
+                    let name = await (await h.getUUID()).slice(5);
+                    namesMap[name] = piece;
+                    if (i === 0) { fixedExpression = name; } else { fixedExpression += `,${name}`; }
+                } else {
+                    if (i === 0) { fixedExpression = piece; } else { fixedExpression += `,${piece}`; }
+                }
+            }
+            const resExpression = {
+                projectionExpression: fixedExpression,
+                expressionAttributeNames: namesMap,
+            };
+            if (logalot) { console.log(`${lc} resExpression: ${h.pretty(resExpression)}`); }
+            return resExpression;
+
+        } else {
+            // no reserve word found, so just return the projectionExpression alone
+            return { projectionExpression };
+        }
     } catch (error) {
-
+        console.error(`${lc} ${error.message}`);
+        return { projectionExpression };
     }
 }
 
@@ -325,13 +358,14 @@ async function createDynamoDBQueryNewerCommand({
         if (!tableName) { throw new Error(`tableName required.`); }
         if (!info) { throw new Error(`info required.`); }
 
-        let expressionAttributeNames: {[key:string]:string};
+        let expressionAttributeNames: {[key:string]:string} = undefined;
         if (projectionExpression) {
-            let {projectionExpression} = await fixReservedWords(projectionExpression)
-        }
-
-        if (projectionExpression && projectionExpression.split(',').some(x => c.AWS_RESERVED_WORDS)) {
-
+            const resExpression = await fixReservedWords({projectionExpression});
+            if (resExpression.expressionAttributeNames) {
+                if (logalot) { console.log(`${lc} resExpression: ${h.pretty(resExpression)}`); }
+                projectionExpression = resExpression.projectionExpression;
+                expressionAttributeNames = resExpression.expressionAttributeNames;
+            }
         }
 
         const params: QueryCommandInput = {
@@ -344,6 +378,7 @@ async function createDynamoDBQueryNewerCommand({
                 ":nLeast": { S: info.nLeast.toString() },
             },
             ProjectionExpression: projectionExpression,
+            ExpressionAttributeNames: expressionAttributeNames,
             ScanIndexForward: false, // returns higher n first (I believe!...not 100% sure here)
             ReturnConsumedCapacity: 'TOTAL',
         };

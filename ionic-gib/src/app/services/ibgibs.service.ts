@@ -3,7 +3,6 @@
  * refactored when we have a clearer picture...
  */
 
-import { Modals } from '@capacitor/core';
 import { Injectable } from '@angular/core';
 import { ReplaySubject } from 'rxjs';
 
@@ -31,11 +30,11 @@ import {
   IonicSpaceData_V1
 } from '../common/spaces/ionic-space-v1';
 import * as c from '../common/constants';
-import { ModalController } from '@ionic/angular';
+import { AlertController, ModalController } from '@ionic/angular';
 import { IbGibSpaceAny } from '../common/spaces/space-base-v1';
 import { encrypt, decrypt, } from 'encrypt-gib';
 import { AWSDynamoSpace_V1 } from '../common/spaces/aws-dynamo-space-v1';
-import { getTimestampInTicks, isSameSpace } from '../common/helper';
+import { getFnAlert, getFnConfirm, getFnPrompt, getFnPromptPassword_AlertController, getTimestampInTicks, isSameSpace } from '../common/helper';
 import { argy_ } from '../common/witnesses';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
@@ -291,15 +290,32 @@ export class IbgibsService {
    */
   private passwordCache: {[addr: string]: TempCacheEntry } = {};
 
+  private fnPromptSecret: () => Promise<IbGib_V1 | undefined>;
+  private fnPromptEncryption: () => Promise<IbGib_V1 | undefined>;
+  private fnPromptOuterSpace: () => Promise<IbGib_V1 | undefined>;
+
   constructor(
     public modalController: ModalController,
+    public alertController: AlertController,
   ) {
 
   }
 
-  async initialize(): Promise<void> {
+  async initialize({
+    fnPromptSecret,
+    fnPromptEncryption,
+    fnPromptOuterSpace,
+  }: {
+    fnPromptSecret: () => Promise<IbGib_V1 | undefined>,
+    fnPromptEncryption: () => Promise<IbGib_V1 | undefined>,
+    fnPromptOuterSpace: () => Promise<IbGib_V1 | undefined>,
+  }): Promise<void> {
     const lc = `${this.lc}[${this.initialize.name}]`;
     try {
+      this.fnPromptSecret = fnPromptSecret;
+      this.fnPromptEncryption = fnPromptEncryption;
+      this.fnPromptOuterSpace = fnPromptOuterSpace;
+
       await this.initializeLocalSpaces();
       const space = this.localUserSpace;
 
@@ -376,18 +392,19 @@ export class IbgibsService {
       let spaceName: string;
 
       const promptName: () => Promise<void> = async () => {
-        const resName = await Modals.prompt({title: 'Enter a Name...', message: `
+        const fnPrompt = getFnPrompt();
+        const resName = await fnPrompt({title: 'Enter a Name...', msg: `
         We need to create a space for you.
 
         Spaces are kinda like usernames, but they dont need to be unique.
 
         So enter a name for your space and choose OK to get started. Or if you just want a random bunch of letters, hit Cancel.`});
 
-        if (resName.cancelled) {
+        if (resName === null) {
           spaceName = (await h.getUUID()).slice(10);
         } else {
-          if (resName.value && this.validateUserSpaceName(resName.value)) {
-            spaceName = resName.value;
+          if (resName && this.validateUserSpaceName(resName)) {
+            spaceName = resName;
           }
         }
       };
@@ -1776,9 +1793,10 @@ export class IbgibsService {
   }): Promise<boolean> {
     const lc = `${this.lc}[${this.promptReplaceLatest.name}]`;
     try {
-      let resReplace = await Modals.confirm({
+      const fnConfirm = getFnConfirm();
+      let resReplace = await fnConfirm({
         title: `Can't find ibGib data...`,
-        message:
+        msg:
           `
             Can't find the ibGib locally for latest address: ${existingLatestAddr}.
             Do you want to replace it and point to the new address?
@@ -1797,15 +1815,15 @@ export class IbgibsService {
           okButtonTitle: 'Yes, replace',
           cancelButtonTitle: 'No, keep old',
       });
-      if (resReplace.value) {
+      if (resReplace) {
         //
-        let resAlwaysReplace = await Modals.confirm({
+        let resAlwaysReplace = await fnConfirm({
           title: `Always replace?`,
-          message: `Do want to always replace address not found locally? This applies only to this session.`,
+          msg: `Do want to always replace address not found locally? This applies only to this session.`,
           okButtonTitle: 'Yes, always replace',
           cancelButtonTitle: 'No, ask me every time',
         });
-        if (resAlwaysReplace.value) {
+        if (resAlwaysReplace) {
           console.warn(`${lc} user chose YES, always replace latest not found for this session.`);
           this.alwaysReplaceLatestNotFound = true;
         }
@@ -2859,6 +2877,239 @@ export class IbgibsService {
   }
 
   // #endregion
+
+  /**
+   * If we don't have outerspaces/cloud endpoints, we'll do that here.
+   *
+   * @returns true if creation was successfully created, else false.
+   */
+  async createOuterspaceEndpointStuff(): Promise<boolean> {
+    const lc = `${this.lc}[${this.createOuterspaceEndpointStuff.name}]`;
+    try {
+      let secretIbGibs: IbGib_V1[] = await this.getSpecialRel8dIbGibs({
+        type: "secrets",
+        rel8nName: c.SECRET_REL8N_NAME,
+      });
+      const alert = getFnAlert();
+      if (secretIbGibs.length === 0) {
+        await alert({
+          title: 'first create some stuff...',
+          msg: "First we'll need to do a couple things, like create a secret password, an encryption setting, and a cloud endpoint.",
+        });
+      }
+      while (secretIbGibs.length === 0) {
+        let secretIbGib = await this.fnPromptSecret();
+        if (secretIbGib === undefined) {
+          await alert({title: 'cancelled', msg: 'Cancelled.'});
+          return false;
+        }
+        await this.registerNewIbGib({ ibGib: secretIbGib, });
+        await this.rel8ToSpecialIbGib({
+          type: "secrets",
+          rel8nName: c.SECRET_REL8N_NAME,
+          ibGibsToRel8: [secretIbGib],
+        });
+        secretIbGibs = await this.getSpecialRel8dIbGibs({
+          type: "secrets",
+          rel8nName: c.SECRET_REL8N_NAME,
+        });
+      }
+
+      let encryptionIbGibs: IbGib_V1[] = await this.getSpecialRel8dIbGibs({
+        type: "encryptions",
+        rel8nName: c.ENCRYPTION_REL8N_NAME,
+      });
+      if (encryptionIbGibs.length === 0) {
+        alert({
+          title: 'next create an encryption...',
+          msg: "Now we need to create an encryption setting...bear with me if you don't know what this is. Just fill in the requirements and leave the others as defaults.",
+        });
+      }
+      while (encryptionIbGibs.length === 0) {
+        let encryptionIbGib = await this.fnPromptEncryption();
+        if (encryptionIbGib === undefined) {
+          await alert({title: 'cancelled', msg: 'Cancelled.'});
+          return false;
+        }
+        await this.registerNewIbGib({ ibGib: encryptionIbGib, });
+        await this.rel8ToSpecialIbGib({
+          type: "encryptions",
+          rel8nName: c.ENCRYPTION_REL8N_NAME,
+          ibGibsToRel8: [encryptionIbGib],
+        });
+        encryptionIbGibs = await this.getSpecialRel8dIbGibs({
+          type: "encryptions",
+          rel8nName: c.ENCRYPTION_REL8N_NAME,
+        });
+      }
+
+
+      let outerspaceIbGibs: IbGib_V1[] = await this.getSpecialRel8dIbGibs({
+        type: "outerspaces",
+        rel8nName: c.SYNC_SPACE_REL8N_NAME,
+      });
+      if (outerspaceIbGibs.length === 0) {
+        await alert({
+          title: 'Now to outerspace...',
+          msg: "Great! Now we can (finally) create an outerspace ibgib, which is kinda like the cloud (for now).",
+        });
+      }
+      while (outerspaceIbGibs.length === 0) {
+        let outerspaceIbGib = await this.fnPromptOuterSpace();
+        if (outerspaceIbGib === undefined) {
+          await alert({title: 'cancelled', msg: 'Cancelled.'});
+          return false;
+        }
+        await this.registerNewIbGib({ ibGib: outerspaceIbGib, });
+        await this.rel8ToSpecialIbGib({
+          type: "outerspaces",
+          rel8nName: c.SYNC_SPACE_REL8N_NAME,
+          ibGibsToRel8: [outerspaceIbGib],
+        });
+      }
+      return true;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return false;
+    }
+  }
+
+
+  async syncIbGibs({
+    ibGibs,
+    confirm,
+  }: {
+    ibGibs?: IbGib_V1[],
+    confirm?: boolean,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.syncIbGibs.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (!ibGibs || ibGibs.length === 0) { throw new Error(`ibGibs required.`)}
+      let appSyncSpaces: IbGibSpaceAny[];
+      do {
+        appSyncSpaces =
+          await this.getSpecialRel8dIbGibs<IbGibSpaceAny>({
+            type: "outerspaces",
+            rel8nName: c.SYNC_SPACE_REL8N_NAME
+          });
+        if (appSyncSpaces.length === 0) {
+          let created = await this.createOuterspaceEndpointStuff();
+          if (created) {
+            appSyncSpaces = await this.getSpecialRel8dIbGibs({
+              type: "outerspaces",
+              rel8nName: c.SYNC_SPACE_REL8N_NAME,
+            });
+            if (appSyncSpaces.length === 0) {
+              console.warn(`${lc} syncSpaces was supposed to have been created here, but somehow they haven't been. Trying again...`);
+            }
+          } else {
+            if (appSyncSpaces.length === 0) {
+              // cancelled
+              return;
+            } else {
+              // created at least one space
+            }
+          }
+        }
+      } while (appSyncSpaces.length === 0)
+
+      // for each sync space info, we want to create/load the space witness
+      // give the command, passing along the encryption credentials
+
+      for (let i = 0; i < appSyncSpaces.length; i++) {
+        let syncSpace = appSyncSpaces[i];
+
+        if (syncSpace.rel8ns.ciphertext) {
+          // need to load the ciphertext actual data
+          syncSpace = await this.unwrapEncryptedSyncSpace({
+            encryptedSpace: syncSpace,
+            fnPromptPassword: getFnPromptPassword_AlertController({
+              alertController: this.alertController,
+            }),
+          });
+        }
+
+        // pull down newer ibgibs from sync spaces for ibgibs that have tjps
+        debugger;
+        let latestLocalIbGibs: IbGib_V1[] = [];
+        let needLatestIbGibs =
+          ibGibs.filter(ibGib => ibGib.data?.isTjp || ibGib.rel8ns?.tjp?.length === 1);
+        for (let j = 0; j < needLatestIbGibs.length; j++) {
+          const maybeNeedLatest = needLatestIbGibs[j];
+          const needLatestAddr = h.getIbGibAddr({ibGib: maybeNeedLatest});
+          // get latest in the current local user space
+          const latestAddr = await this.getLatestAddr({ibGib: maybeNeedLatest});
+          if (latestAddr !== needLatestAddr) {
+            // there is a later version locally.
+            const resLatestLocalIbGib = await this.get({addr: latestAddr});
+            if (resLatestLocalIbGib.success && resLatestLocalIbGib.ibGibs?.length === 1) {
+              latestLocalIbGibs.push(resLatestLocalIbGib.ibGibs[0]);
+            } else {
+              console.warn(`${lc} needLatestAddr: ${needLatestAddr}. latestAddr: ${latestAddr}. Using given ibgib.`);
+              latestLocalIbGibs.push(maybeNeedLatest);
+            }
+          } else {
+            latestLocalIbGibs.push(maybeNeedLatest);
+          }
+        }
+        if (latestLocalIbGibs.length > 0) {
+          await this.getLatestFromSpace({
+            ibGibs: latestLocalIbGibs,
+            persistLocally: false,
+            space: syncSpace,
+          })
+        }
+
+        // publish to sync space
+        let argPut = await syncSpace.argy({
+            argData: { cmd: 'put', },
+            ibGibs,
+        });
+        let resPut = await syncSpace.witness(argPut);
+
+        if ((resPut?.data?.errors || []).length > 0) {
+          throw new Error(`resPut had errors: ${resPut.data.errors}`);
+        }
+
+        if (confirm) {
+          const ibGibAddrs = ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
+          console.warn(`test individual ibgibs confirming put was successful...need to remove!`);
+          const argGet = await syncSpace.argy({
+            argData: {
+              cmd: 'get',
+              ibGibAddrs,
+            }
+          });
+          const resGet = await syncSpace.witness(argGet);
+
+          if (resGet.ibGibs?.length !== ibGibs.length) {
+            throw new Error(`resGet.ibGibs?.length: ${resGet.ibGibs?.length} but ibGibs.length: ${ibGibs.length}`);
+          }
+
+          for (let i = 0; i < ibGibAddrs.length; i++) {
+            const addr = ibGibAddrs[i];
+            const ibGib = ibGibs.filter(x => h.getIbGibAddr({ibGib: x}) === addr)[0];
+            const gotIbGibs = resGet.ibGibs?.filter(x => h.getIbGibAddr({ibGib: x}) === addr);
+            if (gotIbGibs.length !== 1) { throw new Error(`did not get addr: ${addr}`); }
+            const gotIbGib = gotIbGibs[0];
+            if (ibGib.ib !== gotIbGib.ib) { throw new Error(`ib is different`); }
+            if (ibGib.gib !== gotIbGib.gib) { throw new Error(`gib is different`); }
+            if (JSON.stringify(ibGib.data) !== JSON.stringify(gotIbGib.data)) { throw new Error(`data is different`); }
+            if (JSON.stringify(ibGib.rel8ns) !== JSON.stringify(gotIbGib.rel8ns)) { throw new Error(`rel8ns is different`); }
+            if (logalot) { console.log(`${lc} confirmed ${h.getIbGibAddr({ibGib})}`); }
+          }
+
+          if (logalot) { console.log(`${lc} confirmation complete.`); }
+        }
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 
 }
 

@@ -6,6 +6,8 @@ import * as h from 'ts-gib/dist/helper';
 import { HashAlgorithm } from 'ts-gib';
 import { IbGibSpace } from './types';
 import { IbGibSpaceAny } from './spaces/space-base-v1';
+import { Plugins } from '@capacitor/core';
+const { Modals } = Plugins;
 
 /**
  * Binaries require special handling, since they do not conform to the
@@ -96,6 +98,49 @@ export async function hash16816({
         throw error;
     }
 }
+
+/**
+ * Wrapper for alerting via atow capacitor modals.
+ *
+ * @returns FUNCTION that alerts (doesn't actually do the alert)
+ */
+export function getFnAlert(): ({title, msg}: {title: string, msg: string}) => Promise<void> {
+    return async ({title, msg}: {title: string, msg: string}) => {
+        await Modals.alert({title, message: msg});
+    };
+}
+
+/**
+ * Wrapper for prompting via atow capacitor modals.
+ *
+ * @returns FUNCTION that prompts (doesn't actually do the prompt)
+ */
+export function getFnPrompt(): ({title, msg}: {title: string, msg: string}) => Promise<string|null> {
+    return async ({title, msg}: {title: string, msg: string}) => {
+        const resPrompt = await Modals.prompt({title, message: msg});
+        if (resPrompt.cancelled) {
+            return null;
+        } else {
+            return resPrompt.value;
+        }
+    };
+}
+
+export function getFnConfirm():
+    ({title, msg, okButtonTitle, cancelButtonTitle}:
+        {title: string, msg: string, okButtonTitle?: string, cancelButtonTitle?: string}) => Promise<boolean> {
+
+    return async ({title, msg, okButtonTitle, cancelButtonTitle}:
+        {title: string, msg: string, okButtonTitle?: string, cancelButtonTitle?: string}) => {
+            okButtonTitle = okButtonTitle || 'Ok';
+            cancelButtonTitle = cancelButtonTitle || 'Cancel';
+            const resConfirm = await Modals.confirm({
+                title, message: msg, okButtonTitle, cancelButtonTitle
+            });
+            return resConfirm.value;
+        }
+}
+
 
 export function getFnPromptPassword_AlertController({
     alertController,

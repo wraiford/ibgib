@@ -6,14 +6,17 @@ import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 
-import { IbGibAddr, } from 'ts-gib';
+import { IbGibAddr, TransformResult, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 
 import { IbgibComponentBase } from './common/bases/ibgib-component-base';
 import { CommonService } from './services/common.service';
 import * as c from './common/constants';
-import { RootData, } from './common/types';
+import { EncryptionData_V1, OuterSpaceIbGib, RootData, SecretIbGib_V1, } from './common/types';
+import { CreateSecretModalComponent } from './common/create-secret-modal/create-secret-modal.component';
+import { CreateOuterspaceModalComponent } from './common/create-outerspace-modal/create-outerspace-modal.component';
+import { CreateEncryptionModalComponent } from './common/create-encryption-modal/create-encryption-modal.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -168,14 +171,17 @@ export class AppComponent extends IbgibComponentBase
         // make sure the service is initialized FIRST before any
         // other ibgib happenings
         if (logalot) { console.log(`${lc} calling ibgib service.initialize...`); }
-        await this.common.ibgibs.initialize();
+        await this.common.ibgibs.initialize({
+          fnPromptSecret: this.promptCreateSecretIbGib,
+          fnPromptEncryption: this.promptCreateEncryptionIbGib,
+          fnPromptOuterSpace: this.promptCreateOuterSpaceIbGib,
+        });
         if (logalot) { console.log(`${lc} ibgib service.initialize returned.`); }
 
         if (!this.item) { this.item = {} }
         this.item.isMeta = true;
 
         // these are AppComponent-specific initializations
-        // await this.initializeMySpaces();
         await this.initializeMyRoots();
         await this.initializeMyTags();
 
@@ -217,25 +223,47 @@ export class AppComponent extends IbgibComponentBase
     this.unsubscribeParamMap();
   }
 
-  async updateIbGib(addr: IbGibAddr): Promise<void> {
-    const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-    if (logalot) { console.log(`${lc} updating...`); }
-    try {
-      if (this.initializing) {
-        if (logalot) { console.log(`${lc} initializing in progress...not continuing at this time.`); }
-        return;
-      }
+  subscribeParamMap() {
+    const lc = `${this.lc}[${this.subscribeParamMap.name}]`;
 
-      await super.updateIbGib(addr);
-      await this.loadIbGib();
-      await this.loadTjp();
-      await this.updateMenu();
-    } catch (error) {
-      console.error(`${lc} error: ${error.message}`);
-      this.clearItem();
-    } finally {
-      this.ref.detectChanges();
-      if (logalot) { console.log(`${lc} updated.`); }
+    if (logalot) { console.log(`${lc} subscribing...`) }
+
+    let piper = this.router.events.pipe(filter(x => x instanceof NavigationEnd));
+    this._paramMapSub_App = piper.subscribe(async (event: any) => {
+      const addr = await this.getCurrentIbgibAddrInURL();
+      if (logalot) { console.log(`${lc} addr: ${addr}`); }
+      if (logalot) { console.log(`${lc} router.url: ${h.pretty(this.router.url)}`) }
+      if (event.id && event.url && addr && addr !== this.addr) {
+        if (logalot) { console.log(`${lc} event.id: ${event.id}`); }
+        if (logalot) { console.log(`${lc} event.url: ${event.url}`); }
+        if (logalot) { console.log(`${lc} addr is different`); }
+        await this.updateIbGib(addr);
+        this.ref.detectChanges();
+      }
+    });
+
+    // this.paramMapSub = this.router.events.subscribe(async (event: RouterEvent) => {
+
+    //   const addr = this.router.url && this.router.url.startsWith('/ibgib/') ?
+    //     decodeURI(this.router.url.split('/')[2]) :
+    //     undefined;
+    //   console.log(`${lc} addr: ${addr}`);
+    //   console.log(`${lc} router.url: ${h.pretty(this.router.url)}`)
+    //   if (event.id && event.url && addr && addr !== this.addr) {
+    //     console.log(`${lc} event.id: ${event.id}`);
+    //     console.log(`${lc} event.url: ${event.url}`);
+    //     console.log(`${lc} addr is different`);
+    //     await this.updateIbGib(addr);
+    //     this.ref.detectChanges();
+    //   }
+
+    // });
+  }
+
+  unsubscribeParamMap() {
+    if (this._paramMapSub_App) {
+      this._paramMapSub_App.unsubscribe();
+      delete this._paramMapSub_App;
     }
   }
 
@@ -252,47 +280,6 @@ export class AppComponent extends IbgibComponentBase
     if (logalot) { console.log(`getting tags addr`) }
     const special = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
     this.tagsAddr = h.getIbGibAddr({ibGib: special});
-  }
-
-  /**
-   * Initializes app components properties, NOT the actual special ibgib
-   * on the ibgibs service. That should already be done.
-   */
-  async initializeMySpaces(): Promise<void> {
-    const lc = `${this.lc}[${this.initializeMySpaces.name}]`;
-    try {
-      // const spacesIbGib = await this.common.ibgibs.getSpecialIbgib({type: "spaces"});
-      // this.spacesAddr = h.getIbGibAddr({ibGib: spacesIbGib});
-      throw new Error('not implemented');
-      const currentSpaceIbGib = null;//await this.common.ibgibs.getCurrentSpace();
-      if (!currentSpaceIbGib) { throw new Error(`currentSpace not found(?)`); }
-      if (!currentSpaceIbGib.data) { throw new Error(`currentSpace.data falsy (?)`); }
-      let {icon, text, description} = currentSpaceIbGib.data;
-      if (!icon) {
-        console.warn(`${lc} space.icon not found. Using default.`);
-        icon = c.DEFAULT_SPACE_ICON;
-      }
-      if (!text) {
-        console.warn(`${lc} space.text not found. Using default.`);
-        text = c.DEFAULT_SPACE_TEXT;
-      }
-      if (!description) {
-        console.warn(`${lc} space.description not found. Using default.`);
-        description = c.DEFAULT_SPACE_DESCRIPTION;
-      }
-      const addr = h.getIbGibAddr({ibGib: currentSpaceIbGib});
-
-      this.currentSpace = await this.getSpaceItem(addr);
-      // this.currentSpace = {
-      //   icon,
-      //   title: text,
-      //   url: `/ibgib/${addr}`,
-      // }
-
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    }
   }
 
   /**
@@ -325,11 +312,6 @@ export class AppComponent extends IbgibComponentBase
       const addr = h.getIbGibAddr({ibGib: currentRootIbGib});
 
       this.currentRoot = await this.getRootItem(addr);
-      // this.currentRoot = {
-      //   icon,
-      //   title: text,
-      //   url: `/ibgib/${addr}`,
-      // }
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -358,6 +340,34 @@ export class AppComponent extends IbgibComponentBase
   }
 
   /**
+   * Primary update function for the current ibGib associated with
+   * this component.
+   *
+   * @param addr address for new ibGib. May be new, the same, or falsy.
+   */
+  async updateIbGib(addr: IbGibAddr): Promise<void> {
+    const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
+    if (logalot) { console.log(`${lc} updating...`); }
+    try {
+      if (this.initializing) {
+        if (logalot) { console.log(`${lc} initializing in progress...not continuing at this time.`); }
+        return;
+      }
+
+      await super.updateIbGib(addr);
+      await this.loadIbGib();
+      await this.loadTjp();
+      await this.updateMenu();
+    } catch (error) {
+      console.error(`${lc} error: ${error.message}`);
+      this.clearItem();
+    } finally {
+      this.ref.detectChanges();
+      if (logalot) { console.log(`${lc} updated.`); }
+    }
+  }
+
+  /**
    * For some reason, the app component refuses to be allow custom ibgib
    * components inside the menu and bind them. For example, I can get
    * a tag-list to show in the menu, but it does not load the component
@@ -368,7 +378,6 @@ export class AppComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.updateMenu.name}]`;
     try {
       await this.updateMenu_Tags();
-      // await this.updateMenu_Spaces();
       await this.updateMenu_Roots();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -433,78 +442,6 @@ export class AppComponent extends IbgibComponentBase
               title: ibGib.ib.substring(0, c.MENU_ITEM_IB_SUBSTRING_LENGTH),
               icon: ibGib.data!.icon || c.DEFAULT_TAG_ICON,
               url: `/ibgib/${addr}`,
-            }
-          }
-        } else {
-          throw new Error(`Invalid ibgib gotten`);
-        }
-      } else {
-        throw new Error(resGet.errorMsg || `error getting ${addr}`);
-      }
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-    }
-
-    return item;
-  }
-
-  async updateMenu_Spaces(): Promise<void> {
-    const lc = `${this.lc}[${this.updateMenu_Spaces.name}]`;
-    let spaceMenuItems: MenuItem[] = [];
-
-    try {
-
-      // // spaces should already be initialized
-      // if (!this.spacesAddr) { throw new Error(`spacesAddr is falsy, i.e. hasn't been initialized?`); };
-
-      // // get spaces, but don't initialize
-      // let spacesIbGib = await this.common.ibgibs.getSpecialIbgib({type: "outerspaces"});
-      // let spaceAddrs = spacesIbGib?.rel8ns[c.SPACE_REL8N_NAME] || [];
-
-      // // we should have initialized with spaces
-      // if (!spaceAddrs || spaceAddrs.length === 0) { throw new Error(`No associated spaceAddrs to the spaces ibGib. Should have been initialized with spaces.`); }
-
-      // // load individual items
-      // for (let spaceAddr of spaceAddrs) {
-      //   const spaceItem = await this.getSpaceItem(spaceAddr);
-      //   if (spaceItem) { spaceMenuItems.push(spaceItem); }
-      // }
-
-      // "load" them into the bound property and detect the changes
-    } catch (error) {
-      spaceMenuItems = [{title: 'hmm errored...', icon: 'bug-outline', url: '/ibgib/error^gib'}];
-      console.error(`${lc} ${error.message}`);
-    } finally {
-      this.spaceItems = spaceMenuItems;
-      this.ref.detectChanges();
-    }
-
-  }
-
-  async getSpaceItem(addr: IbGibAddr): Promise<MenuItem> {
-    const lc = `${this.lc}[${this.getSpaceItem.name}]`;
-    let item: MenuItem;
-    try {
-      const resGet = await this.common.ibgibs.get({addr});
-      if (resGet.success && resGet.ibGibs?.length === 1) {
-        const ibGib = resGet.ibGibs![0];
-        if (ibGib?.ib && ibGib?.gib) {
-          if (ibGib?.data?.icon && ibGib?.data?.text) {
-            const text = ibGib.data!.text;
-            item = {
-              title: text.substring(0, c.MENU_ITEM_IB_SUBSTRING_LENGTH),
-              icon: ibGib.data!.icon || c.DEFAULT_SPACE_ICON,
-              url: `/ibgib/${addr}`,
-              addr,
-            }
-            if (logalot) { console.log(`${lc} ${h.pretty(item)}`); }
-          } else {
-            console.warn(`${lc} loading non-standard tag`);
-            item = {
-              title: ibGib.ib.substring(0, c.MENU_ITEM_IB_SUBSTRING_LENGTH),
-              icon: ibGib.data!.icon || c.DEFAULT_SPACE_ICON,
-              url: `/ibgib/${addr}`,
-              addr,
             }
           }
         } else {
@@ -613,50 +550,6 @@ export class AppComponent extends IbgibComponentBase
     }
   }
 
-  subscribeParamMap() {
-    const lc = `${this.lc}[${this.subscribeParamMap.name}]`;
-
-    if (logalot) { console.log(`${lc} subscribing...`) }
-
-    let piper = this.router.events.pipe(filter(x => x instanceof NavigationEnd));
-    this._paramMapSub_App = piper.subscribe(async (event: any) => {
-      const addr = await this.getCurrentIbgibAddrInURL();
-      if (logalot) { console.log(`${lc} addr: ${addr}`); }
-      if (logalot) { console.log(`${lc} router.url: ${h.pretty(this.router.url)}`) }
-      if (event.id && event.url && addr && addr !== this.addr) {
-        if (logalot) { console.log(`${lc} event.id: ${event.id}`); }
-        if (logalot) { console.log(`${lc} event.url: ${event.url}`); }
-        if (logalot) { console.log(`${lc} addr is different`); }
-        await this.updateIbGib(addr);
-        this.ref.detectChanges();
-      }
-    });
-
-    // this.paramMapSub = this.router.events.subscribe(async (event: RouterEvent) => {
-
-    //   const addr = this.router.url && this.router.url.startsWith('/ibgib/') ?
-    //     decodeURI(this.router.url.split('/')[2]) :
-    //     undefined;
-    //   console.log(`${lc} addr: ${addr}`);
-    //   console.log(`${lc} router.url: ${h.pretty(this.router.url)}`)
-    //   if (event.id && event.url && addr && addr !== this.addr) {
-    //     console.log(`${lc} event.id: ${event.id}`);
-    //     console.log(`${lc} event.url: ${event.url}`);
-    //     console.log(`${lc} addr is different`);
-    //     await this.updateIbGib(addr);
-    //     this.ref.detectChanges();
-    //   }
-
-    // });
-  }
-
-  unsubscribeParamMap() {
-    if (this._paramMapSub_App) {
-      this._paramMapSub_App.unsubscribe();
-      delete this._paramMapSub_App;
-    }
-  }
-
   compareRoots(a: MenuItem, b: MenuItem): boolean {
     const lc = `[${AppComponent.name}][compareRoots]`;
     if (logalot) { console.log(`${lc}`); }
@@ -707,6 +600,84 @@ export class AppComponent extends IbgibComponentBase
     }
   }
 
+  async promptCreateSecretIbGib(): Promise<IbGib_V1 | undefined> {
+    const lc = `${this.lc}[${this.promptCreateSecretIbGib.name}]`;
+    try {
+      const modal = await this.common.modalController.create({
+        component: CreateSecretModalComponent,
+      });
+      await modal.present();
+      let resModal = await modal.onWillDismiss();
+      if (resModal.data) {
+        const resNewSecret = <TransformResult<SecretIbGib_V1>>resModal.data;
+        await this.common.ibgibs.persistTransformResult({resTransform: resNewSecret});
+        const addr = h.getIbGibAddr({ibGib: resNewSecret.newIbGib});
+        if (logalot) { console.log(`${lc} created secret. addr: ${addr}`); }
+        await this.common.ibgibs.rel8ToSpecialIbGib({
+          type: "secrets",
+          rel8nName: c.SECRET_REL8N_NAME,
+          ibGibsToRel8: [resNewSecret.newIbGib],
+        });
+        return resNewSecret.newIbGib;
+      } else {
+        // didn't create one
+        console.warn(`${lc} didn't create at this time.`);
+        return undefined;
+      }
+    } catch (error) {
+      console.error(`${lc} error: ${error.message}`);
+      return undefined;
+    }
+  }
 
+  async promptCreateEncryptionIbGib(): Promise<IbGib_V1 | undefined> {
+    const lc = `${this.lc}[${this.promptCreateEncryptionIbGib.name}]`;
+    try {
+      const modal = await this.common.modalController.create({
+        component: CreateEncryptionModalComponent,
+      });
+      await modal.present();
+      let resModal = await modal.onWillDismiss();
+      if (resModal.data) {
+        const resNewEncryption = <TransformResult<IbGib_V1<EncryptionData_V1>>>resModal.data;
+        await this.common.ibgibs.persistTransformResult({resTransform: resNewEncryption});
+        const addr = h.getIbGibAddr({ibGib: resNewEncryption.newIbGib});
+        if (logalot) { console.log(`${lc} created secret. addr: ${addr}`); }
+        return resNewEncryption.newIbGib;
+      } else {
+        // didn't create one
+        console.warn(`${lc} didn't create at this time.`);
+        return undefined;
+      }
+    } catch (error) {
+      console.error(`${lc} error: ${error.message}`);
+      return undefined;
+    }
+  }
+
+  async promptCreateOuterSpaceIbGib(): Promise<IbGib_V1 | undefined> {
+    const lc = `${this.lc}[${this.promptCreateOuterSpaceIbGib.name}]`;
+    try {
+      const modal = await this.common.modalController.create({
+        component: CreateOuterspaceModalComponent,
+      });
+      await modal.present();
+      let resModal = await modal.onWillDismiss();
+      if (resModal.data) {
+        const resOuterSpace = <TransformResult<OuterSpaceIbGib>>resModal.data;
+        await this.common.ibgibs.persistTransformResult({resTransform: resOuterSpace});
+        const addr = h.getIbGibAddr({ibGib: resOuterSpace.newIbGib});
+        if (logalot) { console.log(`${lc} created outerspace. addr: ${addr}`); }
+        return resOuterSpace.newIbGib;
+      } else {
+        // didn't create one
+        console.warn(`${lc} didn't create outerspace at this time.`);
+        return undefined;
+      }
+    } catch (error) {
+      console.error(`${lc} error: ${error.message}`);
+      return undefined;
+    }
+  }
 
 }
