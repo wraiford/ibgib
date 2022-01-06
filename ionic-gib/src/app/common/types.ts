@@ -76,6 +76,7 @@ export interface IbgibItem {
     syncing?: boolean;
 }
 
+
 /**
  * Shape of a tag^gib data.
  */
@@ -455,6 +456,10 @@ export interface SyncSpaceData extends OuterSpaceData {
 
 export interface OuterSpaceRel8ns extends IbGibSpaceRel8ns {
     [c.CIPHERTEXT_REL8N_NAME]?: IbGibAddr[];
+    /**
+     * ATOW this will only be c.CONSENSUS_ADDR_SYNC_NAIVE_PUT_MERGE
+     */
+    [c.CONSENSUS_REL8N_NAME]: IbGibAddr[];
 }
 
 export interface OuterSpaceIbGib

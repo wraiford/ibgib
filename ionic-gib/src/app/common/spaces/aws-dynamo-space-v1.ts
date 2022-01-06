@@ -1,7 +1,7 @@
 import {
     AttributeValue, DynamoDBClient,
-    PutItemCommand, PutItemCommandInput,
-    GetItemCommand, GetItemCommandInput,
+    // PutItemCommand, PutItemCommandInput,
+    // GetItemCommand, GetItemCommandInput,
     BatchWriteItemCommand, BatchWriteItemCommandInput, BatchWriteItemCommandOutput,
     BatchGetItemCommand, BatchGetItemCommandInput, BatchGetItemCommandOutput,
     QueryCommand, QueryCommandInput, QueryCommandOutput,
@@ -155,36 +155,37 @@ async function createDynamoDBPutItem({
     }
 }
 
-function createDynamoDBGetItemCommand({
-    tableName,
-    keyName,
-    primaryKey,
-}: {
-    tableName: string,
-    keyName: string,
-    primaryKey: string,
-}): GetItemCommand {
-    const params: GetItemCommandInput = {
-        TableName: tableName,
-        Key: { [keyName]: { S: primaryKey } },
-        ReturnConsumedCapacity: 'TOTAL',
-    };
-    return new GetItemCommand(params);
-}
-function createDynamoDBPutItemCommand({
-    tableName,
-    item,
-}: {
-    tableName: string,
-    item: AWSDynamoSpaceItem,
-}): PutItemCommand {
-    const params: PutItemCommandInput = {
-        TableName: tableName,
-        Item: item,
-        ReturnConsumedCapacity: 'TOTAL',
-    };
-    return new PutItemCommand(params);
-}
+// function createDynamoDBGetItemCommand({
+//     tableName,
+//     keyName,
+//     primaryKey,
+// }: {
+//     tableName: string,
+//     keyName: string,
+//     primaryKey: string,
+// }): GetItemCommand {
+//     const params: GetItemCommandInput = {
+//         TableName: tableName,
+//         Key: { [keyName]: { S: primaryKey } },
+//         ReturnConsumedCapacity: 'TOTAL',
+//     };
+//     return new GetItemCommand(params);
+// }
+// function createDynamoDBPutItemCommand({
+//     tableName,
+//     item,
+// }: {
+//     tableName: string,
+//     item: AWSDynamoSpaceItem,
+// }): PutItemCommand {
+//     const params: PutItemCommandInput = {
+//         TableName: tableName,
+//         Item: item,
+//         ReturnConsumedCapacity: 'TOTAL',
+//     };
+//     return new PutItemCommand(params);
+// }
+
 function createDynamoDBBatchWriteItemCommand({
     tableName,
     items,
@@ -196,7 +197,7 @@ function createDynamoDBBatchWriteItemCommand({
         RequestItems: {
             [tableName]: items.map(Item => { return {PutRequest: { Item }} })
         },
-        ReturnConsumedCapacity: 'TOTAL',
+        ReturnConsumedCapacity: 'TOTAL', // includes consumed capacity information
     };
     return new BatchWriteItemCommand(params);
 }
@@ -307,15 +308,16 @@ async function fixReservedWords({
             return { projectionExpression };
         }
 
-        if (pieces.some(piece => c.AWS_RESERVED_WORDS.includes(piece.toLowerCase()))) {
+        if (pieces.some(piece => c.AWS_RESERVED_WORDS.includes(piece.toUpperCase()))) {
             // reserve word found, so create expressionAttributeNames
             if (logalot) { console.log(`${lc} fixing expression: ${projectionExpression}`); }
             let fixedExpression = '';
-            let namesMap: {[key: string]: string};
+            let namesMap: {[key: string]: string} = {};
             for (let i = 0; i < pieces.length; i++) {
                 const piece = pieces[i];
-                if (c.AWS_RESERVED_WORDS.includes(piece.toLowerCase())) {
-                    let name = await (await h.getUUID()).slice(5);
+                if (c.AWS_RESERVED_WORDS.includes(piece.toUpperCase())) {
+                    let chars = (await h.getUUID()).slice(0, 3);
+                    let name = `#${piece}_${chars}`;
                     namesMap[name] = piece;
                     if (i === 0) { fixedExpression = name; } else { fixedExpression += `,${name}`; }
                 } else {
@@ -358,6 +360,7 @@ async function createDynamoDBQueryNewerCommand({
         if (!tableName) { throw new Error(`tableName required.`); }
         if (!info) { throw new Error(`info required.`); }
 
+        debugger;
         let expressionAttributeNames: {[key:string]:string} = undefined;
         if (projectionExpression) {
             const resExpression = await fixReservedWords({projectionExpression});
@@ -368,6 +371,7 @@ async function createDynamoDBQueryNewerCommand({
             }
         }
 
+        debugger;
         const params: QueryCommandInput = {
             TableName: tableName,
             ConsistentRead: false, // ConsistentRead not available on global secondary indexes https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html#API_Query_RequestSyntax
@@ -375,13 +379,14 @@ async function createDynamoDBQueryNewerCommand({
             KeyConditionExpression: 'tjp = :tjp and n >= :nLeast',
             ExpressionAttributeValues: {
                 ":tjp": { S: info.tjpAddr },
-                ":nLeast": { S: info.nLeast.toString() },
+                ":nLeast": { N: info.nLeast.toString() },
             },
             ProjectionExpression: projectionExpression,
             ExpressionAttributeNames: expressionAttributeNames,
             ScanIndexForward: false, // returns higher n first (I believe!...not 100% sure here)
             ReturnConsumedCapacity: 'TOTAL',
         };
+        if (logalot) { console.log(`${lc} params: ${h.pretty(params)}`); }
         return new QueryCommand(params);
     } catch (error) {
         console.error(`${lc} ${error.message}`);
@@ -900,7 +905,6 @@ export class AWSDynamoSpace_V1<
 
     protected async getLatestImpl(arg: AWSDynamoSpaceOptionsIbGib):
         Promise<AWSDynamoSpaceResultIbGib> {
-        debugger;
         const lc = `${this.lc}[${this.getLatestImpl.name}]`;
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
@@ -917,7 +921,9 @@ export class AWSDynamoSpace_V1<
             });
 
             if (arg.ibGibs?.length > 0) {
-                return await this.getLatestIbGibs({arg, client}); // returns
+                let tmpResult = await this.getLatestIbGibs({arg, client}); // returns
+                debugger;
+                return tmpResult;
             } else {
                 throw new Error(`ibGibs required.`);
             }
@@ -944,18 +950,28 @@ export class AWSDynamoSpace_V1<
     protected async sendCmd<TOutput>({
         cmd,
         client,
+        cmdLogLabel,
     }: {
         cmd: any,
         client: DynamoDBClient,
+        /**
+         * I want the logging information to include which type of command it is.
+         *
+         * ## driving use case
+         *
+         * include which command in logging of consumed capacity.
+         */
+        cmdLogLabel: string,
     }): Promise<TOutput> {
         const lc = `${this.lc}[${this.sendCmd.name}]`;
         const maxRetries = this.data.maxRetryThroughputCount || c.DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
         for (let i = 0; i < maxRetries; i++) {
             try {
+
                 const resCmd: TOutput = <any>(await client.send(cmd));
                 if (logalot && (<any>resCmd)?.ConsumedCapacity) {
                     const capacities = <ConsumedCapacity[]>(<any>resCmd)?.ConsumedCapacity;
-                    console.log(`${lc} Consumed Capacity: ${JSON.stringify(capacities)}`);
+                    console.log(`${lc}[${cmdLogLabel}] Consumed Capacity: ${JSON.stringify(capacities)}`);
                 }
                 return resCmd;
             } catch (error) {
@@ -989,7 +1005,7 @@ export class AWSDynamoSpace_V1<
                     await createDynamoDBBatchGetItemCommand({ tableName: this.data.tableName, unprocessedKeys }) :
                     await createDynamoDBBatchGetItemCommand({ tableName: this.data.tableName, addrs: ibGibAddrs });
 
-                const resCmd = await this.sendCmd<BatchGetItemCommandOutput>({cmd, client});
+                const resCmd = await this.sendCmd<BatchGetItemCommandOutput>({cmd, client, cmdLogLabel: 'BatchGetItem'});
 
                 const responseKeys = Object.keys(resCmd.Responses[this.data.tableName]);
                 for (let i = 0; i < responseKeys.length; i++) {
@@ -1126,12 +1142,13 @@ export class AWSDynamoSpace_V1<
             const queryPromises = infos.map(async (info) => {
                 try {
                     info = h.clone(info);
-                    let cmd = await createDynamoDBQueryNewerCommand({
+                    const cmd = await createDynamoDBQueryNewerCommand({
                         tableName: this.data.tableName,
                         info,
-                        projectionExpression: 'ib,gib,#d,rel8ns,n',
+                        projectionExpression: 'ib,gib,data,rel8ns,n',
                     });
-                    let resCmd = await this.sendCmd<QueryCommandOutput>({cmd, client});
+                    const resCmd =
+                        await this.sendCmd<QueryCommandOutput>({cmd, client, cmdLogLabel: 'Query'});
                     if (resCmd.Count > 0) {
                         info.resultIbGibs =
                             resCmd.Items.map((item: AWSDynamoSpaceItem) => getIbGibFromResponseItem({item}));
@@ -1176,7 +1193,6 @@ export class AWSDynamoSpace_V1<
         arg: AWSDynamoSpaceOptionsIbGib,
         client: DynamoDBClient,
     }): Promise<AWSDynamoSpaceResultIbGib> {
-        debugger;
         const lc = `${this.lc}[${this.getLatestIbGibs.name}]`;
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
@@ -1185,21 +1201,27 @@ export class AWSDynamoSpace_V1<
         try {
             // GetLatestInfo
             // ibGibs guaranteed at this point to be non-null and > 0
-            let infos: (GetLatestInfo | null)[] =
-                arg.ibGibs.map(ibGib => {
-                    if (!Number.isSafeInteger(ibGib.data?.n)) {
-                        if (logalot) { console.log(`${lc} no ibGib.data.n safe integer: ${h.getIbGibAddr({ibGib})}`); }
-                        return null;
-                    }
-                    if (ibGib.rel8ns?.tjp?.length !== 1 && !ibGib.data!.isTjp) {
-                        if (logalot) { console.log(`${lc} no tjp info: ${h.getIbGibAddr({ibGib})}`); }
-                        return null;
-                    }
-                    return {
-                        tjpAddr: ibGib.data!.isTjp ? h.getIbGibAddr({ibGib}) : ibGib.rel8ns!.tjp[0],
-                        nLeast: ibGib.data!.n,
-                    }
-                }).filter(x => x !== null);
+            let infoMap: {[tjp: string]: GetLatestInfo} = {};
+            arg.ibGibs.forEach(ibGib => {
+                if (!Number.isSafeInteger(ibGib.data?.n)) {
+                    if (logalot) { console.log(`${lc} no ibGib.data.n safe integer: ${h.getIbGibAddr({ibGib})}`); }
+                    return;
+                }
+                if (ibGib.rel8ns?.tjp?.length !== 1 && !ibGib.data!.isTjp) {
+                    if (logalot) { console.log(`${lc} no tjp info: ${h.getIbGibAddr({ibGib})}`); }
+                    return;
+                }
+                const tjpAddr = ibGib.data!.isTjp ? h.getIbGibAddr({ibGib}) : ibGib.rel8ns!.tjp[0];
+                const nLeast = ibGib.data!.n;
+                if (infoMap[tjpAddr]) {
+                    // only do the highest n
+                    if (nLeast > infoMap[tjpAddr].nLeast) { infoMap[tjpAddr] = {tjpAddr, nLeast} }
+                } else {
+                    infoMap[tjpAddr] = {tjpAddr, nLeast};
+                }
+            });
+            let infos: GetLatestInfo[] = Object.values(infoMap);
+            if (logalot) { console.log(`${lc} infos: ${h.pretty(infos)}`); }
 
             if (infos.length === 0) {
                 const warning = `${lc} infos.length is zero, meaning we havent' found any ibgibs that are valid to be checking for latest. No tjps + data.n values.`;
@@ -1217,6 +1239,7 @@ export class AWSDynamoSpace_V1<
                         await h.delay(throttleMs);
                     }
                     let doNext = infos.splice(batchSize);
+                    debugger;
                     const gotInfos = await this.getNewerIbGibInfosBatch({infos, client, errors});
                     // at this point, we're not sure of the state of our results.
                     // there could be multiple newer ibgibs of the same timeline, or even
@@ -1351,10 +1374,10 @@ export class AWSDynamoSpace_V1<
                     items,
                 });
 
-                const resPut = await this.sendCmd<BatchWriteItemCommandOutput>({cmd, client});
+                const resPut = await this.sendCmd<BatchWriteItemCommandOutput>({cmd, client, cmdLogLabel: 'BatchWriteItem'});
 
-                let prevUnprocessedCount = Number.MAX_SAFE_INTEGER;
-                let unprocessedCount = Object.keys(resPut?.UnprocessedItems || {}).length;
+                const prevUnprocessedCount = Number.MAX_SAFE_INTEGER;
+                const unprocessedCount = Object.keys(resPut?.UnprocessedItems || {}).length;
                 if (unprocessedCount > 0) {
                     console.log(`${lc} unprocessedCount: ${unprocessedCount}`);
                     ibGibItems =
@@ -1477,8 +1500,8 @@ export class AWSDynamoSpace_V1<
                 });
                 const putResult = await client.send(writeCommand);
 
-                let prevUnprocessedCount = Number.MAX_SAFE_INTEGER;
-                let unprocessedCount = Object.keys(putResult?.UnprocessedItems || {}).length;
+                const prevUnprocessedCount = Number.MAX_SAFE_INTEGER;
+                const unprocessedCount = Object.keys(putResult?.UnprocessedItems || {}).length;
                 if (unprocessedCount > 0) {
                     console.log(`${lc} unprocessedCount: ${unprocessedCount}`);
                     binItems =

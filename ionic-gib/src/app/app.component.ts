@@ -17,6 +17,7 @@ import { EncryptionData_V1, OuterSpaceIbGib, RootData, SecretIbGib_V1, } from '.
 import { CreateSecretModalComponent } from './common/create-secret-modal/create-secret-modal.component';
 import { CreateOuterspaceModalComponent } from './common/create-outerspace-modal/create-outerspace-modal.component';
 import { CreateEncryptionModalComponent } from './common/create-encryption-modal/create-encryption-modal.component';
+import { getFn_promptCreateEncryptionIbGib, getFn_promptCreateOuterSpaceIbGib, getFn_promptCreateSecretIbGib } from './common/helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -170,13 +171,14 @@ export class AppComponent extends IbgibComponentBase
         }
         // make sure the service is initialized FIRST before any
         // other ibgib happenings
-        if (logalot) { console.log(`${lc} calling ibgib service.initialize...`); }
+        if (logalot) { console.log(`${lc} wakka calling IbgibsService.initialize...`); }
         await this.common.ibgibs.initialize({
-          fnPromptSecret: this.promptCreateSecretIbGib,
-          fnPromptEncryption: this.promptCreateEncryptionIbGib,
-          fnPromptOuterSpace: this.promptCreateOuterSpaceIbGib,
+          fnPromptSecret: getFn_promptCreateSecretIbGib(this.common),
+          fnPromptEncryption: getFn_promptCreateEncryptionIbGib(this.common),
+          fnPromptOuterSpace: getFn_promptCreateOuterSpaceIbGib(this.common),
         });
-        if (logalot) { console.log(`${lc} ibgib service.initialize returned.`); }
+
+        if (logalot) { console.log(`${lc} doodle IbgibsService.initialize returned.`); }
 
         if (!this.item) { this.item = {} }
         this.item.isMeta = true;
@@ -209,7 +211,7 @@ export class AppComponent extends IbgibComponentBase
   }
 
   ngOnInit() {
-    const lc = `${this.lc}[ngOnInit]`;
+    const lc = `${this.lc}[${this.ngOnInit.name}]`;
     this.subscribeParamMap();
     // const path = window.location.pathname.split('ibgib/')[1];
     // console.log(`path: ${path}`);
@@ -217,10 +219,13 @@ export class AppComponent extends IbgibComponentBase
     //   this.selectedIndex =
     //     this.menuItems.findIndex(page => page.title.toLowerCase() === path.toLowerCase());
     // }
+    if (logalot) { console.log(`${lc} doodle`); }
   }
 
   ngOnDestroy() {
+    const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
     this.unsubscribeParamMap();
+    if (logalot) { console.log(`${lc} doodle`); }
   }
 
   subscribeParamMap() {
@@ -597,86 +602,6 @@ export class AppComponent extends IbgibComponentBase
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-    }
-  }
-
-  async promptCreateSecretIbGib(): Promise<IbGib_V1 | undefined> {
-    const lc = `${this.lc}[${this.promptCreateSecretIbGib.name}]`;
-    try {
-      const modal = await this.common.modalController.create({
-        component: CreateSecretModalComponent,
-      });
-      await modal.present();
-      let resModal = await modal.onWillDismiss();
-      if (resModal.data) {
-        const resNewSecret = <TransformResult<SecretIbGib_V1>>resModal.data;
-        await this.common.ibgibs.persistTransformResult({resTransform: resNewSecret});
-        const addr = h.getIbGibAddr({ibGib: resNewSecret.newIbGib});
-        if (logalot) { console.log(`${lc} created secret. addr: ${addr}`); }
-        await this.common.ibgibs.rel8ToSpecialIbGib({
-          type: "secrets",
-          rel8nName: c.SECRET_REL8N_NAME,
-          ibGibsToRel8: [resNewSecret.newIbGib],
-        });
-        return resNewSecret.newIbGib;
-      } else {
-        // didn't create one
-        console.warn(`${lc} didn't create at this time.`);
-        return undefined;
-      }
-    } catch (error) {
-      console.error(`${lc} error: ${error.message}`);
-      return undefined;
-    }
-  }
-
-  async promptCreateEncryptionIbGib(): Promise<IbGib_V1 | undefined> {
-    const lc = `${this.lc}[${this.promptCreateEncryptionIbGib.name}]`;
-    try {
-      const modal = await this.common.modalController.create({
-        component: CreateEncryptionModalComponent,
-      });
-      await modal.present();
-      let resModal = await modal.onWillDismiss();
-      if (resModal.data) {
-        const resNewEncryption = <TransformResult<IbGib_V1<EncryptionData_V1>>>resModal.data;
-        await this.common.ibgibs.persistTransformResult({resTransform: resNewEncryption});
-        const addr = h.getIbGibAddr({ibGib: resNewEncryption.newIbGib});
-        if (logalot) { console.log(`${lc} created secret. addr: ${addr}`); }
-        return resNewEncryption.newIbGib;
-      } else {
-        // didn't create one
-        console.warn(`${lc} didn't create at this time.`);
-        return undefined;
-      }
-    } catch (error) {
-      console.error(`${lc} error: ${error.message}`);
-      return undefined;
-    }
-  }
-
-  async promptCreateOuterSpaceIbGib(): Promise<IbGib_V1 | undefined> {
-    const lc = `${this.lc}[${this.promptCreateOuterSpaceIbGib.name}]`;
-    try {
-      const modal = await this.common.modalController.create({
-        component: CreateOuterspaceModalComponent,
-      });
-      await modal.present();
-      let resModal = await modal.onWillDismiss();
-      if (resModal.data) {
-        const resOuterSpace = <TransformResult<OuterSpaceIbGib>>resModal.data;
-        await this.common.ibgibs.persistTransformResult({resTransform: resOuterSpace});
-        const addr = h.getIbGibAddr({ibGib: resOuterSpace.newIbGib});
-        if (logalot) { console.log(`${lc} created outerspace. addr: ${addr}`); }
-        return resOuterSpace.newIbGib;
-      } else {
-        // didn't create one
-        console.warn(`${lc} didn't create outerspace at this time.`);
-        return undefined;
-      }
-    } catch (error) {
-      console.error(`${lc} error: ${error.message}`);
-      return undefined;
     }
   }
 

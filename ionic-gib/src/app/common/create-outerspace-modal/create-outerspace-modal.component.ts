@@ -16,7 +16,7 @@ import {
 } from '../types';
 import { getFnPromptPassword_AlertController, getRegExp } from '../helper';
 import { CreateModalComponentBase } from '../bases/create-modal-component-base';
-import { TransformResult } from 'ts-gib';
+import { IbGibAddr, TransformResult } from 'ts-gib';
 import { CommonService } from 'src/app/services/common.service';
 import { SyncSpaceData_AWSDynamoDB } from '../spaces/aws-dynamo-space-v1';
 
@@ -102,6 +102,13 @@ export class CreateOuterspaceModalComponent
   accessKeyId: string;
   @Input()
   secretAccessKey: string;
+
+  /**
+   * Mainly for future use. This declares publicly how a space decides
+   * to add to itself.
+   */
+  @Input()
+  consensusAddr: IbGibAddr = c.CONSENSUS_ADDR_SYNC_NAIVE_PUT_MERGE;
 
   fields: { [name: string]: FieldInfo } = {
     name: {

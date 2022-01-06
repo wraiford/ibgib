@@ -8,7 +8,7 @@ import { WitnessBase_V1, resulty_, argy_ } from '../witnesses';
 import * as c from '../constants';
 import { getTimestampInTicks } from '../helper';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 export interface IbGibSpaceAny
     extends SpaceBase_V1<any,any,any,any,any,any,any> {
@@ -64,10 +64,6 @@ export abstract class SpaceBase_V1<
     protected async witnessImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
         const lc = `${this.lc}[${this.witnessImpl.name}]`;
         if (logalot) { console.log(`${lc}`); }
-
-        if (this.ib?.includes('ynamo')) {
-            debugger;
-        }
 
         // do the thing
         let result = await this.routeAndDoCommand({

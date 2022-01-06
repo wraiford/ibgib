@@ -298,7 +298,7 @@ export class IbgibsService {
     public modalController: ModalController,
     public alertController: AlertController,
   ) {
-
+    if (logalot) { console.log(`${this.lc}[ctor] doodle `); }
   }
 
   async initialize({
@@ -2822,7 +2822,6 @@ export class IbgibsService {
       debugger;
       const resSpace: IbGibSpaceResultIbGib<any, IbGibSpaceResultData, IbGibSpaceResultRel8ns> =
         await space.witness(arg);
-      debugger;
       if (resSpace.data.success) {
         debugger;
       } else {
@@ -2974,6 +2973,60 @@ export class IbgibsService {
     }
   }
 
+  async getAppSyncSpaces({
+    unwrapEncrypted,
+    createIfNone,
+  }: {
+    unwrapEncrypted: boolean,
+    createIfNone: boolean,
+  }): Promise<IbGibSpaceAny[]> {
+    const lc = `${this.lc}[${this.getAppSyncSpaces.name}]`;
+    try {
+      // get existing
+      let appSyncSpaces: IbGibSpaceAny[] = await this.getSpecialRel8dIbGibs<IbGibSpaceAny>({
+        type: "outerspaces",
+        rel8nName: c.SYNC_SPACE_REL8N_NAME
+      });
+
+      // create if applicable
+      if (appSyncSpaces.length === 0 && createIfNone) {
+        let created = await this.createOuterspaceEndpointStuff();
+        if (created) {
+          appSyncSpaces = await this.getSpecialRel8dIbGibs<IbGibSpaceAny>({
+            type: "outerspaces",
+            rel8nName: c.SYNC_SPACE_REL8N_NAME
+          });
+        }
+      }
+
+      // unwrap if requested
+      let resSpaces: IbGibSpaceAny[] = [];
+      if (unwrapEncrypted) {
+        for (let i = 0; i < appSyncSpaces.length; i++) {
+          let syncSpace = appSyncSpaces[i];
+
+          if (syncSpace.rel8ns.ciphertext) {
+            syncSpace = await this.unwrapEncryptedSyncSpace({
+              encryptedSpace: syncSpace,
+              fnPromptPassword: getFnPromptPassword_AlertController({
+                alertController: this.alertController,
+              }),
+            });
+          }
+
+          resSpaces.push(syncSpace);
+        }
+      } else {
+        // still (probably) encrypted
+        resSpaces = appSyncSpaces;
+      }
+
+      return resSpaces;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return [];
+    }
+  }
 
   async syncIbGibs({
     ibGibs,
@@ -2985,53 +3038,53 @@ export class IbgibsService {
     const lc = `${this.lc}[${this.syncIbGibs.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
-      if (!ibGibs || ibGibs.length === 0) { throw new Error(`ibGibs required.`)}
-      let appSyncSpaces: IbGibSpaceAny[];
-      do {
-        appSyncSpaces =
-          await this.getSpecialRel8dIbGibs<IbGibSpaceAny>({
-            type: "outerspaces",
-            rel8nName: c.SYNC_SPACE_REL8N_NAME
-          });
-        if (appSyncSpaces.length === 0) {
-          let created = await this.createOuterspaceEndpointStuff();
-          if (created) {
-            appSyncSpaces = await this.getSpecialRel8dIbGibs({
-              type: "outerspaces",
-              rel8nName: c.SYNC_SPACE_REL8N_NAME,
-            });
-            if (appSyncSpaces.length === 0) {
-              console.warn(`${lc} syncSpaces was supposed to have been created here, but somehow they haven't been. Trying again...`);
-            }
-          } else {
-            if (appSyncSpaces.length === 0) {
-              // cancelled
-              return;
-            } else {
-              // created at least one space
-            }
-          }
+      if (!ibGibs || ibGibs.length === 0) { throw new Error(`ibGibs required.`); }
+
+      if (logalot) { console.log(`${lc} get sync spaces (returns if none)`); }
+      const appSyncSpaces: IbGibSpaceAny[] = await this.getAppSyncSpaces({
+        unwrapEncrypted: true,
+        createIfNone: true,
+      });
+      if (appSyncSpaces.length === 0) {
+        const msg = `Can't sync without sync spaces. Cancelled.`;
+        if (logalot) { console.log(`${lc} ${msg}`) };
+        const fnAlert = getFnAlert();
+        await fnAlert({title: "Cancelled", msg});
+        return;
+      }
+
+      if (logalot) { console.log(`${lc} sync to spaces in parallel`); }
+      let syncPromises: Promise<void>[] = appSyncSpaces.map(syncSpace => this.execSync({syncSpace, ibGibs, confirm}));
+      let errors: string[] = [];
+      await Promise.all(syncPromises).catch(e => {
+        if (e.message) {
+          errors.push(e.message);
+        } else {
+          errors.push(`something went wrong...unknown error (e.message falsy)`);
         }
-      } while (appSyncSpaces.length === 0)
+      });
+      if (errors.length > 0) { throw new Error(errors.join('\n')); }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 
-      // for each sync space info, we want to create/load the space witness
-      // give the command, passing along the encryption credentials
-
-      for (let i = 0; i < appSyncSpaces.length; i++) {
-        let syncSpace = appSyncSpaces[i];
-
-        if (syncSpace.rel8ns.ciphertext) {
-          // need to load the ciphertext actual data
-          syncSpace = await this.unwrapEncryptedSyncSpace({
-            encryptedSpace: syncSpace,
-            fnPromptPassword: getFnPromptPassword_AlertController({
-              alertController: this.alertController,
-            }),
-          });
-        }
+  async execSync({
+    syncSpace,
+    ibGibs,
+    confirm,
+  }: {
+    syncSpace: IbGibSpaceAny,
+    ibGibs?: IbGib_V1[],
+    confirm?: boolean,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.execSync.name}]`;
+    try {
 
         // pull down newer ibgibs from sync spaces for ibgibs that have tjps
-        debugger;
         let latestLocalIbGibs: IbGib_V1[] = [];
         let needLatestIbGibs =
           ibGibs.filter(ibGib => ibGib.data?.isTjp || ibGib.rel8ns?.tjp?.length === 1);
@@ -3054,7 +3107,7 @@ export class IbgibsService {
           }
         }
         if (latestLocalIbGibs.length > 0) {
-          await this.getLatestFromSpace({
+          const resLatest = await this.getLatestFromSpace({
             ibGibs: latestLocalIbGibs,
             persistLocally: false,
             space: syncSpace,
@@ -3102,12 +3155,10 @@ export class IbgibsService {
 
           if (logalot) { console.log(`${lc} confirmation complete.`); }
         }
-      }
+
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 

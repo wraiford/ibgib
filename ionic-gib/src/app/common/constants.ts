@@ -3,8 +3,13 @@ import { GIB } from 'ts-gib/dist/V1';
 import { Ib } from 'ts-gib';
 import { SaltStrategy } from 'encrypt-gib';
 
-export const GLOBAL_LOG_A_LOT = false;
+/**
+ * Naive selective logging/tracing mechanism.
+ */
+export const GLOBAL_LOG_A_LOT: boolean | number = false;
+
 export const GLOBAL_DEBUG_BORDER = false;
+
 
 /**
  * When the application first starts, it looks to bootstrap itself.
@@ -156,6 +161,9 @@ export const ENCRYPTION_REL8N_NAME = 'encryption';
  * Those ciphertext ibgibs will then relate to the encryption used.
  */
 export const CIPHERTEXT_REL8N_NAME = 'ciphertext';
+export const CONSENSUS_REL8N_NAME = 'consensus';
+
+export const CONSENSUS_ADDR_SYNC_NAIVE_PUT_MERGE = 'sync naive put merge^gib'
 
 /**
  * These rel8n names are shown in a list view by default.
@@ -295,6 +303,29 @@ export const ALLISH_SPECIAL_CHARS = `\`~!@#$%^&*()_\\-+=|\\\\\\]}[{"':;?/>.<,`;
  * When sanitizing input.
  */
 export const SAFE_SPECIAL_CHARS = `.'",!?`;
+
+export const IB_MAX_LENGTH_DEFAULT = 155;
+/**
+ * Defaults to word characters, space, tab, hyphen, and other
+ * non-slash (path navigating) chars.
+ *
+ * Does not allow new lines or other whitespace, only tabs and spaces.
+ *
+ * ## atow
+ *
+ * `^[\\w\\t\\-|=+.&%\$#@!~\` \\[\\]\\(\\)\\{\\}]{1,${IB_MAX_LENGTH_DEFAULT}}$`
+ */
+export const IB_REGEXP_DEFAULT = new RegExp(`^[\\w\\t\\-|=+.&%\$#@!~\` \\[\\]\\(\\)\\{\\}]{1,${IB_MAX_LENGTH_DEFAULT}}$`);
+
+
+/**
+ * RegExp for a hexadecimal string of length 32
+ */
+export const HEXADECIMAL_HASH_STRING_REGEXP_32 = /^[0-9a-f]{32}$/;
+/**
+ * RegExp for a hexadecimal string of length 64
+ */
+export const HEXADECIMAL_HASH_STRING_REGEXP_64 = /^[0-9a-f]{64}$/;
 
 
 // #region AWS Amazon
