@@ -16,11 +16,10 @@ import * as h from 'ts-gib/dist/helper';
 import { SpaceBase_V1 } from './space-base-v1';
 import {
     AWSRegion,
-    IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib,
-    IbGibSpaceOptionsRel8ns,
-    IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns,
-    OuterSpaceRel8ns,
-    SyncSpaceData,
+    IbGibSpaceOptionsIbGib,
+    IbGibSpaceResultData, IbGibSpaceResultRel8ns, IbGibSpaceResultIbGib,
+    SyncSpaceData, SyncSpaceRel8ns,
+    SyncSpaceOptionsData, SyncSpaceOptionsRel8ns,
 } from '../types';
 import * as c from '../constants';
 import { getBinAddr } from '../helper';
@@ -530,7 +529,7 @@ export interface SyncSpaceData_AWSDynamoDB extends SyncSpaceData {
 }
 
 export interface SyncSpaceRel8ns_AWSDynamoDB
-    extends OuterSpaceRel8ns {
+    extends SyncSpaceRel8ns {
 }
 
 const DEFAULT_AWS_DYNAMO_SPACE_DATA_V1: SyncSpaceData_AWSDynamoDB = {
@@ -561,7 +560,7 @@ const DEFAULT_AWS_DYNAMO_SPACE_DATA_V1: SyncSpaceData_AWSDynamoDB = {
  * For example, we don't necessarily want to keep the past of certain meta
  * objects, because it may change (and thus grow) too quickly.
  */
-export interface AWSDynamoSpaceOptionsData extends IbGibSpaceOptionsData {
+export interface AWSDynamoSpaceOptionsData extends SyncSpaceOptionsData {
     /**
      * If getting binary, this is the hash we're looking for (binId)
      */
@@ -580,7 +579,7 @@ export interface AWSDynamoSpaceOptionsData extends IbGibSpaceOptionsData {
     isDna?: boolean;
 }
 
-export interface AWSDynamoSpaceOptionsRel8ns extends IbGibSpaceOptionsRel8ns {
+export interface AWSDynamoSpaceOptionsRel8ns extends SyncSpaceOptionsRel8ns {
 }
 
 export interface AWSDynamoSpaceOptionsIbGib
@@ -600,6 +599,7 @@ export interface AWSDynamoSpaceOptionsIbGib
 export interface AWSDynamoSpaceResultData extends IbGibSpaceResultData {
 }
 
+/** Marker interface atm */
 export interface AWSDynamoSpaceResultRel8ns extends IbGibSpaceResultRel8ns {
 }
 
@@ -617,90 +617,6 @@ export interface AWSDynamoSpaceResultIbGib
 }
 
 // #endregion
-
-// #region get/put files related (re-using from files service)
-
-interface BaseResult {
-  success?: boolean;
-  /**
-   * If errored, this will contain the errorMsg.
-   */
-  errorMsg?: string;
-}
-
-/**
- * Options for retrieving data from the file system.
- */
-interface GetIbGibOpts {
-  /**
-   * If getting ibGib object, this is its address.
-   */
-  addr?: IbGibAddr;
-  /**
-   * If getting binary, this is the hash we're looking for (binId)
-   */
-  binHash?: string;
-  /**
-   * If getting binary, this is the extension.
-   */
-  binExt?: string;
-  /**
-   * If truthy, will look in the meta subpath first, then the regular if not found.
-   */
-  isMeta?: boolean;
-  /**
-   * Are we looking for a DNA ibgib?
-   */
-  isDna?: boolean;
-}
-/**
- * Result for retrieving an ibGib from the file system.
- */
-interface GetIbGibResult extends BaseResult {
-  /**
-   * ibGib if retrieving a "regular" ibGib.
-   *
-   * This is used when you're not getting a pic, e.g.
-   */
-  ibGib?: IbGib_V1;
-  /**
-   * This is used when you're getting a pic's binary content.
-   */
-  binData?: any;
-}
-
-interface PutIbGibOpts {
-  ibGib?: IbGib_V1;
-  /**
-   * if true, will store this data in the bin folder with its hash.
-   */
-  binData?: string;
-  /**
-   * If true, will store in a different folder.
-   */
-  isDna?: boolean;
-  /**
-   * extension to store the bindata with.
-   */
-  binExt?: string;
-  /**
-   * hash of binData if doing bin and already calculated.
-   */
-  binHash?: string;
-  /**
-   * If true, will store with metas.
-   */
-  isMeta?: boolean;
-}
-interface PutIbGibResult extends BaseResult {
-  binHash?: string;
-}
-
-interface DeleteIbGibOpts extends GetIbGibOpts { }
-interface DeleteIbGibResult extends BaseResult { }
-
-// #endregion
-
 
 /**
  * Quick and dirty class for persisting ibgibs to the cloud with AWS DynamoDB.
@@ -788,7 +704,7 @@ export class AWSDynamoSpace_V1<
      */
     static createFromDto<
             TData extends SyncSpaceData_AWSDynamoDB = SyncSpaceData_AWSDynamoDB,
-            TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
+            TRel8ns extends SyncSpaceRel8ns_AWSDynamoDB = SyncSpaceRel8ns_AWSDynamoDB
         >(dto: IbGib_V1<TData, TRel8ns>): AWSDynamoSpace_V1<TData, TRel8ns> {
         const space = new AWSDynamoSpace_V1<TData, TRel8ns>(null, null);
         space.loadDto(dto);
@@ -1761,7 +1677,7 @@ export class AWSDynamoSpace_V1<
 
     protected async persistOptsAndResultIbGibs({
         arg,
-        result
+        result,
     }: {
         arg: AWSDynamoSpaceOptionsIbGib,
         result: AWSDynamoSpaceResultIbGib,

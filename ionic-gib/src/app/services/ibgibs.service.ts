@@ -23,7 +23,7 @@ import {
   SecretData_V1, SecretInfo_Password,
   EncryptionInfo, EncryptionInfo_EncryptGib, EncryptionData_V1,
   CiphertextData, CiphertextRel8ns, CiphertextIbGib_V1, SecretIbGib_V1,
-  IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib, IbGibSpaceResultIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns,
+  IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib, IbGibSpaceResultIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns, SyncSpaceData,
 } from '../common/types';
 import {
   IonicSpace_V1,
@@ -3054,7 +3054,13 @@ export class IbgibsService {
       }
 
       if (logalot) { console.log(`${lc} sync to spaces in parallel`); }
-      let syncPromises: Promise<void>[] = appSyncSpaces.map(syncSpace => this.execSync({syncSpace, ibGibs, confirm}));
+      let syncPromises: Promise<void>[] = appSyncSpaces.map(async syncSpace => {
+        let arg: IbGibSpaceOptionsData = {
+          cmd: 'put',
+          cmdModifiers: ['sync']
+        }
+        this.execSync({syncSpace, ibGibs, confirm});
+      });
       let errors: string[] = [];
       await Promise.all(syncPromises).catch(e => {
         if (e.message) {
