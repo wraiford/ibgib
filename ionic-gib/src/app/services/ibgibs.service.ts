@@ -23,7 +23,7 @@ import {
   SecretData_V1, SecretInfo_Password,
   EncryptionInfo, EncryptionInfo_EncryptGib, EncryptionData_V1,
   CiphertextData, CiphertextRel8ns, CiphertextIbGib_V1, SecretIbGib_V1,
-  IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib, IbGibSpaceResultIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns, SyncSpaceData,
+  IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib, IbGibSpaceResultIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns, SyncSpaceData, SyncSpaceResultIbGib,
 } from '../common/types';
 import {
   IonicSpace_V1,
@@ -412,7 +412,7 @@ export class IbgibsService {
       // create a new user space
       while (!spaceName) { await promptName(); }
 
-      let userSpace = new IonicSpace_V1(/*initialData*/ {
+      let userSpace = new IonicSpace_V1(/*initialData*/ <IonicSpaceData_V1>{
         uuid: await h.getUUID(),
         name: spaceName,
         baseDir: c.IBGIB_BASE_DIR,
@@ -3054,13 +3054,9 @@ export class IbgibsService {
       }
 
       if (logalot) { console.log(`${lc} sync to spaces in parallel`); }
-      let syncPromises: Promise<void>[] = appSyncSpaces.map(async syncSpace => {
-        let arg: IbGibSpaceOptionsData = {
-          cmd: 'put',
-          cmdModifiers: ['sync']
-        }
-        this.execSync({syncSpace, ibGibs, confirm});
-      });
+      let syncPromises: Promise<void>[] =
+        appSyncSpaces.map(syncSpace =>
+          this.execSync({syncSpace, ibGibs, confirm}));
       let errors: string[] = [];
       await Promise.all(syncPromises).catch(e => {
         if (e.message) {
@@ -3078,7 +3074,13 @@ export class IbgibsService {
     }
   }
 
-  async execSync({
+  /**
+   * For keeping track of which ibGibs are already syncing.
+   * (We don't want to execute syncs on those that are already going.)
+   */
+  private _syncingIbGibAddrs: IbGibAddr[] = [];
+
+  private async execSync({
     syncSpace,
     ibGibs,
     confirm,
@@ -3089,7 +3091,38 @@ export class IbgibsService {
   }): Promise<void> {
     const lc = `${this.lc}[${this.execSync.name}]`;
     try {
+      if (ibGibs.length > 1) { console.warn(`${lc} syncing more than one ibGib. I'm really meaning for this to be a single ibGib atm but going ahead and coding interface for multiple. (WARNING: 569936120f1a400192ba54fb4344b0b7)`); }
+      for (let i = 0; i < ibGibs.length; i++) {
+        const ibGib = ibGibs[i];
+        const addr = h.getIbGibAddr({ibGib});
+        if (this._syncingIbGibAddrs.includes(addr)) {
+          if (logalot) { console.log(`${lc} already syncing ibGib addr: ${addr}`); }
+          return;
+        }
 
+        // first we want to get the ball rolling
+        // we will get back an ibGib that we can use to track the progress of the transaction.
+        let argStartSync = await syncSpace.argy({
+          argData: <IbGibSpaceOptionsData>{
+            cmd: 'put',
+            cmdModifiers: ['sync'],
+          },
+          ibGibs: [ibGib],
+          ibMetadata: `sync src ${this.localUserSpace.data.name} srcId ${this.localUserSpace.data.uuid}`,
+        });
+        const resStartSync: SyncSpaceResultIbGib = await syncSpace.witness(argStartSync);
+
+        debugger;
+        if (resStartSync.data?.success) {
+          debugger;
+        } else {
+          debugger;
+        }
+
+        // now that we have the progress ibGib, we can ping it's get latest at intervals
+        // to check the status of what to do.
+        // if it needs ibGibs, then
+      }
         // pull down newer ibgibs from sync spaces for ibgibs that have tjps
         let latestLocalIbGibs: IbGib_V1[] = [];
         let needLatestIbGibs =

@@ -1,8 +1,14 @@
 import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
-import { IbGibAddr, IbGib, IbGibWithDataAndRel8ns, IbGibRel8ns } from 'ts-gib';
-import { HashAlgorithm, SaltStrategy, } from 'encrypt-gib';
+import { IbGibAddr, IbGib, } from 'ts-gib';
+
 import * as c from '../constants';
-import { IbGibSpaceData, IbGibSpaceOptionsCmdModifier, IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceRel8ns } from './space';
+import {
+    IbGibSpaceData, IbGibSpaceRel8ns,
+    IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib,
+    IbGibSpaceOptionsCmdModifier,
+    IbGibSpaceResultData, IbGibSpaceResultRel8ns, IbGibSpaceResultIbGib,
+} from './space';
+import { Observable } from 'rxjs';
 
 export type OuterSpaceType = "sync";
 export const OuterSpaceType = {
@@ -49,6 +55,24 @@ export interface OuterSpaceOptionsData extends IbGibSpaceOptionsData {
 }
 export interface OuterSpaceOptionsRel8ns extends IbGibSpaceOptionsRel8ns {
 }
+export interface OuterSpaceOptionsIbGib<
+    TIbGib extends IbGib = IbGib_V1,
+    TOptsData extends OuterSpaceOptionsData = OuterSpaceOptionsData,
+    // TOptsRel8ns extends IbGibSpaceOptionsRel8ns = IbGibSpaceOptionsRel8ns
+    TOptsRel8ns extends OuterSpaceOptionsRel8ns = OuterSpaceOptionsRel8ns,
+    > extends IbGibSpaceOptionsIbGib<TIbGib, TOptsData, TOptsRel8ns> {
+}
+
+export interface OuterSpaceResultData extends IbGibSpaceResultData {
+}
+export interface OuterSpaceResultRel8ns extends IbGibSpaceResultRel8ns {
+}
+export interface OuterSpaceResultIbGib<
+    TIbGib extends IbGib,
+    TResultData extends OuterSpaceResultData,
+    TResultRel8ns extends OuterSpaceResultRel8ns
+> extends IbGibSpaceResultIbGib<TIbGib, TResultData, TResultRel8ns> {
+}
 
 /**
  * Marker atm.
@@ -93,6 +117,48 @@ export interface SyncSpaceOptionsData extends OuterSpaceOptionsData {
     cmdModifiers?: (SyncSpaceOptionsCmdModifier | string)[];
 }
 export interface SyncSpaceOptionsRel8ns extends OuterSpaceOptionsRel8ns {
+}
+export interface SyncSpaceOptionsIbGib<
+    TIbGib extends IbGib = IbGib_V1,
+    TOptsData extends SyncSpaceOptionsData = SyncSpaceOptionsData,
+    // TOptsRel8ns extends IbGibSpaceOptionsRel8ns = IbGibSpaceOptionsRel8ns
+    TOptsRel8ns extends SyncSpaceOptionsRel8ns = SyncSpaceOptionsRel8ns,
+    > extends OuterSpaceOptionsIbGib<TIbGib, TOptsData, TOptsRel8ns> {
+}
+
+export interface SyncSpaceResultData extends OuterSpaceResultData {
+}
+export interface SyncSpaceResultRel8ns extends OuterSpaceResultRel8ns {
+}
+export interface SyncSpaceResultIbGib<
+    TIbGib extends IbGib = IbGib_V1,
+    TResultData extends SyncSpaceResultData = SyncSpaceResultData,
+    TResultRel8ns extends SyncSpaceResultRel8ns = SyncSpaceResultRel8ns
+> extends OuterSpaceResultIbGib<TIbGib, TResultData, TResultRel8ns> {
+    $update: Observable<SyncStatusIbGib>
+}
+
+interface SyncStatusData {
+    txId: string;
+    needs?: IbGibAddr[];
+    waiting?: boolean;
+
+    success?: boolean;
+    complete?: boolean;
+    warnings?: string[];
+    errors?: string[];
+
+    createdIbGibAddrs?: IbGibAddr[];
+    createdIbGibs?: IbGib_V1[];
+}
+interface SyncStatusRel8ns extends IbGibRel8ns_V1 {
+    created?: IbGibAddr[];
+    final?: IbGibAddr[];
+}
+
+interface SyncStatusIbGib extends IbGib_V1<SyncStatusData, SyncStatusRel8ns> {
+    createdIbGibs?: IbGib_V1[];
+    finalIbGib?: IbGib_V1;
 }
 
 /**

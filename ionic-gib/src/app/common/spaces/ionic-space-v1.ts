@@ -28,6 +28,10 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
  * This is the shape of data about this space itself (not the contained ibgibs' spaces).
  */
 export interface IonicSpaceData_V1 extends IbGibSpaceData {
+    /**
+     * Redeclared here to make this required (not optional)
+     */
+    uuid: string;
     baseDir: FilesystemDirectory;
     encoding: FilesystemEncoding;
     baseSubPath: string;
@@ -42,6 +46,7 @@ export interface IonicSpaceData_V1 extends IbGibSpaceData {
  * Used in bootstrapping.
  */
 const DEFAULT_IONIC_SPACE_DATA_V1: IonicSpaceData_V1 = {
+    uuid: '',
     name: c.IBGIB_SPACE_NAME_DEFAULT,
     baseDir: c.IBGIB_BASE_DIR,
     encoding: c.IBGIB_ENCODING,

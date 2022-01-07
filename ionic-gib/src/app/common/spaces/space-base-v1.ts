@@ -97,7 +97,7 @@ export abstract class SpaceBase_V1<
      * via `super.doCommand(...)`. If cmd is still not found,
      * this will throw.
      */
-    protected routeAndDoCommand({
+    protected routeAndDoCommand<TCmdModifier extends IbGibSpaceOptionsCmdModifier = IbGibSpaceOptionsCmdModifier>({
         cmd,
         cmdModifiers,
         arg,

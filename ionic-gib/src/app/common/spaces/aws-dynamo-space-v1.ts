@@ -15,11 +15,11 @@ import * as h from 'ts-gib/dist/helper';
 
 import { SpaceBase_V1 } from './space-base-v1';
 import {
-    AWSRegion,
-    IbGibSpaceOptionsIbGib,
-    IbGibSpaceResultData, IbGibSpaceResultRel8ns, IbGibSpaceResultIbGib,
     SyncSpaceData, SyncSpaceRel8ns,
-    SyncSpaceOptionsData, SyncSpaceOptionsRel8ns,
+    SyncSpaceOptionsData, SyncSpaceOptionsRel8ns, SyncSpaceOptionsIbGib,
+    IbGibSpaceOptionsCmd, SyncSpaceOptionsCmdModifier,
+    SyncSpaceResultData, SyncSpaceResultRel8ns, SyncSpaceResultIbGib,
+    AWSRegion,
 } from '../types';
 import * as c from '../constants';
 import { getBinAddr } from '../helper';
@@ -583,7 +583,7 @@ export interface AWSDynamoSpaceOptionsRel8ns extends SyncSpaceOptionsRel8ns {
 }
 
 export interface AWSDynamoSpaceOptionsIbGib
-    extends IbGibSpaceOptionsIbGib<IbGib_V1, AWSDynamoSpaceOptionsData, AWSDynamoSpaceOptionsRel8ns> {
+    extends SyncSpaceOptionsIbGib<IbGib_V1, AWSDynamoSpaceOptionsData, AWSDynamoSpaceOptionsRel8ns> {
     /**
      * Binary data from files like pics.
      *
@@ -596,15 +596,15 @@ export interface AWSDynamoSpaceOptionsIbGib
 }
 
 /** Marker interface atm */
-export interface AWSDynamoSpaceResultData extends IbGibSpaceResultData {
+export interface AWSDynamoSpaceResultData extends SyncSpaceResultData {
 }
 
 /** Marker interface atm */
-export interface AWSDynamoSpaceResultRel8ns extends IbGibSpaceResultRel8ns {
+export interface AWSDynamoSpaceResultRel8ns extends SyncSpaceResultRel8ns {
 }
 
 export interface AWSDynamoSpaceResultIbGib
-    extends IbGibSpaceResultIbGib<IbGib_V1, AWSDynamoSpaceResultData, AWSDynamoSpaceResultRel8ns> {
+    extends SyncSpaceResultIbGib<IbGib_V1, AWSDynamoSpaceResultData, AWSDynamoSpaceResultRel8ns> {
     /**
      * This is used when you're getting a pic's binary content.
      *
@@ -782,6 +782,57 @@ export class AWSDynamoSpace_V1<
             // console.log(`result.errors: ${result.errors}`);
         } catch (error) {
             console.error(`${lc} ${error.message}`);
+        }
+    }
+
+    protected routeAndDoCommand<TCmdModifier extends SyncSpaceOptionsCmdModifier = SyncSpaceOptionsCmdModifier>({
+        cmd,
+        cmdModifiers,
+        arg,
+    }: {
+        cmd: IbGibSpaceOptionsCmd | string,
+        cmdModifiers: (TCmdModifier | string)[],
+        arg: AWSDynamoSpaceOptionsIbGib,
+    }): Promise<AWSDynamoSpaceResultIbGib | undefined> {
+        const lc = `${this.lc}[${this.routeAndDoCommand.name}]`;
+        // atow we only care about adding sync functionality to cmd routing
+        if ((cmdModifiers ?? []).length === 0 || !cmdModifiers.includes('sync')) {
+            return super.routeAndDoCommand({cmd, cmdModifiers, arg});
+        }
+        switch (cmd) {
+            case IbGibSpaceOptionsCmd.get:
+                if ((cmdModifiers ?? []).length === 0) {
+                    return this.get(arg);
+                } else if (cmdModifiers.includes('can')) {
+                    return this.canGet(arg);
+                } else if (cmdModifiers.includes('addrs')) {
+                    return this.getAddrs(arg);
+                } else if (cmdModifiers.includes('latest')) {
+                    return this.getLatest(arg);
+                } else {
+                    return this.get(arg);
+                }
+
+            case IbGibSpaceOptionsCmd.put:
+                if ((cmdModifiers ?? []).length === 0) {
+                    return this.put(arg);
+                } else if (cmdModifiers.includes('can')) {
+                    return this.canPut(arg);
+                } else {
+                    return this.put(arg);
+                }
+
+            case IbGibSpaceOptionsCmd.delete:
+                if ((cmdModifiers ?? []).length === 0) {
+                    return this.delete(arg);
+                } else if (cmdModifiers.includes('can')) {
+                    return this.canDelete(arg);
+                } else {
+                    return this.delete(arg);
+                }
+
+            default:
+                return super.routeAndDoCommand({cmd, cmdModifiers, arg});
         }
     }
 
