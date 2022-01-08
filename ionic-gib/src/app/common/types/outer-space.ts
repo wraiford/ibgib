@@ -1,5 +1,6 @@
-import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
-import { IbGibAddr, IbGib, } from 'ts-gib';
+import { GIB, IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
+import { IbGibAddr, IbGib, Gib, } from 'ts-gib';
+import * as h from 'ts-gib/dist/helper';
 
 import * as c from '../constants';
 import {
@@ -8,13 +9,15 @@ import {
     IbGibSpaceOptionsCmdModifier,
     IbGibSpaceResultData, IbGibSpaceResultRel8ns, IbGibSpaceResultIbGib,
 } from './space';
-import { Observable } from 'rxjs';
+import { Subject } from 'rxjs/internal/Subject';
 
 export type OuterSpaceType = "sync";
 export const OuterSpaceType = {
     sync: 'sync' as OuterSpaceType,
 }
 export const VALID_OUTER_SPACE_TYPES = Object.values(OuterSpaceType).concat();
+
+export type OuterSpaceSubtype = SyncSpaceSubtype;
 
 export type SyncSpaceSubtype = 'aws-dynamodb';
 export const SyncSpaceSubtype = {
@@ -24,6 +27,7 @@ export const VALID_OUTER_SPACE_SUBTYPES = Object.values(SyncSpaceSubtype).concat
 
 export interface OuterSpaceData extends IbGibSpaceData {
     type: OuterSpaceType;
+    subtype: OuterSpaceSubtype;
 }
 
 export interface OuterSpaceRel8ns extends IbGibSpaceRel8ns {
@@ -115,15 +119,22 @@ export interface SyncSpaceOptionsData extends OuterSpaceOptionsData {
      * Extends inherited
      */
     cmdModifiers?: (SyncSpaceOptionsCmdModifier | string)[];
+    /**
+     * Each Sync has a transmission Id (`txId`) associated with it.
+     *
+     * If this is specified, then it means the sync cmd is associated with
+     * an existing/ongoing operation.
+     */
+    txId?: string;
 }
 export interface SyncSpaceOptionsRel8ns extends OuterSpaceOptionsRel8ns {
 }
 export interface SyncSpaceOptionsIbGib<
     TIbGib extends IbGib = IbGib_V1,
     TOptsData extends SyncSpaceOptionsData = SyncSpaceOptionsData,
-    // TOptsRel8ns extends IbGibSpaceOptionsRel8ns = IbGibSpaceOptionsRel8ns
     TOptsRel8ns extends SyncSpaceOptionsRel8ns = SyncSpaceOptionsRel8ns,
     > extends OuterSpaceOptionsIbGib<TIbGib, TOptsData, TOptsRel8ns> {
+    syncStatus$: Subject<SyncStatusIbGib>;
 }
 
 export interface SyncSpaceResultData extends OuterSpaceResultData {
@@ -135,13 +146,19 @@ export interface SyncSpaceResultIbGib<
     TResultData extends SyncSpaceResultData = SyncSpaceResultData,
     TResultRel8ns extends SyncSpaceResultRel8ns = SyncSpaceResultRel8ns
 > extends OuterSpaceResultIbGib<TIbGib, TResultData, TResultRel8ns> {
-    $update: Observable<SyncStatusIbGib>
+    syncStatus$: Subject<SyncStatusIbGib>;
 }
 
-interface SyncStatusData {
+export interface SyncStatusData {
+    /**
+     * Id for the individual transmission
+     */
     txId: string;
+    /**
+     * Explicit declaration
+     */
+    isTjp?: boolean;
     needs?: IbGibAddr[];
-    waiting?: boolean;
 
     success?: boolean;
     complete?: boolean;
@@ -151,12 +168,17 @@ interface SyncStatusData {
     createdIbGibAddrs?: IbGibAddr[];
     createdIbGibs?: IbGib_V1[];
 }
-interface SyncStatusRel8ns extends IbGibRel8ns_V1 {
+export interface SyncStatusRel8ns extends IbGibRel8ns_V1 {
     created?: IbGibAddr[];
     final?: IbGibAddr[];
 }
 
-interface SyncStatusIbGib extends IbGib_V1<SyncStatusData, SyncStatusRel8ns> {
+/**
+ * IbGib that tracks/logs the entire syncing process.
+ *
+ * ## stages
+ */
+export interface SyncStatusIbGib extends IbGib_V1<SyncStatusData, SyncStatusRel8ns> {
     createdIbGibs?: IbGib_V1[];
     finalIbGib?: IbGib_V1;
 }
@@ -165,3 +187,66 @@ interface SyncStatusIbGib extends IbGib_V1<SyncStatusData, SyncStatusRel8ns> {
  * AWS-specific outerspace type
  */
 export type AWSRegion = 'us-east-1' | string;
+
+export function getStatusIb({
+    spaceType,
+    spaceSubtype,
+    txId,
+    delimiter,
+    tjpGib,
+}: {
+    spaceType: OuterSpaceType,
+    spaceSubtype: OuterSpaceSubtype,
+    txId: string,
+    delimiter?: string,
+    tjpGib?: Gib,
+}): string {
+    const lc = `[${getStatusIb.name}]`;
+    try {
+        if (!spaceType) { throw new Error(`spaceType required. (ERROR: 86e98694a56a4f599e98e50abf0eed43)`); }
+        if (!spaceSubtype) { throw new Error(`spaceSubtype required. (ERROR: 4857d4677ee34e95aeb2251dd633909e)`); }
+        if (!txId) { throw new Error(`txId required. (ERROR: cfc923bb29ee4aa788e947b6416740e6)`); }
+        if (!tjpGib) { throw new Error(`tjpGib required. (ERROR: 98ddf2fa9d514f6daf03a5dc50cd9de7)`); }
+
+        delimiter = delimiter || c.OUTER_SPACE_DEFAULT_IB_DELIMITER;
+
+        return `status ${spaceType} ${spaceSubtype} ${tjpGib} ${txId}`;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
+
+/**
+ * Helper function that generates a unique-ish id.
+ *
+ * atow this is just `return (await h.getUUID()).slice(0, c.DEFAULT_TX_ID_LENGTH);`
+ *
+ * ## notes
+ *
+ * The thinking is that it only has to be a couple characters in length
+ * because this is supposed to only be a unique id within the scope of
+ * a tx which has its own tjp (gib) used as the id for the entire communication
+ * saga.
+ *
+ * @returns txId
+ */
+export async function getNewTxId({
+    length,
+}: {
+    /**
+     * length of txId
+     *
+     * @default c.DEFAULT_TX_ID_LENGTH
+     */
+    length?: number,
+} = { length: c.DEFAULT_TX_ID_LENGTH }): Promise<string> {
+    const lc = `[${getNewTxId.name}]`;
+    try {
+        length = length || c.DEFAULT_TX_ID_LENGTH;
+        return (await h.getUUID()).slice(0, length);
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}

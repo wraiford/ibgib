@@ -233,93 +233,6 @@ export async function hash16816({
 }
 
 /**
- * Wrapper for alerting via atow capacitor modals.
- *
- * @returns FUNCTION that alerts (doesn't actually do the alert)
- */
-export function getFnAlert(): ({title, msg}: {title: string, msg: string}) => Promise<void> {
-    return async ({title, msg}: {title: string, msg: string}) => {
-        await Modals.alert({title, message: msg});
-    };
-}
-
-/**
- * Wrapper for prompting via atow capacitor modals.
- *
- * @returns FUNCTION that prompts (doesn't actually do the prompt)
- */
-export function getFnPrompt(): ({title, msg}: {title: string, msg: string}) => Promise<string|null> {
-    return async ({title, msg}: {title: string, msg: string}) => {
-        const resPrompt = await Modals.prompt({title, message: msg});
-        if (resPrompt.cancelled) {
-            return null;
-        } else {
-            return resPrompt.value;
-        }
-    };
-}
-
-/**
- * Wrapper for confirming via atow capacitor modals.
- *
- * @returns FUNCTION that prompts (doesn't actually do the prompt)
- */
-export function getFnConfirm():
-    ({title, msg, okButtonTitle, cancelButtonTitle}:
-        {title: string, msg: string, okButtonTitle?: string, cancelButtonTitle?: string}) => Promise<boolean> {
-
-    return async ({title, msg, okButtonTitle, cancelButtonTitle}:
-        {title: string, msg: string, okButtonTitle?: string, cancelButtonTitle?: string}) => {
-            okButtonTitle = okButtonTitle || 'Ok';
-            cancelButtonTitle = cancelButtonTitle || 'Cancel';
-            const resConfirm = await Modals.confirm({
-                title, message: msg, okButtonTitle, cancelButtonTitle
-            });
-            return resConfirm.value;
-        }
-}
-
-
-/**
- * Klugy way to prompt for password.
- */
-export function getFnPromptPassword_AlertController({
-    alertController,
-    // title,
-    // msg,
-}: {
-    alertController: AlertController,
-    // title: string,
-    // msg: string,
-}): (title: string, msg: string) => Promise<string|null> {
-    const lc = `[${getFnPromptPassword_AlertController.name}]`;
-    try {
-        if (!alertController) { throw new Error('alertController required.'); }
-        let fnPromptPassword =  async (title: string, msg: string) => {
-          const alert = await alertController.create({
-            header: title,
-            message: msg,
-            inputs: [
-              { name: 'password', type: 'password', label: 'Password: ', },
-            ],
-            buttons: [ 'OK', 'Cancel' ],
-          });
-          await alert.present();
-          let result = await alert.onDidDismiss();
-          if (result?.data?.values?.password) {
-            return result!.data!.values!.password;
-          } else {
-            return null;
-          }
-        };
-        return fnPromptPassword;
-    } catch (error) {
-        console.error(`${lc} ${error.message}`);
-        throw error;
-    }
-}
-
-/**
  * Two spaces can be equivalent if they point to the same area.
  *
  * @returns true if the "same" space
@@ -371,6 +284,93 @@ export function isSameSpace({
  */
 export function getTimestampInTicks(): string {
     return (new Date()).getTime().toString();
+}
+
+// #region getFn prompt/alert/confirm etc. functions
+
+/**
+ * Wrapper for alerting via atow capacitor modals.
+ *
+ * @returns FUNCTION that alerts (doesn't actually do the alert)
+ */
+export function getFnAlert(): ({title, msg}: {title: string, msg: string}) => Promise<void> {
+    return async ({title, msg}: {title: string, msg: string}) => {
+        await Modals.alert({title, message: msg});
+    };
+}
+
+/**
+ * Wrapper for prompting via atow capacitor modals.
+ *
+ * @returns FUNCTION that prompts (doesn't actually do the prompt)
+ */
+export function getFnPrompt(): ({title, msg}: {title: string, msg: string}) => Promise<string|null> {
+    return async ({title, msg}: {title: string, msg: string}) => {
+        const resPrompt = await Modals.prompt({title, message: msg});
+        if (resPrompt.cancelled) {
+            return null;
+        } else {
+            return resPrompt.value;
+        }
+    };
+}
+
+/**
+ * Wrapper for confirming via atow capacitor modals.
+ *
+ * @returns FUNCTION that prompts (doesn't actually do the prompt)
+ */
+export function getFnConfirm():
+    ({title, msg, okButtonTitle, cancelButtonTitle}:
+        {title: string, msg: string, okButtonTitle?: string, cancelButtonTitle?: string}) => Promise<boolean> {
+
+    return async ({title, msg, okButtonTitle, cancelButtonTitle}:
+        {title: string, msg: string, okButtonTitle?: string, cancelButtonTitle?: string}) => {
+            okButtonTitle = okButtonTitle || 'Ok';
+            cancelButtonTitle = cancelButtonTitle || 'Cancel';
+            const resConfirm = await Modals.confirm({
+                title, message: msg, okButtonTitle, cancelButtonTitle
+            });
+            return resConfirm.value;
+        }
+}
+/**
+ * Klugy way to prompt for password.
+ */
+export function getFnPromptPassword_AlertController({
+    alertController,
+    // title,
+    // msg,
+}: {
+    alertController: AlertController,
+    // title: string,
+    // msg: string,
+}): (title: string, msg: string) => Promise<string|null> {
+    const lc = `[${getFnPromptPassword_AlertController.name}]`;
+    try {
+        if (!alertController) { throw new Error('alertController required.'); }
+        let fnPromptPassword =  async (title: string, msg: string) => {
+          const alert = await alertController.create({
+            header: title,
+            message: msg,
+            inputs: [
+              { name: 'password', type: 'password', label: 'Password: ', },
+            ],
+            buttons: [ 'OK', 'Cancel' ],
+          });
+          await alert.present();
+          let result = await alert.onDidDismiss();
+          if (result?.data?.values?.password) {
+            return result!.data!.values!.password;
+          } else {
+            return null;
+          }
+        };
+        return fnPromptPassword;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
 }
 
 /**
@@ -473,6 +473,8 @@ export function getFn_promptCreateOuterSpaceIbGib(
         }
     }
 }
+
+// #endregion
 
 /**
  * Utility function to generate hard-coded ibgibs to use at runtime "on-chain" but

@@ -623,9 +623,6 @@ export class IonicSpace_V1<
      *
      * * At the very least, this could be changed similar to dna to have
      *   its own folder.
-     *
-     *
-     *
      */
     protected async persistOptsAndResultIbGibs({
         arg,
@@ -642,13 +639,17 @@ export class IonicSpace_V1<
             argData: {
                 cmd: 'put',
                 isMeta: true,
+                catchAllErrors: true,
             },
         });
         argPersist.ibGibs = [arg, result];
         // this is a best effort storage, so we aren't using the result
         // in the future, we should incorporate what to do if this persistence
         // fails into the larger success requirements of spaces.
-        const _ignored = await this.putIbGibsImpl(argPersist);
+        const resPut = await this.putIbGibsImpl(argPersist);
+        if (!resPut.data.success || resPut.data.errors) {
+            console.error(`${lc} Errors persisting arg & result: ${resPut.data.errors.join('\n')}. (ERROR: 65ef314a4f8e445d851dab5b290e9a03)`);
+        }
     }
 
     // #region files related

@@ -9,8 +9,8 @@ import {
     ConsumedCapacity,
 } from '@aws-sdk/client-dynamodb';
 
-import { IbGib_V1, IbGibRel8ns_V1, } from 'ts-gib/dist/V1';
-import { getIbGibAddr, IbGibAddr, } from 'ts-gib';
+import { IbGib_V1, IbGibRel8ns_V1, Factory_V1 as factory, } from 'ts-gib/dist/V1';
+import { getIbGibAddr, IbGibAddr, V1, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 
 import { SpaceBase_V1 } from './space-base-v1';
@@ -20,9 +20,14 @@ import {
     IbGibSpaceOptionsCmd, SyncSpaceOptionsCmdModifier,
     SyncSpaceResultData, SyncSpaceResultRel8ns, SyncSpaceResultIbGib,
     AWSRegion,
+    SyncStatusData,
+    getStatusIb,
+    getNewTxId,
+    SyncStatusIbGib,
 } from '../types';
 import * as c from '../constants';
 import { getBinAddr } from '../helper';
+import { ReplaySubject } from 'rxjs/internal/ReplaySubject';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -716,9 +721,16 @@ export class AWSDynamoSpace_V1<
         let errors: string[] = [];
         try {
             errors = (await super.validateWitnessArg(arg)) || [];
-            if (arg.data?.cmd === 'put' && !arg.binData && (arg.ibGibs?.length === 0)) {
-                errors.push(`when "put" cmd is called, either ibGibs or binData required.`);
+
+            if (!this.data) { throw new Error(`this.data falsy.`); }
+            if (!this.data!.tableName) { throw new Error(`tableName not set`); }
+            if (!this.data!.secretAccessKey) { throw new Error(`this.data!.secretAccessKey falsy`); }
+            if (!this.data!.accessKeyId) { throw new Error(`this.data!.accessKeyid falsy`); }
+
+            if (arg.data!.cmd === 'put' && (arg.ibGibs?.length === 0)) {
+                errors.push(`when "put" cmd is called, ibGibs required.`);
             }
+
             if (
                 arg.data?.cmd === 'get' &&
                 !arg.data?.cmdModifiers?.includes('latest') &&
@@ -726,10 +738,6 @@ export class AWSDynamoSpace_V1<
                 (arg.data?.ibGibAddrs?.length === 0)
             ) {
                 errors.push(`when "get" cmd is called, either ibGibAddrs or binExt+binHash required.`);
-            }
-            // if (!this.data?.tableName) { await this.initialize(); }
-            if (!this.data?.tableName) {
-                throw new Error('this.data.tableName falsy');
             }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -800,35 +808,15 @@ export class AWSDynamoSpace_V1<
             return super.routeAndDoCommand({cmd, cmdModifiers, arg});
         }
         switch (cmd) {
-            case IbGibSpaceOptionsCmd.get:
-                if ((cmdModifiers ?? []).length === 0) {
-                    return this.get(arg);
-                } else if (cmdModifiers.includes('can')) {
-                    return this.canGet(arg);
-                } else if (cmdModifiers.includes('addrs')) {
-                    return this.getAddrs(arg);
-                } else if (cmdModifiers.includes('latest')) {
-                    return this.getLatest(arg);
-                } else {
-                    return this.get(arg);
-                }
-
             case IbGibSpaceOptionsCmd.put:
-                if ((cmdModifiers ?? []).length === 0) {
-                    return this.put(arg);
-                } else if (cmdModifiers.includes('can')) {
-                    return this.canPut(arg);
-                } else {
-                    return this.put(arg);
-                }
+                if (cmdModifiers.includes('sync')) {
+                    if (arg.data.txId) {
 
-            case IbGibSpaceOptionsCmd.delete:
-                if ((cmdModifiers ?? []).length === 0) {
-                    return this.delete(arg);
-                } else if (cmdModifiers.includes('can')) {
-                    return this.canDelete(arg);
+                    } else {
+                        return this.putSync_Start(arg);
+                    }
                 } else {
-                    return this.delete(arg);
+                    return super.routeAndDoCommand({cmd, cmdModifiers, arg});
                 }
 
             default:
@@ -841,11 +829,6 @@ export class AWSDynamoSpace_V1<
         const lc = `${this.lc}[${this.get.name}]`;
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
-            if (!this.data) { throw new Error(`this.data falsy.`); }
-            if (!this.data!.tableName) { throw new Error(`tableName not set`); }
-            if (!this.data!.secretAccessKey) { throw new Error(`this.data!.secretAccessKey falsy`); }
-            if (!this.data!.accessKeyId) { throw new Error(`this.data!.accessKeyid falsy`); }
-
             const client = createClient({
                 accessKeyId: this.data.accessKeyId,
                 secretAccessKey: this.data.secretAccessKey,
@@ -876,10 +859,6 @@ export class AWSDynamoSpace_V1<
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            if (!this.data) { throw new Error(`this.data falsy.`); }
-            if (!this.data!.tableName) { throw new Error(`tableName not set`); }
-            if (!this.data!.secretAccessKey) { throw new Error(`this.data!.secretAccessKey falsy`); }
-            if (!this.data!.accessKeyId) { throw new Error(`this.data!.accessKeyid falsy`); }
 
             const client = createClient({
                 accessKeyId: this.data.accessKeyId,
@@ -1282,11 +1261,6 @@ export class AWSDynamoSpace_V1<
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
         try {
-            if (!this.data) { throw new Error(`this.data falsy.`); }
-            if (!this.data!.tableName) { throw new Error(`tableName not set`); }
-            if (!this.data!.secretAccessKey) { throw new Error(`this.data!.secretAccessKey falsy`); }
-            if (!this.data!.accessKeyId) { throw new Error(`this.data!.accessKeyid falsy`); }
-
             const client = createClient({
                 accessKeyId: this.data.accessKeyId,
                 secretAccessKey: this.data.secretAccessKey,
@@ -1428,9 +1402,6 @@ export class AWSDynamoSpace_V1<
             resultData.success = false;
         }
         const result = await this.resulty({resultData});
-        // const result = await resulty_<AWSDynamoSpaceResultData, AWSDynamoSpaceResultIbGib>({
-        //     resultData
-        // });
         return result;
     }
 
@@ -1512,23 +1483,6 @@ export class AWSDynamoSpace_V1<
         const result = await this.resulty({ resultData });
         return result;
     }
-
-    // /**
-    //  * wrapper convenience for this space.
-    //  * @param param0
-    //  * @returns
-    //  */
-    // private async resulty({
-    //     resultData,
-    // }: {
-    //     resultData: AWSDynamoSpaceResultData,
-    // }): Promise<AWSDynamoSpaceResultIbGib> {
-    //     const result =
-    //         await resulty_<AWSDynamoSpaceResultData, AWSDynamoSpaceResultIbGib>({
-    //             resultData
-    //         });
-    //     return result;
-    // }
 
     protected async deleteImpl(arg: AWSDynamoSpaceOptionsIbGib):
         Promise<AWSDynamoSpaceResultIbGib> {
@@ -1632,13 +1586,6 @@ export class AWSDynamoSpace_V1<
             resultData.errors = [error.message];
         }
         const result = await this.resulty({resultData});
-        // const result =
-        //     await resulty_<
-        //         AWSDynamoSpaceResultData,
-        //         AWSDynamoSpaceResultIbGib
-        //     >({
-        //         resultData
-        //     });
         return result;
     }
     protected async canPutImpl(arg: AWSDynamoSpaceOptionsIbGib):
@@ -1648,46 +1595,11 @@ export class AWSDynamoSpace_V1<
         const errors: string[] = [];
         try {
             throw new Error('not implemented');
-            // just feeling out here...not sure if this is necessary
-            if (!this.data.tableName) {
-                resultData.can = false;
-                errors.push(`this.data.tableName is falsy. Need to initialize aws space`);
-            }
-            if (!this.data.secretAccessKey) {
-                resultData.can = false;
-                errors.push(`this.data.secretAccessKey is falsy. Need to initialize aws space`);
-            }
-            if (!this.data.accessKeyId) {
-                resultData.can = false;
-                errors.push(`this.data.accessKeyId is falsy. Need to initialize aws space`);
-            }
-            const addrsAlreadyHave: IbGibAddr[] = [];
-            // for (let i = 0; i < ibGibs?.length; i++) {
-            //     const ibGib = ibGibs[i];
-            //     const addr = getIbGibAddr({ibGib});
-            //     if (Object.keys(this.ibGibs).includes(addr)) {
-            //         addrsAlreadyHave.push(addr);
-            //     }
-            // }
-            resultData.success = true;
-            if (addrsAlreadyHave.length > 0) {
-                resultData.addrsAlreadyHave = addrsAlreadyHave;
-                resultData.warnings = (resultData.warnings || []).concat([`${lc} already have addr(s).`]);
-            }
-            // resultData.can = ibGibs.length > addrsAlreadyHave.length;
-            resultData.can = true;
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];
         }
         const result = await this.resulty({resultData});
-        // const result =
-        //     await resulty_<
-        //         AWSDynamoSpaceResultData,
-        //         AWSDynamoSpaceResultIbGib
-        //     >({
-        //         resultData
-        //     });
         return result;
     }
 
@@ -1705,6 +1617,204 @@ export class AWSDynamoSpace_V1<
         const result = await this.resulty({resultData});
         return result;
     }
+
+    /**
+     * We're just getting the ball rolling for the sync "saga".
+     * So this method will return almost immediately with
+     * an observable on it for the caller to subscribe to in order
+     * to get the real progress updates (instead of just waiting on
+     * one big, long-running function).
+     *
+     * ##
+     * @returns AWSDynamoSpaceResultIbGib with syncStatus$ observable for sync updates.
+     */
+    protected async putSync_Start(arg: AWSDynamoSpaceOptionsIbGib):
+        Promise<AWSDynamoSpaceResultIbGib> {
+        const lc = `${this.lc}[${this.putSync_Start.name}]`;
+        const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        // create observable that we will return almost immediately
+        // most of this method will work inside of a spun-off promise.
+        let syncStatus$: ReplaySubject<SyncStatusIbGib>;
+        try {
+            if (arg.ibGibs.length > 1) {
+                throw new Error(`can only put sync a single ibGib atm (ERROR: 89b5f6a1d0364ed2ac9207176ec3db03)`);
+            }
+
+            const client = createClient({
+                accessKeyId: this.data.accessKeyId,
+                secretAccessKey: this.data.secretAccessKey,
+                region: this.data.region,
+            });
+
+            syncStatus$ = new ReplaySubject<SyncStatusIbGib>();
+
+            // spin off the rest of the execution
+            new Promise<void>(async (resolve) => {
+                const statusErrors: string[] = [];
+                try {
+                    // create the initial status ibgib.
+                    //   we will mut8/rel8 this status over course of sync.
+                    const {startIbGib, allIbGibs: statusStartIbGibs} =
+                        await this.getStatusIbGibs_Start({client});
+                    await this.putIbGibBatch({
+                        ibGibs: statusStartIbGibs,
+                        client,
+                        errors: statusErrors,
+                    });
+                    if (statusErrors?.length > 0) {
+                        // errored, so we're through
+                        syncStatus$.error(statusErrors.join('\n'));
+                        resolve();
+                    } else {
+                        // publish the status that we've started
+                        syncStatus$.next(startIbGib);
+                    }
+
+                    // now that we've started some paperwork, we can start
+                    // doing the actual work.
+
+                    // need to analyze which ibgibs we don't already have
+                    //   (status of ibgibs)
+                    // which ones will need to be merged
+                    //   (status of dnas/transforms)
+                } catch (error) {
+                    syncStatus$.error(`${lc} ${error.message}`);
+                    resolve();
+                }
+            });
+        } catch (error) {
+            console.error(`${lc} error: ${error.message}`);
+            resultData.errors = [error.message];
+        }
+        try {
+            const result = await this.resulty({resultData});
+            if (syncStatus$) { result.syncStatus$ = syncStatus$; }
+            return result;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        }
+    }
+
+    protected async putSync_Continue(arg: AWSDynamoSpaceOptionsIbGib):
+        Promise<AWSDynamoSpaceResultIbGib> {
+        const lc = `${this.lc}[${this.putSync_Continue.name}]`;
+        const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        try {
+            if (!arg.syncStatus$) { throw new Error(`arg.syncStatus$ falsy`); }
+            const client = createClient({
+                accessKeyId: this.data.accessKeyId,
+                secretAccessKey: this.data.secretAccessKey,
+                region: this.data.region,
+            });
+
+            //   we will mut8/rel8 to this ticket over course of sync.
+            // immediately publish the status
+            // need to analyze which ibgibs we don't already have
+            //   (status of ibgibs)
+            // which ones will need to be merged
+            //   (status of dnas/transforms)
+
+            // we want to store our status ibgib graph and other metadata
+            // throughout this process.
+
+
+            // we now have started by saving the put metadata
+
+        } catch (error) {
+            console.error(`${lc} error: ${error.message}`);
+            resultData.errors = [error.message];
+        }
+        try {
+            const result = await this.resulty({resultData});
+            return result;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        }
+    }
+
+    /**
+     * The start of the status is three generations:
+     *
+     * 1. The parent primitive - no txid, no tjp in ib
+     * 2. tjp - txId in ib, but not tjp
+     * 3. start - both txId and tjp in ib
+     *
+     * ## notes
+     *
+     * * a 'primitive' means it just has an ib with data and gib === "gib" (i.e. no hash)
+     * * the initial tjp can't include the tjp gib because it can't be calculated until
+     *   after this generation!!
+     */
+    private async getStatusIbGibs_Start({
+        client,
+    }: {
+        client: DynamoDBClient,
+    }): Promise<{startIbGib: SyncStatusIbGib, allIbGibs: IbGib_V1[]}> {
+        const lc = `${this.lc}[${this.getStatusIbGibs_Start.name}]`;
+        try {
+            if (!client) { throw new Error(`client required. (ERROR: 7e749ecc44f647dc8587c00c334337d4)`); }
+            let allIbGibs: IbGib_V1[] = [];
+
+            // 1. parent primitive
+            const parentIb = getStatusIb({
+                spaceType: 'sync',
+                spaceSubtype: 'aws-dynamodb',
+                tjpGib: c.STATUS_UNDEFINED_TJP_GIB, // "undefined" means 'gib' atow!!
+                txId: c.STATUS_UNDEFINED_TX_ID, // "undefined" means '0' atow!!
+            });
+            const parentIbGib = factory.primitive({ib: parentIb});
+            // we don't store primitives, so don't add to allIbGibs
+
+            // 2. start tjp ibGib (only has txId)
+            const txId = await getNewTxId();
+            const tjpIb = getStatusIb({
+                spaceType: 'sync',
+                spaceSubtype: 'aws-dynamodb',
+                tjpGib: c.STATUS_UNDEFINED_TJP_GIB, // "undefined" means 'gib' atow!!
+                txId,
+            });
+            const data = <SyncStatusData>{ txId, };
+            const resTjp = await factory.firstGen({
+                parentIbGib,
+                ib: tjpIb,
+                data,
+                dna: false,
+                nCounter: true,
+                tjp: { timestamp: true },
+            });
+            // we'll store this and intermediates
+            const tjpIbGib = resTjp.newIbGib;
+            const tjpAddr = h.getIbGibAddr({ibGib: tjpIbGib});
+            allIbGibs.push(tjpIbGib);
+            debugger; // want to find out if intermediateibgibs created
+            allIbGibs = allIbGibs.concat(resTjp.intermediateIbGibs ?? []);
+
+            // 3. full start ibGib (has both txId and tjpGib)
+            const { gib: tjpGib } = h.getIbAndGib({ibGibAddr: tjpAddr});
+            const startIb = getStatusIb({
+                spaceType: 'sync',
+                spaceSubtype: 'aws-dynamodb',
+                tjpGib,
+                txId, // same txId
+            });
+            const resStart = await V1.mut8({src: tjpIbGib, mut8Ib: startIb});
+            const startIbGib = <SyncStatusIbGib>resStart.newIbGib;
+            allIbGibs.push(startIbGib);
+            debugger; // want to find out if intermediateibgibs created
+            allIbGibs = allIbGibs.concat(resStart.intermediateIbGibs ?? []);
+
+            // return em dude
+            return { startIbGib, allIbGibs };
+        } catch (error) {
+            const emsg = `${lc} ${error.message}`;
+            console.error(emsg);
+            // statusErrors.push(emsg);
+            throw error;
+        }
+    }
+
     /**
      * Calculates the hash of the given `binData`.
      *
@@ -1726,6 +1836,10 @@ export class AWSDynamoSpace_V1<
         }
     }
 
+    /**
+     * Extremely crude implementation that just
+     * saves the ibgibs alongside existing data.
+     */
     protected async persistOptsAndResultIbGibs({
         arg,
         result,
@@ -1733,6 +1847,32 @@ export class AWSDynamoSpace_V1<
         arg: AWSDynamoSpaceOptionsIbGib,
         result: AWSDynamoSpaceResultIbGib,
     }): Promise<void> {
-        throw new Error('Method not implemented.');
+        const lc = `${this.lc}[${this.persistOptsAndResultIbGibs.name}]`;
+        if (logalot || this.data?.trace) {
+            console.log(`${lc} doing arg?.data?.cmd: ${arg?.data?.cmd}, result?.data?.success: ${result?.data?.success}`);
+        }
+        const argPersist = await this.argy({
+            argData: {
+                cmd: 'put',
+                isMeta: true,
+                catchAllErrors: true,
+            },
+        });
+        argPersist.ibGibs = [arg, result];
+
+        const client = createClient({
+            accessKeyId: this.data.accessKeyId,
+            secretAccessKey: this.data.secretAccessKey,
+            region: this.data.region,
+        });
+
+        // this is a best effort storage, so we aren't using the result other than logging
+        // in the future, we should incorporate what to do if this persistence
+        // fails into the larger success requirements of spaces.
+        const resPut = await this.putIbGibsImpl({arg: argPersist, client});
+        if (!resPut.data.success || resPut.data.errors) {
+            console.error(`${lc} Errors persisting arg & result: ${resPut.data.errors.join('\n')}. (ERROR: 65ef314a4f8e445d851dab5b290e9a03)`);
+        }
     }
+
 }

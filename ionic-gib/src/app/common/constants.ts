@@ -1,6 +1,7 @@
 import { FilesystemDirectory, FilesystemEncoding } from '@capacitor/core';
+
 import { GIB } from 'ts-gib/dist/V1';
-import { Ib } from 'ts-gib';
+import { Ib, } from 'ts-gib';
 import { SaltStrategy } from 'encrypt-gib';
 
 /**
@@ -368,6 +369,19 @@ export const AWS_THROUGHPUT_ERROR_NAME = "ProvisionedThroughputExceededException
  * Name of the secondary global index (tjp+n) in DynamoDB.
  */
 export const AWS_DYNAMODB_TJP_N_SECONDARY_INDEX_NAME = 'tjp-n-index';
+export const OUTER_SPACE_DEFAULT_IB_DELIMITER = ' ';
+export const DEFAULT_TX_ID_LENGTH = 5;
+
+/**
+ * When a status is first created, this is used to indicate that
+ * the tjp has not been set.
+ */
+export const STATUS_UNDEFINED_TJP_GIB = GIB;
+/**
+ * When a status is first created, this is used to indicate that
+ * the txId has not been set.
+ */
+export const STATUS_UNDEFINED_TX_ID = '0';
 
 export const AWS_RESERVED_WORDS = [
     'ABORT',
