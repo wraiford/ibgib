@@ -20,10 +20,12 @@ import {
   TagData, RootData,
   SpecialIbGibType,
   LatestEventInfo,
-  SecretData_V1, SecretInfo_Password,
+  SecretData_V1, SecretInfo_Password, SecretIbGib_V1,
   EncryptionInfo, EncryptionInfo_EncryptGib, EncryptionData_V1,
-  CiphertextData, CiphertextRel8ns, CiphertextIbGib_V1, SecretIbGib_V1,
-  IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib, IbGibSpaceResultIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns, SyncSpaceData, SyncSpaceResultIbGib,
+  CiphertextData, CiphertextRel8ns, CiphertextIbGib_V1,
+  IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib,
+  IbGibSpaceResultIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns,
+  SyncSpaceData, SyncSpaceResultIbGib,
 } from '../common/types';
 import {
   IonicSpace_V1,
@@ -2545,7 +2547,7 @@ export class IbgibsService {
         encryption: [h.getIbGibAddr({ibGib: encryptionIbGib})],
       }
 
-      const resCiphertext: TransformResult<CiphertextIbGib_V1> =
+      const resCiphertext = <TransformResult<CiphertextIbGib_V1>>(
         await factory.firstGen({
           parentIbGib: factory.primitive({ib: ibRoot || 'ciphertext'}),
           ib:
@@ -2557,7 +2559,8 @@ export class IbgibsService {
           dna: false,
           tjp: { uuid: true, timestamp: true },
           nCounter: true,
-        });
+        })
+      );
 
       if (!resCiphertext.newIbGib) { throw new Error('Error creating ciphertext ibgib.'); }
 
@@ -2669,7 +2672,7 @@ export class IbgibsService {
       const resCiphertext = await this.get({addr: ciphertextAddr, space});
       if (!resCiphertext.success) { throw new Error(`get ciphertext failed`); }
       if ((resCiphertext.ibGibs || []).length !== 1) { throw new Error(`get ciphertext retrieved non-1 length (eesh)`); }
-      const ciphertextIbGib = resCiphertext.ibGibs[0];
+      const ciphertextIbGib = <CiphertextIbGib_V1>resCiphertext.ibGibs[0];
 
       // get secrets associated with enciphered space
       if (!encryptedSpace.rel8ns?.secret) { throw new Error('!encryptionIbGib.rel8ns?.secret'); }
@@ -2685,7 +2688,7 @@ export class IbgibsService {
 
       // get plaintext now that we have the ciphertext ibgib and secret ibgib(s)
       const plaintextString = await this.getPlaintextString({
-        ciphertextIbGib,
+        ciphertextIbGib: ciphertextIbGib,
         fnPromptPassword,
         secretIbGibs,
         space,
@@ -3115,6 +3118,15 @@ export class IbgibsService {
         debugger;
         if (resStartSync.data?.success) {
           debugger;
+          const subStatus = resStartSync.syncStatus$.subscribe(async (status) => {
+            debugger;
+            if (status.data.success) {
+              if (status.data.needs?.)
+              status.data.needs
+            } else {
+              // had an error
+            }
+          });
         } else {
           debugger;
         }

@@ -151,19 +151,20 @@ ion-item.selected {
   // background-color: red;
   animation-name: example;
   animation-duration: 0.5s;
-  animation-iteration-count: infinite;
+  // animation-iteration-count: 1;
+  animation-fill-mode: forwards;
 }
 
  /* The animation code */
  @keyframes example {
   0%   {transform: rotate(1deg);}
-  12%  {transform: rotate(45deg);}
-  25%  {transform: rotate(90deg);}
-  37%  {transform: rotate(135deg);}
-  50%  {transform: rotate(180deg);}
-  63%  {transform: rotate(225deg);}
-  85%  {transform: rotate(270deg);}
-  100% {transform: rotate(359deg);}
+  12%  {transform: rotate(11deg);}
+  25%  {transform: rotate(23deg);}
+  37%  {transform: rotate(35deg);}
+  50%  {transform: rotate(45deg);}
+  63%  {transform: rotate(60deg);}
+  85%  {transform: rotate(83deg);}
+  100% {transform: rotate(89deg);}
 }
 
 .list-md {

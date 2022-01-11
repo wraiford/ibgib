@@ -380,6 +380,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         } else {
             console.error(`${lc} Couldn't get pic. ${resGet.errorMsg}`);
         }
+        item.text = data.filename ?? `pic ${this.gib.slice(0,5)}...`;
         if (logalot) { console.log(`${lc} loaded.`); }
     } catch (error) {
         console.error(`${lc} ${error.message}`);

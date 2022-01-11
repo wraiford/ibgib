@@ -149,7 +149,7 @@ export class IbGibPage extends IbgibComponentBase
           await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjp: this.tjp});
         });
       }
-      document.title = this.title;
+      document.title = this.item?.text ?? this.ibGib?.data?.text ?? this.gib;
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);
       this.clearItem();

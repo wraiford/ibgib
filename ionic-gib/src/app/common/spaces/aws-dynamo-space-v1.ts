@@ -1729,9 +1729,7 @@ export class AWSDynamoSpace_V1<
         // most of this method will work inside of a spun-off promise.
         let syncStatus$: ReplaySubject<SyncStatusIbGib>;
         try {
-            if (arg.ibGibs.length > 1) {
-                throw new Error(`can only put sync a single ibGib atm (ERROR: 89b5f6a1d0364ed2ac9207176ec3db03)`);
-            }
+            if (arg.ibGibs.length > 1) { throw new Error(`can only put sync a single ibGib atm (ERROR: 89b5f6a1d0364ed2ac9207176ec3db03)`); }
 
             const client = createClient({
                 accessKeyId: this.data.accessKeyId,
@@ -1766,7 +1764,7 @@ export class AWSDynamoSpace_V1<
                     // now that we've started some paperwork, we can begin
                     // doing the actual work.
 
-                    this.getLatestImpl
+                    debugger;
                     // need to analyze which ibgibs we don't already have
                     //   (status of ibgibs)
                     // which ones will need to be merged
