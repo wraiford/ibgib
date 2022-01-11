@@ -576,3 +576,25 @@ export async function constantIbGib<TData extends IbGibData_V1 = any , TRel8ns e
         throw error;
     }
 }
+
+export function groupBy<T>({
+    items,
+    keyFn,
+}: {
+    items: T[],
+    keyFn: (x: T) => number,
+}): { [key: number]: T[] } {
+    const lc = `[${groupBy.name}]`;
+    try {
+        const result: {[key: number]: T[]} = {};
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            const key = keyFn(item);
+            result[key] = [...result[key], item];
+        }
+        return result;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}

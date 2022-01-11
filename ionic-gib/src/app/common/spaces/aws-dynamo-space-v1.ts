@@ -26,7 +26,7 @@ import {
     SyncStatusIbGib,
 } from '../types';
 import * as c from '../constants';
-import { getBinAddr } from '../helper';
+import { getBinAddr, groupBy } from '../helper';
 import { ReplaySubject } from 'rxjs/internal/ReplaySubject';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
@@ -467,6 +467,12 @@ interface GetLatestInfo {
      * this property.
      */
     nLeast: number;
+    /**
+     * Original ibGib address that we're querying for the latest.
+     *
+     * Obviously, should have a tjp of `GetLatestInfo.tjpAddr`.
+     */
+    queryAddr: IbGibAddr;
     /**
      * Result of query ibGibs.
      */
@@ -1062,16 +1068,19 @@ export class AWSDynamoSpace_V1<
      * Note that this returns muliple ibGibs that are greater than
      * or equal to the given ibGib's n value.
      *
-     * This means that you may receive a list of only one ibGib, the given one.
-     * BUT THIS MAY NOT BE THE SAME IBGIB YOU PASSED IN. This is because it's
-     * querying off of the tjp + n only, and there may be an alternative timeline
-     * in the space.
+     * This means that you may receive a list of only one ibGib, the given ibGib
+     * that you passed in...OR...YOU MAY GET A PARALLEL IBGIB TIMELINE WITH THE
+     * SAME N!
      *
-     * You may also receive multiple ibGibs. Could be the same timeline with
-     * newer versions, or could be different timeline(s) with multiple versions,
-     * or it could be both the same current timeline and other divergent ones.
+     * Or you may get more than one ibGib with the same n, which makes it
+     * slightly more obvious that you are dealing with multiple timelines.
      *
-     * @returns a map of tjp addr -> latest ibGibs
+     * Or you may receive multiple ibGibs with multiple values of n. Could be the
+     * same timeline with newer versions, or this could be from different timeline(s)
+     * with multiple versions, or it could be both the same current timeline
+     * and other parallel ones.
+     *
+     * @returns a map of tjp addr -> all corresponding ibGibs with `data.n >= info.nLeast`
      */
     protected async getNewerIbGibInfosBatch({
         infos,
@@ -1140,37 +1149,18 @@ export class AWSDynamoSpace_V1<
         client: DynamoDBClient,
     }): Promise<AWSDynamoSpaceResultIbGib> {
         const lc = `${this.lc}[${this.getLatestIbGibs.name}]`;
-        const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        const resData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
         const warnings: string[] = [];
         let ibGibs: IbGib_V1[] = [];
         try {
             // GetLatestInfo
             // ibGibs guaranteed at this point to be non-null and > 0
-            let infoMap: {[tjp: string]: GetLatestInfo} = {};
-            arg.ibGibs.forEach(ibGib => {
-                if (!Number.isSafeInteger(ibGib.data?.n)) {
-                    if (logalot) { console.log(`${lc} no ibGib.data.n safe integer: ${h.getIbGibAddr({ibGib})}`); }
-                    return;
-                }
-                if (ibGib.rel8ns?.tjp?.length !== 1 && !ibGib.data!.isTjp) {
-                    if (logalot) { console.log(`${lc} no tjp info: ${h.getIbGibAddr({ibGib})}`); }
-                    return;
-                }
-                const tjpAddr = ibGib.data!.isTjp ? h.getIbGibAddr({ibGib}) : ibGib.rel8ns!.tjp[0];
-                const nLeast = ibGib.data!.n;
-                if (infoMap[tjpAddr]) {
-                    // only do the highest n
-                    if (nLeast > infoMap[tjpAddr].nLeast) { infoMap[tjpAddr] = {tjpAddr, nLeast} }
-                } else {
-                    infoMap[tjpAddr] = {tjpAddr, nLeast};
-                }
-            });
-            let infos: GetLatestInfo[] = Object.values(infoMap);
-            if (logalot) { console.log(`${lc} infos: ${h.pretty(infos)}`); }
+            // build infos
+            let infos: GetLatestInfo[] = this.getLatestInfos({ibGibs: arg.ibGibs});
 
             if (infos.length === 0) {
-                const warning = `${lc} infos.length is zero, meaning we havent' found any ibgibs that are valid to be checking for latest. No tjps + data.n values.`;
+                const warning = `${lc} infos.length is zero, meaning we haven't found any ibgibs that are valid to be checking for latest. No tjps + data.n values.`;
                 console.warn(warning);
                 warnings.push(warning);
             } else {
@@ -1187,46 +1177,23 @@ export class AWSDynamoSpace_V1<
                     let doNext = infos.splice(batchSize);
                     debugger;
                     const gotInfos = await this.getNewerIbGibInfosBatch({infos, client, errors});
-                    // at this point, we're not sure of the state of our results.
-                    // there could be multiple newer ibgibs of the same timeline, or even
-                    // divergent parallel branches (oh no!).
-                    // for now, we're going to think simply and just return all ibgibs returned
-                    const gotIbGibs = gotInfos.flatMap(info => {
+
+                    // turn infos into recent ibGibs...
+                    let gotIbGibs: IbGib_V1[] = [];
+                    for (let j = 0; j < gotInfos.length; j++) {
+                        const info = gotInfos[j];
                         // errored, so return null
-                        if (info.errorMsg) { errors.push(info.errorMsg); return null; }
-
-                        // if info.resultIbGibs has more than entry with the same n, then we have multiple timelines
-                        // so this is just a checking object,
-                        // we're not going to build our results off of it directly.
-                        let nObj: { [n: string]: IbGib_V1 } = {};
-                        info.resultIbGibs.forEach(ibGib => {
-                            let key = ibGib.data!.n!.toString();
-                            if (nObj[key] && nObj[key].gib !== ibGib.gib) {
-                                // we already have this n for a different ibGib.
-                                // This means that we have at least one divergent timeline.
-                                const addr = h.getIbGibAddr({ibGib});
-                                const addr2 = h.getIbGibAddr({ibGib: nObj[key]});
-                                // NOTE addrs should not contain \n characters...
-                                if (addr.includes('\n')) { throw new Error(`addr contains newline(?)`); }
-                                if (addr2.includes('\n')) { throw new Error(`addr contains newline(?)`); }
-                                if (!ibGib.data!.isTjp && ibGib.rel8ns!.tjp[0].includes('\n')) { throw new Error(`tjp addr contains newline(?)`); }
-                                const warning =
-                                    `Divergent timeline found (same tjp/n, different ibGib).\n
-                                    ibGib1:\n${addr}\n
-                                    ibGib2:\n${addr2}\n
-                                    tjp:\n${ibGib.data!.isTjp ? addr : ibGib.rel8ns!.tjp[0]}\n
-                                    n:\n${ibGib.data!.n!}
-                                    `;
-                                console.warn(`${lc} ${warning}`);
-                                warnings.push(warning);
-                                debugger;
-                            } else {
-                                nObj[key] = ibGib;
-                            }
-                        });
-
-                        return info.errorMsg ? null : info.resultIbGibs;
-                    }).filter(x => x !== null);
+                        if (info.errorMsg) {
+                            errors.push(info.errorMsg);
+                        } else {
+                            // at this point, we're not sure of the state of our results.
+                            // there could be multiple newer ibgibs of the same timeline, or even
+                            // divergent parallel branches (oh no!).
+                            let nObj = await this.checkMultipleTimelinesAndStuffWhatHoIndeed({info, warnings});
+                            // for now, we're going to think simply and just return all ibgibs returned
+                            gotIbGibs = gotIbGibs.concat(info.resultIbGibs);
+                        }
+                    }
 
                     ibGibs = [...ibGibs, ...gotIbGibs];
 
@@ -1240,20 +1207,146 @@ export class AWSDynamoSpace_V1<
                 console.log(`${lc} total: ${runningCount}.`);
             }
 
-            if (warnings.length > 0) { resultData.warnings = warnings; }
+            if (warnings.length > 0) { resData.warnings = warnings; }
             if (errors.length === 0) {
-                resultData.success = true;
+                resData.success = true;
             } else {
-                resultData.errors = errors;
+                resData.errors = errors;
             }
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
-            resultData.errors = errors.concat([error.message]);
-            resultData.success = false;
+            resData.errors = errors.concat([error.message]);
+            resData.success = false;
         }
-        const result = await this.resulty({resultData});
+        const result = await this.resulty({resultData: resData});
         result.ibGibs = ibGibs;
         return result;
+    }
+
+    private async checkMultipleTimelinesAndStuffWhatHoIndeed({
+        info,
+        warnings,
+    }: {
+        info: GetLatestInfo,
+        warnings: string[],
+    }): Promise<{[n: string]: IbGib_V1}> {
+        const lc = `${this.lc}[${this.checkMultipleTimelinesAndStuffWhatHoIndeed.name}]`;
+        try {
+            if (!info.resultIbGibs || info.resultIbGibs.length === 0) {
+                return {};
+            }
+
+            // a single info corresponds to a "single" ibGib tjp timeline.
+            // the `resultibGibs` are the ibgib frames equal or forward in time
+            // in 0, 1, or more timelines.
+            // if info.resultIbGibs has more than one entry with the
+            // same n, then we have multiple timelines
+            // so this (nObj) is an object for checking for this,
+            // we're not going to build our results off of it directly.
+            const nObj: { [n: string]: IbGib_V1 } = {};
+            const resIbGibsGroupedByN: { [n: number]: IbGib_V1[] } = groupBy<IbGib_V1>({
+                items: info.resultIbGibs,
+                keyFn: x => (x.data?.n ?? -1)
+            });
+            if (Object.values(resIbGibsGroupedByN).some(x => x.length > 1)) {
+                // multiple timelines
+                // shouldn't really happen with our merge/put strategy,
+                // but it's possible if we don't lock resources well enough.
+                // definitely want to log this.
+            } else {
+                const leastIbGibs = resIbGibsGroupedByN[info.nLeast] ?? [];
+                if (leastIbGibs.length === 1) {
+                    const gotLeastAddr = h.getIbGibAddr({ibGib: leastIbGibs[0]});
+                    if (gotLeastAddr === info.queryAddr) {
+                        // no parallel timelines.
+                    } else {
+                        // single parallel timeline
+                        // so, we have the most recent thingies and we want to
+                        // merge ours into those, and then update ours
+                        // to point to the new timeline.
+                        // consequently, we need to redo our ts-gib to include
+                        // tjp gib hash in each link and/or address?.
+                    }
+                } else {
+                    // hmm what?
+                    throw new Error(`expected if anything to have the current ibGib with nLeast or an empty result set, since this is only supposed to be gt or eq to nLeast. (ERROR: b3270a724f854c3eb4aa4bcd707435e5)`);
+                }
+            }
+
+            info.resultIbGibs.forEach(ibGib => {
+                let key = ibGib.data!.n!.toString();
+                if (nObj[key] && nObj[key].gib !== ibGib.gib) {
+                    // we already have this n for a different ibGib.
+                    // This means that we have at least one divergent timeline.
+                    debugger; // just looking
+                    const addr = h.getIbGibAddr({ibGib});
+                    const addr2 = h.getIbGibAddr({ibGib: nObj[key]});
+                    // NOTE addrs should not contain \n characters...
+                    if (addr.includes('\n')) { throw new Error(`addr contains newline(?)`); }
+                    if (addr2.includes('\n')) { throw new Error(`addr contains newline(?)`); }
+                    if (!ibGib.data!.isTjp && ibGib.rel8ns!.tjp[0].includes('\n')) { throw new Error(`tjp addr contains newline(?)`); }
+                    const warning =
+                        `Divergent timeline found (same tjp/n, different ibGib).\n
+                        ibGib1:\n${addr}\n
+                        ibGib2:\n${addr2}\n
+                        tjp:\n${ibGib.data!.isTjp ? addr : ibGib.rel8ns!.tjp[0]}\n
+                        n:\n${ibGib.data!.n!}
+                        `;
+                    console.warn(`${lc} ${warning}`);
+                    warnings.push(warning);
+                    debugger;
+                } else {
+                    debugger;
+                    nObj[key] = ibGib;
+                }
+            });
+
+            return nObj;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        }
+    }
+
+    protected getLatestInfos({
+        ibGibs,
+    }: {
+        ibGibs: IbGib_V1[],
+    }): GetLatestInfo[] {
+        const lc = `${this.lc}[${this.getLatestInfos.name}]`;
+        try {
+            let infoMap: {[tjp: string]: GetLatestInfo} = {};
+            ibGibs.forEach(ibGib => {
+                if (!Number.isSafeInteger(ibGib.data?.n)) {
+                    if (logalot) { console.log(`${lc} no ibGib.data.n safe integer: ${h.getIbGibAddr({ibGib})}`); }
+                    return;
+                }
+                if (ibGib.rel8ns?.tjp?.length !== 1 && !ibGib.data!.isTjp) {
+                    if (logalot) { console.log(`${lc} no tjp info: ${h.getIbGibAddr({ibGib})}`); }
+                    return;
+                }
+                const tjpAddr = ibGib.data!.isTjp ? h.getIbGibAddr({ibGib}) : ibGib.rel8ns!.tjp[0];
+                const queryAddr = h.getIbGibAddr({ibGib});
+                const nLeast = ibGib.data!.n;
+                if (infoMap[tjpAddr]) {
+                    // only do the highest n
+                    if (nLeast > infoMap[tjpAddr].nLeast) {
+                        infoMap[tjpAddr] = {tjpAddr, nLeast, queryAddr}
+                    }
+                } else {
+                    infoMap[tjpAddr] = {tjpAddr, nLeast, queryAddr };
+                }
+            });
+
+            const infos: GetLatestInfo[] = Object.values(infoMap);
+
+            if (logalot) { console.log(`${lc} infos: ${h.pretty(infos)}`); }
+
+            return infos;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        }
     }
 
     protected async putImpl(arg: AWSDynamoSpaceOptionsIbGib): Promise<AWSDynamoSpaceResultIbGib> {
@@ -1670,13 +1763,15 @@ export class AWSDynamoSpace_V1<
                         syncStatus$.next(startIbGib);
                     }
 
-                    // now that we've started some paperwork, we can start
+                    // now that we've started some paperwork, we can begin
                     // doing the actual work.
 
+                    this.getLatestImpl
                     // need to analyze which ibgibs we don't already have
                     //   (status of ibgibs)
                     // which ones will need to be merged
                     //   (status of dnas/transforms)
+                    // also need to see what we have as tjp
                 } catch (error) {
                     syncStatus$.error(`${lc} ${error.message}`);
                     resolve();
