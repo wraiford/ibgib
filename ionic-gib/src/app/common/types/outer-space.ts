@@ -154,6 +154,7 @@ export interface SyncStatusData {
      * Id for the individual transmission
      */
     txId: string;
+    code: 'starting',
     /**
      * Explicit declaration
      */

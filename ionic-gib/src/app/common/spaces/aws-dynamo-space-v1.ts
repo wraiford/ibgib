@@ -356,7 +356,7 @@ async function createDynamoDBQueryNewerCommand({
     projectionExpression,
 }: {
     tableName: string,
-    info: GetLatestInfo,
+    info: GetLatestQueryInfo,
     projectionExpression?: string,
 }): Promise<QueryCommand> {
     const lc = `[${createDynamoDBQueryNewerCommand.name}]`;
@@ -446,7 +446,7 @@ function createClient({
  * Information required to search against a global secondary index
  * involved with getting the latest ibgib
  */
-interface GetLatestInfo {
+interface GetLatestQueryInfo {
     /**
      * The temporal junction point address for the ibgib we're looking for.
      *
@@ -1087,13 +1087,13 @@ export class AWSDynamoSpace_V1<
         client,
         errors,
     }: {
-        infos: GetLatestInfo[],
+        infos: GetLatestQueryInfo[],
         client: DynamoDBClient,
         errors: String[],
-    }): Promise<GetLatestInfo[]> {
+    }): Promise<GetLatestQueryInfo[]> {
         const lc = `${this.lc}[${this.getNewerIbGibInfosBatch.name}]`;
         try {
-            const resultInfos: GetLatestInfo[] = [];
+            const resultInfos: GetLatestQueryInfo[] = [];
             const queryPromises = infos.map(async (info) => {
                 try {
                     info = h.clone(info);
@@ -1157,7 +1157,7 @@ export class AWSDynamoSpace_V1<
             // GetLatestInfo
             // ibGibs guaranteed at this point to be non-null and > 0
             // build infos
-            let infos: GetLatestInfo[] = this.getLatestInfos({ibGibs: arg.ibGibs});
+            let infos: GetLatestQueryInfo[] = this.getLatestInfos({ibGibs: arg.ibGibs});
 
             if (infos.length === 0) {
                 const warning = `${lc} infos.length is zero, meaning we haven't found any ibgibs that are valid to be checking for latest. No tjps + data.n values.`;
@@ -1227,7 +1227,7 @@ export class AWSDynamoSpace_V1<
         info,
         warnings,
     }: {
-        info: GetLatestInfo,
+        info: GetLatestQueryInfo,
         warnings: string[],
     }): Promise<{[n: string]: IbGib_V1}> {
         const lc = `${this.lc}[${this.checkMultipleTimelinesAndStuffWhatHoIndeed.name}]`;
@@ -1308,26 +1308,35 @@ export class AWSDynamoSpace_V1<
         }
     }
 
+    /**
+     * Converts ibGib(s) to query infos. If there is more than one
+     * ibgib in a given timeline (per tjp), then this will only
+     * use the highest ibgib.data.n for nLeast.
+     *
+     * @returns list of infos to throw off to a getLatest query
+     */
     protected getLatestInfos({
         ibGibs,
     }: {
         ibGibs: IbGib_V1[],
-    }): GetLatestInfo[] {
+    }): GetLatestQueryInfo[] {
         const lc = `${this.lc}[${this.getLatestInfos.name}]`;
         try {
-            let infoMap: {[tjp: string]: GetLatestInfo} = {};
-            ibGibs.forEach(ibGib => {
-                if (!Number.isSafeInteger(ibGib.data?.n)) {
-                    if (logalot) { console.log(`${lc} no ibGib.data.n safe integer: ${h.getIbGibAddr({ibGib})}`); }
+            if ((ibGibs ?? []).length === 0) { throw new Error(`ibGibs required. (ERROR: 6e59b245ac984dd4af3ff2f576d5f9f9)`); }
+
+            let infoMap: {[tjp: string]: GetLatestQueryInfo} = {};
+            ibGibs.forEach(x => {
+                if (!Number.isSafeInteger(x.data?.n)) {
+                    if (logalot) { console.log(`${lc} no ibGib.data.n safe integer: ${h.getIbGibAddr({ibGib: x})}`); }
                     return;
                 }
-                if (ibGib.rel8ns?.tjp?.length !== 1 && !ibGib.data!.isTjp) {
-                    if (logalot) { console.log(`${lc} no tjp info: ${h.getIbGibAddr({ibGib})}`); }
+                if (x.rel8ns?.tjp?.length !== 1 && !x.data!.isTjp) {
+                    if (logalot) { console.log(`${lc} no tjp info: ${h.getIbGibAddr({ibGib: x})}`); }
                     return;
                 }
-                const tjpAddr = ibGib.data!.isTjp ? h.getIbGibAddr({ibGib}) : ibGib.rel8ns!.tjp[0];
-                const queryAddr = h.getIbGibAddr({ibGib});
-                const nLeast = ibGib.data!.n;
+                const tjpAddr = x.data!.isTjp ? h.getIbGibAddr({ibGib: x}) : x.rel8ns!.tjp[0];
+                const queryAddr = h.getIbGibAddr({ibGib: x});
+                const nLeast = x.data!.n;
                 if (infoMap[tjpAddr]) {
                     // only do the highest n
                     if (nLeast > infoMap[tjpAddr].nLeast) {
@@ -1338,7 +1347,7 @@ export class AWSDynamoSpace_V1<
                 }
             });
 
-            const infos: GetLatestInfo[] = Object.values(infoMap);
+            const infos: GetLatestQueryInfo[] = Object.values(infoMap);
 
             if (logalot) { console.log(`${lc} infos: ${h.pretty(infos)}`); }
 
@@ -1729,7 +1738,10 @@ export class AWSDynamoSpace_V1<
         // most of this method will work inside of a spun-off promise.
         let syncStatus$: ReplaySubject<SyncStatusIbGib>;
         try {
+            if (arg.ibGibs.length === 0) { throw new Error(`no ibgibs given. (ERROR: 62ae74eab0434b90b866caa285403143)`); }
             if (arg.ibGibs.length > 1) { throw new Error(`can only put sync a single ibGib atm (ERROR: 89b5f6a1d0364ed2ac9207176ec3db03)`); }
+
+            let ibGib = arg.ibGibs[0];
 
             const client = createClient({
                 accessKeyId: this.data.accessKeyId,
@@ -1764,6 +1776,31 @@ export class AWSDynamoSpace_V1<
                     // now that we've started some paperwork, we can begin
                     // doing the actual work.
 
+                    let infos = this.getLatestInfos({ibGibs: [ibGib]});
+                    let resNewer = await this.getNewerIbGibInfosBatch({
+                        infos,
+                        client,
+                        errors: statusErrors
+                    });
+                    if ((resNewer ?? []).length === 1) {
+                        const resInfo = resNewer[0];
+                        const { resultIbGibs } = resInfo;
+                        if ((resultIbGibs ?? []).length > 0) {
+                            // if there are newer ones hmm
+                            if (resultIbGibs.length === 1 && resultIbGibs[0].gib === ibGib.gib) {
+                                // no newer ones (newer one is same we sent out)
+                            } else {
+                                // one timeline newer ones
+
+                                // multiple timelines newer ones
+                            }
+                        } else {
+                            // nothing stored yet
+                            this.putIbGibBatch
+                        }
+                    } else {
+                        throw new Error(`There was an error getting newer ibgibs. (ERROR: 6c14a2fe0a404c0a8c1fd91644753860)`);
+                    }
                     debugger;
                     // need to analyze which ibgibs we don't already have
                     //   (status of ibgibs)
@@ -1834,6 +1871,8 @@ export class AWSDynamoSpace_V1<
      * 2. tjp - txId in ib, but not tjp
      * 3. start - both txId and tjp in ib
      *
+     * What we need from this is the
+     *
      * ## notes
      *
      * * a 'primitive' means it just has an ib with data and gib === "gib" (i.e. no hash)
@@ -1868,7 +1907,7 @@ export class AWSDynamoSpace_V1<
                 tjpGib: c.STATUS_UNDEFINED_TJP_GIB, // "undefined" means 'gib' atow!!
                 txId,
             });
-            const data = <SyncStatusData>{ txId, };
+            const data = <SyncStatusData>{ txId, code: 'starting' };
             const resTjp = await factory.firstGen({
                 parentIbGib,
                 ib: tjpIb,
