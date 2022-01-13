@@ -4,7 +4,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import { ReplaySubject } from 'rxjs';
+import { ReplaySubject, Subscription } from 'rxjs';
 
 import { IbGib_V1, Rel8n, GIB, sha256v1, IbGibRel8ns_V1 } from 'ts-gib/dist/V1';
 import { IbGibAddr, V1, Ib, TransformResult, } from 'ts-gib';
@@ -25,7 +25,7 @@ import {
   CiphertextData, CiphertextRel8ns, CiphertextIbGib_V1,
   IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib,
   IbGibSpaceResultIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns,
-  SyncSpaceData, SyncSpaceResultIbGib,
+  SyncSpaceData, SyncSpaceResultIbGib, HttpStatusCode, SyncStatusIbGib,
 } from '../common/types';
 import {
   IonicSpace_V1,
@@ -36,10 +36,11 @@ import { AlertController, ModalController } from '@ionic/angular';
 import { IbGibSpaceAny } from '../common/spaces/space-base-v1';
 import { encrypt, decrypt, } from 'encrypt-gib';
 import { AWSDynamoSpace_V1 } from '../common/spaces/aws-dynamo-space-v1';
-import { createSpecial, deleteFromSpace, getDependencyGraph, getFnAlert, getFnConfirm, getFnPrompt, getFnPromptPassword_AlertController, getFromSpace, getSpecialIbgib, getSpecialRel8dIbGibs, getTimestampInTicks, getTjp, isSameSpace, persistTransformResult, putInSpace, registerNewIbGib, rel8ToCurrentRoot, rel8ToSpecialIbGib, setConfigAddr, setCurrentRoot, validateBootstrapGib, validateUserSpaceName } from '../common/helper';
+import { createSpecial, createTagIbGib, deleteFromSpace, getDependencyGraph, getFnAlert, getFnConfirm, getFnPrompt, getFnPromptPassword_AlertController, getFromSpace, getSpecialIbgib, getSpecialRel8dIbGibs, getTimestampInTicks, getTjp, isSameSpace, persistTransformResult, putInSpace, registerNewIbGib, rel8ToCurrentRoot, rel8ToSpecialIbGib, setConfigAddr, setCurrentRoot, validateBootstrapGib, validateUserSpaceName } from '../common/helper';
 import { argy_ } from '../common/witnesses';
 import { AppSpaceData, AppSpaceRel8ns } from '../common/types/app';
 import { DeleteIbGibOpts, DeleteIbGibResult, GetIbGibOpts, GetIbGibResult, PutIbGibOpts, PutIbGibResult } from '../common/types/legacy';
+import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -330,7 +331,8 @@ export class IbgibsService {
       if (logalot) { console.log(`${lc} userSpace.gib: ${userSpace.gib} (before sha256v1)`); }
       if (logalot) { console.log(`${lc} userSpace.data: ${h.pretty(userSpace.data || 'falsy')}`); }
       if (logalot) { console.log(`${lc} userSpace.rel8ns: ${h.pretty(userSpace.rel8ns || 'falsy')}`); }
-      userSpace.gib = await sha256v1(userSpace);
+      // userSpace.gib = await sha256v1(userSpace);
+      userSpace.gib = await getGib({ibGib: userSpace, hasTjp: false});
       if (userSpace.gib === GIB) { throw new Error(`userSpace.gib not updated correctly.`); }
       if (logalot) { console.log(`${lc} userSpace.gib: ${userSpace.gib} (after sha256v1)`); }
 
@@ -389,8 +391,8 @@ export class IbgibsService {
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized.`); }
       return createSpecial({
         type, space, defaultSpace: this.localDefaultSpace,
-        fnUpdateBootstrap: this.fnUpdateBootstrap,
-        fnBroadcast: this.fnBroadcast,
+        fnBroadcast: (x) => this.fnBroadcast(x),
+        fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       })
 
       // switch (type) {
@@ -505,46 +507,55 @@ export class IbgibsService {
   //   }
   // }
 
-  // async createTagIbGib({
-  //   text,
-  //   icon,
-  //   description,
-  //   space,
-  // }: {
-  //   text: string,
-  //   icon?: string,
-  //   description?: string,
-  //   space?: IbGibSpaceAny,
-  // }): Promise<{newTagIbGib: IbGib_V1, newTagsAddr: string}> {
-  //   const lc = `${this.lc}[${this.createTagIbGib.name}]`;
-  //   try {
-  //     space = space ?? this.localUserSpace;
-  //     if (!space) { throw new Error(`space falsy and localUserSpace not initialized`); }
+  async createTagIbGib({
+    text,
+    icon,
+    description,
+    space,
+  }: {
+    text: string,
+    icon?: string,
+    description?: string,
+    space?: IbGibSpaceAny,
+  }): Promise<{newTagIbGib: IbGib_V1, newTagsAddr: string}> {
+    const lc = `${this.lc}[${this.createTagIbGib.name}]`;
+    try {
+      space = space ?? this.localUserSpace;
+      if (!space) { throw new Error(`space falsy and localUserSpace not initialized`); }
 
-  //     if (!text) { throw new Error(`${lc} text required`); }
-  //     icon = icon || DEFAULT_TAG_ICON;
-  //     description = description || DEFAULT_TAG_DESCRIPTION;
-  //     const tagIb = this.tagTextToIb(text);
-  //     const tagPrimitive = factory.primitive({ib: "tag"});
-  //     const resNewTag = await factory.firstGen({
-  //       parentIbGib: tagPrimitive,
-  //       ib: tagIb,
-  //       data: { text, icon, description },
-  //       linkedRel8ns: [ Rel8n.past, Rel8n.ancestor ],
-  //       tjp: { uuid: true, timestamp: true },
-  //       dna: true,
-  //       nCounter: true,
-  //     });
-  //     const { newIbGib: newTag } = resNewTag;
-  //     await this.persistTransformResult({resTransform: resNewTag, isMeta: true, space});
-  //     await this.registerNewIbGib({ibGib: newTag, space});
-  //     const newTagsAddr = await this.rel8TagToTagsIbGib({tagIbGib: newTag, space});
-  //     return { newTagIbGib: newTag, newTagsAddr };
-  //   } catch (error) {
-  //     console.error(`${lc} ${error.message}`);
-  //     throw error;
-  //   }
-  // }
+      return createTagIbGib({
+        text,
+        icon,
+        description,
+        space,
+        defaultSpace: this.localDefaultSpace,
+        fnBroadcast: (x) => this.fnBroadcast(x),
+        fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
+      });
+      // if (!text) { throw new Error(`${lc} text required`); }
+      // icon = icon || DEFAULT_TAG_ICON;
+      // description = description || DEFAULT_TAG_DESCRIPTION;
+      // const tagIb = this.tagTextToIb(text);
+      // const tagPrimitive = factory.primitive({ib: "tag"});
+      // const resNewTag = await factory.firstGen({
+      //   parentIbGib: tagPrimitive,
+      //   ib: tagIb,
+      //   data: { text, icon, description },
+      //   linkedRel8ns: [ Rel8n.past, Rel8n.ancestor ],
+      //   tjp: { uuid: true, timestamp: true },
+      //   dna: true,
+      //   nCounter: true,
+      // });
+      // const { newIbGib: newTag } = resNewTag;
+      // await this.persistTransformResult({resTransform: resNewTag, isMeta: true, space});
+      // await this.registerNewIbGib({ibGib: newTag, space});
+      // const newTagsAddr = await this.rel8TagToTagsIbGib({tagIbGib: newTag, space});
+      // return { newTagIbGib: newTag, newTagsAddr };
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
 
   // private async createRootsIbGib({space}: {space: IbGibSpaceAny}): Promise<IbGibAddr | null> {
   //   const lc = `${this.lc}[${this.createRootsIbGib.name}]`;
@@ -994,7 +1005,7 @@ export class IbgibsService {
 
       return await setConfigAddr({
         key, addr, space, defaultSpace: this.localDefaultSpace,
-        fnUpdateBootstrap: this.fnUpdateBootstrap,
+        fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       });
 
       // // rel8 the `addr` to the current space via rel8n named `key`
@@ -1103,8 +1114,8 @@ export class IbgibsService {
         root,
         space,
         defaultSpace: this.localDefaultSpace,
-        fnBroadcast: this.fnBroadcast,
-        fnUpdateBootstrap: this.fnUpdateBootstrap,
+        fnBroadcast: (x) => this.fnBroadcast(x),
+        fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       });
 
       // const rootAddr = h.getIbGibAddr({ibGib: root});
@@ -1173,8 +1184,8 @@ export class IbgibsService {
         rel8nName,
         space,
         defaultSpace: this.localDefaultSpace,
-        fnBroadcast: this.fnBroadcast,
-        fnUpdateBootstrap: this.fnUpdateBootstrap,
+        fnBroadcast: (x) => this.fnBroadcast(x),
+        fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       });
 
       // let currentRoot = await this.getCurrentRoot({space});
@@ -1246,8 +1257,10 @@ export class IbgibsService {
         initialize,
         space,
         defaultSpace: this.localDefaultSpace,
-        fnBroadcast: this.fnBroadcast,
-        fnUpdateBootstrap: this.fnUpdateBootstrap,
+        fnBroadcast: (x) => this.fnBroadcast(x),
+        fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
+        fnGetInitializing: () => { return this._initializing; },
+        fnSetInitializing: (value: boolean) => { this._initializing = value; }
       });
 
       // let key = this.getSpecialConfigKey({type});
@@ -1395,7 +1408,7 @@ export class IbgibsService {
         deletePreviousSpecialIbGib,
         space,
         defaultSpace: this.localDefaultSpace,
-        fnUpdateBootstrap: this.fnUpdateBootstrap,
+        fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       });
 
       // const addrsToRel8 = ibGibsToRel8.map(ibGib => h.getIbGibAddr({ibGib}));
@@ -1577,8 +1590,8 @@ export class IbgibsService {
         ibGib,
         space,
         defaultSpace: this.localDefaultSpace,
-        fnBroadcast: this.fnBroadcast,
-        fnUpdateBootstrap: this.fnUpdateBootstrap,
+        fnBroadcast: (x) => this.fnBroadcast(x),
+        fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       });
 
       // // this is the latest index ibGib. It's just the mapping of tjp -> latestAddr.
@@ -2816,6 +2829,8 @@ export class IbgibsService {
    */
   private _syncingIbGibAddrs: IbGibAddr[] = [];
 
+  private _syncingSubscriptions: { [id: string] : Subscription } = {};
+
   private async execSync({
     syncSpace,
     ibGibs,
@@ -2847,28 +2862,40 @@ export class IbgibsService {
           ibMetadata: `sync src ${this.localUserSpace.data.name} srcId ${this.localUserSpace.data.uuid}`,
         });
         const resStartSync: SyncSpaceResultIbGib = await syncSpace.witness(argStartSync);
+        if (!resStartSync.data?.tjpGib) { throw new Error(`resStartSync.data.tjpGib (syncId) is falsy. (ERROR: 727b5cc1a0254497bc6e06e9c6760564)`); }
+        const syncId = resStartSync.data.tjpGib;
 
         debugger;
         if (resStartSync.data?.success) {
           debugger;
-          const subStatus = resStartSync.syncStatus$.subscribe(async (status) => {
-            debugger;
-            if (!status.data) { throw new Error('invalid status: data falsy. (ERROR: 1e2f875d80a746d3a126e70c82a25b71)'); }
-            if (status.data!.success) {
-              switch (status.data.code) {
-                case 'starting':
-                  console.log(`${lc} starting txId ${status.data.txId}`);
-                  break;
-
-                default:
-                  throw new Error(`Unknown status.data.code: ${status.data.code} (ERROR: 8b8d067e94f7425bb5182fb47ee8db7a)`);
-              }
-            } else {
-              // had an error
+          const subSyncStatus = resStartSync.syncStatus$.subscribe(async (status: SyncStatusIbGib) => {
+            const lc2 = `${lc}(${syncId})`;
+            try {
+              if (!status) { throw new Error('status ibGib is falsy. (ERROR: 1e3c71cafeac465ab82b96ddb3c21753)'); }
               debugger;
-              throw new Error(`sync had an error... (ERROR: 18bab1d1b25b42e1b6a31c37237c940c)`);
+              if (!status.data) { throw new Error('invalid status: data falsy. (ERROR: 1e2f875d80a746d3a126e70c82a25b71)'); }
+              if (status.data.success) {
+                debugger;
+                switch (status.data.statusCode) {
+                  case HttpStatusCode.processing:
+                    console.log(`${lc2} processing status ibGib.`);
+                    break;
+
+                  default:
+                    throw new Error(`Unknown status.data.statusCode: ${status.data.statusCode} (ERROR: 8b8d067e94f7425bb5182fb47ee8db7a)`);
+                }
+              } else {
+                // had an error
+                debugger;
+                throw new Error(`sync had an error... (ERROR: 18bab1d1b25b42e1b6a31c37237c940c)`);
+              }
+            } catch (error) {
+              console.error(`${lc} ${error.message}`);
+              if (!subSyncStatus.closed) { subSyncStatus.unsubscribe(); }
+              if (this._syncingSubscriptions[syncId]) { delete this._syncingSubscriptions[syncId]; }
             }
           });
+          this._syncingSubscriptions[syncId] = subSyncStatus;
         } else {
           debugger;
           throw new Error(`resStartSync had an error. (ERROR: 6e6f5ac560e44f9ea41fe54300ffce5b)`);

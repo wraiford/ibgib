@@ -1,7 +1,3 @@
-import { AlertController, } from '@ionic/angular';
-import { Plugins } from '@capacitor/core';
-const { Modals } = Plugins;
-
 import {
     IbGib_V1, IbGibRel8ns_V1,
     IBGIB_DELIMITER, GIB, IB,
@@ -9,19 +5,15 @@ import {
     sha256v1,
     IbGibData_V1,
 } from 'ts-gib/dist/V1';
-import { Ib, IbGibAddr, TransformResult, HashAlgorithm } from 'ts-gib';
+import { Ib, IbGibAddr, HashAlgorithm } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
-import * as cTsGib from 'ts-gib/dist/v1/constants';
+import * as cTsGib from 'ts-gib/dist/V1/constants';
 
-import { EncryptionData_V1, IbGibSpace, OuterSpaceIbGib, SecretIbGib_V1, SpecialIbGibType } from '../types';
-import { CreateSecretModalComponent } from '../create-secret-modal/create-secret-modal.component';
+import { SpecialIbGibType } from '../types';
 import * as c from '../constants';
-import { CreateEncryptionModalComponent } from '../create-encryption-modal/create-encryption-modal.component';
-import { CreateOuterspaceModalComponent } from '../create-outerspace-modal/create-outerspace-modal.component';
-import { CommonService } from '../../services/common.service';
 import { validateIb } from './validate';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+// const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 /**
  * Utility function to generate hard-coded ibgibs to use at runtime "on-chain" but
@@ -196,12 +188,12 @@ export function getSpecialIbgibIb({type}: {type: SpecialIbGibType}): Ib {
 }
 
 export function getSpecialIbgibAddr({type}: {type: SpecialIbGibType}): string {
-    const ib = this.getSpecialIbgibIb({type});
+    const ib = getSpecialIbgibIb({type});
     return `${ib}^${GIB}`;
 }
 
 export function getSpecialConfigKey({type}: {type: SpecialIbGibType}): string {
-    return `config_key ${this.getSpecialIbgibAddr({type})}`;
+    return `config_key ${getSpecialIbgibAddr({type})}`;
 }
 
 /**

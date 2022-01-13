@@ -24,6 +24,7 @@ import {
     getStatusIb,
     getNewTxId,
     SyncStatusIbGib,
+    HttpStatusCode,
 } from '../types';
 import * as c from '../constants';
 import { getBinAddr, groupBy } from '../helper';
@@ -816,8 +817,8 @@ export class AWSDynamoSpace_V1<
         switch (cmd) {
             case IbGibSpaceOptionsCmd.put:
                 if (cmdModifiers.includes('sync')) {
-                    if (arg.data.txId) {
-
+                    if (arg.data.tjpGib) {
+                        return this.putSync_Continue(arg);
                     } else {
                         return this.putSync_Start(arg);
                     }
@@ -1732,7 +1733,7 @@ export class AWSDynamoSpace_V1<
      */
     protected async putSync_Start(arg: AWSDynamoSpaceOptionsIbGib):
         Promise<AWSDynamoSpaceResultIbGib> {
-        const lc = `${this.lc}[${this.putSync_Start.name}]`;
+        let lc = `${this.lc}[${this.putSync_Start.name}]`;
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         // create observable that we will return almost immediately
         // most of this method will work inside of a spun-off promise.
@@ -1742,6 +1743,8 @@ export class AWSDynamoSpace_V1<
             if (arg.ibGibs.length > 1) { throw new Error(`can only put sync a single ibGib atm (ERROR: 89b5f6a1d0364ed2ac9207176ec3db03)`); }
 
             let ibGib = arg.ibGibs[0];
+            let addr = h.getIbGibAddr({ibGib});
+            lc = `${lc}(${addr})`;
 
             const client = createClient({
                 accessKeyId: this.data.accessKeyId,
@@ -1751,14 +1754,16 @@ export class AWSDynamoSpace_V1<
 
             syncStatus$ = new ReplaySubject<SyncStatusIbGib>();
 
+            // go ahead and build the starting ibgib, so we
+            // create the initial status ibgib.
+            //   we will mut8/rel8 this status over course of sync.
+            const {startIbGib, allIbGibs: statusStartIbGibs} =
+                await this.getStatusIbGibs_Start({client});
+
             // spin off the rest of the execution
             new Promise<void>(async (resolve) => {
                 const statusErrors: string[] = [];
                 try {
-                    // create the initial status ibgib.
-                    //   we will mut8/rel8 this status over course of sync.
-                    const {startIbGib, allIbGibs: statusStartIbGibs} =
-                        await this.getStatusIbGibs_Start({client});
                     await this.putIbGibBatch({
                         ibGibs: statusStartIbGibs,
                         client,
@@ -1777,6 +1782,7 @@ export class AWSDynamoSpace_V1<
                     // doing the actual work.
 
                     let infos = this.getLatestInfos({ibGibs: [ibGib]});
+
                     let resNewer = await this.getNewerIbGibInfosBatch({
                         infos,
                         client,
@@ -1789,18 +1795,28 @@ export class AWSDynamoSpace_V1<
                             // if there are newer ones hmm
                             if (resultIbGibs.length === 1 && resultIbGibs[0].gib === ibGib.gib) {
                                 // no newer ones (newer one is same we sent out)
+                                debugger;
                             } else {
-                                // one timeline newer ones
-
-                                // multiple timelines newer ones
+                                const resultIbGibsByN = groupBy({items: resultIbGibs, keyFn: x => x.data?.n ?? -1});
+                                if (resultIbGibsByN[-1]) { console.warn(`${lc} we got newer ibGibs that have data?.n be null/undefined`); }
+                                const groups = Object.values(resultIbGibsByN);
+                                if (groups.some(x => x.length > 1)) {
+                                    // multiple timelines newer ones
+                                    debugger;
+                                } else {
+                                    // one timeline newer ones
+                                    debugger;
+                                }
                             }
                         } else {
                             // nothing stored yet
+                            if (logalot) { console.log(`${lc} nothing stored yet.`)}
                             this.putIbGibBatch
                         }
                     } else {
                         throw new Error(`There was an error getting newer ibgibs. (ERROR: 6c14a2fe0a404c0a8c1fd91644753860)`);
                     }
+
                     debugger;
                     // need to analyze which ibgibs we don't already have
                     //   (status of ibgibs)
@@ -1865,13 +1881,10 @@ export class AWSDynamoSpace_V1<
     }
 
     /**
-     * The start of the status is three generations:
+     * Creates a new SyncStatusIbGib timeline (with tjp).
      *
-     * 1. The parent primitive - no txid, no tjp in ib
-     * 2. tjp - txId in ib, but not tjp
-     * 3. start - both txId and tjp in ib
-     *
-     * What we need from this is the
+     * * The tjp.gib acts as the timeline (stream/saga) id.
+     * * Each individual ibgib frame.gib acts as the tx id.
      *
      * ## notes
      *
@@ -1893,49 +1906,51 @@ export class AWSDynamoSpace_V1<
             const parentIb = getStatusIb({
                 spaceType: 'sync',
                 spaceSubtype: 'aws-dynamodb',
-                tjpGib: c.STATUS_UNDEFINED_TJP_GIB, // "undefined" means 'gib' atow!!
+                statusCode: HttpStatusCode.none,
                 txId: c.STATUS_UNDEFINED_TX_ID, // "undefined" means '0' atow!!
             });
             const parentIbGib = factory.primitive({ib: parentIb});
             // we don't store primitives, so don't add to allIbGibs
 
-            // 2. start tjp ibGib (only has txId)
+            // 2. start tjp ibGib (has txId)
             const txId = await getNewTxId();
+            const statusCode = HttpStatusCode.processing;
             const tjpIb = getStatusIb({
+                statusCode,
                 spaceType: 'sync',
                 spaceSubtype: 'aws-dynamodb',
-                tjpGib: c.STATUS_UNDEFINED_TJP_GIB, // "undefined" means 'gib' atow!!
                 txId,
             });
-            const data = <SyncStatusData>{ txId, code: 'starting' };
+            const data = <SyncStatusData>{ txId, statusCode };
             const resTjp = await factory.firstGen({
                 parentIbGib,
                 ib: tjpIb,
                 data,
                 dna: false,
                 nCounter: true,
-                tjp: { timestamp: true },
+                tjp: { uuid: true, timestamp: true },
             });
             // we'll store this and intermediates
-            const tjpIbGib = resTjp.newIbGib;
-            const tjpAddr = h.getIbGibAddr({ibGib: tjpIbGib});
-            allIbGibs.push(tjpIbGib);
+            const startIbGib = <SyncStatusIbGib>resTjp.newIbGib;
+            // const startAddr = h.getIbGibAddr({ibGib: startIbGib});
+            allIbGibs.push(startIbGib);
             debugger; // want to find out if intermediateibgibs created
             allIbGibs = allIbGibs.concat(resTjp.intermediateIbGibs ?? []);
 
+            // don't need the following now because tjp gib is in all gibs in timeline now
+            // if the status has only one piece in gib, then it _is_ the tjp
             // 3. full start ibGib (has both txId and tjpGib)
-            const { gib: tjpGib } = h.getIbAndGib({ibGibAddr: tjpAddr});
-            const startIb = getStatusIb({
-                spaceType: 'sync',
-                spaceSubtype: 'aws-dynamodb',
-                tjpGib,
-                txId, // same txId
-            });
-            const resStart = await V1.mut8({src: tjpIbGib, mut8Ib: startIb});
-            const startIbGib = <SyncStatusIbGib>resStart.newIbGib;
-            allIbGibs.push(startIbGib);
-            debugger; // want to find out if intermediateibgibs created
-            allIbGibs = allIbGibs.concat(resStart.intermediateIbGibs ?? []);
+            // const { gib: tjpGib } = h.getIbAndGib({ibGibAddr: tjpAddr});
+            // const startIb = getStatusIb({
+            //     spaceType: 'sync',
+            //     spaceSubtype: 'aws-dynamodb',
+            //     txId, // same txId
+            // });
+            // const resStart = await V1.mut8({src: tjpIbGib, mut8Ib: startIb});
+            // const startIbGib = <SyncStatusIbGib>resStart.newIbGib;
+            // allIbGibs.push(startIbGib);
+            // debugger; // want to find out if intermediateibgibs created
+            // allIbGibs = allIbGibs.concat(resStart.intermediateIbGibs ?? []);
 
             // return em dude
             return { startIbGib, allIbGibs };

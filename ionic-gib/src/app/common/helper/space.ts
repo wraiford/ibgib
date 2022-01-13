@@ -435,6 +435,8 @@ export async function getSpecialIbgib({
     defaultSpace,
     fnUpdateBootstrap,
     fnBroadcast,
+    fnGetInitializing,
+    fnSetInitializing,
 }: {
     type: SpecialIbGibType,
     initialize?: boolean,
@@ -451,6 +453,16 @@ export async function getSpecialIbgib({
      * Only required if `initialize` is true.
      */
     fnBroadcast?: (info: LatestEventInfo) => void,
+    /**
+     * Initialization lock getter function.
+     */
+    fnGetInitializing?: () => boolean,
+    /**
+     * Initialization lock setter function.
+     *
+     * Because we don't want to initialize while we're initializing.
+     */
+    fnSetInitializing?: (x: boolean) => void,
 }): Promise<IbGib_V1 | null> {
     const lc = `[${getSpecialIbgib.name}]`;
     try {
@@ -458,13 +470,41 @@ export async function getSpecialIbgib({
 
         let key = getSpecialConfigKey({type});
         let addr = await getConfigAddr({key, space});
+
         if (!addr) {
-            if (initialize) {
-                addr = await createSpecial({type, space, defaultSpace, fnUpdateBootstrap, fnBroadcast});
-            } else {
-                throw new Error(`addr not found and initialize is false. (ERROR: 6fc2375c0ba74972aa53da923c963411)`);
+            if (initialize && !(fnGetInitializing || fnSetInitializing)) { throw new Error(`if initialize, you must provide fnGetInitializeLock & fnSetInitializeLock. (ERROR: 8eb322625d0c4538be089800882487de)`); }
+            if (initialize && !fnGetInitializing()) {
+                // this._initializing = true;
+                fnSetInitializing(true);
+                try {
+                    addr = await createSpecial({type, space, defaultSpace, fnBroadcast, fnUpdateBootstrap});
+                } catch (error) {
+                    console.error(`${lc} error initializing: ${error.message}`);
+                } finally {
+                    // this._initializing = false;
+                    fnSetInitializing(false);
+                }
+            }
+            if (!addr) {
+                // if (this._initializing) {
+                if (fnGetInitializing()) {
+                    console.warn(`${lc} couldn't get addr, but we're still initializing...`);
+                    return null;
+                } else {
+                    throw new Error(`Special address not in config and couldn't initialize it either.`);
+                }
             }
         }
+        // if (!addr) {
+        //     if (initialize) {
+        //         addr = await createSpecial({type, space, defaultSpace, fnUpdateBootstrap, fnBroadcast});
+        //     } else {
+        //         throw new Error(`addr not found and initialize is false. (ERROR: 6fc2375c0ba74972aa53da923c963411)`);
+        //     }
+        // }
+
+
+
         if (logalot) { console.log(`addr: ${addr}`); }
 
         let resSpecial = await getFromSpace({addr: addr, isMeta: true, space});
