@@ -365,7 +365,6 @@ async function createDynamoDBQueryNewerCommand({
         if (!tableName) { throw new Error(`tableName required.`); }
         if (!info) { throw new Error(`info required.`); }
 
-        debugger;
         let expressionAttributeNames: {[key:string]:string} = undefined;
         if (projectionExpression) {
             const resExpression = await fixReservedWords({projectionExpression});
@@ -376,7 +375,6 @@ async function createDynamoDBQueryNewerCommand({
             }
         }
 
-        debugger;
         const params: QueryCommandInput = {
             TableName: tableName,
             ConsistentRead: false, // ConsistentRead not available on global secondary indexes https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html#API_Query_RequestSyntax
@@ -1103,12 +1101,16 @@ export class AWSDynamoSpace_V1<
                         info,
                         projectionExpression: 'ib,gib,data,rel8ns,n',
                     });
+                    debugger;
                     const resCmd =
                         await this.sendCmd<QueryCommandOutput>({cmd, client, cmdLogLabel: 'Query'});
+                    debugger;
                     if (resCmd.Count > 0) {
+                        debugger;
                         info.resultIbGibs =
                             resCmd.Items.map((item: AWSDynamoSpaceItem) => getIbGibFromResponseItem({item}));
                     }
+                    debugger;
                 } catch (error) {
                     const errorMsg = error.message || 'some kind of error';
                     console.error(`${lc} ${errorMsg}`);
@@ -1783,16 +1785,19 @@ export class AWSDynamoSpace_V1<
 
                     let infos = this.getLatestInfos({ibGibs: [ibGib]});
 
+                    debugger;
                     let resNewer = await this.getNewerIbGibInfosBatch({
                         infos,
                         client,
                         errors: statusErrors
                     });
                     if ((resNewer ?? []).length === 1) {
+                        debugger;
                         const resInfo = resNewer[0];
                         const { resultIbGibs } = resInfo;
                         if ((resultIbGibs ?? []).length > 0) {
                             // if there are newer ones hmm
+                            debugger;
                             if (resultIbGibs.length === 1 && resultIbGibs[0].gib === ibGib.gib) {
                                 // no newer ones (newer one is same we sent out)
                                 debugger;
@@ -1809,11 +1814,24 @@ export class AWSDynamoSpace_V1<
                                 }
                             }
                         } else {
+                            debugger;
                             // nothing stored yet
                             if (logalot) { console.log(`${lc} nothing stored yet.`)}
+                            /* get the dependency graph
+                            // need to see if anything in dependency graph needs syncing first.
+                            // hmm, there is an issue if there is a rel8d ibgib that also has
+                            // a timeline. can't just call recursively if we're talking about
+                            // the ability to get latest before syncing...hmm.
+                            // besides that complication, once we have a dependency graph
+                            // we need to find out what addresses already are stored and which ones
+                            // the space does not have.
+                            */
+
                             this.putIbGibBatch
+                            let graph =
                         }
                     } else {
+                        debugger;
                         throw new Error(`There was an error getting newer ibgibs. (ERROR: 6c14a2fe0a404c0a8c1fd91644753860)`);
                     }
 
@@ -1824,6 +1842,7 @@ export class AWSDynamoSpace_V1<
                     //   (status of dnas/transforms)
                     // also need to see what we have as tjp
                 } catch (error) {
+                    debugger;
                     syncStatus$.error(`${lc} ${error.message}`);
                     resolve();
                 }
@@ -1900,7 +1919,6 @@ export class AWSDynamoSpace_V1<
         const lc = `${this.lc}[${this.getStatusIbGibs_Start.name}]`;
         try {
             if (!client) { throw new Error(`client required. (ERROR: 7e749ecc44f647dc8587c00c334337d4)`); }
-            let allIbGibs: IbGib_V1[] = [];
 
             // 1. parent primitive
             const parentIb = getStatusIb({
@@ -1933,9 +1951,10 @@ export class AWSDynamoSpace_V1<
             // we'll store this and intermediates
             const startIbGib = <SyncStatusIbGib>resTjp.newIbGib;
             // const startAddr = h.getIbGibAddr({ibGib: startIbGib});
-            allIbGibs.push(startIbGib);
-            debugger; // want to find out if intermediateibgibs created
-            allIbGibs = allIbGibs.concat(resTjp.intermediateIbGibs ?? []);
+            let allIbGibs: IbGib_V1[] = [
+                startIbGib,
+                ...resTjp.intermediateIbGibs,
+            ];
 
             // don't need the following now because tjp gib is in all gibs in timeline now
             // if the status has only one piece in gib, then it _is_ the tjp

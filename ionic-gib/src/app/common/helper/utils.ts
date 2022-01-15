@@ -1,13 +1,13 @@
-export function groupBy<T>({
+export function groupBy<TItem>({
     items,
     keyFn,
 }: {
-    items: T[],
-    keyFn: (x: T) => number,
-}): { [key: number]: T[] } {
+    items: TItem[],
+    keyFn: (x: TItem) => string,
+}): { [key: string]: TItem[] } {
     const lc = `[${groupBy.name}]`;
     try {
-        const result: {[key: number]: T[]} = {};
+        const result: {[key: string]: TItem[]} = {};
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
             const key = keyFn(item);

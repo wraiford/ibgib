@@ -215,7 +215,9 @@ export class IbGibPage extends IbgibComponentBase
         // publish this one
         const dependencyGraph =
           await this.common.ibgibs.getDependencyGraph({ibGib: this.ibGib});
-        await this.common.ibgibs.syncIbGibs({ibGibs: Object.values(dependencyGraph)});
+        await this.common.ibgibs.syncIbGibs({
+          dependencyGraphIbGibs: Object.values(dependencyGraph)
+        });
       } else {
         await Modals.alert({title: 'Sync cancelled.', message: 'Sync has been cancelled.'});
       }

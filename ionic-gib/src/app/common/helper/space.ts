@@ -250,7 +250,7 @@ export async function getDependencyGraph({
     const lc = `[${getDependencyGraph.name}]`;
     try {
         if (!space) { throw new Error(`space required. (ERROR: 9f38166ab70340cb919174f8d26af909)`); }
-        if (!ibGib && !ibGibAddr) { throw new Error(`either ibGib or ibGibAddr required.`); }
+        if (!ibGib && !ibGibAddr) { throw new Error(`either ibGib or ibGibAddr required. (ERROR: b6d08699651f455697f0d05a41edb039)`); }
 
         skipRel8nNames = skipRel8nNames || [];
 
@@ -259,7 +259,7 @@ export async function getDependencyGraph({
             if (resGet.success && resGet.ibGibs?.length === 1) {
                 ibGib = resGet.ibGibs![0];
             } else {
-                throw new Error(`Could not retrieve ibGib.`);
+                throw new Error(`Could not retrieve ibGib. (ERROR: 410213e9c6ee4b009c2df8e1eba804c4)`);
             }
         }
         const { gib } = h.getIbAndGib({ibGib});
@@ -838,7 +838,7 @@ export async function registerNewIbGib({
         if (!specialLatest.rel8ns) { specialLatest.rel8ns = {}; }
 
         // get the tjp for the rel8nName mapping, and also for some checking logic
-        let tjp = await getTjp({ibGib, space});
+        let tjp = await getTjpIbGib({ibGib, space});
         if (!tjp) {
             console.warn(`${lc} tjp not found for ${ibGibAddr}? Should at least just be the ibGib's address itself.`);
             tjp = ibGib;
@@ -1040,7 +1040,7 @@ export async function rel8ToSpecialIbGib({
     }
 }
 
-export async function getTjp({
+export async function getTjpIbGib({
     ibGib,
     naive = true,
     space,
@@ -1049,7 +1049,7 @@ export async function getTjp({
     naive?: boolean,
     space: IbGibSpaceAny,
 }): Promise<IbGib_V1<any>> {
-    const lc = `[${getTjp.name}]`;
+    const lc = `[${getTjpIbGib.name}]`;
 
     try {
         if (!space) { throw new Error(`space required. (ERROR: 941f973d50e84415b58724af173f52c2)`); }
@@ -1086,7 +1086,7 @@ export async function getTjp({
         const pastIbGib = resGetPastIbGib.ibGibs![0];
 
         // call this method recursively!
-        return await getTjp({ibGib: pastIbGib, naive, space});
+        return await getTjpIbGib({ibGib: pastIbGib, naive, space});
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

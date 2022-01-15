@@ -6,7 +6,7 @@
 import { Injectable } from '@angular/core';
 import { ReplaySubject, Subscription } from 'rxjs';
 
-import { IbGib_V1, Rel8n, GIB, sha256v1, IbGibRel8ns_V1 } from 'ts-gib/dist/V1';
+import { IbGib_V1, Rel8n, GIB, sha256v1, IbGibRel8ns_V1, GIB_DELIMITER } from 'ts-gib/dist/V1';
 import { IbGibAddr, V1, Ib, TransformResult, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { Factory_V1 as factory } from 'ts-gib/dist/V1';
@@ -36,11 +36,11 @@ import { AlertController, ModalController } from '@ionic/angular';
 import { IbGibSpaceAny } from '../common/spaces/space-base-v1';
 import { encrypt, decrypt, } from 'encrypt-gib';
 import { AWSDynamoSpace_V1 } from '../common/spaces/aws-dynamo-space-v1';
-import { createSpecial, createTagIbGib, deleteFromSpace, getDependencyGraph, getFnAlert, getFnConfirm, getFnPrompt, getFnPromptPassword_AlertController, getFromSpace, getSpecialIbgib, getSpecialRel8dIbGibs, getTimestampInTicks, getTjp, isSameSpace, persistTransformResult, putInSpace, registerNewIbGib, rel8ToCurrentRoot, rel8ToSpecialIbGib, setConfigAddr, setCurrentRoot, validateBootstrapGib, validateUserSpaceName } from '../common/helper';
+import { createSpecial, createTagIbGib, deleteFromSpace, getDependencyGraph, getFnAlert, getFnConfirm, getFnPrompt, getFnPromptPassword_AlertController, getFromSpace, getSpecialIbgib, getSpecialRel8dIbGibs, getTimestampInTicks, getTjpIbGib, groupBy, isSameSpace, persistTransformResult, putInSpace, registerNewIbGib, rel8ToCurrentRoot, rel8ToSpecialIbGib, setConfigAddr, setCurrentRoot, validateBootstrapGib, validateUserSpaceName } from '../common/helper';
 import { argy_ } from '../common/witnesses';
 import { AppSpaceData, AppSpaceRel8ns } from '../common/types/app';
 import { DeleteIbGibOpts, DeleteIbGibResult, GetIbGibOpts, GetIbGibResult, PutIbGibOpts, PutIbGibResult } from '../common/types/legacy';
-import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -1503,7 +1503,7 @@ export class IbgibsService {
   //   }
   // }
 
-  async getTjp({
+  async getTjpIbGib({
     ibGib,
     naive = true,
     space,
@@ -1512,7 +1512,7 @@ export class IbgibsService {
     naive?: boolean,
     space?: IbGibSpaceAny,
   }): Promise<IbGib_V1<any>> {
-    const lc = `${this.lc}[${this.getTjp.name}]`;
+    const lc = `${this.lc}[${this.getTjpIbGib.name}]`;
 
     try {
       space = space ?? this.localUserSpace;
@@ -1520,7 +1520,7 @@ export class IbgibsService {
         console.warn(`${lc} space falsy and localUserSpace not initialized.`);
         return ibGib;
       }
-      return getTjp({ibGib, naive, space});
+      return getTjpIbGib({ibGib, naive, space});
 
       // if (!ibGib) { throw new Error('ibGib required.'); }
       // let ibGibAddr = h.getIbGibAddr({ibGib});
@@ -1918,7 +1918,7 @@ export class IbgibsService {
 
       // // get the tjp for the rel8nName mapping, and also for some checking logic
       if (!tjp) {
-        tjp = await this.getTjp({ibGib, space});
+        tjp = await this.getTjpIbGib({ibGib, space});
         if (!tjp) {
           console.warn(`${lc} tjp not found for ${ibGibAddr}? Should at least just be the ibGib's address itself.`);
           tjp = ibGib;
@@ -1994,7 +1994,7 @@ export class IbgibsService {
       // get the tjp for the rel8nName mapping, and also for some checking logic
       if (logalot) { console.log(`${lc} tjp: ${JSON.stringify(tjp)}`); }
       if (!tjp) {
-        tjp = await this.getTjp({ibGib, space});
+        tjp = await this.getTjpIbGib({ibGib, space});
         if (!tjp) {
           console.warn(`${lc} tjp not found for ${ibGibAddr}? Should at least just be the ibGib's address itself.`);
           tjp = ibGib;
@@ -2116,6 +2116,16 @@ export class IbgibsService {
    * `this.localUserSpace` as default space.
    *
    * (refactoring!)
+   *
+   * ## warning
+   *
+   * This does not (YET) have a flag that gets the latest ibgibs for the graph.
+   * It only climbs the current graph, which may not cover all ibgibs when you
+   * deal with ibGibs with tjps (timelines). We're going to eventually
+   * combat this with auto-updating our rel8ns, but for now we're just going
+   * to earmark this for the future.
+   *
+   * todo: auto-update or better
    */
   getDependencyGraph({
     ibGib,
@@ -2590,41 +2600,41 @@ export class IbgibsService {
     }
   }
 
-  async getLatestFromSpace({
-    ibGibs,
-    persistLocally,
-    space,
-  }: {
-    ibGibs: IbGib_V1[],
-    persistLocally: boolean,
-    space: IbGibSpaceAny,
-  }): Promise<void> {
-    const lc = `${this.lc}[${this.getLatestFromSpace.name}]`;
-    try {
-      const arg = await argy_<IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib>({
-        argData: {
-          cmd: 'get',
-          cmdModifiers: ['latest'],
-          catchAllErrors: true,
-        },
-        ibMetadata: space.getSpaceArgMetadata() || `${space.ib} ${getTimestampInTicks()}`,
-      });
-      arg.ibGibs = ibGibs;
-      debugger;
-      const resSpace: IbGibSpaceResultIbGib<any, IbGibSpaceResultData, IbGibSpaceResultRel8ns> =
-        await space.witness(arg);
-      if (resSpace.data.success) {
-        debugger;
-      } else {
-        debugger;
-      }
-    } catch (error) {
-      debugger;
-      console.error(`${lc} ${error.message}`);
-      debugger;
-      // don't rethrow for now.
-    }
-  }
+  // async getLatestFromSpace({
+  //   ibGibs,
+  //   persistLocally,
+  //   space,
+  // }: {
+  //   ibGibs: IbGib_V1[],
+  //   persistLocally: boolean,
+  //   space: IbGibSpaceAny,
+  // }): Promise<void> {
+  //   const lc = `${this.lc}[${this.getLatestFromSpace.name}]`;
+  //   try {
+  //     const arg = await argy_<IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib>({
+  //       argData: {
+  //         cmd: 'get',
+  //         cmdModifiers: ['latest'],
+  //         catchAllErrors: true,
+  //       },
+  //       ibMetadata: space.getSpaceArgMetadata() || `${space.ib} ${getTimestampInTicks()}`,
+  //     });
+  //     arg.ibGibs = ibGibs;
+  //     debugger;
+  //     const resSpace: IbGibSpaceResultIbGib<any, IbGibSpaceResultData, IbGibSpaceResultRel8ns> =
+  //       await space.witness(arg);
+  //     if (resSpace.data.success) {
+  //       debugger;
+  //     } else {
+  //       debugger;
+  //     }
+  //   } catch (error) {
+  //     debugger;
+  //     console.error(`${lc} ${error.message}`);
+  //     debugger;
+  //     // don't rethrow for now.
+  //   }
+  // }
 
   /**
    * If we don't have outerspaces/cloud endpoints, we'll do that here.
@@ -2778,17 +2788,20 @@ export class IbgibsService {
   }
 
   async syncIbGibs({
-    ibGibs,
+    dependencyGraphIbGibs,
     confirm,
   }: {
-    ibGibs?: IbGib_V1[],
+    dependencyGraphIbGibs?: IbGib_V1[],
     confirm?: boolean,
   }): Promise<void> {
     const lc = `${this.lc}[${this.syncIbGibs.name}]`;
     try {
+      // #region validate
       if (logalot) { console.log(`${lc} starting...`); }
-      if (!ibGibs || ibGibs.length === 0) { throw new Error(`ibGibs required.`); }
+      if (!dependencyGraphIbGibs || dependencyGraphIbGibs.length === 0) { throw new Error(`ibGibs required.`); }
+      // #endregion
 
+      // #region get sync spaces
       if (logalot) { console.log(`${lc} get sync spaces (returns if none)`); }
       const appSyncSpaces: IbGibSpaceAny[] = await this.getAppSyncSpaces({
         unwrapEncrypted: true,
@@ -2801,11 +2814,26 @@ export class IbgibsService {
         await fnAlert({title: "Cancelled", msg});
         return;
       }
+      // #endregion
+
+      // get **ALL** ibgibs that we'll need to put/merge
+      let allIbGibsToPutMerge =
+        await this.getAllIbGibsToPutMergeFromGraph({dependencyGraphIbGibs});
+
+      // _NOW_ we can finally put/merge into sync spaces.
+      // this returns to us the most recent versions which we can update
+      // our local timelines if we so choose (which we will).
+      // NOTE: we won't worry about what if different sync spaces have different
+      // versions atm. We're just going to do this assuming sync spaces
+      // are nice and coordinated (which they aren't).
 
       if (logalot) { console.log(`${lc} sync to spaces in parallel`); }
       let syncPromises: Promise<void>[] =
         appSyncSpaces.map(syncSpace =>
-          this.execSync({syncSpace, ibGibs, confirm}));
+          // execSync creates observables that can keep us up to date
+          // on the statuses of these merges. We cann handle updating
+          // our own local space based on those status updates.
+          this.execSync({syncSpace, dependencyGraphIbGibs, confirm}));
       let errors: string[] = [];
       await Promise.all(syncPromises).catch(e => {
         if (e.message) {
@@ -2831,20 +2859,95 @@ export class IbgibsService {
 
   private _syncingSubscriptions: { [id: string] : Subscription } = {};
 
+  /**
+   * Searches through timelines and gets every single one of them
+   * in the local space. (ideally)
+   *
+   * ## notes
+   *
+   * So if you pass in an ibgib with a reference to old ibgibs that
+   * have not been updated to the latest, this will get those latest.
+   * @param param0
+   * @returns all ibgibs related to given ibgibs
+   */
+  private async getAllIbGibsToPutMergeFromGraph({
+    dependencyGraphIbGibs,
+  }: {
+    dependencyGraphIbGibs: IbGib_V1[],
+  }): Promise<IbGib_V1[]> {
+    const lc = `${this.lc}[${this.getAllIbGibsToPutMergeFromGraph.name}]`;
+    try {
+
+      // need to get the ibgibs with tjps,
+      // then filter these to just the latest of given dependency graph ibgibs
+      // then get the latest for each of these in the local space.
+      let latestIbGibsWithTjps = await this.getLatestIbGibsWithTjps({ibGibs: dependencyGraphIbGibs});
+      if (latestIbGibsWithTjps.length === 0) {
+        // we have no ibgib timelines, so the incoming dependency graph is complete.
+        return dependencyGraphIbGibs;
+      }
+
+      // An issue arises that each time we get updates to tjp ibgibs, then there is the
+      // possibility of having additional tjps that weren't in the original graph.
+      // So we need to call multiple times until we get the same number in as out.
+      let latestIbGibsWithTjps_CHECK = await this.getLatestIbGibsWithTjps({ibGibs: latestIbGibsWithTjps});
+      while (latestIbGibsWithTjps_CHECK.length > latestIbGibsWithTjps.length) {
+        debugger;
+        console.warn(`${lc} another tjp found. calling getLatestIbGibsWithTjps again to check for more. (WARNING: 9735c4194d1243269d4fe4a4ed93cf59)`);
+        latestIbGibsWithTjps = latestIbGibsWithTjps_CHECK;
+        latestIbGibsWithTjps_CHECK = await this.getLatestIbGibsWithTjps({ibGibs: latestIbGibsWithTjps});
+      }
+
+      // at this point, we have all of the latest tjp ibgibs, but not their
+      // dependency graphs. We need to get all dependencies from these and
+      // combine them with our given dependency graph.
+
+      // we're going to translate the given dependencyGraphIbGibs that we already have to
+      // a map that `getDependencyGraph` understands so we don't waste time re-getting them.
+      let allIbGibsToMergeMap: { [addr: string]: IbGib_V1 } = {};
+      dependencyGraphIbGibs.forEach(x => { allIbGibsToMergeMap[h.getIbGibAddr(x)] = x; });
+
+      // now we can combine both these latest ibGibs with the incoming ibgibs
+      for (let i = 0; i < latestIbGibsWithTjps.length; i++) {
+        const latestIbGibWithTjp = latestIbGibsWithTjps[i];
+        // anything that we have in the incoming dependency
+        // graph already has been fully traversed, so we put this in `gotten`
+        allIbGibsToMergeMap = await this.getDependencyGraph({
+          ibGib: latestIbGibWithTjp,
+          gotten: allIbGibsToMergeMap
+        });
+      }
+
+      const allIbGibsToMerge = Object.values(allIbGibsToMergeMap);
+
+      return allIbGibsToMerge;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
+
   private async execSync({
     syncSpace,
-    ibGibs,
+    dependencyGraphIbGibs,
     confirm,
   }: {
     syncSpace: IbGibSpaceAny,
-    ibGibs?: IbGib_V1[],
+    dependencyGraphIbGibs?: IbGib_V1[],
     confirm?: boolean,
   }): Promise<void> {
     const lc = `${this.lc}[${this.execSync.name}]`;
     try {
-      if (ibGibs.length > 1) { console.warn(`${lc} syncing more than one ibGib. I'm really meaning for this to be a single ibGib atm but going ahead and coding interface for multiple. (WARNING: 569936120f1a400192ba54fb4344b0b7)`); }
-      for (let i = 0; i < ibGibs.length; i++) {
-        const ibGib = ibGibs[i];
+
+
+
+
+
+
+
+
+      for (let i = 0; i < dependencyGraphIbGibs.length; i++) {
+        const ibGib = dependencyGraphIbGibs[i];
         const addr = h.getIbGibAddr({ibGib});
         if (this._syncingIbGibAddrs.includes(addr)) {
           if (logalot) { console.log(`${lc} already syncing ibGib addr: ${addr}`); }
@@ -2905,40 +3008,11 @@ export class IbgibsService {
         // to check the status of what to do.
         // if it needs ibGibs, then
       }
-        // pull down newer ibgibs from sync spaces for ibgibs that have tjps
-        let latestLocalIbGibs: IbGib_V1[] = [];
-        let needLatestIbGibs =
-          ibGibs.filter(ibGib => ibGib.data?.isTjp || ibGib.rel8ns?.tjp?.length === 1);
-        for (let j = 0; j < needLatestIbGibs.length; j++) {
-          const maybeNeedLatest = needLatestIbGibs[j];
-          const needLatestAddr = h.getIbGibAddr({ibGib: maybeNeedLatest});
-          // get latest in the current local user space
-          const latestAddr = await this.getLatestAddr({ibGib: maybeNeedLatest});
-          if (latestAddr !== needLatestAddr) {
-            // there is a later version locally.
-            const resLatestLocalIbGib = await this.get({addr: latestAddr});
-            if (resLatestLocalIbGib.success && resLatestLocalIbGib.ibGibs?.length === 1) {
-              latestLocalIbGibs.push(resLatestLocalIbGib.ibGibs[0]);
-            } else {
-              console.warn(`${lc} needLatestAddr: ${needLatestAddr}. latestAddr: ${latestAddr}. Using given ibgib.`);
-              latestLocalIbGibs.push(maybeNeedLatest);
-            }
-          } else {
-            latestLocalIbGibs.push(maybeNeedLatest);
-          }
-        }
-        if (latestLocalIbGibs.length > 0) {
-          const resLatest = await this.getLatestFromSpace({
-            ibGibs: latestLocalIbGibs,
-            persistLocally: false,
-            space: syncSpace,
-          })
-        }
 
         // publish to sync space
         let argPut = await syncSpace.argy({
             argData: { cmd: 'put', },
-            ibGibs,
+            ibGibs: dependencyGraphIbGibs,
         });
         let resPut = await syncSpace.witness(argPut);
 
@@ -2947,7 +3021,7 @@ export class IbgibsService {
         }
 
         if (confirm) {
-          const ibGibAddrs = ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
+          const ibGibAddrs = dependencyGraphIbGibs.map(x => h.getIbGibAddr({ibGib: x}));
           console.warn(`test individual ibgibs confirming put was successful...need to remove!`);
           const argGet = await syncSpace.argy({
             argData: {
@@ -2957,13 +3031,13 @@ export class IbgibsService {
           });
           const resGet = await syncSpace.witness(argGet);
 
-          if (resGet.ibGibs?.length !== ibGibs.length) {
-            throw new Error(`resGet.ibGibs?.length: ${resGet.ibGibs?.length} but ibGibs.length: ${ibGibs.length}`);
+          if (resGet.ibGibs?.length !== dependencyGraphIbGibs.length) {
+            throw new Error(`resGet.ibGibs?.length: ${resGet.ibGibs?.length} but ibGibs.length: ${dependencyGraphIbGibs.length}`);
           }
 
           for (let i = 0; i < ibGibAddrs.length; i++) {
             const addr = ibGibAddrs[i];
-            const ibGib = ibGibs.filter(x => h.getIbGibAddr({ibGib: x}) === addr)[0];
+            const ibGib = dependencyGraphIbGibs.filter(x => h.getIbGibAddr({ibGib: x}) === addr)[0];
             const gotIbGibs = resGet.ibGibs?.filter(x => h.getIbGibAddr({ibGib: x}) === addr);
             if (gotIbGibs.length !== 1) { throw new Error(`did not get addr: ${addr}`); }
             const gotIbGib = gotIbGibs[0];
@@ -2983,5 +3057,53 @@ export class IbgibsService {
     }
   }
 
+  private async getLatestIbGibsWithTjps({
+    ibGibs,
+    warnIfMultipleLocalTimelines,
+  }: {
+    ibGibs: IbGib_V1[],
+    /**
+     * I've already written the code to check for this. But I think
+     * this will be normal when put/merging.
+     */
+    warnIfMultipleLocalTimelines?: boolean,
+  }): Promise<IbGib_V1[]> {
+    const lc = `${this.lc}[${this.getLatestIbGibsWithTjps}]`;
+    try {
+      const result: IbGib_V1[] = [];
+      const ibGibsWithTjp_Ungrouped = ibGibs.filter(x =>
+        x.data?.isTjp || x.rel8ns?.tjp?.length > 0 || x.gib.includes(GIB_DELIMITER)
+      );
+      // group them by tjp
+      const ibGibsWithTjp_GroupedByTjpGib =
+        groupBy({items: ibGibsWithTjp_Ungrouped, keyFn: x => getGibInfo({gib: x.gib}).tjpGib});
+      const tjpGibs = Object.keys(ibGibsWithTjp_GroupedByTjpGib);
+      for (let i = 0; i < tjpGibs.length; i++) {
+        const group = ibGibsWithTjp_GroupedByTjpGib[tjpGibs[i]];
+        if (warnIfMultipleLocalTimelines) {
+          // quick check to warn if we have multiple n's for a tjpGib (multi-timeline)
+          let nCounts: { [key: number]: number } = {};
+          for (const ibGibFrame of group) {
+            let n = ibGibFrame.data.isTjp ? -1 : (ibGibFrame.data.n ?? -2);
+            if (n === -2) { throw new Error(`ibGibFrame.data.n is undefined. We're only working with those with n right now!`); }
+            nCounts[n] = (nCounts[n] ?? 0) + 1;
+          }
+          if (Object.values(nCounts).some(count => count > 1)) {
+            console.warn(`${lc} we have multiple local timelines.`)
+          }
+        }
+
+        // sort by n (ascending) and then grab the latest one
+        const latestIbGibInGroup = group.sort(x => x.data.n ?? -1)[group.length-1];
+        result.push(latestIbGibInGroup);
+
+        // we're done
+        return result;
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
 }
 
