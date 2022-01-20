@@ -4,18 +4,13 @@
  */
 
 import { Injectable } from '@angular/core';
-import { ReplaySubject, Subscription } from 'rxjs';
+import { ReplaySubject, Subject, Subscription } from 'rxjs';
 
 import { IbGib_V1, Rel8n, GIB, sha256v1, IbGibRel8ns_V1, GIB_DELIMITER } from 'ts-gib/dist/V1';
 import { IbGibAddr, V1, Ib, TransformResult, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { Factory_V1 as factory } from 'ts-gib/dist/V1';
 
-import {
-  TAG_REL8N_NAME, DEFAULT_ROOT_DESCRIPTION, DEFAULT_ROOT_ICON,
-  ROOT_REL8N_NAME, DEFAULT_TAG_ICON, DEFAULT_TAG_DESCRIPTION,
-  DEFAULT_ROOT_TEXT, DEFAULT_ROOT_REL8N_NAME,
-} from '../common/constants';
 import {
   TagData, RootData,
   SpecialIbGibType,
@@ -25,7 +20,7 @@ import {
   CiphertextData, CiphertextRel8ns, CiphertextIbGib_V1,
   IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib,
   IbGibSpaceResultIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns,
-  SyncSpaceData, SyncSpaceResultIbGib, HttpStatusCode, SyncStatusIbGib,
+  SyncSpaceData, SyncSpaceResultIbGib, HttpStatusCode, SyncStatusIbGib, OuterSpaceOptionsData, ParticipantInfo, SyncSpaceOptionsIbGib, SyncSpaceOptionsData, SyncCycleInfo,
 } from '../common/types';
 import {
   IonicSpace_V1,
@@ -36,7 +31,7 @@ import { AlertController, ModalController } from '@ionic/angular';
 import { IbGibSpaceAny } from '../common/spaces/space-base-v1';
 import { encrypt, decrypt, } from 'encrypt-gib';
 import { AWSDynamoSpace_V1 } from '../common/spaces/aws-dynamo-space-v1';
-import { createSpecial, createTagIbGib, deleteFromSpace, getDependencyGraph, getFnAlert, getFnConfirm, getFnPrompt, getFnPromptPassword_AlertController, getFromSpace, getSpecialIbgib, getSpecialRel8dIbGibs, getTimestampInTicks, getTjpIbGib, groupBy, isSameSpace, persistTransformResult, putInSpace, registerNewIbGib, rel8ToCurrentRoot, rel8ToSpecialIbGib, setConfigAddr, setCurrentRoot, validateBootstrapGib, validateUserSpaceName } from '../common/helper';
+import { createSpecial, createTagIbGib, deleteFromSpace, getDependencyGraph, getFnAlert, getFnConfirm, getFnPrompt, getFnPromptPassword_AlertController, getFromSpace, getSpecialIbgib, getSpecialRel8dIbGibs, getTimestampInTicks, getTjpIbGib, groupBy, hasTjp, isSameSpace, persistTransformResult, putInSpace, registerNewIbGib, rel8ToCurrentRoot, rel8ToSpecialIbGib, setConfigAddr, setCurrentRoot, validateBootstrapGib, validateUserSpaceName } from '../common/helper';
 import { argy_ } from '../common/witnesses';
 import { AppSpaceData, AppSpaceRel8ns } from '../common/types/app';
 import { DeleteIbGibOpts, DeleteIbGibResult, GetIbGibOpts, GetIbGibResult, PutIbGibOpts, PutIbGibResult } from '../common/types/legacy';
@@ -59,6 +54,40 @@ interface TempCacheEntry {
   salt: string;
 }
 
+/**
+ * Information about a sync operation internal to this service.
+ */
+interface SyncInfo {
+  syncSpace: IbGibSpaceAny;
+  spaceGib: string;
+  spaceId: string;
+  txrxId: string;
+  participants: ParticipantInfo[];
+
+  subSyncStatus?: Subscription;
+  /**
+   * Only publishes values after subscribed.
+   */
+  syncStatus$: ReplaySubject<SyncStatusIbGib>;
+
+  // syncOptionsIbGibs: SyncSpaceOptionsIbGib[];
+  // syncResultsIbGibs: SyncSpaceResultIbGib[];
+  syncCycles: SyncCycleInfo[];
+  /**
+   * ORDERED list of status ibGibs in the order that they are
+   * published to syncStatus$.
+   */
+  syncStatusIbGibs: SyncStatusIbGib[];
+
+  syncIbGibs_All: IbGib_V1[];
+  syncAddrs_All: IbGibAddr[];
+  syncAddrs_All_Tjps: IbGibAddr[];
+  syncAddrs_All_NonTjps: IbGibAddr[];
+  syncAddrs_Skipped: IbGibAddr[];
+  syncAddrs_ToDo: IbGibAddr[];
+  syncAddrs_InProgress: IbGibAddr[];
+  syncAddrs_Failed: IbGibAddr[];
+}
 
 /**
  * All-purpose mega service (todo: which we'll need to break up!) to interact
@@ -2641,8 +2670,8 @@ export class IbgibsService {
    *
    * @returns true if creation was successfully created, else false.
    */
-  async createOuterspaceEndpointStuff(): Promise<boolean> {
-    const lc = `${this.lc}[${this.createOuterspaceEndpointStuff.name}]`;
+  private async _createOuterspaceEndpointStuff(): Promise<boolean> {
+    const lc = `${this.lc}[${this._createOuterspaceEndpointStuff.name}]`;
     try {
       let secretIbGibs: IbGib_V1[] = await this.getSpecialRel8dIbGibs({
         type: "secrets",
@@ -2732,14 +2761,14 @@ export class IbgibsService {
     }
   }
 
-  async getAppSyncSpaces({
+  private async _getAppSyncSpaces({
     unwrapEncrypted,
     createIfNone,
   }: {
     unwrapEncrypted: boolean,
     createIfNone: boolean,
   }): Promise<IbGibSpaceAny[]> {
-    const lc = `${this.lc}[${this.getAppSyncSpaces.name}]`;
+    const lc = `${this.lc}[${this._getAppSyncSpaces.name}]`;
     try {
       // get existing
       let appSyncSpaces: IbGibSpaceAny[] = await this.getSpecialRel8dIbGibs<IbGibSpaceAny>({
@@ -2749,7 +2778,7 @@ export class IbgibsService {
 
       // create if applicable
       if (appSyncSpaces.length === 0 && createIfNone) {
-        let created = await this.createOuterspaceEndpointStuff();
+        let created = await this._createOuterspaceEndpointStuff();
         if (created) {
           appSyncSpaces = await this.getSpecialRel8dIbGibs<IbGibSpaceAny>({
             type: "outerspaces",
@@ -2787,6 +2816,19 @@ export class IbgibsService {
     }
   }
 
+  private _syncing: boolean;
+  /**
+   * should only syncIbGibs when not already syncing.
+   */
+  get syncing(): boolean {
+    return this._syncing;
+  }
+  // set syncing(value: boolean) {
+  //   this._syncing = value;
+  // }
+
+  private _syncInfos: { [spaceGib: string]: SyncInfo } = {};
+
   async syncIbGibs({
     dependencyGraphIbGibs,
     confirm,
@@ -2796,14 +2838,17 @@ export class IbgibsService {
   }): Promise<void> {
     const lc = `${this.lc}[${this.syncIbGibs.name}]`;
     try {
+      if (this.syncing) { throw new Error(`already syncing. (ERROR: dfa3ad58e97f4b18b4e4d7dc252208fb)`); }
+      this._syncing = true;
+
       // #region validate
       if (logalot) { console.log(`${lc} starting...`); }
-      if (!dependencyGraphIbGibs || dependencyGraphIbGibs.length === 0) { throw new Error(`ibGibs required.`); }
+      if (!dependencyGraphIbGibs || dependencyGraphIbGibs.length === 0) { throw new Error(`ibGibs required. (ERROR: 404c36475fb84fc285a23a67c0b8fcb2)`); }
       // #endregion
 
-      // #region get sync spaces
+      // #region get sync spaces and build participant infos
       if (logalot) { console.log(`${lc} get sync spaces (returns if none)`); }
-      const appSyncSpaces: IbGibSpaceAny[] = await this.getAppSyncSpaces({
+      const appSyncSpaces: IbGibSpaceAny[] = await this._getAppSyncSpaces({
         unwrapEncrypted: true,
         createIfNone: true,
       });
@@ -2814,11 +2859,20 @@ export class IbgibsService {
         await fnAlert({title: "Cancelled", msg});
         return;
       }
+      const participants: ParticipantInfo[] = [
+        { id: this.localUserSpace.data.uuid, gib: this.localUserSpace.gib, s_d: 'src', },
+        ...appSyncSpaces.map(s => {
+          if (!s.data) { throw new Error(`space.data required. (ERROR: 3c192771e84445a4b6476d5193b07e9d)`); }
+          if (!s.data.uuid) { throw new Error(`space.data.uuid required. (ERROR: d27e9998227840f99d45a3ed245f3196)`); }
+          if (!s.gib) { throw new Error(`space.gib required. (ERROR: db73aceb2f8445d8964ae49b59957072)`); }
+          return <ParticipantInfo>{ id: s.data.uuid, gib: s.gib, s_d: 'dest', };
+        })
+      ];
       // #endregion
 
       // get **ALL** ibgibs that we'll need to put/merge
-      let allIbGibsToPutMerge =
-        await this.getAllIbGibsToPutMergeFromGraph({dependencyGraphIbGibs});
+      const allIbGibsToSync =
+        await this._getAllIbGibsToSyncFromGraph({dependencyGraphIbGibs});
 
       // _NOW_ we can finally put/merge into sync spaces.
       // this returns to us the most recent versions which we can update
@@ -2827,22 +2881,29 @@ export class IbgibsService {
       // versions atm. We're just going to do this assuming sync spaces
       // are nice and coordinated (which they aren't).
 
-      if (logalot) { console.log(`${lc} sync to spaces in parallel`); }
-      let syncPromises: Promise<void>[] =
-        appSyncSpaces.map(syncSpace =>
-          // execSync creates observables that can keep us up to date
-          // on the statuses of these merges. We cann handle updating
+      if (logalot) { console.log(`${lc} syncing to spaces in parallel...`); }
+      const startSyncPromises: Promise<void>[] = appSyncSpaces.map(async syncSpace => {
+
+        // create the syncInfo that will track progress over entire sync operation
+        const syncInfo =
+          await this._createNewSyncInfo({allIbGibsToSync, syncSpace, participants});
+        this._syncInfos[syncSpace.gib] = syncInfo;
+        try {
+          // _startSync creates observables that can keep us up to date
+          // on the statuses of these merges. We can handle updating
           // our own local space based on those status updates.
-          this.execSync({syncSpace, dependencyGraphIbGibs, confirm}));
-      let errors: string[] = [];
-      await Promise.all(syncPromises).catch(e => {
-        if (e.message) {
-          errors.push(e.message);
-        } else {
-          errors.push(`something went wrong...unknown error (e.message falsy)`);
+          await this._startSync({syncInfo, confirm});
+        } catch (error) {
+          // if this throws, then that is unexpected.
+          // The above result should always be returned,
+          // and if it's errored then it should indicate as such.
+          console.error(`${lc} (UNEXPECTED) ${error.message}`);
+          this._syncInfos = {};
+          this._syncing = false;
         }
       });
-      if (errors.length > 0) { throw new Error(errors.join('\n')); }
+      await Promise.all(startSyncPromises);
+      await this._interpretWthToDoWithSyncInfos();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -2851,122 +2912,228 @@ export class IbgibsService {
     }
   }
 
-  /**
-   * For keeping track of which ibGibs are already syncing.
-   * (We don't want to execute syncs on those that are already going.)
-   */
-  private _syncingIbGibAddrs: IbGibAddr[] = [];
-
-  private _syncingSubscriptions: { [id: string] : Subscription } = {};
-
-  /**
-   * Searches through timelines and gets every single one of them
-   * in the local space. (ideally)
-   *
-   * ## notes
-   *
-   * So if you pass in an ibgib with a reference to old ibgibs that
-   * have not been updated to the latest, this will get those latest.
-   * @param param0
-   * @returns all ibgibs related to given ibgibs
-   */
-  private async getAllIbGibsToPutMergeFromGraph({
-    dependencyGraphIbGibs,
+  private async _createNewSyncInfo({
+    allIbGibsToSync,
+    syncSpace,
+    participants
   }: {
-    dependencyGraphIbGibs: IbGib_V1[],
-  }): Promise<IbGib_V1[]> {
-    const lc = `${this.lc}[${this.getAllIbGibsToPutMergeFromGraph.name}]`;
+    allIbGibsToSync: IbGib_V1[],
+    syncSpace: IbGibSpaceAny,
+    participants: ParticipantInfo[],
+  }): Promise<SyncInfo> {
+    const lc = `${this.lc}[${this._createNewSyncInfo.name}]`;
     try {
+      // do the addrs outside of info initializer
+      const syncAddrs_All = allIbGibsToSync.map(x => h.getIbGibAddr({ibGib: x}));
+      const syncAddrs_All_Tjps = allIbGibsToSync
+        .filter(x => hasTjp({ibGib: x}))
+        .map(x => h.getIbGibAddr({ibGib: x}));
+      const syncAddrs_All_NonTjps =
+        syncAddrs_All.filter(addr => !syncAddrs_All_Tjps.includes(addr));
 
-      // need to get the ibgibs with tjps,
-      // then filter these to just the latest of given dependency graph ibgibs
-      // then get the latest for each of these in the local space.
-      let latestIbGibsWithTjps = await this.getLatestIbGibsWithTjps({ibGibs: dependencyGraphIbGibs});
-      if (latestIbGibsWithTjps.length === 0) {
-        // we have no ibgib timelines, so the incoming dependency graph is complete.
-        return dependencyGraphIbGibs;
-      }
+      // do the info initializer
+      const syncInfo: SyncInfo = {
+        syncSpace,
+        spaceGib: syncSpace.gib,
+        spaceId: syncSpace.data.uuid,
+        txrxId: await h.getUUID(),
+        participants,
+        syncCycles: [],
+        syncStatusIbGibs: [],
 
-      // An issue arises that each time we get updates to tjp ibgibs, then there is the
-      // possibility of having additional tjps that weren't in the original graph.
-      // So we need to call multiple times until we get the same number in as out.
-      let latestIbGibsWithTjps_CHECK = await this.getLatestIbGibsWithTjps({ibGibs: latestIbGibsWithTjps});
-      while (latestIbGibsWithTjps_CHECK.length > latestIbGibsWithTjps.length) {
-        debugger;
-        console.warn(`${lc} another tjp found. calling getLatestIbGibsWithTjps again to check for more. (WARNING: 9735c4194d1243269d4fe4a4ed93cf59)`);
-        latestIbGibsWithTjps = latestIbGibsWithTjps_CHECK;
-        latestIbGibsWithTjps_CHECK = await this.getLatestIbGibsWithTjps({ibGibs: latestIbGibsWithTjps});
-      }
+        syncStatus$: new ReplaySubject<SyncStatusIbGib>(),
 
-      // at this point, we have all of the latest tjp ibgibs, but not their
-      // dependency graphs. We need to get all dependencies from these and
-      // combine them with our given dependency graph.
+        syncIbGibs_All: allIbGibsToSync,
+        syncAddrs_All,
+        syncAddrs_All_Tjps,
+        syncAddrs_All_NonTjps,
+        syncAddrs_Skipped: [],
+        syncAddrs_ToDo: [],
+        syncAddrs_InProgress: [],
+        syncAddrs_Failed: [],
+      };
 
-      // we're going to translate the given dependencyGraphIbGibs that we already have to
-      // a map that `getDependencyGraph` understands so we don't waste time re-getting them.
-      let allIbGibsToMergeMap: { [addr: string]: IbGib_V1 } = {};
-      dependencyGraphIbGibs.forEach(x => { allIbGibsToMergeMap[h.getIbGibAddr(x)] = x; });
-
-      // now we can combine both these latest ibGibs with the incoming ibgibs
-      for (let i = 0; i < latestIbGibsWithTjps.length; i++) {
-        const latestIbGibWithTjp = latestIbGibsWithTjps[i];
-        // anything that we have in the incoming dependency
-        // graph already has been fully traversed, so we put this in `gotten`
-        allIbGibsToMergeMap = await this.getDependencyGraph({
-          ibGib: latestIbGibWithTjp,
-          gotten: allIbGibsToMergeMap
-        });
-      }
-
-      const allIbGibsToMerge = Object.values(allIbGibsToMergeMap);
-
-      return allIbGibsToMerge;
+      // return it
+      return syncInfo;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
     }
   }
 
-  private async execSync({
-    syncSpace,
-    dependencyGraphIbGibs,
+  /**
+   * this {@link IbGibsService} acts as the local app space intermediary,
+   * a broker between the local space and the sync space(s). So this
+   * function's job is to coordinate sending the given ibgibs
+   * to a single sync space and return the observable (subject)
+   * corresponding to the multi-step sync process.
+   *
+   * The caller will be responsible for coordinating among sync
+   * space results and handling updates to local space ibgib's,
+   * such as rebasing/updating/etc.
+   *
+   * @returns
+   */
+  private async _startSync({
+    syncInfo,
     confirm,
   }: {
-    syncSpace: IbGibSpaceAny,
-    dependencyGraphIbGibs?: IbGib_V1[],
+    syncInfo: SyncInfo,
+    /**
+     * Will confirm via checking existence of ibgibs in sync space after
+     * writing them.
+     *
+     * NOTE: IGNORED ATM
+     */
     confirm?: boolean,
-  }): Promise<void> {
-    const lc = `${this.lc}[${this.execSync.name}]`;
+  }): Promise<SyncSpaceResultIbGib> {
+    const lc = `${this.lc}[${this._startSync.name}]`;
     try {
 
+      const {
+        syncSpace, txrxId, syncIbGibs_All, participants,
+        syncAddrs_All, syncAddrs_All_Tjps, syncAddrs_All_NonTjps,
+      } = syncInfo;
+
+      // first we want to get the ball rolling
+      // we will get back an ibGib that we can use to track the progress of the
+      // entire operation wrt this space.
+      const argStartSync: SyncSpaceOptionsIbGib = await syncSpace.argy({
+        argData: <SyncSpaceOptionsData>{
+          cmd: 'put', cmdModifiers: ['sync'],
+          txrxId,
+          participants,
+          ibGibAddrs: syncAddrs_All,
+          ibGibAddrs_All_Tjps: syncAddrs_All_Tjps,
+          ibGibAddrs_All_NonTjps: syncAddrs_All_NonTjps,
+        },
+        ibGibs: syncIbGibs_All, // do we need to do this yet?
+        ibMetadata: `sync src ${this.localUserSpace.data.name} srcId ${this.localUserSpace.data.uuid}`,
+      });
+      argStartSync.syncStatus$ = syncInfo.syncStatus$;
+      const syncCycleInfo: SyncCycleInfo = { arg: argStartSync };
+      syncInfo.syncCycles.push(syncCycleInfo);
+      const resStartSync: SyncSpaceResultIbGib = await syncSpace.witness(argStartSync);
+      if (!resStartSync.data?.tjpGib) { throw new Error(`resStartSync.data.tjpGib (syncId) is falsy. (ERROR: 727b5cc1a0254497bc6e06e9c6760564)`); }
+      syncCycleInfo.result = resStartSync;
+
+      // now that we have the progress ibGib, we can ping it's get latest at intervals
+      // to check the status of what to do.
+      // if it needs ibGibs, then
 
 
+        // if (confirm) {
+        //   const ibGibAddrs = dependencyGraphIbGibs.map(x => h.getIbGibAddr({ibGib: x}));
+        //   console.warn(`test individual ibgibs confirming put was successful...need to remove!`);
+        //   const argGet = await syncSpace.argy({
+        //     argData: {
+        //       cmd: 'get',
+        //       ibGibAddrs,
+        //     }
+        //   });
+        //   const resGet = await syncSpace.witness(argGet);
 
+        //   if (resGet.ibGibs?.length !== dependencyGraphIbGibs.length) {
+        //     throw new Error(`resGet.ibGibs?.length: ${resGet.ibGibs?.length} but ibGibs.length: ${dependencyGraphIbGibs.length}`);
+        //   }
 
+        //   for (let i = 0; i < ibGibAddrs.length; i++) {
+        //     const addr = ibGibAddrs[i];
+        //     const ibGib = dependencyGraphIbGibs.filter(x => h.getIbGibAddr({ibGib: x}) === addr)[0];
+        //     const gotIbGibs = resGet.ibGibs?.filter(x => h.getIbGibAddr({ibGib: x}) === addr);
+        //     if (gotIbGibs.length !== 1) { throw new Error(`did not get addr: ${addr}`); }
+        //     const gotIbGib = gotIbGibs[0];
+        //     if (ibGib.ib !== gotIbGib.ib) { throw new Error(`ib is different`); }
+        //     if (ibGib.gib !== gotIbGib.gib) { throw new Error(`gib is different`); }
+        //     if (JSON.stringify(ibGib.data) !== JSON.stringify(gotIbGib.data)) { throw new Error(`data is different`); }
+        //     if (JSON.stringify(ibGib.rel8ns) !== JSON.stringify(gotIbGib.rel8ns)) { throw new Error(`rel8ns is different`); }
+        //     if (logalot) { console.log(`${lc} confirmed ${h.getIbGibAddr({ibGib})}`); }
+        //   }
 
+        //   if (logalot) { console.log(`${lc} confirmation complete.`); }
+        // }
 
+        return resStartSync;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
 
-      for (let i = 0; i < dependencyGraphIbGibs.length; i++) {
-        const ibGib = dependencyGraphIbGibs[i];
-        const addr = h.getIbGibAddr({ibGib});
-        if (this._syncingIbGibAddrs.includes(addr)) {
-          if (logalot) { console.log(`${lc} already syncing ibGib addr: ${addr}`); }
-          return;
+  /**
+   * Coming in to this function, we have results from one or more
+   * sync spaces. Here are the combinations of expected outcomes:
+   *
+   * 1. All success, each returns the exact same new ib^gib
+   *    address(es).
+   * 2. All success, but different sync spaces return different
+   *    ib^gib address(es).
+   * 3. Some success, which returns exact same new ib^gib, some
+   *    error.
+   * 4. Some success, more than one ib^gib address(es), some error.
+   * 5. All error.
+   *
+   * For the first naive implementation, we will always be optimistic,
+   * assuming that errors will be resolved with enough attempts. This
+   * is closely related to our initial optimistic strategy of
+   * "access is authorization" + "unordered dna equivalence". These
+   * strategies mean that we are simply, optimistically, and
+   * naively applying incoming dna transforms to ibgib timelines.
+   * So failure should only result from a failure at the communication
+   * layer, assuming non-adversarial conditions.
+   *
+   * ## future
+   *
+   * The handling of this should absolutely be generalized to the
+   * requirements for interspatial relationships. This is the language
+   * that must be implemented to deal with this in a dynamic fashion.
+   *
+   * This does not equate to only "ad hoc" in the sense of untested/untried.
+   * This means that we have an "on-chain", public linked requirement
+   * for consensus as opposed to a hard-coded consensus as is defined
+   * in this function.
+   *
+   * It is in this generalization that byzantine resolution can be
+   * achieved through whichever mechanism is correct for the use case.
+   */
+  private async _interpretWthToDoWithSyncInfos(): Promise<void> {
+    const lc = `${this.lc}[${this._interpretWthToDoWithSyncInfos.name}]`;
+    try {
+      // these successes/fails are for the initial function that creates
+      // the sync start ibgib. these have nothing to do with if
+      // the overall sync succeeds/fails in the end. That has to be handled
+      // by the syncStatus$ observable instances. But if it fails before those
+      // observables mean anything, we go ahead and do the cleanup.
+      let successes: SyncSpaceResultIbGib[] = [];
+      let fails: SyncSpaceResultIbGib[] = [];
+      const syncGibs = Object.keys(syncResults);
+      for (let i = 0; i < syncGibs.length; i++) {
+        const syncGib = syncGibs[i];
+        const resSync = syncResults[syncGib];
+        if (resSync?.data?.success) {
+          successes.push(resSync);
+        } else {
+          // clean up observable
+          const emsg = (resSync.data.errors ?? []).join('. ') ?? 'resSync failed. unknown errors. (ERROR: fbd37d27341a4b2a8d89095e65e75691)';
+          if (!resSync.syncStatus$.closed) { resSync.syncStatus$.error(emsg); }
+
+          // clean up subscription
+          const syncSub = this._syncingSubscriptions[syncGib];
+          if (syncSub && !syncSub.closed) { syncSub.unsubscribe(); }
+          delete this._syncingSubscriptions[syncGib];
+
+          // not sure what I'm going to do with these atm.
+          fails.push(resSync);
         }
+      }
 
-        // first we want to get the ball rolling
-        // we will get back an ibGib that we can use to track the progress of the transaction.
-        let argStartSync = await syncSpace.argy({
-          argData: <IbGibSpaceOptionsData>{
-            cmd: 'put',
-            cmdModifiers: ['sync'],
-          },
-          ibGibs: [ibGib],
-          ibMetadata: `sync src ${this.localUserSpace.data.name} srcId ${this.localUserSpace.data.uuid}`,
-        });
-        const resStartSync: SyncSpaceResultIbGib = await syncSpace.witness(argStartSync);
-        if (!resStartSync.data?.tjpGib) { throw new Error(`resStartSync.data.tjpGib (syncId) is falsy. (ERROR: 727b5cc1a0254497bc6e06e9c6760564)`); }
-        const syncId = resStartSync.data.tjpGib;
+      // if we don't have successes, we're done so...
+      if (successes.length === 0) {
+        console.error(`${lc} all syncs failed.`);
+        this._syncing = false;
+        return;
+      }
+
 
         debugger;
         if (resStartSync.data?.success) {
@@ -3003,61 +3170,81 @@ export class IbgibsService {
           debugger;
           throw new Error(`resStartSync had an error. (ERROR: 6e6f5ac560e44f9ea41fe54300ffce5b)`);
         }
-
-        // now that we have the progress ibGib, we can ping it's get latest at intervals
-        // to check the status of what to do.
-        // if it needs ibGibs, then
-      }
-
-        // publish to sync space
-        let argPut = await syncSpace.argy({
-            argData: { cmd: 'put', },
-            ibGibs: dependencyGraphIbGibs,
-        });
-        let resPut = await syncSpace.witness(argPut);
-
-        if ((resPut?.data?.errors || []).length > 0) {
-          throw new Error(`resPut had errors: ${resPut.data.errors}`);
-        }
-
-        if (confirm) {
-          const ibGibAddrs = dependencyGraphIbGibs.map(x => h.getIbGibAddr({ibGib: x}));
-          console.warn(`test individual ibgibs confirming put was successful...need to remove!`);
-          const argGet = await syncSpace.argy({
-            argData: {
-              cmd: 'get',
-              ibGibAddrs,
-            }
-          });
-          const resGet = await syncSpace.witness(argGet);
-
-          if (resGet.ibGibs?.length !== dependencyGraphIbGibs.length) {
-            throw new Error(`resGet.ibGibs?.length: ${resGet.ibGibs?.length} but ibGibs.length: ${dependencyGraphIbGibs.length}`);
-          }
-
-          for (let i = 0; i < ibGibAddrs.length; i++) {
-            const addr = ibGibAddrs[i];
-            const ibGib = dependencyGraphIbGibs.filter(x => h.getIbGibAddr({ibGib: x}) === addr)[0];
-            const gotIbGibs = resGet.ibGibs?.filter(x => h.getIbGibAddr({ibGib: x}) === addr);
-            if (gotIbGibs.length !== 1) { throw new Error(`did not get addr: ${addr}`); }
-            const gotIbGib = gotIbGibs[0];
-            if (ibGib.ib !== gotIbGib.ib) { throw new Error(`ib is different`); }
-            if (ibGib.gib !== gotIbGib.gib) { throw new Error(`gib is different`); }
-            if (JSON.stringify(ibGib.data) !== JSON.stringify(gotIbGib.data)) { throw new Error(`data is different`); }
-            if (JSON.stringify(ibGib.rel8ns) !== JSON.stringify(gotIbGib.rel8ns)) { throw new Error(`rel8ns is different`); }
-            if (logalot) { console.log(`${lc} confirmed ${h.getIbGibAddr({ibGib})}`); }
-          }
-
-          if (logalot) { console.log(`${lc} confirmation complete.`); }
-        }
-
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
     }
   }
 
-  private async getLatestIbGibsWithTjps({
+  /**
+   * Searches through timelines and gets every single one of them
+   * in the local space. (ideally)
+   *
+   * ## notes
+   *
+   * So if you pass in an ibgib with a reference to old ibgibs that
+   * have not been updated to the latest, this will get those latest.
+   *
+   * @returns all ibgibs related to given ibgibs
+   */
+  private async _getAllIbGibsToSyncFromGraph({
+    dependencyGraphIbGibs,
+  }: {
+    dependencyGraphIbGibs: IbGib_V1[],
+  }): Promise<IbGib_V1[]> {
+    const lc = `${this.lc}[${this._getAllIbGibsToSyncFromGraph.name}]`;
+    try {
+
+      // need to get the ibgibs with tjps,
+      // then filter these to just the latest of given dependency graph ibgibs
+      // then get the latest for each of these in the local space.
+      let latestIbGibsWithTjps = await this._getLatestIbGibsWithTjps({ibGibs: dependencyGraphIbGibs});
+      if (latestIbGibsWithTjps.length === 0) {
+        // we have no ibgib timelines, so the incoming dependency graph is complete.
+        return dependencyGraphIbGibs;
+      }
+
+      // An issue arises that each time we get updates to tjp ibgibs, then there is the
+      // possibility of having additional tjps that weren't in the original graph.
+      // So we need to call multiple times until we get the same number in as out.
+      let latestIbGibsWithTjps_CHECK = await this._getLatestIbGibsWithTjps({ibGibs: latestIbGibsWithTjps});
+      while (latestIbGibsWithTjps_CHECK.length > latestIbGibsWithTjps.length) {
+        debugger;
+        console.warn(`${lc} another tjp found. calling getLatestIbGibsWithTjps again to check for more. (WARNING: 9735c4194d1243269d4fe4a4ed93cf59)`);
+        latestIbGibsWithTjps = latestIbGibsWithTjps_CHECK;
+        latestIbGibsWithTjps_CHECK = await this._getLatestIbGibsWithTjps({ibGibs: latestIbGibsWithTjps});
+      }
+
+      // at this point, we have all of the latest tjp ibgibs, but not their
+      // dependency graphs. We need to get all dependencies from these and
+      // combine them with our given dependency graph.
+
+      // we're going to translate the given dependencyGraphIbGibs that we already have to
+      // a map that `getDependencyGraph` understands so we don't waste time re-getting them.
+      let allIbGibsToMergeMap: { [addr: string]: IbGib_V1 } = {};
+      dependencyGraphIbGibs.forEach(x => { allIbGibsToMergeMap[h.getIbGibAddr(x)] = x; });
+
+      // now we can combine both these latest ibGibs with the incoming ibgibs
+      for (let i = 0; i < latestIbGibsWithTjps.length; i++) {
+        const latestIbGibWithTjp = latestIbGibsWithTjps[i];
+        // anything that we have in the incoming dependency
+        // graph already has been fully traversed, so we put this in `gotten`
+        allIbGibsToMergeMap = await this.getDependencyGraph({
+          ibGib: latestIbGibWithTjp,
+          gotten: allIbGibsToMergeMap
+        });
+      }
+
+      const allIbGibsToMerge = Object.values(allIbGibsToMergeMap);
+
+      return allIbGibsToMerge;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
+
+  private async _getLatestIbGibsWithTjps({
     ibGibs,
     warnIfMultipleLocalTimelines,
   }: {
@@ -3068,7 +3255,7 @@ export class IbgibsService {
      */
     warnIfMultipleLocalTimelines?: boolean,
   }): Promise<IbGib_V1[]> {
-    const lc = `${this.lc}[${this.getLatestIbGibsWithTjps}]`;
+    const lc = `${this.lc}[${this._getLatestIbGibsWithTjps}]`;
     try {
       const result: IbGib_V1[] = [];
       const ibGibsWithTjp_Ungrouped = ibGibs.filter(x =>
@@ -3105,5 +3292,6 @@ export class IbgibsService {
       throw error;
     }
   }
+
 }
 

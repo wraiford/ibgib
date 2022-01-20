@@ -4,7 +4,7 @@
  * ATOW there is just sync spaces, but definitely just the beginning.
  */
 
-import { Subject } from 'rxjs/internal/Subject';
+import { ReplaySubject } from 'rxjs/internal/ReplaySubject';
 
 import { GIB, IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 import { IbGibAddr, IbGib, Gib, Ib, } from 'ts-gib';
@@ -17,21 +17,30 @@ import {
     IbGibSpaceOptionsCmdModifier,
     IbGibSpaceResultData, IbGibSpaceResultRel8ns, IbGibSpaceResultIbGib,
 } from './space';
-import { info } from 'console';
 
 /**
  * @link https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+ *
+ * ## driving use case
+ *
+ * I'm adding this for tracking status for longer-running inter-spatial
+ * communications. Specifically, I'm working on the first aws dynamo db
+ * sync space.
  *
  * ## notes
  *
  * * I think http status codes do a pretty good job of protocol information
  *   exchange.
  * * The only non-standard status code I'm doing ATOW is 0 meaning "undefined".
+ * * I'm adding (whitelisting) codes as I use them.
+ *   * Note that sections of code check for validation of membership here and
+ *     will error if not present.
  */
 export type HttpStatusCode = 0 | 100;
 export const HttpStatusCode = {
     0: 0 as HttpStatusCode,
     none: 0 as HttpStatusCode,
+    zero: 0 as HttpStatusCode,
     undefined: 0 as HttpStatusCode,
     100: 100 as HttpStatusCode,
     continue: 100 as HttpStatusCode,
@@ -77,14 +86,39 @@ export interface SyncSpaceData extends OuterSpaceData {
 export interface SyncSpaceRel8ns extends OuterSpaceRel8ns {
 }
 
+export interface ParticipantInfo {
+    id: string;
+    gib: Gib;
+    s_d: 'src' | 'dest';
+}
 
 /**
  * Options shape specific to OuterSpaces.
  * Marker interface only atm.
  */
 export interface OuterSpaceOptionsData extends IbGibSpaceOptionsData {
+    /**
+     * Modifying flags for cmd routing for the associated cmd ibGib.
+     */
     cmdModifiers?: (OuterSpaceOptionsCmdModifier | string)[];
+    /**
+     * This id is used when communicating among spaces.
+     *
+     * ## notes
+     *
+     * If src/local space is communicating with more than one
+     * other space, then this can be used to coordinate among
+     * all of them. If there are only two spaces, then the
+     * gib of the individual status ibgib is just as uniquely
+     * identifying.
+     */
+    txrxId: string;
+    /**
+     * Info of the participating spaces (as endpoints) in the communication.
+     */
+    participants: ParticipantInfo[];
 }
+
 export interface OuterSpaceOptionsRel8ns extends IbGibSpaceOptionsRel8ns {
 }
 export interface OuterSpaceOptionsIbGib<
@@ -157,6 +191,8 @@ export interface SyncSpaceOptionsData extends OuterSpaceOptionsData {
      */
     tjpGib?: Gib;
     // txId?: string;
+    ibGibAddrs_All_Tjps: IbGibAddr[];
+    ibGibAddrs_All_NonTjps: IbGibAddr[];
 }
 export interface SyncSpaceOptionsRel8ns extends OuterSpaceOptionsRel8ns {
 }
@@ -165,7 +201,10 @@ export interface SyncSpaceOptionsIbGib<
     TOptsData extends SyncSpaceOptionsData = SyncSpaceOptionsData,
     TOptsRel8ns extends SyncSpaceOptionsRel8ns = SyncSpaceOptionsRel8ns,
     > extends OuterSpaceOptionsIbGib<TIbGib, TOptsData, TOptsRel8ns> {
-    syncStatus$: Subject<SyncStatusIbGib>;
+    /**
+     * Produces status ibgibs or error strings.
+     */
+    syncStatus$: ReplaySubject<SyncStatusIbGib|string>;
 }
 
 export interface SyncSpaceResultData extends OuterSpaceResultData {
@@ -178,16 +217,64 @@ export interface SyncSpaceResultIbGib<
     TResultData extends SyncSpaceResultData = SyncSpaceResultData,
     TResultRel8ns extends SyncSpaceResultRel8ns = SyncSpaceResultRel8ns
 > extends OuterSpaceResultIbGib<TIbGib, TResultData, TResultRel8ns> {
-    syncStatus$: Subject<SyncStatusIbGib>;
+    /**
+     * Produces status ibgibs or error strings.
+     */
+    syncStatus$: ReplaySubject<SyncStatusIbGib|string>;
 }
 
 export interface SyncStatusData {
-    statusCode: HttpStatusCode,
+    statusCode: HttpStatusCode;
+
+    syncGib: string;
+    // srcSpaceId: string;
+    // srcSpaceGib: string;
+    participants: ParticipantInfo[];
+
     /**
-     * Explicit declaration
+     * Explicit re-declaration from base data, just to remind us...I guess...
      */
     isTjp?: boolean;
-    needs?: IbGibAddr[];
+
+    /**
+     * When putting, this is the list of ibGibs to send.
+     *
+     * ## notes
+     *
+     * Maybe the receiver needs all of these, maybe it doesn't.
+     */
+    toTx?: IbGibAddr[];
+    /**
+     * When putting, this is the list of ibGibs we're not sending.
+     *
+     * IGNORED ATOW
+     *
+     * ## notes
+     *
+     * Not really sure about this atm. Just figure someone will have
+     * a reason for it in the future.
+     */
+    notToTx?: IbGibAddr[];
+    /**
+     * When communicating, the receiver is asking the sender for
+     * these ibGibs.
+     *
+     * ## notes
+     *
+     * ATOW this indicates only that the receiver does not have
+     * these addresses.
+     */
+    toRx?: IbGibAddr[];
+    /**
+     * When communicating, the receiver is saying that it doesn't
+     * need these addresses, for whatever reason.
+     *
+     * ## notes
+     *
+     * ATOW this will only be because the receiver already has
+     * these addresses.
+     */
+    notToRx?: IbGibAddr[];
 
     success?: boolean;
     complete?: boolean;
@@ -195,7 +282,6 @@ export interface SyncStatusData {
     errors?: string[];
 
     createdIbGibAddrs?: IbGibAddr[];
-    createdIbGibs?: IbGib_V1[];
 }
 export interface SyncStatusRel8ns extends IbGibRel8ns_V1 {
     created?: IbGibAddr[];
@@ -223,6 +309,11 @@ export interface SyncStatusIbGib extends IbGib_V1<SyncStatusData, SyncStatusRel8
     finalIbGib?: IbGib_V1;
 }
 
+export interface SyncCycleInfo {
+    arg: SyncSpaceOptionsIbGib;
+    result?: SyncSpaceResultIbGib;
+}
+
 /**
  * AWS-specific outerspace type
  */
@@ -236,7 +327,7 @@ export interface StatusIbInfo {
     statusCode: HttpStatusCode,
     spaceType: OuterSpaceType,
     spaceSubtype: OuterSpaceSubtype,
-    txId: string,
+    txrxId: string,
     delimiter?: string,
 }
 
@@ -249,7 +340,7 @@ export function getStatusIb({
     statusCode,
     spaceType,
     spaceSubtype,
-    txId,
+    txrxId,
     delimiter,
 }: StatusIbInfo): string {
     const lc = `[${getStatusIb.name}]`;
@@ -258,11 +349,11 @@ export function getStatusIb({
         if (!Object.values(HttpStatusCode).includes(statusCode)) { throw new Error(`invalid status code (${statusCode}) (ERROR: 91d7655424c44d9680fff099ee2b54d2)`); }
         if (!spaceType) { throw new Error(`spaceType required. (ERROR: 86e98694a56a4f599e98e50abf0eed43)`); }
         if (!spaceSubtype) { throw new Error(`spaceSubtype required. (ERROR: 4857d4677ee34e95aeb2251dd633909e)`); }
-        if (!txId) { throw new Error(`txId required. (ERROR: cfc923bb29ee4aa788e947b6416740e6)`); }
+        if (!txrxId) { throw new Error(`txrxId required. (ERROR: cfc923bb29ee4aa788e947b6416740e6)`); }
 
         delimiter = delimiter || c.OUTER_SPACE_DEFAULT_IB_DELIMITER;
 
-        return `status ${statusCode} ${spaceType} ${spaceSubtype} ${txId}`;
+        return `status ${statusCode} ${spaceType} ${spaceSubtype} ${txrxId}`;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -286,13 +377,13 @@ export function getStatusIbInfo({
         if (!statusIb) { throw new Error(`statusIb required. (ERROR: 09e23e8622cf456cadb0c3d0aadc3be9)`); }
 
         delimiter = delimiter || c.OUTER_SPACE_DEFAULT_IB_DELIMITER;
-        // `status ${statusCode} ${spaceType} ${spaceSubtype} ${txId}`;
+
+        // atow `status ${statusCode} ${spaceType} ${spaceSubtype} ${txrxId}`;
         const pieces = statusIb.split(delimiter);
 
         const statusCode: HttpStatusCode = <HttpStatusCode>Number.parseInt(pieces[1]);
         if (statusCode === null || statusCode === undefined) { throw new Error(`status code is null/undefined. (ERROR: f2f1d88d3ee14303a13582d6f7019063)`); }
         if (!Object.values(HttpStatusCode).includes(statusCode)) { throw new Error(`invalid/unknown status code (${statusCode}) (ERROR: 7580860df7b344b3992148552e80a85e)`); }
-
 
         let spaceType = <OuterSpaceType>pieces[2];
         if (spaceType === null || spaceType === undefined) { throw new Error(`spaceType is null/undefined. (ERROR: 12473d35e77b451bb59bb05c03cb8b64)`); }
@@ -302,17 +393,10 @@ export function getStatusIbInfo({
         if (spaceSubtype === null || spaceSubtype === undefined) { throw new Error(`spaceSubtype is null/undefined. (ERROR: 6da7ae919d0b4a22b4ee685520b6c946)`); }
         if (!VALID_OUTER_SPACE_SUBTYPES.includes(spaceSubtype)) { throw new Error(`invalid/unknown spaceSubtype (${spaceSubtype}) (ERROR: 703ed1aee44447a294b3e1cf0984baba)`); }
 
-        let txId = pieces[4];
-        if (txId === null || txId === undefined) { throw new Error(`txId is null/undefined. (ERROR: 5de2861a6afb48e1a1c89d0402a4ea63)`); }
+        let txrxId = pieces[4];
+        if (txrxId === null || txrxId === undefined) { throw new Error(`txrxId is null/undefined. (ERROR: 5de2861a6afb48e1a1c89d0402a4ea63)`); }
 
-        const info: StatusIbInfo = {
-            statusCode,
-            spaceType,
-            spaceSubtype,
-            txId,
-            delimiter,
-        }
-        return info;
+        return {statusCode, spaceType, spaceSubtype, txrxId, delimiter};
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

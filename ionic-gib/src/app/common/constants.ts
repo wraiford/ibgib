@@ -371,6 +371,7 @@ export const AWS_THROUGHPUT_ERROR_NAME = "ProvisionedThroughputExceededException
 export const AWS_DYNAMODB_TJP_N_SECONDARY_INDEX_NAME = 'tjp-n-index';
 export const OUTER_SPACE_DEFAULT_IB_DELIMITER = ' ';
 export const DEFAULT_TX_ID_LENGTH = 5;
+export const DEFAULT_AWS_PROJECTION_EXPRESSION = 'ib,gib,data,rel8ns,n';
 
 /**
  * When a status is first created, this is used to indicate that

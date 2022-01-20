@@ -12,6 +12,8 @@ import * as cTsGib from 'ts-gib/dist/V1/constants';
 import { SpecialIbGibType } from '../types';
 import * as c from '../constants';
 import { validateIb } from './validate';
+import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { groupBy } from './utils';
 
 // const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -219,4 +221,127 @@ export function tagTextToIb(tagText: string): string {
     const lc = `[${tagTextToIb.name}]`;
     if (!tagText) { throw new Error(`${lc} tag required.`)}
     return `tag ${tagText}`;
+}
+
+/**
+ * Splits the given `ibGibs` into two maps, one that
+ * includes the ibgibs that have a tjp (temporal junction point)
+ * and those that do not have one.
+ */
+export function splitIntoWithTjpAndWithoutTjp({
+    ibGibs,
+    filterPrimitives,
+}: {
+    ibGibs: IbGib_V1[],
+    filterPrimitives?: boolean,
+}): {ibGibsWithTjpMap: { [gib: string]: IbGib_V1 }, ibGibsWithoutTjpMap: { [gib: string]: IbGib_V1 }} {
+    const lc = `[${splitIntoWithTjpAndWithoutTjp.name}]`;
+    try {
+        const ibGibsWithTjp: { [gib: string]: IbGib_V1 } = {};
+        const ibGibsWithoutTjp: { [gib: string]: IbGib_V1 } = {};
+        const ibGibsTodo = filterPrimitives ?
+            ibGibs.filter(ibGib => ibGib.gib ?? ibGib.gib !== GIB) :
+            ibGibs;
+        ibGibsTodo.forEach(ibGib => {
+            if (hasTjp({ibGib})) {
+                ibGibsWithTjp[ibGib.gib] = ibGib;
+            } else {
+                ibGibsWithoutTjp[ibGib.gib] = ibGib;
+            }
+        });
+        return {ibGibsWithTjpMap: ibGibsWithTjp, ibGibsWithoutTjpMap: ibGibsWithoutTjp};
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
+
+/**
+ * Helper function that checks the given `ibGib` to see if it
+ * either has a tjp or is a tjp itself.
+ *
+ * ## notes
+ *
+ * Only unique ibGibs are meant to have tjps, or rather, if an
+ * ibGib timeline is expected to be unique over "time", then the
+ * tjp is an extremely convenient mechanism that provides a
+ * "name" for that timeline.
+ *
+ * Otherwise, if they are not unique, then successive "different"
+ * timelines cannot be easily referenced by their first unique
+ * frame in time, making it much harder to pub/sub updates among
+ * other things. (If there are no unique frames, then they are
+ * the same ibGib.)
+ *
+ * ## tjp = temporal junction point
+ *
+ * I've written elsewhere on this as well. Refer to B2tF2.
+ *
+ * @returns true if the ibGib has/is a tjp, else false
+ */
+export function hasTjp({ibGib}: {ibGib: IbGib_V1}): boolean {
+    const lc = `[${hasTjp.name}]`;
+
+    if (!ibGib) {
+        console.warn(`${lc} ibGib falsy. (WARNING: 884178562f5b4f15933ac4d98db74cc6)`);
+        return false;
+    }
+
+    if (ibGib.data?.isTjp || ibGib.rel8ns?.tjp?.length > 0) {
+        return true;
+    }
+
+    // dna does not
+    const dnaAncestors = ['fork^gib', 'mut8^gib', 'rel8^gib'];
+    if ((ibGib.rel8ns?.ancestor ?? []).some(x => dnaAncestors.includes(x))) {
+        return false;
+    }
+
+    if (!ibGib.gib) {
+        console.warn(`${lc} ibGib.gib falsy. (WARNING: 6400d780822b44d992846f1196509be3)`);
+        return false;
+    }
+    if (ibGib.gib.includes(cTsGib.GIB_DELIMITER)) {
+        return true;
+    }
+
+    if (ibGib.gib === cTsGib.GIB) {
+        // primitive
+        return false;
+    }
+
+    // use more expensive getGibInfo call.
+    // could possibly just return false at this point, but since gib info
+    // would change if we change our standards for gib, this is nicer.
+    const gibInfo = getGibInfo({ibGibAddr: h.getIbGibAddr({ibGib})});
+    return gibInfo.tjpGib ? true : false;
+}
+
+export function getTjpAddrs({
+    ibGibs,
+}: {
+    ibGibs: IbGib_V1[],
+}): IbGibAddr[] {
+    const lc = `[${getTjpAddrs.name}]`;
+    try {
+        // get only the tjps for those with the same timeline.
+        let tjpIbGibsByTjpGib =
+            groupBy({
+                items: ibGibs,
+                keyFn: x => x.data!.isTjp ?  x.gib : getGibInfo({gib: x.gib}).tjpGib,
+            });
+        let tjpAddrs: IbGibAddr[] = [];
+        Object.keys(tjpIbGibsByTjpGib).forEach(tjpGib => {
+            let groupIbGibs = tjpIbGibsByTjpGib[tjpGib]; // guaranteed to be at least one member
+            let x = groupIbGibs[0];
+            let tjpAddr = x.data.isTjp ?
+                h.getIbGibAddr({ibGib: x}) :
+                x.rel8ns.tjp[x.rel8ns.tjp.length - 1];
+            tjpAddrs.push(tjpAddr);
+        });
+        return tjpAddrs;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
 }
