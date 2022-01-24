@@ -112,11 +112,11 @@ export interface OuterSpaceOptionsData extends IbGibSpaceOptionsData {
      * gib of the individual status ibgib is just as uniquely
      * identifying.
      */
-    txrxId: string;
+    txrxId?: string;
     /**
      * Info of the participating spaces (as endpoints) in the communication.
      */
-    participants: ParticipantInfo[];
+    participants?: ParticipantInfo[];
 }
 
 export interface OuterSpaceOptionsRel8ns extends IbGibSpaceOptionsRel8ns {
@@ -191,8 +191,8 @@ export interface SyncSpaceOptionsData extends OuterSpaceOptionsData {
      */
     tjpGib?: Gib;
     // txId?: string;
-    ibGibAddrs_All_Tjps: IbGibAddr[];
-    ibGibAddrs_All_NonTjps: IbGibAddr[];
+    ibGibAddrs_All_Tjps?: IbGibAddr[];
+    ibGibAddrs_All_NonTjps?: IbGibAddr[];
 }
 export interface SyncSpaceOptionsRel8ns extends OuterSpaceOptionsRel8ns {
 }
