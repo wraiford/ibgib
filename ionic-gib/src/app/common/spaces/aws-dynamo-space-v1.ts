@@ -8,10 +8,12 @@ import {
     KeysAndAttributes,
     ConsumedCapacity,
 } from '@aws-sdk/client-dynamodb';
+import { ReplaySubject } from 'rxjs/internal/ReplaySubject';
 
-import { IbGib_V1, IbGibRel8ns_V1, Factory_V1 as factory, GIB, } from 'ts-gib/dist/V1';
-import { getIbGibAddr, IbGibAddr, V1, } from 'ts-gib';
+import { IbGib_V1, Factory_V1 as factory, } from 'ts-gib/dist/V1';
+import { getIbGibAddr, IbGibAddr, TransformOpts, TransformOpts_Mut8, TransformOpts_Rel8, TransformResult, V1, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
+import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 import { SpaceBase_V1 } from './space-base-v1';
 import {
@@ -28,9 +30,7 @@ import {
     ParticipantInfo,
 } from '../types';
 import * as c from '../constants';
-import { getBinAddr, getTjpAddrs, groupBy, hasTjp, splitIntoWithTjpAndWithoutTjp } from '../helper';
-import { ReplaySubject } from 'rxjs/internal/ReplaySubject';
-import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { getBinAddr, groupBy, splitIntoWithTjpAndWithoutTjp } from '../helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -662,13 +662,38 @@ export interface AWSDynamoSpaceResultIbGib
 // #endregion
 
 /**
- * Quick and dirty class for persisting ibgibs to the cloud with AWS DynamoDB.
+ * "Quick" and dirty class for persisting ibgibs to the cloud with AWS DynamoDB.
  *
  * ## notes on creating dynamoDB table
  *
  * * Currently, the primary key must be 'ibGibAddrHash'.
- * * A global secondary index must be created.
+ *   * A global secondary index must be created.
  *   * currently the name is stored in c.AWS_DYNAMODB_REGEXP_TABLE_OR_INDEX (atow = tjp-n-index)
+ *
+ *
+ * ## naive first implementation
+ *
+ * I'm writing here some points on the assumptions of this V1 extremely naive
+ * implementation.
+ *
+ * ### put-merge sync - always auto merge
+ *
+ * We are doing a put-merge sync, where we always merge automatically. This is
+ * not a bad idea for us in ibgib, because we should be structuring the ibgib
+ * themselves as single units that individual entities will be working on
+ * independently. So "locking" a resource (in the future will implement locking)
+ * should cause minimal resistance because granularity is appropriate. Contrast
+ * this nowadays to people (before git) trying to lock entire VCS repos, which
+ * obviously is worked on without this granularity and locking doesn't make
+ * sense.
+ *
+ * ### stones always stored
+ *
+ * I've toyed with the idea that only the ibgibs with tjps ("living" ibgibs) should
+ * be stored and that "stones" (ibgibs without tjps) should have to be
+ * rel8d to a living ibgib. But that would require more in-depth analysis of
+ * inter-dependencies of living ibgibs across time.
+ *
  *
  * ## thanks
  *
@@ -852,11 +877,7 @@ export class AWSDynamoSpace_V1<
         switch (cmd) {
             case IbGibSpaceOptionsCmd.put:
                 if (cmdModifiers.includes('sync')) {
-                    if (arg.data.tjpGib) {
-                        return this.putSync_Continue(arg);
-                    } else {
-                        return this.putSync_Start(arg);
-                    }
+                    return this.putSync(arg);
                 } else {
                     return super.routeAndDoCommand({cmd, cmdModifiers, arg});
                 }
@@ -1789,7 +1810,7 @@ export class AWSDynamoSpace_V1<
             const nObj: { [n: string]: IbGib_V1 } = {};
             const resIbGibsGroupedByN: { [n: number]: IbGib_V1[] } = groupBy<IbGib_V1>({
                 items: info.resultIbGibs,
-                keyFn: x => (x.data?.n ?? -1)
+                keyFn: x => (x.data?.n ?? -1).toString(),
             });
             if (Object.values(resIbGibsGroupedByN).some(x => x.length > 1)) {
                 // multiple timelines
@@ -2293,22 +2314,21 @@ export class AWSDynamoSpace_V1<
      *
      * @returns AWSDynamoSpaceResultIbGib with syncStatus$ observable for sync updates.
      */
-    protected async putSync_Start(arg: AWSDynamoSpaceOptionsIbGib):
+    protected async putSync(arg: AWSDynamoSpaceOptionsIbGib):
         Promise<AWSDynamoSpaceResultIbGib> {
-        let lc = `${this.lc}[${this.putSync_Start.name}]`;
+        let lc = `${this.lc}[${this.putSync.name}]`;
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         // create observable that we will return almost immediately most of this
         // method will work inside of a spun-off promise.
         let errors: string[] = [];
         let warnings: string[] = [];
+        let syncStatus$: ReplaySubject<SyncStatusIbGib|string> = arg?.syncStatus$;
         try {
             if (!arg.data) { throw new Error(`arg.data required. (ERROR: 847a1506e7054d53b7bf5ff87a4b32da)`); }
             if ((arg.data.ibGibAddrs ?? []).length === 0) { throw new Error(`arg.data.ibGibAddrs required. (ERROR: 6f2062572cc247f6a12b34759418c66b)`); }
             if (!arg.data.txrxId) { throw new Error(`txrxId required. (ERROR: af30b1b3cf3a4676a89399514743da79)`); }
             if ((arg.ibGibs ?? []).length === 0) { throw new Error(`no ibgibs given. (ERROR: 62ae74eab0434b90b866caa285403143)`); }
             if (!arg.syncStatus$) { throw new Error(`arg.syncStatus$ required. (ERROR: 33efb28789ff40b9b340eedcba0017f7)`); }
-
-            const syncStatus$: ReplaySubject<SyncStatusIbGib|string> = arg.syncStatus$;
 
             const client = createClient({
                 accessKeyId: this.data.accessKeyId,
@@ -2318,7 +2338,7 @@ export class AWSDynamoSpace_V1<
 
             // create the initial status ibgib.
             // we will mut8/rel8 this status over course of sync.
-            const {syncStatusIbGib_Start, allIbGibs: statusStartIbGibs} =
+            const {statusIbGib: syncStatusIbGib_Start, statusIbGibsGraph: statusStartIbGibs} =
                 await this.getStatusIbGibs_Start({
                     client: client,
                     txrxId: arg.data.txrxId,
@@ -2326,11 +2346,12 @@ export class AWSDynamoSpace_V1<
                     ibGibAddrs: arg.data.ibGibAddrs,
                 });
 
+            // this will communicate to the caller via the syncStatus$ stream
             this.spinOffToCompleteSync({
                 client,
                 ibGibs: arg.ibGibs.concat(),
                 statusStartIbGibs,
-                startIbGib,
+                syncStatusIbGib_Start,
                 syncStatus$,
                 errors,
                 warnings,
@@ -2350,7 +2371,49 @@ export class AWSDynamoSpace_V1<
         }
     }
 
-    async spinOffToCompleteSync({
+    /**
+     * Stores the given `statusIbGibGraph`, outputting any warnings, throwing on
+     * any errors.
+     *
+     * If no errors, then publishes the `statusIbGib` to the `syncStatus$`
+     * subject.
+     *
+     * If there are errors, throws but does NOT call `syncStatus$.error`.
+     * (maybe I should move that behavior here.)
+     */
+    protected async saveAndPublishStatus({
+        client,
+        statusIbGib,
+        statusIbGibGraph,
+        syncStatus$,
+    }: {
+        client: DynamoDBClient,
+        /** primary status ibGib */
+        statusIbGib: SyncStatusIbGib,
+        /** includes other statusIbGib arg ick */
+        statusIbGibGraph: IbGib_V1[]
+        syncStatus$: ReplaySubject<SyncStatusIbGib|string>;
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.saveAndPublishStatus.name}]`;
+        try {
+            const errors: string[] = [];
+            const warnings: string[] = [];
+            await this.putIbGibs({client, ibGibs: statusIbGibGraph, errors, warnings});
+            if (warnings.length > 0) { console.warn(`${lc} warnings:\n${warnings.join('\n')}`); }
+            if (errors.length > 0) {
+                // errored, so we're done. syncStatus$.error in catch block
+                throw new Error(errors.join('\n'));
+            } else {
+                // publish the status that we've started
+                syncStatus$.next(statusIbGib);
+            }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        }
+    }
+
+    private async spinOffToCompleteSync({
         client,
         ibGibs,
         statusStartIbGibs,
@@ -2371,38 +2434,41 @@ export class AWSDynamoSpace_V1<
         errors = errors ?? [];
         warnings = warnings ?? [];
         try {
-            // save the first status ibGib that we'll use to track the entire
-            // sync saga
-            await this.putIbGibBatch({ibGibs: statusStartIbGibs, client, errors});
-            if (errors.length > 0) {
-                // errored, so we're done. syncStatus$.error in catch block
-                throw new Error(errors.join('\n'));
-            } else {
-                // publish the status that we've started
-                syncStatus$.next(syncStatusIbGib_Start);
-            }
+            // #region set statusIbGib/Graph, save & publish (syncStatusIbGib_Start)
+
+            // these two will be used for references to the
+            // most recent status ibgib (and dependencies). So when
+            // you go to update the status, mutate off of this and then
+            // reassign these vars for the next update to reference.
+            let statusIbGib = syncStatusIbGib_Start;
+            let statusIbGibGraph = statusStartIbGibs;
+
+            // save first status that we'll use to track the entire sync saga
+            await this.saveAndPublishStatus({client, statusIbGib, statusIbGibGraph, syncStatus$});
+
+            // #endregion
 
             // now that we've started some paperwork, we can begin doing
             // the actual work.
 
-            // here is the shortcut we're doing: for each timeline, we're
-            // going to get the latest one stored in our outerspace (dynamodb in this case).
-            // We'll check which transforms are applied in that one and ours, and we'll
-            // apply the transforms from our local timeline that we don't find in the
-            // stored one. We'll then store the new ibGibs and return these in our
-            // result ibgib. The caller will then be responsible for updating the
-            // local space with those new ones (rebasing essentially).
+            // here is the shortcut we're doing: for each timeline, we're going
+            // to get the latest one stored in our outerspace (dynamodb in this
+            // case).  We'll check which transforms are applied in that one and
+            // ours, and we'll apply the transforms from our local timeline that
+            // we don't find in the stored one. We'll then store the new ibGibs
+            // and return these in our result ibgib. The caller will then be
+            // responsible for updating the local space with those new ones
+            // (rebasing essentially).
+
+            // As a hack, we will also store (probably unnecessarily) all non-tjp
+            // ibgibs that the store does not have. the alternative is to analyze
+            // which stones (non-tjp ibgibs) and see which ones are strictly no longer
+            // required and only select those
 
             const resLatestAddrsMap =
                 await this.getLatestIbGibAddrsInStore({client, ibGibs, errors, warnings});
 
             // now we have a map of local addr => latest store addr | null
-
-            // we're going to build up a list of ibgibs that we're going
-            // to put to the store. These will either be those who are totally
-            // untracked or those that we create by applying local transforms to
-            // latest ibgibs.
-            let ibGibsToStore: IbGib_V1[];
 
             const {ibGibsWithTjpMap} = splitIntoWithTjpAndWithoutTjp({ibGibs});//: arg.ibGibs});
             const ibGibsWithTjp = Object.values(ibGibsWithTjpMap);
@@ -2412,8 +2478,18 @@ export class AWSDynamoSpace_V1<
             });
             const tjpAddrs = Object.keys(ibGibsWithTjpGroupedByTjpAddr);
             for (let i = 0; i < tjpAddrs.length; i++) {
+                // #region analyze tjp ibgib sync status, determining which ibgibs to store/create/merge
+
+                // we're going to build up a list of ibgibs that we're going
+                // to put to the store. These will either be those who are totally
+                // untracked or those that we create by applying local transforms to
+                // latest ibgibs.
+                const ibGibsToStore: IbGib_V1[] = [];
+                const ibGibsCreated: IbGib_V1[] = [];
+                const ibGibsMerged: IbGib_V1[] = [];
+
                 const tjpAddr = tjpAddrs[i];
-                const tjpGroup_Local_Ascending = ibGibsWithTjpGroupedByTjpAddr[tjpAddr]
+                const tjpGroupIbGibs_Local_Ascending = ibGibsWithTjpGroupedByTjpAddr[tjpAddr]
                     .filter(x => (x.data.n ?? -1) >= 0)
                     .sort(x => x.data.n); // sorts ascending, e.g., 0,1,2...[Highest]
                 const latestAddr_Store = resLatestAddrsMap[tjpAddr];
@@ -2421,34 +2497,46 @@ export class AWSDynamoSpace_V1<
                     // the tjp timeline does exist in the sync space.
                     // we will analyze it to see who is ahead of whom.
                     const tjpGroupAddrs_Local_Ascending =
-                        tjpGroup_Local_Ascending.map(x => h.getIbGibAddr({ibGib: x}));
+                        tjpGroupIbGibs_Local_Ascending.map(x => h.getIbGibAddr({ibGib: x}));
                     const latestAddr_Local =
                         tjpGroupAddrs_Local_Ascending[tjpGroupAddrs_Local_Ascending.length-1];
                     if (latestAddr_Store === latestAddr_Local) {
                         // local space & sync space are already synced.
-                        // so we are not adding anything to ibGibsToStore.
-                        ibGibsToStore = [];
+                        // ibGibsToStore = [];
+                        // ibGibsCreated = [];
+                        // ibGibsMerged = [];
                     } else if (tjpGroupAddrs_Local_Ascending.includes(latestAddr_Store)) {
-                        ibGibsToStore = this.getIbGibsToStore_LocalIsAheadOfStore({
+                        this.reconcile_LocalIsAheadOfStore({
                             latestAddr_Store,
                             tjpGroupAddrs_Local_Ascending,
-                            tjpGroup_Local_Ascending,
+                            tjpGroupIbGibs_Local_Ascending,
+                            ibGibsToStore,
                         });
+                        // nothing created or merged
+                        // ibGibsCreated = [];
+                        // ibGibsMerged = [];
                     } else {
-                        ibGibsToStore = await this.getIbGibsToStore_StoreIsAheadOfLocal({
+                        await this.reconcile_StoreIsAheadOfLocal({
                             client,
-                            latestAddr_Local,
-                            latestAddr_Store,
-                            tjpGroupAddrs_Local_Ascending,
-                            tjpGroup_Local_Ascending,
-                            errors,
-                            warnings,
+                            latestAddr_Local, latestAddr_Store,
+                            tjpGroupIbGibs_Local_Ascending, tjpGroupAddrs_Local_Ascending,
+                            ibGibsToStore, ibGibsCreated, ibGibsMerged,
+                            allLocalIbGibs: ibGibs,
                         });
                     }
                 } else {
-                    // nothing in store, so store all tjp group.
-                    ibGibsToStore = tjpGroup_Local_Ascending.concat();
+                    await this.reconcile_NothingInStoreYet({
+                        tjpGroupIbGibs_Local_Ascending,
+                        ibGibsToStore,
+                    });
+                    // nothing created or merged
+                    // ibGibsCreated = [];
+                    // ibGibsMerged = [];
                 }
+
+                // #endregion analyze sync status, determining which ibgibs to store/create/merge
+
+                // #region execute store operation
 
                 // some of the ibGibs may already be stored. but we'll skip only
                 // those that we definitely know are already there.
@@ -2462,26 +2550,60 @@ export class AWSDynamoSpace_V1<
                 }
 
                 // in this first naive implementation, we're just going all or none
+                // in terms of success and publishing it.
                 // (though not in the transactional sense for the time being).
                 await this.putIbGibs({client, ibGibs: ibGibsToStoreNotAlreadyStored, errors, warnings});
                 if (errors.length > 0) { throw new Error(errors.join('\n')); }
                 if (warnings.length > 0) { console.warn(`${lc} warnings:\n${warnings.join('\n')}`); }
 
+                // #endregion execute store operation
+
+                // #region complete/finalize sync saga
+
+                const ibGibAddrsStored = ibGibsToStoreNotAlreadyStored.map(x => h.getIbGibAddr({ibGib: x}));
+                const ibGibAddrsCreated = ibGibsCreated.map(x => h.getIbGibAddr({ibGib: x}));
+                const ibGibAddrsMerged = ibGibsMerged.map(x => h.getIbGibAddr({ibGib: x}));
+
                 // putting of non-metadata ibGibs succeeded
-                // now we must create the final status mutant and store it.
+                // now we must create the status mutant and store it.
                 // if that succeeds, then we can publish that to the status
                 // and it will be up to the caller(s) to unsubscribe.
+                const resSyncStatusIbGib_Complete = await V1.mut8({
+                    src: statusIbGib,
+                    dataToAddOrPatch: <SyncStatusData>{
+                        statusCode: HttpStatusCode.created,
+                        complete: true,
+                        success: true,
+                        errors: (errors ?? []).length > 0 ? errors : undefined,
+                        warnings: (warnings ?? []).length > 0 ? warnings : undefined,
+                        didRx: ibGibAddrsStored,
+                        didCreate: ibGibAddrsCreated,
+                        didMerge: ibGibAddrsMerged,
+                    },
+                    dna: false,
+                });
+                debugger; // examine resSyncStatusIbGib_Complete
+                const syncStatusIbGib_Complete = <SyncStatusIbGib>resSyncStatusIbGib_Complete.newIbGib;
+                statusIbGib = syncStatusIbGib_Complete;
+                statusIbGibGraph = [statusIbGib, ...resSyncStatusIbGib_Complete.intermediateIbGibs];
 
-                factory
+                // publish the last status to indicate sync completion for this space.
+                await this.saveAndPublishStatus({client, statusIbGib, statusIbGibGraph, syncStatus$});
 
+                // complete this space's observable
+                syncStatus$.complete();
+
+                // #endregion complete/finalize sync saga
             }
 
-
-            debugger;
+            debugger; // hmm
         } catch (error) {
             debugger;
             const emsg = `${lc} ${error.message}`;
             console.error(emsg);
+            // in the future, need to attempt to make this a status ibgib if
+            // possible, even if we don't store it in the outerspace (which off
+            // the top of my head would be the case).
             syncStatus$.error(emsg);
         }
     }
@@ -2502,16 +2624,18 @@ export class AWSDynamoSpace_V1<
      * * normal function validation is not performed, since this is a refactor to
      *   clean up code and not meant to be a general-purpose function.
      */
-    protected getIbGibsToStore_LocalIsAheadOfStore({
+    protected reconcile_LocalIsAheadOfStore({
         latestAddr_Store,
         tjpGroupAddrs_Local_Ascending,
-        tjpGroup_Local_Ascending,
+        tjpGroupIbGibs_Local_Ascending,
+        ibGibsToStore,
     }: {
         latestAddr_Store: IbGibAddr,
         tjpGroupAddrs_Local_Ascending: IbGibAddr[],
-        tjpGroup_Local_Ascending: IbGib_V1[],
-    }): IbGib_V1[] {
-        const lc = `${this.lc}[${this.getIbGibsToStore_LocalIsAheadOfStore.name}]`;
+        tjpGroupIbGibs_Local_Ascending: IbGib_V1[],
+        ibGibsToStore: IbGib_V1[],
+    }): void {
+        const lc = `${this.lc}[${this.reconcile_LocalIsAheadOfStore.name}]`;
         try {
             const indexOfLatestInStore =
                 tjpGroupAddrs_Local_Ascending.indexOf(latestAddr_Store);
@@ -2519,9 +2643,13 @@ export class AWSDynamoSpace_V1<
                 tjpGroupAddrs_Local_Ascending.slice(indexOfLatestInStore+1);
             debugger; // want to manually check newerAddrs is correct
             const newIbGibsInLocalSpace = newerAddrsInLocalSpace.map(addr => {
-                return tjpGroup_Local_Ascending.filter(x => h.getIbGibAddr({ibGib: x}))[0];
+                return tjpGroupIbGibs_Local_Ascending.filter(x => h.getIbGibAddr({ibGib: x}))[0];
             });
-            return newIbGibsInLocalSpace;
+            // atow ibGibsToStore starts empty, but may change in future
+            // maybe yagni
+            ibGibsToStore = (ibGibsToStore ?? []).length > 0 ?
+                [...ibGibsToStore, ...newIbGibsInLocalSpace] :
+                newIbGibsInLocalSpace;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -2545,29 +2673,66 @@ export class AWSDynamoSpace_V1<
      * possible, since the end product should have at least the number of
      * transforms as the old local version... but it's something to think about.
      */
-    protected async getIbGibsToStore_StoreIsAheadOfLocal({
+    protected async reconcile_StoreIsAheadOfLocal({
         client,
         latestAddr_Local,
         latestAddr_Store,
+        tjpGroupIbGibs_Local_Ascending,
         tjpGroupAddrs_Local_Ascending,
-        tjpGroup_Local_Ascending,
-        errors,
-        warnings,
+        ibGibsToStore,
+        ibGibsCreated,
+        allLocalIbGibs,
     }: {
         client: DynamoDBClient,
         latestAddr_Local: IbGibAddr,
         latestAddr_Store: IbGibAddr,
         tjpGroupAddrs_Local_Ascending: IbGibAddr[],
-        tjpGroup_Local_Ascending: IbGib_V1[],
-        errors: string[],
-        warnings: string[],
-    }): Promise<IbGib_V1[]> {
-        const lc = `${this.lc}[${this.getIbGibsToStore_StoreIsAheadOfLocal.name}]`;
+        tjpGroupIbGibs_Local_Ascending: IbGib_V1[],
+        /**
+         * Populated by this function
+         */
+        ibGibsToStore: IbGib_V1[],
+        /**
+         * Populated by this function.
+         *
+         * IbGibs that were created as a result of merging timelines.
+         */
+        ibGibsCreated: IbGib_V1[],
+        /**
+         * Populated by this function.
+         *
+         * IbGibs that were used when merging timelines.
+         *
+         * The calling code may choose to orphan these ibgibs, or somehow
+         * mark/tag them as being involved in this operation. But if this is
+         * done, then it should somehow be noted to stay locally and not be
+         * synced, otherwise this would become a neverending cycle of metadata
+         * for sync, which then itself gets synced and produces more metadata.
+         *
+         * ## notes
+         *
+         * * These include...
+         *   * ibgibs whose dna we are dynamically applying to another timeline.
+         */
+        ibGibsMerged: IbGib_V1[],
+        /**
+         * All incoming ibgibs involved in the sync operation, to act
+         * as a local space from which transforms can be retrieved.
+         *
+         * All transforms from the store-side ibgib will have to be retrieved
+         * via a batch get ibgibs operation.
+         */
+        allLocalIbGibs: IbGib_V1[],
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.reconcile_StoreIsAheadOfLocal.name}]`;
         try {
+            let errors: string[] = [];
+            let warnings: string[] = [];
+
             // get the local ibGib dna
-            let latestIbGib_Local = tjpGroup_Local_Ascending[tjpGroup_Local_Ascending.length-1];
+            let latestIbGib_Local = tjpGroupIbGibs_Local_Ascending[tjpGroupIbGibs_Local_Ascending.length-1];
             if ((latestIbGib_Local.rel8ns?.dna ?? []).length === 0) { throw new Error(`local ibgib with tjp does not have dna. (ERROR: a8796a652e0749aa89f5419e88b53c98)`); }
-            const dna_Local = latestIbGib_Local.rel8ns.dna.concat();
+            const dnaAddrs_Local = latestIbGib_Local.rel8ns.dna.concat();
 
             // get the store ibgib dna
             const addrsNotFound: IbGibAddr[] = [];
@@ -2583,12 +2748,27 @@ export class AWSDynamoSpace_V1<
             if (warnings.length > 0) { console.warn(`${lc} ${warnings}`); }
             if ((resGetStoreIbGib ?? []).length === 0) { throw new Error(`resGetStoreIbGib empty, but addrsNotFound not populated? (ERROR: d2e7183af0ae4b98a2905b0e79c550ec)(UNEXPECTED)`); }
             if ((resGetStoreIbGib ?? []).length > 1) { throw new Error(`resGetStoreIbGib.length > 1? Expecting just the single ibgib corresponding to latest ibgib addr (${latestAddr_Store}). (ERROR: d2e7183af0ae4b98a2905b0e79c550ec)(UNEXPECTED)`); }
-            const latestIbGib_Store = resGetStoreIbGib[0];
+            let latestIbGib_Store = resGetStoreIbGib[0];
             if ((latestIbGib_Store.rel8ns?.dna ?? []).length === 0) { throw new Error(`store ibgib with tjp does not have dna. (ERROR: a8796a652e0749aa89f5419e88b53c98)`); }
-            const dna_Store = latestIbGib_Store.rel8ns.dna.concat();
+            const dnaAddrs_Store = latestIbGib_Store.rel8ns.dna.concat();
 
-            // get transforms (in ascending order) that the local ibgib has but
+            // get transforms (already in ascending order) that the local ibgib has but
             // the store ibgib does not have.
+            const dnaAddrsToApplyToStoreVersion: IbGibAddr[] = [];
+            for (let i = 0; i < dnaAddrs_Local.length; i++) {
+                const dnaAddr_Local = dnaAddrs_Local[i];
+                if (!dnaAddrs_Store.includes(dnaAddr_Local)) {
+                    dnaAddrsToApplyToStoreVersion.push(dnaAddr_Local);
+                }
+            }
+
+            const createdIbGibs_Running: IbGib_V1[] = [];
+            latestIbGib_Store = await this.applyTransforms({
+                src: latestIbGib_Store,
+                createdIbGibs_Running,
+                dnaAddrsToApplyToStoreVersion: dnaAddrsToApplyToStoreVersion,
+                allLocalIbGibs,
+            });
 
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -2596,38 +2776,148 @@ export class AWSDynamoSpace_V1<
         }
     }
 
-    protected async putSync_Continue(arg: AWSDynamoSpaceOptionsIbGib):
-        Promise<AWSDynamoSpaceResultIbGib> {
-        const lc = `${this.lc}[${this.putSync_Continue.name}]`;
-        const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+    /**
+     * iteratively (recursively) apply transforms in
+     * `dnaAddrsToApplyToStoreVersion` to the store's version of the ibgib,
+     * keeping track of all dependencies used/created.  ibgibs that we create
+     * along the way that we'll set to createdIbGibs to include dna,
+     * intermediate ibGibs, and newer versions of the source.
+     *
+     * populates the given `createdibGibs_Running` array, INCLUDING THE MOST
+     * RECENT IBGIB THAT WILL BE RETURNED BY THE FUNCTION.
+     *
+     * @returns the final ibgib produced from the transform applications.
+     */
+    protected async applyTransforms({
+        src,
+        createdIbGibs_Running,
+        dnaAddrsToApplyToStoreVersion,
+        allLocalIbGibs,
+    }: {
+        /**
+         * Most recent src to which we will apply the given
+         * `dnaAddrsToApplyToStoreVersion`.
+         */
+        src: IbGib_V1,
+        /**
+         * This will be populated through recursive iterations while applying
+         * dnas. Everything, including new dnas, new intermediate ibgibs, and
+         * new "src" ibgibs will be added to this before the final recursive
+         * call returns the final produced (out) ibgib.
+         */
+        createdIbGibs_Running: IbGib_V1[],
+        /**
+         * Transform addresses whose ibgib will be applied to the given `src`.
+         * This will be reduced by one per each recursive call to this function
+         * that is made.
+         */
+        dnaAddrsToApplyToStoreVersion: IbGibAddr[],
+        /**
+         * Should contain the dna ibGibs that are given in
+         * `dnaAddrsToApplyToStoreVersion`
+         */
+        allLocalIbGibs: IbGib_V1[],
+    }): Promise<IbGib_V1> {
+        const lc = `${this.lc}[${this.applyTransforms.name}]`;
         try {
-            if (!arg.syncStatus$) { throw new Error(`arg.syncStatus$ falsy`); }
-            const client = createClient({
-                accessKeyId: this.data.accessKeyId,
-                secretAccessKey: this.data.secretAccessKey,
-                region: this.data.region,
-            });
+            if (dnaAddrsToApplyToStoreVersion.length > 0) {
+                const dnaAddrToApply = dnaAddrsToApplyToStoreVersion.splice(0,1)[0];
+                // we expect this dna ibgib to supplied to us, but need to check
+                const dnaIbGib_IntermediateArray =
+                    allLocalIbGibs.filter(x => h.getIbGibAddr({ibGib: x}) === dnaAddrToApply);
+                let dnaIbGib: IbGib_V1;
+                if (dnaIbGib_IntermediateArray.length === 1) {
+                    dnaIbGib = dnaIbGib_IntermediateArray[0];
+                } else if (dnaIbGib_IntermediateArray.length === 0) {
+                    throw new Error(`dna ibGib not found in supplied allLocalIbGibs. dnaAddr: ${dnaAddrToApply}. (ERROR: 7f56826852cf48a79ab8af16bf27e284)`);
+                } else {
+                    // more than one ibgib with the dna address?
+                    throw new Error(`More than one ibGib in allLocalIbGibs with the dna address of ${dnaAddrToApply}? (ERROR: a726134f4cc14a4fb2ed2d39d22af17c)(UNEXPECTED)`);
+                }
 
-            //   we will mut8/rel8 to this ticket over course of sync.
-            // immediately publish the status
-            // need to analyze which ibgibs we don't already have
-            //   (status of ibgibs)
-            // which ones will need to be merged
-            //   (status of dnas/transforms)
+                // we have our dna to apply, so do so against the incoming src
+                // any transform options is actually the dna.data plus src info.
+                let argTransform = <TransformOpts<IbGib_V1>>dnaIbGib.data;
+                argTransform.src = src;
+                argTransform.srcAddr = h.getIbGibAddr({ibGib: src});
+                let resTransform: TransformResult<IbGib_V1>;
+                switch (argTransform.type) {
+                    case 'mut8':
+                        resTransform = await V1.mut8(<TransformOpts_Mut8<IbGib_V1,any>>argTransform);
+                        break;
+                    case 'rel8':
+                        resTransform = await V1.rel8(<TransformOpts_Rel8<IbGib_V1>>argTransform);
+                        break;
+                    case 'fork':
+                        throw new Error(`fork transform not expected. atow only a single fork is expected at the beginning of the lifetime of a tjp ibgib. This fork defines the uniqueness of the tjp ibgib. When merging another tjp ibgib, we would only expect update transforms to be mut8 or rel8. (ERROR: f8ad6996ac5545edad2d58a293d37d94)`);
+                    default:
+                        throw new Error(`unknown dna argTransform.type (${argTransform.type}) for dna address: ${dnaAddrToApply}.  Expecting either mut8 or rel8. (fork transform is known but not expected either.) (ERROR: 52a98db56e934e4cb42c64e2f45fa552)`);
+                }
 
-            // we want to store our status ibgib graph and other metadata
-            // throughout this process.
+                // add intermediate ibgibs (including dna) to createdIbGibs_Running
+                (resTransform.intermediateIbGibs ?? []).forEach(x => createdIbGibs_Running.push(x));
+                (resTransform.dnas ?? []).forEach(x => createdIbGibs_Running.push(x));
+                createdIbGibs_Running.push(resTransform.newIbGib);
+
+                // not 100% but I believe the created dna should deep equal our
+                // incoming dna that we applied. so we'll warn if it doesn't.
+                // (ibgib addresses matching necessitates deep equal)
+                if ((resTransform.dnas ?? []).length > 0) {
+                    if (!resTransform.dnas.some(x => h.getIbGibAddr(x) === dnaAddrToApply)) {
+                        debugger; // examine the dnas
+                        console.warn(`${lc} Expected to generate exact dna that we applied in transform. dnaAddr: ${dnaAddrToApply} (WARNING: 4a364c0b5d8d46c8af6bd540915fd973)(UNEXPECTED)`);
+                    }
+                } else {
+                    debugger;
+                    console.warn(`${lc} expected resTransform to include generated dna. dnaAddr: ${dnaAddrToApply}(WARNING: 9648e2d5c40d42b7b9fb7efb09c5b13a)(UNEXPECTED)`)
+                }
 
 
-            // we now have started by saving the put metadata
-
+                // call recursively
+                return await this.applyTransforms({
+                    src: resTransform.newIbGib,
+                    createdIbGibs_Running,
+                    dnaAddrsToApplyToStoreVersion,
+                    allLocalIbGibs,
+                });
+            } else {
+                // no more dna to apply.
+                // createdIbGibs_Running should be populated
+                if (createdIbGibs_Running.length === 0) {
+                    console.warn(`${lc} no dna transforms to apply but
+                    createdIbGibs_Running is empty. Dna is expected to start
+                    with at least one transform, otherwise don't call this
+                    function. (WARNING:
+                    52c7f2f6bd7e4bd0b31f53611b90268b)(UNEXPECTED)`)
+                }
+                return src;
+            }
         } catch (error) {
-            console.error(`${lc} error: ${error.message}`);
-            resultData.errors = [error.message];
+            console.error(`${lc} ${error.message}`);
+            throw error;
         }
+    }
+
+    /**
+     * There is nothing stored yet, so we're going to store everything.
+     */
+    protected async reconcile_NothingInStoreYet({
+        tjpGroupIbGibs_Local_Ascending,
+        ibGibsToStore,
+    }: {
+        tjpGroupIbGibs_Local_Ascending: IbGib_V1[],
+        /**
+         * Populated by this function
+         */
+        ibGibsToStore: IbGib_V1[],
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.reconcile_NothingInStoreYet.name}]`;
         try {
-            const result = await this.resulty({resultData});
-            return result;
+            // atow ibGibsToStore starts empty, but may change in future
+            // maybe yagni
+            ibGibsToStore = (ibGibsToStore ?? []).length > 0 ?
+                [...ibGibsToStore, ...tjpGroupIbGibs_Local_Ascending.concat()] :
+                tjpGroupIbGibs_Local_Ascending.concat();
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -2656,7 +2946,7 @@ export class AWSDynamoSpace_V1<
         txrxId: string,
         participants: ParticipantInfo[],
         ibGibAddrs: IbGibAddr[],
-    }): Promise<{syncStatusIbGib_Start: SyncStatusIbGib, allIbGibs: IbGib_V1[]}> {
+    }): Promise<{statusIbGib: SyncStatusIbGib, statusIbGibsGraph: IbGib_V1[]}> {
         const lc = `${this.lc}[${this.getStatusIbGibs_Start.name}]`;
         try {
             if (!client) { throw new Error(`client required. (ERROR: 7e749ecc44f647dc8587c00c334337d4)`); }
@@ -2695,17 +2985,16 @@ export class AWSDynamoSpace_V1<
             });
             // we'll store this and intermediates
             const startIbGib = <SyncStatusIbGib>resTjp.newIbGib;
-            let allIbGibs: IbGib_V1[] = [
+            let statusIbGibsGraph: IbGib_V1[] = [
                 startIbGib,
                 ...resTjp.intermediateIbGibs,
             ];
 
             // return em dude
-            return { syncStatusIbGib_Start: startIbGib, allIbGibs };
+            return { statusIbGib: startIbGib, statusIbGibsGraph };
         } catch (error) {
             const emsg = `${lc} ${error.message}`;
             console.error(emsg);
-            // statusErrors.push(emsg);
             throw error;
         }
     }

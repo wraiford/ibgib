@@ -36,16 +36,80 @@ import {
  *   * Note that sections of code check for validation of membership here and
  *     will error if not present.
  */
-export type HttpStatusCode = 0 | 100;
+export type HttpStatusCode = 0 | 100 | 201;
 export const HttpStatusCode = {
+    /**
+     * Using this as the code for the parent primitive.
+     */
     0: 0 as HttpStatusCode,
+    /**
+     * 0
+     */
     none: 0 as HttpStatusCode,
-    zero: 0 as HttpStatusCode,
+    /**
+     * 0
+     */
     undefined: 0 as HttpStatusCode,
+    /**
+     * not used atow
+     *
+     * ## mdn
+     *
+     * @link https://developer.mozilla.org/en-US/docs/Web/HTTP/Status#information_responses
+     *
+     * This interim response indicates that the client should continue the
+     * request or ignore the response if the request is already finished.
+     *
+     * The HTTP 100 Continue informational status response code indicates that
+     * everything so far is OK and that the client should continue with the
+     * request or ignore it if it is already finished.
+     *
+     * To have a server check the request's headers, a client must send Expect:
+     * 100-continue as a header in its initial request and receive a 100
+     * Continue status code in response before sending the body.
+     */
     100: 100 as HttpStatusCode,
+    /**
+     * 100
+     */
     continue: 100 as HttpStatusCode,
+    /**
+     * Using this for the start of the sync process, meaning the ball has begun
+     * rolling, a metadata ibgib to track the operation has been created (but
+     * not necessarily yet stored), but no data has been exchanged.
+     *
+     * ## mdn
+     *
+     * @link https://developer.mozilla.org/en-US/docs/Web/HTTP/Status#information_responses
+     *
+     * This code indicates that the server has received and is processing the
+     * request, but no response is available yet.
+     */
     102: 102 as HttpStatusCode,
+    /**
+     * 102
+     */
     processing: 102 as HttpStatusCode,
+    /**
+     * Using this as the code for a successfully completed sync saga.
+     *
+     * ## mdn
+     *
+     * @link https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/201
+     *
+     *  The HTTP 201 Created success status response code indicates that the
+     *  request has succeeded and has led to the creation of a resource. The new
+     *  resource is effectively created before this response is sent back and
+     *  the new resource is returned in the body of the message, its location
+     *  being either the URL of the request, or the content of the Location
+     *  header.  The common use case of this status code is as the result of a
+     *  POST request.
+     */
+    201: 201 as HttpStatusCode,
+    /**
+     * 201
+     */
+    created: 201 as HttpStatusCode,
 }
 
 export type OuterSpaceType = "sync";
@@ -276,12 +340,75 @@ export interface SyncStatusData {
      */
     notToRx?: IbGibAddr[];
 
+    /**
+     * Wakka doodle doo. (i.e. I'm still working through feedback
+     * cycles.)
+     *
+     * ## as a question
+     *
+     * Was the individual communication tx/rx a success...hmmm...
+     */
     success?: boolean;
+
+    /**
+     * If this is true, then the tx/rx inter-space saga is marked
+     * as complete and this status ibgib should be the last one.
+     */
     complete?: boolean;
+    /**
+     * List of warnings for THIS STEP in the inter-spatial communication.
+     *
+     * Should NOT be an accumulating list of warnings, i.e., if a warning
+     * happens early on in a tx/rx, then it stays on that ibGib.
+     */
     warnings?: string[];
+    /**
+     * List of errors for THIS STEP in the inter-spatial communication.
+     *
+     * Should NOT be an accumulating list of errors, i.e., if an error happens
+     * early on in a tx/rx, then it stays on that ibGib.
+     */
     errors?: string[];
 
-    createdIbGibAddrs?: IbGibAddr[];
+    /**
+     * List of ibgib addrs that were newly created specifically for this
+     * space operation.
+     *
+     * ATOW, this means that there was a merged timeline event and
+     * the receiving space dynamically applied dna to its existing
+     * timeline.
+     *
+     * ## notes
+     *
+     * * This should not include status metadata ibgibs, as this is
+     *   already captured in the `past` rel8n.
+     */
+    didCreate?: IbGibAddr[];
+
+    /**
+     * List of ibgib addrs that were merged in the rx space instead of stored
+     * directly.
+     *
+     * Tx space may choose to somehow mark these as orphaned or whatever seems
+     * best per use case. (i.e. I haven't coded that yet even in this naive
+     * first implementation)
+     */
+    didMerge?: IbGibAddr[];
+    /**
+     * List of ibgibs that were actively transmitted to the receiving
+     * space.
+     *
+     * ## notes
+     *
+     * * It could be that the receiving space received the ibgib,
+     *   but that it already had it. It may have been unsure if it
+     *   had it based on the algorithms in play.
+     * * An empty array upon completion of a communication saga
+     *   indicates that the receiving space already had all of the
+     *   ibgibs attempted to be sent, i.e., it was already up-to-date.
+     *
+     */
+    didRx?: IbGibAddr[];
 }
 export interface SyncStatusRel8ns extends IbGibRel8ns_V1 {
     created?: IbGibAddr[];
