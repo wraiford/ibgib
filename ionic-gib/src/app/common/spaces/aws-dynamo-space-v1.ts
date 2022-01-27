@@ -26,7 +26,7 @@ import {
     getStatusIb,
     getNewTxId,
     SyncStatusIbGib,
-    HttpStatusCode,
+    StatusCode,
     ParticipantInfo,
     SyncSagaInfo,
 } from '../types';
@@ -2324,7 +2324,6 @@ export class AWSDynamoSpace_V1<
         let errors: string[] = [];
         let warnings: string[] = [];
         let syncSagaInfo: SyncSagaInfo = arg?.syncSagaInfo;
-        // let syncStatus$: ReplaySubject<SyncStatusIbGib|string> = arg?.syncStatus$;
         try {
             if (!arg.data) { throw new Error(`arg.data required. (ERROR: 847a1506e7054d53b7bf5ff87a4b32da)`); }
             if ((arg.data.ibGibAddrs ?? []).length === 0) { throw new Error(`arg.data.ibGibAddrs required. (ERROR: 6f2062572cc247f6a12b34759418c66b)`); }
@@ -2394,7 +2393,7 @@ export class AWSDynamoSpace_V1<
         statusIbGib: SyncStatusIbGib,
         /** includes other statusIbGib arg ick */
         statusIbGibGraph: IbGib_V1[]
-        syncStatus$: ReplaySubject<SyncStatusIbGib|string>;
+        syncStatus$: ReplaySubject<SyncStatusIbGib>;
     }): Promise<void> {
         const lc = `${this.lc}[${this.saveAndPublishStatus.name}]`;
         try {
@@ -2428,7 +2427,7 @@ export class AWSDynamoSpace_V1<
         ibGibs: IbGib_V1[],
         statusStartIbGibs: IbGib_V1[],
         syncStatusIbGib_Start: SyncStatusIbGib,
-        syncStatus$: ReplaySubject<SyncStatusIbGib|string>;
+        syncStatus$: ReplaySubject<SyncStatusIbGib>;
         errors: string[],
         warnings: string[],
     }): Promise<void> {
@@ -2467,6 +2466,14 @@ export class AWSDynamoSpace_V1<
             // which stones (non-tjp ibgibs) and see which ones are strictly no longer
             // required and only select those
 
+            // this will be set depending on if we're already in sync, or if we
+            // have updated the store with our local copies (if the store didn't have any)
+            // or if the store is newer and we've merged timeline(s).
+            const statusCodes: StatusCode[] = [];
+            const ibGibsToStore_entireSaga: IbGib_V1[] = [];
+            const ibGibsCreated_entireSaga: IbGib_V1[] = [];
+            const ibGibsMerged_entireSaga: IbGib_V1[] = [];
+
             const resLatestAddrsMap =
                 await this.getLatestIbGibAddrsInStore({client, ibGibs, errors, warnings});
 
@@ -2486,9 +2493,10 @@ export class AWSDynamoSpace_V1<
                 // to put to the store. These will either be those who are totally
                 // untracked or those that we create by applying local transforms to
                 // latest ibgibs.
-                const ibGibsToStore: IbGib_V1[] = [];
-                const ibGibsCreated: IbGib_V1[] = [];
-                const ibGibsMerged: IbGib_V1[] = [];
+                let statusCode_thisTjp: StatusCode;
+                const ibGibsToStore_thisTjp: IbGib_V1[] = [];
+                const ibGibsCreated_thisTjp: IbGib_V1[] = [];
+                const ibGibsMerged_thisTjp: IbGib_V1[] = [];
 
                 const tjpAddr = tjpAddrs[i];
                 const tjpGroupIbGibs_Local_Ascending = ibGibsWithTjpGroupedByTjpAddr[tjpAddr]
@@ -2504,6 +2512,7 @@ export class AWSDynamoSpace_V1<
                         tjpGroupAddrs_Local_Ascending[tjpGroupAddrs_Local_Ascending.length-1];
                     if (latestAddr_Store === latestAddr_Local) {
                         // local space & sync space are already synced.
+                        statusCode_thisTjp = StatusCode.already_synced;
                         // ibGibsToStore = [];
                         // ibGibsCreated = [];
                         // ibGibsMerged = [];
@@ -2512,8 +2521,9 @@ export class AWSDynamoSpace_V1<
                             latestAddr_Store,
                             tjpGroupAddrs_Local_Ascending,
                             tjpGroupIbGibs_Local_Ascending,
-                            ibGibsToStore,
+                            ibGibsToStore: ibGibsToStore_thisTjp,
                         });
+                        statusCode_thisTjp = StatusCode.stored;
                         // nothing created or merged
                         // ibGibsCreated = [];
                         // ibGibsMerged = [];
@@ -2522,15 +2532,17 @@ export class AWSDynamoSpace_V1<
                             client,
                             latestAddr_Local, latestAddr_Store,
                             tjpGroupIbGibs_Local_Ascending, tjpGroupAddrs_Local_Ascending,
-                            ibGibsToStore, ibGibsCreated, ibGibsMerged,
+                            ibGibsToStore: ibGibsToStore_thisTjp, ibGibsCreated: ibGibsCreated_thisTjp, ibGibsMerged: ibGibsMerged_thisTjp,
                             allLocalIbGibs: ibGibs,
                         });
+                        statusCode_thisTjp = StatusCode.created;
                     }
                 } else {
                     await this.reconcile_NothingInStoreYet({
                         tjpGroupIbGibs_Local_Ascending,
-                        ibGibsToStore,
+                        ibGibsToStore: ibGibsToStore_thisTjp,
                     });
+                    statusCode_thisTjp = StatusCode.stored;
                     // nothing created or merged
                     // ibGibsCreated = [];
                     // ibGibsMerged = [];
@@ -2543,8 +2555,8 @@ export class AWSDynamoSpace_V1<
                 // some of the ibGibs may already be stored. but we'll skip only
                 // those that we definitely know are already there.
                 const ibGibsToStoreNotAlreadyStored: IbGib_V1[] = [];
-                for (let i = 0; i < ibGibsToStore.length; i++) {
-                    const maybeIbGib = ibGibsToStore[i];
+                for (let i = 0; i < ibGibsToStore_thisTjp.length; i++) {
+                    const maybeIbGib = ibGibsToStore_thisTjp[i];
                     const maybeAddr = h.getIbGibAddr({ibGib: maybeIbGib});
                     if (!Object.values(resLatestAddrsMap).includes(maybeAddr)) {
                         ibGibsToStoreNotAlreadyStored.push(maybeIbGib);
@@ -2563,8 +2575,15 @@ export class AWSDynamoSpace_V1<
                 // #region complete/finalize sync saga
 
                 const ibGibAddrsStored = ibGibsToStoreNotAlreadyStored.map(x => h.getIbGibAddr({ibGib: x}));
-                const ibGibAddrsCreated = ibGibsCreated.map(x => h.getIbGibAddr({ibGib: x}));
-                const ibGibAddrsMerged = ibGibsMerged.map(x => h.getIbGibAddr({ibGib: x}));
+                const ibGibAddrsCreated = ibGibsCreated_thisTjp.map(x => h.getIbGibAddr({ibGib: x}));
+                const ibGibAddrsMerged = ibGibsMerged_thisTjp.map(x => h.getIbGibAddr({ibGib: x}));
+                if (ibGibAddrsStored.length > 0) {
+                    // we've stored at least one ibgib.
+
+                } else {
+                    // already in sync
+                    statusCode_thisTjp = StatusCode.already_synced;
+                }
 
                 // putting of non-metadata ibGibs succeeded
                 // now we must create the status mutant and store it.
@@ -2573,7 +2592,7 @@ export class AWSDynamoSpace_V1<
                 const resSyncStatusIbGib_Complete = await V1.mut8({
                     src: statusIbGib,
                     dataToAddOrPatch: <SyncStatusData>{
-                        statusCode: HttpStatusCode.created,
+                        statusCode: StatusCode.created,
                         complete: true,
                         success: true,
                         errors: (errors ?? []).length > 0 ? errors : undefined,
@@ -2592,11 +2611,12 @@ export class AWSDynamoSpace_V1<
                 // publish the last status to indicate sync completion for this space.
                 await this.saveAndPublishStatus({client, statusIbGib, statusIbGibGraph, syncStatus$});
 
-                // complete this space's observable
-                syncStatus$.complete();
 
                 // #endregion complete/finalize sync saga
             }
+
+            // complete this space's observable
+            syncStatus$.complete();
 
             debugger; // hmm
         } catch (error) {
@@ -2958,14 +2978,14 @@ export class AWSDynamoSpace_V1<
             const parentIb = getStatusIb({
                 spaceType: 'sync',
                 spaceSubtype: 'aws-dynamodb',
-                statusCode: HttpStatusCode.undefined, // "undefined" means '0' atow!!
+                statusCode: StatusCode.undefined,
                 sagaId: c.STATUS_UNDEFINED_TX_ID, // "undefined" means '0' atow!!
             });
             const parentIbGib = factory.primitive({ib: parentIb});
             // we don't store primitives, so don't add to allIbGibs
 
             // 2. start tjp ibGib (has txId)
-            const statusCode = HttpStatusCode.processing;
+            const statusCode = StatusCode.started;
             const tjpIb = getStatusIb({
                 statusCode,
                 spaceType: 'sync',
@@ -2973,7 +2993,7 @@ export class AWSDynamoSpace_V1<
                 sagaId,
             });
             const data = <SyncStatusData>{
-                statusCode,
+                statusCode: statusCode,
                 participants,
                 toTx: ibGibAddrs,
             };

@@ -5,8 +5,9 @@
  */
 
 import { ReplaySubject } from 'rxjs/internal/ReplaySubject';
+import { Subscription } from 'rxjs/internal/Subscription';
 
-import { GIB, IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
+import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 import { IbGibAddr, IbGib, Gib, Ib, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 
@@ -37,80 +38,40 @@ import { IbGibSpaceAny } from '../spaces/space-base-v1';
  *   * Note that sections of code check for validation of membership here and
  *     will error if not present.
  */
-export type HttpStatusCode = 0 | 100 | 201;
-export const HttpStatusCode = {
+export type StatusCode =
+    'undefined' | 'started' | 'created' | 'stored' | 'already_synced';
+export const StatusCode = {
     /**
      * Using this as the code for the parent primitive.
      */
-    0: 0 as HttpStatusCode,
-    /**
-     * 0
-     */
-    none: 0 as HttpStatusCode,
-    /**
-     * 0
-     */
-    undefined: 0 as HttpStatusCode,
-    /**
-     * not used atow
-     *
-     * ## mdn
-     *
-     * @link https://developer.mozilla.org/en-US/docs/Web/HTTP/Status#information_responses
-     *
-     * This interim response indicates that the client should continue the
-     * request or ignore the response if the request is already finished.
-     *
-     * The HTTP 100 Continue informational status response code indicates that
-     * everything so far is OK and that the client should continue with the
-     * request or ignore it if it is already finished.
-     *
-     * To have a server check the request's headers, a client must send Expect:
-     * 100-continue as a header in its initial request and receive a 100
-     * Continue status code in response before sending the body.
-     */
-    100: 100 as HttpStatusCode,
-    /**
-     * 100
-     */
-    continue: 100 as HttpStatusCode,
+    undefined: 'undefined' as StatusCode,
     /**
      * Using this for the start of the sync process, meaning the ball has begun
      * rolling, a metadata ibgib to track the operation has been created (but
      * not necessarily yet stored), but no data has been exchanged.
-     *
-     * ## mdn
-     *
-     * @link https://developer.mozilla.org/en-US/docs/Web/HTTP/Status#information_responses
-     *
-     * This code indicates that the server has received and is processing the
-     * request, but no response is available yet.
      */
-    102: 102 as HttpStatusCode,
+    started: 'started' as StatusCode,
     /**
-     * 102
+     * We've created new ibgib to fulfill the operation (besides the derivative
+     * metadata ibgibs created in the communication).
+     *
+     * When syncing, this means that we've created new ibgib to merge into
+     * an existing timeline in the outer (sync) space.
      */
-    processing: 102 as HttpStatusCode,
+    created: 'created' as StatusCode,
     /**
-     * Using this as the code for a successfully completed sync saga.
-     *
-     * ## mdn
-     *
-     * @link https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/201
-     *
-     *  The HTTP 201 Created success status response code indicates that the
-     *  request has succeeded and has led to the creation of a resource. The new
-     *  resource is effectively created before this response is sent back and
-     *  the new resource is returned in the body of the message, its location
-     *  being either the URL of the request, or the content of the Location
-     *  header.  The common use case of this status code is as the result of a
-     *  POST request.
+     * New insertion of ibgib(s) into the outerspace.
      */
-    201: 201 as HttpStatusCode,
+    stored: 'stored' as StatusCode,
     /**
-     * 201
+     * Using this as the status indicating the operation has completed, but
+     * there were no intrinsic changes.
+     *
+     * For example, if we were to sync an ibGib but it's already up-to-date in a
+     * space, then we have generated metadata ibgibs. But *intrinsically* we have
+     * not altered any timeline ibgibs or added any stone ibgibs.
      */
-    created: 201 as HttpStatusCode,
+    already_synced: 'already_synced' as StatusCode,
 }
 
 export type OuterSpaceType = "sync";
@@ -269,7 +230,6 @@ export interface SyncSpaceOptionsIbGib<
     /**
      * Produces status ibgibs or error strings.
      */
-    // syncStatus$: ReplaySubject<SyncStatusIbGib|string>;
     syncSagaInfo: SyncSagaInfo;
 }
 
@@ -286,12 +246,11 @@ export interface SyncSpaceResultIbGib<
     /**
      * Produces status ibgibs or error strings.
      */
-    // syncStatus$: ReplaySubject<SyncStatusIbGib|string>;
     syncSagaInfo: SyncSagaInfo;
 }
 
 export interface SyncStatusData {
-    statusCode: HttpStatusCode;
+    statusCode: StatusCode;
 
     syncGib: string;
     // srcSpaceId: string;
@@ -458,14 +417,19 @@ export interface SagaInfo<
     spaceId: string;
     participants: ParticipantInfo[];
 
-    // subSyncStatus?: Subscription;
     /**
      * Only publishes values after subscribed.
      */
     syncStatus$: ReplaySubject<TStatusIbGib>;
+    syncStatusSubscriptions: Subscription[];
 
-    // subSyncCycles$: Subscription;
-    syncCycles$: ReplaySubject<TSpaceOptionsIbGib|TSpaceResultIbGib>;
+    /**
+     * For each communication saga, there will be one or more calls to
+     * each space's `witness` function. This will produce arg & result
+     * ibgibs. This is the observable stream/subject of those witness
+     * calls.
+     */
+    witnessFnArgsAndResults$: ReplaySubject<TSpaceOptionsIbGib|TSpaceResultIbGib>;
 
     // /**
     //  * ORDERED list of status ibGibs in the order that they are
@@ -520,7 +484,7 @@ export interface StatusIbInfo {
      * Code for the given status.
      *
      */
-    statusCode: HttpStatusCode,
+    statusCode: StatusCode,
     spaceType: OuterSpaceType,
     spaceSubtype: OuterSpaceSubtype,
     sagaId: string,
@@ -542,7 +506,7 @@ export function getStatusIb({
     const lc = `[${getStatusIb.name}]`;
     try {
         if (statusCode === null || statusCode === undefined) { throw new Error(`status code required. (ERROR: 4e0d232a9955496695012623c2e17ca2)`); }
-        if (!Object.values(HttpStatusCode).includes(statusCode)) { throw new Error(`invalid status code (${statusCode}) (ERROR: 91d7655424c44d9680fff099ee2b54d2)`); }
+        if (!Object.values(StatusCode).includes(statusCode)) { throw new Error(`invalid status code (${statusCode}) (ERROR: 91d7655424c44d9680fff099ee2b54d2)`); }
         if (!spaceType) { throw new Error(`spaceType required. (ERROR: 86e98694a56a4f599e98e50abf0eed43)`); }
         if (!spaceSubtype) { throw new Error(`spaceSubtype required. (ERROR: 4857d4677ee34e95aeb2251dd633909e)`); }
         if (!sagaId) { throw new Error(`sagaId required. (ERROR: cfc923bb29ee4aa788e947b6416740e6)`); }
@@ -577,9 +541,9 @@ export function getStatusIbInfo({
         // atow `status ${statusCode} ${spaceType} ${spaceSubtype} ${sagaId}`;
         const pieces = statusIb.split(delimiter);
 
-        const statusCode: HttpStatusCode = <HttpStatusCode>Number.parseInt(pieces[1]);
+        const statusCode: StatusCode = <StatusCode>Number.parseInt(pieces[1]);
         if (statusCode === null || statusCode === undefined) { throw new Error(`status code is null/undefined. (ERROR: f2f1d88d3ee14303a13582d6f7019063)`); }
-        if (!Object.values(HttpStatusCode).includes(statusCode)) { throw new Error(`invalid/unknown status code (${statusCode}) (ERROR: 7580860df7b344b3992148552e80a85e)`); }
+        if (!Object.values(StatusCode).includes(statusCode)) { throw new Error(`invalid/unknown status code (${statusCode}) (ERROR: 7580860df7b344b3992148552e80a85e)`); }
 
         let spaceType = <OuterSpaceType>pieces[2];
         if (spaceType === null || spaceType === undefined) { throw new Error(`spaceType is null/undefined. (ERROR: 12473d35e77b451bb59bb05c03cb8b64)`); }

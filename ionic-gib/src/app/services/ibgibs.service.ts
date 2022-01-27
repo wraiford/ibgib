@@ -24,7 +24,7 @@ import {
   CiphertextData, CiphertextRel8ns, CiphertextIbGib_V1,
   // IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib,
   // IbGibSpaceResultIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns,
-  SyncSpaceData, SyncSpaceResultIbGib, HttpStatusCode, SyncStatusIbGib,
+  SyncSpaceData, SyncSpaceResultIbGib, StatusCode, SyncStatusIbGib,
   OuterSpaceOptionsData, ParticipantInfo, SyncSpaceOptionsIbGib, SyncSpaceOptionsData,
   SyncSagaInfo,
 } from '../common/types';
@@ -2806,7 +2806,8 @@ export class IbgibsService {
   //   this._syncing = value;
   // }
 
-  private _syncSagaInfos: { [spaceGib: string]: SyncSagaInfo } = {};
+  // private _syncSagaInfos: { [spaceGib: string]: SyncSagaInfo } = {};
+  private sagaInfoMap: { [sagaId: string]: SyncSagaInfo } = {};
 
   async syncIbGibs({
     dependencyGraphIbGibs,
@@ -2816,8 +2817,12 @@ export class IbgibsService {
     confirm?: boolean,
   }): Promise<void> {
     const lc = `${this.lc}[${this.syncIbGibs.name}]`;
+    // map of saga infos across all spaces
+    // const sagaInfoMap: { [spaceGib: string]: SyncSagaInfo } = {};
     try {
       if (this.syncing) { throw new Error(`already syncing. (ERROR: dfa3ad58e97f4b18b4e4d7dc252208fb)`); }
+      if (Object.values(this.sagaInfoMap).length > 0) { throw new Error(`this._syncing is false but sagaInfoMap not cleaned up(?). (ERROR: bb69c808877c4931b5481585043c18e7)(UNEXPECTED)`); }
+
       this._syncing = true;
 
       // #region validate
@@ -2863,31 +2868,72 @@ export class IbgibsService {
       if (logalot) { console.log(`${lc} syncing to spaces in parallel...`); }
       const startSyncPromises: Promise<void>[] = appSyncSpaces.map(async syncSpace => {
 
-        // create the syncInfo that will track progress over entire sync operation
-        const syncSagaInfo =
+        // create the info that will track progress over entire sync saga
+        const sagaInfo =
           await this._createNewSyncSagaInfo({allIbGibsToSync, syncSpace, participants});
-        this._syncSagaInfos[syncSpace.gib] = syncSagaInfo;
+        this.sagaInfoMap[sagaInfo.sagaId] = sagaInfo;
         try {
           // _startSync creates observables that can keep us up to date
           // on the statuses of these merges. We can handle updating
           // our own local space based on those status updates.
-          await this._startSync({syncSagaInfo, confirm});
+          await this._startSync({syncSagaInfo: sagaInfo, confirm});
         } catch (error) {
           // if this throws, then that is unexpected.
           // The above result should always be returned,
           // and if it's errored then it should indicate as such.
           console.error(`${lc} (UNEXPECTED) ${error.message}`);
-          this._syncSagaInfos = {};
-          this._syncing = false;
+          // this._syncSagaInfos = {};
+          throw error;
         }
       });
+
+      // await just the initial starting of each space's sync operation
       await Promise.all(startSyncPromises);
-      await this._interpretWthToDoWithSyncInfos();
+
+      // at this point, all spaces have prepared and going. the sync saga info
+      // attached to each arg/result ibgib has the observable syncStatus$ that
+      // will produce the status updates which can be interpreted.
+      await this._handleSagaUpdates();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
+      await this.cleanupSyncSagas_NoThrow({error});
       throw error;
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  private async cleanupSyncSagas_NoThrow({
+    error,
+  }: {
+    error?: any,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.cleanupSyncSagas_NoThrow.name}]`;
+    try {
+      const syncSagaInfos = Object.values(this.sagaInfoMap).concat();
+      for (let i = 0; i < syncSagaInfos.length; i++) {
+        const info = syncSagaInfos[i];
+        if (!info.syncStatus$.complete) {
+          if (error) {
+            const emsg =
+              typeof(error) === 'string' ?  error : error.message ??
+                `${lc} something went wrong (ERROR: d7db873d9e8b4f14b5b490cadd9730f4)`;
+            console.error(emsg);
+            info.syncStatus$.error(emsg);
+          }
+          info.syncStatus$.complete();
+        }
+        // I think $.complete() closes subscriptions, but to be double sure...
+        (info.syncStatusSubscriptions ?? [])
+          .filter(sub => sub && !sub.closed)
+          .forEach(sub => { sub.unsubscribe(); });
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message} (UNEXPECTED)`);
+      // caller expects does NOT rethrow!
+    } finally {
+      this.sagaInfoMap = {};
+      this._syncing = false;
     }
   }
 
@@ -2917,13 +2963,14 @@ export class IbgibsService {
         spaceId: syncSpace.data.uuid,
         sagaId: await h.getUUID(),
         participants,
-        syncCycles$: new ReplaySubject<SyncSpaceOptionsIbGib|SyncSpaceResultIbGib>(),
+        witnessFnArgsAndResults$: new ReplaySubject<SyncSpaceOptionsIbGib|SyncSpaceResultIbGib>(),
     // arg: SyncSpaceOptionsIbGib;
     // result?: SyncSpaceResultIbGib;
         // subSyncCycles$: new ReplaySubject<SyncCycleInfo>(),
         // syncStatusIbGibs: [],
 
         syncStatus$: new ReplaySubject<SyncStatusIbGib>(),
+        syncStatusSubscriptions: [],
 
         syncIbGibs_All: allIbGibsToSync,
         syncAddrs_All,
@@ -2992,16 +3039,15 @@ export class IbgibsService {
         ibGibs: syncIbGibs_All, // do we need to do this yet?
         ibMetadata: `sync src ${this.localUserSpace.data.name} srcId ${this.localUserSpace.data.uuid}`,
       });
-      // argStartSync.syncStatus$ = syncSagaInfo.syncStatus$;
       argStartSync.syncSagaInfo = syncSagaInfo;
 
       // atow we only have one cycle. in the future, I think we will be having the possibility
       // of multiple cycles, which is why I have this structured as an observable
       // and not hard-coding a single arg/result in the saga info.
-      syncSagaInfo.syncCycles$.next(argStartSync);
+      syncSagaInfo.witnessFnArgsAndResults$.next(argStartSync);
       const resStartSync: SyncSpaceResultIbGib = await syncSpace.witness(argStartSync);
       if (!resStartSync.data?.tjpGib) { throw new Error(`resStartSync.data.tjpGib (syncId) is falsy. (ERROR: 727b5cc1a0254497bc6e06e9c6760564)`); }
-      syncSagaInfo.syncCycles$.next(resStartSync);
+      syncSagaInfo.witnessFnArgsAndResults$.next(resStartSync);
 
       // now that we have the progress ibGib, we can ping it's get latest at intervals
       // to check the status of what to do.
@@ -3018,12 +3064,9 @@ export class IbgibsService {
    * Coming in to this function, we have results from one or more
    * sync spaces. Here are the combinations of expected outcomes:
    *
-   * 1. All success, each returns the exact same new ib^gib
-   *    address(es).
-   * 2. All success, but different sync spaces return different
-   *    ib^gib address(es).
-   * 3. Some success, which returns exact same new ib^gib, some
-   *    error.
+   * 1. All success, each returns the exact same new ib^gib address(es).
+   * 2. All success, but different spaces return different ib^gib address(es).
+   * 3. Some success, which returns exact same new ib^gib, some error.
    * 4. Some success, more than one ib^gib address(es), some error.
    * 5. All error.
    *
@@ -3050,89 +3093,62 @@ export class IbgibsService {
    * It is in this generalization that byzantine resolution can be
    * achieved through whichever mechanism is correct for the use case.
    */
-  private async _interpretWthToDoWithSyncInfos(): Promise<void> {
-    const lc = `${this.lc}[${this._interpretWthToDoWithSyncInfos.name}]`;
+  private async _handleSagaUpdates(): Promise<void> {
+    const lc = `${this.lc}[${this._handleSagaUpdates.name}]`;
     try {
       // at this point in execution, each space has returned the result ibgib
       // which has a syncStatus$ observable.
-      // atow, code:
-        // const syncInfo =
-        //   await this._createNewSyncInfo({allIbGibsToSync, syncSpace, participants});
-        // this._syncInfos[syncSpace.gib] = syncInfo;
 
-      // these successes/fails are for the initial function that creates
-      // the sync start ibgib. these have nothing to do with if
-      // the overall sync succeeds/fails in the end. That has to be handled
-      // by the syncStatus$ observable instances. But if it fails before those
-      // observables mean anything, we go ahead and do the cleanup.
-      // let successes: SyncSpaceResultIbGib[] = [];
-      // let fails: SyncSpaceResultIbGib[] = [];
-      // const syncSpaceGibs = Object.keys(this._syncSagaInfos);
-      // for (let i = 0; i < syncSpaceGibs.length; i++) {
-      //   const syncSpaceGib = syncSpaceGibs[i];
-      //   const syncInfo = this._syncSagaInfos[syncSpaceGib];
-      //   syncInfo.res
-      //   const resSync = syncResults[syncSpaceGib];
-      //   if (resSync?.data?.success) {
-      //     successes.push(resSync);
-      //   } else {
-      //     // clean up observable
-      //     const emsg = (resSync.data.errors ?? []).join('. ') ?? 'resSync failed. unknown errors. (ERROR: fbd37d27341a4b2a8d89095e65e75691)';
-      //     if (!resSync.syncStatus$.closed) { resSync.syncStatus$.error(emsg); }
+      const infos = Object.values(this.sagaInfoMap);
+      for (let i = 0; i < infos.length; i++) {
+        const sagaInfo = infos[i];
+        const handleSyncStatusIbGib = async (status: SyncStatusIbGib) => {
+          const lc2 = `${lc}[${handleSyncStatusIbGib.name}]`;
+          try {
+            let resStoreStatusLocally = await this.put({
+              ibGib: status,
+              isMeta: true,
+              space: this.localUserSpace,
+            });
+            if (!resStoreStatusLocally.success) {
+              // just log for now...the saving is supposed to the the log in the first place.
+              console.error(`${lc} couldn't save status locally? sagaId: ${sagaInfo.sagaId} (ERROR: b472101897824195b96b658c441dfb55)(UNEXPECTED)`);
+            }
+            switch (status.data.statusCode) {
+              case StatusCode.started:
+                console.log(`${lc} sync started.`);
+                break;
 
-      //     // clean up subscription
-      //     const syncSub = this._syncingSubscriptions[syncSpaceGib];
-      //     if (syncSub && !syncSub.closed) { syncSub.unsubscribe(); }
-      //     delete this._syncingSubscriptions[syncSpaceGib];
+              case StatusCode.created:
+                // had to create to merge timeline to outer space
+                await this.handleSyncComplete_Created()
+                break;
 
-      //     // not sure what I'm going to do with these atm.
-      //     fails.push(resSync);
-      //   }
-      // }
+              case StatusCode.completed:
+                break;
+              case StatusCode.undefined:
+                // atow undefined is used in primitive status parentage
+                throw new Error(`published a primitive status with undefined statusCode. sagaId: ${sagaInfo.sagaId} (ERROR: c98376f35b194adf9bf12ff9259a2569)`);
 
-      // if we don't have successes, we're done so...
-      // if (successes.length === 0) {
-      //   console.error(`${lc} all syncs failed.`);
-      //   this._syncing = false;
-      //   return;
-      // }
+              default:
+                // ?
+                throw new Error(`unknown status.data.statusCode (${status.data.statusCode}). sagaId: ${sagaInfo.sagaId} (ERROR: e4872abfc1ae4c27905793ca0f937a9b)(UNEXPECTED)`);
+            }
+          } catch (error) {
+            const emsg = `${lc2} ${error.message}`;
+            console.error(emsg);
+            sagaInfo.syncStatus$.error(emsg);
+          }
+        };
+        let sub =
+          sagaInfo.syncStatus$.subscribe(
+            x => handleSyncStatusIbGib(x),
+            async (error: string) => { },
+            /*complete*/ async () => { }
+          );
+        if (sagaInfo.syncStatusSubscriptions) { sagaInfo.syncStatusSubscriptions.push(sub); }
+      }
 
-
-      //   debugger;
-      //   if (resStartSync.data?.success) {
-      //     debugger;
-      //     const subSyncStatus = resStartSync.syncStatus$.subscribe(async (status: SyncStatusIbGib) => {
-      //       const lc2 = `${lc}(${syncId})`;
-      //       try {
-      //         if (!status) { throw new Error('status ibGib is falsy. (ERROR: 1e3c71cafeac465ab82b96ddb3c21753)'); }
-      //         debugger;
-      //         if (!status.data) { throw new Error('invalid status: data falsy. (ERROR: 1e2f875d80a746d3a126e70c82a25b71)'); }
-      //         if (status.data.success) {
-      //           debugger;
-      //           switch (status.data.statusCode) {
-      //             case HttpStatusCode.processing:
-      //               console.log(`${lc2} processing status ibGib.`);
-      //               break;
-
-      //             default:
-      //               throw new Error(`Unknown status.data.statusCode: ${status.data.statusCode} (ERROR: 8b8d067e94f7425bb5182fb47ee8db7a)`);
-      //           }
-      //         } else {
-      //           // had an error
-      //           debugger;
-      //           throw new Error(`sync had an error... (ERROR: 18bab1d1b25b42e1b6a31c37237c940c)`);
-      //         }
-      //       } catch (error) {
-      //         console.error(`${lc} ${error.message}`);
-      //         if (!subSyncStatus.closed) { subSyncStatus.unsubscribe(); }
-      //         if (this._syncingSubscriptions[syncId]) { delete this._syncingSubscriptions[syncId]; }
-      //       }
-      //     });
-      //     this._syncingSubscriptions[syncId] = subSyncStatus;
-      //   } else {
-      //     debugger;
-      //     throw new Error(`resStartSync had an error. (ERROR: 6e6f5ac560e44f9ea41fe54300ffce5b)`);
-      //   }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
