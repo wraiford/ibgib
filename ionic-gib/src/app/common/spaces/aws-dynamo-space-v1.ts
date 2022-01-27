@@ -28,6 +28,7 @@ import {
     SyncStatusIbGib,
     HttpStatusCode,
     ParticipantInfo,
+    SyncSagaInfo,
 } from '../types';
 import * as c from '../constants';
 import { getBinAddr, groupBy, splitIntoWithTjpAndWithoutTjp } from '../helper';
@@ -2322,13 +2323,14 @@ export class AWSDynamoSpace_V1<
         // method will work inside of a spun-off promise.
         let errors: string[] = [];
         let warnings: string[] = [];
-        let syncStatus$: ReplaySubject<SyncStatusIbGib|string> = arg?.syncStatus$;
+        let syncSagaInfo: SyncSagaInfo = arg?.syncSagaInfo;
+        // let syncStatus$: ReplaySubject<SyncStatusIbGib|string> = arg?.syncStatus$;
         try {
             if (!arg.data) { throw new Error(`arg.data required. (ERROR: 847a1506e7054d53b7bf5ff87a4b32da)`); }
             if ((arg.data.ibGibAddrs ?? []).length === 0) { throw new Error(`arg.data.ibGibAddrs required. (ERROR: 6f2062572cc247f6a12b34759418c66b)`); }
-            if (!arg.data.txrxId) { throw new Error(`txrxId required. (ERROR: af30b1b3cf3a4676a89399514743da79)`); }
+            if (!arg.data.sagaId) { throw new Error(`sagaId required. (ERROR: af30b1b3cf3a4676a89399514743da79)`); }
             if ((arg.ibGibs ?? []).length === 0) { throw new Error(`no ibgibs given. (ERROR: 62ae74eab0434b90b866caa285403143)`); }
-            if (!arg.syncStatus$) { throw new Error(`arg.syncStatus$ required. (ERROR: 33efb28789ff40b9b340eedcba0017f7)`); }
+            if (!arg.syncSagaInfo) { throw new Error(`arg.syncSagaInfo required. (ERROR: 33efb28789ff40b9b340eedcba0017f7)`); }
 
             const client = createClient({
                 accessKeyId: this.data.accessKeyId,
@@ -2341,7 +2343,7 @@ export class AWSDynamoSpace_V1<
             const {statusIbGib: syncStatusIbGib_Start, statusIbGibsGraph: statusStartIbGibs} =
                 await this.getStatusIbGibs_Start({
                     client: client,
-                    txrxId: arg.data.txrxId,
+                    sagaId: arg.data.sagaId,
                     participants: arg.data.participants,
                     ibGibAddrs: arg.data.ibGibAddrs,
                 });
@@ -2352,7 +2354,7 @@ export class AWSDynamoSpace_V1<
                 ibGibs: arg.ibGibs.concat(),
                 statusStartIbGibs,
                 syncStatusIbGib_Start,
-                syncStatus$,
+                syncStatus$: syncSagaInfo.syncStatus$,
                 errors,
                 warnings,
             });
@@ -2363,7 +2365,7 @@ export class AWSDynamoSpace_V1<
         }
         try {
             const result = await this.resulty({resultData});
-            if (syncStatus$) { result.syncStatus$ = syncStatus$; }
+            result.syncSagaInfo = syncSagaInfo;
             return result;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -2938,12 +2940,12 @@ export class AWSDynamoSpace_V1<
      */
     private async getStatusIbGibs_Start({
         client,
-        txrxId,
+        sagaId,
         participants,
         ibGibAddrs,
     }: {
         client: DynamoDBClient,
-        txrxId: string,
+        sagaId: string,
         participants: ParticipantInfo[],
         ibGibAddrs: IbGibAddr[],
     }): Promise<{statusIbGib: SyncStatusIbGib, statusIbGibsGraph: IbGib_V1[]}> {
@@ -2957,7 +2959,7 @@ export class AWSDynamoSpace_V1<
                 spaceType: 'sync',
                 spaceSubtype: 'aws-dynamodb',
                 statusCode: HttpStatusCode.undefined, // "undefined" means '0' atow!!
-                txrxId: c.STATUS_UNDEFINED_TX_ID, // "undefined" means '0' atow!!
+                sagaId: c.STATUS_UNDEFINED_TX_ID, // "undefined" means '0' atow!!
             });
             const parentIbGib = factory.primitive({ib: parentIb});
             // we don't store primitives, so don't add to allIbGibs
@@ -2968,7 +2970,7 @@ export class AWSDynamoSpace_V1<
                 statusCode,
                 spaceType: 'sync',
                 spaceSubtype: 'aws-dynamodb',
-                txrxId,
+                sagaId,
             });
             const data = <SyncStatusData>{
                 statusCode,

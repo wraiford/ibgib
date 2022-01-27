@@ -4,38 +4,51 @@
  */
 
 import { Injectable } from '@angular/core';
+import { AlertController, ModalController } from '@ionic/angular';
 import { ReplaySubject, Subject, Subscription } from 'rxjs';
 
 import { IbGib_V1, Rel8n, GIB, sha256v1, IbGibRel8ns_V1, GIB_DELIMITER } from 'ts-gib/dist/V1';
 import { IbGibAddr, V1, Ib, TransformResult, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { Factory_V1 as factory } from 'ts-gib/dist/V1';
+import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { encrypt, decrypt, } from 'encrypt-gib';
 
 import {
-  TagData, RootData,
+  // TagData,
+  RootData,
   SpecialIbGibType,
   LatestEventInfo,
   SecretData_V1, SecretInfo_Password, SecretIbGib_V1,
   EncryptionInfo, EncryptionInfo_EncryptGib, EncryptionData_V1,
   CiphertextData, CiphertextRel8ns, CiphertextIbGib_V1,
-  IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib,
-  IbGibSpaceResultIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns,
-  SyncSpaceData, SyncSpaceResultIbGib, HttpStatusCode, SyncStatusIbGib, OuterSpaceOptionsData, ParticipantInfo, SyncSpaceOptionsIbGib, SyncSpaceOptionsData, SyncCycleInfo,
+  // IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib,
+  // IbGibSpaceResultIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns,
+  SyncSpaceData, SyncSpaceResultIbGib, HttpStatusCode, SyncStatusIbGib,
+  OuterSpaceOptionsData, ParticipantInfo, SyncSpaceOptionsIbGib, SyncSpaceOptionsData,
+  SyncSagaInfo,
 } from '../common/types';
 import {
   IonicSpace_V1,
   IonicSpaceData_V1
 } from '../common/spaces/ionic-space-v1';
 import * as c from '../common/constants';
-import { AlertController, ModalController } from '@ionic/angular';
 import { IbGibSpaceAny } from '../common/spaces/space-base-v1';
-import { encrypt, decrypt, } from 'encrypt-gib';
 import { AWSDynamoSpace_V1 } from '../common/spaces/aws-dynamo-space-v1';
-import { createSpecial, createTagIbGib, deleteFromSpace, getDependencyGraph, getFnAlert, getFnConfirm, getFnPrompt, getFnPromptPassword_AlertController, getFromSpace, getSpecialIbgib, getSpecialRel8dIbGibs, getTimestampInTicks, getTjpIbGib, groupBy, hasTjp, isSameSpace, persistTransformResult, putInSpace, registerNewIbGib, rel8ToCurrentRoot, rel8ToSpecialIbGib, setConfigAddr, setCurrentRoot, validateBootstrapGib, validateUserSpaceName } from '../common/helper';
-import { argy_ } from '../common/witnesses';
+import {
+  createSpecial, createTagIbGib, deleteFromSpace, getFromSpace, getFnAlert,
+  getFnConfirm, getFnPrompt, getFnPromptPassword_AlertController,
+  getDependencyGraph, getSpecialIbgib, getSpecialRel8dIbGibs, getTjpIbGib,
+  groupBy, hasTjp, isSameSpace, persistTransformResult, putInSpace,
+  registerNewIbGib, rel8ToCurrentRoot, rel8ToSpecialIbGib, setConfigAddr,
+  setCurrentRoot, validateBootstrapGib, validateUserSpaceName,
+} from '../common/helper';
 import { AppSpaceData, AppSpaceRel8ns } from '../common/types/app';
-import { DeleteIbGibOpts, DeleteIbGibResult, GetIbGibOpts, GetIbGibResult, PutIbGibOpts, PutIbGibResult } from '../common/types/legacy';
-import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
+import {
+  DeleteIbGibOpts, DeleteIbGibResult,
+  GetIbGibOpts, GetIbGibResult,
+  PutIbGibOpts, PutIbGibResult
+} from '../common/types/legacy';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -54,40 +67,6 @@ interface TempCacheEntry {
   salt: string;
 }
 
-/**
- * Information about a sync operation internal to this service.
- */
-interface SyncInfo {
-  syncSpace: IbGibSpaceAny;
-  spaceGib: string;
-  spaceId: string;
-  txrxId: string;
-  participants: ParticipantInfo[];
-
-  subSyncStatus?: Subscription;
-  /**
-   * Only publishes values after subscribed.
-   */
-  syncStatus$: ReplaySubject<SyncStatusIbGib>;
-
-  // syncOptionsIbGibs: SyncSpaceOptionsIbGib[];
-  // syncResultsIbGibs: SyncSpaceResultIbGib[];
-  syncCycles: SyncCycleInfo[];
-  /**
-   * ORDERED list of status ibGibs in the order that they are
-   * published to syncStatus$.
-   */
-  syncStatusIbGibs: SyncStatusIbGib[];
-
-  syncIbGibs_All: IbGib_V1[];
-  syncAddrs_All: IbGibAddr[];
-  syncAddrs_All_Tjps: IbGibAddr[];
-  syncAddrs_All_NonTjps: IbGibAddr[];
-  syncAddrs_Skipped: IbGibAddr[];
-  syncAddrs_ToDo: IbGibAddr[];
-  syncAddrs_InProgress: IbGibAddr[];
-  syncAddrs_Failed: IbGibAddr[];
-}
 
 /**
  * All-purpose mega service (todo: which we'll need to break up!) to interact
@@ -2827,7 +2806,7 @@ export class IbgibsService {
   //   this._syncing = value;
   // }
 
-  private _syncInfos: { [spaceGib: string]: SyncInfo } = {};
+  private _syncSagaInfos: { [spaceGib: string]: SyncSagaInfo } = {};
 
   async syncIbGibs({
     dependencyGraphIbGibs,
@@ -2885,20 +2864,20 @@ export class IbgibsService {
       const startSyncPromises: Promise<void>[] = appSyncSpaces.map(async syncSpace => {
 
         // create the syncInfo that will track progress over entire sync operation
-        const syncInfo =
-          await this._createNewSyncInfo({allIbGibsToSync, syncSpace, participants});
-        this._syncInfos[syncSpace.gib] = syncInfo;
+        const syncSagaInfo =
+          await this._createNewSyncSagaInfo({allIbGibsToSync, syncSpace, participants});
+        this._syncSagaInfos[syncSpace.gib] = syncSagaInfo;
         try {
           // _startSync creates observables that can keep us up to date
           // on the statuses of these merges. We can handle updating
           // our own local space based on those status updates.
-          await this._startSync({syncInfo, confirm});
+          await this._startSync({syncSagaInfo, confirm});
         } catch (error) {
           // if this throws, then that is unexpected.
           // The above result should always be returned,
           // and if it's errored then it should indicate as such.
           console.error(`${lc} (UNEXPECTED) ${error.message}`);
-          this._syncInfos = {};
+          this._syncSagaInfos = {};
           this._syncing = false;
         }
       });
@@ -2912,7 +2891,7 @@ export class IbgibsService {
     }
   }
 
-  private async _createNewSyncInfo({
+  private async _createNewSyncSagaInfo({
     allIbGibsToSync,
     syncSpace,
     participants
@@ -2920,8 +2899,8 @@ export class IbgibsService {
     allIbGibsToSync: IbGib_V1[],
     syncSpace: IbGibSpaceAny,
     participants: ParticipantInfo[],
-  }): Promise<SyncInfo> {
-    const lc = `${this.lc}[${this._createNewSyncInfo.name}]`;
+  }): Promise<SyncSagaInfo> {
+    const lc = `${this.lc}[${this._createNewSyncSagaInfo.name}]`;
     try {
       // do the addrs outside of info initializer
       const syncAddrs_All = allIbGibsToSync.map(x => h.getIbGibAddr({ibGib: x}));
@@ -2932,14 +2911,17 @@ export class IbgibsService {
         syncAddrs_All.filter(addr => !syncAddrs_All_Tjps.includes(addr));
 
       // do the info initializer
-      const syncInfo: SyncInfo = {
+      const syncSagaInfo: SyncSagaInfo = {
         syncSpace,
-        spaceGib: syncSpace.gib,
+        // spaceGib: syncSpace.gib,
         spaceId: syncSpace.data.uuid,
-        txrxId: await h.getUUID(),
+        sagaId: await h.getUUID(),
         participants,
-        syncCycles: [],
-        syncStatusIbGibs: [],
+        syncCycles$: new ReplaySubject<SyncSpaceOptionsIbGib|SyncSpaceResultIbGib>(),
+    // arg: SyncSpaceOptionsIbGib;
+    // result?: SyncSpaceResultIbGib;
+        // subSyncCycles$: new ReplaySubject<SyncCycleInfo>(),
+        // syncStatusIbGibs: [],
 
         syncStatus$: new ReplaySubject<SyncStatusIbGib>(),
 
@@ -2954,7 +2936,7 @@ export class IbgibsService {
       };
 
       // return it
-      return syncInfo;
+      return syncSagaInfo;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -2975,10 +2957,10 @@ export class IbgibsService {
    * @returns
    */
   private async _startSync({
-    syncInfo,
+    syncSagaInfo,
     confirm,
   }: {
-    syncInfo: SyncInfo,
+    syncSagaInfo: SyncSagaInfo,
     /**
      * Will confirm via checking existence of ibgibs in sync space after
      * writing them.
@@ -2991,9 +2973,9 @@ export class IbgibsService {
     try {
 
       const {
-        syncSpace, txrxId, syncIbGibs_All, participants,
+        syncSpace, sagaId, syncIbGibs_All, participants,
         syncAddrs_All, syncAddrs_All_Tjps, syncAddrs_All_NonTjps,
-      } = syncInfo;
+      } = syncSagaInfo;
 
       // first we want to get the ball rolling
       // we will get back an ibGib that we can use to track the progress of the
@@ -3001,7 +2983,7 @@ export class IbgibsService {
       const argStartSync: SyncSpaceOptionsIbGib = await syncSpace.argy({
         argData: <SyncSpaceOptionsData>{
           cmd: 'put', cmdModifiers: ['sync'],
-          txrxId,
+          sagaId,
           participants,
           ibGibAddrs: syncAddrs_All,
           ibGibAddrs_All_Tjps: syncAddrs_All_Tjps,
@@ -3010,50 +2992,22 @@ export class IbgibsService {
         ibGibs: syncIbGibs_All, // do we need to do this yet?
         ibMetadata: `sync src ${this.localUserSpace.data.name} srcId ${this.localUserSpace.data.uuid}`,
       });
-      argStartSync.syncStatus$ = syncInfo.syncStatus$;
-      const syncCycleInfo: SyncCycleInfo = { arg: argStartSync };
-      syncInfo.syncCycles.push(syncCycleInfo);
+      // argStartSync.syncStatus$ = syncSagaInfo.syncStatus$;
+      argStartSync.syncSagaInfo = syncSagaInfo;
+
+      // atow we only have one cycle. in the future, I think we will be having the possibility
+      // of multiple cycles, which is why I have this structured as an observable
+      // and not hard-coding a single arg/result in the saga info.
+      syncSagaInfo.syncCycles$.next(argStartSync);
       const resStartSync: SyncSpaceResultIbGib = await syncSpace.witness(argStartSync);
       if (!resStartSync.data?.tjpGib) { throw new Error(`resStartSync.data.tjpGib (syncId) is falsy. (ERROR: 727b5cc1a0254497bc6e06e9c6760564)`); }
-      syncCycleInfo.result = resStartSync;
+      syncSagaInfo.syncCycles$.next(resStartSync);
 
       // now that we have the progress ibGib, we can ping it's get latest at intervals
       // to check the status of what to do.
       // if it needs ibGibs, then
 
-
-        // if (confirm) {
-        //   const ibGibAddrs = dependencyGraphIbGibs.map(x => h.getIbGibAddr({ibGib: x}));
-        //   console.warn(`test individual ibgibs confirming put was successful...need to remove!`);
-        //   const argGet = await syncSpace.argy({
-        //     argData: {
-        //       cmd: 'get',
-        //       ibGibAddrs,
-        //     }
-        //   });
-        //   const resGet = await syncSpace.witness(argGet);
-
-        //   if (resGet.ibGibs?.length !== dependencyGraphIbGibs.length) {
-        //     throw new Error(`resGet.ibGibs?.length: ${resGet.ibGibs?.length} but ibGibs.length: ${dependencyGraphIbGibs.length}`);
-        //   }
-
-        //   for (let i = 0; i < ibGibAddrs.length; i++) {
-        //     const addr = ibGibAddrs[i];
-        //     const ibGib = dependencyGraphIbGibs.filter(x => h.getIbGibAddr({ibGib: x}) === addr)[0];
-        //     const gotIbGibs = resGet.ibGibs?.filter(x => h.getIbGibAddr({ibGib: x}) === addr);
-        //     if (gotIbGibs.length !== 1) { throw new Error(`did not get addr: ${addr}`); }
-        //     const gotIbGib = gotIbGibs[0];
-        //     if (ibGib.ib !== gotIbGib.ib) { throw new Error(`ib is different`); }
-        //     if (ibGib.gib !== gotIbGib.gib) { throw new Error(`gib is different`); }
-        //     if (JSON.stringify(ibGib.data) !== JSON.stringify(gotIbGib.data)) { throw new Error(`data is different`); }
-        //     if (JSON.stringify(ibGib.rel8ns) !== JSON.stringify(gotIbGib.rel8ns)) { throw new Error(`rel8ns is different`); }
-        //     if (logalot) { console.log(`${lc} confirmed ${h.getIbGibAddr({ibGib})}`); }
-        //   }
-
-        //   if (logalot) { console.log(`${lc} confirmation complete.`); }
-        // }
-
-        return resStartSync;
+      return resStartSync;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -3099,77 +3053,86 @@ export class IbgibsService {
   private async _interpretWthToDoWithSyncInfos(): Promise<void> {
     const lc = `${this.lc}[${this._interpretWthToDoWithSyncInfos.name}]`;
     try {
+      // at this point in execution, each space has returned the result ibgib
+      // which has a syncStatus$ observable.
+      // atow, code:
+        // const syncInfo =
+        //   await this._createNewSyncInfo({allIbGibsToSync, syncSpace, participants});
+        // this._syncInfos[syncSpace.gib] = syncInfo;
+
       // these successes/fails are for the initial function that creates
       // the sync start ibgib. these have nothing to do with if
       // the overall sync succeeds/fails in the end. That has to be handled
       // by the syncStatus$ observable instances. But if it fails before those
       // observables mean anything, we go ahead and do the cleanup.
-      let successes: SyncSpaceResultIbGib[] = [];
-      let fails: SyncSpaceResultIbGib[] = [];
-      const syncGibs = Object.keys(syncResults);
-      for (let i = 0; i < syncGibs.length; i++) {
-        const syncGib = syncGibs[i];
-        const resSync = syncResults[syncGib];
-        if (resSync?.data?.success) {
-          successes.push(resSync);
-        } else {
-          // clean up observable
-          const emsg = (resSync.data.errors ?? []).join('. ') ?? 'resSync failed. unknown errors. (ERROR: fbd37d27341a4b2a8d89095e65e75691)';
-          if (!resSync.syncStatus$.closed) { resSync.syncStatus$.error(emsg); }
+      // let successes: SyncSpaceResultIbGib[] = [];
+      // let fails: SyncSpaceResultIbGib[] = [];
+      // const syncSpaceGibs = Object.keys(this._syncSagaInfos);
+      // for (let i = 0; i < syncSpaceGibs.length; i++) {
+      //   const syncSpaceGib = syncSpaceGibs[i];
+      //   const syncInfo = this._syncSagaInfos[syncSpaceGib];
+      //   syncInfo.res
+      //   const resSync = syncResults[syncSpaceGib];
+      //   if (resSync?.data?.success) {
+      //     successes.push(resSync);
+      //   } else {
+      //     // clean up observable
+      //     const emsg = (resSync.data.errors ?? []).join('. ') ?? 'resSync failed. unknown errors. (ERROR: fbd37d27341a4b2a8d89095e65e75691)';
+      //     if (!resSync.syncStatus$.closed) { resSync.syncStatus$.error(emsg); }
 
-          // clean up subscription
-          const syncSub = this._syncingSubscriptions[syncGib];
-          if (syncSub && !syncSub.closed) { syncSub.unsubscribe(); }
-          delete this._syncingSubscriptions[syncGib];
+      //     // clean up subscription
+      //     const syncSub = this._syncingSubscriptions[syncSpaceGib];
+      //     if (syncSub && !syncSub.closed) { syncSub.unsubscribe(); }
+      //     delete this._syncingSubscriptions[syncSpaceGib];
 
-          // not sure what I'm going to do with these atm.
-          fails.push(resSync);
-        }
-      }
+      //     // not sure what I'm going to do with these atm.
+      //     fails.push(resSync);
+      //   }
+      // }
 
       // if we don't have successes, we're done so...
-      if (successes.length === 0) {
-        console.error(`${lc} all syncs failed.`);
-        this._syncing = false;
-        return;
-      }
+      // if (successes.length === 0) {
+      //   console.error(`${lc} all syncs failed.`);
+      //   this._syncing = false;
+      //   return;
+      // }
 
 
-        debugger;
-        if (resStartSync.data?.success) {
-          debugger;
-          const subSyncStatus = resStartSync.syncStatus$.subscribe(async (status: SyncStatusIbGib) => {
-            const lc2 = `${lc}(${syncId})`;
-            try {
-              if (!status) { throw new Error('status ibGib is falsy. (ERROR: 1e3c71cafeac465ab82b96ddb3c21753)'); }
-              debugger;
-              if (!status.data) { throw new Error('invalid status: data falsy. (ERROR: 1e2f875d80a746d3a126e70c82a25b71)'); }
-              if (status.data.success) {
-                debugger;
-                switch (status.data.statusCode) {
-                  case HttpStatusCode.processing:
-                    console.log(`${lc2} processing status ibGib.`);
-                    break;
+      //   debugger;
+      //   if (resStartSync.data?.success) {
+      //     debugger;
+      //     const subSyncStatus = resStartSync.syncStatus$.subscribe(async (status: SyncStatusIbGib) => {
+      //       const lc2 = `${lc}(${syncId})`;
+      //       try {
+      //         if (!status) { throw new Error('status ibGib is falsy. (ERROR: 1e3c71cafeac465ab82b96ddb3c21753)'); }
+      //         debugger;
+      //         if (!status.data) { throw new Error('invalid status: data falsy. (ERROR: 1e2f875d80a746d3a126e70c82a25b71)'); }
+      //         if (status.data.success) {
+      //           debugger;
+      //           switch (status.data.statusCode) {
+      //             case HttpStatusCode.processing:
+      //               console.log(`${lc2} processing status ibGib.`);
+      //               break;
 
-                  default:
-                    throw new Error(`Unknown status.data.statusCode: ${status.data.statusCode} (ERROR: 8b8d067e94f7425bb5182fb47ee8db7a)`);
-                }
-              } else {
-                // had an error
-                debugger;
-                throw new Error(`sync had an error... (ERROR: 18bab1d1b25b42e1b6a31c37237c940c)`);
-              }
-            } catch (error) {
-              console.error(`${lc} ${error.message}`);
-              if (!subSyncStatus.closed) { subSyncStatus.unsubscribe(); }
-              if (this._syncingSubscriptions[syncId]) { delete this._syncingSubscriptions[syncId]; }
-            }
-          });
-          this._syncingSubscriptions[syncId] = subSyncStatus;
-        } else {
-          debugger;
-          throw new Error(`resStartSync had an error. (ERROR: 6e6f5ac560e44f9ea41fe54300ffce5b)`);
-        }
+      //             default:
+      //               throw new Error(`Unknown status.data.statusCode: ${status.data.statusCode} (ERROR: 8b8d067e94f7425bb5182fb47ee8db7a)`);
+      //           }
+      //         } else {
+      //           // had an error
+      //           debugger;
+      //           throw new Error(`sync had an error... (ERROR: 18bab1d1b25b42e1b6a31c37237c940c)`);
+      //         }
+      //       } catch (error) {
+      //         console.error(`${lc} ${error.message}`);
+      //         if (!subSyncStatus.closed) { subSyncStatus.unsubscribe(); }
+      //         if (this._syncingSubscriptions[syncId]) { delete this._syncingSubscriptions[syncId]; }
+      //       }
+      //     });
+      //     this._syncingSubscriptions[syncId] = subSyncStatus;
+      //   } else {
+      //     debugger;
+      //     throw new Error(`resStartSync had an error. (ERROR: 6e6f5ac560e44f9ea41fe54300ffce5b)`);
+      //   }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

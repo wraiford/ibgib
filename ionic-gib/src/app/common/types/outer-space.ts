@@ -17,6 +17,7 @@ import {
     IbGibSpaceOptionsCmdModifier,
     IbGibSpaceResultData, IbGibSpaceResultRel8ns, IbGibSpaceResultIbGib,
 } from './space';
+import { IbGibSpaceAny } from '../spaces/space-base-v1';
 
 /**
  * @link https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
@@ -176,7 +177,7 @@ export interface OuterSpaceOptionsData extends IbGibSpaceOptionsData {
      * gib of the individual status ibgib is just as uniquely
      * identifying.
      */
-    txrxId?: string;
+    sagaId?: string;
     /**
      * Info of the participating spaces (as endpoints) in the communication.
      */
@@ -268,7 +269,8 @@ export interface SyncSpaceOptionsIbGib<
     /**
      * Produces status ibgibs or error strings.
      */
-    syncStatus$: ReplaySubject<SyncStatusIbGib|string>;
+    // syncStatus$: ReplaySubject<SyncStatusIbGib|string>;
+    syncSagaInfo: SyncSagaInfo;
 }
 
 export interface SyncSpaceResultData extends OuterSpaceResultData {
@@ -284,7 +286,8 @@ export interface SyncSpaceResultIbGib<
     /**
      * Produces status ibgibs or error strings.
      */
-    syncStatus$: ReplaySubject<SyncStatusIbGib|string>;
+    // syncStatus$: ReplaySubject<SyncStatusIbGib|string>;
+    syncSagaInfo: SyncSagaInfo;
 }
 
 export interface SyncStatusData {
@@ -436,10 +439,76 @@ export interface SyncStatusIbGib extends IbGib_V1<SyncStatusData, SyncStatusRel8
     finalIbGib?: IbGib_V1;
 }
 
-export interface SyncCycleInfo {
-    arg: SyncSpaceOptionsIbGib;
-    result?: SyncSpaceResultIbGib;
+export interface SagaInfo<
+    TIbGib extends IbGib_V1,
+    TSpaceOptionsData extends OuterSpaceOptionsData,
+    TSpaceOptionsRel8ns extends OuterSpaceOptionsRel8ns,
+    TSpaceOptionsIbGib extends OuterSpaceOptionsIbGib<TIbGib, TSpaceOptionsData, TSpaceOptionsRel8ns>,
+    TSpaceResultData extends OuterSpaceResultData,
+    TSpaceResultRel8ns extends OuterSpaceResultRel8ns,
+    TSpaceResultIbGib extends OuterSpaceResultIbGib<TIbGib, TSpaceResultData, TSpaceResultRel8ns>,
+    TStatusIbGib extends TIbGib,
+    > {
+    /**
+     * UUID generated at the beginning of a sync Id generated
+     */
+    sagaId: string;
+    syncSpace: IbGibSpaceAny;
+    //   spaceGib: string;
+    spaceId: string;
+    participants: ParticipantInfo[];
+
+    // subSyncStatus?: Subscription;
+    /**
+     * Only publishes values after subscribed.
+     */
+    syncStatus$: ReplaySubject<TStatusIbGib>;
+
+    // subSyncCycles$: Subscription;
+    syncCycles$: ReplaySubject<TSpaceOptionsIbGib|TSpaceResultIbGib>;
+
+    // /**
+    //  * ORDERED list of status ibGibs in the order that they are
+    //  * published to syncStatus$.
+    //  */
+    // syncStatusIbGibs: SyncStatusIbGib[];
+
+    syncIbGibs_All: IbGib_V1[];
+    syncAddrs_All: IbGibAddr[];
+    syncAddrs_All_Tjps: IbGibAddr[];
+    syncAddrs_All_NonTjps: IbGibAddr[];
+    syncAddrs_Skipped: IbGibAddr[];
+    syncAddrs_ToDo: IbGibAddr[];
+    syncAddrs_InProgress: IbGibAddr[];
+    syncAddrs_Failed: IbGibAddr[];
+
 }
+
+/**
+ * Information about a sync operation over its entirety.
+ *
+ * ## notes
+ *
+ * This will be attached to each space arg/result ibgib, but
+ * this info object WILL NOT be part of the internal `data`
+ * of either arg or result ibGib.
+ */
+export interface SyncSagaInfo
+    extends SagaInfo<
+        IbGib_V1,
+        SyncSpaceOptionsData,
+        SyncSpaceOptionsRel8ns,
+        SyncSpaceOptionsIbGib,
+        SyncSpaceResultData,
+        SyncSpaceResultRel8ns,
+        SyncSpaceResultIbGib,
+        SyncStatusIbGib> {
+}
+
+// export interface SyncCycleInfo {
+//     arg: SyncSpaceOptionsIbGib;
+//     result?: SyncSpaceResultIbGib;
+// }
 
 /**
  * AWS-specific outerspace type
@@ -454,7 +523,7 @@ export interface StatusIbInfo {
     statusCode: HttpStatusCode,
     spaceType: OuterSpaceType,
     spaceSubtype: OuterSpaceSubtype,
-    txrxId: string,
+    sagaId: string,
     delimiter?: string,
 }
 
@@ -467,7 +536,7 @@ export function getStatusIb({
     statusCode,
     spaceType,
     spaceSubtype,
-    txrxId,
+    sagaId,
     delimiter,
 }: StatusIbInfo): string {
     const lc = `[${getStatusIb.name}]`;
@@ -476,11 +545,11 @@ export function getStatusIb({
         if (!Object.values(HttpStatusCode).includes(statusCode)) { throw new Error(`invalid status code (${statusCode}) (ERROR: 91d7655424c44d9680fff099ee2b54d2)`); }
         if (!spaceType) { throw new Error(`spaceType required. (ERROR: 86e98694a56a4f599e98e50abf0eed43)`); }
         if (!spaceSubtype) { throw new Error(`spaceSubtype required. (ERROR: 4857d4677ee34e95aeb2251dd633909e)`); }
-        if (!txrxId) { throw new Error(`txrxId required. (ERROR: cfc923bb29ee4aa788e947b6416740e6)`); }
+        if (!sagaId) { throw new Error(`sagaId required. (ERROR: cfc923bb29ee4aa788e947b6416740e6)`); }
 
         delimiter = delimiter || c.OUTER_SPACE_DEFAULT_IB_DELIMITER;
 
-        return `status ${statusCode} ${spaceType} ${spaceSubtype} ${txrxId}`;
+        return `status ${statusCode} ${spaceType} ${spaceSubtype} ${sagaId}`;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -505,7 +574,7 @@ export function getStatusIbInfo({
 
         delimiter = delimiter || c.OUTER_SPACE_DEFAULT_IB_DELIMITER;
 
-        // atow `status ${statusCode} ${spaceType} ${spaceSubtype} ${txrxId}`;
+        // atow `status ${statusCode} ${spaceType} ${spaceSubtype} ${sagaId}`;
         const pieces = statusIb.split(delimiter);
 
         const statusCode: HttpStatusCode = <HttpStatusCode>Number.parseInt(pieces[1]);
@@ -520,10 +589,10 @@ export function getStatusIbInfo({
         if (spaceSubtype === null || spaceSubtype === undefined) { throw new Error(`spaceSubtype is null/undefined. (ERROR: 6da7ae919d0b4a22b4ee685520b6c946)`); }
         if (!VALID_OUTER_SPACE_SUBTYPES.includes(spaceSubtype)) { throw new Error(`invalid/unknown spaceSubtype (${spaceSubtype}) (ERROR: 703ed1aee44447a294b3e1cf0984baba)`); }
 
-        let txrxId = pieces[4];
-        if (txrxId === null || txrxId === undefined) { throw new Error(`txrxId is null/undefined. (ERROR: 5de2861a6afb48e1a1c89d0402a4ea63)`); }
+        let sagaId = pieces[4];
+        if (sagaId === null || sagaId === undefined) { throw new Error(`sagaId is null/undefined. (ERROR: 5de2861a6afb48e1a1c89d0402a4ea63)`); }
 
-        return {statusCode, spaceType, spaceSubtype, txrxId, delimiter};
+        return {statusCode, spaceType, spaceSubtype, sagaId, delimiter};
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

@@ -327,6 +327,8 @@ export async function argy_<
             // clear out past, disregard any intermediate ibgibs.
             resultIbGib.rel8ns!.past = [];
 
+            resultIbGib.gib = await sha256v1(resultIbGib);
+
             return <TArgIbGib>resultIbGib;
         } else {
             throw new Error(`create ibGib failed`);
@@ -371,6 +373,8 @@ export async function resulty_<TResultData, TResultIbGib extends IbGib_V1<TResul
 
             // clear out past, disregard any intermediate ibgibs.
             resultIbGib.rel8ns!.past = [];
+
+            resultIbGib.gib = await sha256v1(resultIbGib);
 
             return <TResultIbGib>resultIbGib;
         } else {
