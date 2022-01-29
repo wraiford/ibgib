@@ -3102,70 +3102,18 @@ export class IbgibsService {
       const infos = Object.values(this.sagaInfoMap);
       for (let i = 0; i < infos.length; i++) {
         const sagaInfo = infos[i];
-        const handleSyncStatusIbGib = async (status: SyncStatusIbGib) => {
-          const lc2 = `${lc}[${handleSyncStatusIbGib.name}]`;
-          try {
-            let resStoreStatusLocally =
-              await this.put({ibGibs: status.statusIbGibGraph, isMeta: true, space: this.localUserSpace});
-              // await this.put({ibGib: status, isMeta: true, space: this.localUserSpace});
-            if (!resStoreStatusLocally.success) {
-              // just log for now...the saving is supposed to the the log in the first place.
-              console.error(`${lc}(UNEXPECTED) couldn't save status graph locally? sagaId: ${sagaInfo.sagaId} (E: b472101897824195b96b658c441dfb55)`);
-            }
-            let statusCode = status?.data?.statusCode;
-            if (!statusCode) { throw new Error(`falsy statusCode? (E: 7f2bec6b9dd0484eb7ef97966e6dd027)(UNEXPECTED)`); }
-            if (logalot) { console.log(`${lc2} status update received. statusCode: addr: `)}
 
-            switch (statusCode) {
-              case StatusCode.started:
-                // nothing to do on start? hmm...
-                break;
-
-              case StatusCode.inserted:
-                // await this.handleSyncComplete_Inserted({sagaInfo, status});
-                // nothing further to do? hmm...
-                break;
-
-              case StatusCode.updated:
-                // await this.handleSyncComplete_Updated({sagaInfo, status});
-                // nothing further to do? hmm...
-                break;
-
-              case StatusCode.merged:
-                await this.handleSyncComplete_Merged({sagaInfo, status});
-                break;
-
-              case StatusCode.already_synced:
-                // await this.handleSyncComplete_AlreadySynced({sagaInfo, status});
-                // nothing further to do? hmm...
-                debugger;
-                break;
-
-              case StatusCode.completed:
-                await this.cleanupSyncSagas_NoThrow({});
-                break;
-
-              case StatusCode.undefined:
-                // atow undefined is used in primitive status parentage
-                throw new Error(`published a primitive status with undefined statusCode. sagaId: ${sagaInfo.sagaId} (E: c98376f35b194adf9bf12ff9259a2569)`);
-
-              default:
-                // ?
-                throw new Error(`(UNEXPECTED) unknown status.data.statusCode (${status.data.statusCode}). sagaId: ${sagaInfo.sagaId} (E: e4872abfc1ae4c27905793ca0f937a9b)`);
-            }
-          } catch (error) {
-            const emsg = `${lc2} ${error.message}`;
-            console.error(emsg);
-            sagaInfo.syncStatus$.error(emsg);
+        let sub = sagaInfo.syncStatus$.subscribe(
+          async (status: SyncStatusIbGib) => {
+            await this._handleSyncStatusIbGib({status, sagaInfo});
+          },
+          async (error: string) => {
+            console.error(`${lc}(sagaId: ${sagaInfo.sagaId}) error: ${error}`);
+          },
+          /*complete*/ async () => {
+            if (logalot) { console.log(`${lc}(sagaId: ${sagaInfo.sagaId}) syncStatus$.complete.`); }
           }
-        };
-
-        let sub =
-          sagaInfo.syncStatus$.subscribe(
-            x => handleSyncStatusIbGib(x),
-            async (error: string) => { },
-            /*complete*/ async () => { }
-          );
+        );
         if (sagaInfo.syncStatusSubscriptions) { sagaInfo.syncStatusSubscriptions.push(sub); }
       }
 
@@ -3175,23 +3123,106 @@ export class IbgibsService {
     }
   }
 
-  private async handleSyncComplete_Merged({
+  private async _handleSyncStatusIbGib({
+    status,
     sagaInfo,
+  }: {
+    status: SyncStatusIbGib,
+    sagaInfo: SyncSagaInfo,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this._handleSyncStatusIbGib.name}]`;
+    try {
+      // #region validate
+      if (!status) { throw new Error(`falsy status. (E: 8da370a9f3df48a98cc08f1cccf5f2dc)`); }
+      if (!status.data) { throw new Error(`falsy status.data. (E: 996d458c5cde4622ba1ed54c7e188815)`); }
+      if (!status.data.statusCode) { throw new Error(`falsy status.data.statusCode (E: 7f2bec6b9dd0484eb7ef97966e6dd027)`); }
+      // #endregion validate
+
+      let resStoreStatusLocally =
+        await this.put({ibGibs: status.statusIbGibGraph, isMeta: true, space: this.localUserSpace});
+      if (!resStoreStatusLocally.success) {
+        // just log for now...the saving is supposed to the the log in the first place.
+        console.error(`${lc}(UNEXPECTED) couldn't save status graph locally? sagaId: ${sagaInfo.sagaId} (E: b472101897824195b96b658c441dfb55)`);
+      }
+      const statusCode = status.data.statusCode;
+      if (logalot) { console.log(`${lc} status update received. statusCode: ${statusCode}. sagaId: ${sagaInfo.sagaId}. spaceId: ${sagaInfo.spaceId}`); }
+
+      switch (statusCode) {
+        case StatusCode.started:
+          // nothing to do on start? hmm...
+          break;
+
+        case StatusCode.inserted:
+          // await this.handleSyncComplete_Inserted({sagaInfo, status});
+          // nothing further to do? hmm...
+          break;
+
+        case StatusCode.updated:
+          // await this.handleSyncComplete_Updated({sagaInfo, status});
+          // nothing further to do? hmm...
+          break;
+
+        case StatusCode.merged:
+          await this.handleSyncComplete_Merged({status});
+          break;
+
+        case StatusCode.already_synced:
+          // await this.handleSyncComplete_AlreadySynced({sagaInfo, status});
+          // nothing further to do? hmm...
+          debugger;
+          break;
+
+        case StatusCode.completed:
+          await this.cleanupSyncSagas_NoThrow({});
+          break;
+
+        case StatusCode.undefined:
+          // atow undefined is used in primitive status parentage
+          throw new Error(`statusCode is "undefined". Maybe published a primitive? sagaId: ${sagaInfo.sagaId} (E: c98376f35b194adf9bf12ff9259a2569)`);
+
+        default:
+          // ?
+          throw new Error(`(UNEXPECTED) unknown status.data.statusCode (${status.data.statusCode}). sagaId: ${sagaInfo.sagaId} (E: e4872abfc1ae4c27905793ca0f937a9b)`);
+      }
+    } catch (error) {
+      const emsg = `${lc} ${error.message}`;
+      console.error(emsg);
+      sagaInfo.syncStatus$.error(emsg);
+    }
+  };
+
+  private async handleSyncComplete_Merged({
     status,
   }: {
-    sagaInfo: SyncSagaInfo,
     status: SyncStatusIbGib,
   }): Promise<void> {
     const lc = `${this.lc}[${this.handleSyncComplete_Merged.name}]`;
     try {
+      // #region validate
+      if ((status.createdIbGibs ?? []).length === 0) { throw new Error('status.createdIbGibs required when merging. (E: d118bde47fb9434fa95d747f8e4f6b33)'); }
+      if ((status.createdIbGibs ?? []).length === 0) { throw new Error('status.createdIbGibs required when merging. (E: a1a0089b7547454f8b6d14399c301dfb)'); }
+      if (Object.keys(status.ibGibsMergeMap ?? {}).length === 0) { throw new Error('status.ibGibsMergeMap required when merging. (E: 0f06238e5535408f8980e0f9f82cf564)'); }
+      // #endregion validate
+
       // first, we will store the newly created ibgibs in the local space. Then
       // we want to rebase our local timeline to point to the new one. I believe
       // we can do this simply by registering the latest created ibgib which
       // will record it as the local latest ibgib in the tjp timeline. It may be
-      // best to somehow tag the rebased ibgib, which would enable us to see
-      // this if we want to later without modifying the ibgib timeline by a mut8
-      // or rel8 function directly on the now-vestigial timeline.
+      // best to somehow tag the rebased ibgib, which would enable us to
+      // optionally see this later without modifying the ibgib timeline by a
+      // mut8 or rel8 function directly on the now-vestigial/abandoned timeline.
 
+      // first, we will store the newly created ibgibs in the local space.
+      const resPut = await this.put({ibGibs: status.createdIbGibs, space: this.localUserSpace});
+      if (!resPut.success) { throw new Error(`Couldn't save ibGibs locally? (E: f8bc91259c5043d589cd2e7ad2220c1f)`); }
+
+      // register the new latest ibgib.
+      // merge map goes from old latest addr -> latest ibGib that was the result of the merge.
+      let newLatestIbGibs = Object.values(status.ibGibsMergeMap);
+      for (let i = 0; i < newLatestIbGibs.length; i++) {
+        const latestIbGib = newLatestIbGibs[i];
+        await this.registerNewIbGib({ibGib: latestIbGib, space: this.localUserSpace});
+      }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

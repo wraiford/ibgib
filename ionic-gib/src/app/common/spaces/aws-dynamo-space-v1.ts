@@ -2551,7 +2551,8 @@ export class AWSDynamoSpace_V1<
                         await this.reconcile_MergeLocalDnaIntoStore({
                             client,
                             latestAddr_Local, latestAddr_Store,
-                            tjpGroupIbGibs_Local_Ascending, tjpGroupAddrs_Local_Ascending,
+                            tjpGroupIbGibs_Local_Ascending,
+                            // tjpGroupAddrs_Local_Ascending,
                             // ibGibsToStore: ibGibsToStore_thisTjp,
                             ibGibsCreated: ibGibsCreated_thisTjp,
                             ibGibMergeMap: ibGibsMergeMap_thisTjp,
@@ -2607,8 +2608,8 @@ export class AWSDynamoSpace_V1<
                 // #region publish status update
 
                 // putting of non-metadata ibGibs succeeded now we must create
-                // the status mutant and store it.  if that succeeds, then we
-                // can publish that to the status.
+                // the new status ibgib and store it. if that succeeds, then we
+                // can publish that to the status observable.
 
                 const ibGibAddrsStored = ibGibsToStoreNotAlreadyStored.map(x => h.getIbGibAddr({ibGib: x}));
                 const ibGibAddrsCreated = ibGibsCreated_thisTjp.map(x => h.getIbGibAddr({ibGib: x}));
@@ -2758,7 +2759,7 @@ export class AWSDynamoSpace_V1<
         latestAddr_Local,
         latestAddr_Store,
         tjpGroupIbGibs_Local_Ascending,
-        tjpGroupAddrs_Local_Ascending,
+        // tjpGroupAddrs_Local_Ascending,
         // ibGibsToStore,
         ibGibsCreated,
         ibGibMergeMap,
@@ -2767,7 +2768,7 @@ export class AWSDynamoSpace_V1<
         client: DynamoDBClient,
         latestAddr_Local: IbGibAddr,
         latestAddr_Store: IbGibAddr,
-        tjpGroupAddrs_Local_Ascending: IbGibAddr[],
+        // tjpGroupAddrs_Local_Ascending: IbGibAddr[],
         tjpGroupIbGibs_Local_Ascending: IbGib_V1[],
         /**
          * Populated by this function.
@@ -2786,7 +2787,7 @@ export class AWSDynamoSpace_V1<
         /**
          * Populated by this function.
          *
-         * Map of old local ibgib addr to the latest ibgib in the store
+         * Map of old local latest ibgib addr to the latest ibgib in the store
          * after merger.
          *
          * The calling code may choose to orphan these ibgibs, or somehow
@@ -2795,7 +2796,7 @@ export class AWSDynamoSpace_V1<
          * synced, otherwise this would become a neverending cycle of metadata
          * for sync, which then itself gets synced and produces more metadata.
          */
-        ibGibMergeMap: { [oldAddr: string]: IbGib_V1 },
+        ibGibMergeMap: { [oldLatestAddr: string]: IbGib_V1 },
         /**
          * All incoming ibgibs involved in the sync operation, to act
          * as a local space from which transforms can be retrieved.
