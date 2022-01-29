@@ -2044,7 +2044,7 @@ export class IbgibsService {
     const lc = `${this.lc}[${this.persistTransformResult.name}]`;
     try {
       space = space ?? this.localUserSpace;
-      if (!space) { throw new Error(`space falsy and localUserSpace not initialized. (ERROR: 4ea17008188d490fa32575f9efa1e04e)`); }
+      if (!space) { throw new Error(`space falsy and localUserSpace not initialized. (E: 4ea17008188d490fa32575f9efa1e04e)`); }
       return persistTransformResult({
         resTransform,
         isMeta,
@@ -2069,7 +2069,7 @@ export class IbgibsService {
     let lc = `${this.lc}[${this.get.name}]`;
     try {
       space = space ?? this.localUserSpace;
-      if (!space) { throw new Error(`space falsy and localUserSpace not initialized. (ERROR: 1b281661f24e487688d78725a6b91c38)`); }
+      if (!space) { throw new Error(`space falsy and localUserSpace not initialized. (E: 1b281661f24e487688d78725a6b91c38)`); }
       return getFromSpace({ addr, isMeta, isDna, space });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -2082,6 +2082,7 @@ export class IbgibsService {
    */
   put({
     ibGib,
+    ibGibs,
     isMeta,
     isDna,
     force,
@@ -2089,10 +2090,9 @@ export class IbgibsService {
   }: PutIbGibOpts): Promise<PutIbGibResult> {
     const lc = `${this.lc}[${this.put.name}]`;
     try {
-      if (!ibGib) { throw new Error(`ibGib required (ERROR: abd2a82955774941bad9da3257201d28)`); }
       space = space ?? this.localUserSpace;
-      if (!space) { throw new Error(`space falsy and localUserSpace not initialized. (ERROR: d702a04805164b0bb64396455a45c1e6)`); }
-      return putInSpace({ ibGib, isMeta, isDna, force, space });
+      if (!space) { throw new Error(`space falsy and localUserSpace not initialized. (E: d702a04805164b0bb64396455a45c1e6)`); }
+      return putInSpace({ ibGib, ibGibs, isMeta, isDna, force, space });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       return Promise.resolve({ errorMsg: error.message });
@@ -2111,7 +2111,7 @@ export class IbgibsService {
     const lc = `${this.lc}[${this.delete.name}]`;
     try {
       space = space ?? this.localUserSpace;
-      if (!space) { throw new Error(`space falsy and localUserSpace not initialized. (ERROR: 0184f8ede65e445fbd17bdbd4bc776df)`); }
+      if (!space) { throw new Error(`space falsy and localUserSpace not initialized. (E: 0184f8ede65e445fbd17bdbd4bc776df)`); }
       return deleteFromSpace({ addr, isMeta, isDna, space });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -2184,7 +2184,7 @@ export class IbgibsService {
   async getSyncSpaces({space}: {space: IbGibSpaceAny}): Promise<IbGibSpaceAny[]> {
     const lc = `${this.lc}[${this.getSyncSpaces.name}]`;
     try {
-      if (!space) { throw new Error(`space required. (ERROR: c03f80eca6b045b9a73b0aafa44cdf26)`); }
+      if (!space) { throw new Error(`space required. (E: c03f80eca6b045b9a73b0aafa44cdf26)`); }
       let syncSpaces = await this.getSpecialRel8dIbGibs<IbGibSpaceAny>({
         type: "outerspaces",
         rel8nName: c.SYNC_SPACE_REL8N_NAME,
@@ -2820,14 +2820,14 @@ export class IbgibsService {
     // map of saga infos across all spaces
     // const sagaInfoMap: { [spaceGib: string]: SyncSagaInfo } = {};
     try {
-      if (this.syncing) { throw new Error(`already syncing. (ERROR: dfa3ad58e97f4b18b4e4d7dc252208fb)`); }
-      if (Object.values(this.sagaInfoMap).length > 0) { throw new Error(`this._syncing is false but sagaInfoMap not cleaned up(?). (ERROR: bb69c808877c4931b5481585043c18e7)(UNEXPECTED)`); }
+      if (this.syncing) { throw new Error(`already syncing. (E: dfa3ad58e97f4b18b4e4d7dc252208fb)`); }
+      if (Object.values(this.sagaInfoMap).length > 0) { throw new Error(`this._syncing is false but sagaInfoMap not cleaned up(?). (E: bb69c808877c4931b5481585043c18e7)(UNEXPECTED)`); }
 
       this._syncing = true;
 
       // #region validate
       if (logalot) { console.log(`${lc} starting...`); }
-      if (!dependencyGraphIbGibs || dependencyGraphIbGibs.length === 0) { throw new Error(`ibGibs required. (ERROR: 404c36475fb84fc285a23a67c0b8fcb2)`); }
+      if (!dependencyGraphIbGibs || dependencyGraphIbGibs.length === 0) { throw new Error(`ibGibs required. (E: 404c36475fb84fc285a23a67c0b8fcb2)`); }
       // #endregion
 
       // #region get sync spaces and build participant infos
@@ -2846,9 +2846,9 @@ export class IbgibsService {
       const participants: ParticipantInfo[] = [
         { id: this.localUserSpace.data.uuid, gib: this.localUserSpace.gib, s_d: 'src', },
         ...appSyncSpaces.map(s => {
-          if (!s.data) { throw new Error(`space.data required. (ERROR: 3c192771e84445a4b6476d5193b07e9d)`); }
-          if (!s.data.uuid) { throw new Error(`space.data.uuid required. (ERROR: d27e9998227840f99d45a3ed245f3196)`); }
-          if (!s.gib) { throw new Error(`space.gib required. (ERROR: db73aceb2f8445d8964ae49b59957072)`); }
+          if (!s.data) { throw new Error(`space.data required. (E: 3c192771e84445a4b6476d5193b07e9d)`); }
+          if (!s.data.uuid) { throw new Error(`space.data.uuid required. (E: d27e9998227840f99d45a3ed245f3196)`); }
+          if (!s.gib) { throw new Error(`space.gib required. (E: db73aceb2f8445d8964ae49b59957072)`); }
           return <ParticipantInfo>{ id: s.data.uuid, gib: s.gib, s_d: 'dest', };
         })
       ];
@@ -2917,7 +2917,7 @@ export class IbgibsService {
           if (error) {
             const emsg =
               typeof(error) === 'string' ?  error : error.message ??
-                `${lc} something went wrong (ERROR: d7db873d9e8b4f14b5b490cadd9730f4)`;
+                `${lc} something went wrong (E: d7db873d9e8b4f14b5b490cadd9730f4)`;
             console.error(emsg);
             info.syncStatus$.error(emsg);
           }
@@ -2929,7 +2929,7 @@ export class IbgibsService {
           .forEach(sub => { sub.unsubscribe(); });
       }
     } catch (error) {
-      console.error(`${lc} ${error.message} (UNEXPECTED)`);
+      console.error(`${lc}(UNEXPECTED) ${error.message}`);
       // caller expects does NOT rethrow!
     } finally {
       this.sagaInfoMap = {};
@@ -3046,7 +3046,7 @@ export class IbgibsService {
       // and not hard-coding a single arg/result in the saga info.
       syncSagaInfo.witnessFnArgsAndResults$.next(argStartSync);
       const resStartSync: SyncSpaceResultIbGib = await syncSpace.witness(argStartSync);
-      if (!resStartSync.data?.tjpGib) { throw new Error(`resStartSync.data.tjpGib (syncId) is falsy. (ERROR: 727b5cc1a0254497bc6e06e9c6760564)`); }
+      if (!resStartSync.data?.tjpGib) { throw new Error(`resStartSync.data.tjpGib (syncId) is falsy. (E: 727b5cc1a0254497bc6e06e9c6760564)`); }
       syncSagaInfo.witnessFnArgsAndResults$.next(resStartSync);
 
       // now that we have the progress ibGib, we can ping it's get latest at intervals
@@ -3105,34 +3105,53 @@ export class IbgibsService {
         const handleSyncStatusIbGib = async (status: SyncStatusIbGib) => {
           const lc2 = `${lc}[${handleSyncStatusIbGib.name}]`;
           try {
-            let resStoreStatusLocally = await this.put({
-              ibGib: status,
-              isMeta: true,
-              space: this.localUserSpace,
-            });
+            let resStoreStatusLocally =
+              await this.put({ibGibs: status.statusIbGibGraph, isMeta: true, space: this.localUserSpace});
+              // await this.put({ibGib: status, isMeta: true, space: this.localUserSpace});
             if (!resStoreStatusLocally.success) {
               // just log for now...the saving is supposed to the the log in the first place.
-              console.error(`${lc} couldn't save status locally? sagaId: ${sagaInfo.sagaId} (ERROR: b472101897824195b96b658c441dfb55)(UNEXPECTED)`);
+              console.error(`${lc}(UNEXPECTED) couldn't save status graph locally? sagaId: ${sagaInfo.sagaId} (E: b472101897824195b96b658c441dfb55)`);
             }
-            switch (status.data.statusCode) {
+            let statusCode = status?.data?.statusCode;
+            if (!statusCode) { throw new Error(`falsy statusCode? (E: 7f2bec6b9dd0484eb7ef97966e6dd027)(UNEXPECTED)`); }
+            if (logalot) { console.log(`${lc2} status update received. statusCode: addr: `)}
+
+            switch (statusCode) {
               case StatusCode.started:
-                console.log(`${lc} sync started.`);
+                // nothing to do on start? hmm...
                 break;
 
-              case StatusCode.created:
-                // had to create to merge timeline to outer space
-                await this.handleSyncComplete_Created()
+              case StatusCode.inserted:
+                // await this.handleSyncComplete_Inserted({sagaInfo, status});
+                // nothing further to do? hmm...
+                break;
+
+              case StatusCode.updated:
+                // await this.handleSyncComplete_Updated({sagaInfo, status});
+                // nothing further to do? hmm...
+                break;
+
+              case StatusCode.merged:
+                await this.handleSyncComplete_Merged({sagaInfo, status});
+                break;
+
+              case StatusCode.already_synced:
+                // await this.handleSyncComplete_AlreadySynced({sagaInfo, status});
+                // nothing further to do? hmm...
+                debugger;
                 break;
 
               case StatusCode.completed:
+                await this.cleanupSyncSagas_NoThrow({});
                 break;
+
               case StatusCode.undefined:
                 // atow undefined is used in primitive status parentage
-                throw new Error(`published a primitive status with undefined statusCode. sagaId: ${sagaInfo.sagaId} (ERROR: c98376f35b194adf9bf12ff9259a2569)`);
+                throw new Error(`published a primitive status with undefined statusCode. sagaId: ${sagaInfo.sagaId} (E: c98376f35b194adf9bf12ff9259a2569)`);
 
               default:
                 // ?
-                throw new Error(`unknown status.data.statusCode (${status.data.statusCode}). sagaId: ${sagaInfo.sagaId} (ERROR: e4872abfc1ae4c27905793ca0f937a9b)(UNEXPECTED)`);
+                throw new Error(`(UNEXPECTED) unknown status.data.statusCode (${status.data.statusCode}). sagaId: ${sagaInfo.sagaId} (E: e4872abfc1ae4c27905793ca0f937a9b)`);
             }
           } catch (error) {
             const emsg = `${lc2} ${error.message}`;
@@ -3140,6 +3159,7 @@ export class IbgibsService {
             sagaInfo.syncStatus$.error(emsg);
           }
         };
+
         let sub =
           sagaInfo.syncStatus$.subscribe(
             x => handleSyncStatusIbGib(x),
@@ -3155,6 +3175,28 @@ export class IbgibsService {
     }
   }
 
+  private async handleSyncComplete_Merged({
+    sagaInfo,
+    status,
+  }: {
+    sagaInfo: SyncSagaInfo,
+    status: SyncStatusIbGib,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.handleSyncComplete_Merged.name}]`;
+    try {
+      // first, we will store the newly created ibgibs in the local space. Then
+      // we want to rebase our local timeline to point to the new one. I believe
+      // we can do this simply by registering the latest created ibgib which
+      // will record it as the local latest ibgib in the tjp timeline. It may be
+      // best to somehow tag the rebased ibgib, which would enable us to see
+      // this if we want to later without modifying the ibgib timeline by a mut8
+      // or rel8 function directly on the now-vestigial timeline.
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
   /**
    * Searches through timelines and gets every single one of them
    * in the local space. (ideally)
@@ -3189,7 +3231,7 @@ export class IbgibsService {
       let latestIbGibsWithTjps_CHECK = await this._getLatestIbGibsWithTjps({ibGibs: latestIbGibsWithTjps});
       while (latestIbGibsWithTjps_CHECK.length > latestIbGibsWithTjps.length) {
         debugger;
-        console.warn(`${lc} another tjp found. calling getLatestIbGibsWithTjps again to check for more. (WARNING: 9735c4194d1243269d4fe4a4ed93cf59)`);
+        console.warn(`${lc} another tjp found. calling getLatestIbGibsWithTjps again to check for more. (W: 9735c4194d1243269d4fe4a4ed93cf59)`);
         latestIbGibsWithTjps = latestIbGibsWithTjps_CHECK;
         latestIbGibsWithTjps_CHECK = await this._getLatestIbGibsWithTjps({ibGibs: latestIbGibsWithTjps});
       }

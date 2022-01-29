@@ -26,16 +26,16 @@ export function validateIbGibAddr({
     const lc = `[${validateIbGibAddr.name}]`;
     try {
         let errors: string[] = [];
-        if (version) { console.warn(`${lc} version not implemented yet. Ignoring. (WARNING: 2d19db16ec0c4766b5d35248787671f3)`); }
+        if (version) { console.warn(`${lc} version not implemented yet. Ignoring. (W: 2d19db16ec0c4766b5d35248787671f3)`); }
 
         // validate as a whole
         if (!addr) {
-            errors.push(`addr required. (ERROR: e9a54041aa0b41c1bb2324d9d2d42c7f)`);
+            errors.push(`addr required. (E: e9a54041aa0b41c1bb2324d9d2d42c7f)`);
             return errors;
         }
         delimiter = delimiter || IBGIB_DELIMITER;
-        if (!addr.includes(delimiter)) { errors.push(`No delimiter (${delimiter}) found. (ERROR: 05e28dcb70ff44019edc53ed508bd1e8)`); }
-        if (addr.startsWith(delimiter)) { errors.push(`addr starts with delim. (ERROR: d29f808c5a47452f9bb3ea684694c6eb)`); }
+        if (!addr.includes(delimiter)) { errors.push(`No delimiter (${delimiter}) found. (E: 05e28dcb70ff44019edc53ed508bd1e8)`); }
+        if (addr.startsWith(delimiter)) { errors.push(`addr starts with delim. (E: d29f808c5a47452f9bb3ea684694c6eb)`); }
 
         // validate pieces...
         const { ib, gib } = h.getIbAndGib({ibGibAddr: addr, delimiter});
@@ -73,17 +73,17 @@ export function validateIb({
     const lc = `[${validateIb.name}]`;
     try {
         const errors: string[] = [];
-        if (version) { console.warn(`${lc} version not implemented yet. Ignoring. (WARNING: 71228ba4ed994aaa8149910e295ab087)`); }
+        if (version) { console.warn(`${lc} version not implemented yet. Ignoring. (W: 71228ba4ed994aaa8149910e295ab087)`); }
 
         if (!ib) {
-            errors.push(`ib required. (ERROR: a76d06c7b9c24db3a731a91dbe46acd5)`);
+            errors.push(`ib required. (E: a76d06c7b9c24db3a731a91dbe46acd5)`);
             return errors;
         }
 
         if (ib === IB) { return null; }
 
         ibGibAddrDelimiter = ibGibAddrDelimiter || IBGIB_DELIMITER;
-        if (ib.includes(ibGibAddrDelimiter)) { errors.push(`ib contains ibGibAddrDelimiter (${ibGibAddrDelimiter}) (ERROR: 09e61b46c3e84874bc02b6918f1f2c39)`); }
+        if (ib.includes(ibGibAddrDelimiter)) { errors.push(`ib contains ibGibAddrDelimiter (${ibGibAddrDelimiter}) (E: 09e61b46c3e84874bc02b6918f1f2c39)`); }
 
         return errors.length > 0 ? errors : null;
     } catch (error) {
@@ -104,10 +104,10 @@ export function validateGib({
     const lc = `[${validateGib.name}]`;
     try {
         const errors: string[] = [];
-        if (version) { console.warn(`${lc} version not implemented yet. Ignoring. (ERROR: 90ced1db69774702b92acb261bdaee23)`); }
+        if (version) { console.warn(`${lc} version not implemented yet. Ignoring. (E: 90ced1db69774702b92acb261bdaee23)`); }
 
         if (!gib) {
-            errors.push(`gib required. (ERROR: e217de4035b04086827199f4bace189c)`);
+            errors.push(`gib required. (E: e217de4035b04086827199f4bace189c)`);
             return errors;
         }
 
@@ -115,10 +115,10 @@ export function validateGib({
         if (gib === GIB) { return null; }
 
         ibGibAddrDelimiter = ibGibAddrDelimiter || IBGIB_DELIMITER;
-        if (gib.includes(ibGibAddrDelimiter)) { errors.push(`gib contains ibGibAddrDelimiter (${ibGibAddrDelimiter}). (ERROR: 1e584258d9e049ba9ce7e516f3ab97f1)`); }
+        if (gib.includes(ibGibAddrDelimiter)) { errors.push(`gib contains ibGibAddrDelimiter (${ibGibAddrDelimiter}). (E: 1e584258d9e049ba9ce7e516f3ab97f1)`); }
 
         if (!gib.match(c.HEXADECIMAL_HASH_STRING_REGEXP_32) && !gib.match(c.HEXADECIMAL_HASH_STRING_REGEXP_64)) {
-            errors.push('gib is neither a 32- or 64-char hash string. (ERROR: d47ff6d6e14b4c02a62107090c8dad39)');
+            errors.push('gib is neither a 32- or 64-char hash string. (E: d47ff6d6e14b4c02a62107090c8dad39)');
         }
 
         return errors.length > 0 ? errors : null;

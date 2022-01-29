@@ -82,7 +82,7 @@ export async function getFromSpace({
 }: GetIbGibOpts): Promise<GetIbGibResult> {
     let lc = `[${getFromSpace.name}]`;
     try {
-        if (!space) { throw new Error(`space required. (ERROR: 4d188d6c863246f28aa575753a052304)`); }
+        if (!space) { throw new Error(`space required. (E: 4d188d6c863246f28aa575753a052304)`); }
         if (!addr) { throw new Error(`addr required`); }
         lc = `${lc}(${addr})`;
         if (logalot) { console.log(`${lc} starting...`); }
@@ -126,6 +126,7 @@ export async function getFromSpace({
  */
 export async function putInSpace({
     ibGib,
+    ibGibs,
     isMeta,
     isDna,
     force,
@@ -133,24 +134,31 @@ export async function putInSpace({
 }: PutIbGibOpts): Promise<PutIbGibResult> {
     const lc = `[${putInSpace.name}]`;
     try {
-        if (!ibGib) { throw new Error(`ibGib required. (ERROR: e59c4de3695f4dd28c8fe82dbb9c4e90)`); }
-        if (!space) { throw new Error(`space required. (ERROR: dd0b7189c67c43c586b905a8ed6f51c9)`); }
+        if (!ibGib && (ibGibs ?? []).length === 0) { throw new Error(`ibGib or ibGibs required. (E: e59c4de3695f4dd28c8fe82dbb9c4e90)`); }
+        if (!space) { throw new Error(`space required. (E: dd0b7189c67c43c586b905a8ed6f51c9)`); }
+
+        if (ibGib && (ibGibs ?? []).length > 0) {
+            console.warn(`${lc} Both ibGib and ibGibs is assigned, whereas this is intended to be exclusive one or the other. (W: 4c797835b620445f88e4cba6b5aa3460)`)
+            if (!ibGibs.some(x => x.gib === ibGib.gib)) {
+                ibGibs = [...ibGibs, ibGib];
+            }
+        }
 
         const argPutIbGibs = await space.argy({
             ibMetadata: space.getSpaceArgMetadata(),
             argData: { cmd: 'put', isMeta, force, isDna, },
-            ibGibs: ibGib ? [ibGib] : [],
+            ibGibs,
         });
         const resPutIbGibs = await space.witness(argPutIbGibs);
         if (resPutIbGibs.data?.success) {
-            if (resPutIbGibs.data!.warnings?.length > 0) {
-                resPutIbGibs.data!.warnings!.forEach(warning => console.warn(`${lc} ${warning}`));
+            if ((resPutIbGibs.data!.warnings ?? []).length > 0) {
+                resPutIbGibs.data!.warnings!.forEach((warning: string) => console.warn(`${lc} ${warning}`));
             }
             return { success: true }
         } else {
             const errorMsg = resPutIbGibs?.data?.errors?.length > 0 ?
                 resPutIbGibs.data.errors.join('\n') :
-                'unknown error putting ibGibs';
+                '(UNEXPECTED) unknown error putting ibGibs (E: 3d7426d4527243b79c5e55eb25f3fa73)';
             throw new Error(errorMsg);
         }
     } catch (error) {
@@ -170,7 +178,7 @@ export async function deleteFromSpace({
 }: DeleteIbGibOpts): Promise<DeleteIbGibResult> {
     const lc = `[${deleteFromSpace.name}]`;
     try {
-        if (!space) { throw new Error(`space required. (ERROR: 40ab3b51e91c4b5eb4f215baeefbcef0)`); }
+        if (!space) { throw new Error(`space required. (E: 40ab3b51e91c4b5eb4f215baeefbcef0)`); }
 
         const argDel = await space.argy({
             ibMetadata: space.getSpaceArgMetadata(),
@@ -249,8 +257,8 @@ export async function getDependencyGraph({
 }): Promise<{ [addr: string]: IbGib_V1 }> {
     const lc = `[${getDependencyGraph.name}]`;
     try {
-        if (!space) { throw new Error(`space required. (ERROR: 9f38166ab70340cb919174f8d26af909)`); }
-        if (!ibGib && !ibGibAddr) { throw new Error(`either ibGib or ibGibAddr required. (ERROR: b6d08699651f455697f0d05a41edb039)`); }
+        if (!space) { throw new Error(`space required. (E: 9f38166ab70340cb919174f8d26af909)`); }
+        if (!ibGib && !ibGibAddr) { throw new Error(`either ibGib or ibGibAddr required. (E: b6d08699651f455697f0d05a41edb039)`); }
 
         skipRel8nNames = skipRel8nNames || [];
 
@@ -259,7 +267,7 @@ export async function getDependencyGraph({
             if (resGet.success && resGet.ibGibs?.length === 1) {
                 ibGib = resGet.ibGibs![0];
             } else {
-                throw new Error(`Could not retrieve ibGib. (ERROR: 410213e9c6ee4b009c2df8e1eba804c4)`);
+                throw new Error(`Could not retrieve ibGib. (E: 410213e9c6ee4b009c2df8e1eba804c4)`);
             }
         }
         const { gib } = h.getIbAndGib({ibGib});
@@ -318,7 +326,7 @@ export async function persistTransformResult({
 }): Promise<void> {
     const lc = `[${persistTransformResult.name}]`;
     try {
-        if (!space) { throw new Error(`space required. (ERROR: cf94f1d74f1c4561bb88025a2095965b)`); }
+        if (!space) { throw new Error(`space required. (E: cf94f1d74f1c4561bb88025a2095965b)`); }
 
         const { newIbGib, intermediateIbGibs, dnas } = resTransform;
         const ibGibs = [newIbGib, ...(intermediateIbGibs || [])];
@@ -370,7 +378,7 @@ export async function getSyncSpaces({
 }): Promise<IbGibSpaceAny[]> {
     const lc = `[${getSyncSpaces.name}]`;
     try {
-        if (!space) { throw new Error(`space required. (ERROR: c03f80eca6b045b9a73b0aafa44cdf26)`); }
+        if (!space) { throw new Error(`space required. (E: c03f80eca6b045b9a73b0aafa44cdf26)`); }
         let syncSpaces = await getSpecialRel8dIbGibs<IbGibSpaceAny>({
             type: "outerspaces",
             rel8nName: c.SYNC_SPACE_REL8N_NAME,
@@ -394,7 +402,7 @@ export async function getSpecialRel8dIbGibs<TIbGib extends IbGib_V1 = IbGib_V1>(
 }): Promise<TIbGib[]> {
     const lc = `[${getSpecialRel8dIbGibs.name}]`;
     try {
-        if (!space) { throw new Error(`space required. (ERROR: f73868a952ac4181a4f90ee6d86cacf3)`); }
+        if (!space) { throw new Error(`space required. (E: f73868a952ac4181a4f90ee6d86cacf3)`); }
 
         let special = await getSpecialIbgib({type, space});
         if (!special) { throw new Error(`couldn't get special (${type})`) };
@@ -466,13 +474,13 @@ export async function getSpecialIbgib({
 }): Promise<IbGib_V1 | null> {
     const lc = `[${getSpecialIbgib.name}]`;
     try {
-        if (!space) { throw new Error(`space required. (ERROR: d454b31d58764a9bb9c4e47fb5ef38b5)`); }
+        if (!space) { throw new Error(`space required. (E: d454b31d58764a9bb9c4e47fb5ef38b5)`); }
 
         let key = getSpecialConfigKey({type});
         let addr = await getConfigAddr({key, space});
 
         if (!addr) {
-            if (initialize && !(fnGetInitializing || fnSetInitializing)) { throw new Error(`if initialize, you must provide fnGetInitializeLock & fnSetInitializeLock. (ERROR: 8eb322625d0c4538be089800882487de)`); }
+            if (initialize && !(fnGetInitializing || fnSetInitializing)) { throw new Error(`if initialize, you must provide fnGetInitializeLock & fnSetInitializeLock. (E: 8eb322625d0c4538be089800882487de)`); }
             if (initialize && !fnGetInitializing()) {
                 // this._initializing = true;
                 fnSetInitializing(true);
@@ -499,7 +507,7 @@ export async function getSpecialIbgib({
         //     if (initialize) {
         //         addr = await createSpecial({type, space, defaultSpace, fnUpdateBootstrap, fnBroadcast});
         //     } else {
-        //         throw new Error(`addr not found and initialize is false. (ERROR: 6fc2375c0ba74972aa53da923c963411)`);
+        //         throw new Error(`addr not found and initialize is false. (E: 6fc2375c0ba74972aa53da923c963411)`);
         //     }
         // }
 
@@ -548,7 +556,7 @@ export async function getConfigAddr({
     const lc = `[${getConfigAddr.name}](${key})`;
     try {
         if (logalot) { console.log(`${lc} getting...`) }
-        if (!space) { throw new Error(`space required. (ERROR: 4f135d4276e64054ba21aeb9c304ecec)`); }
+        if (!space) { throw new Error(`space required. (E: 4f135d4276e64054ba21aeb9c304ecec)`); }
 
         if (!space.rel8ns) {
             console.warn(`${lc} space.rel8ns falsy.`);
@@ -590,8 +598,8 @@ export async function setConfigAddr({
 }): Promise<IbGibSpaceAny> {
     const lc = `[${setConfigAddr.name}]`;
     try {
-        if (!space) { throw new Error(`space required. (ERROR: c28b663c991d44419aef1026cc689636)`); }
-        if (!defaultSpace) { throw new Error(`defaultSpace required. (ERROR: d3707ae5265d464891ad216f64be6184)`); }
+        if (!space) { throw new Error(`space required. (E: c28b663c991d44419aef1026cc689636)`); }
+        if (!defaultSpace) { throw new Error(`defaultSpace required. (E: d3707ae5265d464891ad216f64be6184)`); }
 
         // rel8 the `addr` to the current space via rel8n named `key`
         const rel8nsToAddByAddr = { [key]: [addr] };
@@ -636,7 +644,7 @@ export async function setConfigAddr({
             // await this.updateBootstrapIbGibSpaceAddr({ newSpaceAddr, localDefaultSpace: this._localDefaultSpace });
             await fnUpdateBootstrap(newSpaceAddr);
         } else {
-            console.warn(`${lc} fnUpdateBootstrap is falsy. (WARNING: 9fb874de2b19454dac18645e61ac463f)`);
+            console.warn(`${lc} fnUpdateBootstrap is falsy. (W: 9fb874de2b19454dac18645e61ac463f)`);
         }
 
         return newSpace;
@@ -654,7 +662,7 @@ export async function getCurrentRoot({
     const lc = `[${getCurrentRoot.name}]`;
 
     try {
-        if (!space) { throw new Error(`space required. (ERROR: f0d546101fba4c169256158114ab3c56)`); }
+        if (!space) { throw new Error(`space required. (E: f0d546101fba4c169256158114ab3c56)`); }
 
         // if (isSameSpace({a: space, b: this.localUserSpace}) && this._localUserSpaceCurrentRoot) {
         //     return this._localUserSpaceCurrentRoot;
@@ -698,7 +706,7 @@ export async function setCurrentRoot({
     try {
         if (!root) { throw new Error(`root required.`); }
 
-        if (!space) { throw new Error(`space required. (ERROR: 186af2731c5342a78b063a0a4346f3db)`); }
+        if (!space) { throw new Error(`space required. (E: 186af2731c5342a78b063a0a4346f3db)`); }
 
         const rootAddr = h.getIbGibAddr({ibGib: root});
 
@@ -761,7 +769,7 @@ export async function rel8ToCurrentRoot({
     const lc = `[${rel8ToCurrentRoot.name}]`;
 
     try {
-        if (!space) { throw new Error(`space required. (ERROR: f2758eab3bb844d2b749515672d9e392)`); }
+        if (!space) { throw new Error(`space required. (E: f2758eab3bb844d2b749515672d9e392)`); }
 
         let currentRoot = await getCurrentRoot({space});
         if (!currentRoot) { throw new Error('currentRoot undefined'); }
@@ -827,7 +835,7 @@ export async function registerNewIbGib({
         const ibGibAddr: IbGibAddr = h.getIbGibAddr({ibGib});
         lc = `${lc}[${ibGibAddr}]`;
 
-        if (!space) { throw new Error(`space required. (ERROR: ea0c03256f8a4062b460aa4de11f1e3e)`); }
+        if (!space) { throw new Error(`space required. (E: ea0c03256f8a4062b460aa4de11f1e3e)`); }
 
         if (logalot) { console.log(`${lc} starting...`); }
 
@@ -983,7 +991,7 @@ export async function rel8ToSpecialIbGib({
 }): Promise<IbGibAddr> {
     const lc = `[${rel8ToSpecialIbGib.name}](type:${type},rel8nName:${rel8nName})`;
     try {
-        if (!space) { throw new Error(`space required. (ERROR: 956192eea28047eba6dad81620bb96fb)`); }
+        if (!space) { throw new Error(`space required. (E: 956192eea28047eba6dad81620bb96fb)`); }
 
         const addrsToRel8 = ibGibsToRel8.map(ibGib => h.getIbGibAddr({ibGib}));
 
@@ -1052,7 +1060,7 @@ export async function getTjpIbGib({
     const lc = `[${getTjpIbGib.name}]`;
 
     try {
-        if (!space) { throw new Error(`space required. (ERROR: 941f973d50e84415b58724af173f52c2)`); }
+        if (!space) { throw new Error(`space required. (E: 941f973d50e84415b58724af173f52c2)`); }
         if (!ibGib) { throw new Error('ibGib required.'); }
 
         let ibGibAddr = h.getIbGibAddr({ibGib});
@@ -1250,7 +1258,7 @@ export async function createTags({
 }): Promise<IbGibAddr | null> {
     const lc = `[${createTags.name}]`;
     try {
-        if (!space) { throw new Error(`space required. (ERROR: 9c05b9bd355943a39ca47afef67a50eb)`); }
+        if (!space) { throw new Error(`space required. (E: 9c05b9bd355943a39ca47afef67a50eb)`); }
 
         const configKey = getSpecialConfigKey({type: "tags"});
         const special = await createSpecialIbGib({
@@ -1301,7 +1309,7 @@ export async function createTagIbGib({
 }): Promise<{newTagIbGib: IbGib_V1, newTagsAddr: string}> {
     const lc = `[${createTagIbGib.name}]`;
     try {
-        if (!space) { throw new Error(`space required. (ERROR: 5def0b1afab74b0c9286e3ac5060cb8f)`); }
+        if (!space) { throw new Error(`space required. (E: 5def0b1afab74b0c9286e3ac5060cb8f)`); }
 
         if (!text) { throw new Error(`${lc} text required`); }
         icon = icon || c.DEFAULT_TAG_ICON;
@@ -1341,7 +1349,7 @@ export async function createRootsIbGib({
 }): Promise<IbGibAddr | null> {
     const lc = `[${createRootsIbGib.name}]`;
     try {
-        if (!space) { throw new Error(`space required. (ERROR: d12a8ea31163429fb6e53ff8e7579c57)`); }
+        if (!space) { throw new Error(`space required. (E: d12a8ea31163429fb6e53ff8e7579c57)`); }
 
         const configKey = getSpecialConfigKey({type: "roots"});
         // const rootsIbGib = await createSpecialIbGib({type: "roots", space});
@@ -1409,7 +1417,7 @@ async function createRootIbGib({
 }): Promise<{newRootIbGib: IbGib_V1<RootData>, newRootsAddr: string}> {
     const lc = `[${createRootIbGib.name}]`;
     try {
-        if (!space) { throw new Error(`space required. (ERROR: cfa876e5c8c64a53a463ca7a645571c8)`); }
+        if (!space) { throw new Error(`space required. (E: cfa876e5c8c64a53a463ca7a645571c8)`); }
 
         text = text || c.DEFAULT_ROOT_TEXT;
         icon = icon || c.DEFAULT_ROOT_ICON;
@@ -1459,7 +1467,7 @@ async function createLatest({
 }): Promise<IbGibAddr | null> {
     const lc = `[${createLatest.name}]`;
     try {
-        if (!space) { throw new Error(`space required. (ERROR: 173b08d7eb114238b32280c3efce9d1a)`); }
+        if (!space) { throw new Error(`space required. (E: 173b08d7eb114238b32280c3efce9d1a)`); }
 
         const configKey = getSpecialConfigKey({type: "latest"});
         // const special =
@@ -1498,7 +1506,7 @@ async function createSecrets({
 }): Promise<IbGibAddr | null> {
     const lc = `[${createSecrets.name}]`;
     try {
-        if (!space) { throw new Error(`space required. (ERROR: 340960cd5ad24addb300b23d9722e30a)`); }
+        if (!space) { throw new Error(`space required. (E: 340960cd5ad24addb300b23d9722e30a)`); }
 
         let secretsAddr: IbGibAddr;
         const configKey = getSpecialConfigKey({type: "secrets"});
@@ -1564,7 +1572,7 @@ async function createEncryptions({
 }): Promise<IbGibAddr | null> {
     const lc = `[${createEncryptions.name}]`;
     try {
-        if (!space) { throw new Error(`space required. (ERROR: 5084e698b6924e7090697ca50075ca59)`); }
+        if (!space) { throw new Error(`space required. (E: 5084e698b6924e7090697ca50075ca59)`); }
 
         let addr: IbGibAddr;
         const configKey = getSpecialConfigKey({type: "encryptions"});
@@ -1630,7 +1638,7 @@ async function createOuterSpaces({
 }): Promise<IbGibAddr | null> {
     const lc = `[${createOuterSpaces.name}]`;
     try {
-        if (!space) { throw new Error(`space required. (ERROR: 99dd9e92535c470482eb9f6625a33831)`); }
+        if (!space) { throw new Error(`space required. (E: 99dd9e92535c470482eb9f6625a33831)`); }
 
         let outerSpacesAddr: IbGibAddr;
         const configKey = getSpecialConfigKey({type: "outerspaces"});
@@ -1708,7 +1716,7 @@ async function getLatestAddr_Brute({
     try {
         if (logalot) { console.log(`${lc} starting...`); }
 
-        if (!space) { throw new Error(`space required. (ERROR: 64eb9a271f5d43deadec30b9638746c8)`); }
+        if (!space) { throw new Error(`space required. (E: 64eb9a271f5d43deadec30b9638746c8)`); }
 
         // no nCounter, so we need to brute force.
         // The easiest way is to check each's past, as the most common

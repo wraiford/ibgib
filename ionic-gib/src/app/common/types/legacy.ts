@@ -49,7 +49,20 @@ export interface GetIbGibResult extends FileResult {
 }
 
 export interface PutIbGibOpts {
+  /**
+   * ibGib to put.
+   *
+   * If you only want to do just one, use this param. Otherwise, use the
+   * `ibGibs` array param.
+   */
   ibGib?: IbGib_V1;
+  /**
+   * ibGibs to put in the space.
+   *
+   * If you want to put more than one ibGib, use this param. If you only
+   * want to put a single ibGib, you could also use the `ibGib` param.
+   */
+  ibGibs?: IbGib_V1[];
   /**
    * if true, will store this data in the bin folder with its hash.
    */

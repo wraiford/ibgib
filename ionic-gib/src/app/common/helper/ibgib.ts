@@ -68,11 +68,11 @@ export async function constantIbGib<TData extends IbGibData_V1 = any , TRel8ns e
     try {
         // validation
         // parentPrimitiveIb
-        if (!parentPrimitiveIb) { throw new Error(`parentPrimitiveIb required. (ERROR: 88ddf188cc5a4340b597abefba1481e2)`); }
-        if (validateIb({ib: parentPrimitiveIb}) !== null) { throw new Error(`Invalid parentPrimitiveIb: ${parentPrimitiveIb}. (ERROR:5aec0320956d492ebeeaca41eb1fe1c6)`); }
+        if (!parentPrimitiveIb) { throw new Error(`parentPrimitiveIb required. (E: 88ddf188cc5a4340b597abefba1481e2)`); }
+        if (validateIb({ib: parentPrimitiveIb}) !== null) { throw new Error(`Invalid parentPrimitiveIb: ${parentPrimitiveIb}. (E:5aec0320956d492ebeeaca41eb1fe1c6)`); }
 
         // ib
-        if (!ib) { throw new Error(`ib required. (ERROR: 7bbc88f4f2e842d6b00126e55b1783e4)`); }
+        if (!ib) { throw new Error(`ib required. (E: 7bbc88f4f2e842d6b00126e55b1783e4)`); }
         const regExp = ibRegExpPattern ? new RegExp(ibRegExpPattern) : c.IB_REGEXP_DEFAULT;
         if (!ib.match(regExp)) { throw new Error(`invalid ib. does not match regexp (${regExp})`); }
 
@@ -83,7 +83,7 @@ export async function constantIbGib<TData extends IbGibData_V1 = any , TRel8ns e
             // we don't want constants trying to look like they have/are descendants/tjps/etc.
             return forbiddenRel8nNames.includes(x);
         });
-        if (rel8nsIsInvalid) { throw new Error(`Invalid rel8ns. forbiddenRel8nNames: ${forbiddenRel8nNames}. rel8ns keys: ${Object.keys(rel8ns)}. (ERROR: 837a993c265c4362b6aa0b1a234ea5f8)`); }
+        if (rel8nsIsInvalid) { throw new Error(`Invalid rel8ns. forbiddenRel8nNames: ${forbiddenRel8nNames}. rel8ns keys: ${Object.keys(rel8ns)}. (E: 837a993c265c4362b6aa0b1a234ea5f8)`); }
 
 
         // create the constant
@@ -283,7 +283,7 @@ export function hasTjp({ibGib}: {ibGib: IbGib_V1}): boolean {
     const lc = `[${hasTjp.name}]`;
 
     if (!ibGib) {
-        console.warn(`${lc} ibGib falsy. (WARNING: 884178562f5b4f15933ac4d98db74cc6)`);
+        console.warn(`${lc} ibGib falsy. (W: 884178562f5b4f15933ac4d98db74cc6)`);
         return false;
     }
 
@@ -298,7 +298,7 @@ export function hasTjp({ibGib}: {ibGib: IbGib_V1}): boolean {
     }
 
     if (!ibGib.gib) {
-        console.warn(`${lc} ibGib.gib falsy. (WARNING: 6400d780822b44d992846f1196509be3)`);
+        console.warn(`${lc} ibGib.gib falsy. (W: 6400d780822b44d992846f1196509be3)`);
         return false;
     }
     if (ibGib.gib.includes(cTsGib.GIB_DELIMITER)) {

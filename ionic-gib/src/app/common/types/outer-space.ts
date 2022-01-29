@@ -39,39 +39,65 @@ import { IbGibSpaceAny } from '../spaces/space-base-v1';
  *     will error if not present.
  */
 export type StatusCode =
-    'undefined' | 'started' | 'created' | 'stored' | 'already_synced';
+    'undefined' | 'started' |
+    'inserted' | 'updated' | 'merged' | 'already_synced' |
+    'completed';
 export const StatusCode = {
     /**
      * Using this as the code for the parent primitive.
      */
     undefined: 'undefined' as StatusCode,
     /**
+     * Communication between spaces has just started, but no evaluation as to
+     * intrinsic ibgibs shared has been made.
+     *
      * Using this for the start of the sync process, meaning the ball has begun
      * rolling, a metadata ibgib to track the operation has been created (but
-     * not necessarily yet stored), but no data has been exchanged.
+     * not necessarily yet stored), but no intrinsic (non-meta) data has been
+     * exchanged.
      */
     started: 'started' as StatusCode,
+    /**
+     * New insertion of ibgib(s) into the outerspace.
+     *
+     * The outerspace did not have the timeline or ibgib(s) at all, so this is
+     * the first time.
+     */
+    inserted: 'inserted' as StatusCode,
+    /**
+     * Updated outerspace with local ibgib(s).
+     *
+     * The outerspace had the same timeline as the local space, just not as
+     * recent.
+     */
+    updated: 'updated' as StatusCode,
     /**
      * We've created new ibgib to fulfill the operation (besides the derivative
      * metadata ibgibs created in the communication).
      *
      * When syncing, this means that we've created new ibgib to merge into
-     * an existing timeline in the outer (sync) space.
+     * an existing timeline in the sync space.
      */
-    created: 'created' as StatusCode,
+    merged: 'merged' as StatusCode,
     /**
-     * New insertion of ibgib(s) into the outerspace.
-     */
-    stored: 'stored' as StatusCode,
-    /**
-     * Using this as the status indicating the operation has completed, but
-     * there were no intrinsic changes.
+     * The operation has completed, but there were no intrinsic changes.
      *
      * For example, if we were to sync an ibGib but it's already up-to-date in a
      * space, then we have generated metadata ibgibs. But *intrinsically* we have
      * not altered any timeline ibgibs or added any stone ibgibs.
      */
     already_synced: 'already_synced' as StatusCode,
+    /**
+     * Inter-spatial communication complete.
+     *
+     * * There should be no more status updates after this.
+     * * syncStatus$ observable should be completed just after this.
+     * * subscribers should unsubscribe if not already done.
+     *   * I think this happens at the publishing end also, but always good
+     *     to take care of your own cleanup if possible.
+     *
+     */
+    completed: 'completed' as StatusCode,
 }
 
 export type OuterSpaceType = "sync";
@@ -250,6 +276,13 @@ export interface SyncSpaceResultIbGib<
 }
 
 export interface SyncStatusData {
+    /**
+     * Status code for this status update.
+     *
+     * Note that this is also in the ib, which will be in each of the
+     * statuses' `past` rel8n. This way, callers can easily tell which
+     * kinds of actions were required.
+     */
     statusCode: StatusCode;
 
     syncGib: string;
@@ -259,6 +292,8 @@ export interface SyncStatusData {
 
     /**
      * Explicit re-declaration from base data, just to remind us...I guess...
+     *
+     * This indicates if this status ibgib is the tjp for the status line.
      */
     isTjp?: boolean;
 
@@ -271,14 +306,16 @@ export interface SyncStatusData {
      */
     toTx?: IbGibAddr[];
     /**
-     * When putting, this is the list of ibGibs we're not sending.
+     * When putting, this is the list of ibGibs we don't need/want (or refuse)
+     * to send.
      *
      * IGNORED ATOW
      *
      * ## notes
      *
-     * Not really sure about this atm. Just figure someone will have
-     * a reason for it in the future.
+     * Not really sure about this atow, since the aws-dynamo space is not a true
+     * communication between two separate nodes. Just figure someone will have a
+     * reason for it in the future.
      */
     notToTx?: IbGibAddr[];
     /**
@@ -292,23 +329,19 @@ export interface SyncStatusData {
      */
     toRx?: IbGibAddr[];
     /**
-     * When communicating, the receiver is saying that it doesn't
-     * need these addresses, for whatever reason.
+     * A receiving space can set this to indicate to the transmitter that it
+     * does not need/want these, possibly because they already have them or just
+     * are not interested in them.
      *
      * ## notes
      *
-     * ATOW this will only be because the receiver already has
-     * these addresses.
+     * ATOW this will only be because the receiver already has these addresses.
      */
     notToRx?: IbGibAddr[];
 
     /**
-     * Wakka doodle doo. (i.e. I'm still working through feedback
-     * cycles.)
-     *
-     * ## as a question
-     *
-     * Was the individual communication tx/rx a success...hmmm...
+     * Flag to indicate that THIS STEP in communication (part of a saga) had no
+     * errors.
      */
     success?: boolean;
 
@@ -329,6 +362,15 @@ export interface SyncStatusData {
      *
      * Should NOT be an accumulating list of errors, i.e., if an error happens
      * early on in a tx/rx, then it stays on that ibGib.
+     *
+     * ## notes
+     *
+     * atow my error workflow is pretty minimal. So I think if any error happens
+     * the entire saga gets nixed...
+     *
+     * But it should be that this type of behavior should be determined by
+     * on-chain ibgibs that correspond to consensus behavior contracts (with a
+     * default behavior ultimately existing hard-coded in source).
      */
     errors?: string[];
 
@@ -346,7 +388,6 @@ export interface SyncStatusData {
      *   already captured in the `past` rel8n.
      */
     didCreate?: IbGibAddr[];
-
     /**
      * List of ibgib addrs that were merged in the rx space instead of stored
      * directly.
@@ -355,7 +396,7 @@ export interface SyncStatusData {
      * best per use case. (i.e. I haven't coded that yet even in this naive
      * first implementation)
      */
-    didMerge?: IbGibAddr[];
+    didMergeMap?: {[oldAddr: string]: IbGibAddr };
     /**
      * List of ibgibs that were actively transmitted to the receiving
      * space.
@@ -372,6 +413,7 @@ export interface SyncStatusData {
      */
     didRx?: IbGibAddr[];
 }
+
 export interface SyncStatusRel8ns extends IbGibRel8ns_V1 {
     created?: IbGibAddr[];
     final?: IbGibAddr[];
@@ -394,8 +436,9 @@ export interface SyncStatusRel8ns extends IbGibRel8ns_V1 {
  *
  */
 export interface SyncStatusIbGib extends IbGib_V1<SyncStatusData, SyncStatusRel8ns> {
+    statusIbGibGraph: IbGib_V1[],
     createdIbGibs?: IbGib_V1[];
-    finalIbGib?: IbGib_V1;
+    ibGibsMergeMap?: { [oldAddr: string]: IbGib_V1 };
 }
 
 export interface SagaInfo<
@@ -505,11 +548,11 @@ export function getStatusIb({
 }: StatusIbInfo): string {
     const lc = `[${getStatusIb.name}]`;
     try {
-        if (statusCode === null || statusCode === undefined) { throw new Error(`status code required. (ERROR: 4e0d232a9955496695012623c2e17ca2)`); }
-        if (!Object.values(StatusCode).includes(statusCode)) { throw new Error(`invalid status code (${statusCode}) (ERROR: 91d7655424c44d9680fff099ee2b54d2)`); }
-        if (!spaceType) { throw new Error(`spaceType required. (ERROR: 86e98694a56a4f599e98e50abf0eed43)`); }
-        if (!spaceSubtype) { throw new Error(`spaceSubtype required. (ERROR: 4857d4677ee34e95aeb2251dd633909e)`); }
-        if (!sagaId) { throw new Error(`sagaId required. (ERROR: cfc923bb29ee4aa788e947b6416740e6)`); }
+        if (statusCode === null || statusCode === undefined) { throw new Error(`status code required. (E: 4e0d232a9955496695012623c2e17ca2)`); }
+        if (!Object.values(StatusCode).includes(statusCode)) { throw new Error(`invalid status code (${statusCode}) (E: 91d7655424c44d9680fff099ee2b54d2)`); }
+        if (!spaceType) { throw new Error(`spaceType required. (E: 86e98694a56a4f599e98e50abf0eed43)`); }
+        if (!spaceSubtype) { throw new Error(`spaceSubtype required. (E: 4857d4677ee34e95aeb2251dd633909e)`); }
+        if (!sagaId) { throw new Error(`sagaId required. (E: cfc923bb29ee4aa788e947b6416740e6)`); }
 
         delimiter = delimiter || c.OUTER_SPACE_DEFAULT_IB_DELIMITER;
 
@@ -534,27 +577,26 @@ export function getStatusIbInfo({
 }): StatusIbInfo {
     const lc = `[${getStatusIb.name}]`;
     try {
-        if (!statusIb) { throw new Error(`statusIb required. (ERROR: 09e23e8622cf456cadb0c3d0aadc3be9)`); }
+        if (!statusIb) { throw new Error(`statusIb required. (E: 09e23e8622cf456cadb0c3d0aadc3be9)`); }
 
         delimiter = delimiter || c.OUTER_SPACE_DEFAULT_IB_DELIMITER;
 
         // atow `status ${statusCode} ${spaceType} ${spaceSubtype} ${sagaId}`;
         const pieces = statusIb.split(delimiter);
 
-        const statusCode: StatusCode = <StatusCode>Number.parseInt(pieces[1]);
-        if (statusCode === null || statusCode === undefined) { throw new Error(`status code is null/undefined. (ERROR: f2f1d88d3ee14303a13582d6f7019063)`); }
-        if (!Object.values(StatusCode).includes(statusCode)) { throw new Error(`invalid/unknown status code (${statusCode}) (ERROR: 7580860df7b344b3992148552e80a85e)`); }
+        const statusCode = <StatusCode>pieces[1]; // tenatively cast as StatusCode
+        if (!Object.values(StatusCode).includes(statusCode)) { throw new Error(`invalid/unknown status code (${statusCode}) (E: 7580860df7b344b3992148552e80a85e)`); }
 
-        let spaceType = <OuterSpaceType>pieces[2];
-        if (spaceType === null || spaceType === undefined) { throw new Error(`spaceType is null/undefined. (ERROR: 12473d35e77b451bb59bb05c03cb8b64)`); }
-        if (!VALID_OUTER_SPACE_TYPES.includes(spaceType)) { throw new Error(`invalid/unknown spaceType (${spaceType}) (ERROR: d3ba9add427f49dda34f265f3225d9db)`); }
+        const spaceType = <OuterSpaceType>pieces[2];
+        if (spaceType === null || spaceType === undefined) { throw new Error(`spaceType is null/undefined. (E: 12473d35e77b451bb59bb05c03cb8b64)`); }
+        if (!VALID_OUTER_SPACE_TYPES.includes(spaceType)) { throw new Error(`invalid/unknown spaceType (${spaceType}) (E: d3ba9add427f49dda34f265f3225d9db)`); }
 
-        let spaceSubtype = <OuterSpaceSubtype>pieces[3];
-        if (spaceSubtype === null || spaceSubtype === undefined) { throw new Error(`spaceSubtype is null/undefined. (ERROR: 6da7ae919d0b4a22b4ee685520b6c946)`); }
-        if (!VALID_OUTER_SPACE_SUBTYPES.includes(spaceSubtype)) { throw new Error(`invalid/unknown spaceSubtype (${spaceSubtype}) (ERROR: 703ed1aee44447a294b3e1cf0984baba)`); }
+        const spaceSubtype = <OuterSpaceSubtype>pieces[3];
+        if (spaceSubtype === null || spaceSubtype === undefined) { throw new Error(`spaceSubtype is null/undefined. (E: 6da7ae919d0b4a22b4ee685520b6c946)`); }
+        if (!VALID_OUTER_SPACE_SUBTYPES.includes(spaceSubtype)) { throw new Error(`invalid/unknown spaceSubtype (${spaceSubtype}) (E: 703ed1aee44447a294b3e1cf0984baba)`); }
 
-        let sagaId = pieces[4];
-        if (sagaId === null || sagaId === undefined) { throw new Error(`sagaId is null/undefined. (ERROR: 5de2861a6afb48e1a1c89d0402a4ea63)`); }
+        const sagaId = pieces[4];
+        if (sagaId === null || sagaId === undefined) { throw new Error(`sagaId is null/undefined. (E: 5de2861a6afb48e1a1c89d0402a4ea63)`); }
 
         return {statusCode, spaceType, spaceSubtype, sagaId, delimiter};
     } catch (error) {

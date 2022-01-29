@@ -648,7 +648,7 @@ export class IonicSpace_V1<
         // fails into the larger success requirements of spaces.
         const resPut = await this.putIbGibsImpl(argPersist);
         if (!resPut.data.success || resPut.data.errors) {
-            console.error(`${lc} Errors persisting arg & result: ${resPut.data.errors.join('\n')}. (ERROR: 65ef314a4f8e445d851dab5b290e9a03)`);
+            console.error(`${lc} Errors persisting arg & result: ${resPut.data.errors.join('\n')}. (E: 65ef314a4f8e445d851dab5b290e9a03)`);
         }
     }
 
