@@ -11,10 +11,11 @@ export function groupBy<TItem>({
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
             const key = keyFn(item);
-            result[key] = [...result[key], item];
+            result[key] = [...(result[key] ?? []), item];
         }
         return result;
     } catch (error) {
+        debugger;
         console.error(`${lc} ${error.message}`);
         throw error;
     }

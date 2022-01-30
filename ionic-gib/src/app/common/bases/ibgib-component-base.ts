@@ -262,6 +262,13 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
                     item.ibGib = Factory_V1.primitive({ib});
                 } else {
                     // try to get from files provider
+                    while (!this.common.ibgibs.initialized) {
+                        // these components often try a little too soon when
+                        // starting up the app...so delay
+                        const delayMs = Math.ceil(Math.random() * 100) + 10;
+                        if (logalot) { console.warn(`${lc} ibgibs initializing...waiting ${delayMs} ms...`); }
+                        await h.delay(delayMs);
+                    }
                     const resGet = await this.common.ibgibs.get({addr: item.addr, isMeta: item.isMeta });
                     if (resGet.success && resGet.ibGibs?.length === 1) {
                         item.ibGib = resGet.ibGibs![0];

@@ -147,7 +147,12 @@ export class IbgibsService {
   // we won't get an object back, only a DTO ibGib essentially
   private lc: string = `[${IbgibsService.name}]`;
 
+  private _initialized: boolean;
+  get initialized(): boolean { return this._initialized; }
+
+
   private _initializing: boolean;
+  get initializing(): boolean { return this._initializing; }
 
   private _latestSubj = new ReplaySubject<LatestEventInfo>();
   latestObs = this._latestSubj.asObservable();
@@ -241,7 +246,7 @@ export class IbgibsService {
 
       await this.getSpecialIbgib({type: "outerspaces", initialize: true, space});
 
-
+      this._initialized = true;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -266,6 +271,9 @@ export class IbgibsService {
     try {
       // we're going to use the default space first to find/load the actual user's space (if it exists)
       localDefaultSpace = this.localDefaultSpace;
+      if (!localDefaultSpace.gib) {
+        localDefaultSpace.gib = await getGib({ibGib: localDefaultSpace, hasTjp: false});
+      }
       const argGet = await localDefaultSpace.argy({
         ibMetadata: localDefaultSpace.getSpaceArgMetadata(),
         argData: {
@@ -2072,6 +2080,7 @@ export class IbgibsService {
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized. (E: 1b281661f24e487688d78725a6b91c38)`); }
       return getFromSpace({ addr, isMeta, isDna, space });
     } catch (error) {
+      debugger;
       console.error(`${lc} ${error.message}`);
       return Promise.resolve({ errorMsg: error.message });
     }
@@ -2507,6 +2516,8 @@ export class IbgibsService {
       // so we have a syncspace data (only aws-dynamodb space right now).
       // load this data into a space class with behavior (not just the dto).
       const awsSpace = new AWSDynamoSpace_V1(syncSpaceData, null);
+      awsSpace.gib = await getGib({ibGib: awsSpace, hasTjp: false});
+      if (logalot) { console.log(`awsSpace.gib: ${awsSpace.gib}`); }
       return awsSpace;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -2628,7 +2639,6 @@ export class IbgibsService {
   //       ibMetadata: space.getSpaceArgMetadata() || `${space.ib} ${getTimestampInTicks()}`,
   //     });
   //     arg.ibGibs = ibGibs;
-  //     debugger;
   //     const resSpace: IbGibSpaceResultIbGib<any, IbGibSpaceResultData, IbGibSpaceResultRel8ns> =
   //       await space.witness(arg);
   //     if (resSpace.data.success) {
@@ -2841,6 +2851,7 @@ export class IbgibsService {
         if (logalot) { console.log(`${lc} ${msg}`) };
         const fnAlert = getFnAlert();
         await fnAlert({title: "Cancelled", msg});
+        this._syncing = false;
         return;
       }
       const participants: ParticipantInfo[] = [
@@ -2848,7 +2859,10 @@ export class IbgibsService {
         ...appSyncSpaces.map(s => {
           if (!s.data) { throw new Error(`space.data required. (E: 3c192771e84445a4b6476d5193b07e9d)`); }
           if (!s.data.uuid) { throw new Error(`space.data.uuid required. (E: d27e9998227840f99d45a3ed245f3196)`); }
-          if (!s.gib) { throw new Error(`space.gib required. (E: db73aceb2f8445d8964ae49b59957072)`); }
+          if (!s.gib) {
+            debugger;
+            throw new Error(`space.gib required. (E: db73aceb2f8445d8964ae49b59957072)`);
+          }
           return <ParticipantInfo>{ id: s.data.uuid, gib: s.gib, s_d: 'dest', };
         })
       ];
@@ -2873,9 +2887,9 @@ export class IbgibsService {
           await this._createNewSyncSagaInfo({allIbGibsToSync, syncSpace, participants});
         this.sagaInfoMap[sagaInfo.sagaId] = sagaInfo;
         try {
-          // _startSync creates observables that can keep us up to date
-          // on the statuses of these merges. We can handle updating
-          // our own local space based on those status updates.
+          // _startSync creates a status observable that can keep us up to date
+          // on the status updates throughout the sync saga. We can handle
+          // updating our own local space based on those status updates.
           await this._startSync({syncSagaInfo: sagaInfo, confirm});
         } catch (error) {
           // if this throws, then that is unexpected.
@@ -2887,12 +2901,15 @@ export class IbgibsService {
         }
       });
 
-      // await just the initial starting of each space's sync operation
+      // await just the initial starting of each space's sync operation.  when
+      // this promise is awaited, the sync operation is not done, only the
+      // starting of all sync sagas across all spaces.
       await Promise.all(startSyncPromises);
 
-      // at this point, all spaces have prepared and going. the sync saga info
-      // attached to each arg/result ibgib has the observable syncStatus$ that
-      // will produce the status updates which can be interpreted.
+      // at this point, all spaces have prepared and are going. the sync saga
+      // info attached to each arg/result ibgib has the observable syncStatus$
+      // that will produce the status updates which can be interpreted &
+      // responded to.
       await this._handleSagaUpdates();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -2961,7 +2978,7 @@ export class IbgibsService {
         syncSpace,
         // spaceGib: syncSpace.gib,
         spaceId: syncSpace.data.uuid,
-        sagaId: await h.getUUID(),
+        sagaId: (await h.getUUID()).slice(0,24),
         participants,
         witnessFnArgsAndResults$: new ReplaySubject<SyncSpaceOptionsIbGib|SyncSpaceResultIbGib>(),
     // arg: SyncSpaceOptionsIbGib;
@@ -3046,7 +3063,7 @@ export class IbgibsService {
       // and not hard-coding a single arg/result in the saga info.
       syncSagaInfo.witnessFnArgsAndResults$.next(argStartSync);
       const resStartSync: SyncSpaceResultIbGib = await syncSpace.witness(argStartSync);
-      if (!resStartSync.data?.tjpGib) { throw new Error(`resStartSync.data.tjpGib (syncId) is falsy. (E: 727b5cc1a0254497bc6e06e9c6760564)`); }
+      if (!resStartSync.data?.statusTjpAddr) { throw new Error(`resStartSync.data.statusTjpAddr is falsy. sagaId: ${sagaId} (E: 727b5cc1a0254497bc6e06e9c6760564)`); }
       syncSagaInfo.witnessFnArgsAndResults$.next(resStartSync);
 
       // now that we have the progress ibGib, we can ping it's get latest at intervals
@@ -3173,6 +3190,9 @@ export class IbgibsService {
           break;
 
         case StatusCode.completed:
+          debugger;
+          // the next line is wrong. need to fix it, beacuse just one sync space
+          // completing does not a saga equate.
           await this.cleanupSyncSagas_NoThrow({});
           break;
 
@@ -3307,7 +3327,7 @@ export class IbgibsService {
      */
     warnIfMultipleLocalTimelines?: boolean,
   }): Promise<IbGib_V1[]> {
-    const lc = `${this.lc}[${this._getLatestIbGibsWithTjps}]`;
+    const lc = `${this.lc}[${this._getLatestIbGibsWithTjps.name}]`;
     try {
       const result: IbGib_V1[] = [];
       const ibGibsWithTjp_Ungrouped = ibGibs.filter(x =>

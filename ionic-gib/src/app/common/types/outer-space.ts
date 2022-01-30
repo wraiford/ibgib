@@ -182,6 +182,10 @@ export interface OuterSpaceOptionsIbGib<
 }
 
 export interface OuterSpaceResultData extends IbGibSpaceResultData {
+    /**
+     * If the space operation involves a saga, this is the id.
+     */
+    sagaId?: string;
 }
 export interface OuterSpaceResultRel8ns extends IbGibSpaceResultRel8ns {
 }
@@ -260,7 +264,7 @@ export interface SyncSpaceOptionsIbGib<
 }
 
 export interface SyncSpaceResultData extends OuterSpaceResultData {
-    tjpGib?: Gib;
+    statusTjpAddr?: IbGibAddr;
 }
 export interface SyncSpaceResultRel8ns extends OuterSpaceResultRel8ns {
 }

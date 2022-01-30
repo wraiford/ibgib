@@ -78,7 +78,7 @@ export class CreateSecretModalComponent
       name: "name",
       description: "It's a name for the secret. Make it short with only letters, underscores and hyphens.",
       label: "Name (public)",
-      placeholder: "brief_name-hyphensOK_32charMax",
+      placeholder: `e.g. "default_password". brief_name-hyphensOK_32charMax`,
       regexp: getRegExp({min: 1, max: 32, chars: '-', noSpaces: true}),
       required: true,
     },

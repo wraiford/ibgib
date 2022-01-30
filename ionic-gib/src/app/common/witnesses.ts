@@ -134,8 +134,8 @@ export abstract class WitnessBase_V1<
      */
     toDto(): IbGib_V1<TData, TRel8ns> {
         const lc = `${this.lc}[${this.toDto.name}]`;
-        if (!this.ib) { console.warn(`${lc} this.ib is falsy.`); }
-        if (!this.gib) { console.warn(`${lc} this.gib is falsy.`); }
+        if (!this.ib) { console.warn(`${lc} this.ib is falsy. (W: 60162e3ab42941e9a68cd6adc8d23387)`); }
+        if (!this.gib) { debugger; console.warn(`${lc} this.gib is falsy. (W: 61dc535639dc410d874635013fce5b8a)`); }
 
         let dtoIbGib: IbGib_V1<TData, TRel8ns> = { ib: (this.ib || '').slice() };
         if (this.gib) { dtoIbGib.gib = this.gib.slice(); };

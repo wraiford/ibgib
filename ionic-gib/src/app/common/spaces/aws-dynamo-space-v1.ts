@@ -878,6 +878,7 @@ export class AWSDynamoSpace_V1<
         switch (cmd) {
             case IbGibSpaceOptionsCmd.put:
                 if (cmdModifiers.includes('sync')) {
+                    if (logalot) { console.log(`${lc} cmd is put and modifier includes sync. Routing to putSync function. (I: 2dc358c88a1746329b379d4e8ba7e09e)`); }
                     return this.putSync(arg);
                 } else {
                     return super.routeAndDoCommand({cmd, cmdModifiers, arg});
@@ -1448,6 +1449,8 @@ export class AWSDynamoSpace_V1<
                 tjpIbGibs, ibGibsWithTjpGroupedByTjpAddr, resLatestMap
             })
 
+            if (logalot) { console.log(`${lc} resLatestMap: ${h.pretty(resLatestMap)}`); }
+
             // at this point, resLatestMap should have mappings for all incoming
             // ibgibs with tjps, including any tjps proper (n=0).
             if (Object.keys(resLatestMap).length !== ibGibsWithTjp.length) {
@@ -1944,7 +1947,6 @@ export class AWSDynamoSpace_V1<
                 region: this.data.region,
             });
 
-
             if (arg.ibGibs?.length > 0) {
                 return await this.putIbGibsImpl({arg, client}); // returns
             } else if (arg.binData && arg.data.binHash && arg.data.binExt) {
@@ -2350,10 +2352,13 @@ export class AWSDynamoSpace_V1<
                     participants: arg.data.participants,
                     ibGibAddrs: arg.data.ibGibAddrs,
                 });
+            resultData.sagaId = arg.data.sagaId;
+            resultData.statusTjpAddr = syncStatusIbGib_Start.rel8ns.tjp[0];
 
             // this will communicate to the caller via the syncStatus$ stream
             this.spinOffToCompleteSync({
                 client,
+                sagaId: arg.data.sagaId,
                 ibGibs: arg.ibGibs.concat(),
                 statusStartIbGibs,
                 syncStatusIbGib_Start,
@@ -2361,7 +2366,6 @@ export class AWSDynamoSpace_V1<
                 errors,
                 warnings,
             });
-
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];
@@ -2403,6 +2407,7 @@ export class AWSDynamoSpace_V1<
         try {
             const errors: string[] = [];
             const warnings: string[] = [];
+            debugger; // first run
             if ((statusIbGib.statusIbGibGraph ?? []).length === 0) {
                 throw new Error(`statusIbGib must have statusIbGibGraph attached, that should include the statusIbGib itself. (E: 590ff22e23db482ab979b0b87fba70a0)`);
             }
@@ -2415,14 +2420,24 @@ export class AWSDynamoSpace_V1<
                 // publish the status that we've started
                 syncStatus$.next(statusIbGib);
             }
+            debugger;
         } catch (error) {
+            debugger;
             console.error(`${lc} ${error.message}`);
             throw error;
         }
     }
 
+    /**
+     * Very large function atow that does the work of storing statuses,
+     * publishing statuses, reconciling timelines, etc.
+     *
+     * When the function finishes, the sync saga will be complete, but
+     * this function is spun off and not itself awaited.
+     */
     private async spinOffToCompleteSync({
         client,
+        sagaId,
         ibGibs,
         statusStartIbGibs,
         syncStatusIbGib_Start,
@@ -2431,6 +2446,7 @@ export class AWSDynamoSpace_V1<
         warnings,
     }: {
         client: DynamoDBClient,
+        sagaId: string,
         ibGibs: IbGib_V1[],
         statusStartIbGibs: IbGib_V1[],
         syncStatusIbGib_Start: SyncStatusIbGib,
@@ -2496,11 +2512,11 @@ export class AWSDynamoSpace_V1<
 
             for (let i = 0; i < tjpAddrs.length; i++) {
 
+                let statusCode: StatusCode;
                 // we're going to build up a list of ibgibs that we're going
                 // to put to the store. These will either be those who are totally
                 // untracked or those that we create by applying local transforms to
                 // latest ibgibs.
-                let statusCode: StatusCode;
                 const ibGibsToStore_thisTjp: IbGib_V1[] = [];
                 const ibGibsCreated_thisTjp: IbGib_V1[] = [];
                 /**
@@ -2514,20 +2530,25 @@ export class AWSDynamoSpace_V1<
                     .filter(x => (x.data.n ?? -1) >= 0)
                     .sort(x => x.data.n); // sorts ascending, e.g., 0,1,2...[Highest]
                 const latestAddr_Store = resLatestAddrsMap[tjpAddr];
+                debugger; // look at above
 
                 // #region reconcile local timeline with store
 
                 if (latestAddr_Store) {
 
+                    debugger; // just first time this happens
                     // the tjp timeline DOES exist in the sync space.  analyze
                     // and reconcile (if not already synced).
                     const tjpGroupAddrs_Local_Ascending =
                         tjpGroupIbGibs_Local_Ascending.map(x => h.getIbGibAddr({ibGib: x}));
                     const latestAddr_Local =
                         tjpGroupAddrs_Local_Ascending[tjpGroupAddrs_Local_Ascending.length-1];
+                    debugger; // look at above
+
                     if (latestAddr_Store === latestAddr_Local) {
 
                         // local space & sync space are already synced.
+                        debugger; // first run
                         statusCode = StatusCode.already_synced;
                         // ibGibsToStore = [];
                         // ibGibsCreated = [];
@@ -2535,6 +2556,7 @@ export class AWSDynamoSpace_V1<
 
                     } else if (tjpGroupAddrs_Local_Ascending.includes(latestAddr_Store)) {
 
+                        debugger; // first run
                         this.reconcile_UpdateStoreWithMoreRecentLocal({
                             latestAddr_Store,
                             tjpGroupAddrs_Local_Ascending,
@@ -2548,6 +2570,8 @@ export class AWSDynamoSpace_V1<
 
                     } else {
 
+                        debugger; // first run
+                        if (logalot) { console.log(`${lc} store has changes not here in local. going to merge local timeline into store.`); }
                         await this.reconcile_MergeLocalDnaIntoStore({
                             client,
                             latestAddr_Local, latestAddr_Store,
@@ -2564,7 +2588,8 @@ export class AWSDynamoSpace_V1<
                     }
                 } else {
 
-                    // the timeline DOES NOT exist in the store, so insert it.
+                    debugger; // just first time this happens
+                    if (logalot) { console.log(`${lc} the timeline DOES NOT exist in the store, so insert it.`)}
 
                     await this.reconcile_InsertFirstTimeIntoStore({
                         tjpGroupIbGibs_Local_Ascending,
@@ -2579,8 +2604,7 @@ export class AWSDynamoSpace_V1<
 
                 // #endregion reconcile local timeline with store
 
-                // #region execute store operation
-
+                // #region execute put in store operation
 
                 // some of the ibGibs may already be stored. but we'll skip only
                 // those that we definitely know are already there.  Note that
@@ -2596,6 +2620,8 @@ export class AWSDynamoSpace_V1<
                     }
                 }
 
+                debugger; // ibGibsToStoreNotAlreadyStored
+
                 // in this first naive implementation, we're just going all or none
                 // in terms of success and publishing it.
                 // (though not in the transactional sense for the time being).
@@ -2603,7 +2629,7 @@ export class AWSDynamoSpace_V1<
                 if (errors.length > 0) { throw new Error(errors.join('\n')); }
                 if (warnings.length > 0) { console.warn(`${lc} warnings:\n${warnings.join('\n')}`); }
 
-                // #endregion execute store operation
+                // #endregion execute put in store operation
 
                 // #region publish status update
 
@@ -2619,6 +2645,9 @@ export class AWSDynamoSpace_V1<
                 }
                 const resSyncStatusIbGib = await V1.mut8({
                     src: statusIbGib,
+                    mut8Ib: getStatusIb({
+                        spaceType: 'sync', spaceSubtype: 'aws-dynamodb', statusCode, sagaId,
+                    }),
                     dataToAddOrPatch: <SyncStatusData>{
                         statusCode: statusCode,
                         success: true,
@@ -2652,10 +2681,14 @@ export class AWSDynamoSpace_V1<
 
             // #region complete saga
 
+            const statusCode = StatusCode.completed;
             const resSyncStatusIbGib_Complete = await V1.mut8({
                 src: statusIbGib,
+                mut8Ib: getStatusIb({
+                    spaceType: 'sync', spaceSubtype: 'aws-dynamodb', statusCode, sagaId,
+                }),
                 dataToAddOrPatch: <SyncStatusData>{
-                    statusCode: StatusCode.completed,
+                    statusCode,
                     success: true,
                     errors: (errors ?? []).length > 0 ? errors.concat() : undefined,
                     warnings: (warnings ?? []).length > 0 ? warnings.concat() : undefined,
@@ -2718,6 +2751,7 @@ export class AWSDynamoSpace_V1<
     }): void {
         const lc = `${this.lc}[${this.reconcile_UpdateStoreWithMoreRecentLocal.name}]`;
         try {
+            debugger; // first run
             const indexOfLatestInStore =
                 tjpGroupAddrs_Local_Ascending.indexOf(latestAddr_Store);
             const newerAddrsInLocalSpace =
@@ -2808,6 +2842,7 @@ export class AWSDynamoSpace_V1<
     }): Promise<void> {
         const lc = `${this.lc}[${this.reconcile_MergeLocalDnaIntoStore.name}]`;
         try {
+            debugger; // first run
             let errors: string[] = [];
             let warnings: string[] = [];
 
@@ -2904,6 +2939,7 @@ export class AWSDynamoSpace_V1<
     }): Promise<IbGib_V1> {
         const lc = `${this.lc}[${this.applyTransforms.name}]`;
         try {
+            debugger; // first run
             if (dnaAddrsToApplyToStoreVersion.length > 0) {
                 const dnaAddrToApply = dnaAddrsToApplyToStoreVersion.splice(0,1)[0];
                 // we expect this dna ibgib to supplied to us, but need to check
@@ -2993,6 +3029,7 @@ export class AWSDynamoSpace_V1<
     }): Promise<void> {
         const lc = `${this.lc}[${this.reconcile_InsertFirstTimeIntoStore.name}]`;
         try {
+            debugger; // first run
             // atow ibGibsToStore starts empty, but may change in future
             // maybe yagni
             ibGibsToStore = (ibGibsToStore ?? []).length > 0 ?

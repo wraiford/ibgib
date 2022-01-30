@@ -36,7 +36,7 @@ export abstract class SpaceBase_V1<
     /**
      * Log context for convenience with logging. (Ignore if you don't want to use this.)
      */
-    protected lc: string = `[${SpaceBase_V1.name}]`;
+    protected lc: string = `${super.lc}[${SpaceBase_V1.name}]`;
 
     getSpaceIb(classname: string): string {
         const lc = `${this.lc}[${this.getSpaceIb.name}]`;
