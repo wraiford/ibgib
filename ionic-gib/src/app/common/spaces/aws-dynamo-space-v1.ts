@@ -3036,6 +3036,7 @@ export class AWSDynamoSpace_V1<
                 [...ibGibsToStore, ...tjpGroupIbGibs_Local_Ascending.concat()] :
                 tjpGroupIbGibs_Local_Ascending.concat();
         } catch (error) {
+            debugger;
             console.error(`${lc} ${error.message}`);
             throw error;
         }
