@@ -2913,37 +2913,59 @@ export class IbgibsService {
       await this._handleSagaUpdates();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-      await this.cleanupSyncSagas_NoThrow({error});
+      this.finalizeAllSyncSagas_NoThrow({error});
       throw error;
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
-  private async cleanupSyncSagas_NoThrow({
+  private finalizeSyncSaga({
+    sagaInfo,
+    error,
+  }: {
+    sagaInfo: SyncSagaInfo,
+    error?: any,
+  }): void {
+    const lc = `${this.lc}[${this.finalizeSyncSaga.name}]`;
+    try {
+      if (sagaInfo.complete) { return; }
+      if (!sagaInfo.syncStatus$.complete) {
+        if (error) {
+          const emsg =
+            typeof(error) === 'string' ?  error : error.message ??
+              `${lc} something went wrong (E: d7db873d9e8b4f14b5b490cadd9730f4)`;
+          console.error(emsg);
+          sagaInfo.syncStatus$.error(emsg);
+        }
+        sagaInfo.syncStatus$.complete();
+      }
+      // I think $.complete() closes subscriptions, but to be double sure...
+      (sagaInfo.syncStatusSubscriptions ?? [])
+        .filter(sub => sub && !sub.closed)
+        .forEach(sub => { sub.unsubscribe(); });
+
+    } catch (error) {
+       console.error(`${lc} ${error.message}`);
+       throw error;
+    } finally {
+      sagaInfo.complete = true;
+    }
+
+  }
+
+  private finalizeAllSyncSagas_NoThrow({
     error,
   }: {
     error?: any,
-  }): Promise<void> {
-    const lc = `${this.lc}[${this.cleanupSyncSagas_NoThrow.name}]`;
+  }): void {
+    const lc = `${this.lc}[${this.finalizeAllSyncSagas_NoThrow.name}]`;
     try {
-      const syncSagaInfos = Object.values(this.sagaInfoMap).concat();
-      for (let i = 0; i < syncSagaInfos.length; i++) {
-        const info = syncSagaInfos[i];
-        if (!info.syncStatus$.complete) {
-          if (error) {
-            const emsg =
-              typeof(error) === 'string' ?  error : error.message ??
-                `${lc} something went wrong (E: d7db873d9e8b4f14b5b490cadd9730f4)`;
-            console.error(emsg);
-            info.syncStatus$.error(emsg);
-          }
-          info.syncStatus$.complete();
-        }
-        // I think $.complete() closes subscriptions, but to be double sure...
-        (info.syncStatusSubscriptions ?? [])
-          .filter(sub => sub && !sub.closed)
-          .forEach(sub => { sub.unsubscribe(); });
+      const syncSagaInfos_NotComplete =
+        Object.values(this.sagaInfoMap).filter(x => !x.complete);
+      for (let i = 0; i < syncSagaInfos_NotComplete.length; i++) {
+        const sagaInfo = syncSagaInfos_NotComplete[i];
+        this.finalizeSyncSaga({sagaInfo, error});
       }
     } catch (error) {
       console.error(`${lc}(UNEXPECTED) ${error.message}`);
@@ -2951,6 +2973,7 @@ export class IbgibsService {
     } finally {
       this.sagaInfoMap = {};
       this._syncing = false;
+      if (logalot) { console.log(`${lc} this._syncing is now false.`); }
     }
   }
 
@@ -3180,7 +3203,7 @@ export class IbgibsService {
           break;
 
         case StatusCode.merged:
-          await this.handleSyncComplete_Merged({status});
+          await this.handleSyncStatus_Merged({status});
           break;
 
         case StatusCode.already_synced:
@@ -3191,9 +3214,7 @@ export class IbgibsService {
 
         case StatusCode.completed:
           debugger;
-          // the next line is wrong. need to fix it, beacuse just one sync space
-          // completing does not a saga equate.
-          await this.cleanupSyncSagas_NoThrow({});
+          await this.handleSyncStatus_Complete({sagaInfo});
           break;
 
         case StatusCode.undefined:
@@ -3211,12 +3232,12 @@ export class IbgibsService {
     }
   };
 
-  private async handleSyncComplete_Merged({
+  private async handleSyncStatus_Merged({
     status,
   }: {
     status: SyncStatusIbGib,
   }): Promise<void> {
-    const lc = `${this.lc}[${this.handleSyncComplete_Merged.name}]`;
+    const lc = `${this.lc}[${this.handleSyncStatus_Merged.name}]`;
     try {
       // #region validate
       if ((status.createdIbGibs ?? []).length === 0) { throw new Error('status.createdIbGibs required when merging. (E: d118bde47fb9434fa95d747f8e4f6b33)'); }
@@ -3248,6 +3269,28 @@ export class IbgibsService {
       throw error;
     }
   }
+
+  private async handleSyncStatus_Complete({
+    sagaInfo,
+  }: {
+    sagaInfo: SyncSagaInfo,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.handleSyncStatus_Complete.name}]`;
+    try {
+      // cleanup just this saga, which corresponds to a single sync space.
+      this.finalizeSyncSaga({sagaInfo});
+
+      // if this is the last saga across all spaces, clean up the rest.
+      const allSagaInfos = Object.values(this.sagaInfoMap);
+      if (allSagaInfos.every(x => x.complete)) {
+        this.finalizeAllSyncSagas_NoThrow({});
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      this.finalizeAllSyncSagas_NoThrow({error});
+    }
+  }
+
   /**
    * Searches through timelines and gets every single one of them
    * in the local space. (ideally)

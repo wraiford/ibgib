@@ -237,19 +237,19 @@ export function splitIntoWithTjpAndWithoutTjp({
 }): {ibGibsWithTjpMap: { [gib: string]: IbGib_V1 }, ibGibsWithoutTjpMap: { [gib: string]: IbGib_V1 }} {
     const lc = `[${splitIntoWithTjpAndWithoutTjp.name}]`;
     try {
-        const ibGibsWithTjp: { [gib: string]: IbGib_V1 } = {};
-        const ibGibsWithoutTjp: { [gib: string]: IbGib_V1 } = {};
+        const ibGibsWithTjpMap: { [gib: string]: IbGib_V1 } = {};
+        const ibGibsWithoutTjpMap: { [gib: string]: IbGib_V1 } = {};
         const ibGibsTodo = filterPrimitives ?
             ibGibs.filter(ibGib => ibGib.gib ?? ibGib.gib !== GIB) :
             ibGibs;
         ibGibsTodo.forEach(ibGib => {
             if (hasTjp({ibGib})) {
-                ibGibsWithTjp[ibGib.gib] = ibGib;
+                ibGibsWithTjpMap[ibGib.gib] = ibGib;
             } else {
-                ibGibsWithoutTjp[ibGib.gib] = ibGib;
+                ibGibsWithoutTjpMap[ibGib.gib] = ibGib;
             }
         });
-        return {ibGibsWithTjpMap: ibGibsWithTjp, ibGibsWithoutTjpMap: ibGibsWithoutTjp};
+        return {ibGibsWithTjpMap, ibGibsWithoutTjpMap};
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

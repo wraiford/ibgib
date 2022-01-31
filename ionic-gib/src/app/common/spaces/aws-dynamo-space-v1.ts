@@ -389,7 +389,7 @@ async function createDynamoDBQueryNewerCommand({
             },
             ProjectionExpression: projectionExpression,
             ExpressionAttributeNames: expressionAttributeNames,
-            ScanIndexForward: false, // returns higher n first (I believe!...not 100% sure here)
+            ScanIndexForward: true, // returns higher n first (I believe!...not 100% sure here)
             ReturnConsumedCapacity: 'TOTAL',
         };
         if (logalot) { console.log(`${lc} params: ${h.pretty(params)}`); }
@@ -1457,7 +1457,7 @@ export class AWSDynamoSpace_V1<
                 debugger;
                 console.warn(`${lc}(UNEXPECTED) resLatestMap size is not equal to size of tjp ibgibs(?) (W: 9e07d44c527f49b48fb9320422a70481)`);
             }
-            debugger; // want to look at resLatestMap
+            // debugger; // want to look at resLatestMap
 
 
             // Do the non-tjp part, this mutates resLatestMap
@@ -1473,7 +1473,7 @@ export class AWSDynamoSpace_V1<
                 console.warn(`${lc}(UNEXPECTED) resLatestMap size is not equal to size of tjp ibgibs(?) (W: 9e07d44c527f49b48fb9320422a70481)`);
             }
 
-            debugger; // examine resLatestMap
+            // debugger; // examine resLatestMap
             return resLatestMap;
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
@@ -1528,8 +1528,8 @@ export class AWSDynamoSpace_V1<
                     if (resultItem.n?.N !== undefined) {
                         let resultItemN = Number.parseInt(resultItem.n!.N);
                         if (resultItemN > highestN) {
-                            const ib = resultItem.ib.S;
-                            const gib = resultItem.gib.S;
+                            const ib = JSON.parse(resultItem.ib.S);
+                            const gib = JSON.parse(resultItem.gib.S);
                             latestAddr = h.getIbGibAddr({ib, gib});
                             if (logalot) { console.log(`${lc} n: ${resultItemN}. latestAddr: ${latestAddr}`); }
                         } else {
@@ -1578,7 +1578,7 @@ export class AWSDynamoSpace_V1<
                 errors,
                 warnings,
             });
-            debugger; // examine resExistsMap
+            // debugger; // examine resExistsMap
             addrsWithoutTjp.forEach(addrWithoutTjp => {
                 resLatestMap[addrWithoutTjp] =
                     resExistsMap[addrWithoutTjp] ? addrWithoutTjp : null;
@@ -2407,9 +2407,14 @@ export class AWSDynamoSpace_V1<
         try {
             const errors: string[] = [];
             const warnings: string[] = [];
-            debugger; // first run
+            // debugger; // first run
             if ((statusIbGib.statusIbGibGraph ?? []).length === 0) {
                 throw new Error(`statusIbGib must have statusIbGibGraph attached, that should include the statusIbGib itself. (E: 590ff22e23db482ab979b0b87fba70a0)`);
+            }
+            if (logalot) {
+                console.log(`${lc} statusIbGibGraph: ${h.pretty(statusIbGib.statusIbGibGraph.map(x => {
+                    return {ib: x.ib, gib: x.gib, data: x.data ?? {}, rel8ns: x.rel8ns ?? {}};
+                }))}`)
             }
             await this.putIbGibs({client, ibGibs: statusIbGib.statusIbGibGraph, errors, warnings});
             if (warnings.length > 0) { console.warn(`${lc} warnings:\n${warnings.join('\n')}`); }
@@ -2420,7 +2425,7 @@ export class AWSDynamoSpace_V1<
                 // publish the status that we've started
                 syncStatus$.next(statusIbGib);
             }
-            debugger;
+            // debugger;
         } catch (error) {
             debugger;
             console.error(`${lc} ${error.message}`);
@@ -2498,8 +2503,9 @@ export class AWSDynamoSpace_V1<
             // now that we have a map of local addr => latest store addr | null,
             // we will group our incoming ibgibs by tjp in preparation to
             // iterate.
-            const {ibGibsWithTjpMap} = splitIntoWithTjpAndWithoutTjp({ibGibs});
+            const {ibGibsWithTjpMap, ibGibsWithoutTjpMap} = splitIntoWithTjpAndWithoutTjp({ibGibs});
             const ibGibsWithTjp = Object.values(ibGibsWithTjpMap);
+            const ibGibsWithoutTjp = Object.values(ibGibsWithoutTjpMap);
             const ibGibsWithTjpGroupedByTjpAddr = groupBy({
                 items: ibGibsWithTjp,
                 keyFn: x => x.data.isTjp ? h.getIbGibAddr({ibGib: x}) : x.rel8ns.tjp[0]
@@ -2530,6 +2536,9 @@ export class AWSDynamoSpace_V1<
                     .filter(x => (x.data.n ?? -1) >= 0)
                     .sort(x => x.data.n); // sorts ascending, e.g., 0,1,2...[Highest]
                 const latestAddr_Store = resLatestAddrsMap[tjpAddr];
+                if (logalot) { console.log(`${lc} tjpAddr: ${tjpAddr}`); }
+                if (logalot) { console.log(`${lc} resLatestAddrsMap: ${h.pretty(resLatestAddrsMap)}`); }
+                if (logalot) { console.log(`${lc} latestAddr_Store: ${latestAddr_Store}`); }
                 debugger; // look at above
 
                 // #region reconcile local timeline with store
@@ -2541,8 +2550,12 @@ export class AWSDynamoSpace_V1<
                     // and reconcile (if not already synced).
                     const tjpGroupAddrs_Local_Ascending =
                         tjpGroupIbGibs_Local_Ascending.map(x => h.getIbGibAddr({ibGib: x}));
+                    if (logalot) { console.log(`${lc} tjpGroupAddrs_Local_Ascending: ${tjpGroupAddrs_Local_Ascending}`); }
+                    debugger;
+
                     const latestAddr_Local =
                         tjpGroupAddrs_Local_Ascending[tjpGroupAddrs_Local_Ascending.length-1];
+                    if (logalot) { console.log(`${lc} latestAddr_Local: ${latestAddr_Local}`); }
                     debugger; // look at above
 
                     if (latestAddr_Store === latestAddr_Local) {
@@ -2588,11 +2601,12 @@ export class AWSDynamoSpace_V1<
                     }
                 } else {
 
-                    debugger; // just first time this happens
+                    // debugger; // just first time this happens
                     if (logalot) { console.log(`${lc} the timeline DOES NOT exist in the store, so insert it.`)}
 
                     await this.reconcile_InsertFirstTimeIntoStore({
                         tjpGroupIbGibs_Local_Ascending,
+                        ibGibsWithoutTjp,
                         ibGibsToStore: ibGibsToStore_thisTjp,
                     });
                     statusCode = StatusCode.inserted;
@@ -2653,17 +2667,18 @@ export class AWSDynamoSpace_V1<
                         success: true,
                         errors: (errors ?? []).length > 0 ? errors.concat() : undefined,
                         warnings: (warnings ?? []).length > 0 ? warnings.concat() : undefined,
-                        didRx: ibGibAddrsStored,
-                        didCreate: ibGibAddrsCreated,
+                        didRx: ibGibAddrsStored.concat(),
+                        didCreate: ibGibAddrsCreated.concat(),
                         didMergeMap: h.clone(ibGibAddrsMergeMap),
                     },
                     dna: false,
                 });
-                debugger; // examine resSyncStatusIbGib
 
                 // update our references to statusIbGib/Graph
                 statusIbGib = <SyncStatusIbGib>resSyncStatusIbGib.newIbGib;
-                statusIbGib.statusIbGibGraph = [statusIbGib, ...resSyncStatusIbGib.intermediateIbGibs];
+                statusIbGib.statusIbGibGraph = resSyncStatusIbGib.intermediateIbGibs ?
+                    [statusIbGib, ...resSyncStatusIbGib.intermediateIbGibs] :
+                    [statusIbGib];
                 if (ibGibsCreated_thisTjp.length > 0) {
                     statusIbGib.createdIbGibs = ibGibsCreated_thisTjp.concat();
                 }
@@ -2682,6 +2697,7 @@ export class AWSDynamoSpace_V1<
             // #region complete saga
 
             const statusCode = StatusCode.completed;
+            // debugger; // statusIbGib should NOT be started, should be inserted
             const resSyncStatusIbGib_Complete = await V1.mut8({
                 src: statusIbGib,
                 mut8Ib: getStatusIb({
@@ -2695,10 +2711,12 @@ export class AWSDynamoSpace_V1<
                 },
                 dna: false,
             });
-            debugger; // examine resSyncStatusIbGib
+            // debugger; // examine resSyncStatusIbGib
             // update our references to statusIbGib/Graph
             statusIbGib = <SyncStatusIbGib>resSyncStatusIbGib_Complete.newIbGib;
-            statusIbGib.statusIbGibGraph = [statusIbGib, ...resSyncStatusIbGib_Complete.intermediateIbGibs];
+            statusIbGib.statusIbGibGraph = resSyncStatusIbGib_Complete.intermediateIbGibs ?
+                [statusIbGib, ...resSyncStatusIbGib_Complete.intermediateIbGibs] :
+                [statusIbGib];
 
             // publish the last status to indicate sync completion for this space.
             await this.saveInStoreAndPublishStatus({client, statusIbGib, syncStatus$});
@@ -3019,9 +3037,11 @@ export class AWSDynamoSpace_V1<
      */
     protected async reconcile_InsertFirstTimeIntoStore({
         tjpGroupIbGibs_Local_Ascending,
+        ibGibsWithoutTjp,
         ibGibsToStore,
     }: {
         tjpGroupIbGibs_Local_Ascending: IbGib_V1[],
+        ibGibsWithoutTjp: IbGib_V1[],
         /**
          * Populated by this function
          */
@@ -3029,12 +3049,18 @@ export class AWSDynamoSpace_V1<
     }): Promise<void> {
         const lc = `${this.lc}[${this.reconcile_InsertFirstTimeIntoStore.name}]`;
         try {
-            debugger; // first run
-            // atow ibGibsToStore starts empty, but may change in future
-            // maybe yagni
-            ibGibsToStore = (ibGibsToStore ?? []).length > 0 ?
-                [...ibGibsToStore, ...tjpGroupIbGibs_Local_Ascending.concat()] :
-                tjpGroupIbGibs_Local_Ascending.concat();
+            if (!ibGibsToStore) { throw new Error(`ibGibsToStore required. (E: e404ccf67dbd451082315311375befb1)`); }
+            // debugger; // first run
+            tjpGroupIbGibs_Local_Ascending.forEach(x => {
+                if (!ibGibsToStore.some(y => y.gib === x.gib)) {
+                    ibGibsToStore.push(x);
+                }
+            });
+
+            // brute forcing here...should do dependency graph
+            ibGibsWithoutTjp.forEach(x => ibGibsToStore.push(x));
+            // debugger;
+            if (logalot) { console.log(`${lc} ibGibsToStore.map(x => h.getIbGibAddr({ibGib: x})): ${ibGibsToStore.map(x => h.getIbGibAddr({ibGib: x}))}`); }
         } catch (error) {
             debugger;
             console.error(`${lc} ${error.message}`);
