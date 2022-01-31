@@ -2574,6 +2574,7 @@ export class AWSDynamoSpace_V1<
                             latestAddr_Store,
                             tjpGroupAddrs_Local_Ascending,
                             tjpGroupIbGibs_Local_Ascending,
+                            ibGibsWithoutTjp,
                             ibGibsToStore: ibGibsToStore_thisTjp,
                         });
                         statusCode = StatusCode.updated;
@@ -2639,9 +2640,11 @@ export class AWSDynamoSpace_V1<
                 // in this first naive implementation, we're just going all or none
                 // in terms of success and publishing it.
                 // (though not in the transactional sense for the time being).
-                await this.putIbGibs({client, ibGibs: ibGibsToStoreNotAlreadyStored, errors, warnings});
-                if (errors.length > 0) { throw new Error(errors.join('\n')); }
-                if (warnings.length > 0) { console.warn(`${lc} warnings:\n${warnings.join('\n')}`); }
+                if (ibGibsToStoreNotAlreadyStored.length > 0) {
+                    await this.putIbGibs({client, ibGibs: ibGibsToStoreNotAlreadyStored, errors, warnings});
+                    if (errors.length > 0) { throw new Error(errors.join('\n')); }
+                    if (warnings.length > 0) { console.warn(`${lc} warnings:\n${warnings.join('\n')}`); }
+                }
 
                 // #endregion execute put in store operation
 
@@ -2760,11 +2763,13 @@ export class AWSDynamoSpace_V1<
         latestAddr_Store,
         tjpGroupAddrs_Local_Ascending,
         tjpGroupIbGibs_Local_Ascending,
+        ibGibsWithoutTjp,
         ibGibsToStore,
     }: {
         latestAddr_Store: IbGibAddr,
         tjpGroupAddrs_Local_Ascending: IbGibAddr[],
         tjpGroupIbGibs_Local_Ascending: IbGib_V1[],
+        ibGibsWithoutTjp: IbGib_V1[],
         ibGibsToStore: IbGib_V1[],
     }): void {
         const lc = `${this.lc}[${this.reconcile_UpdateStoreWithMoreRecentLocal.name}]`;
@@ -2775,14 +2780,14 @@ export class AWSDynamoSpace_V1<
             const newerAddrsInLocalSpace =
                 tjpGroupAddrs_Local_Ascending.slice(indexOfLatestInStore+1);
             debugger; // want to manually check newerAddrs is correct
-            const newIbGibsInLocalSpace = newerAddrsInLocalSpace.map(addr => {
-                return tjpGroupIbGibs_Local_Ascending.filter(x => h.getIbGibAddr({ibGib: x}))[0];
+            tjpGroupIbGibs_Local_Ascending.forEach(ibGib => {
+                if (newerAddrsInLocalSpace.includes(h.getIbGibAddr({ibGib}))) {
+                    ibGibsToStore.push(ibGib);
+                }
             });
-            // atow ibGibsToStore starts empty, but may change in future
-            // maybe yagni
-            ibGibsToStore = (ibGibsToStore ?? []).length > 0 ?
-                [...ibGibsToStore, ...newIbGibsInLocalSpace] :
-                newIbGibsInLocalSpace;
+
+            // brute forcing here...should do dependency graph
+            ibGibsWithoutTjp.forEach(x => ibGibsToStore.push(x));
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
