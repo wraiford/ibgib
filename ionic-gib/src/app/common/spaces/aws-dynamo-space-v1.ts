@@ -1,5 +1,6 @@
 import {
-    AttributeValue, DynamoDBClient,
+    AttributeValue,
+    DynamoDBClient,
     // PutItemCommand, PutItemCommandInput,
     // GetItemCommand, GetItemCommandInput,
     BatchWriteItemCommand, BatchWriteItemCommandInput, BatchWriteItemCommandOutput,
@@ -8,6 +9,12 @@ import {
     KeysAndAttributes,
     ConsumedCapacity,
 } from '@aws-sdk/client-dynamodb';
+import {
+    S3Client,
+    PutObjectCommand, PutObjectCommandInput, PutObjectCommandOutput,
+    GetObjectCommand, GetObjectCommandInput, GetObjectCommandOutput,
+} from '@aws-sdk/client-s3';
+
 import { ReplaySubject } from 'rxjs/internal/ReplaySubject';
 
 import { IbGib_V1, Factory_V1 as factory, } from 'ts-gib/dist/V1';
@@ -31,11 +38,11 @@ import {
     SyncSagaInfo,
 } from '../types';
 import * as c from '../constants';
-import { getBinAddr, groupBy, splitIntoWithTjpAndWithoutTjp } from '../helper';
+import { getBinAddr, groupBy, isBinary, splitIntoWithTjpAndWithoutTjp, validateIbGibAddr, validateIbGibIntrinsically } from '../helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
-// #region DynamoDB related
+// #region AWS related
 
 type AWSDynamoDBItem = { [key: string]: AttributeValue };
 
@@ -48,9 +55,12 @@ interface AWSDynamoSpaceItem extends AWSDynamoDBItem {
     gib: AttributeValue.SMember,
     data?: AttributeValue.SMember | AttributeValue.BMember,
     rel8ns?: AttributeValue.SMember,
-    binData?: AttributeValue,
     n?: AttributeValue.NMember,
     tjp?: AttributeValue.SMember,
+    /**
+     * True if the item is large, and we had to store in S3.
+     */
+    inS3?: AttributeValue.BOOLMember,
 };
 
 /**
@@ -86,29 +96,55 @@ async function getPrimaryKey({
     }
 }
 
-async function createDynamoDBPutItem({
+/**
+ * atow, the key is the **hash** of the ibGib addr, i.e.,
+ * ```typescript
+ * return await h.hash({s: h.getIbGibAddr({ibGib}), algorithm: 'SHA-256'});
+ * ```
+ * @returns key used to put/get the ibgib into/from S3
+ */
+async function getS3Key({
     ibGib,
-    binHash,
-    binExt,
-    binData,
+    addr,
 }: {
     ibGib?: IbGib_V1,
-    binHash?: string,
-    binExt?: string,
-    binData?: any,
+    addr?: IbGibAddr,
+}): Promise<string> {
+    if (!addr && !ibGib) { throw new Error(`ibGib or addr required. (E: 46c35941c9de4f5581e1e39cbdfdfd95)`); }
+    addr = addr || h.getIbGibAddr({ibGib});
+    return await h.hash({s: addr, algorithm: 'SHA-256'});
+}
+
+async function createDynamoDBPutItem({
+    ibGib,
+    storeInS3,
+}: {
+    ibGib: IbGib_V1,
+    /**
+     * If provided, the ibGib will be incomplete in dynamodb, with only the `ib`
+     * and `gib` along with the `s3Link` being stored there. The `s3link` will
+     * be the resource pointer to the object in S3, stored as a
+     * `JSON.stringify(ibGib)`.
+     */
+    storeInS3?: boolean,
 }): Promise<AWSDynamoSpaceItem> {
     const lc = `[${createDynamoDBPutItem.name}]`;
     try {
-        let item: AWSDynamoSpaceItem;
-        if (ibGib) {
-            const addr = h.getIbGibAddr({ibGib});
-            const primaryKey = await getPrimaryKey({addr});
+        if (!ibGib) { throw new Error(`ibGib required (E: 0d5f409b119849119795894fc457e27c)`); }
 
-            item = {
-                [c.DEFAULT_PRIMARY_KEY_NAME]: { S: primaryKey },
-                ib: { S: JSON.stringify(ibGib.ib) },
-                gib: { S: JSON.stringify(ibGib.gib) },
-            }
+        let item: AWSDynamoSpaceItem;
+        const addr = h.getIbGibAddr({ibGib});
+        const primaryKey = await getPrimaryKey({addr});
+
+        item = {
+            [c.DEFAULT_PRIMARY_KEY_NAME]: { S: primaryKey },
+            ib: { S: JSON.stringify(ibGib.ib) },
+            gib: { S: JSON.stringify(ibGib.gib) },
+        }
+        if (!storeInS3) {
+            // most ibGib will be here. We are storing the actual ibGib
+            // directly in DynamoDB. For large ibgibs, we will store
+            // in S3 and only metadata in DynamoDB.
             if (ibGib.data) {
                 item.data = { S: JSON.stringify(ibGib.data) };
                 if (
@@ -138,61 +174,20 @@ async function createDynamoDBPutItem({
                     }
                 }
             }
-
-        } else if (binHash && binExt && binData) {
-            const addrHash = await getPrimaryKey({binHash, binExt});
-            const addr = getBinAddr({binHash, binExt});
-            const { ib, gib } = h.getIbAndGib({ibGibAddr: addr});
-
-            item = {
-                [c.DEFAULT_PRIMARY_KEY_NAME]: { S: addrHash },
-                ib: { S: ib },
-                gib: { S: gib },
-                data: { B: binData },
-            }
         } else {
-            throw new Error(`either ibGib or binHash+binExt+binData required.`);
+            // large ibgib object, so no `data` or `rel8ns`, and our item will
+            // only contain the `ib` and `gib` fields (already set above), as
+            // well as the `s3Link` which points to the S3 resource.
+            item.inS3 = { BOOL: true };
         }
 
-        if (!item) { throw new Error(`item not set(?)`); }
-
+        if (!item) { throw new Error(`(UNEXPECTED) item not set. (E: f691276d0c554c16a8f5bc5a113c68c1)`); }
         return item;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
     }
 }
-
-// function createDynamoDBGetItemCommand({
-//     tableName,
-//     keyName,
-//     primaryKey,
-// }: {
-//     tableName: string,
-//     keyName: string,
-//     primaryKey: string,
-// }): GetItemCommand {
-//     const params: GetItemCommandInput = {
-//         TableName: tableName,
-//         Key: { [keyName]: { S: primaryKey } },
-//         ReturnConsumedCapacity: 'TOTAL',
-//     };
-//     return new GetItemCommand(params);
-// }
-// function createDynamoDBPutItemCommand({
-//     tableName,
-//     item,
-// }: {
-//     tableName: string,
-//     item: AWSDynamoSpaceItem,
-// }): PutItemCommand {
-//     const params: PutItemCommandInput = {
-//         TableName: tableName,
-//         Item: item,
-//         ReturnConsumedCapacity: 'TOTAL',
-//     };
-//     return new PutItemCommand(params);
-// }
 
 function createDynamoDBBatchWriteItemCommand({
     tableName,
@@ -420,7 +415,7 @@ function getIbGibFromResponseItem({
     }
 }
 
-function createClient({
+function createDynamoDBClient({
     accessKeyId,
     secretAccessKey,
     region,
@@ -429,7 +424,7 @@ function createClient({
     secretAccessKey: string,
     region: AWSRegion,
 }): DynamoDBClient {
-    const lc = `[${createClient.name}]`;
+    const lc = `[${createDynamoDBClient.name}]`;
     try {
         const client = new DynamoDBClient({
             credentials: { accessKeyId, secretAccessKey, },
@@ -444,6 +439,29 @@ function createClient({
     }
 }
 
+function createS3Client({
+    accessKeyId,
+    secretAccessKey,
+    region,
+}: {
+    accessKeyId: string,
+    secretAccessKey: string,
+    region: AWSRegion,
+}): S3Client {
+    const lc = `[${createS3Client.name}]`;
+    try {
+        const client = new S3Client({
+            credentials: { accessKeyId, secretAccessKey, },
+            region,
+            tls: true,
+        });
+
+        return client;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
 /**
  * Information required to search against a global secondary index
  * involved with getting the latest ibgib
@@ -520,6 +538,10 @@ export interface SyncSpaceData_AWSDynamoDB extends SyncSpaceData {
      */
     tableName: string;
     /**
+     * Bucket name in S3 for storing large objects.
+     */
+    bucketName: string;
+    /**
      * AWS Credentials accessKeyId
      */
     accessKeyId: string;
@@ -572,6 +594,7 @@ const DEFAULT_AWS_DYNAMO_SPACE_DATA_V1: SyncSpaceData_AWSDynamoDB = {
     type: 'sync',
     subtype: 'aws-dynamodb',
     tableName: '',
+    bucketName: '',
     maxRetryThroughputCount: c.DEFAULT_AWS_MAX_RETRY_THROUGHPUT,
     maxRetryUnprocessedItemsCount: c.DEFAULT_AWS_MAX_RETRY_UNPROCESSED_ITEMS,
     accessKeyId: '',
@@ -788,6 +811,7 @@ export class AWSDynamoSpace_V1<
 
             if (!this.data) { throw new Error(`this.data falsy.`); }
             if (!this.data!.tableName) { throw new Error(`tableName not set`); }
+            if (!this.data!.bucketName) { throw new Error(`bucketName not set`); }
             if (!this.data!.secretAccessKey) { throw new Error(`this.data!.secretAccessKey falsy`); }
             if (!this.data!.accessKeyId) { throw new Error(`this.data!.accessKeyid falsy`); }
 
@@ -898,7 +922,7 @@ export class AWSDynamoSpace_V1<
         const addrsNotFound: string[] = [];
         let resIbGibs: IbGib_V1[];
         try {
-            const client = createClient({
+            const client = createDynamoDBClient({
                 accessKeyId: this.data.accessKeyId,
                 secretAccessKey: this.data.secretAccessKey,
                 region: this.data.region,
@@ -951,7 +975,7 @@ export class AWSDynamoSpace_V1<
                 if (logalot) { console.log(`${lc} starting...`); }
                 if ((arg.ibGibs ?? []).length === 0) { throw new Error(`ibGibs required. (E: 34d175b339bf4519a4da5e9b82e91ad6)`); }
 
-                const client = createClient({
+                const client = createDynamoDBClient({
                     accessKeyId: this.data.accessKeyId,
                     secretAccessKey: this.data.secretAccessKey,
                     region: this.data.region,
@@ -997,7 +1021,7 @@ export class AWSDynamoSpace_V1<
                 if (logalot) { console.log(`${lc} starting...`); }
                 if ((arg.ibGibs ?? []).length === 0) { throw new Error(`ibGibs required. (E: 34d175b339bf4519a4da5e9b82e91ad6)`); }
 
-                const client = createClient({
+                const client = createDynamoDBClient({
                     accessKeyId: this.data.accessKeyId,
                     secretAccessKey: this.data.secretAccessKey,
                     region: this.data.region,
@@ -1088,18 +1112,51 @@ export class AWSDynamoSpace_V1<
         errors: String[],
     }): Promise<IbGib_V1[]> {
         const lc = `${this.lc}[${this.getIbGibsBatch.name}]`;
-        const ibGibs: IbGib_V1[] = [];
+        /** We're returning these. going to populate as we go. */
+        const resIbGibs: IbGib_V1[] = [];
         errors = errors ?? [];
         try {
             // const maxRetries = this.data.maxRetryThroughputCount || c.DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
             if (!addrsNotFound) { throw new Error(`addrsNotFound required. (E: c10485bf678a4166a3bb1a90a5a88419)`); }
 
+            /** large ibgibs and all binaries are stored in s3. */
+            const binaryAddrs: IbGibAddr[] = [];
+            /** non-binary & non-large ibgibs are stored directly in dynamodb. */
+            const nonBinaryAddrs: IbGibAddr[] = [];
+            ibGibAddrs.forEach(addr => {
+                if (isBinary({addr})) { binaryAddrs.push(addr); } else { nonBinaryAddrs.push(addr); }
+            });
+
+            // go ahead and get binary ibgibs that we know
+            for (let i = 0; i < binaryAddrs.length; i++) {
+                const binaryAddr = binaryAddrs[i];
+                try {
+                    debugger;// debug...i want to see the error returned with ibgib not found.
+                    const notFound_ShouldThrow_Remove_this_line_after_debugging =
+                        await this.getIbGibFromS3({addr: 'ib^gib'});
+                    const resBinaryIbGib = await this.getIbGibFromS3({addr: binaryAddr});
+                    // always validate large binaries
+                    const validationErrors = await validateIbGibIntrinsically({ibGib: resBinaryIbGib});
+                    if ((validationErrors ?? []).length === 0) {
+                        resIbGibs.push(resBinaryIbGib);
+                    } else {
+                        throw new Error(validationErrors.join('\n'));
+                    }
+                } catch (error) {
+                    debugger; // need to differentiate between not found error and other errors
+                    const emsg = `${lc} ${error?.message || 'error getting addr from S3: (E: a7df594a7f384923a66f1e0c42a72317)'}`;
+                    console.error(emsg);
+                    addrsNotFound.push(binaryAddr);
+                    errors.push(emsg);
+                }
+            }
+
             let retryUnprocessedItemsCount = 0;
-            const doItems = async (unprocessedKeys?: KeysAndAttributes) => {
+            const getIbGibs_NonBinary = async (unprocessedKeys?: KeysAndAttributes) => {
 
                 let cmd = unprocessedKeys ?
                     await createDynamoDBBatchGetItemCommand({tableName: this.data.tableName, unprocessedKeys}) :
-                    await createDynamoDBBatchGetItemCommand({tableName: this.data.tableName, addrs: ibGibAddrs});
+                    await createDynamoDBBatchGetItemCommand({tableName: this.data.tableName, addrs: nonBinaryAddrs});
 
                 const resCmd = await this.sendCmd<BatchGetItemCommandOutput>({cmd, client, cmdLogLabel: 'BatchGetItem'});
 
@@ -1109,9 +1166,14 @@ export class AWSDynamoSpace_V1<
                     const getIbGibsResponseItem =
                         <AWSDynamoSpaceItem>resCmd.Responses[this.data.tableName][key];
 
-                    const ibGib = getIbGibFromResponseItem({item: getIbGibsResponseItem});
-                    ibGibs.push(ibGib);
-                    if (logalot) { console.log(`${lc} item: ${h.pretty(ibGib)}`); }
+                    if (getIbGibsResponseItem.inS3?.BOOL === true) {
+                        // need to get it from s3
+                    } else {
+                        const ibGib = getIbGibFromResponseItem({item: getIbGibsResponseItem});
+                        // validate yo...
+                        resIbGibs.push(ibGib);
+                        if (logalot) { console.log(`${lc} item: ${h.pretty(ibGib)}`); }
+                    }
                 }
 
                 const newUnprocessedCount =
@@ -1127,7 +1189,7 @@ export class AWSDynamoSpace_V1<
                     if (progressWasMade) {
                         // don't inc retry, just go again
                         if (logalot) { console.log(`${lc} unprocessed made progress, just going again`); }
-                        await doItems(newUnprocessedKeys[this.data.tableName]); // recursive
+                        await getIbGibs_NonBinary(newUnprocessedKeys[this.data.tableName]); // recursive
                     } else {
                         // no progress, so do an exponentially backed off retry
                         retryUnprocessedItemsCount++;
@@ -1139,19 +1201,19 @@ export class AWSDynamoSpace_V1<
                         const backoffMs = (2 ** retryUnprocessedItemsCount) * 10;
                         if (logalot) { console.log(`${lc} unprocessed did NOT make progress, backing off then retry in ${backoffMs} ms`); }
                         await h.delay(backoffMs);
-                        await doItems(newUnprocessedKeys[this.data.tableName]); // recursive
+                        await getIbGibs_NonBinary(newUnprocessedKeys[this.data.tableName]); // recursive
                     }
                 }
             }
 
             // triggers first run, which has recursive calls
-            await doItems();
-            // at this point, all items are done.
+            if (nonBinaryAddrs.length > 0) { await getIbGibs_NonBinary(); }
+            // at this point, all non-binary items are done.
 
             // populate which ones were not found.
             for (let i = 0; i < ibGibAddrs.length; i++) {
                 const addr = ibGibAddrs[i];
-                if (!ibGibs.some(x => h.getIbGibAddr({ibGib: x}) === addr)) {
+                if (!resIbGibs.some(x => h.getIbGibAddr({ibGib: x}) === addr)) {
                     addrsNotFound.push(addr);
                 }
             }
@@ -1161,7 +1223,7 @@ export class AWSDynamoSpace_V1<
             errors.push(error.message);
         }
 
-        return ibGibs;
+        return resIbGibs;
     }
 
     protected async getIbGibs({
@@ -1941,7 +2003,7 @@ export class AWSDynamoSpace_V1<
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
         try {
-            const client = createClient({
+            const client = createDynamoDBClient({
                 accessKeyId: this.data.accessKeyId,
                 secretAccessKey: this.data.secretAccessKey,
                 region: this.data.region,
@@ -1949,8 +2011,6 @@ export class AWSDynamoSpace_V1<
 
             if (arg.ibGibs?.length > 0) {
                 return await this.putIbGibsImpl({arg, client}); // returns
-            } else if (arg.binData && arg.data.binHash && arg.data.binExt) {
-                return await this.putBin({arg, client}); // returns
             } else {
                 throw new Error(`either ibGibs or binData/binHash/binExt required.`);
             }
@@ -1967,6 +2027,93 @@ export class AWSDynamoSpace_V1<
         return result;
     }
 
+    /**
+     * Stores a single ibGib in S3, using this space's
+     * credentials and bucketName.
+     *
+     * @returns the s3Link to the resource.
+     */
+    protected async putIbGibInS3({
+        ibGib,
+    }: {
+        ibGib: IbGib_V1,
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.putIbGibInS3.name}]`;
+        try {
+            if (!ibGib) { throw new Error(`ibGib required. (E: 054918cd74704d37aaaa762c85d6bbb7)`); }
+
+            const client = createS3Client({
+                accessKeyId: this.data.accessKeyId,
+                secretAccessKey: this.data.secretAccessKey,
+                region: this.data.region,
+            });
+            const bucketParams: PutObjectCommandInput = {
+                Bucket: this.data.bucketName,
+                // Specify the name of the new object. For example, 'index.html'.
+                // To create a directory for the object, use '/'. For example, 'myApp/package.json'.
+                Key: await getS3Key({ibGib}),
+                // Content of the new object.
+                Body: JSON.stringify(ibGib),
+                // ContentMD5: // add MD5 to ts-gib
+            };
+            const cmd = new PutObjectCommand(bucketParams);
+            const data_unused: PutObjectCommandOutput = await client.send(cmd);
+            if (logalot) { console.log(`${lc} ibgib put in s3 bucket. addr: ${h.getIbGibAddr({ibGib})}`); }
+        } catch (error) {
+            console.error(`${lc} Put ibgib in S3 failed. ${error.message}`);
+            throw error;
+        }
+    }
+
+    protected async getIbGibFromS3({
+        addr,
+    }: {
+        addr: IbGibAddr,
+    }): Promise<IbGib_V1> {
+        const lc = `${this.lc}[${this.getIbGibFromS3.name}]`;
+        try {
+            if (!addr) { throw new Error(`addr required. (E: 242ee3f7cccb4cbfb1fe80e853320443)`); }
+
+            const client = createS3Client({
+                accessKeyId: this.data.accessKeyId,
+                secretAccessKey: this.data.secretAccessKey,
+                region: this.data.region,
+            });
+            const bucketParams: GetObjectCommandInput = {
+                Bucket: this.data.bucketName,
+                // Specify the name of the new object. For example, 'index.html'.
+                // To create a directory for the object, use '/'. For example, 'myApp/package.json'.
+                Key: await getS3Key({addr}),
+                // Content of the new object.
+            };
+            const cmd = new GetObjectCommand(bucketParams);
+            const streamToString: (stream: any) => Promise<string> = (stream: any) =>
+                new Promise<string>((resolve, reject) => {
+                    const chunks: any[] = [];
+                    stream.on("data", (chunk: any) => {
+                        if (logalot) { console.log(`${lc} chunk received. addr: ${addr}`); }
+                        chunks.push(chunk);
+                    });
+                    stream.on("error", (err: any) => reject(err));
+                    stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+                });
+
+            const data: GetObjectCommandOutput = await client.send(cmd);
+            debugger;
+            let ibGibAsString = await streamToString(data.Body);
+            debugger;
+            const resIbGib = <IbGib_V1>JSON.parse(ibGibAsString);
+            if (logalot) { console.log(`${lc} ibgib gotten from s3 bucket. addr: ${addr}. ibGibAsString.length: ${ibGibAsString.length}`); }
+            debugger;
+            return resIbGib;
+        } catch (error) {
+            const emsg = error?.message ?
+                `${lc} Put ibgib in S3 failed. ${error.message} (E: 57088c83048e4874b80c0c269e24dcb9)` :
+                `${lc} Put ibgib in S3 failed. ${error?.toString()} (E: 63baeea887434c808ec83955594730ea)`
+            console.error(emsg);
+            throw new Error(emsg);
+        }
+    }
     protected async putIbGibBatch({
         ibGibs,
         client,
@@ -1978,17 +2125,36 @@ export class AWSDynamoSpace_V1<
     }): Promise<void> {
         const lc = `${this.lc}[${this.putIbGibBatch.name}]`;
         try {
+
             let retryUnprocessedItemsCount = 0;
             let ibGibItems: AWSDynamoSpaceItem[] = [];
 
             for (let i = 0; i < ibGibs.length; i++) {
                 const ibGib = ibGibs[i];
-                const item = await createDynamoDBPutItem({ibGib});
+                // we handle large ibgibs differently. we'll store the ibgib in
+                // S3, and the item we create in dynamodb will have only the
+                // `ib`, `gib`, and `s3Link` to that s3 resource. When getting
+                // the ibgib back, the truthiness of `s3Link` indicates if an
+                // ibGib is large or not.
+                let isLarge: boolean = false;
+                if (isBinary({ibGib})) {
+                    // we'll assume all binaries are large
+                    isLarge = true;
+                } else {
+                    // not a binary, but maybe e.g. a very large ibGib comment
+                    const jsonStringLength = JSON.stringify(ibGib).length;
+                    if (jsonStringLength > c.AWS_DYNAMODB_LARGE_ITEM_SIZE_LIMIT_ISH_BYTES) {
+                        isLarge = true;
+                    }
+                }
+
+                // if it's large, then we need to store it in s3 first
+                if (isLarge) { await this.putIbGibInS3({ibGib}); }
+                const item = await createDynamoDBPutItem({ibGib, storeInS3: isLarge});
                 ibGibItems.push(item);
             }
-            // const maxRetries = this.data.maxRetryThroughputCount || c.DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
 
-            const doItems = async (items: AWSDynamoSpaceItem[]) => {
+            const putDynamoDbItems = async (items: AWSDynamoSpaceItem[]) => {
                 let cmd = createDynamoDBBatchWriteItemCommand({
                     tableName: this.data.tableName,
                     items,
@@ -2006,7 +2172,7 @@ export class AWSDynamoSpace_V1<
                     if (progressWasMade) {
                         // don't inc retry, just go again
                         if (logalot) { console.log(`${lc} unprocessed made progress, just going again`); }
-                        await doItems(ibGibItems);
+                        await putDynamoDbItems(ibGibItems); // recursive
                     } else {
                         // no progress, so do an exponentially backed off retry
                         retryUnprocessedItemsCount++;
@@ -2018,14 +2184,15 @@ export class AWSDynamoSpace_V1<
                         const backoffMs = (2 ** retryUnprocessedItemsCount) * 10;
                         if (logalot) { console.log(`${lc} unprocessed did NOT make progress, backing off then retry in ${backoffMs} ms`); }
                         await h.delay(backoffMs);
-                        await doItems(ibGibItems); // recursive
+                        await putDynamoDbItems(ibGibItems); // recursive
                     }
                 }
             }
 
-            await doItems(ibGibItems);
+            await putDynamoDbItems(ibGibItems);
 
         } catch (error) {
+            debugger;
             console.error(`${lc} ${error.message}`);
             errors.push(error.message);
         }
@@ -2052,6 +2219,7 @@ export class AWSDynamoSpace_V1<
                 return {ib: x.ib, gib: x.gib, data: x.data, rel8ns: x.rel8ns}
             });
 
+
             let runningCount = 0;
             const batchSize = this.data.putBatchSize || c.DEFAULT_AWS_PUT_BATCH_SIZE;
             const throttleMs = this.data.throttleMsBetweenPuts || c.DEFAULT_AWS_PUT_THROTTLE_MS;
@@ -2072,6 +2240,7 @@ export class AWSDynamoSpace_V1<
             }
             if (logalot) { console.log(`${lc} total: ${runningCount}.`); }
         } catch (error) {
+            debugger;
             console.error(`${lc} ${error.message}`);
             errors.push(error.message);
         }
@@ -2116,85 +2285,6 @@ export class AWSDynamoSpace_V1<
             console.error(`${lc}(UNEXPECTED) error creating result via resulty. (E: f1ace7da97d3498997a13486d06dd8d4)`);
             throw error;
         }
-    }
-
-    protected async putBin({
-        arg,
-        client,
-    }: {
-        arg: AWSDynamoSpaceOptionsIbGib,
-        client: DynamoDBClient,
-    }): Promise<AWSDynamoSpaceResultIbGib> {
-        const lc = `${this.lc}[${this.put.name}]`;
-        const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
-        const errors: string[] = [];
-        const warnings: string[] = [];
-        const addrsErrored: IbGibAddr[] = [];
-        try {
-            if (!arg.data) { throw new Error('arg.data is falsy'); }
-
-            if (!this.data?.tableName) { throw new Error(`tableName not set`); }
-
-            let retryUnprocessedItemsCount = 0;
-
-            // we're only doing one bin at a time right now, but I'm going to
-            // write this assuming we're expanding.
-            const { binExt, binHash, } = arg.data!;
-            const binData = arg.binData!;
-            const binItem = await createDynamoDBPutItem({binHash, binExt, binData});
-            let binItems: AWSDynamoSpaceItem[] = [binItem];
-
-            const doItems = async (items: AWSDynamoSpaceItem[]) => {
-                let writeCommand = createDynamoDBBatchWriteItemCommand({
-                    tableName: this.data.tableName,
-                    items,
-                });
-                const putResult = await client.send(writeCommand);
-
-                const prevUnprocessedCount = Number.MAX_SAFE_INTEGER;
-                const unprocessedCount = Object.keys(putResult?.UnprocessedItems || {}).length;
-                if (unprocessedCount > 0) {
-                    if (logalot) { console.log(`${lc} unprocessedCount: ${unprocessedCount}`); }
-                    binItems =
-                        <AWSDynamoSpaceItem[]>putResult.UnprocessedItems[this.data.tableName];
-                    const progressWasMade = prevUnprocessedCount > unprocessedCount;
-                    if (progressWasMade) {
-                        // don't inc retry, just go again
-                        if (logalot) { console.log(`${lc} unprocessed made progress, just going again`); }
-                        await doItems(binItems);
-                    } else {
-                        // no progress, so do an exponentially backed off retry
-                        retryUnprocessedItemsCount++;
-                        if (retryUnprocessedItemsCount > this.data.maxRetryUnprocessedItemsCount) {
-                            throw new Error(`Exceeded max retry unprocessed items count (${this.data.maxRetryUnprocessedItemsCount})`);
-                        }
-                        // thank you https://advancedweb.hu/how-to-use-dynamodb-batch-write-with-retrying-and-exponential-backoff/
-                        // for the exponential backoff.
-                        const backoffMs = (2 ** retryUnprocessedItemsCount) * 10;
-                        if (logalot) { console.log(`${lc} unprocessed did NOT make progress, backing off then retry in ${backoffMs} ms`); }
-                        await h.delay(backoffMs);
-                        await doItems(binItems); // recursive
-                    }
-                }
-            }
-
-            await doItems(binItems);
-
-            if (warnings.length > 0) { resultData.warnings = warnings; }
-            if (errors.length === 0) {
-                resultData.success = true;
-            } else {
-                resultData.errors = errors;
-                resultData.addrsErrored = addrsErrored;
-            }
-        } catch (error) {
-            console.error(`${lc} error: ${error.message}`);
-            resultData.errors = errors.concat([error.message]);
-            resultData.addrsErrored = addrsErrored;
-            resultData.success = false;
-        }
-        const result = await this.resulty({ resultData });
-        return result;
     }
 
     protected async deleteImpl(arg: AWSDynamoSpaceOptionsIbGib):
@@ -2337,7 +2427,7 @@ export class AWSDynamoSpace_V1<
             if ((arg.ibGibs ?? []).length === 0) { throw new Error(`no ibgibs given. (E: 62ae74eab0434b90b866caa285403143)`); }
             if (!arg.syncSagaInfo) { throw new Error(`arg.syncSagaInfo required. (E: 33efb28789ff40b9b340eedcba0017f7)`); }
 
-            const client = createClient({
+            const client = createDynamoDBClient({
                 accessKeyId: this.data.accessKeyId,
                 secretAccessKey: this.data.secretAccessKey,
                 region: this.data.region,
@@ -2642,7 +2732,10 @@ export class AWSDynamoSpace_V1<
                 // (though not in the transactional sense for the time being).
                 if (ibGibsToStoreNotAlreadyStored.length > 0) {
                     await this.putIbGibs({client, ibGibs: ibGibsToStoreNotAlreadyStored, errors, warnings});
-                    if (errors.length > 0) { throw new Error(errors.join('\n')); }
+                    if (errors.length > 0) {
+                        debugger;
+                        throw new Error(errors.join('\n'));
+                    }
                     if (warnings.length > 0) { console.warn(`${lc} warnings:\n${warnings.join('\n')}`); }
                 }
 
@@ -2733,7 +2826,13 @@ export class AWSDynamoSpace_V1<
         } catch (error) {
             debugger;
             const emsg = `${lc} ${error.message}`;
-            console.error(emsg);
+            if (error.message === c.AWS_ERROR_MSG_ITEM_SIZE_EXCEEDED) {
+                // hmm, try to handle this post hoc?
+                console.error(emsg);
+            } else {
+                console.error(emsg);
+            }
+
             // in the future, need to attempt to make this a status ibgib if
             // possible, even if we don't store it in the outerspace (which off
             // the top of my head would be the case).
@@ -3193,7 +3292,7 @@ export class AWSDynamoSpace_V1<
         });
         argPersist.ibGibs = [arg, result];
 
-        const client = createClient({
+        const client = createDynamoDBClient({
             accessKeyId: this.data.accessKeyId,
             secretAccessKey: this.data.secretAccessKey,
             region: this.data.region,

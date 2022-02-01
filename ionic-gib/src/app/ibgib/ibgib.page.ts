@@ -143,7 +143,7 @@ export class IbGibPage extends IbgibComponentBase
       if (logalot) { console.log(`${lc} ibGib: ${pretty(this.ibGib)}`); }
       await this.loadItem();
       this.updatePaused();
-      if (!this.paused) {
+      if (!this.paused && !this.ib.startsWith('bin.')) {
         this.item.refreshing = true;
         setTimeout(async () => {
           await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjp: this.tjp});
@@ -208,7 +208,8 @@ export class IbGibPage extends IbgibComponentBase
       if (logalot) { console.log(`${lc}`); }
       if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
 
-      const resConfirmSync = await Modals.confirm({ title: 'Sync with outerspace?', message: `This will publish/sync your current ibGib (${this.ib})? Proceed?`, });
+      const resConfirmSync = await Modals.confirm({ title: 'Sync with outerspace?', message:
+        `This will sync your current ibGib (${this.ib}) and ALL its rel8ns to your outerspace(s)? Proceed?`, });
       if (resConfirmSync.value) {
         // get newer ones
 

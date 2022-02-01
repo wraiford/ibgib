@@ -30,6 +30,7 @@ const EXAMPLE_SYNC_SPACE_AWSDYNAMODB: SyncSpaceData_AWSDynamoDB = {
     subtype: 'aws-dynamodb',
 
     tableName: 'some-table-name-with-primary-key-named-ibGibAddrHash',
+    bucketName: 'some-bucket-name-for-large-ibgibs',
     accessKeyId: 'some-aws-key-id',
     secretAccessKey: 'some-aws-secret-access-key',
     region: 'us-east-1',
@@ -97,6 +98,8 @@ export class CreateOuterspaceModalComponent
   @Input()
   tableName: string;
   @Input()
+  bucketName: string;
+  @Input()
   primaryKeyName: string = 'IbGibAddrHash';
   @Input()
   accessKeyId: string;
@@ -115,7 +118,7 @@ export class CreateOuterspaceModalComponent
       name: "name",
       description: "Short name of the space, with only letters, underscores and hyphens.",
       label: "Name",
-      placeholder: "brief_name-hyphensOK_32charMax",
+      placeholder: `e.g. "def_sync_space-hyphensOK_32charMax"`,
       regexp: getRegExp({min: 1, max: 32, chars: '-', noSpaces: true}),
       required: true,
     },
@@ -150,6 +153,13 @@ export class CreateOuterspaceModalComponent
       description: "AWS DynamoDB Table Name",
       label: "Table Name",
       regexp: c.AWS_DYNAMODB_REGEXP_TABLE_OR_INDEX,
+      required: true,
+    },
+    bucketName: {
+      name: "bucketName",
+      description: "AWS S3 Bucket Name",
+      label: "S3 Bucket Name",
+      regexp: c.AWS_S3_REGEXP_BUCKET,
       required: true,
     },
     primaryKeyName: {
@@ -303,6 +313,7 @@ export class CreateOuterspaceModalComponent
         subtype: 'aws-dynamodb',
 
         tableName: this.tableName,
+        bucketName: this.bucketName,
         accessKeyId: this.accessKeyId,
         secretAccessKey: this.secretAccessKey,
         region: this.region,

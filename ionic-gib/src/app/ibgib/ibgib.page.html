@@ -23,7 +23,8 @@
     <ion-buttons slot="end" collapse="true">
       <ion-button [disabled]="syncing"
         slot="end" (click)="handleSyncClick()" class="toolbar-sync">
-        <ion-icon name="cloud-outline"></ion-icon>
+        <ion-icon name="planet-outline"></ion-icon>
+        <ion-icon name="sparkles-outline"></ion-icon>
         <ion-icon name="sync-outline"></ion-icon>
         <ion-spinner *ngIf="syncing" name="circles" color="tertiary"></ion-spinner>
       </ion-button>

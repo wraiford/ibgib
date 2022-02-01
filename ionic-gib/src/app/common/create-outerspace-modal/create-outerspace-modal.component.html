@@ -51,7 +51,9 @@
     <!-- name -->
     <ion-item [title]="fields.name.description">
       <ion-label position="floating">{{fields.name.label}}: </ion-label>
-      <ion-input [(ngModel)]="name"></ion-input>
+      <ion-input [(ngModel)]="name"
+        [placeholder]="fields.name.placeholder"
+        ></ion-input>
     </ion-item>
 
     <!-- description -->
@@ -132,14 +134,19 @@
       <ion-label position="floating">DynamoDB API primaryKeyName: </ion-label>
       <ion-input readonly [value]="primaryKeyName"></ion-input>
     </ion-item>
+    <!-- bucketName -->
+    <ion-item title="S3 API Bucket Name">
+      <ion-label position="floating">S3 API Bucket Name: </ion-label>
+      <ion-input [(ngModel)]="bucketName" type="password"></ion-input>
+    </ion-item>
     <!-- accessKeyId -->
-    <ion-item title="DynamoDB API accessKeyId">
-      <ion-label position="floating">DynamoDB API accessKeyId: </ion-label>
+    <ion-item title="AWS API accessKeyId">
+      <ion-label position="floating">AWS API accessKeyId: </ion-label>
       <ion-input [(ngModel)]="accessKeyId" type="password"></ion-input>
     </ion-item>
     <!-- secretAccessKey -->
-    <ion-item title="DynamoDB API secretAccessKey">
-      <ion-label position="floating">DynamoDB API secretAccessKey: </ion-label>
+    <ion-item title="AWS API secretAccessKey">
+      <ion-label position="floating">AWS API secretAccessKey: </ion-label>
       <ion-input [(ngModel)]="secretAccessKey" type="password"></ion-input>
     </ion-item>
   </ion-item-group>

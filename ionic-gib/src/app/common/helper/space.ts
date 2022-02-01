@@ -140,10 +140,12 @@ export async function putInSpace({
         if (ibGib && (ibGibs ?? []).length > 0) {
             console.warn(`${lc} Both ibGib and ibGibs is assigned, whereas this is intended to be exclusive one or the other. (W: 4c797835b620445f88e4cba6b5aa3460)`)
             if (!ibGibs.some(x => x.gib === ibGib.gib)) {
-                ibGibs = [...ibGibs, ibGib];
+                ibGibs = ibGibs.concat([ibGib]);
             }
         }
+        ibGibs = ibGibs ?? [ibGib];
 
+        if (logalot) { console.log(`${lc} ibGibs.length: ${ibGibs.length}`)}
         const argPutIbGibs = await space.argy({
             ibMetadata: space.getSpaceArgMetadata(),
             argData: { cmd: 'put', isMeta, force, isDna, },
@@ -1377,7 +1379,13 @@ export async function createRootsIbGib({
         });
         for (let i = 0; i < initialDatas.length; i++) {
             const data = initialDatas[i];
-            const resCreate = await createRootIbGib({...data, space, defaultSpace, fnUpdateBootstrap, fnBroadcast});
+            const resCreate = await createRootIbGib({
+                ...data,
+                space,
+                defaultSpace,
+                fnUpdateBootstrap,
+                fnBroadcast,
+            });
             if (!firstRoot) { firstRoot = resCreate.newRootIbGib; }
             rootsAddr = resCreate.newRootsAddr;
             // update the config for the updated **roots** ibgib.

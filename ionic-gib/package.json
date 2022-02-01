@@ -43,6 +43,7 @@
     "@angular/platform-browser-dynamic": "~13.1.1",
     "@angular/router": "~13.1.1",
     "@aws-sdk/client-dynamodb": "^3.43.0",
+    "@aws-sdk/client-s3": "^3.49.0",
     "@capacitor/android": "^2.2.1",
     "@capacitor/core": "2.2.1",
     "@ionic-native/core": "^5.0.7",

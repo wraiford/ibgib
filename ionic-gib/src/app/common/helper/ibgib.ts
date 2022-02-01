@@ -142,11 +142,18 @@ export function getBinHashAndExt({addr}: {addr: IbGibAddr}): { binHash: string, 
     }
 }
 
-export function isBinary({addr}: {addr: IbGibAddr}): boolean {
+export function isBinary({
+    ibGib,
+    addr,
+}: {
+    ibGib?: IbGib_V1,
+    addr?: IbGibAddr,
+}): boolean {
     const lc = `[${isBinary.name}]`;
     try {
         // probably overkill here, but...
-        if (!addr) { throw new Error(`addr required`); }
+        if (!ibGib && !addr) { throw new Error(`either ibGib or addr required. (E: c935b51e773f41a2a547c556e9dc16c6)`); }
+        addr = addr || h.getIbGibAddr({ibGib});
         const {ib,gib} = h.getIbAndGib({ibGibAddr: addr});
         if (!ib) { return false; }
         if (!gib) { return false; }

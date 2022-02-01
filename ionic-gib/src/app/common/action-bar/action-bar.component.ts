@@ -15,7 +15,7 @@ import * as c from '../constants';
 import { ModalController } from '@ionic/angular';
 import { ChooseIconModalComponent, IconItem } from '../choose-icon-modal/choose-icon-modal.component';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
@@ -196,70 +196,79 @@ export class ActionBarComponent extends IbgibComponentBase
   }): Promise<void> {
     const lc = `${this.lc}[${this.doPic.name}]`;
 
-    const binAddr = getBinAddr({binHash, binExt: ext});
-    const {ib, gib} = h.getIbAndGib({ibGibAddr: binAddr});
-    const ibGib = { ib, gib, data: <any>imageBase64 };
-    const resSaveBin = await this.common.ibgibs.put({ibGib});
-      // await this.ibgibs.put({binData: image.base64String, binExt: ext});
-    if (!resSaveBin.success) { throw new Error(resSaveBin.errorMsg || 'error saving pic'); }
+    if (logalot) { console.log(`${lc} starting...`); }
+    try {
 
-    // todo: do thumbnail also
+      const binAddr = getBinAddr({binHash, binExt: ext});
+      const {ib, gib} = h.getIbAndGib({ibGibAddr: binAddr});
+      const ibGib = { ib, gib, data: <any>imageBase64 };
 
-    // NOTE: This is not the same filename that is saved in the bin folder!
-    // This is for when the picture is downloaded outside of the ibGib system
-    // or for display purposes.
-    const timestamp = (new Date).toUTCString();
-    filename = filename || timestamp
-      .replace(':', '-')
-      .replace(':', '-')
-      .replace(',', '')
-      // .replace(new RegExp(/\W/), '') // any remaining-non-word chars
-      ; // temporary eek.
+      if (logalot) { console.log(`${lc} saving initial ibgib pic with data = imageBase64...`); }
+      const resSaveBin = await this.common.ibgibs.put({ibGib});
+        // await this.ibgibs.put({binData: image.base64String, binExt: ext});
+      if (!resSaveBin.success) { throw new Error(resSaveBin.errorMsg || 'error saving pic'); }
+      if (logalot) { console.log(`${lc} saving initial ibgib pic with data = imageBase64 complete.`); }
 
-    if (logalot) { console.log(`${lc} binHash: ${binHash}`); }
-    if (logalot) { console.log(`${lc} ext: ${ext}`); }
-    const data: PicData = { binHash, ext, filename, timestamp };
-    const rel8ns: IbGibRel8ns = {
-      'pic on': [this.addr],
-      'bin': [binAddr],
-    };
+      // todo: do thumbnail also
 
-    // create an ibgib with the filename and ext
-    const resPicIbGib = await factory.firstGen({
-      parentIbGib: factory.primitive({ib: 'pic'}),
-      ib: `pic ${binHash}`,
-      data,
-      rel8ns,
-      dna: true,
-      tjp: { uuid: true, timestamp: true },
-      nCounter: true,
-    });
-    await this.common.ibgibs.persistTransformResult({resTransform: resPicIbGib});
-    const { newIbGib: newPic } = resPicIbGib;
-    const newPicAddr = getIbGibAddr({ibGib: newPic});
-    await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newPic, linked: true});
-    await this.common.ibgibs.registerNewIbGib({ibGib: newPic});
-    // need to nav to picture if not in a context, or
-    // or if in context need to rel8 to the context.
+      // NOTE: This is not the same filename that is saved in the bin folder!
+      // This is for when the picture is downloaded outside of the ibGib system
+      // or for display purposes.
+      const timestamp = (new Date).toUTCString();
+      filename = filename || timestamp
+        .replace(':', '-')
+        .replace(':', '-')
+        .replace(',', '')
+        // .replace(new RegExp(/\W/), '') // any remaining-non-word chars
+        ; // temporary eek.
 
-    // rel8 to context
-    if (!this.ibGib) {
-      await this.loadIbGib();
-      await this.loadTjp();
+      if (logalot) { console.log(`${lc} binHash: ${binHash}`); }
+      if (logalot) { console.log(`${lc} ext: ${ext}`); }
+      const data: PicData = { binHash, ext, filename, timestamp };
+      const rel8ns: IbGibRel8ns = {
+        'pic on': [this.addr],
+        'bin': [binAddr],
+      };
+
+      // create an ibgib with the filename and ext
+      const resPicIbGib = await factory.firstGen({
+        parentIbGib: factory.primitive({ib: 'pic'}),
+        ib: `pic ${binHash}`,
+        data,
+        rel8ns,
+        dna: true,
+        tjp: { uuid: true, timestamp: true },
+        nCounter: true,
+      });
+      await this.common.ibgibs.persistTransformResult({resTransform: resPicIbGib});
+      const { newIbGib: newPic } = resPicIbGib;
+      const newPicAddr = getIbGibAddr({ibGib: newPic});
+      await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newPic, linked: true});
+      await this.common.ibgibs.registerNewIbGib({ibGib: newPic});
+      // need to nav to picture if not in a context, or
+      // or if in context need to rel8 to the context.
+
+      // rel8 to context
+      if (!this.ibGib) {
+        await this.loadIbGib();
+        await this.loadTjp();
+      }
+      const rel8nsToAddByAddr = { pic: [newPicAddr] };
+      const resRel8ToContext =
+        await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
+      await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToContext});
+      const { newIbGib: newContext } = resRel8ToContext;
+      await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
+
+      // nav to either the pic we just added, or the new context "in time"
+      // to which the pic was added.
+      const navToAddr = this.isMeta ?
+        getIbGibAddr({ibGib: newPic}) :
+        getIbGibAddr({ibGib: newContext});
+      await this.navTo({addr: navToAddr});
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
     }
-    const rel8nsToAddByAddr = { pic: [newPicAddr] };
-    const resRel8ToContext =
-      await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
-    await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToContext});
-    const { newIbGib: newContext } = resRel8ToContext;
-    await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
-
-    // nav to either the pic we just added, or the new context "in time"
-    // to which the pic was added.
-    const navToAddr = this.isMeta ?
-      getIbGibAddr({ibGib: newPic}) :
-      getIbGibAddr({ibGib: newContext});
-    await this.navTo({addr: navToAddr});
   }
 
   /**

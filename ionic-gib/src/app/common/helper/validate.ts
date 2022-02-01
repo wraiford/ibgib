@@ -3,11 +3,48 @@ import {
     IBGIB_DELIMITER, GIB, IB,
 } from 'ts-gib/dist/V1';
 import { Ib, IbGibAddr } from 'ts-gib';
+import { isPrimitive} from 'ts-gib/dist/V1';
 import * as h from 'ts-gib/dist/helper';
+import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 import * as c from '../constants';
 
+import {hasTjp} from './ibgib';
+
 // const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+
+/**
+ * validates the ibGib's address (`ib` and `gib` properties)
+ * and recalculates the `gib` against the `ibGib.gib`.
+ * @param param0
+ */
+export async function validateIbGibIntrinsically({
+    ibGib
+}: {
+    ibGib: IbGib_V1
+}): Promise<string[] | null> {
+    const lc = `[${validateIbGibIntrinsically.name}]`;
+    try {
+        const errors = validateIbGibAddr({addr: h.getIbGibAddr({ibGib})}) ?? [];
+
+        if (errors.length > 0) { return errors; } // returns
+        // the rest of the function assumes correct ib and gib fields
+
+        // if it's a primitive, the caller knows (or should know!) there are no
+        // metadata guarantees.
+        if (isPrimitive({gib: ibGib.gib})) { return null; }
+
+        const gottenGib = await getGib({ibGib, hasTjp: hasTjp({ibGib})});
+        if (gottenGib !== ibGib.gib) {
+            errors.push(`gottenGib (${gottenGib}) does not equal ibGib.gib (${ibGib.gib}). (E: 7416db016878430ca3c5b20697f164ed)`);
+        }
+
+        return errors.length > 0 ? errors : null;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
 
 /**
  * Naive synchronous validation for ibgib addresses.

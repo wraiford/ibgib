@@ -2698,7 +2698,7 @@ export class IbgibsService {
       if (encryptionIbGibs.length === 0) {
         alert({
           title: 'next create an encryption...',
-          msg: "Now we need to create an encryption setting...bear with me if you don't know what this is. Just fill in the requirements and leave the others as defaults.",
+          msg: "Now we need to create an encryption setting. If you don't know what this is, just fill in the requirements and leave the others as defaults.",
         });
       }
       while (encryptionIbGibs.length === 0) {
@@ -2727,7 +2727,8 @@ export class IbgibsService {
       if (outerspaceIbGibs.length === 0) {
         await alert({
           title: 'Now to outerspace...',
-          msg: "Great! Now we can (finally) create an outerspace ibgib, which is kinda like the cloud (for now).",
+          msg:
+            `Great! Now we can create an outerspace ibgib, which is like a connection from this local space to other spaces (like the cloud).`,
         });
       }
       while (outerspaceIbGibs.length === 0) {

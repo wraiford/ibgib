@@ -292,7 +292,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     }
 
     async loadTjp(): Promise<void> {
-        if (this.ibGib && this.gib !== GIB) {
+        if (this.ibGib && this.gib !== GIB && !this.ib.startsWith('bin.')) {
             let tjp = await this.common.ibgibs.getTjpIbGib({ibGib: this.ibGib, naive: true});
             this.tjp = tjp;
         } else if (this.tjp) {

@@ -335,6 +335,7 @@ export const HEXADECIMAL_HASH_STRING_REGEXP_64 = /^[0-9a-f]{64}$/;
  * @link https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.NamingRulesDataTypes.html
  */
 export const AWS_DYNAMODB_REGEXP_TABLE_OR_INDEX: RegExp = /^[a-zA-Z0-9_\-.]{3,255}$/;
+export const AWS_S3_REGEXP_BUCKET: RegExp = /^[a-zA-Z0-9_\-.]{3,255}$/;
 /**
  * @link https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.NamingRulesDataTypes.html
  */
@@ -364,6 +365,22 @@ export const DEFAULT_AWS_RETRY_THROUGHPUT_THROTTLE_MS = 3000;
  * @link https://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/dynamodbv2/model/ProvisionedThroughputExceededException.html
  */
 export const AWS_THROUGHPUT_ERROR_NAME = "ProvisionedThroughputExceededException";
+export const AWS_ERROR_MSG_ITEM_SIZE_EXCEEDED = "Item size has exceeded the maximum allowed size";
+
+/**
+ * AWS DynamoDB only allows 400K per item-ish.
+ *
+ * Somehow indexes affect this limit, but it's apparently convoluted.
+ *
+ * @link https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ServiceQuotas.html#limits-items
+ * @link https://stackoverflow.com/questions/42181346/maximum-size-of-dynamodb-item
+ * @link https://stackoverflow.com/questions/58031280/aws-dynamodb-put-item-size-limit-exception-for-item-size-less-than-400kb
+ * @link https://stackoverflow.com/questions/33768971/how-to-calculate-dynamodb-item-size-getting-validationerror-400kb-boto
+ *
+ * I'm setting a limit slightly less than half of the 400K, assuming my
+ * global secondary index has something to do with this.
+ */
+export const AWS_DYNAMODB_LARGE_ITEM_SIZE_LIMIT_ISH_BYTES = 180_000; // curre
 
 /**
  * Name of the secondary global index (tjp+n) in DynamoDB.
