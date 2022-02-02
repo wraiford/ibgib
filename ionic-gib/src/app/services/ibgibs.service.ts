@@ -2719,7 +2719,20 @@ export class IbgibsService {
         });
       }
 
+      let createdOuterspaces = await this.createOuterspaces();
 
+      return createdOuterspaces;
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return false;
+    }
+  }
+
+  async createOuterspaces(): Promise<boolean> {
+    const lc = `${this.lc}[${this.createOuterspaces.name}]`;
+    try {
+      const alert = getFnAlert();
       let outerspaceIbGibs: IbGib_V1[] = await this.getSpecialRel8dIbGibs({
         type: "outerspaces",
         rel8nName: c.SYNC_SPACE_REL8N_NAME,
@@ -2727,27 +2740,35 @@ export class IbgibsService {
       if (outerspaceIbGibs.length === 0) {
         await alert({
           title: 'Now to outerspace...',
-          msg:
-            `Great! Now we can create an outerspace ibgib, which is like a connection from this local space to other spaces (like the cloud).`,
+          msg: `Great! Now we can create an outerspace ibgib, which is like a connection from this local space to other spaces (like the cloud).`,
         });
       }
       while (outerspaceIbGibs.length === 0) {
         let outerspaceIbGib = await this.fnPromptOuterSpace();
-        if (outerspaceIbGib === undefined) {
-          await alert({title: 'cancelled', msg: 'Cancelled.'});
-          return false;
-        }
+        if (outerspaceIbGib === undefined) { break; }
         await this.registerNewIbGib({ ibGib: outerspaceIbGib, });
         await this.rel8ToSpecialIbGib({
           type: "outerspaces",
           rel8nName: c.SYNC_SPACE_REL8N_NAME,
           ibGibsToRel8: [outerspaceIbGib],
         });
+        await alert({
+          title: 'create another space...',
+          msg: `Great! You can create another or choose cancel if you're finished for now.`,
+        });
+        outerspaceIbGibs = await this.getSpecialRel8dIbGibs({
+          type: "outerspaces",
+          rel8nName: c.SYNC_SPACE_REL8N_NAME,
+        });
       }
-      return true;
+      if (outerspaceIbGibs.length > 0) {
+        return true;
+      } else {
+        await alert({title: 'cancelled', msg: 'Cancelled.'});
+        return false;
+      }
     } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      return false;
+
     }
   }
 
@@ -3199,23 +3220,27 @@ export class IbgibsService {
           break;
 
         case StatusCode.updated:
-          debugger;
+          // debugger;
           // await this.handleSyncComplete_Updated({sagaInfo, status});
           // nothing further to do? hmm...
           break;
 
-        case StatusCode.merged:
+        case StatusCode.merged_dna:
+          await this.handleSyncStatus_Merged({status});
+          break;
+
+        case StatusCode.merged_state:
           await this.handleSyncStatus_Merged({status});
           break;
 
         case StatusCode.already_synced:
           // await this.handleSyncComplete_AlreadySynced({sagaInfo, status});
           // nothing further to do? hmm...
-          debugger;
+          // debugger;
           break;
 
         case StatusCode.completed:
-          debugger;
+          // debugger;
           await this.handleSyncStatus_Complete({sagaInfo});
           break;
 
@@ -3243,7 +3268,6 @@ export class IbgibsService {
     try {
       // #region validate
       if ((status.createdIbGibs ?? []).length === 0) { throw new Error('status.createdIbGibs required when merging. (E: d118bde47fb9434fa95d747f8e4f6b33)'); }
-      if ((status.createdIbGibs ?? []).length === 0) { throw new Error('status.createdIbGibs required when merging. (E: a1a0089b7547454f8b6d14399c301dfb)'); }
       if (Object.keys(status.ibGibsMergeMap ?? {}).length === 0) { throw new Error('status.ibGibsMergeMap required when merging. (E: 0f06238e5535408f8980e0f9f82cf564)'); }
       // #endregion validate
 

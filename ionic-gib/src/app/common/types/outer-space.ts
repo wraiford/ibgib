@@ -40,7 +40,9 @@ import { IbGibSpaceAny } from '../spaces/space-base-v1';
  */
 export type StatusCode =
     'undefined' | 'started' |
-    'inserted' | 'updated' | 'merged' | 'already_synced' |
+    'inserted' | 'updated' |
+    'merged_dna' | 'merged_state' |
+    'already_synced' |
     'completed';
 export const StatusCode = {
     /**
@@ -72,13 +74,23 @@ export const StatusCode = {
      */
     updated: 'updated' as StatusCode,
     /**
-     * We've created new ibgib to fulfill the operation (besides the derivative
-     * metadata ibgibs created in the communication).
+     * When syncing, this means that we've created new ibgib to merge into an
+     * existing timeline in the sync space BY APPLYING ALL UN-APPLIED LOCAL
+     * TRANSFORMS to the latest ibgib in the store.
      *
-     * When syncing, this means that we've created new ibgib to merge into
-     * an existing timeline in the sync space.
+     * Note that in this case, we've created new ibgib to fulfill the operation
+     * (besides the derivative metadata ibgibs created in the communication).
      */
-    merged: 'merged' as StatusCode,
+    merged_dna: 'merged_dna' as StatusCode,
+    /**
+     * When syncing, this means that we've created new ibgib to merge into an
+     * existing timeline in the sync space BY MANUALLY SYNCHRONIZING ALL
+     * DATA AND REL8NS with the latest ibgib in the store.
+     *
+     * Note that in this case, we've created new ibgib to fulfill the operation
+     * (besides the derivative metadata ibgibs created in the communication).
+     */
+    merged_state: 'merged_state' as StatusCode,
     /**
      * The operation has completed, but there were no intrinsic changes.
      *

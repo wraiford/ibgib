@@ -231,32 +231,57 @@ export function tagTextToIb(tagText: string): string {
 }
 
 /**
- * Splits the given `ibGibs` into two maps, one that
- * includes the ibgibs that have a tjp (temporal junction point)
- * and those that do not have one.
+ * Living: has tjp and dna.
+ * Stones: does not have Dna, maybe has tjp.
+ *
+ * Splits the given `ibGibs` into two maps, one that includes the ibgibs that
+ * have a tjp (temporal junction point) AND dna ("living") and those that do not
+ * have both tjp AND dna ("stones").
+ *
+ * ## notes
+ *
+ * Having dna implies having a tjp, but the reverse is not necessarily true.
+ * Sometimes you want an ibgib that has a tjp so you can, e.g., reference the
+ * entire timeline easily.  But at the same time you don't want to keep track of
+ * the transforms, perhaps this is because you don't want to be able to merge
+ * timelines.
  */
-export function splitIntoWithTjpAndWithoutTjp({
+export function splitPerTjpAndOrDna({
     ibGibs,
     filterPrimitives,
 }: {
     ibGibs: IbGib_V1[],
     filterPrimitives?: boolean,
-}): {ibGibsWithTjpMap: { [gib: string]: IbGib_V1 }, ibGibsWithoutTjpMap: { [gib: string]: IbGib_V1 }} {
-    const lc = `[${splitIntoWithTjpAndWithoutTjp.name}]`;
+}): {
+    /** ibgibs have both tjp and dna */
+    mapWithTjp_YesDna: { [gib: string]: IbGib_V1 },
+    /** ibgibs have tjp but NO dna */
+    mapWithTjp_NoDna: { [gib: string]: IbGib_V1 },
+    /** ibgibs that have no tjp (and implicitly no dna) */
+    mapWithout: { [gib: string]: IbGib_V1 }
+} {
+    const lc = `[${splitPerTjpAndOrDna.name}]`;
     try {
-        const ibGibsWithTjpMap: { [gib: string]: IbGib_V1 } = {};
-        const ibGibsWithoutTjpMap: { [gib: string]: IbGib_V1 } = {};
+        const mapWithTjp_YesDna: { [gib: string]: IbGib_V1 } = {};
+        const mapWithTjp_NoDna: { [gib: string]: IbGib_V1 } = {};
+        const mapWithout: { [gib: string]: IbGib_V1 } = {};
+        // const mapLivingIbGibs: { [gib: string]: IbGib_V1 } = {};
+        // const mapStoneIbGibs: { [gib: string]: IbGib_V1 } = {};
         const ibGibsTodo = filterPrimitives ?
             ibGibs.filter(ibGib => ibGib.gib ?? ibGib.gib !== GIB) :
             ibGibs;
         ibGibsTodo.forEach(ibGib => {
-            if (hasTjp({ibGib})) {
-                ibGibsWithTjpMap[ibGib.gib] = ibGib;
+            if (hasTjp({ibGib}) ) {
+                if ((ibGib.rel8ns?.dna ?? []).length > 0) {
+                    mapWithTjp_YesDna[ibGib.gib] = ibGib;
+                } else {
+                    mapWithTjp_NoDna[ibGib.gib] = ibGib;
+                }
             } else {
-                ibGibsWithoutTjpMap[ibGib.gib] = ibGib;
+                mapWithout[ibGib.gib] = ibGib;
             }
         });
-        return {ibGibsWithTjpMap, ibGibsWithoutTjpMap};
+        return {mapWithTjp_YesDna, mapWithTjp_NoDna, mapWithout};
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -298,9 +323,9 @@ export function hasTjp({ibGib}: {ibGib: IbGib_V1}): boolean {
         return true;
     }
 
-    // dna does not
-    const dnaAncestors = ['fork^gib', 'mut8^gib', 'rel8^gib'];
-    if ((ibGib.rel8ns?.ancestor ?? []).some(x => dnaAncestors.includes(x))) {
+    // dna transforms do not have tjp
+    const dnaPrimitives = ['fork^gib', 'mut8^gib', 'rel8^gib'];
+    if ((ibGib.rel8ns?.ancestor ?? []).some(x => dnaPrimitives.includes(x))) {
         return false;
     }
 
@@ -322,6 +347,17 @@ export function hasTjp({ibGib}: {ibGib: IbGib_V1}): boolean {
     // would change if we change our standards for gib, this is nicer.
     const gibInfo = getGibInfo({ibGibAddr: h.getIbGibAddr({ibGib})});
     return gibInfo.tjpGib ? true : false;
+}
+
+export function hasDna({ibGib}: {ibGib: IbGib_V1}): boolean {
+    const lc = `[${hasDna.name}]`;
+
+    if (!ibGib) {
+        console.warn(`${lc} ibGib falsy. (W: 5fd19751f5c84da59d83dd33487ed859)`);
+        return false;
+    }
+
+    return (ibGib.rel8ns?.dna ?? []).length > 0;
 }
 
 export function getTjpAddrs({
@@ -352,3 +388,96 @@ export function getTjpAddrs({
         throw error;
     }
 }
+
+
+/**
+ * Combines two maps/arrays into a single one with some very basic, naive merge rules:
+ *
+ * 1. If a key exists in only one map, then it will be included in the output map.
+ * 2. If a key exists in both maps and the type is array or map, then these will be recursively merged.
+ * 3. If a key exists in both maps but is not an array or map, the dominant map's value wins.
+ *
+ * @param dominant map, when two keys are not arrays or maps themselves, this one's value is chosen for output.
+ * @param recessive map, when two keys are not arrays or maps themselves, this one's value is NOT chosen for output.
+ *
+ * ## future
+ *
+ * In the future, if we want to keep these kinds of things around and be more
+ * specific about mergers, we can always rel8 a merge strategy ibgib to be
+ * referred to when performing merger.
+ */
+export function mergeMapsOrArrays_Naive<T extends {}|any[]>({
+    dominant,
+    recessive,
+}: {
+    dominant: T,
+    recessive: T,
+}): T {
+    const lc = `[${mergeMapsOrArrays_Naive.name}]`;
+    try {
+        debugger; // first run
+        if (Array.isArray(dominant) && Array.isArray(recessive)) {
+            // arrays
+            let output: any[] = <any[]>h.clone(<any[]>dominant);
+            let warned = false;
+            (<[]>recessive).forEach((recessiveItem: any) => {
+                if (typeof(recessiveItem) === 'string') {
+                    if (!output.includes(recessiveItem)) { output.push(recessiveItem); }
+                } else {
+                    if (!warned) {
+                        console.warn(`${lc} merging arrays of non-string elements. (W: d8ab113064834abc8eb5fe6c4cf87ba3)`);
+                        warned = true;
+                    }
+                    // we'll check the stringified version of recessive item against
+                    // the stringified dominant item.
+                    const xString = JSON.stringify(recessiveItem);
+                    if (!output.some(o => JSON.stringify(o) === xString)) {
+                        output.push(recessiveItem);
+                    }
+                }
+            });
+            return <T>output;
+        } else if (typeof(dominant) === 'object' && typeof(recessive) === 'object') {
+            // maps
+            let output: {} = {};
+            let dominantKeys = Object.keys(dominant);
+            let recessiveKeys = Object.keys(recessive);
+            dominantKeys.forEach(key => {
+                if (recessiveKeys.includes(key)) {
+
+                    // naive merge for key that exists in both dominant & recessive
+                    if (Array.isArray(dominant[key]) && Array.isArray(recessive[key])) {
+                        // recursive call if both arrays
+                        output[key] = mergeMapsOrArrays_Naive<any[]>({
+                            dominant: dominant[key],
+                            recessive: recessive[key],
+                        });
+                    } else if (
+                        !!dominant[key] && !Array.isArray(dominant[key]) && typeof(dominant[key]) === 'object' &&
+                        !!recessive[key] && !!Array.isArray(recessive[key]) && typeof(recessive[key]) === 'object'
+                    ) {
+                        // recursive call if both objects
+                        output[key] = mergeMapsOrArrays_Naive<{}>({
+                            dominant: dominant[key],
+                            recessive: recessive[key],
+                        });
+                    } else {
+                        output[key] = dominant[key];
+                    }
+                } else {
+                    output[key] = dominant[key];
+                }
+            });
+
+            return <T>{};
+        } else {
+            // ? unknown matching of dominant and recessive
+            console.warn(`${lc} unknown values or value types do not match. Both should either be an array or map. Dominant one wins categorically without any merging. (W: 3690ea19b81a4b89b98c1940637df62c)`);
+            return <T>dominant;
+        }
+    } catch (error) {
+        debugger; // what up wit dit
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+};

@@ -8,7 +8,7 @@ import { ActionItem, PicData, CommentData } from '../types';
 import { hash, getIbGibAddr, getTimestamp, getIbAndGib, pretty } from 'ts-gib/dist/helper';
 import { Factory_V1 as factory, IbGibRel8ns_V1, Rel8n, IbGib_V1 } from 'ts-gib/dist/V1';
 // import * as ionicons from 'ionicons/icons/index';
-import { getBinAddr } from '../helper';
+import { getBinAddr, validateIbGibAddr } from '../helper';
 
 import * as h from 'ts-gib/dist/helper';
 import * as c from '../constants';
@@ -66,6 +66,12 @@ export class ActionBarComponent extends IbgibComponentBase
       text: 'tag',
       icon: 'pricetag-outline',
       handler: async (event) => await this.actionTag(event),
+    },
+    {
+      type: 'button',
+      text: 'add from space',
+      icon: 'planet-outline',
+      handler: async (event) => await this.addFromSpace(event),
     },
     {
       type: 'button',
@@ -573,6 +579,51 @@ export class ActionBarComponent extends IbgibComponentBase
     }
 
     return tagDesc;
+  }
+
+  async addFromSpace(_: MouseEvent): Promise<void> {
+    const lc = `${this.lc}[${this.addFromSpace.name}]`;
+    try {
+      if (!this.ibGib) { throw new Error(`There isn't a current ibGib loaded...?`); }
+      if (!this.addr) { throw new Error(`There isn't a current ibGib addr loaded...?`); }
+
+      // prompt for the ib^gib addr that we want to import
+      const resAddr = await Modals.prompt({
+        title: 'ibgib address',
+        message: 'enter the ibgib address that you would like to import.',
+        inputPlaceholder: 'some ibgib address^123here456',
+      });
+      if (resAddr.cancelled || !resAddr.value) { return; }
+      const addr = resAddr.value.trim();
+      const validationErrors = validateIbGibAddr({addr});
+      if ((validationErrors ?? []).length > 0) { throw new Error(`Invalid address: ${validationErrors.join('\n')} (E: 343823cb6ab04e6e9a8f7e6de1cd12c8)`); }
+
+      // get our outerspaces that we want to check
+      // for the address that we will
+      let outerspaceIbGibs: IbGib_V1[] =
+        await this.common.ibgibs.getSpecialRel8dIbGibs({
+          type: "outerspaces",
+          rel8nName: c.SYNC_SPACE_REL8N_NAME,
+        });
+      if (outerspaceIbGibs.length === 0) {
+        let created = await this.common.ibgibs.createOuterspaces();
+        if (created) {
+          outerspaceIbGibs =
+            await this.common.ibgibs.getSpecialRel8dIbGibs({
+              type: "outerspaces",
+              rel8nName: c.SYNC_SPACE_REL8N_NAME,
+            });
+        } else {
+          return; // returns
+        }
+      }
+
+      // look in the outerspace(s) for the address
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`)
+      await Modals.alert({title: 'something went wrong...', message: error.message});
+    }
   }
 
   delay(ms: number): Promise<void> {
