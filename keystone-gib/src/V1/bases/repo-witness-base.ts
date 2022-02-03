@@ -54,7 +54,7 @@ export abstract class RepoWitnessBase<TData extends RepoWitnessData_V1>
     }
 
     canGet(_: CanGetIbGibOptions): boolean { return true; }
-    abstract get(opts: GetIbGibOptions): Promise<IbGib_V1<IbGibData_V1> | null>;
+    abstract get(opts: GetIbGibOptions): Promise<IbGib_V1<any> | null>;
     canPut(opts: CanPutIbGibOptions): boolean { return true; }
     abstract put(opts: PutIbGibOptions<IbGib>): Promise<boolean>;
 

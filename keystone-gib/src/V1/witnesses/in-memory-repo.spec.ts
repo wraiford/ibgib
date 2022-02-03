@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { IbGibWitnessScheduler } from './scheduler';
-import { IbGibRepo_V1, IbGibData_V1, IbGib_V1, Factory_V1 } from 'ts-gib/dist/V1';
+import { Factory_V1 } from 'ts-gib/dist/V1';
 import { CanGetIbGibOptions, GetIbGibOptions, CanPutIbGibOptions, PutIbGibOptions, IbGib } from 'ts-gib';
 import { getIbGibAddr } from 'ts-gib/dist/helper';
 import { InMemoryRepo } from './in-memory-repo';

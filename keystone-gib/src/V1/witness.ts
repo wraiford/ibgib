@@ -1,4 +1,4 @@
-import { IbGib_V1, IbGibRepo_V1, IbGibData_V1, IbGibRel8ns_V1, sha256v1 } from "ts-gib/dist/V1";
+import { IbGib_V1, IbGibData_V1, IbGibRel8ns_V1, sha256v1 } from "ts-gib/dist/V1";
 import { IbGibAddr, Gib, Ib } from "ts-gib";
 import { hash } from "ts-gib/dist/helper";
 import { StoneData_V1, Stone_V1, StoneTransformOpts_Fork, CanTransformResult, StoneTransformOpts_Mut8, StoneTransformOpts_Rel8 } from "./stone";

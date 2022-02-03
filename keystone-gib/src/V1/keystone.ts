@@ -22,7 +22,6 @@ import {
     Factory_V1 as factory,
     Rel8n,
     IbGib_V1, IbGibData_V1, IbGibRel8ns_V1,
-    IbGibRepo_V1,
     IBGIB_DELIMITER,
     sha256v1,
 } from "ts-gib/dist/V1";
