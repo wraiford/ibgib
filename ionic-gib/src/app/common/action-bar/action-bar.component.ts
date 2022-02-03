@@ -8,12 +8,13 @@ import { ActionItem, PicData, CommentData } from '../types';
 import { hash, getIbGibAddr, getTimestamp, getIbAndGib, pretty } from 'ts-gib/dist/helper';
 import { Factory_V1 as factory, IbGibRel8ns_V1, Rel8n, IbGib_V1 } from 'ts-gib/dist/V1';
 // import * as ionicons from 'ionicons/icons/index';
-import { getBinAddr, validateIbGibAddr } from '../helper';
+import { getBinAddr, getFnAlert, validateIbGibAddr } from '../helper';
 
 import * as h from 'ts-gib/dist/helper';
 import * as c from '../constants';
 import { ModalController } from '@ionic/angular';
 import { ChooseIconModalComponent, IconItem } from '../choose-icon-modal/choose-icon-modal.component';
+import { IbGibSpaceAny } from '../spaces/space-base-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -587,6 +588,22 @@ export class ActionBarComponent extends IbgibComponentBase
       if (!this.ibGib) { throw new Error(`There isn't a current ibGib loaded...?`); }
       if (!this.addr) { throw new Error(`There isn't a current ibGib addr loaded...?`); }
 
+      // get our sync spaces that we want to check
+      // for the address that we will
+
+      const appSyncSpaces: IbGibSpaceAny[] =
+        await this.common.ibgibs.getAppSyncSpaces({
+          unwrapEncrypted: true,
+          createIfNone: true,
+        });
+      if (appSyncSpaces.length === 0) {
+        const msg = `Can't sync without sync spaces. Cancelled.`;
+        if (logalot) { console.log(`${lc} ${msg}`) };
+        const fnAlert = getFnAlert();
+        await fnAlert({title: "Cancelled", msg});
+        return; // returns
+      }
+
       // prompt for the ib^gib addr that we want to import
       const resAddr = await Modals.prompt({
         title: 'ibgib address',
@@ -598,27 +615,9 @@ export class ActionBarComponent extends IbgibComponentBase
       const validationErrors = validateIbGibAddr({addr});
       if ((validationErrors ?? []).length > 0) { throw new Error(`Invalid address: ${validationErrors.join('\n')} (E: 343823cb6ab04e6e9a8f7e6de1cd12c8)`); }
 
-      // get our outerspaces that we want to check
-      // for the address that we will
-      let outerspaceIbGibs: IbGib_V1[] =
-        await this.common.ibgibs.getSpecialRel8dIbGibs({
-          type: "outerspaces",
-          rel8nName: c.SYNC_SPACE_REL8N_NAME,
-        });
-      if (outerspaceIbGibs.length === 0) {
-        let created = await this.common.ibgibs.createOuterspaces();
-        if (created) {
-          outerspaceIbGibs =
-            await this.common.ibgibs.getSpecialRel8dIbGibs({
-              type: "outerspaces",
-              rel8nName: c.SYNC_SPACE_REL8N_NAME,
-            });
-        } else {
-          return; // returns
-        }
-      }
-
       // look in the outerspace(s) for the address
+      throw new Error('not finished yet...')
+
 
     } catch (error) {
       console.error(`${lc} ${error.message}`)

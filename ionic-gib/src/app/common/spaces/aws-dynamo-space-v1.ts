@@ -18,6 +18,7 @@ import {
     S3Client,
     PutObjectCommand, PutObjectCommandInput, PutObjectCommandOutput,
     GetObjectCommand, GetObjectCommandInput, GetObjectCommandOutput,
+    HeadObjectCommand, HeadObjectCommandInput, HeadObjectCommandOutput,
 } from '@aws-sdk/client-s3';
 import { ReplaySubject } from 'rxjs/internal/ReplaySubject';
 
@@ -1184,6 +1185,9 @@ export class AWSDynamoSpace_V1<
 
                     if (getIbGibsResponseItem.inS3?.BOOL === true) {
                         // need to get it from s3
+                        let addr = h.getIbGibAddr({ib: getIbGibsResponseItem.ib.S, gib: getIbGibsResponseItem.gib.S});
+                        let resGetFromS3 = await this.getIbGibFromS3({addr});
+                        resGetFromS3
                     } else {
                         const ibGib = getIbGibFromResponseItem({item: getIbGibsResponseItem});
                         // validate yo...
@@ -2077,6 +2081,52 @@ export class AWSDynamoSpace_V1<
         }
     }
 
+    protected async existsInS3({
+        addr,
+    }: {
+        addr: IbGibAddr,
+    }): Promise<boolean> {
+        const lc = `${this.lc}[${this.existsInS3.name}]`;
+        try {
+            if (!addr) { throw new Error(`addr required. (E: 242ee3f7cccb4cbfb1fe80e853320443)`); }
+
+            const client = createS3Client({
+                accessKeyId: this.data.accessKeyId,
+                secretAccessKey: this.data.secretAccessKey,
+                region: this.data.region,
+            });
+            debugger; // set a new addr ifwant to check it
+            const bucketParams: HeadObjectCommandInput = {
+                Bucket: this.data.bucketName,
+                // Specify the name of the new object. For example, 'index.html'.
+                // To create a directory for the object, use '/'. For example, 'myApp/package.json'.
+                Key: await getS3Key({addr}),
+                // Content of the new object.
+            };
+            const cmd = new HeadObjectCommand(bucketParams);
+            const data: HeadObjectCommandOutput = await client.send(cmd);
+            debugger; // data
+            const exists = data.$metadata.httpStatusCode === 200; // maybe?
+            if (logalot) { console.log(`${lc} ibgib checked from s3 bucket. addr: ${addr}. exists: ${exists}`); }
+            debugger;
+            return exists;
+        } catch (error) {
+            debugger;
+            if (error.$metadata?.httpStatusCode === 404) {
+                // doesn't exist and we have the listBucket permission on the bucket
+                return false;
+            } else if (error.$metadata?.httpStatusCode === 403) {
+                // doesn't exist and we do NOT have the listBucket permission on the bucket
+                return false;
+            } else {
+                // some other error
+                const emsg = `${lc} ${error.message ?? 'some kinda aws error... (E: 29c23afd29ff4c2fa92f6d6e46b995fa)'}`;
+                console.error(emsg);
+                throw new Error(emsg);
+            }
+        }
+    }
+
     protected async getIbGibFromS3({
         addr,
     }: {
@@ -2161,7 +2211,11 @@ export class AWSDynamoSpace_V1<
                 }
 
                 // if it's large, then we need to store it in s3 first
-                if (isLarge) { await this.putIbGibInS3({ibGib}); }
+                if (isLarge) {
+                    // debugger;// probably don't check if exists...
+                    let exists = await this.existsInS3({addr: h.getIbGibAddr({ibGib})});
+                    if (!exists) { await this.putIbGibInS3({ibGib}); }
+                }
                 const item = await createDynamoDBPutItem({ibGib, storeInS3: isLarge});
                 ibGibItems.push(item);
             }

@@ -2719,8 +2719,7 @@ export class IbgibsService {
         });
       }
 
-      let createdOuterspaces = await this.createOuterspaces();
-
+      let createdOuterspaces = await this._createOuterspaces();
       return createdOuterspaces;
 
     } catch (error) {
@@ -2729,8 +2728,8 @@ export class IbgibsService {
     }
   }
 
-  async createOuterspaces(): Promise<boolean> {
-    const lc = `${this.lc}[${this.createOuterspaces.name}]`;
+  private async _createOuterspaces(): Promise<boolean> {
+    const lc = `${this.lc}[${this._createOuterspaces.name}]`;
     try {
       const alert = getFnAlert();
       let outerspaceIbGibs: IbGib_V1[] = await this.getSpecialRel8dIbGibs({
@@ -2772,14 +2771,14 @@ export class IbgibsService {
     }
   }
 
-  private async _getAppSyncSpaces({
+  async getAppSyncSpaces({
     unwrapEncrypted,
     createIfNone,
   }: {
     unwrapEncrypted: boolean,
     createIfNone: boolean,
   }): Promise<IbGibSpaceAny[]> {
-    const lc = `${this.lc}[${this._getAppSyncSpaces.name}]`;
+    const lc = `${this.lc}[${this.getAppSyncSpaces.name}]`;
     try {
       // get existing
       let appSyncSpaces: IbGibSpaceAny[] = await this.getSpecialRel8dIbGibs<IbGibSpaceAny>({
@@ -2864,7 +2863,7 @@ export class IbgibsService {
 
       // #region get sync spaces and build participant infos
       if (logalot) { console.log(`${lc} get sync spaces (returns if none)`); }
-      const appSyncSpaces: IbGibSpaceAny[] = await this._getAppSyncSpaces({
+      const appSyncSpaces: IbGibSpaceAny[] = await this.getAppSyncSpaces({
         unwrapEncrypted: true,
         createIfNone: true,
       });
