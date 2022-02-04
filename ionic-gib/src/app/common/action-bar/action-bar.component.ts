@@ -144,9 +144,8 @@ export class ActionBarComponent extends IbgibComponentBase
         nCounter: true,
       };
 
-      if (this.addr) {
-        opts.rel8ns = { 'comment on': [this.addr] };
-      }
+      // this makes it more difficult to share/sync ibgibs...
+      // if (this.addr) { opts.rel8ns = { 'comment on': [this.addr] }; }
 
       if (logalot) { console.log(`${lc} opts: ${pretty(opts)}`); }
       const resCommentIbGib = await factory.firstGen(opts);
@@ -233,7 +232,7 @@ export class ActionBarComponent extends IbgibComponentBase
       if (logalot) { console.log(`${lc} ext: ${ext}`); }
       const data: PicData = { binHash, ext, filename, timestamp };
       const rel8ns: IbGibRel8ns = {
-        'pic on': [this.addr],
+        // 'pic on': [this.addr], // makes it more difficult to share/sync ibgibs
         'bin': [binAddr],
       };
 

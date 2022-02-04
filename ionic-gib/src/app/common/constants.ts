@@ -322,11 +322,11 @@ export const IB_REGEXP_DEFAULT = new RegExp(`^[\\w\\t\\-|=+.&%\$#@!~\` \\[\\]\\(
 /**
  * RegExp for a hexadecimal string of length 32
  */
-export const HEXADECIMAL_HASH_STRING_REGEXP_32 = /^[0-9a-f]{32}$/;
+export const HEXADECIMAL_HASH_STRING_REGEXP_32 = /^[0-9a-fA-F]{32}$/;
 /**
  * RegExp for a hexadecimal string of length 64
  */
-export const HEXADECIMAL_HASH_STRING_REGEXP_64 = /^[0-9a-f]{64}$/;
+export const HEXADECIMAL_HASH_STRING_REGEXP_64 = /^[0-9a-fA-F]{64}$/;
 
 
 // #region AWS Amazon

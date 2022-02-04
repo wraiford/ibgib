@@ -2,10 +2,11 @@ import {
     IbGib_V1,
     IBGIB_DELIMITER, GIB, IB,
 } from 'ts-gib/dist/V1';
-import { Ib, IbGibAddr } from 'ts-gib';
-import { isPrimitive} from 'ts-gib/dist/V1';
+import { Ib, IbGibAddr, } from 'ts-gib';
+import { isPrimitive, } from 'ts-gib/dist/V1';
 import * as h from 'ts-gib/dist/helper';
-import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
+import * as cTsGib from 'ts-gib/dist/V1/constants';
+import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 import * as c from '../constants';
 
@@ -129,13 +130,50 @@ export function validateIb({
     }
 }
 
+/**
+ * validates a `gib` of some ibGib/ibGibAddr.
+ *
+ * @returns array of validation error strings (if any) or null
+ */
 export function validateGib({
     gib,
+    gibDelimiter,
     ibGibAddrDelimiter,
     version,
 }: {
+    /**
+     * gib to validate.
+     *
+     * ## notes
+     *
+     * If the gib has a tjp embedded in it (i.e. the associated ibgib has a
+     * tjp), then this will call validation on that tjpGib recursively.
+     */
     gib: Ib,
+    /**
+     * This is a delimiter used with tjpGibs.
+     *
+     * atow this is a dot (`'.'`).
+     *
+     * ## notes
+     *
+     * THIS IS NOT THE SAME THING AS THE `ibGibAddrDelimiter`!
+     */
+    gibDelimiter?: string,
+    /**
+     * This is a delimiter used with the entire ibGibAddr.
+     *
+     * atow this is a caret (`'^'`).
+     *
+     * ## notes
+     *
+     * THIS IS NOT THE SAME THING AS THE `gibDelimiter`!
+     */
     ibGibAddrDelimiter?: string,
+    /**
+     * Ignored atow, but in the future, probably will be used.
+     * May end up being an IbGibAddr but who knows.
+     */
     version?: string,
 }): string[] | null {
     const lc = `[${validateGib.name}]`;
@@ -148,14 +186,48 @@ export function validateGib({
             return errors;
         }
 
-        // automatically valid if it's a primitive
-        if (gib === GIB) { return null; }
-
         ibGibAddrDelimiter = ibGibAddrDelimiter || IBGIB_DELIMITER;
-        if (gib.includes(ibGibAddrDelimiter)) { errors.push(`gib contains ibGibAddrDelimiter (${ibGibAddrDelimiter}). (E: 1e584258d9e049ba9ce7e516f3ab97f1)`); }
+        /** Need to move this to ts-gib */
+        const INVALID_GIB_CHARS = [ibGibAddrDelimiter];
+        const invalidCharsFound: string[] = [];
+        INVALID_GIB_CHARS.forEach(invalidChar => {
+            if (gib.includes(invalidChar)) { invalidCharsFound.push(invalidChar); }
+        });
+        if (invalidCharsFound.length > 0) {
+            errors.push(`gib (${gib}}) contains invalid characters: (${JSON.stringify(invalidCharsFound.join(','))}) (E: 1e584258d9e049ba9ce7e516f3ab97f1)`);
+        }
 
-        if (!gib.match(c.HEXADECIMAL_HASH_STRING_REGEXP_32) && !gib.match(c.HEXADECIMAL_HASH_STRING_REGEXP_64)) {
-            errors.push('gib is neither a 32- or 64-char hash string. (E: d47ff6d6e14b4c02a62107090c8dad39)');
+        // punctiliar = point, i.e., a single point in the universe, either a
+        // single point in time in a tjp ibgib's timeline, or a single point in
+        // space that lives outside of time (has no tjp thus no timeline).
+        //
+        // So if we've gotten here in code, then our gib is truthy and doesn't
+        // contain invalid characters.
+
+        debugger;
+        const {punctiliarHash, tjpGib, isPrimitive} =
+            getGibInfo({gib, gibDelimiter: gibDelimiter || cTsGib.GIB_DELIMITER});
+
+        // automatically valid if it's a primitive, as the caller should expect
+        // no cryptographical guarantees
+        if (isPrimitive) { return null; }
+
+        // All gibs have at least the punctiliar hash.
+        const punctiliarHashIs_32 = punctiliarHash.match(c.HEXADECIMAL_HASH_STRING_REGEXP_32);
+        const punctiliarHashIs_64 = punctiliarHash.match(c.HEXADECIMAL_HASH_STRING_REGEXP_64);
+        if (!punctiliarHashIs_32 && !punctiliarHashIs_64) {
+            debugger;
+            errors.push('gib punctiliar hash is neither a 32- or 64-char hash string. (E: d47ff6d6e14b4c02a62107090c8dad39)');
+        }
+
+        if (tjpGib) {
+            // if it is an ibgib in a timeline, that timeline has a tjp and this
+            // gib has a tjpGib component. So we must recursively validate the
+            // tjpGib
+            const tjpGibValidationErrors = validateGib({gib: tjpGib});
+            if ((tjpGibValidationErrors ?? []).length > 0) {
+                errors.push(`tjpGib has errors (E: d6b79228d4a64c0b967cdb0efcea4d0d). tjpGibValidationErrors: ${tjpGibValidationErrors.join('. ')}`);
+            }
         }
 
         return errors.length > 0 ? errors : null;

@@ -4,6 +4,18 @@
  * ibGibs that are too large for DynamoDB (e.g. binaries). These still
  * have a record inserted into DynamoDB, but the entire ibGib is stored
  * in S3.
+ *
+ * ## DynamoDB
+ *
+ * ## S3
+ * This space uses S3 for large ibgib storage and all binaries (ibgibs that
+ * start with `bin.` in the `ib`.)
+ *
+ * ### CORS
+ *
+ * CORS is a factor when configuring S3 bucket. This config is found in
+ * the same folder as this space atow, in AWS_S3_CORS.json.
+ *
  */
 
 // #region imports
@@ -735,12 +747,11 @@ export interface AWSDynamoSpaceResultIbGib
  * rel8d to a living ibgib. But that would require more in-depth analysis of
  * inter-dependencies of living ibgibs across time.
  *
- *
  * ## thanks
  *
- * * https://advancedweb.hu/how-to-use-dynamodb-batch-write-with-retrying-and-exponential-backoff/
- *   * and https://advancedweb.hu/how-to-implement-an-exponential-backoff-retry-strategy-in-javascript/
- *   * thank you for the exponential backoff
+ * * thank you for the exponential backoff
+ *   * https://advancedweb.hu/how-to-use-dynamodb-batch-write-with-retrying-and-exponential-backoff/
+ *   * https://advancedweb.hu/how-to-implement-an-exponential-backoff-retry-strategy-in-javascript/
  */
 export class AWSDynamoSpace_V1<
         TData extends SyncSpaceData_AWSDynamoDB = SyncSpaceData_AWSDynamoDB,
@@ -2663,8 +2674,8 @@ export class AWSDynamoSpace_V1<
             const mapIbGibsWithTjp = { ...mapWithTjp_YesDna, ...mapWithTjp_NoDna };
             const ibGibsWithoutTjp = Object.values(mapWithout);
 
-            const ibGibsWithTjp_YesDna = Object.values(mapWithTjp_YesDna);
-            const ibGibsWithTjp_NoDna = Object.values(mapWithTjp_NoDna);
+            // const ibGibsWithTjp_YesDna = Object.values(mapWithTjp_YesDna);
+            // const ibGibsWithTjp_NoDna = Object.values(mapWithTjp_NoDna);
             const ibGibsWithTjp = Object.values(mapIbGibsWithTjp);
             const mapIbGibsWithTjpGroupedByTjpAddr = groupBy({
                 items: ibGibsWithTjp,
