@@ -51,6 +51,9 @@ export abstract class SpaceBase_V1<
     getSpaceArgMetadata(): string {
         return `${this.ib} ${getTimestampInTicks()}`;
     }
+    getSpaceResultMetadata(): string {
+        return `${this.ib} ${getTimestampInTicks()}`;
+    }
 
     constructor(initialData?: TData, initialRel8ns?: TRel8ns) {
         super(initialData, initialRel8ns);
@@ -256,7 +259,10 @@ export abstract class SpaceBase_V1<
         resultData: TResultData,
         ibGibs?: TIbGib[],
     }): Promise<TResultIbGib> {
-        const result = await resulty_<TResultData, TResultIbGib>({ resultData });
+        const result = await resulty_<TResultData, TResultIbGib>({
+            ibMetadata: this.getSpaceResultMetadata(),
+            resultData,
+        });
         if (ibGibs) { result.ibGibs = ibGibs; }
         return result;
     }

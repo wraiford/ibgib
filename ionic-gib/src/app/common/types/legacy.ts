@@ -18,6 +18,10 @@ export interface GetIbGibOpts {
    */
   addr?: IbGibAddr;
   /**
+   * If getting multiple ibGibs, use this array of addrs.
+   */
+  addrs?: IbGibAddr[];
+  /**
    * If truthy, will look in the meta subpath first, then the regular if not found.
    */
   isMeta?: boolean;
@@ -46,6 +50,10 @@ export interface GetIbGibResult extends FileResult {
    * This is used when you're getting a pic's binary content.
    */
   // binData?: any;
+  /**
+   * access to raw result ibgib that caller must cast to the correct shape.
+   */
+  rawResultIbGib?: IbGib_V1;
 }
 
 export interface PutIbGibOpts {

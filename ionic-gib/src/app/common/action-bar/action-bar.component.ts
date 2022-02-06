@@ -4,11 +4,11 @@ const { Modals } = Plugins;
 import { IbgibComponentBase } from '../bases/ibgib-component-base';
 import { CommonService } from 'src/app/services/common.service';
 import { IbGibAddr, IbGibRel8ns, V1 } from 'ts-gib';
-import { ActionItem, PicData, CommentData } from '../types';
+import { ActionItem, PicData, CommentData, SyncSpaceResultIbGib } from '../types';
 import { hash, getIbGibAddr, getTimestamp, getIbAndGib, pretty } from 'ts-gib/dist/helper';
 import { Factory_V1 as factory, IbGibRel8ns_V1, Rel8n, IbGib_V1 } from 'ts-gib/dist/V1';
 // import * as ionicons from 'ionicons/icons/index';
-import { getBinAddr, getFnAlert, validateIbGibAddr } from '../helper';
+import { getBinAddr, getDependencyGraph, getFnAlert, getFnPrompt, getFromSpace, validateIbGibAddr } from '../helper';
 
 import * as h from 'ts-gib/dist/helper';
 import * as c from '../constants';
@@ -72,7 +72,7 @@ export class ActionBarComponent extends IbgibComponentBase
       type: 'button',
       text: 'add from space',
       icon: 'planet-outline',
-      handler: async (event) => await this.addFromSpace(event),
+      handler: async (event) => await this.addImport(event),
     },
     {
       type: 'button',
@@ -248,32 +248,68 @@ export class ActionBarComponent extends IbgibComponentBase
       });
       await this.common.ibgibs.persistTransformResult({resTransform: resPicIbGib});
       const { newIbGib: newPic } = resPicIbGib;
-      const newPicAddr = getIbGibAddr({ibGib: newPic});
       await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newPic, linked: true});
       await this.common.ibgibs.registerNewIbGib({ibGib: newPic});
       // need to nav to picture if not in a context, or
       // or if in context need to rel8 to the context.
 
-      // rel8 to context
-      if (!this.ibGib) {
-        await this.loadIbGib();
-        await this.loadTjp();
-      }
-      const rel8nsToAddByAddr = { pic: [newPicAddr] };
+      // rel8 to context and nav
+      await this._rel8ToCurrentContext({
+        ibGibToRel8: newPic,
+        rel8nNames: ['pic'],
+        navigateAfter: true,
+      });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+    }
+  }
+
+  private async _rel8ToCurrentContext({
+    ibGibToRel8,
+    rel8nNames,
+    navigateAfter,
+  }: {
+    ibGibToRel8: IbGib_V1,
+    rel8nNames: string[],
+    navigateAfter: boolean,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this._rel8ToCurrentContext.name}]`;
+    try {
+      // load the context if not already
+      if (!this.ibGib) { await this.loadIbGib(); await this.loadTjp(); }
+
+      // set up the rel8ns to add
+      const rel8nsToAddByAddr: IbGibRel8ns_V1 = {};
+      const ibGibToRel8Addr = h.getIbGibAddr({ibGib: ibGibToRel8});
+      rel8nNames.forEach((rel8nName) => { rel8nsToAddByAddr[rel8nName] = [ibGibToRel8Addr]; });
+
+      // perform the rel8 transform and...
       const resRel8ToContext =
-        await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
+        await V1.rel8({
+          src: this.ibGib,
+          rel8nsToAddByAddr,
+          dna: true,
+          nCounter: true
+        });
+
+      // ...persist it and...
       await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToContext});
+
+      // ...register it.
       const { newIbGib: newContext } = resRel8ToContext;
       await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
 
-      // nav to either the pic we just added, or the new context "in time"
-      // to which the pic was added.
-      const navToAddr = this.isMeta ?
-        getIbGibAddr({ibGib: newPic}) :
-        getIbGibAddr({ibGib: newContext});
-      await this.navTo({addr: navToAddr});
+      // nav to either the ibGib we just added, or the new context frame that we
+      // just created via the rel8 transform
+      if (navigateAfter) {
+        const navToAddr = this.isMeta ?
+          getIbGibAddr({ibGib: ibGibToRel8}) :
+          getIbGibAddr({ibGib: newContext});
+        await this.navTo({addr: navToAddr});
+      }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
+      throw error;
     }
   }
 
@@ -581,20 +617,56 @@ export class ActionBarComponent extends IbgibComponentBase
     return tagDesc;
   }
 
-  async addFromSpace(_: MouseEvent): Promise<void> {
-    const lc = `${this.lc}[${this.addFromSpace.name}]`;
+  /**
+   * Import an ibgib from either the local space or our sync spaces to our
+   * current context ibgib.
+   */
+  async addImport(_: MouseEvent): Promise<void> {
+    const lc = `${this.lc}[${this.addImport.name}]`;
     try {
       if (!this.ibGib) { throw new Error(`There isn't a current ibGib loaded...?`); }
       if (!this.addr) { throw new Error(`There isn't a current ibGib addr loaded...?`); }
 
-      // get our sync spaces that we want to check
-      // for the address that we will
+      const fnAlert = getFnAlert();
+      const fnPrompt = getFnPrompt();
 
-      const appSyncSpaces: IbGibSpaceAny[] =
-        await this.common.ibgibs.getAppSyncSpaces({
-          unwrapEncrypted: true,
-          createIfNone: true,
+      if (logalot) { console.log(`${lc} prompting for address to import.`); }
+
+      // prompt for the ib^gib addr that we want to import and validate result
+      const resAddr = (await fnPrompt({
+        title: 'ibgib address',
+        msg: 'enter the ibgib address that you would like to import.',
+      }))?.trim();
+      if (!resAddr) { return; } // returns
+      const addr = resAddr;
+      const validationErrors = validateIbGibAddr({addr});
+      if ((validationErrors ?? []).length > 0) { throw new Error(`Invalid address: ${validationErrors.join('\n')} (E: 343823cb6ab04e6e9a8f7e6de1cd12c8)`); }
+
+      // now we have a valid address, but maybe we have this locally?  if we do,
+      // add to the current context and go ahead and return because we should
+      // already have the entire dependency graph
+      if (logalot) { console.log(`${lc} checking locally.`); }
+      let resGet_Local = await this.common.ibgibs.get({addr});
+      if (resGet_Local.success && resGet_Local.ibGibs?.length === 1) {
+        if (logalot) { console.log(`${lc} found ibgib locally with addr: ${addr}.`); }
+        await fnAlert({title: "We have it locally!", msg: "We have it locally! We'll relate it to the current ibgib..."});
+        await this._rel8ToCurrentContext({
+          ibGibToRel8: resGet_Local.ibGibs[0],
+          rel8nNames: ['import'],
+          navigateAfter: true,
         });
+        return;
+      }
+
+      // we don't have it locally, so we'll look in our sync spaces.
+      if (logalot) { console.log(`${lc} did NOT find ibgib locally with addr: ${addr}. checking sync space(s)...`); }
+
+      // So get our sync spaces and...
+      const appSyncSpaces = await this.common.ibgibs.getAppSyncSpaces({
+        unwrapEncrypted: true,
+        createIfNone: true,
+      });
+      // ...if not cancelled...
       if (appSyncSpaces.length === 0) {
         const msg = `Can't sync without sync spaces. Cancelled.`;
         if (logalot) { console.log(`${lc} ${msg}`) };
@@ -603,24 +675,88 @@ export class ActionBarComponent extends IbgibComponentBase
         return; // returns
       }
 
-      // prompt for the ib^gib addr that we want to import
-      const resAddr = await Modals.prompt({
-        title: 'ibgib address',
-        message: 'enter the ibgib address that you would like to import.',
-        inputPlaceholder: 'some ibgib address^123here456',
-      });
-      if (resAddr.cancelled || !resAddr.value) { return; }
-      const addr = resAddr.value.trim();
-      const validationErrors = validateIbGibAddr({addr});
-      if ((validationErrors ?? []).length > 0) { throw new Error(`Invalid address: ${validationErrors.join('\n')} (E: 343823cb6ab04e6e9a8f7e6de1cd12c8)`); }
+      // ...iterate and look inside each space.
+      let gotIbGib: IbGib_V1;
+      let space: IbGibSpaceAny;
+      let spaceAddr: IbGibAddr;
+      for (let i = 0; i < appSyncSpaces.length; i++) {
+        space = appSyncSpaces[i];
+        spaceAddr = h.getIbGibAddr({ibGib: space});
 
-      // look in the outerspace(s) for the address
-      throw new Error('not finished yet...')
+        if (logalot) { console.log(`${lc} Checking space (${spaceAddr}) for ibgib (${addr}).`); }
 
+        debugger; // before...change to ib^gib to see what happens when not found
+        let resGet = await getFromSpace({addr, space});
+        debugger; // after
+        if (resGet.success) {
+          if (resGet.ibGibs?.length === 1) {
+            debugger;
+            if (logalot) { console.log(`${lc} found ibgib (${addr}) in space (${spaceAddr}).`); }
+            let rawResult = <SyncSpaceResultIbGib>resGet.rawResultIbGib;
+            // at this point, we have a copy of the ibGib, but what about the entire dependency graph?
+            // we need to sync up the ibGib
+            gotIbGib = resGet.ibGibs[0];
 
+          } else {
+            // not found
+            debugger;
+            if (logalot) { console.log(`${lc} NOT found ibgib (${addr}) in space (${spaceAddr}).`); }
+            let rawResult = <SyncSpaceResultIbGib>resGet.rawResultIbGib;
+          }
+        } else {
+          debugger;
+          throw new Error(`resGet.success falsy, but get should not be throwing... addr: (${addr}) in space (${spaceAddr}). (UNEXPECTED) (E: b200973da68343b58bddb48c2274a6e1)`);
+        }
+      }
+
+      if (gotIbGib) {
+        // we found it in `space` with `spaceAddr`
+        // but we may not (probably don't) have the entire dependency graph.
+        await getDependencyGraph({ibGib: gotIbGib, space});
+
+      } else {
+        // we didn't find it, so we can't import it
+        await fnAlert({
+          title: `Couldn't find it...`,
+          msg:
+            `Couldn't locate ibgib. We looked in your local space,
+            as well as your ${appSyncSpaces.length} sync space(s), but no dice.
+
+            Did you enter the correct address?
+            Address: ${addr}
+
+            Have you added the right sync space where it should be located?
+            Sync Spaces: ${appSyncSpaces.map(x => x.data.name).join(', ')}
+
+            Did you enter the right password(s) for your space(s)?
+            To re-enter the right password, atm you need to restart the app (or
+            browser if you're using a browser extension) to clear your entered
+            passwords.
+            `.replace(/  +/g, '')
+        });
+      }
     } catch (error) {
       console.error(`${lc} ${error.message}`)
       await Modals.alert({title: 'something went wrong...', message: error.message});
+    }
+  }
+
+  private async _importYo({
+    ibGib,
+  }: {
+    ibGib: IbGib_V1,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this._importYo.name}]`;
+    try {
+      await this._rel8ToCurrentContext({
+        ibGibToRel8: ibGib,
+        rel8nNames: ['import'],
+        navigateAfter: true,
+      });
+    } catch (error) {
+      const emsg = `${lc} ${error.message}`;
+      console.error(emsg);
+      await Modals.alert({title: 'something went wrong...', message: `Hmm...you've found an extra special error: ${emsg}`});
     }
   }
 

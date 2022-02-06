@@ -204,7 +204,6 @@ export function validateGib({
         // So if we've gotten here in code, then our gib is truthy and doesn't
         // contain invalid characters.
 
-        debugger;
         const {punctiliarHash, tjpGib, isPrimitive} =
             getGibInfo({gib, gibDelimiter: gibDelimiter || cTsGib.GIB_DELIMITER});
 
@@ -216,7 +215,6 @@ export function validateGib({
         const punctiliarHashIs_32 = punctiliarHash.match(c.HEXADECIMAL_HASH_STRING_REGEXP_32);
         const punctiliarHashIs_64 = punctiliarHash.match(c.HEXADECIMAL_HASH_STRING_REGEXP_64);
         if (!punctiliarHashIs_32 && !punctiliarHashIs_64) {
-            debugger;
             errors.push('gib punctiliar hash is neither a 32- or 64-char hash string. (E: d47ff6d6e14b4c02a62107090c8dad39)');
         }
 
