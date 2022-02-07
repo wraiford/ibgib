@@ -173,7 +173,7 @@ export async function putInSpace({
             return { success: true }
         } else {
             const errorMsg = resPutIbGibs?.data?.errors?.length > 0 ?
-                resPutIbGibs.data.errors.join('\n') :
+                `Error(s) putting in local space:\n${resPutIbGibs.data.errors.join('\n')}` :
                 '(UNEXPECTED) unknown error putting ibGibs (E: 3d7426d4527243b79c5e55eb25f3fa73)';
             throw new Error(errorMsg);
         }

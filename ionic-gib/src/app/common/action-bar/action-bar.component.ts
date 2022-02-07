@@ -1,20 +1,25 @@
 import { Component, OnInit, ChangeDetectorRef, Input } from '@angular/core';
-import { Plugins, Camera, CameraResultType, ActionSheetOptionStyle, ActionSheetResult } from '@capacitor/core';
+import { Plugins, Camera, CameraResultType, ActionSheetOptionStyle } from '@capacitor/core';
 const { Modals } = Plugins;
-import { IbgibComponentBase } from '../bases/ibgib-component-base';
-import { CommonService } from 'src/app/services/common.service';
-import { IbGibAddr, IbGibRel8ns, V1 } from 'ts-gib';
-import { ActionItem, PicData, CommentData, SyncSpaceResultIbGib } from '../types';
-import { hash, getIbGibAddr, getTimestamp, getIbAndGib, pretty } from 'ts-gib/dist/helper';
-import { Factory_V1 as factory, IbGibRel8ns_V1, Rel8n, IbGib_V1 } from 'ts-gib/dist/V1';
-// import * as ionicons from 'ionicons/icons/index';
-import { getBinAddr, getDependencyGraph, getFnAlert, getFnPrompt, getFromSpace, validateIbGibAddr } from '../helper';
 
+import { IbGibAddr, IbGibRel8ns, V1 } from 'ts-gib';
+import { hash, getIbGibAddr, getTimestamp, getIbAndGib, pretty } from 'ts-gib/dist/helper';
+import { Factory_V1 as factory, IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 import * as h from 'ts-gib/dist/helper';
-import * as c from '../constants';
-import { ModalController } from '@ionic/angular';
+
+import { CommonService } from 'src/app/services/common.service';
+import {
+  ActionItem, PicData, CommentData, SyncSpaceResultIbGib,
+} from '../types';
 import { ChooseIconModalComponent, IconItem } from '../choose-icon-modal/choose-icon-modal.component';
 import { IbGibSpaceAny } from '../spaces/space-base-v1';
+import { IbgibComponentBase } from '../bases/ibgib-component-base';
+import {
+  getBinAddr, getDependencyGraph,
+  getFnAlert, getFnPrompt,
+  getFromSpace, validateIbGibAddr,
+} from '../helper';
+import * as c from '../constants';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -712,7 +717,23 @@ export class ActionBarComponent extends IbgibComponentBase
       if (gotIbGib) {
         // we found it in `space` with `spaceAddr`
         // but we may not (probably don't) have the entire dependency graph.
-        await getDependencyGraph({ibGib: gotIbGib, space});
+        let graph = await getDependencyGraph({ibGib: gotIbGib, space});
+        let resPutGraph =
+          await this.common.ibgibs.put({ibGibs: Object.values(graph)});
+        if (resPutGraph.success) {
+          debugger;
+          // now that we've stored the dependency graph, we can rel8 the import
+          // to the current context
+          await this._rel8ToCurrentContext({
+            ibGibToRel8: resGet_Local.ibGibs[0],
+            rel8nNames: ['import'],
+            navigateAfter: true,
+          });
+
+        } else {
+          debugger;
+          throw new Error(`error(s) saving in local space: ${resPutGraph.errorMsg}`);
+        }
 
       } else {
         // we didn't find it, so we can't import it
@@ -741,28 +762,6 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
-  private async _importYo({
-    ibGib,
-  }: {
-    ibGib: IbGib_V1,
-  }): Promise<void> {
-    const lc = `${this.lc}[${this._importYo.name}]`;
-    try {
-      await this._rel8ToCurrentContext({
-        ibGibToRel8: ibGib,
-        rel8nNames: ['import'],
-        navigateAfter: true,
-      });
-    } catch (error) {
-      const emsg = `${lc} ${error.message}`;
-      console.error(emsg);
-      await Modals.alert({title: 'something went wrong...', message: `Hmm...you've found an extra special error: ${emsg}`});
-    }
-  }
-
-  delay(ms: number): Promise<void> {
-    return new Promise((resolve) => { setTimeout(() => { resolve(); }, ms); });
-  }
 }
 
 interface TagInfo {

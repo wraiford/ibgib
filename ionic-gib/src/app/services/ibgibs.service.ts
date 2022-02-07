@@ -3278,9 +3278,14 @@ export class IbgibsService {
       // optionally see this later without modifying the ibgib timeline by a
       // mut8 or rel8 function directly on the now-vestigial/abandoned timeline.
 
-      // first, we will store the newly created ibgibs in the local space.
-      const resPut = await this.put({ibGibs: status.createdIbGibs, space: this.localUserSpace});
-      if (!resPut.success) { throw new Error(`Couldn't save ibGibs locally? (E: f8bc91259c5043d589cd2e7ad2220c1f)`); }
+      // first, we will store the newly created ibgibs (if any) in the local space.
+      // created ibgibs may not exist if only the sync space branch has changed.
+      if (status.createdIbGibs?.length > 0) {
+        const resPut = await this.put({ibGibs: status.createdIbGibs, space: this.localUserSpace});
+        if (!resPut.success) { throw new Error(`Couldn't save ibGibs locally? (E: f8bc91259c5043d589cd2e7ad2220c1f)`); }
+      }
+
+      // download any dependency ibgibs from the new latest ibgib that we don't have already.
 
       // register the new latest ibgib.
       // merge map goes from old latest addr -> latest ibGib that was the result of the merge.

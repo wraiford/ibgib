@@ -170,7 +170,7 @@ export const CONSENSUS_ADDR_SYNC_NAIVE_PUT_MERGE = 'sync naive put merge^gib'
  * These rel8n names are shown in a list view by default.
  */
 export const DEFAULT_LIST_REL8N_NAMES: string[] = [
-    'pic', 'comment', 'link', 'result',
+    'pic', 'comment', 'link', 'result', 'import',
 ]
 
 export const DEFAULT_META_IB_STARTS: Ib[] = [

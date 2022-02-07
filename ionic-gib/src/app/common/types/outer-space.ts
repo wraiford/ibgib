@@ -428,6 +428,17 @@ export interface SyncStatusData {
      *
      */
     didRx?: IbGibAddr[];
+    /**
+     * List of ibgibs that were actively transmitted from the receiving
+     * space to the sending space.
+     *
+     * ## notes
+     *
+     * * During a sync operation, any ibgibs that start in the sync space
+     *   and are "sent" to the local space during the sync operation that
+     *   did not originate from the local space will be here.
+     */
+    didTx?: IbGibAddr[];
 }
 
 export interface SyncStatusRel8ns extends IbGibRel8ns_V1 {
