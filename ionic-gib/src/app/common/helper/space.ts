@@ -4,8 +4,11 @@ import {
 import {
     GIB, IbGib_V1, Rel8n,
     Factory_V1 as factory,
+    isPrimitive,
+    IBGIB_DELIMITER,
 } from 'ts-gib/dist/V1';
 import * as h from 'ts-gib/dist/helper';
+
 
 import { IbGibSpaceAny } from '../spaces/space-base-v1';
 import * as c from '../constants';
@@ -295,11 +298,22 @@ export async function getDependencyGraph({
 
         skipRel8nNames = skipRel8nNames || [];
 
-        // convert single args (ibGib, ibGibAddr) into the array args
-        ibGibAddrs = (ibGibAddrs ?? []).concat();
-        ibGibs = (ibGibs ?? []).concat();
-        if (ibGib && !ibGibs.some(x => x.gib === ibGib.gib)) { ibGibs.push(ibGib); }
-        if (ibGibAddr && !ibGibAddrs.includes(ibGibAddr)) { ibGibAddrs.push(ibGibAddr); }
+        // convert single args (ibGib, ibGibAddr) into the array args, filtering
+        // out primitives that we don't want. The `filter` function creates the
+        // copy here, so we won't mutate the incoming arrays. (The ibgibs and
+        // addrs themselves are immutable).
+        ibGibAddrs = (ibGibAddrs ?? [])
+            .filter(x => !isPrimitive({gib: h.getIbAndGib({ibGibAddr: x}).gib})); // no primitives
+        ibGibs = (ibGibs ?? []).filter(x => !isPrimitive({ibGib: x})); // no primitives
+        if (ibGib && !isPrimitive({ibGib}) && !ibGibs.some(x => x.gib === ibGib.gib)) {
+            ibGibs.push(ibGib);
+        }
+        if (ibGibAddr &&
+            !isPrimitive({gib: h.getIbAndGib({ibGibAddr}).gib}) &&
+            !ibGibAddrs.includes(ibGibAddr)
+        ) {
+            ibGibAddrs.push(ibGibAddr);
+        }
 
         // we will re-use the following variables as needed after this point in
         // code (not ideal, but I had these functions with single incoming and
@@ -308,7 +322,6 @@ export async function getDependencyGraph({
         ibGibAddr = undefined;
 
         gotten = gotten || {};
-        const gottenAddrs = Object.keys(gotten);
 
         // // before doing anything else (i.e. recursive calls), we have to add
         // // any passed in ibGibs (which are already gotten by definition) to
@@ -326,120 +339,141 @@ export async function getDependencyGraph({
         // we will add ibGibs that we have already been provided by the caller
         // that haven't already been added to gotten, and then we will cull the
         // ibGibAddrs to get to only include those we haven't already.
-        const addrsToGet: IbGibAddr[] = [];
 
-        little bit harder to think of right now doing multiple ibgibs per call
-
-        const addToAddrsToGetIfNeeded: (addrsMaybe: IbGibAddr[]) => void = (addrsMaybe) => {
-            for (let i = 0; i < addrsMaybe.length; i++) {
-                const addrMaybe = addrsMaybe[i];
-                if (!gottenAddrs.includes(addrMaybe)) {
-                    const alreadyGivenIbGibMaybe =
-                        ibGibs.filter(x => h.getIbGibAddr({ibGib: x}) === addrMaybe);
-                    if (alreadyGivenIbGibMaybe.length === 1) {
-                        // already have ibGibAddr, but it's not in the gotten map yet
-                        gotten[addrMaybe] = alreadyGivenIbGibMaybe[0];
-                    } else {
-                        // we don't have it and need to get it
-                        addrsToGet.push(addrMaybe);
+        const getAddrsThatWeDontHaveAlready: (addrs: IbGibAddr[]) => IbGibAddr[] =
+            (addrs) => {
+                const resAddrs: IbGibAddr[] = [];
+                const gottenAddrs: IbGibAddr[] = Object.keys(gotten); // compute once
+                for (let i = 0; i < addrs.length; i++) {
+                    const addrToCheck = addrs[i];
+                    if (!gottenAddrs.includes(addrToCheck)) {
+                        const alreadyGivenIbGibMaybe =
+                            ibGibs.filter(x => h.getIbGibAddr({ibGib: x}) === addrToCheck);
+                        if (alreadyGivenIbGibMaybe.length === 0) {
+                            resAddrs.push(addrToCheck);
+                        }
                     }
-
-                // } else {
-                    // gotten already includes ibGibAddr, nothing to do
                 }
-            }
-        };
+                return resAddrs;
+            };
 
         // Sets of addrs that we have to get in this iteration:
         // 1. the passed in ibGib addrs that we haven't already gotten
         // 2. the rel8d addrs for the passed in ibgibs
 
-        // So first, go ahead and do the passed in ibGibAddrs
-        addToAddrsToGetIfNeeded(ibGibAddrs);
+        // So first, go ahead and do the passed in ibGibAddrs.  These are the
+        // addrs that we need to not only get and load if we don't already have
+        // them, but we will check their rel8ns as well.
+        const addrsWeDontHaveAlready_IncomingIbGibAddrs = getAddrsThatWeDontHaveAlready(ibGibAddrs);
 
-        // now we need to iterate through all of our given ibGibs, look
-        // through all of their rel8ns, and add any that haven't already
-        // been gotten or  needbb
-
-        if (!ibGib) {
-            const resGet = await getFromSpace({addr: ibGibAddr, space});
-            if (resGet.success && resGet.ibGibs?.length === 1) {
-                ibGib = resGet.ibGibs![0];
-            } else {
-                throw new Error(`Could not retrieve ibGib. (E: 410213e9c6ee4b009c2df8e1eba804c4)`);
+        // go ahead and retrieve any associated ibGibs from the space that we
+        // don't already have (if any)
+        if (addrsWeDontHaveAlready_IncomingIbGibAddrs.length > 0) {
+            let resGetThese = await getFromSpace({addrs: addrsWeDontHaveAlready_IncomingIbGibAddrs, space});
+            if (resGetThese.success) {
+                if ((resGetThese.ibGibs ?? []).length === addrsWeDontHaveAlready_IncomingIbGibAddrs.length) {
+                    // got them
+                    resGetThese.ibGibs.forEach(x => ibGibs.push(x));
+                } else if ((resGetThese.ibGibs ?? []).length === 0){
+                    // failed
+                    throw new Error(`unable to retrieve dependency ibgibs from space (E: 8413594b6c1b447988781cf3f3e1729d)`);
+                } else {
+                    throw new Error(`retrieved only partial ibGibs from space? (UNEXPECTED) (E: 7135746742504724bb5b9644d463e648)`);
+                }
             }
         }
-        const { gib } = h.getIbAndGib({ibGib});
-        if (gib === GIB) { throw new Error(`cannot get dependency graph of primitive.`); }
 
-        ibGibAddr = h.getIbGibAddr({ibGib});
+        // next, compile what could be a rather large list of rel8d ibgibAddrs
+        // which must necessarily be in the past of the futuremost incoming
+        // ibGib/ibGibAddr/s as rel8ns only work backwards (whereas tjp's can
+        // refer to future timelines, the DAG substrate only looks backwards)
+        const addrsWeDontHaveAlready_Rel8dAddrs = [];
 
+        // so, we will iterate through all of our given and loaded ibGibs (not
+        // the ones in gotten map though), look through all of their rel8ns, and
+        // add any that haven't already been gotten
+        for (let i = 0; i < ibGibs.length; i++) {
+            ibGib = ibGibs[i];
+            ibGibAddr = h.getIbGibAddr({ibGib});
 
-        if (!Object.keys(gotten).includes(ibGibAddr)) { gotten[ibGibAddr] = ibGib; }
+            // do i need this?
+            const { gib } = h.getIbAndGib({ibGib});
+            if (gib === GIB) { throw new Error(`cannot get dependency graph of primitive.`); }
 
-        // iterate through rel8ns and compile list of ibgib addrs not yet gotten
-        /** list that we're compiling to get */
-        /** map of addr to validation errors array */
-        const invalidAddrs: { [addr: string]: string[] } = {};
-        const rel8ns = ibGib.rel8ns || {};
-        const rel8nNames = (Object.keys(rel8ns) || []).filter(x => !skipRel8nNames.includes(x));
-        for (let i = 0; i < rel8nNames.length; i++) {
-            const rel8nName = rel8nNames[i];
-            const rel8dAddrs = rel8ns[rel8nName];
-            const rel8dAddrsNotGottenYetThisRel8n =
-                rel8dAddrs
-                .filter(addr => !Object.keys(gotten).includes(addr))
-                .filter(addr => h.getIbAndGib({ibGibAddr: addr}).gib !== GIB)
-                .filter(addr => !addrsToGet.includes(addr));
-            rel8dAddrsNotGottenYetThisRel8n.forEach(rel8dAddr => {
-                const validationErrors = validateIbGibAddr({addr: rel8dAddr});
-                if ((validationErrors || []).length === 0) {
-                    // valid addr. add it if we haven't gotten/queued it yet
-                    if (!addrsToGet.includes(rel8dAddr)) { addrsToGet.push(rel8dAddr); }
-                } else {
-                    // invalid address
-                    invalidAddrs[rel8dAddr] = validationErrors!;
-                }
-            });
+            // ?
+            // I believe I have this so we don't try to do this ibgib again on recursive call.
+            // but should I be adding it at this point? hmm...
+            if (!Object.keys(gotten).includes(ibGibAddr)) { gotten[ibGibAddr] = ibGib; }
+
+            // iterate through rel8ns and compile list of ibgib addrs not yet gotten
+            /** list that we're compiling to get */
+            /** map of addr to validation errors array */
+            const invalidAddrs: { [addr: string]: string[] } = {};
+            const rel8ns = ibGib.rel8ns || {};
+            const rel8nNames = (Object.keys(rel8ns) || []).filter(x => !skipRel8nNames.includes(x));
+            const gottenKeys = Object.keys(gotten);
+            for (let i = 0; i < rel8nNames.length; i++) {
+                const rel8nName = rel8nNames[i];
+                const rel8dAddrs = rel8ns[rel8nName];
+                const rel8dAddrsNotGottenYetThisRel8n =
+                    rel8dAddrs
+                    .filter(addr => !gottenKeys.includes(addr))
+                    .filter(addr => h.getIbAndGib({ibGibAddr: addr}).gib !== GIB)
+                    .filter(addr => !addrsWeDontHaveAlready_Rel8dAddrs.includes(addr));
+                rel8dAddrsNotGottenYetThisRel8n.forEach(rel8dAddr => {
+                    const validationErrors = validateIbGibAddr({addr: rel8dAddr});
+                    if ((validationErrors || []).length === 0) {
+                        // valid addr. add it if we haven't gotten/queued it yet
+                        addrsWeDontHaveAlready_Rel8dAddrs.push(rel8dAddr);
+                    } else {
+                        // invalid address
+                        invalidAddrs[rel8dAddr] = validationErrors!;
+                    }
+                });
+            }
+
+            if (Object.keys(invalidAddrs).length > 0) {
+                throw new Error(`invalid addresses found in dependency graph. Errors (clipped to 1kB): ${JSON.stringify(invalidAddrs).substring(0, 1024)}`);
+            }
+
         }
 
-        if (Object.keys(invalidAddrs).length > 0) {
-            throw new Error(`invalid addresses found in dependency graph. Errors (clipped to 1kB): ${JSON.stringify(invalidAddrs).substring(0, 1024)}`);
-        }
-
-        if (addrsToGet.length > 0) {
+        if (addrsWeDontHaveAlready_Rel8dAddrs.length > 0) {
             // execute the get on those addrs
-            const resGet = await getFromSpace({addrs: addrsToGet, space});
+            const resGet = await getFromSpace({addrs: addrsWeDontHaveAlready_Rel8dAddrs, space});
             if (resGet.success) {
-                if (resGet.ibGibs?.length === addrsToGet.length) {
+                if (resGet.ibGibs?.length === addrsWeDontHaveAlready_Rel8dAddrs.length) {
                     if (logalot) { console.log(`${lc} got ALL of them (happy path)`); }
                     resGet.ibGibs.forEach(x => gotten[h.getIbGibAddr({ibGib: x})] = x);
-                } else if (resGet.ibGibs?.length > 0 && resGet.ibGibs.length < addrsToGet.length) {
-                    if (logalot) { console.log(`${lc} got SOME of them (happy-ish path). going to try again for the others`); }
-                    resGet.ibGibs.forEach(x => gotten[h.getIbGibAddr({ibGib: x})] = x);
-
+                    // return a recursive call for the newly-gotten ibgibs'
+                    // dependencies, passing in the now-larger accumulating
+                    // `gotten` map of ibgibs already processed.
+                    return await getDependencyGraph({ibGibs: resGet.ibGibs, gotten, skipRel8nNames, space}); // returns
+                } else if (resGet.ibGibs?.length > 0 && resGet.ibGibs.length < addrsWeDontHaveAlready_Rel8dAddrs.length) {
                     debugger;
-                } else if (resGet.ibGibs?.length > 0 && resGet.ibGibs.length > addrsToGet.length) {
+                    if (logalot) { console.warn(`${lc} got SOME of them (happy-ish path?). not sure what to do here... (W: e3458f61a1ae4979af9e6b18ac935c14)`); }
+                    throw new Error(`trouble getting dependency ibgibs (E: 8156bf65fd084ae4a4e8a0669db28b07)`);
+                } else if (resGet.ibGibs?.length > 0 && resGet.ibGibs.length > addrsWeDontHaveAlready_Rel8dAddrs.length) {
                     // got more than our original list? not a good space behavior...
                     debugger;
-                    throw new Error(`got more ibGibs than addrs that we asked for. space not working properly. (UNEXPECTED) (E: 352219b3d18543bcbda957f2d60b78f3)`);
+                    throw new Error(`(UNEXPECTED) got more ibGibs than addrs that we asked for. space not working properly. (E: 352219b3d18543bcbda957f2d60b78f3)`);
                 } else {
                     // didn't get any...hmm...
                     debugger;
+                    throw new Error(`couldn't get dependency ibgibs from space. (E: 225f26b7d7f84911bb033753a062209b)`);
                 }
             } else {
                 // resGet.success falsy indicates an error in the space. If it wasn't found
                 // then resGet.success would (should) still be truthy.
-                throw new Error(`failure getting addrs:\n${addrsToGet.join('\n')}`);
-            }
-            if (resGet.success && ) {
-                gotten = await getDependencyGraph({ibGib: resGet.ibGibs[0], gotten, space}); // recursive
-            } else if (resGet.su{
-            } else {
+                throw new Error(`failure getting addrs. (E: 60404e6e389249d9bbecf0039cd51878) addrs:\n${addrsWeDontHaveAlready_Rel8dAddrs.join('\n')} `);
             }
         } else {
+            // no other rel8d addrs to get, so our job is done and the `gotten`
+            // map of dependency ibgibs is complete (no need for another
+            // recursive call).
             return gotten;
         }
+
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
