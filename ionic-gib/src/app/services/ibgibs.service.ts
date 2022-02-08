@@ -3266,8 +3266,12 @@ export class IbgibsService {
     const lc = `${this.lc}[${this.handleSyncStatus_Merged.name}]`;
     try {
       // #region validate
-      if ((status.createdIbGibs ?? []).length === 0) { throw new Error('status.createdIbGibs required when merging. (E: d118bde47fb9434fa95d747f8e4f6b33)'); }
+
+      // not necessarily the case, if we only have changes on the store side, we apply no dna and create no side effects
+      // if ((status.createdIbGibs ?? []).length === 0) { throw new Error('status.createdIbGibs required when merging. (E: d118bde47fb9434fa95d747f8e4f6b33)'); }
+
       if (Object.keys(status.ibGibsMergeMap ?? {}).length === 0) { throw new Error('status.ibGibsMergeMap required when merging. (E: 0f06238e5535408f8980e0f9f82cf564)'); }
+
       // #endregion validate
 
       // first, we will store the newly created ibgibs in the local space. Then
@@ -3281,6 +3285,10 @@ export class IbgibsService {
       // first, we will store the newly created ibgibs (if any) in the local space.
       // created ibgibs may not exist if only the sync space branch has changed.
       if (status.createdIbGibs?.length > 0) {
+        const resPut = await this.put({ibGibs: status.createdIbGibs, space: this.localUserSpace});
+        if (!resPut.success) { throw new Error(`Couldn't save ibGibs locally? (E: f8bc91259c5043d589cd2e7ad2220c1f)`); }
+      }
+      if (status.?.length > 0) {
         const resPut = await this.put({ibGibs: status.createdIbGibs, space: this.localUserSpace});
         if (!resPut.success) { throw new Error(`Couldn't save ibGibs locally? (E: f8bc91259c5043d589cd2e7ad2220c1f)`); }
       }

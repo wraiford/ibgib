@@ -465,6 +465,7 @@ export interface SyncStatusRel8ns extends IbGibRel8ns_V1 {
 export interface SyncStatusIbGib extends IbGib_V1<SyncStatusData, SyncStatusRel8ns> {
     statusIbGibGraph: IbGib_V1[],
     createdIbGibs?: IbGib_V1[];
+    storeOnlyIbGibs?: IbGib_V1[];
     ibGibsMergeMap?: { [oldAddr: string]: IbGib_V1 };
 }
 

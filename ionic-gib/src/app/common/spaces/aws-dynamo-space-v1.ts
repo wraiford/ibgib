@@ -2811,8 +2811,9 @@ export class AWSDynamoSpace_V1<
                             await this.reconcile_MergeLocalWithStore_ViaDna({
                                 client,
                                 latestAddr_Local, latestIbGib_Local,
-                                latestAddr_Store, latestIbGib_Store,
-                                tjpGroupIbGibs_Local_Ascending,
+                                // latestAddr_Store,
+                                latestIbGib_Store,
+                                // tjpGroupIbGibs_Local_Ascending,
                                 ibGibsCreated: ibGibsCreated_thisTjp,
                                 ibGibMergeMap: ibGibsMergeMap_thisTjp,
                                 ibGibsOnlyInStore: ibGibsOnlyInStore_thisTjp,
@@ -2932,6 +2933,7 @@ export class AWSDynamoSpace_V1<
                 if (ibGibsCreated_thisTjp.length > 0) {
                     statusIbGib.createdIbGibs = ibGibsCreated_thisTjp.concat();
                 }
+                if (newinstore)// need a break
                 if (Object.keys(ibGibsMergeMap_thisTjp).length > 0) {
                     statusIbGib.ibGibsMergeMap = h.clone(ibGibsMergeMap_thisTjp);
                 }
@@ -3069,8 +3071,9 @@ export class AWSDynamoSpace_V1<
     protected async reconcile_MergeLocalWithStore_ViaDna({
         client,
         latestAddr_Local, latestIbGib_Local,
-        latestAddr_Store, latestIbGib_Store,
-        tjpGroupIbGibs_Local_Ascending,
+        // latestAddr_Store,
+        latestIbGib_Store,
+        // tjpGroupIbGibs_Local_Ascending,
         ibGibsCreated,
         ibGibsOnlyInStore,
         ibGibMergeMap,
@@ -3079,9 +3082,9 @@ export class AWSDynamoSpace_V1<
         client: DynamoDBClient,
         latestAddr_Local: IbGibAddr,
         latestIbGib_Local: IbGib_V1,
-        latestAddr_Store: IbGibAddr,
+        // latestAddr_Store: IbGibAddr,
         latestIbGib_Store: IbGib_V1,
-        tjpGroupIbGibs_Local_Ascending: IbGib_V1[],
+        // tjpGroupIbGibs_Local_Ascending: IbGib_V1[],
         /**
          * Populated by this function.
          *
@@ -3137,6 +3140,8 @@ export class AWSDynamoSpace_V1<
             debugger; // first run
             // ibGibsOnlyInStore
 
+            const ibGibAddrsOnlyInStore: IbGibAddr[] = [];
+
             // get `dna` and `past` rel8ns from local and store latest ibgibs
             const dnaAddrs_Local = latestIbGib_Local.rel8ns?.dna?.concat();
             if ((dnaAddrs_Local ?? []).length === 0) { throw new Error(`local ibgib with tjp does not have dna. (E: a8796a652e0749aa89f5419e88b53c98)`); }
@@ -3153,55 +3158,127 @@ export class AWSDynamoSpace_V1<
             // only want additional dependencies that exist since the divergent
             // point on the store. So first, let's find the divergence via dna.
 
-            /** guarantee no index out of bounds. Might be equal size. */
-            let smallerArray = dnaAddrs_Local <= dnaAddrs_Store ?
-                dnaAddrs_Local :
-                dnaAddrs_Store;
-            let firstDifferent_Index_Store: number;
-            let firstDifferent_Addr_Store: IbGibAddr;
-            for (let i = 0; i < smallerArray.length; i++) {
+            /** guaranteed to avoid an index out of bounds error. */
+            let dnaSmallerArray = dnaAddrs_Local <= dnaAddrs_Store ?
+                dnaAddrs_Local : dnaAddrs_Store;
+            let dnaFirstDifferent_Index_Store: number = undefined; // explicit for clarity
+            for (let i = 0; i < dnaSmallerArray.length; i++) {
                 const dnaAddr_Local = dnaAddrs_Local[i];
                 const dnaAddr_Store = dnaAddrs_Store[i];
-                if (dnaAddr_Local !== dnaAddr_Store) {
-                    firstDifferent_Index_Store = i;
-                    firstDifferent_Addr_Store = dnaAddr_Store;
+                if (dnaAddr_Local !== dnaAddr_Store) { dnaFirstDifferent_Index_Store = i; }
+            }
+            let pastSmallerArray = pastAddrs_Local <= pastAddrs_Store ?
+                pastAddrs_Local : pastAddrs_Store;
+            let pastFirstDifferent_Index_Store: number = undefined; // explicit for clarity
+            for (let i = 0; i < pastSmallerArray.length; i++) {
+                const pastAddr_Local = pastAddrs_Local[i];
+                const pastAddr_Store = pastAddrs_Store[i];
+                if (pastAddr_Local !== pastAddr_Store) { pastFirstDifferent_Index_Store = i; }
+            }
+
+            // regardless of if we found a different dna index, we know we have
+            // changes on the store. So go ahead and get do those changes.
+
+            // #region first, populate ibGibsOnlyInStore
+
+            // so the new ibgibs will be of three varieties:
+            // 1. the new ibgibs in the tjp timeline itself, which can be
+            //    gotten from the latestIbGib_Store.rel8ns.past
+            // 2. those new ibgibs' corresponding transforms that were used
+            //    to produce them.
+            // 3. the tricky bit: rel8d ibgib addresses that are added via
+            //    `rel8` dna transforms.
+
+            // #region get the new ibgibs in timeline itself
+            const pastAddrsOnlyInStore = pastAddrs_Store.slice(pastFirstDifferent_Index_Store);
+            pastAddrsOnlyInStore.forEach(addr => ibGibAddrsOnlyInStore.push(addr));
+            const pastAddrsNotFound: IbGibAddr[] = [];
+            const past_errorsGetIbGibs: string[] = [];
+            const past_warningsGetIbGibs: string[] = [];
+            const pastIbGibsOnlyInStore = await this.getIbGibs({
+                client,
+                ibGibAddrs: pastAddrsOnlyInStore,
+                addrsNotFound: pastAddrsNotFound,
+                errors: past_errorsGetIbGibs,
+                warnings: past_warningsGetIbGibs,
+            });
+            if (past_errorsGetIbGibs.length > 0) { throw new Error(`past_errorsGetIbGibs: ${past_errorsGetIbGibs.join('|')} (E: 3f996dcb7c014361b96b8cbb5c53b704)`) }
+            if (past_warningsGetIbGibs.length > 0) { console.warn(`${lc} past_warningsGetIbGibs: ${past_warningsGetIbGibs.join('|')} (W: 827dcd97c73e4b7aa1ccbea0f0afc183)`); }
+            if (pastAddrsNotFound.length > 0) { throw new Error(`Errors getting past ibgibs. pastAddrsNotFound: ${pastAddrsNotFound.join('\n')} (E: c26d4e963d4f4d3eaf13459648f6e995)`)}
+            if (pastIbGibsOnlyInStore.length !== pastAddrsOnlyInStore.length) { throw new Error(`pastIbGibsOnlyInStore.length !== pastAddrsOnlyInStore.length? (E: c6e51fe1606845d78017efb14a98ef4e)`); }
+            pastIbGibsOnlyInStore.forEach(x => ibGibsOnlyInStore.push(x));
+            // #endregion get the new ibgibs in timeline itself
+
+            // #region get the corresponding store-only dna transforms
+            const dnaAddrsOnlyInStore = dnaAddrs_Store.slice(dnaFirstDifferent_Index_Store);
+            dnaAddrsOnlyInStore.forEach(addr => ibGibAddrsOnlyInStore.push(addr));
+            const dnaAddrsNotFound: IbGibAddr[] = [];
+            const dna_errorsGetIbGibs: string[] = [];
+            const dna_warningsGetIbGibs: string[] = [];
+            const dnaIbGibsOnlyInStore = await this.getIbGibs({
+                client,
+                ibGibAddrs: dnaAddrsOnlyInStore,
+                addrsNotFound: dnaAddrsNotFound,
+                errors: dna_errorsGetIbGibs,
+                warnings: dna_warningsGetIbGibs,
+            });
+            if (dna_errorsGetIbGibs.length > 0) { throw new Error(`dna_errorsGetIbGibs: ${dna_errorsGetIbGibs.join('|')} (E: bffc52231609462abed1e45a909d275f)`) }
+            if (dna_warningsGetIbGibs.length > 0) { console.warn(`${lc} dna_warningsGetIbGibs: ${dna_warningsGetIbGibs.join('|')} (W: 2e954bd2924b4e7eb5aebd36d677e6bf)`); }
+            if (dnaAddrsNotFound.length > 0) { throw new Error(`Errors getting dna ibgibs. dnaAddrsNotFound: ${dnaAddrsNotFound.join('\n')} (E: e25b73475b4b4c85b268e2a7b07350bf)`)}
+            if (dnaIbGibsOnlyInStore.length !== dnaAddrsOnlyInStore.length) { throw new Error(`dnaIbGibsOnlyInStore.length !== dnaAddrsOnlyInStore.length? (E: f69be0a0d72348989d434aa4878636e1)`); }
+            dnaIbGibsOnlyInStore.forEach(x => ibGibsOnlyInStore.push(x));
+            // #endregion get the corresponding dna transforms
+
+            // #region newly rel8d/store-only ibgibs (added since divergence)
+
+            // analyze each dna. Regardless of the transform type, we've
+            // alreaady added both the transform ibgib and its subsequently
+            // produced ibgib.  And if it's a mut8, then that's all we need.
+            // But if it's a rel8 that is _adding_ addresses, then we need
+            // to get those addresses in addition to the dna and output
+            // ibgib. (It can't be a `fork` atow, because that will always
+            // only be the first transform in a tjp timeline.)
+            const rel8dAddrsOnlyInStore: IbGibAddr[] = [];
+            const ibGibsOnlyInStore_addrsSoFar = ibGibsOnlyInStore.map(x => h.getIbGibAddr({ibGib: x}));
+            for (let i = 0; i < dnaIbGibsOnlyInStore.length; i++) {
+                const dnaIbGib = dnaIbGibsOnlyInStore[i];
+                if (!dnaIbGib.data?.type) { throw new Error(`(UNEXPECTED) invalid dna. data.type is falsy. (E: aacc09a61f9f4d4fb72d245d14d28545)`); }
+                if ((<TransformOpts>dnaIbGib.data).type === 'rel8') {
+                    const rel8Data: TransformOpts_Rel8 = <TransformOpts_Rel8>dnaIbGib.data;
+                    // rel8nsToAddByAddr is a map of rel8nName => IbGibAddr[]
+                    Object.values(rel8Data.rel8nsToAddByAddr ?? {})
+                        .flat()
+                        .forEach(addr => {
+                            if (!rel8dAddrsOnlyInStore.includes(addr) && !ibGibsOnlyInStore_addrsSoFar.includes(addr)) {
+                                rel8dAddrsOnlyInStore.push(addr);
+                            }
+                        });
                 }
             }
-            if (firstDifferent_Index_Store) {
+            const rel8dAddrsNotFound: IbGibAddr[] = [];
+            const rel8d_errorsGetIbGibs: string[] = [];
+            const rel8d_warningsGetIbGibs: string[] = [];
+            const rel8dIbGibsOnlyInStore = await this.getIbGibs({
+                client,
+                ibGibAddrs: rel8dAddrsOnlyInStore,
+                addrsNotFound: rel8dAddrsNotFound,
+                errors: rel8d_errorsGetIbGibs,
+                warnings: rel8d_warningsGetIbGibs,
+            });
+            if (rel8d_errorsGetIbGibs.length > 0) { throw new Error(`rel8d_errorsGetIbGibs: ${rel8d_errorsGetIbGibs.join('|')} (E: 6b50908e9a39437f9b5999d721657076)`) }
+            if (rel8d_warningsGetIbGibs.length > 0) { console.warn(`${lc} rel8d_warningsGetIbGibs: ${rel8d_warningsGetIbGibs.join('|')} (W: 57ba9ca1c14a401d9151b1e8c6eb934c)`); }
+            if (rel8dAddrsNotFound.length > 0) { throw new Error(`Errors getting rel8d ibgibs. rel8dAddrsNotFound: ${rel8dAddrsNotFound.join('\n')} (E: 57f63dd73e1345f6a9ca22723f09c662)`)}
+            if (rel8dIbGibsOnlyInStore.length !== rel8dAddrsOnlyInStore.length) { throw new Error(`rel8dIbGibsOnlyInStore.length !== rel8dAddrsOnlyInStore.length? (E: 17654562e21f41ef98ff7a8906c2830c)`); }
+            rel8dIbGibsOnlyInStore.forEach(x => ibGibsOnlyInStore.push(x));
+
+            // #endregion newly rel8d/store-only ibgibs (added since divergence)
+
+            // #endregion first, populate ibGibsOnlyInStore
+
+            if (dnaFirstDifferent_Index_Store) {
                 // we have a different index found. This means that we
                 // definitely have BOTH store changes to get AND local changes
                 // to apply.
-
-                // #region first, populate ibGibsOnlyInStore
-                const newDnaAddrs_Store = dnaAddrs_Store.slice(firstDifferent_Index_Store);
-                const dnaAddrsNotFound: IbGibAddr[] = [];
-                const errorsGetDna: string[] = [];
-                const warningsGetDna: string[] = [];
-                let dnaIbGibs_Store = await this.getIbGibs({
-                    client,
-                    ibGibAddrs: newDnaAddrs_Store,
-                    addrsNotFound: dnaAddrsNotFound,
-                    errors: errorsGetDna,
-                    warnings: warningsGetDna,
-                });
-                if (errorsGetDna.length > 0) { throw new Error(`Errors getting dna ibgibs: ${errorsGetDna.join('|')} (E: bffc52231609462abed1e45a909d275f)`) }
-                if (warningsGetDna.length > 0) { console.warn(`${lc} warningsGetDna: ${warningsGetDna.join('|')} (W: 2e954bd2924b4e7eb5aebd36d677e6bf)`); }
-                if (dnaAddrsNotFound.length > 0) { throw new Error(`Errors getting dna ibgibs. dnaAddrsNotFound: ${dnaAddrsNotFound.join('\n')} (E: e25b73475b4b4c85b268e2a7b07350bf)`)}
-                if (dnaIbGibs_Store.length !== newDnaAddrs_Store.length) { throw new Error(`dnaIbGibs_Store.length !== newDnaAddrs_Store.length? (E: f69be0a0d72348989d434aa4878636e1)`); }
-
-                // analyze each dna. if it's a mut8, then we only need the dna
-                // ibgib itself and the subsequently produced ibgib.  if it's a
-                // rel8 that is _adding_ addresses, then we need to get those
-                // addresses in addition to the dna and output ibgib. (It can't
-                // be a `fork` atow, because that will always only be the first
-                // transform in a tjp timeline.)
-
-                for (let i = 0; i < dnaIbGibs_Store.length; i++) {
-                    const dnaIbGib = dnaIbGibs_Store[i];
-
-                }
-
-                // #endregion first, populate ibGibsOnlyInStore
 
                 // #region next, merge local changes (if any) into store
 
@@ -3226,20 +3303,20 @@ export class AWSDynamoSpace_V1<
 
                 // #endregion next, merge local changes (if any) into store
 
-
-            } else {
+            // } else {
                 // we do NOT have a different index, so we do NOT have
                 // a divergence.
 
                 // if the lengths were equal, then we would not be in this
-                // function, since the dna is exactly the same. So the lengths
-                // are NOT equal.
+                // function, since the dna would be exactly the same. So the
+                // lengths are NOT equal.
 
                 // If the larger were the local, then we would not get to this
-                // function (reconciled via update store with local)
+                // function (reconciled via update store with local instead)
 
                 // So, the larger is the store, and we have only store changes
-                // and no local changes to apply.
+                // and no local changes to apply. We already applied those so
+                // we're done.
             }
 
             // #endregion first get store changes (if any) that local doesn't have
