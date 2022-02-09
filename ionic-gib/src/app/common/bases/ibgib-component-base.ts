@@ -7,7 +7,6 @@ import { IbgibItem, PicData, CommentData, LatestEventInfo } from '../types';
 import { CommonService } from 'src/app/services/common.service';
 import { DEFAULT_META_IB_STARTS } from '../constants';
 import { Subscription } from 'rxjs';
-import { getBinAddr } from '../helper';
 import * as h from 'ts-gib/dist/helper';
 import * as c from '../../common/constants';
 

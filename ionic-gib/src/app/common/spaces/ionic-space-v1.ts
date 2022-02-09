@@ -18,7 +18,7 @@ import {
     IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns,
 } from '../types';
 import * as c from '../constants';
-import { getBinAddr, getBinHashAndExt, isBinary } from '../helper';
+import { getBinHashAndExt, isBinary } from '../helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

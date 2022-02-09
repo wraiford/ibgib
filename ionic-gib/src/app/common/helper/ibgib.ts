@@ -126,15 +126,17 @@ export async function constantIbGib<TData extends IbGibData_V1 = any , TRel8ns e
  *
  * @returns string in expected template for binaries in this app.
  */
-export function getBinAddr({binHash, binExt}: {binHash: string, binExt: string}): IbGibAddr {
-    return `bin.${binExt}${IBGIB_DELIMITER}${binHash}`;
+export function getBinIb({binHash, binExt}: {binHash: string, binExt: string}): IbGibAddr {
+    return `bin ${binHash} ${binExt}`;
 }
 export function getBinHashAndExt({addr}: {addr: IbGibAddr}): { binHash: string, binExt: string } {
     const lc = `[${getBinHashAndExt.name}]`;
     try {
-        if (!isBinary({addr})) { throw new Error(`not a bin address`); }
-        const {ib, gib: binHash} = h.getIbAndGib({ibGibAddr: addr});
-        const binExt = ib.split('.')[1]; // assumes ib formatting checked in `isBin` function!
+        if (!isBinary({addr})) { throw new Error(`not a bin address (E: df0804d129bc4888bd6939cb76c5e0f6)`); }
+        const { ib } = h.getIbAndGib({ibGibAddr: addr});
+        const ibPieces = ib.split(' ');
+        const binHash = ibPieces[1];
+        const binExt = ibPieces[2];
         return { binHash, binExt };
     } catch (error) {
         console.error(`${lc} ${error.message}`);
@@ -157,13 +159,13 @@ export function isBinary({
         const {ib,gib} = h.getIbAndGib({ibGibAddr: addr});
         if (!ib) { return false; }
         if (!gib) { return false; }
-        if (!ib.startsWith('bin.')) { return false; }
+        if (!ib.startsWith('bin ')) { return false; }
         if (gib.length !== 64) {
             console.warn(`${lc} gib length is not 64, so return false. But this may not be true if using another hash algorithm.`);
             return false;
         }
-        const ibPieces = ib.split('.');
-        if (ibPieces.length !== 2) { return false; }
+        const ibPieces = ib.split(' ');
+        if (ibPieces.length !== 3) { return false; }
         if (ibPieces[1] === "") { return false; }
         return true;
     } catch (error) {

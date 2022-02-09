@@ -378,6 +378,7 @@ export async function getDependencyGraph({
                     // failed
                     throw new Error(`unable to retrieve dependency ibgibs from space (E: 8413594b6c1b447988781cf3f3e1729d)`);
                 } else {
+                    debugger;
                     throw new Error(`retrieved only partial ibGibs from space? (UNEXPECTED) (E: 7135746742504724bb5b9644d463e648)`);
                 }
             }

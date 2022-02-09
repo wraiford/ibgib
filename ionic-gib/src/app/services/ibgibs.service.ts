@@ -2619,41 +2619,6 @@ export class IbgibsService {
     }
   }
 
-  // async getLatestFromSpace({
-  //   ibGibs,
-  //   persistLocally,
-  //   space,
-  // }: {
-  //   ibGibs: IbGib_V1[],
-  //   persistLocally: boolean,
-  //   space: IbGibSpaceAny,
-  // }): Promise<void> {
-  //   const lc = `${this.lc}[${this.getLatestFromSpace.name}]`;
-  //   try {
-  //     const arg = await argy_<IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib>({
-  //       argData: {
-  //         cmd: 'get',
-  //         cmdModifiers: ['latest'],
-  //         catchAllErrors: true,
-  //       },
-  //       ibMetadata: space.getSpaceArgMetadata() || `${space.ib} ${getTimestampInTicks()}`,
-  //     });
-  //     arg.ibGibs = ibGibs;
-  //     const resSpace: IbGibSpaceResultIbGib<any, IbGibSpaceResultData, IbGibSpaceResultRel8ns> =
-  //       await space.witness(arg);
-  //     if (resSpace.data.success) {
-  //       debugger;
-  //     } else {
-  //       debugger;
-  //     }
-  //   } catch (error) {
-  //     debugger;
-  //     console.error(`${lc} ${error.message}`);
-  //     debugger;
-  //     // don't rethrow for now.
-  //   }
-  // }
-
   /**
    * If we don't have outerspaces/cloud endpoints, we'll do that here.
    *
@@ -3219,7 +3184,6 @@ export class IbgibsService {
           break;
 
         case StatusCode.updated:
-          // debugger;
           // await this.handleSyncComplete_Updated({sagaInfo, status});
           // nothing further to do? hmm...
           break;
@@ -3235,11 +3199,9 @@ export class IbgibsService {
         case StatusCode.already_synced:
           // await this.handleSyncComplete_AlreadySynced({sagaInfo, status});
           // nothing further to do? hmm...
-          // debugger;
           break;
 
         case StatusCode.completed:
-          // debugger;
           await this.handleSyncStatus_Complete({sagaInfo});
           break;
 
@@ -3268,7 +3230,9 @@ export class IbgibsService {
       // #region validate
 
       // not necessarily the case, if we only have changes on the store side, we apply no dna and create no side effects
-      // if ((status.createdIbGibs ?? []).length === 0) { throw new Error('status.createdIbGibs required when merging. (E: d118bde47fb9434fa95d747f8e4f6b33)'); }
+      if ((status.createdIbGibs ?? []).length === 0 &&
+          (status.storeOnlyIbGibs ?? []).length === 0
+      ) { throw new Error('status.createdIbGibs and/or status.storeOnlyIbGibs required when merging. (E: d118bde47fb9434fa95d747f8e4f6b33)'); }
 
       if (Object.keys(status.ibGibsMergeMap ?? {}).length === 0) { throw new Error('status.ibGibsMergeMap required when merging. (E: 0f06238e5535408f8980e0f9f82cf564)'); }
 
@@ -3285,12 +3249,12 @@ export class IbgibsService {
       // first, we will store the newly created ibgibs (if any) in the local space.
       // created ibgibs may not exist if only the sync space branch has changed.
       if (status.createdIbGibs?.length > 0) {
-        const resPut = await this.put({ibGibs: status.createdIbGibs, space: this.localUserSpace});
-        if (!resPut.success) { throw new Error(`Couldn't save ibGibs locally? (E: f8bc91259c5043d589cd2e7ad2220c1f)`); }
+        const resPutCreated = await this.put({ibGibs: status.createdIbGibs, space: this.localUserSpace});
+        if (!resPutCreated.success) { throw new Error(`Couldn't save created ibGibs locally? (E: f8bc91259c5043d589cd2e7ad2220c1f)`); }
       }
-      if (status.?.length > 0) {
-        const resPut = await this.put({ibGibs: status.createdIbGibs, space: this.localUserSpace});
-        if (!resPut.success) { throw new Error(`Couldn't save ibGibs locally? (E: f8bc91259c5043d589cd2e7ad2220c1f)`); }
+      if (status.storeOnlyIbGibs?.length > 0) {
+        const resPutStoreOnly = await this.put({ibGibs: status.storeOnlyIbGibs, space: this.localUserSpace});
+        if (!resPutStoreOnly.success) { throw new Error(`Couldn't save storeonly ibGibs locally? (E: c5ab044718ab42bba27f5852149b7ddc)`); }
       }
 
       // download any dependency ibgibs from the new latest ibgib that we don't have already.
@@ -3434,7 +3398,8 @@ export class IbgibsService {
         }
 
         // sort by n (ascending) and then grab the latest one
-        const latestIbGibInGroup = group.sort(x => x.data.n ?? -1)[group.length-1];
+        const latestIbGibInGroup =
+          group.sort((a, b) => a.data.n > b.data.n ? 1 : -1)[group.length-1];
         result.push(latestIbGibInGroup);
 
         // we're done
@@ -3447,4 +3412,3 @@ export class IbgibsService {
   }
 
 }
-

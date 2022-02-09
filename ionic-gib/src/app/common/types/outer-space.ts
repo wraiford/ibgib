@@ -464,8 +464,37 @@ export interface SyncStatusRel8ns extends IbGibRel8ns_V1 {
  */
 export interface SyncStatusIbGib extends IbGib_V1<SyncStatusData, SyncStatusRel8ns> {
     statusIbGibGraph: IbGib_V1[],
+    /**
+     * Ibgibs that were created as side effects from a merge.
+     *
+     * ## notes
+     *
+     * This happens when you apply one or more local transforms to
+     * a timeline in the store that has already been changed by some
+     * other space (other than local that is).
+     */
     createdIbGibs?: IbGib_V1[];
+    /**
+     * Ibgibs that are only found in the store and not locally.
+     *
+     * ## notes
+     *
+     * This happens when ibgibs were created in some other space.
+     */
     storeOnlyIbGibs?: IbGib_V1[];
+    /**
+     * This is a map of the local space "oldAddr" to the ultimately
+     * most recent ibgib address in the outer/sync space.
+     *
+     * ## notes
+     *
+     * You will need to also download the createdIbGibs and/or storeOnlyIbGibs
+     * which will contain the dependency graph between these two endpoints in
+     * each map entry here from old addr -> new addr.
+     *
+     * It is assumed that the local address already has all of the rest of the
+     * dependencies for `oldAddr`.
+     */
     ibGibsMergeMap?: { [oldAddr: string]: IbGib_V1 };
 }
 

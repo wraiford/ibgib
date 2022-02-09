@@ -15,11 +15,12 @@ import { ChooseIconModalComponent, IconItem } from '../choose-icon-modal/choose-
 import { IbGibSpaceAny } from '../spaces/space-base-v1';
 import { IbgibComponentBase } from '../bases/ibgib-component-base';
 import {
-  getBinAddr, getDependencyGraph,
+  getBinIb, getDependencyGraph,
   getFnAlert, getFnPrompt,
   getFromSpace, validateIbGibAddr,
 } from '../helper';
 import * as c from '../constants';
+import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -210,12 +211,14 @@ export class ActionBarComponent extends IbgibComponentBase
     if (logalot) { console.log(`${lc} starting...`); }
     try {
 
-      const binAddr = getBinAddr({binHash, binExt: ext});
-      const {ib, gib} = h.getIbAndGib({ibGibAddr: binAddr});
-      const ibGib = { ib, gib, data: <any>imageBase64 };
+      const binIb = getBinIb({binHash, binExt: ext});
+      const binIbGib: IbGib_V1 = { ib: binIb, data: <any>imageBase64 };
+      const binGib = await getGib({ibGib: binIbGib, hasTjp: false});
+      binIbGib.gib = binGib;
+      const binAddr = h.getIbGibAddr({ibGib: binIbGib});
 
       if (logalot) { console.log(`${lc} saving initial ibgib pic with data = imageBase64...`); }
-      const resSaveBin = await this.common.ibgibs.put({ibGib});
+      const resSaveBin = await this.common.ibgibs.put({ibGib: binIbGib});
         // await this.ibgibs.put({binData: image.base64String, binExt: ext});
       if (!resSaveBin.success) { throw new Error(resSaveBin.errorMsg || 'error saving pic'); }
       if (logalot) { console.log(`${lc} saving initial ibgib pic with data = imageBase64 complete.`); }
@@ -350,6 +353,7 @@ export class ActionBarComponent extends IbgibComponentBase
       let info = JSON.stringify(this.ibGib_Context, null, 2);
       let addr = getIbGibAddr({ibGib: this.ibGib_Context});
       await Modals.alert({title: addr, message: info});
+      console.log(info);
     } catch (error) {
       console.error(`${lc} ${error.message}`)
     }
@@ -690,21 +694,18 @@ export class ActionBarComponent extends IbgibComponentBase
 
         if (logalot) { console.log(`${lc} Checking space (${spaceAddr}) for ibgib (${addr}).`); }
 
-        debugger; // before...change to ib^gib to see what happens when not found
         let resGet = await getFromSpace({addr, space});
-        debugger; // after
         if (resGet.success) {
           if (resGet.ibGibs?.length === 1) {
-            debugger;
             if (logalot) { console.log(`${lc} found ibgib (${addr}) in space (${spaceAddr}).`); }
-            let rawResult = <SyncSpaceResultIbGib>resGet.rawResultIbGib;
+            // let rawResult = <SyncSpaceResultIbGib>resGet.rawResultIbGib;
             // at this point, we have a copy of the ibGib, but what about the entire dependency graph?
             // we need to sync up the ibGib
             gotIbGib = resGet.ibGibs[0];
 
           } else {
             // not found
-            debugger;
+            debugger; // look at rawResult if you wish
             if (logalot) { console.log(`${lc} NOT found ibgib (${addr}) in space (${spaceAddr}).`); }
             let rawResult = <SyncSpaceResultIbGib>resGet.rawResultIbGib;
           }
@@ -721,11 +722,10 @@ export class ActionBarComponent extends IbgibComponentBase
         let resPutGraph =
           await this.common.ibgibs.put({ibGibs: Object.values(graph)});
         if (resPutGraph.success) {
-          debugger;
           // now that we've stored the dependency graph, we can rel8 the import
           // to the current context
           await this._rel8ToCurrentContext({
-            ibGibToRel8: resGet_Local.ibGibs[0],
+            ibGibToRel8: gotIbGib,
             rel8nNames: ['import'],
             navigateAfter: true,
           });
@@ -768,3 +768,14 @@ interface TagInfo {
   title: string;
   addr: string;
 }
+
+// comment some comme^7BA39343AB46ED03EC50EBE86D03E2BC9BB478C2E5B14BE16041CF6D84429E86.8D2E66D2F96EC083C33381CC2789D8F940D55BACBD9AED7E2CFC17FAC0ED3480
+
+// comment some comme^B68445877C53E94DBC318B1DC80A7B2166CB9430073D2AD9E764FCE40D365F06.8D2E66D2F96EC083C33381CC2789D8F940D55BACBD9AED7E2CFC17FAC0ED3480
+
+/*
+
+comment some comme^3192993596B9B206CE62C885E3033AEA3B73F8F8123917C402F5A158E813A1D7.8D2E66D2F96EC083C33381CC2789D8F940D55BACBD9AED7E2CFC17FAC0ED3480
+
+comment some comme^DAE9FE9D741EA361287065716B9C73D1A902DDC9ACE98C37EC6576F58CB19202.8D2E66D2F96EC083C33381CC2789D8F940D55BACBD9AED7E2CFC17FAC0ED3480
+*/
