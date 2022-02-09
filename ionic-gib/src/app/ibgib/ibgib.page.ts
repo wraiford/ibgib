@@ -4,7 +4,7 @@ import { Subscription } from 'rxjs';
 // import { analyzeAndValidateNgModules } from '@angular/compiler';
 import { AlertController } from '@ionic/angular';
 import { Plugins } from '@capacitor/core';
-const { Modals } = Plugins;
+const { Modals, Clipboard } = Plugins;
 
 // import {AttributeValue, DynamoDBClient, PutItemCommand} from '@aws-sdk/client-dynamodb';
 
@@ -25,7 +25,7 @@ import { CreateSecretModalComponent } from '../common/create-secret-modal/create
 import { CreateEncryptionModalComponent } from '../common/create-encryption-modal/create-encryption-modal.component';
 import { CreateOuterspaceModalComponent } from '../common/create-outerspace-modal/create-outerspace-modal.component';
 import { IbGibSpaceAny } from '../common/spaces/space-base-v1';
-import { getFnPromptPassword_AlertController } from '../common/helper';
+import { getFnAlert, getFnPromptPassword_AlertController } from '../common/helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -199,6 +199,25 @@ export class IbGibPage extends IbgibComponentBase
       this.paramMapSub.unsubscribe();
       delete this.paramMapSub;
     }
+  }
+
+  async handleShareClick(): Promise<void> {
+    const alert = getFnAlert();
+    try {
+      await Clipboard.write({ string: this.addr });
+
+      await alert({title: 'ibgib address copied', msg:
+        `Copied to clipboard!
+
+        "${this.addr}"
+
+        You can add this to another ibgib by going to that and clicking import (the little planet icon atm.)
+        `
+      });
+    } catch (error) {
+      await alert({title: 'ibgib address copied', msg: `clipboard failed...`});
+    }
+
   }
 
   async handleSyncClick(): Promise<void> {

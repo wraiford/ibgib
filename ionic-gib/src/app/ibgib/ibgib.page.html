@@ -21,6 +21,10 @@
       {{ title }}
     </ion-title>
     <ion-buttons slot="end" collapse="true">
+      <ion-button
+        slot="end" (click)="handleShareClick()" class="toolbar-share">
+        <ion-icon name="share-social-outline" ios="share-outline"></ion-icon>
+      </ion-button>
       <ion-button [disabled]="syncing"
         slot="end" (click)="handleSyncClick()" class="toolbar-sync">
         <ion-icon name="planet-outline"></ion-icon>

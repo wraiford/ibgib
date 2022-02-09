@@ -1205,7 +1205,7 @@ export class AWSDynamoSpace_V1<
                         const ibGib = getIbGibFromResponseItem({item: getIbGibsResponseItem});
                         // validate yo...
                         resIbGibs.push(ibGib);
-                        if (logalot) { console.log(`${lc} item: ${h.pretty(ibGib)}`); }
+                        // if (logalot) { console.log(`${lc} item: ${h.pretty(ibGib)}`); }
                     }
                 }
 
@@ -2786,7 +2786,7 @@ export class AWSDynamoSpace_V1<
                         in local, maybe also local has changes. So, merge
                         timelines appropriately. If so, then will apply those
                         local changes to store's foreign-changed latest and save
-                        the resulting store's latest.`.replace('\n', ' ')); }
+                        the resulting store's latest.`.replace(/\n/g, ' ').replace(/  /g, '')); }
 
                         const latestIbGib_Local =
                             tjpGroupIbGibs_Local_Ascending
@@ -3144,11 +3144,15 @@ export class AWSDynamoSpace_V1<
             // get `dna` and `past` rel8ns from local and store latest ibgibs
             const dnaAddrs_Local = latestIbGib_Local.rel8ns?.dna?.concat();
             if ((dnaAddrs_Local ?? []).length === 0) { throw new Error(`local ibgib with tjp does not have dna. (E: a8796a652e0749aa89f5419e88b53c98)`); }
+            if (logalot) { console.log(`${lc} dnaAddrs_Local: ${dnaAddrs_Local.join('\n')}`); }
             const pastAddrs_Local = latestIbGib_Local.rel8ns?.past?.concat() ?? [];
+            if (logalot) { console.log(`${lc} pastAddrs_Local: ${pastAddrs_Local.join('\n')}`); }
             // if ((pastAddrs_Local ?? []).length === 0) { throw new Error(`local ibgib does not have past. (E: 76a8e4238a5f41bfaed2d92d88cc1665)`); }
             const dnaAddrs_Store = latestIbGib_Store.rel8ns?.dna?.concat();
             if ((dnaAddrs_Store ?? []).length === 0) { throw new Error(`store ibgib with tjp does not have dna. (E: 4fd9ebcaad10449aafba6d76cdb49531)`); }
+            if (logalot) { console.log(`${lc} dnaAddrs_Store: ${dnaAddrs_Store.join('\n')}`); }
             const pastAddrs_Store = latestIbGib_Store.rel8ns?.past?.concat() ?? [];
+            if (logalot) { console.log(`${lc} pastAddrs_Store: ${pastAddrs_Store.join('\n')}`); }
             // if ((pastAddrs_Store ?? []).length === 0) { throw new Error(`store ibgib does not have past. (E: 6f621d46d390435eb4d8421fe90d0086)`); }
 
             // #region first get store changes (if any) that local doesn't have
@@ -3160,20 +3164,31 @@ export class AWSDynamoSpace_V1<
             /** guaranteed to avoid an index out of bounds error. */
             let dnaSmallerArray = (dnaAddrs_Local ?? []).length <= (dnaAddrs_Store ?? []).length ?
                 dnaAddrs_Local : dnaAddrs_Store;
+            if (logalot) { console.log(`${lc} dnaSmallerArray(${dnaSmallerArray?.length}): ${dnaSmallerArray?.join('\n')}`); }
             let dnaFirstDifferent_Index_Store: number = undefined; // explicit for clarity
             for (let i = 0; i < dnaSmallerArray.length; i++) {
                 const dnaAddr_Local = dnaAddrs_Local[i];
                 const dnaAddr_Store = dnaAddrs_Store[i];
-                if (dnaAddr_Local !== dnaAddr_Store) { dnaFirstDifferent_Index_Store = i; }
+                if (dnaAddr_Local !== dnaAddr_Store) {
+                    dnaFirstDifferent_Index_Store = i;
+                    break;
+                }
             }
+            if (logalot) { console.log(`${lc} dnaFirstDifferent_Index_Store: ${dnaFirstDifferent_Index_Store}`); }
             let pastSmallerArray = (pastAddrs_Local ?? []).length <= (pastAddrs_Store ?? []).length ?
                 pastAddrs_Local : pastAddrs_Store;
+            if (logalot) { console.log(`${lc} pastSmallerArray(${pastSmallerArray?.length}): ${pastSmallerArray?.join('\n')}`); }
             let pastFirstDifferent_Index_Store: number = undefined; // explicit for clarity
             for (let i = 0; i < pastSmallerArray.length; i++) {
                 const pastAddr_Local = pastAddrs_Local[i];
                 const pastAddr_Store = pastAddrs_Store[i];
-                if (pastAddr_Local !== pastAddr_Store) { pastFirstDifferent_Index_Store = i; }
+                if (pastAddr_Local !== pastAddr_Store) {
+                    if (logalot) { console.log(`${lc} different found.\npastAddr_Local: ${pastAddr_Local}\npastAddr_Store: ${pastAddr_Store}`); }
+                    pastFirstDifferent_Index_Store = i;
+                    break;
+                }
             }
+            if (logalot) { console.log(`${lc} pastFirstDifferent_Index_Store: ${pastFirstDifferent_Index_Store}`); }
 
             // regardless of if we found a different dna index, we know we have
             // changes on the store. So go ahead and get do those changes.
@@ -3189,7 +3204,10 @@ export class AWSDynamoSpace_V1<
             //    `rel8` dna transforms.
 
             if (!ibGibsOnlyInStore.some(x => h.getIbGibAddr({ibGib: x}) === latestAddr_Store)) {
+                if (logalot) { console.log(`${lc} adding latestIbGib_Store to ibGibsOnlyInStore`); }
                 ibGibsOnlyInStore.push(latestIbGib_Store);
+            } else {
+                if (logalot) { console.log(`${lc} ibGibsOnlyInStore already has latestIbGib_Store (${h.getIbGibAddr({ibGib: latestIbGib_Store})})`); }
             }
 
             // #region get the new ibgibs in timeline itself
@@ -3197,6 +3215,7 @@ export class AWSDynamoSpace_V1<
             pastAddrsOnlyInStore.forEach(addr => ibGibAddrsOnlyInStore.push(addr));
             let pastIbGibsOnlyInStore: IbGib_V1[] = [];
             if (pastAddrsOnlyInStore.length > 0) {
+                if (logalot) { console.log(`${lc} pastAddrsOnlyInStore(${pastAddrsOnlyInStore.length}): ${pastAddrsOnlyInStore.join('\n')}`); }
                 const pastAddrsNotFound: IbGibAddr[] = [];
                 const past_errorsGetIbGibs: string[] = [];
                 const past_warningsGetIbGibs: string[] = [];
@@ -3212,6 +3231,8 @@ export class AWSDynamoSpace_V1<
                 if (pastAddrsNotFound.length > 0) { throw new Error(`Errors getting past ibgibs. pastAddrsNotFound: ${pastAddrsNotFound.join('\n')} (E: c26d4e963d4f4d3eaf13459648f6e995)`)}
                 if (pastIbGibsOnlyInStore.length !== pastAddrsOnlyInStore.length) { throw new Error(`pastIbGibsOnlyInStore.length !== pastAddrsOnlyInStore.length? (E: c6e51fe1606845d78017efb14a98ef4e)`); }
                 pastIbGibsOnlyInStore.forEach(x => ibGibsOnlyInStore.push(x));
+            } else {
+                if (logalot) { console.log(`${lc} pastAddrsOnlyInStore is empty.`); }
             }
             // #endregion get the new ibgibs in timeline itself
 
@@ -3219,6 +3240,7 @@ export class AWSDynamoSpace_V1<
             const dnaAddrsOnlyInStore = dnaAddrs_Store.slice(dnaFirstDifferent_Index_Store ?? dnaSmallerArray.length);
             let dnaIbGibsOnlyInStore: IbGib_V1[] = [];
             if (dnaAddrsOnlyInStore.length > 0) {
+                if (logalot) { console.log(`${lc} dnaAddrsOnlyInStore(${dnaAddrsOnlyInStore.length}): ${dnaAddrsOnlyInStore.join('\n')}`); }
                 dnaAddrsOnlyInStore.forEach(addr => ibGibAddrsOnlyInStore.push(addr));
                 const dnaAddrsNotFound: IbGibAddr[] = [];
                 const dna_errorsGetIbGibs: string[] = [];
@@ -3235,7 +3257,10 @@ export class AWSDynamoSpace_V1<
                 if (dnaAddrsNotFound.length > 0) { throw new Error(`Errors getting dna ibgibs. dnaAddrsNotFound: ${dnaAddrsNotFound.join('\n')} (E: e25b73475b4b4c85b268e2a7b07350bf)`)}
                 if (dnaIbGibsOnlyInStore.length !== dnaAddrsOnlyInStore.length) { throw new Error(`dnaIbGibsOnlyInStore.length !== dnaAddrsOnlyInStore.length? (E: f69be0a0d72348989d434aa4878636e1)`); }
                 dnaIbGibsOnlyInStore.forEach(x => ibGibsOnlyInStore.push(x));
+            } else {
+                if (logalot) { console.log(`${lc} dnaAddrsOnlyInStore is empty.`); }
             }
+
             // #endregion get the corresponding dna transforms
 
             // #region newly rel8d/store-only ibgibs (added since divergence)
@@ -3285,7 +3310,12 @@ export class AWSDynamoSpace_V1<
                 // if (rel8d_warningsGetIbGibs.length > 0) { console.warn(`${lc} rel8d_warningsGetIbGibs: ${rel8d_warningsGetIbGibs.join('|')} (W: 57ba9ca1c14a401d9151b1e8c6eb934c)`); }
                 // if (rel8dAddrsNotFound.length > 0) { throw new Error(`Errors getting rel8d ibgibs. rel8dAddrsNotFound: ${rel8dAddrsNotFound.join('\n')} (E: 57f63dd73e1345f6a9ca22723f09c662)`)}
                 if (rel8dIbGibsOnlyInStore.length < rel8dAddrsOnlyInStore.length) { throw new Error(`rel8dIbGibsOnlyInStore.length < rel8dAddrsOnlyInStore.length? We should have at least those ibgibs explicitly rel8d, plus their dependency graphs. (E: 17654562e21f41ef98ff7a8906c2830c)`); }
-                rel8dIbGibsOnlyInStore.forEach(x => ibGibsOnlyInStore.push(x));
+                if (rel8dIbGibsOnlyInStore.length > 0) {
+                    if (logalot) { console.log(`${lc} rel8dIbGibsOnlyInStore(mapped, length: ${rel8dIbGibsOnlyInStore.length}): ${rel8dIbGibsOnlyInStore.map(x => h.getIbGibAddr({ibGib: x})).join('\n')}`); }
+                    rel8dIbGibsOnlyInStore.forEach(x => ibGibsOnlyInStore.push(x));
+                } else {
+                    if (logalot) { console.log(`${lc} rel8dIbGibsOnlyInStore is empty.`); }
+                }
 
                 // there are going to be issues here when the rel8d ibgibs
                 // include timelines that conflict with local timelines. Those
@@ -3298,9 +3328,12 @@ export class AWSDynamoSpace_V1<
 
             // #endregion newly rel8d/store-only ibgibs (added since divergence)
 
+            if (logalot) { console.log(`${lc} ibGibsOnlyInStore (${ibGibsOnlyInStore.length}) mapped to addrs: ${ibGibsOnlyInStore.map(x => h.getIbGibAddr({ibGib: x})).join('\n')}`); }
+
             // #endregion first, populate ibGibsOnlyInStore
 
             if (dnaFirstDifferent_Index_Store) {
+                if (logalot) { console.log(`${lc} dnaFirstDifferent_Index_Store is truthy, so we need to apply local transforms to store.`); }
                 // we have a different index found. This means that we
                 // definitely have BOTH store changes to get AND local changes
                 // to apply.
@@ -3317,18 +3350,21 @@ export class AWSDynamoSpace_V1<
                     }
                 }
 
-                const createdIbGibs_Running: IbGib_V1[] = [];
-                latestIbGib_Store = await this.applyTransforms({
-                    src: latestIbGib_Store,
-                    createdIbGibs_Running,
-                    dnaAddrsToApplyToStoreVersion,
-                    allLocalIbGibs,
-                });
-                createdIbGibs_Running.forEach(x => ibGibsCreated.push(x));
+                if (dnaAddrsToApplyToStoreVersion.length > 0) {
+                    const createdIbGibs_Running: IbGib_V1[] = [];
+                    latestIbGib_Store = await this.applyTransforms({
+                        src: latestIbGib_Store,
+                        createdIbGibs_Running,
+                        dnaAddrsToApplyToStoreVersion,
+                        allLocalIbGibs,
+                    });
+                    createdIbGibs_Running.forEach(x => ibGibsCreated.push(x));
+                }
 
                 // #endregion next, merge local changes (if any) into store
 
-            // } else {
+            } else {
+                if (logalot) { console.log(`${lc} dnaFirstDifferent_Index_Store was falsy, so we dont need to apply local transforms to the store.`); }
                 // we do NOT have a different index, so we do NOT have
                 // a divergence.
 

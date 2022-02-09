@@ -34,45 +34,6 @@
           </ion-item>
 
           <!-- spaces -->
-          <!-- <ion-item class="accordion-item">
-            <ion-list class="accordion-item-list">
-              <ion-list-header>
-                <ion-label (click)="this.menu.toggle('main')"
-                  routerDirection="root" [routerLink]="[spacesUrl]">
-                  spaces
-                </ion-label>
-                <ion-icon class="accordion-expand-btn" *ngIf="menuOpen !== 'spaces'" name="chevron-down-circle-outline" (click)="menuOpen = 'spaces'"></ion-icon>
-                <ion-icon class="accordion-expand-btn" *ngIf="menuOpen === 'spaces'" name="chevron-back-circle-outline" (click)="menuOpen = ''"></ion-icon>
-              </ion-list-header>
-              <ion-list *ngIf="menuOpen === 'spaces'" slot="content">
-                <ion-item>
-                  <ion-label>current: </ion-label>
-                  <ion-select
-                    [compareWith]="compareSpaces"
-                    [value]="currentSpace"
-                    okText="Set Space(s)"
-                    (ionChange)="handleSpacesChange($event)"
-                    >
-                    <ion-select-option *ngFor="let item of spacesItems" [value]="item">
-                      <ion-icon slot="start" [ios]="item.icon" [md]="item.icon.replace('outline', 'sharp')"></ion-icon>
-                      <ion-label>{{ item.title }}</ion-label>
-                    </ion-select-option>
-                  </ion-select>
-                </ion-item>
-                <ion-item
-                  routerDirection="root"
-                  [routerLink]="[p.url]"
-                  lines="none"
-                  [class.selected]="p.url.includes(addr)"
-                  *ngFor="let p of spaceItems; let i = index"
-                  (click)="this.menu.toggle('main')"
-                  >
-                  <ion-icon slot="start" [name]="p.icon"></ion-icon>
-                  <ion-label>{{ p.title }}</ion-label>
-                </ion-item>
-              </ion-list>
-            </ion-list>
-          </ion-item> -->
 
           <!-- roots -->
           <ion-item class="accordion-item">

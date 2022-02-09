@@ -5,27 +5,24 @@
 
 import { Injectable } from '@angular/core';
 import { AlertController, ModalController } from '@ionic/angular';
-import { ReplaySubject, Subject, Subscription } from 'rxjs';
+import { ReplaySubject, } from 'rxjs';
 
-import { IbGib_V1, Rel8n, GIB, sha256v1, IbGibRel8ns_V1, GIB_DELIMITER } from 'ts-gib/dist/V1';
-import { IbGibAddr, V1, Ib, TransformResult, } from 'ts-gib';
+import { IbGib_V1, GIB, GIB_DELIMITER } from 'ts-gib/dist/V1';
+import { IbGibAddr, TransformResult, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { Factory_V1 as factory } from 'ts-gib/dist/V1';
 import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { encrypt, decrypt, } from 'encrypt-gib';
 
 import {
-  // TagData,
   RootData,
   SpecialIbGibType,
   LatestEventInfo,
   SecretData_V1, SecretInfo_Password, SecretIbGib_V1,
-  EncryptionInfo, EncryptionInfo_EncryptGib, EncryptionData_V1,
+  EncryptionInfo_EncryptGib, EncryptionData_V1,
   CiphertextData, CiphertextRel8ns, CiphertextIbGib_V1,
-  // IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib,
-  // IbGibSpaceResultIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns,
-  SyncSpaceData, SyncSpaceResultIbGib, StatusCode, SyncStatusIbGib,
-  OuterSpaceOptionsData, ParticipantInfo, SyncSpaceOptionsIbGib, SyncSpaceOptionsData,
+  SyncSpaceResultIbGib, StatusCode, SyncStatusIbGib,
+  ParticipantInfo, SyncSpaceOptionsIbGib, SyncSpaceOptionsData,
   SyncSagaInfo,
 } from '../common/types';
 import {
@@ -49,6 +46,7 @@ import {
   GetIbGibOpts, GetIbGibResult,
   PutIbGibOpts, PutIbGibResult
 } from '../common/types/legacy';
+import { concatMap, switchMap } from 'rxjs/operators';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -269,6 +267,8 @@ export class IbgibsService {
     const lc = `${this.lc}[${this.initializeLocalSpaces.name}]`;
     let localDefaultSpace: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns>;
     try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
       // we're going to use the default space first to find/load the actual user's space (if it exists)
       localDefaultSpace = this.localDefaultSpace;
       if (!localDefaultSpace.gib) {
@@ -282,19 +282,25 @@ export class IbgibsService {
           isMeta: true,
         },
       });
+      if (logalot) { console.log(`${lc} getting from default space...`)}
       const result = await localDefaultSpace.witness(argGet);
       if (result?.data?.success) {
+        if (logalot) { console.log(`${lc} getting from default space...Success!`)}
         // load userSpace that was already initialized and recorded in the bootstrapGib "primitive" ibGib
         const bootstrapGib = result!.ibGibs![0]!;
         await this.loadUserLocalSpace({localDefaultSpace: localDefaultSpace, bootstrapGib});
       } else {
+        if (logalot) { console.log(`${lc} getting from default space...not found. bootstrap space not found.`); }
         // bootstrap space ibgib not found, so first run probably for user.
         // so create a new bootstrapGib and user space
         await this.createNewUserSpaceAndBootstrapGib({localDefaultSpace: localDefaultSpace});
       }
+      if (logalot) { console.log(`${lc} complete.`); }
     } catch (error) {
+      if (logalot) { console.log(`${lc} getting from default space...not found. bootstrap space not found.`); }
       console.error(`${lc} ${error.message}`);
       throw error;
+    } finally {
     }
   }
 
@@ -362,6 +368,7 @@ export class IbgibsService {
       });
 
       // save the userspace in default space
+      if (logalot) { console.log(`${lc} save the userspace in default space`); }
       const resDefaultSpace = await localDefaultSpace.witness(argPutUserSpace);
       if (resDefaultSpace?.data?.success) {
         if (logalot) { console.log(`${lc} default space witnessed the user space`); }
@@ -370,6 +377,7 @@ export class IbgibsService {
       }
 
       // save the userspace in its own space?
+      if (logalot) { console.log(`${lc} save the userspace in its own space`); }
       const resUserSpace = await userSpace.witness(argPutUserSpace);
       if (resUserSpace?.data?.success) {
         // we now have saved the userspace ibgib "in" its own space.
@@ -385,6 +393,8 @@ export class IbgibsService {
     } catch (error) {
       delete this.localUserSpace;
       console.error(`${lc} ${error.message}`);
+      const alert = getFnAlert();
+      alert({title: 'failed', msg: `failed to initialize the local space. error: ${error.message}`});
       throw error;
     }
   }
@@ -906,8 +916,9 @@ export class IbgibsService {
     newSpaceAddr: IbGibAddr,
     localDefaultSpace?: IonicSpace_V1,
   }): Promise<void> {
-    const lc = `${this.lc}[${this.updateBootstrapIbGibSpaceAddr.name}]`;
+    const lc = `${this.lc}[${this.updateBootstrapIbGibSpaceAddr.name}](${newSpaceAddr})`;
     try {
+      if (logalot) { console.log(`${lc} starting...`); }
       localDefaultSpace = localDefaultSpace || new IonicSpace_V1(/*initialData*/ null, /*initialRel8ns*/ null);
 
       // create the bootstrap^gib space that points to user space
@@ -918,17 +929,20 @@ export class IbgibsService {
       bootstrapIbGib.rel8ns = { [c.SPACE_REL8N_NAME_BOOTSTRAP_SPACE]: [newSpaceAddr], }
 
       // save the bootstrap^gib "primitive" in the default space for future initializations
+      if (logalot) { console.log(`${lc} building arg...`); }
       const argPutBootstrap = await localDefaultSpace.argy({
         ibMetadata: bootstrapIbGib.ib,
         argData: { cmd: 'put', isMeta: true, force: true},
         ibGibs: [bootstrapIbGib],
       });
+      if (logalot) { console.log(`${lc} localDefaultSpace will witness...`); }
       const resDefaultSpacePutBootstrap = await localDefaultSpace.witness(argPutBootstrap);
       if (resDefaultSpacePutBootstrap ?.data?.success) {
         if (logalot) { console.log(`${lc} default space witnessed the bootstrap^gib:\n(${h.pretty(bootstrapIbGib)})`); }
       } else {
         throw new Error(`${resDefaultSpacePutBootstrap?.data?.errors?.join('|') || "There was a problem with localDefaultSpace witnessing the bootstrap^gib primitive pointing to the new user space"}`);
       }
+      if (logalot) { console.log(`${lc} complete.`); }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -1081,10 +1095,10 @@ export class IbgibsService {
     const lc = `${this.lc}[${this.getCurrentRoot.name}]`;
 
     try {
-      if (!this.localUserSpace) { throw new Error(`localUserSpace not initialized.`); }
-      if (!this.localUserSpace.data?.uuid) { throw new Error(`localUserSpace.data.uuid falsy`); }
+      if (!this.localUserSpace) { throw new Error(`localUserSpace not initialized. (E: 0e985c7b07ba4be990547636c81e7f9c)`); }
+      if (!this.localUserSpace.data?.uuid) { throw new Error(`localUserSpace.data.uuid falsy (E: 97910170a0214d6ea0927a6eee00db48)`); }
       space = space ?? this.localUserSpace;
-      if (!space) { throw new Error(`space falsy and localUserSpace not initialized`); }
+      if (!space) { throw new Error(`space falsy and localUserSpace not initialized (E: 7040052bffdb492ba4e18aa7cbfb0277)`); }
 
       if (isSameSpace({a: space, b: this.localUserSpace}) && this._localUserSpaceCurrentRoot) {
         return this._localUserSpaceCurrentRoot;
@@ -1092,12 +1106,12 @@ export class IbgibsService {
 
       const roots = await this.getSpecialIbgib({type: "roots", space});
       if (!roots) {
-        throw new Error(`Roots not initialized.`);
+        throw new Error(`Roots not initialized. (E: e7712dc3d183487e98cd44a2b4324bc2)`);
       }
-      if (!roots.rel8ns) { throw new Error(`Roots not initialized properly. No rel8ns.`); }
-      if (!roots.rel8ns.current) { throw new Error(`Roots not initialized properly. No current root.`); }
-      if (roots.rel8ns.current.length === 0) { throw new Error(`Invalid Roots: empty current root rel8n.`); }
-      if (roots.rel8ns.current.length > 1) { throw new Error(`Invalid Roots: multiple current roots selected.`); }
+      if (!roots.rel8ns) { throw new Error(`Roots not initialized properly. No rel8ns. (E: 689f47f5d1da4a868d1c1ddd2ff13e17)`); }
+      if (!roots.rel8ns.current) { throw new Error(`Roots not initialized properly. No current root. (E: 962acd3f60474a329bfbd7682c003916)`); }
+      if (roots.rel8ns.current.length === 0) { throw new Error(`Invalid Roots: empty current root rel8n. (E: fbdc13c157514efa86ade1bf9a38bbd6)`); }
+      if (roots.rel8ns.current.length > 1) { throw new Error(`Invalid Roots: multiple current roots selected. (E: 370fe6e3920a4a1299f879e6fcbbc448)`); }
 
       const currentRootAddr = roots.rel8ns.current[0]!;
       const resCurrentRoot =
@@ -2718,7 +2732,7 @@ export class IbgibsService {
         });
         await alert({
           title: 'create another space...',
-          msg: `Great! You can create another or choose cancel if you're finished for now.`,
+          msg: `Great! Now we can use this space to synchronize & import ibgibs.`,
         });
         outerspaceIbGibs = await this.getSpecialRel8dIbGibs({
           type: "outerspaces",
@@ -2915,6 +2929,7 @@ export class IbgibsService {
   }): void {
     const lc = `${this.lc}[${this.finalizeSyncSaga.name}]`;
     try {
+      if (logalot) { console.log(`${lc} starting...`); }
       if (sagaInfo.complete) { return; }
       if (!sagaInfo.syncStatus$.complete) {
         if (error) {
@@ -2931,10 +2946,12 @@ export class IbgibsService {
         .filter(sub => sub && !sub.closed)
         .forEach(sub => { sub.unsubscribe(); });
 
+      if (logalot) { console.log(`${lc} complete.`); }
     } catch (error) {
        console.error(`${lc} ${error.message}`);
        throw error;
     } finally {
+      if (logalot) { console.log(`${lc} setting sagaInfo.complete to true`); }
       sagaInfo.complete = true;
     }
 
@@ -3129,18 +3146,28 @@ export class IbgibsService {
       for (let i = 0; i < infos.length; i++) {
         const sagaInfo = infos[i];
 
-        let sub = sagaInfo.syncStatus$.subscribe(
-          async (status: SyncStatusIbGib) => {
-            await this._handleSyncStatusIbGib({status, sagaInfo});
-          },
-          async (error: string) => {
-            console.error(`${lc}(sagaId: ${sagaInfo.sagaId}) error: ${error}`);
-          },
-          /*complete*/ async () => {
-            if (logalot) { console.log(`${lc}(sagaId: ${sagaInfo.sagaId}) syncStatus$.complete.`); }
-          }
-        );
-        if (sagaInfo.syncStatusSubscriptions) { sagaInfo.syncStatusSubscriptions.push(sub); }
+        let sub = sagaInfo.syncStatus$
+          .pipe(
+            concatMap(async (status: SyncStatusIbGib) => {
+              if (logalot) { console.log(`${lc}(sagaId: ${sagaInfo.sagaId}) status received. ${status?.data?.statusCode ?? 'no status'}`)}
+              await this._handleSyncStatusIbGib({status, sagaInfo}); // this isn't executing properly, so I'm inlining the function (ouch!)
+              return status;
+            })
+          ).subscribe(
+            (status: SyncStatusIbGib) => {
+              if (logalot) { console.log(`${lc}(sagaId: ${sagaInfo.sagaId}) subscribe next triggered.`); }
+              // await this._handleSyncStatusIbGib({status, sagaInfo}); // this isn't executing properly, so I'm inlining the function (ouch!)
+            },
+            (error: string) => {
+              console.error(`${lc}(sagaId: ${sagaInfo.sagaId}) syncStatus$.error: ${error}`);
+            },
+            /*complete*/ async () => {
+              if (logalot) { console.log(`${lc}(sagaId: ${sagaInfo.sagaId}) syncStatus$.complete.`); }
+            }
+          );
+        // if (sagaInfo.syncStatusSubscriptions) { sagaInfo.syncStatusSubscriptions.push(sub); }
+        if (!sagaInfo.syncStatusSubscriptions) { throw new Error(`sagaInfo.syncStatusSubscriptions array falsy? (E: f6d834beaa164c6ea1073d35b9fecd01)`)}
+        sagaInfo.syncStatusSubscriptions.push(sub);
       }
 
     } catch (error) {
@@ -3158,6 +3185,7 @@ export class IbgibsService {
   }): Promise<void> {
     const lc = `${this.lc}[${this._handleSyncStatusIbGib.name}]`;
     try {
+      if (logalot) { console.log(`${lc} starting...`); }
       // #region validate
       if (!status) { throw new Error(`falsy status. (E: 8da370a9f3df48a98cc08f1cccf5f2dc)`); }
       if (!status.data) { throw new Error(`falsy status.data. (E: 996d458c5cde4622ba1ed54c7e188815)`); }
@@ -3213,6 +3241,7 @@ export class IbgibsService {
           // ?
           throw new Error(`(UNEXPECTED) unknown status.data.statusCode (${status.data.statusCode}). sagaId: ${sagaInfo.sagaId} (E: e4872abfc1ae4c27905793ca0f937a9b)`);
       }
+      if (logalot) { console.log(`${lc} complete.`); }
     } catch (error) {
       const emsg = `${lc} ${error.message}`;
       console.error(emsg);
@@ -3227,6 +3256,7 @@ export class IbgibsService {
   }): Promise<void> {
     const lc = `${this.lc}[${this.handleSyncStatus_Merged.name}]`;
     try {
+      if (logalot) { console.log(`${lc} starting...`); }
       // #region validate
 
       // not necessarily the case, if we only have changes on the store side, we apply no dna and create no side effects
@@ -3237,6 +3267,8 @@ export class IbgibsService {
       if (Object.keys(status.ibGibsMergeMap ?? {}).length === 0) { throw new Error('status.ibGibsMergeMap required when merging. (E: 0f06238e5535408f8980e0f9f82cf564)'); }
 
       // #endregion validate
+
+      if (logalot) { console.log(`${lc} validated.`); }
 
       // first, we will store the newly created ibgibs in the local space. Then
       // we want to rebase our local timeline to point to the new one. I believe
@@ -3249,12 +3281,18 @@ export class IbgibsService {
       // first, we will store the newly created ibgibs (if any) in the local space.
       // created ibgibs may not exist if only the sync space branch has changed.
       if (status.createdIbGibs?.length > 0) {
+        if (logalot) { console.log(`${lc} putting createdIbGibs (${status.createdIbGibs.length}): ${status.createdIbGibs.map(x => h.getIbGibAddr({ibGib: x})).join('\n')}.`); }
         const resPutCreated = await this.put({ibGibs: status.createdIbGibs, space: this.localUserSpace});
         if (!resPutCreated.success) { throw new Error(`Couldn't save created ibGibs locally? (E: f8bc91259c5043d589cd2e7ad2220c1f)`); }
+      } else {
+        if (logalot) { console.log(`${lc} no createdIbGibs`); }
       }
       if (status.storeOnlyIbGibs?.length > 0) {
+        if (logalot) { console.log(`${lc} putting storeOnlyIbGibs (${status.storeOnlyIbGibs.length}): ${status.storeOnlyIbGibs.map(x => h.getIbGibAddr({ibGib: x})).join('\n')}.`); }
         const resPutStoreOnly = await this.put({ibGibs: status.storeOnlyIbGibs, space: this.localUserSpace});
         if (!resPutStoreOnly.success) { throw new Error(`Couldn't save storeonly ibGibs locally? (E: c5ab044718ab42bba27f5852149b7ddc)`); }
+      } else {
+        if (logalot) { console.log(`${lc} no storeOnlyIbGibs`); }
       }
 
       // download any dependency ibgibs from the new latest ibgib that we don't have already.
@@ -3264,8 +3302,10 @@ export class IbgibsService {
       let newLatestIbGibs = Object.values(status.ibGibsMergeMap);
       for (let i = 0; i < newLatestIbGibs.length; i++) {
         const latestIbGib = newLatestIbGibs[i];
+        if (logalot) { console.log(`${lc} registering latestIbGib in localUserSpace: ${h.getIbGibAddr({ibGib: latestIbGib})}`); }
         await this.registerNewIbGib({ibGib: latestIbGib, space: this.localUserSpace});
       }
+      if (logalot) { console.log(`${lc} complete.`); }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

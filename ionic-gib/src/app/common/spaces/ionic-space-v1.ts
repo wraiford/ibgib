@@ -1,5 +1,5 @@
 import {
-    Plugins, FilesystemEncoding, FileReadResult, FilesystemDirectory
+    Plugins, FilesystemEncoding, FileReadResult, FilesystemDirectory, Capacitor
 } from '@capacitor/core';
 const { Filesystem } = Plugins;
 
@@ -20,7 +20,7 @@ import {
 import * as c from '../constants';
 import { getBinHashAndExt, isBinary } from '../helper';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 // #region Space related interfaces/constants
 
@@ -379,24 +379,26 @@ export class IonicSpace_V1<
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
         try {
-            if (!arg.data) { throw new Error('arg.data is falsy'); }
+
+            if (logalot) { console.log(`validating arg and internal state...`); }
+            if (!arg.data) { throw new Error('arg.data is falsy (E: d64a46e5efab4b09b57850ecf0854386)'); }
 
             if (arg.ibGibs?.length === 0) {
-                throw new Error(`either ibGibs or binData/binHash/binExt required.`);
+                throw new Error(`either ibGibs or binData/binHash/binExt required. (E: b4930d564b284fb9b26b542f14143a28)`);
             }
 
             const reqKeys = Object.keys(DEFAULT_IONIC_SPACE_DATA_V1);
             const thisDataKeys = Object.keys(this.data || {});
             const nonInitializedKeys: string[] = [];
             reqKeys.forEach(key => {
-                if (!thisDataKeys.includes(key)) {
-                    nonInitializedKeys.push(key);
-                }
+                if (!thisDataKeys.includes(key)) { nonInitializedKeys.push(key); }
             });
             if (nonInitializedKeys.length > 0) {
-                throw new Error(`not initialized yet. data keys not found: ${nonInitializedKeys}`);
+                console.warn(`${lc} this.data: ${h.pretty(this.data ?? {})}`);
+                throw new Error(`not initialized yet. data keys not found: ${nonInitializedKeys}. (E: 32f7273516a0457ba2e2bbda69c5aae6)`);
             }
 
+            if (logalot) { console.log(`arg and internal state validated...calling impl func`); }
             return await this.putIbGibsImpl(arg); // returns
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
@@ -415,7 +417,7 @@ export class IonicSpace_V1<
         const warnings: string[] = [];
         const addrsErrored: IbGibAddr[] = [];
         try {
-            if (!arg.data) { throw new Error('arg.data is falsy'); }
+            if (!arg.data) { throw new Error('arg.data is falsy (E: aae5757c158d4a799deb7fca9d6245f0)'); }
             const { isMeta, isDna, force } = arg.data!;
             const ibGibs = arg.ibGibs || [];
             const addrsAlreadyHave: IbGibAddr[] = [];
@@ -423,12 +425,14 @@ export class IonicSpace_V1<
             for (let i = 0; i < ibGibs.length; i++) {
                 const ibGib = ibGibs[i];
                 const addr = getIbGibAddr({ibGib});
+                if (logalot) { console.log(`${lc} checking to see if already exists...`); }
                 const getResult = await this.getFile({addr, isMeta, isDna});
                 if (getResult?.success && getResult.ibGib) {
                     // already exists...
+                    if (logalot) { console.log(`${lc} already exists...`); }
                     if (force) {
                         // ...but save anyway.
-                        warnings.push(`Forcing save of already put addr: ${addr}`);
+                        warnings.push(`${lc} Forcing save of already put addr: ${addr}`);
                         const putResult = await this.putFile({ibGib, isMeta, isDna});
                         if (putResult.success) {
                             if (!isDna) {
@@ -441,11 +445,15 @@ export class IonicSpace_V1<
                         }
                     } else {
                         // ...so just annotate
-                        warnings.push(`skipping (non-force) of already put addr: ${addr}`);
+                        warnings.push(`${lc} skipping (non-force) of already exists addr: ${addr} (W: b7fbe22473014dd090db88aee631fecb)`);
                         addrsAlreadyHave.push(addr);
                     }
                 } else {
                     // does not already exist.
+                    if (logalot) { console.log(`${lc} does NOT already exist...`); }
+                    // if (Capacitor.getPlatform() === 'android') {
+                    //     //
+                    // }
                     const putResult = await this.putFile({ibGib, isMeta, isDna, });
                     if (putResult.success) {
                         if (!isDna) { this.ibGibs[addr] = ibGib; } // cache
@@ -688,6 +696,19 @@ export class IonicSpace_V1<
                 }
             }
 
+            // if (Capacitor.getPlatform() === 'android') {
+            //     try {
+            //         if (logalot) { console.log(`${lc} android detected. trying to delete first.`); }
+            //         let resDelete = await this.deleteFile({addr: h.getIbGibAddr({ibGib}), isMeta, isDna});
+            //         if (resDelete.success) {
+            //             if (logalot) { console.log(`${lc} delete succeeded.`); }
+            //         } else {
+            //             if (logalot) { console.log(`${lc} delete failed but maybe it didn't exist.`); }
+            //         }
+            //     } catch (error) {
+            //         if (logalot) { console.log(`${lc} tried to delete file first for android, but failed`); }
+            //     }
+            // }
             const resWrite = await Filesystem.writeFile({
                 path,
                 data,
@@ -754,6 +775,12 @@ export class IonicSpace_V1<
         const tryRead: (p:string, data: any) => Promise<FileReadResult> = async (p, data) => {
             const lcTry = `${lc}[${tryRead.name}]`;
             try {
+                if (logalot) {
+                    if (addr.includes('bootstrap^gib')) {
+                        console.log(`${lc} trying bootstrap^gib...`);
+                        // debugger;
+                    }
+                }
                 const resRead = await Filesystem.readFile({
                     path: p,
                     directory: data.baseDir,
@@ -839,15 +866,15 @@ export class IonicSpace_V1<
                     if (logalot) { console.log(`${lc} resPermissions: ${JSON.stringify(resPermissions.results)} falsy`); }
                     return true;
                 } else {
-                    console.warn(`${lc} resPermissions?.results falsy`);
+                    console.warn(`${lc} resPermissions?.results falsy but that's ok, didn't throw.`);
                     return true;
                 }
             } else {
-                console.warn(`${lc} Filesystem.requestPermissions falsy`);
+                console.warn(`${lc} Filesystem.requestPermissions falsy but that's ok, didn't throw.`);
                 return true;
             }
         } catch (error) {
-            console.error(`${lc} ${error.message}`);
+            console.error(`${lc} Dont have permissions... error: ${error.message}`);
             return false;
         }
     }
