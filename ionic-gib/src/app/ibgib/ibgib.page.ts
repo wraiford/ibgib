@@ -235,20 +235,41 @@ export class IbGibPage extends IbgibComponentBase
         // publish this one
         const dependencyGraph =
           await this.common.ibgibs.getDependencyGraph({ibGib: this.ibGib});
-        await this.common.ibgibs.syncIbGibs({
+        const sagaInfos = await this.common.ibgibs.syncIbGibs({
           dependencyGraphIbGibs: Object.values(dependencyGraph)
         });
+        if (sagaInfos) {
+          await new Promise<void>((resolve, reject) => {
+            let sagaCompleteOrErroredCount = 0;
+            for (let i = 0; i < sagaInfos.length; i++) {
+              const info = sagaInfos[i];
+              info.syncStatus$.subscribe(status => {
+                // do nothing atm
+              },
+              error => {
+                const emsg = typeof error === 'string' ?
+                  `${lc} Sync failed: ${error}` :
+                  `${lc} Sync failed: ${error?.message ?? 'some error(?) (UNEXPECTED)'}`;
+                console.error(emsg);
+                reject(new Error(emsg));
+              },
+              () => {
+                sagaCompleteOrErroredCount++;
+                if (sagaCompleteOrErroredCount === sagaInfos.length) {
+                  this.item.syncing = false;
+                  setTimeout(() => { this.ref.detectChanges(); })
+                  resolve();
+                }
+              });
+            }
+          });
+        }
       } else {
         await Modals.alert({title: 'Sync cancelled.', message: 'Sync has been cancelled.'});
       }
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-    } finally {
-      this.item.syncing = false;
-      setTimeout(() => {
-        this.ref.detectChanges();
-      });
     }
   }
   async handleRefreshClick(): Promise<void> {

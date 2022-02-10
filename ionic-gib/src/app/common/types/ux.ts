@@ -168,10 +168,22 @@ export interface CommentData {
     timestamp?: string;
 }
 
+export type ActionItemName =
+    'comment' | 'camera' | 'file' | 'tag' | 'import' | 'info';
+export const ActionItemName = {
+    comment: 'comment' as ActionItemName,
+    camera: 'camera' as ActionItemName,
+    file: 'file' as ActionItemName,
+    tag: 'tag' as ActionItemName,
+    import: 'import' as ActionItemName,
+    info: 'info' as ActionItemName,
+}
 export interface ActionItem {
+    name: ActionItemName;
     type: 'button' | 'inputfile';
     text: string;
     icon: string;
     handler?: (event: MouseEvent) => Promise<void>;
     filepicked?: (event: any) => Promise<void>;
+    busy?: boolean;
 }

@@ -2,8 +2,10 @@
 
   <ion-button *ngIf='item.type === "button"'
     color="primary" shape="round"
+    [disabled]="item.busy"
     (click)='item.handler($event)'>
     <ion-icon slot="start" [name]="item.icon"></ion-icon>
+    <ion-spinner *ngIf="item.busy" name="circles" color="tertiary"></ion-spinner>
   </ion-button>
 
   <ion-button *ngIf='item.type === "inputfile"' color="primary" shape="round"

@@ -51,36 +51,42 @@ export class ActionBarComponent extends IbgibComponentBase
    */
   DEFAULT_ACTIONS: ActionItem[] = [
     {
+      name: 'comment',
       type: 'button',
       text: 'comment',
       icon: 'chatbox-outline',
       handler: async (event) => await this.actionAddComment(event),
     },
     {
+      name: 'camera',
       type: 'button',
       text: 'camera',
       icon: 'camera-outline',
       handler: async (event) => await this.actionAddPic(event),
     },
     {
+      name: 'file',
       type: 'inputfile',
       text: 'image',
       icon: 'image-outline',
       filepicked: async (event) => await this.actionAddImage(event),
     },
     {
+      name: 'tag',
       type: 'button',
       text: 'tag',
       icon: 'pricetag-outline',
       handler: async (event) => await this.actionTag(event),
     },
     {
+      name: 'import',
       type: 'button',
       text: 'add from space',
       icon: 'planet-outline',
       handler: async (event) => await this.addImport(event),
     },
     {
+      name: 'info',
       type: 'button',
       text: 'info',
       icon: 'information',
@@ -128,7 +134,11 @@ export class ActionBarComponent extends IbgibComponentBase
 
   async actionAddComment(event: MouseEvent): Promise<void> {
     const lc = `${this.lc}[${this.actionAddComment.name}]`;
+    let actionItem: ActionItem;
     try {
+      actionItem = this.items.filter(x => x.name === 'tag')[0];
+      actionItem.busy = true;
+
       if (logalot) { console.log(`${lc} __`); }
       const resComment = await Modals.prompt({
         title: 'comment',
@@ -189,6 +199,8 @@ export class ActionBarComponent extends IbgibComponentBase
 
     } catch (error) {
       console.error(`${lc} ${error.message}`)
+    } finally {
+      if (actionItem) { actionItem.busy = false; }
     }
   }
 
@@ -329,7 +341,11 @@ export class ActionBarComponent extends IbgibComponentBase
    */
   async actionAddPic(event: MouseEvent): Promise<void> {
     const lc = `${this.lc}[${this.actionAddPic.name}]`;
+    let actionItem: ActionItem;
     try {
+      actionItem = this.items.filter(x => x.name === 'tag')[0];
+      actionItem.busy = true;
+
       // get the image from the camera
       const image = await Camera.getPhoto({
         quality: 90,
@@ -344,6 +360,8 @@ export class ActionBarComponent extends IbgibComponentBase
       await this.doPic({imageBase64: image.base64String, binHash, ext});
     } catch (error) {
       console.error(`${lc} ${error.message}`)
+    } finally {
+      if (actionItem) { actionItem.busy = false;}
     }
   }
 
@@ -374,38 +392,52 @@ export class ActionBarComponent extends IbgibComponentBase
   }
 
   async actionAddImage(event: any): Promise<void> {
+    const lc = `${this.lc}[${this.actionAddImage.name}]`;
+    let actionItem: ActionItem;
+    try {
+      actionItem = this.items.filter(x => x.name === 'tag')[0];
+      actionItem.busy = true;
 
-    // await Modals.alert({title: 'file', message: `picked a file yo`});
-    // thanks https://edupala.com/capacitor-camera-example/
-    const file = (event.target as HTMLInputElement).files[0];
-    const pattern = /image-*/;
-    const reader = new FileReader();
+      // await Modals.alert({title: 'file', message: `picked a file yo`});
+      // thanks https://edupala.com/capacitor-camera-example/
+      const file = (event.target as HTMLInputElement).files[0];
+      const pattern = /image-*/;
+      const reader = new FileReader();
 
-    if (!file.type.match(pattern)) {
-      if (logalot) { console.log('File format not supported'); }
-      return;
+      if (!file.type.match(pattern)) {
+        if (logalot) { console.log('File format not supported'); }
+        return;
+      }
+
+      reader.onload = async (_: any) => {
+        let imageBase64 = reader.result.toString().split('base64,')[1];
+        let binHash = await hash({s: imageBase64});
+        const filenameWithExt = file.name;
+        const filenamePieces = filenameWithExt.split('.');
+        const filename = filenamePieces.slice(0, filenamePieces.length-1).join('.');
+        const ext = filenamePieces.slice(filenamePieces.length-1)[0];
+
+        await this.doPic({imageBase64, binHash, filename, ext});
+        if (actionItem) { actionItem.busy = false; }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      if (actionItem) { actionItem.busy = false; }
     }
-
-    reader.onload = async (_: any) => {
-      let imageBase64 = reader.result.toString().split('base64,')[1];
-      let binHash = await hash({s: imageBase64});
-      const filenameWithExt = file.name;
-      const filenamePieces = filenameWithExt.split('.');
-      const filename = filenamePieces.slice(0, filenamePieces.length-1).join('.');
-      const ext = filenamePieces.slice(filenamePieces.length-1)[0];
-
-      await this.doPic({imageBase64, binHash, filename, ext});
-    };
-    reader.readAsDataURL(file);
   }
 
   async actionTag(_: MouseEvent): Promise<void> {
     const lc = `${this.lc}[${this.actionTag.name}]`;
+    let actionItem: ActionItem;
     try {
+      actionItem = this.items.filter(x => x.name === 'tag')[0];
+      actionItem.busy = true;
       if (!this.ibGib) { throw new Error(`There isn't a current ibGib loaded...?`); }
       if (!this.addr) { throw new Error(`There isn't a current ibGib addr loaded...?`); }
       // const contextAddr = getIbGibAddr({ibGib: this.ibGib});
       // console.log(`${lc} contextAddr: ${contextAddr}`);
+
 
       const tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
       const tagAddrs = tagsIbGib.rel8ns.tag;
@@ -496,6 +528,8 @@ export class ActionBarComponent extends IbgibComponentBase
     } catch (error) {
       console.error(`${lc} ${error.message}`)
       await Modals.alert({title: 'something went wrong...', message: error.message});
+    } finally {
+      if (actionItem) { actionItem.busy = false;}
     }
 
   }
@@ -632,7 +666,11 @@ export class ActionBarComponent extends IbgibComponentBase
    */
   async addImport(_: MouseEvent): Promise<void> {
     const lc = `${this.lc}[${this.addImport.name}]`;
+    let actionItem: ActionItem;
     try {
+      actionItem = this.items.filter(x => x.name === 'import')[0];
+      actionItem.busy = true;
+
       if (!this.ibGib) { throw new Error(`There isn't a current ibGib loaded...?`); }
       if (!this.addr) { throw new Error(`There isn't a current ibGib addr loaded...?`); }
 
@@ -759,6 +797,8 @@ export class ActionBarComponent extends IbgibComponentBase
     } catch (error) {
       console.error(`${lc} ${error.message}`)
       await Modals.alert({title: 'something went wrong...', message: error.message});
+    } finally {
+      actionItem.busy = false;
     }
   }
 

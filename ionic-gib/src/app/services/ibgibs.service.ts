@@ -2825,7 +2825,7 @@ export class IbgibsService {
   }: {
     dependencyGraphIbGibs?: IbGib_V1[],
     confirm?: boolean,
-  }): Promise<void> {
+  }): Promise<SyncSagaInfo[]|undefined> {
     const lc = `${this.lc}[${this.syncIbGibs.name}]`;
     // map of saga infos across all spaces
     // const sagaInfoMap: { [spaceGib: string]: SyncSagaInfo } = {};
@@ -2880,12 +2880,14 @@ export class IbgibsService {
       // are nice and coordinated (which they aren't).
 
       if (logalot) { console.log(`${lc} syncing to spaces in parallel...`); }
+      const allSagaInfos: SyncSagaInfo[] = [];
       const startSyncPromises: Promise<void>[] = appSyncSpaces.map(async syncSpace => {
 
         // create the info that will track progress over entire sync saga
         const sagaInfo =
           await this._createNewSyncSagaInfo({allIbGibsToSync, syncSpace, participants});
         this.sagaInfoMap[sagaInfo.sagaId] = sagaInfo;
+        allSagaInfos.push(sagaInfo);
         try {
           // _startSync creates a status observable that can keep us up to date
           // on the status updates throughout the sync saga. We can handle
@@ -2906,11 +2908,13 @@ export class IbgibsService {
       // starting of all sync sagas across all spaces.
       await Promise.all(startSyncPromises);
 
+
       // at this point, all spaces have prepared and are going. the sync saga
       // info attached to each arg/result ibgib has the observable syncStatus$
       // that will produce the status updates which can be interpreted &
       // responded to.
       await this._handleSagaUpdates();
+      return allSagaInfos;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       this.finalizeAllSyncSagas_NoThrow({error});
@@ -3161,7 +3165,7 @@ export class IbgibsService {
             (error: string) => {
               console.error(`${lc}(sagaId: ${sagaInfo.sagaId}) syncStatus$.error: ${error}`);
             },
-            /*complete*/ async () => {
+            /*complete*/ () => {
               if (logalot) { console.log(`${lc}(sagaId: ${sagaInfo.sagaId}) syncStatus$.complete.`); }
             }
           );
