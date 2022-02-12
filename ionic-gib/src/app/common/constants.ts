@@ -194,6 +194,16 @@ export const ILLEGAL_TAG_DESC_CHARS = [
 export const MENU_ITEM_IB_SUBSTRING_LENGTH = 15;
 
 /**
+ * comment ibs atow are comment [commentText substring]
+ */
+export const DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH = 10;
+
+/**
+ * If a comment has only alphanumerics, this is used in the ib.
+ */
+export const COMMENT_ONLY_HAS_NON_ALPHANUMERICS = '_non-alphanumerics_';
+
+/**
  * Default icon when creating a tag.
  */
 export const DEFAULT_TAG_ICON = 'pricetag-outline';

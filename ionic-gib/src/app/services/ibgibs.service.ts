@@ -3154,13 +3154,12 @@ export class IbgibsService {
           .pipe(
             concatMap(async (status: SyncStatusIbGib) => {
               if (logalot) { console.log(`${lc}(sagaId: ${sagaInfo.sagaId}) status received. ${status?.data?.statusCode ?? 'no status'}`)}
-              await this._handleSyncStatusIbGib({status, sagaInfo}); // this isn't executing properly, so I'm inlining the function (ouch!)
+              await this._handleSyncStatusIbGib({status, sagaInfo});
               return status;
             })
           ).subscribe(
             (status: SyncStatusIbGib) => {
               if (logalot) { console.log(`${lc}(sagaId: ${sagaInfo.sagaId}) subscribe next triggered.`); }
-              // await this._handleSyncStatusIbGib({status, sagaInfo}); // this isn't executing properly, so I'm inlining the function (ouch!)
             },
             (error: string) => {
               console.error(`${lc}(sagaId: ${sagaInfo.sagaId}) syncStatus$.error: ${error}`);

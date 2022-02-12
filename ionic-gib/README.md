@@ -30,6 +30,28 @@ Always refer to `package.json` for the most up-to-date information,
 and I often use a bare `npm run` command to list the scripts for me
 when needed.
 
+## dependencies
+
+All of these is assuming you've cloned the entire ibgib repo but that
+**you are in the working directory inside the ionic-gib project folder.**
+
+* node v16
+  * I use [nvm](https://github.com/nvm-sh/nvm) on my mac to install versions of node.
+* `npm install`
+  * Check out [package.json](./package.json) for the list, which atow includes only...
+    * aws sdk clients for s3 and dynamodb
+    * ionic & angular
+    * rxjs, zone.js and tslib
+    * ts-gib, encrypt-gib
+* angular installed globally
+  * `npm install -g
+* ionic installed globally
+  * https://ionicframework.com/docs/v5/
+  *
+
+* [web-ext](https://github.com/mozilla/web-ext) installed globally
+
+
 
 ## dev using the web server, https://localhost:4200
 

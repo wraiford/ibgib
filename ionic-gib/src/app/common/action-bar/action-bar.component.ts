@@ -15,7 +15,7 @@ import { ChooseIconModalComponent, IconItem } from '../choose-icon-modal/choose-
 import { IbGibSpaceAny } from '../spaces/space-base-v1';
 import { IbgibComponentBase } from '../bases/ibgib-component-base';
 import {
-  getBinIb, getDependencyGraph,
+  getBinIb, getCommentIb, getDependencyGraph,
   getFnAlert, getFnPrompt,
   getFromSpace, validateIbGibAddr,
 } from '../helper';
@@ -23,7 +23,8 @@ import * as c from '../constants';
 import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
-const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
+// const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
+const debugBorder = false;
 
 @Component({
   selector: 'action-bar',
@@ -136,10 +137,13 @@ export class ActionBarComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.actionAddComment.name}]`;
     let actionItem: ActionItem;
     try {
-      actionItem = this.items.filter(x => x.name === 'tag')[0];
+      actionItem = this.items.filter(x => x.name === 'comment')[0];
       actionItem.busy = true;
 
-      if (logalot) { console.log(`${lc} __`); }
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      const alert = getFnAlert();
+
       const resComment = await Modals.prompt({
         title: 'comment',
         message: 'add text',
@@ -148,12 +152,16 @@ export class ActionBarComponent extends IbgibComponentBase
       if (resComment.cancelled || !resComment.value) { return; }
       const text = resComment.value.trim();
       if (logalot) { console.log(`${lc} text: ${text}`); }
+      if (text === '') {
+        await alert({title: 'no comment text entered', msg: 'Comment cannot contain only whitespace. Cancelling...'});
+        return;
+      }
       const data: CommentData = { text, textTimestamp: getTimestamp() };
 
       // create an ibgib with the filename and ext
       const opts:any = {
         parentIbGib: factory.primitive({ib: 'comment'}),
-        ib: `comment ${text.length > 10 ? text.substring(0,10) : text}`,
+        ib: getCommentIb(text),
         data,
         dna: true,
         tjp: { uuid: true, timestamp: true },
@@ -200,7 +208,10 @@ export class ActionBarComponent extends IbgibComponentBase
     } catch (error) {
       console.error(`${lc} ${error.message}`)
     } finally {
-      if (actionItem) { actionItem.busy = false; }
+      if (actionItem) {
+        actionItem.busy = false;
+        this.ref.detectChanges();
+      }
     }
   }
 
@@ -343,7 +354,7 @@ export class ActionBarComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.actionAddPic.name}]`;
     let actionItem: ActionItem;
     try {
-      actionItem = this.items.filter(x => x.name === 'tag')[0];
+      actionItem = this.items.filter(x => x.name === 'camera')[0];
       actionItem.busy = true;
 
       // get the image from the camera
@@ -361,7 +372,10 @@ export class ActionBarComponent extends IbgibComponentBase
     } catch (error) {
       console.error(`${lc} ${error.message}`)
     } finally {
-      if (actionItem) { actionItem.busy = false;}
+      if (actionItem) {
+        actionItem.busy = false;
+        this.ref.detectChanges();
+      }
     }
   }
 
@@ -395,7 +409,7 @@ export class ActionBarComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.actionAddImage.name}]`;
     let actionItem: ActionItem;
     try {
-      actionItem = this.items.filter(x => x.name === 'tag')[0];
+      actionItem = this.items.filter(x => x.name === 'file')[0];
       actionItem.busy = true;
 
       // await Modals.alert({title: 'file', message: `picked a file yo`});
@@ -418,12 +432,18 @@ export class ActionBarComponent extends IbgibComponentBase
         const ext = filenamePieces.slice(filenamePieces.length-1)[0];
 
         await this.doPic({imageBase64, binHash, filename, ext});
-        if (actionItem) { actionItem.busy = false; }
+        if (actionItem) {
+          actionItem.busy = false;
+          this.ref.detectChanges();
+        }
       };
       reader.readAsDataURL(file);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-      if (actionItem) { actionItem.busy = false; }
+      if (actionItem) {
+        actionItem.busy = false;
+        this.ref.detectChanges();
+      }
     }
   }
 
@@ -473,6 +493,8 @@ export class ActionBarComponent extends IbgibComponentBase
 
         if (logalot) { console.log(`${lc} cancelled`); }
         await Plugins.Modals.alert({ title: 'nope', message: 'cancelled' });
+        actionItem.busy = false;
+        this.ref.detectChanges();
         return;
 
       } else if (resPrompt.index === 1) {
@@ -481,6 +503,8 @@ export class ActionBarComponent extends IbgibComponentBase
         tagIbGib = await this.createNewTag();
         if (!tagIbGib) {
           if (logalot) { console.log(`${lc} aborting creating new tag.`); }
+          actionItem.busy = false;
+          this.ref.detectChanges();
           return;
         }
 
@@ -529,7 +553,10 @@ export class ActionBarComponent extends IbgibComponentBase
       console.error(`${lc} ${error.message}`)
       await Modals.alert({title: 'something went wrong...', message: error.message});
     } finally {
-      if (actionItem) { actionItem.busy = false;}
+      if (actionItem) {
+        actionItem.busy = false;
+        this.ref.detectChanges();
+      }
     }
 
   }
@@ -799,6 +826,7 @@ export class ActionBarComponent extends IbgibComponentBase
       await Modals.alert({title: 'something went wrong...', message: error.message});
     } finally {
       actionItem.busy = false;
+      this.ref.detectChanges();
     }
   }
 
