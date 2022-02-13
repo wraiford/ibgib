@@ -1,11 +1,11 @@
 {
-  "name": "ionic-gib",
+  "name": "ionicgib",
   "version": "0.0.1",
   "author": "William Raiford",
   "repository": {
     "url": "https://github.com/wraiford/ibgib",
     "type": "git",
-    "directory": "ionic-gib"
+    "directory": "ionicgib"
   },
   "funding": {
     "type": "individual",

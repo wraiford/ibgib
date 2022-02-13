@@ -1,6 +1,6 @@
 {
-  "appId": "com.ibgib.ionic_gib",
-  "appName": "ionic-gib",
+  "appId": "com.ibgib.ionicgib",
+  "appName": "ionicgib",
   "bundledWebRuntime": false,
   "npmClient": "npm",
   "webDir": "www",
