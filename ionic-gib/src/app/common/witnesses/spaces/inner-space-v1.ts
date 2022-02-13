@@ -2,7 +2,7 @@ import {
     IbGibSpaceData,
     IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib,
     IbGibSpaceResultData, IbGibSpaceResultRel8ns, IbGibSpaceResultIbGib,
-} from '../types';
+} from '../../types';
 import {
     IbGib_V1, IbGibRel8ns_V1, IbGibData_V1, sha256v1, Factory_V1,
 } from 'ts-gib/dist/V1';

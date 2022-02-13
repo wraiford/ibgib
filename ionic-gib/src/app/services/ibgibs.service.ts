@@ -28,10 +28,10 @@ import {
 import {
   IonicSpace_V1,
   IonicSpaceData_V1
-} from '../common/spaces/ionic-space-v1';
+} from '../common/witnesses/spaces/ionic-space-v1';
 import * as c from '../common/constants';
-import { IbGibSpaceAny } from '../common/spaces/space-base-v1';
-import { AWSDynamoSpace_V1 } from '../common/spaces/aws-dynamo-space-v1';
+import { IbGibSpaceAny } from '../common/witnesses/spaces/space-base-v1';
+import { AWSDynamoSpace_V1 } from '../common/witnesses/spaces/aws-dynamo-space-v1';
 import {
   createSpecial, createTagIbGib, deleteFromSpace, getFromSpace, getFnAlert,
   getFnConfirm, getFnPrompt, getFnPromptPassword_AlertController,

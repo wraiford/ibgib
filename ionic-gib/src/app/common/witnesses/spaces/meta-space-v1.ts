@@ -11,8 +11,8 @@ import {
     IbGibSpaceOptionsRel8ns,
     IbGibSpaceRel8ns,
     IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns,
-} from '../types';
-import * as c from '../constants';
+} from '../../types';
+import * as c from '../../constants';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;;
 

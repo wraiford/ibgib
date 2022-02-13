@@ -1,12 +1,17 @@
 import {
-    IbGibSpace, IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib as IbGibSpaceOptionsIbGib, IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceOptionsCmd, IbGibSpaceData, IbGibSpaceOptionsRel8ns, IbGibSpaceResultRel8ns, IbGibSpaceRel8ns, IbGibSpaceOptionsCmdModifier,
-} from '../types';
-import {
     IbGib_V1, IbGibRel8ns_V1, IbGibData_V1, sha256v1, Factory_V1,
 } from 'ts-gib/dist/V1';
+
+import {
+    IbGibSpace,
+    IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib,
+    IbGibSpaceResultData, IbGibSpaceResultRel8ns, IbGibSpaceResultIbGib,
+    IbGibSpaceData, IbGibSpaceRel8ns,
+    IbGibSpaceOptionsCmd, IbGibSpaceOptionsCmdModifier,
+} from '../../types';
 import { WitnessBase_V1, resulty_, argy_ } from '../witnesses';
-import * as c from '../constants';
-import { getTimestampInTicks } from '../helper';
+import * as c from '../../constants';
+import { getTimestampInTicks } from '../../helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

@@ -18,7 +18,7 @@ import { getFnPromptPassword_AlertController, getRegExp } from '../helper';
 import { CreateModalComponentBase } from '../bases/create-modal-component-base';
 import { IbGibAddr, TransformResult } from 'ts-gib';
 import { CommonService } from 'src/app/services/common.service';
-import { SyncSpaceData_AWSDynamoDB } from '../spaces/aws-dynamo-space-v1';
+import { SyncSpaceData_AWSDynamoDB } from '../witnesses/spaces/aws-dynamo-space-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 

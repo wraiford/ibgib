@@ -1,6 +1,6 @@
 import { IbGibAddr } from "ts-gib";
 import { IbGib_V1 } from "ts-gib/dist/V1";
-import { IbGibSpaceAny } from "../spaces/space-base-v1";
+import { IbGibSpaceAny } from "../witnesses/spaces/space-base-v1";
 
 export interface FileResult {
   success?: boolean;

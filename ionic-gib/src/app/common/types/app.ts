@@ -1,6 +1,6 @@
 import { IbGibAddr } from "ts-gib";
 import { IbGibRel8ns_V1, IbGib_V1 } from "ts-gib/dist/V1";
-import { IonicSpaceData_V1 } from "../spaces/ionic-space-v1";
+import { IonicSpaceData_V1 } from "../witnesses/spaces/ionic-space-v1";
 
 export interface AppSpaceData extends IonicSpaceData_V1 { }
 

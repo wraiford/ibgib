@@ -57,14 +57,14 @@ import {
     StatusCode,
     ParticipantInfo,
     SyncSagaInfo,
-} from '../types';
-import * as c from '../constants';
+} from '../../types';
+import * as c from '../../constants';
 import {
     getDependencyGraph, groupBy, isBinary,
     mergeMapsOrArrays_Naive,
     splitPerTjpAndOrDna,
     validateIbGibIntrinsically,
-} from '../helper';
+} from '../../helper';
 import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 // #endregion imports

@@ -18,7 +18,7 @@ import {
     IbGibSpaceOptionsCmdModifier,
     IbGibSpaceResultData, IbGibSpaceResultRel8ns, IbGibSpaceResultIbGib,
 } from './space';
-import { IbGibSpaceAny } from '../spaces/space-base-v1';
+import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 
 /**
  * @link https://developer.mozilla.org/en-US/docs/Web/HTTP/Status

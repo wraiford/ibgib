@@ -16,9 +16,9 @@ import {
     IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib,
     IbGibSpaceOptionsRel8ns,
     IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns,
-} from '../types';
-import * as c from '../constants';
-import { getBinHashAndExt, isBinary } from '../helper';
+} from '../../types';
+import * as c from '../../constants';
+import { getBinHashAndExt, isBinary } from '../../helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 

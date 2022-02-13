@@ -10,7 +10,7 @@ import {
 import * as h from 'ts-gib/dist/helper';
 
 
-import { IbGibSpaceAny } from '../spaces/space-base-v1';
+import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import * as c from '../constants';
 import {
     GetIbGibOpts, GetIbGibResult,

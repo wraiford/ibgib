@@ -12,7 +12,7 @@ import {
   ActionItem, PicData, CommentData, SyncSpaceResultIbGib,
 } from '../types';
 import { ChooseIconModalComponent, IconItem } from '../choose-icon-modal/choose-icon-modal.component';
-import { IbGibSpaceAny } from '../spaces/space-base-v1';
+import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { IbgibComponentBase } from '../bases/ibgib-component-base';
 import {
   getBinIb, getCommentIb, getDependencyGraph,

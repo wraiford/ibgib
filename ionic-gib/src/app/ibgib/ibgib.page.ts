@@ -24,7 +24,6 @@ import { EncryptionData_V1 } from '../common/types';
 import { CreateSecretModalComponent } from '../common/create-secret-modal/create-secret-modal.component';
 import { CreateEncryptionModalComponent } from '../common/create-encryption-modal/create-encryption-modal.component';
 import { CreateOuterspaceModalComponent } from '../common/create-outerspace-modal/create-outerspace-modal.component';
-import { IbGibSpaceAny } from '../common/spaces/space-base-v1';
 import { getFnAlert, getFnPromptPassword_AlertController } from '../common/helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
