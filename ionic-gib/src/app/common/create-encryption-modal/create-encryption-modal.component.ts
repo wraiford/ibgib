@@ -13,7 +13,7 @@ import {
 } from '../types';
 import { HashAlgorithm } from 'encrypt-gib';
 import { TransformResult } from 'ts-gib';
-import { getRegExp } from '../helper';
+import { getExpirationUTCString, getRegExp } from '../helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -48,7 +48,7 @@ export class CreateEncryptionModalComponent implements OnInit, OnDestroy {
   @Input()
   hashAlgorithm: HashAlgorithm = 'SHA-256';
   @Input()
-  expirationUTC: string = (new Date(new Date().setFullYear(new Date().getFullYear() + 1))).toUTCString();
+  expirationUTC: string = getExpirationUTCString({years: 1});
 
   @Input()
   validationErrors: string[] = [];
@@ -184,11 +184,6 @@ export class CreateEncryptionModalComponent implements OnInit, OnDestroy {
       let data: EncryptionInfo_EncryptGib = {
         name: this.name,
         description: this.description,
-        // /**
-        //  * ty
-        //  * https://stackoverflow.com/questions/8609261/how-to-determine-one-year-from-now-in-javascript
-        //  */
-        // expirationUTC: (new Date(new Date().setFullYear(new Date().getFullYear() + 1))).toUTCString(),
         method: this.method,
         hashAlgorithm: this.hashAlgorithm,
         initialRecursions: this.initialRecursions,

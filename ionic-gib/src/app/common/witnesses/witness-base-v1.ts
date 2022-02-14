@@ -2,8 +2,10 @@ import { getIbGibAddr, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { IbGib_V1, IbGibRel8ns_V1, Factory_V1 as factory, sha256v1, } from 'ts-gib/dist/V1';
 
-import { Witness_V1, } from '../types';
+import { WitnessData_V1, Witness_V1, } from '../types';
 import * as c from '../constants';
+import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { validateGib, validateIb, validateIbGibIntrinsically } from '../helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -14,7 +16,7 @@ export abstract class WitnessBase_V1<
     TDataOut extends any,
     TRel8nsOut extends IbGibRel8ns_V1,
     TIbGibOut extends IbGib_V1<TDataOut, TRel8nsOut>,
-    TData = any,
+    TData extends WitnessData_V1 = any,
     TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
     >
     implements Witness_V1<
@@ -218,9 +220,23 @@ export abstract class WitnessBase_V1<
         const lc = `${this.lc}[${this.validateWitnessArg.name}]`;
         try {
             const errors: string[] = [];
-            if (!arg) { errors.push(`arg required`); }
-            if (!arg.ib) { errors.push(`arg.ib required`); }
-            if (!arg.gib) { errors.push(`arg.gib required`); }
+            if (!arg) { errors.push(`arg required (E: a222db3b668e4bb09cfd82e75c07bfa6)`); }
+
+            const ibErrors = validateIb({ib: arg?.ib});
+            if (ibErrors?.length > 0) { errors.push(`invalid arg.ib (E: 2ae362ef274d4c3bb9716800f2106d28) errors: ${ibErrors.join('\n')}`); }
+
+            const gibErrors = validateGib({gib: arg?.gib});
+            if (gibErrors?.length > 0) { errors.push(`invalid arg.gib (E: 73be275058084d768a39299337f2ce34) errors: ${gibErrors.join('\n')}`); }
+
+            const intrinsicErrors = await validateIbGibIntrinsically({ibGib: arg});
+            if (intrinsicErrors?.length > 0) {
+                errors.push(`arg ibgib invalid intrinsically (E: 73be275058084d768a39299337f2ce34) errors: ${intrinsicErrors.join('\n')}`);
+            } else if (!this.data?.allowPrimitiveArgs) {
+                // further check to see if primitive
+                const gibInfo = getGibInfo({gib: arg.gib});
+                if (gibInfo.isPrimitive) { errors.push(`arg is primitive (i.e. gib === "gib") and witness.data.allowPrimitiveArgs is falsy. (E: d0aa3d7ad4f54b01bd0023300d15ecd9)`) }
+            }
+
             return errors;
         } catch (error) {
             console.error(`${lc} ${error.message}`);

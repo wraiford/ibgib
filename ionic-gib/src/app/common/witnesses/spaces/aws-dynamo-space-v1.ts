@@ -36,7 +36,7 @@ import { ReplaySubject } from 'rxjs/internal/ReplaySubject';
 
 import { IbGib_V1, Factory_V1 as factory, FORBIDDEN_ADD_RENAME_REMOVE_REL8N_NAMES, IbGibRel8ns_V1} from 'ts-gib/dist/V1';
 import {
-    getIbGibAddr, IbGibAddr,
+    getIbGibAddr, Gib, IbGibAddr,
     TransformOpts, TransformOpts_Mut8, TransformOpts_Rel8,
     TransformResult,
     V1,
@@ -3821,4 +3821,39 @@ export class AWSDynamoSpace_V1<
         }
     }
 
+    protected async subscribeToAddrs({
+        ibGibAddrs,
+    }: {
+        ibGibAddrs: IbGibAddr[],
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.subscribeToAddrs.name}]`;
+        try {
+            //
+        } catch (error) {
+            console.log(`${lc} ${error.message}`);
+            throw error;
+        }
+    }
+}
+
+export interface SubscriptionInfo {
+    /**
+     * After this time, the subscription will be removed.
+     */
+    expirationUTC: string;
+    /**
+     * Because we're not dealing with identity/gib integrity with this, it is
+     * being optimistic about a non-adversarial context.
+     *
+     * ## future
+     *
+     * This kind of interspatial call (and all of them?) will require identity
+     * with regards to the space. Keystones!
+     */
+    spaceId: string;
+}
+
+export interface SpaceNotificationSubscriptionsData {
+    // map of
+    subscriptions: SubscriptionInfo[];
 }

@@ -1,10 +1,10 @@
 
 import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 import { IbGibAddr, IbGib, IbGibWithDataAndRel8ns, IbGibRel8ns } from 'ts-gib';
-import { Witness } from './witness';
+import { Witness, WitnessData_V1 } from './witness';
 import * as c from '../constants';
 
-export interface IbGibSpaceData {
+export interface IbGibSpaceData extends WitnessData_V1 {
     /**
      * Name for the space.
      *

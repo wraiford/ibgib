@@ -25,6 +25,17 @@ export interface Witness<
     witness(arg: TIbGibIn): Promise<TIbGibOut | undefined>;
 }
 
+export abstract class WitnessData_V1 {
+    /**
+     * If true, then this will allow primitive args when validating incoming
+     * args.
+     *
+     * so if you want a witness to be able to witness, e.g., "16816^gib", then
+     * set this to truthy. Otherwise, this will flag this as a validation error.
+     */
+    allowPrimitiveArgs?: boolean;
+}
+
 /**
  * This interface simply types our data and rel8ns to V1 style.
  */
@@ -35,7 +46,7 @@ export interface Witness_V1<
     TDataOut extends any,
     TRel8nsOut extends IbGibRel8ns_V1,
     TIbGibOut extends IbGib_V1<TDataOut, TRel8nsOut>,
-    TData = any,
+    TData extends WitnessData_V1 = any,
     TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1,
     >
     extends Witness<TIbGibIn, TIbGibOut, TData, TRel8ns> {

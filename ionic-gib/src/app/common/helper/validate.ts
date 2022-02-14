@@ -26,21 +26,29 @@ export async function validateIbGibIntrinsically({
 }): Promise<string[] | null> {
     const lc = `[${validateIbGibIntrinsically.name}]`;
     try {
-        const errors = validateIbGibAddr({addr: h.getIbGibAddr({ibGib})}) ?? [];
+        let errors: string[] = [];
+        if (ibGib) {
+            errors = validateIbGibAddr({addr: h.getIbGibAddr({ibGib})}) ?? [];
 
-        if (errors.length > 0) { return errors; } // returns
-        // the rest of the function assumes correct ib and gib fields
+            if (errors.length > 0) { return errors; } // returns
 
-        // if it's a primitive, the caller knows (or should know!) there are no
-        // metadata guarantees.
-        if (isPrimitive({gib: ibGib.gib})) { return null; }
+            // rest of the function assumes correctly formatted ib and gib
 
-        const gottenGib = await getGib({ibGib, hasTjp: hasTjp({ibGib})});
-        if (gottenGib !== ibGib.gib) {
-            errors.push(`gottenGib (${gottenGib}) does not equal ibGib.gib (${ibGib.gib}). (E: 7416db016878430ca3c5b20697f164ed)`);
+            // if it's a primitive, the caller knows (or should know!) there are no
+            // metadata guarantees.
+            if (isPrimitive({gib: ibGib.gib})) { return null; }
+
+            const gottenGib = await getGib({ibGib, hasTjp: hasTjp({ibGib})});
+            if (gottenGib !== ibGib.gib) {
+                errors.push(`Ibgib invalid intrinsically - gottenGib (${gottenGib}) does not equal ibGib.gib (${ibGib.gib}). (E: 7416db016878430ca3c5b20697f164ed)`);
+            }
+
+            return errors.length > 0 ? errors : null;
+        } else {
+            errors.push(`ibGib is itself falsy. (E: 4fb98caf6ed24ef7b35a19cef56e2d7e)`);
+            return errors;
         }
 
-        return errors.length > 0 ? errors : null;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

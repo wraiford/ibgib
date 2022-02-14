@@ -11,7 +11,7 @@ import {
   SecretType, SecretData_V1, SecretInfo_Password, SecretInfo,
 } from '../types';
 import { TransformResult } from 'ts-gib';
-import { getRegExp, hash16816 } from '../helper';
+import { getExpirationUTCString, getRegExp, hash16816 } from '../helper';
 import { CreateModalComponentBase } from '../bases/create-modal-component-base';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
@@ -62,7 +62,7 @@ export class CreateSecretModalComponent
   @Input()
   hint: string;
   @Input()
-  expirationUTC: string = (new Date(new Date().setFullYear(new Date().getFullYear() + 1))).toUTCString();
+  expirationUTC: string = getExpirationUTCString({years: 1});
 
   @Input()
   validationErrors: string[] = [];
@@ -198,11 +198,7 @@ export class CreateSecretModalComponent
       let data: SecretInfo_Password = {
         name: this.name,
         description: this.description,
-        /**
-         * ty
-         * https://stackoverflow.com/questions/8609261/how-to-determine-one-year-from-now-in-javascript
-         */
-        expirationUTC: (new Date(new Date().setFullYear(new Date().getFullYear() + 1))).toUTCString(),
+        expirationUTC: getExpirationUTCString({years: 1}),
         type: 'password',
         hint: this.hint,
         hash16816_SHA256,
