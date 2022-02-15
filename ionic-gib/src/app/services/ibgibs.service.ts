@@ -2908,7 +2908,6 @@ export class IbgibsService {
       // starting of all sync sagas across all spaces.
       await Promise.all(startSyncPromises);
 
-
       // at this point, all spaces have prepared and are going. the sync saga
       // info attached to each arg/result ibgib has the observable syncStatus$
       // that will produce the status updates which can be interpreted &
@@ -3037,6 +3036,8 @@ export class IbgibsService {
     }
   }
 
+  syncConfirmed: IbGibAddr[] = [];
+
   /**
    * this {@link IbGibsService} acts as the local app space intermediary,
    * a broker between the local space and the sync space(s). So this
@@ -3161,8 +3162,10 @@ export class IbgibsService {
             (status: SyncStatusIbGib) => {
               if (logalot) { console.log(`${lc}(sagaId: ${sagaInfo.sagaId}) subscribe next triggered.`); }
             },
-            (error: string) => {
-              console.error(`${lc}(sagaId: ${sagaInfo.sagaId}) syncStatus$.error: ${error}`);
+            async (error: string) => {
+              const emsg = `${lc}(sagaId: ${sagaInfo.sagaId}) syncStatus$.error: ${error}`;
+              console.error(emsg);
+              await getFnAlert()({title: 'couldnt this.syncIbGibs...', msg: emsg});
             },
             /*complete*/ () => {
               if (logalot) { console.log(`${lc}(sagaId: ${sagaInfo.sagaId}) syncStatus$.complete.`); }

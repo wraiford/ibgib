@@ -307,6 +307,12 @@ export const DEFAULT_ENCRYPTION_HASH_ALGORITHM = 'SHA-256';
 export const ALLISH_SPECIAL_CHARS = `\`~!@#$%^&*()_\\-+=|\\\\\\]}[{"':;?/>.<,`;
 
 /**
+ * If this matches, then we will encode the data field in our storage (aws
+ * anyway atow)
+ */
+export const IBGIB_DATA_REGEX_INDICATES_NEED_TO_ENCODE = /[^\w\s\d`~!@#$%\^&*()_\\\-+=|\]\}\[\{"':;?/>.<,]/;
+
+/**
  * Much restricted list of chars in english.
  *
  * ## intent

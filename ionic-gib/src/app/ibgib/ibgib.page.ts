@@ -210,7 +210,7 @@ export class IbGibPage extends IbgibComponentBase
 
         "${this.addr}"
 
-        You can add this to another ibgib by going to that and clicking import (the little planet icon atm.)
+        You can add this to another ibgib by going to that and clicking import (the little sparkly stars icon atm.)
         `
       });
     } catch (error) {
@@ -219,6 +219,8 @@ export class IbGibPage extends IbgibComponentBase
 
   }
 
+
+
   async handleSyncClick(): Promise<void> {
     const lc = `${this.lc}[${this.handleSyncClick.name}]`;
     this.item.syncing = true;
@@ -226,10 +228,25 @@ export class IbGibPage extends IbgibComponentBase
       if (logalot) { console.log(`${lc}`); }
       if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
 
-      const resConfirmSync = await Modals.confirm({ title: 'Sync with outerspace?', message:
-        `This will sync your current ibGib (${this.ib}) and ALL its rel8ns to your outerspace(s)? Proceed?`, });
-      if (resConfirmSync.value) {
+      if (!this.tjpAddr) { console.warn(`${lc} tjpAddr is falsy. (W: 9336c52b8a8745f1b969cac6b4cdf4ca)`); }
+
+      let syncConfirmed = false;
+      if (this.tjpAddr && this.common.ibgibs.syncConfirmed.includes(this.tjpAddr)) {
+        syncConfirmed = true;
+      } else {
+        const resConfirmSync = await Modals.confirm({
+          title: 'Sync with outerspace?',
+          message: `This will sync your current ibGib (${this.ib}) and ALL its rel8ns to your outerspace(s)? Proceed?`,
+        });
+        syncConfirmed = resConfirmSync.value;
+      }
+
+      if (syncConfirmed) {
         // get newer ones
+
+        if (this.tjpAddr && !this.common.ibgibs.syncConfirmed.includes(this.tjpAddr)) {
+          this.common.ibgibs.syncConfirmed.push(this.tjpAddr);
+        }
 
         // publish this one
         const dependencyGraph =
@@ -265,10 +282,12 @@ export class IbGibPage extends IbgibComponentBase
         }
       } else {
         await Modals.alert({title: 'Sync cancelled.', message: 'Sync has been cancelled.'});
+        this.item.syncing = false;
       }
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
+      this.item.syncing = false;
     }
   }
   async handleRefreshClick(): Promise<void> {

@@ -83,7 +83,7 @@ export class ActionBarComponent extends IbgibComponentBase
       name: 'import',
       type: 'button',
       text: 'add from space',
-      icon: 'planet-outline',
+      icon: 'sparkles-outline',
       handler: async (event) => await this.addImport(event),
     },
     {

@@ -83,6 +83,7 @@ interface AWSDynamoSpaceItem extends AWSDynamoDBItem {
     ib: AttributeValue.SMember,
     gib: AttributeValue.SMember,
     data?: AttributeValue.SMember | AttributeValue.BMember,
+    dataIsEncoded?: AttributeValue.BOOLMember,
     rel8ns?: AttributeValue.SMember,
     n?: AttributeValue.NMember,
     tjp?: AttributeValue.SMember,
@@ -176,7 +177,17 @@ async function createDynamoDBPutItem({
             // directly in DynamoDB. For large ibgibs, we will store
             // in S3 and only metadata in DynamoDB.
             if (ibGib.data) {
-                item.data = { S: JSON.stringify(ibGib.data) };
+                let dataString = JSON.stringify(ibGib.data);
+                // \`~!@#$%^&*()_\\-+=|\\\\\\]}[{"':;?/>.<,
+                if (dataString.match(c.IBGIB_DATA_REGEX_INDICATES_NEED_TO_ENCODE)) {
+                    // need to encode because emoji or funky characters found
+                    if (logalot) { console.log(`${lc} encoding data for addr: ${h.getIbGibAddr({ibGib})}`); }
+                    item.data = { S: encodeURIComponent(dataString) };
+                    item.dataIsEncoded = { BOOL: true };
+                } else {
+                    // no need to encode
+                    item.data = { S: dataString };
+                }
                 if (
                     // n == 0 - first tjp slightly different
                     (ibGib.data!.n === 0 && ibGib.data!.isTjp) ||
@@ -436,7 +447,11 @@ function getIbGibFromResponseItem({
             ib: JSON.parse(item.ib.S),
             gib: JSON.parse(item.gib.S),
         };
-        if (item.data) { ibGib.data = JSON.parse(item.data.S); }
+        if (item.data) {
+            ibGib.data = item.dataIsEncoded?.BOOL ?
+                JSON.parse(decodeURIComponent(item.data.S)) :
+                JSON.parse(item.data.S);
+        }
         if (item.rel8ns) { ibGib.rel8ns = JSON.parse(item.rel8ns.S); }
         return ibGib;
     } catch (error) {
@@ -1298,7 +1313,10 @@ export class AWSDynamoSpace_V1<
                     await this.getIbGibsBatch({ibGibAddrs: addrs, client, errors, addrsNotFound});
                 ibGibs = [...ibGibs, ...gotIbGibs];
 
-                if (errors.length > 0) { break; }
+                if (errors.length > 0) {
+                    debugger;
+                    break;
+                }
 
                 runningCount = ibGibs.length;
                 if (logalot) { console.log(`${lc} runningCount: ${runningCount}...`); }
@@ -2583,9 +2601,9 @@ export class AWSDynamoSpace_V1<
         syncStatus$: ReplaySubject<SyncStatusIbGib>;
     }): Promise<void> {
         const lc = `${this.lc}[${this.saveInStoreAndPublishStatus.name}]`;
+        const errors: string[] = [];
+        const warnings: string[] = [];
         try {
-            const errors: string[] = [];
-            const warnings: string[] = [];
             if ((statusIbGib.statusIbGibGraph ?? []).length === 0) {
                 throw new Error(`statusIbGib must have statusIbGibGraph attached, that should include the statusIbGib itself. (E: 590ff22e23db482ab979b0b87fba70a0)`);
             }
@@ -2605,8 +2623,9 @@ export class AWSDynamoSpace_V1<
             }
         } catch (error) {
             debugger;
-            console.error(`${lc} ${error.message}`);
-            throw error;
+            const emsg = `${lc} ${error.message}`;
+            console.error(emsg);
+            errors.push(emsg);
         }
     }
 
@@ -2753,6 +2772,7 @@ export class AWSDynamoSpace_V1<
                     if (latestAddr_Store === latestAddr_Local) {
                         // #region already synced
                         if (logalot) { console.log(`${lc} store and local spaces are already synced.`); }
+                        // todo: cache this address as already synced with timestamp
                         statusCode = StatusCode.already_synced;
                         // ibGibsToStore = [];
                         // ibGibsCreated = [];
@@ -2762,6 +2782,7 @@ export class AWSDynamoSpace_V1<
                     } else if (tjpGroupAddrs_Local_Ascending.includes(latestAddr_Store)) {
                         // #region only Local has changes
                         if (logalot) { console.log(`${lc} local space has changes, store does NOT. Will update store with more recent local.`); }
+                        // sync call, i.e. no need for await
                         this.reconcile_UpdateStoreWithMoreRecentLocal({
                             latestAddr_Store,
                             tjpGroupAddrs_Local_Ascending,
