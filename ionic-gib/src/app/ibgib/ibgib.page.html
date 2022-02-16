@@ -1,8 +1,13 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-menu-button></ion-menu-button>
-      <ion-back-button></ion-back-button>
+      <ion-menu-button slot="icon-only"></ion-menu-button>
+      <ion-button *ngIf="showBackChevronBtn"
+        class="back-btn"
+        (click)="handleBackButtonClick()"
+        >
+        <ion-icon name="chevron-back-outline" slot="icon-only"></ion-icon>
+      </ion-button>
     </ion-buttons>
 
       <!-- atow, i am doing selective titles in ibgib-component-base.ts title property  -->

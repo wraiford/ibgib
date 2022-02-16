@@ -4,7 +4,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { Plugins } from '@capacitor/core';
+import { Capacitor, Plugins } from '@capacitor/core';
 const { Modals, Clipboard } = Plugins;
 
 import * as h from 'ts-gib';
@@ -47,6 +47,19 @@ export class IbGibPage extends IbgibComponentBase
   set ibGib_Context(value: IbGib_V1 ) { super.ibGib_Context = value; }
 
   private paramMapSub: Subscription;
+
+  /**
+   * I do my own stack navigation, so have to show iOS back chevron
+   * when we can go back.
+   */
+  @Input()
+  get showBackChevronBtn(): boolean {
+    // temporary hack
+    const platform = Capacitor.getPlatform();
+    if (logalot) { console.log(`${this.lc} platform: ${platform}`); }
+    return platform === 'ios';
+  }
+
 
   constructor(
     protected common: CommonService,
@@ -333,6 +346,10 @@ export class IbGibPage extends IbgibComponentBase
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);
     }
+  }
+
+  async handleBackButtonClick(): Promise<void> {
+    await this.common.nav.back();
   }
 
  }

@@ -99,7 +99,7 @@ export class IonicIbgibNavService implements IbgibNav {
       // which clears the stack with ionic nav.
       await this.nav?.navigateRoot(['ibgib', toAddr], {
           queryParamsHandling,
-          animated: true,
+          animated: false,
           animationDirection: 'forward',
           queryParams,
       }).then(resNav => {
@@ -143,9 +143,24 @@ export class IonicIbgibNavService implements IbgibNav {
         if (logalot) { console.warn(`${lc} back stack is completely empty? (W: c62f8e5a00324b879abd7e4a2999d5da)`); }
         return;
       } else if (this.stack.length === 1) {
-        // stack is 1, which is our first address and we don't pop.
-        // and we don't nav.
-        if (logalot) { console.log(`${lc} back stack is at start.`); }
+        const existing = this.stack[this.stack.length-1];
+        if (existing.fromAddr) {
+          const { fromAddr, queryParamsHandling, queryParams } = this.stack.pop();
+          await this.nav.navigateRoot(['ibgib', fromAddr], {
+              queryParamsHandling,
+              animated: false,
+              animationDirection: 'back',
+              queryParams,
+          });
+          this.stack.push({
+            toAddr: fromAddr,
+            fromAddr: '',
+            queryParams,
+            queryParamsHandling,
+          });
+        } else {
+          if (logalot) { console.log(`${lc} back stack is at start.`); }
+        }
       } else {
         this.stack.pop();
         const {toAddr, queryParams, queryParamsHandling, isModal } =
@@ -155,7 +170,7 @@ export class IonicIbgibNavService implements IbgibNav {
           // normal back button navigation
           await this.nav.navigateRoot(['ibgib', toAddr], {
               queryParamsHandling,
-              animated: true,
+              animated: false,
               animationDirection: 'back',
               queryParams,
           });

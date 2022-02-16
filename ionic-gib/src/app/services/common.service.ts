@@ -1,4 +1,4 @@
-import { ModalController } from '@ionic/angular';
+import { ModalController, } from '@ionic/angular';
 import { Injectable, Inject } from '@angular/core';
 
 import { IbgibsService } from './ibgibs.service';
@@ -52,6 +52,7 @@ export interface NavInfo {
 export interface IbgibNav {
   go(info: NavInfo): Promise<void>;
   back(): Promise<void>;
+  // backstackChanged$: Observable<NavInfo[]>;
 }
 
 /**
