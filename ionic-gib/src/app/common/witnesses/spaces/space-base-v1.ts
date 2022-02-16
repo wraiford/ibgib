@@ -111,7 +111,7 @@ export abstract class SpaceBase_V1<
         arg,
     }: {
         cmd: IbGibSpaceOptionsCmd | string,
-        cmdModifiers: (IbGibSpaceOptionsCmdModifier | string)[],
+        cmdModifiers: (TCmdModifier | string)[],
         arg: TOptionsIbGib,
     }): Promise<TResultIbGib | undefined> {
         const lc = `${this.lc}[${this.routeAndDoCommand.name}]`;

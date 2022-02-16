@@ -1,4 +1,4 @@
-import { getIbGibAddr, } from 'ts-gib';
+import { getIbGibAddr, IbGib, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { IbGib_V1, IbGibRel8ns_V1, Factory_V1 as factory, sha256v1, } from 'ts-gib/dist/V1';
 
@@ -6,22 +6,23 @@ import { WitnessData_V1, Witness_V1, } from '../types';
 import * as c from '../constants';
 import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { validateGib, validateIb, validateIbGibIntrinsically } from '../helper';
+import { argy_ } from './witness-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 export abstract class WitnessBase_V1<
-    TDataIn extends any,
-    TRel8nsIn extends IbGibRel8ns_V1,
-    TIbGibIn extends IbGib_V1<TDataIn, TRel8nsIn>,
-    TDataOut extends any,
-    TRel8nsOut extends IbGibRel8ns_V1,
-    TIbGibOut extends IbGib_V1<TDataOut, TRel8nsOut>,
+    TOptionsData extends any,
+    TOptionsRel8ns extends IbGibRel8ns_V1,
+    TOptionsIbGib extends IbGib_V1<TOptionsData, TOptionsRel8ns>,
+    TResultData extends any,
+    TResultRel8ns extends IbGibRel8ns_V1,
+    TResultIbGib extends IbGib_V1<TResultData, TResultRel8ns>,
     TData extends WitnessData_V1 = any,
     TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
     >
     implements Witness_V1<
-        TDataIn, TRel8nsIn, TIbGibIn,    // arg
-        TDataOut, TRel8nsOut, TIbGibOut, // result
+        TOptionsData, TOptionsRel8ns, TOptionsIbGib, // options arg
+        TResultData, TResultRel8ns, TResultIbGib,    // result
         TData, TRel8ns                   // this witness itself
         > {
 
@@ -185,7 +186,7 @@ export abstract class WitnessBase_V1<
      * @param arg
      * @returns
      */
-    async witness(arg: TIbGibIn): Promise<TIbGibOut | undefined> {
+    async witness(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
         const lc = `${this.lc}[${this.witness.name}]`;
         try {
             if (!this.gib) { this.gib = await sha256v1(this.toDto()); }
@@ -209,14 +210,14 @@ export abstract class WitnessBase_V1<
             return; // undefined
         }
     }
-    protected abstract witnessImpl(arg: TIbGibIn): Promise<TIbGibOut | undefined>;
+    protected abstract witnessImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
 
     /**
      * Validate the incoming arg.
      *
      * Override this in descending classes per use case.
      */
-    protected async validateWitnessArg(arg: TIbGibIn): Promise<string[]> {
+    protected async validateWitnessArg(arg: TOptionsIbGib): Promise<string[]> {
         const lc = `${this.lc}[${this.validateWitnessArg.name}]`;
         try {
             const errors: string[] = [];
@@ -265,4 +266,5 @@ export abstract class WitnessBase_V1<
         }
         return errors;
     }
+
 }

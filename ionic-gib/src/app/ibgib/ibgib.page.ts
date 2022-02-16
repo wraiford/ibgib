@@ -1,15 +1,14 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy, Input } from '@angular/core';
+import {
+  Component, OnInit, OnDestroy,
+  ChangeDetectorRef, ChangeDetectionStrategy, Input
+} from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
-// import { analyzeAndValidateNgModules } from '@angular/compiler';
-import { AlertController } from '@ionic/angular';
 import { Plugins } from '@capacitor/core';
 const { Modals, Clipboard } = Plugins;
 
-// import {AttributeValue, DynamoDBClient, PutItemCommand} from '@aws-sdk/client-dynamodb';
-
 import * as h from 'ts-gib';
-import { IbGibAddr, TransformResult } from 'ts-gib';
+import { IbGibAddr, } from 'ts-gib';
 import { getIbGibAddr, pretty } from 'ts-gib/dist/helper';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 import { encrypt, decrypt, SaltStrategy } from 'encrypt-gib';
@@ -17,14 +16,10 @@ import { encrypt, decrypt, SaltStrategy } from 'encrypt-gib';
 import { IbgibComponentBase } from '../common/bases/ibgib-component-base';
 import { CommonService } from '../services/common.service';
 import { SPECIAL_URLS } from '../common/constants';
-import { CiphertextIbGib_V1, LatestEventInfo, OuterSpaceIbGib, SecretIbGib_V1, } from '../common/types';
+import { LatestEventInfo, } from '../common/types';
 import * as c from '../common/constants';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
-import { EncryptionData_V1 } from '../common/types';
-import { CreateSecretModalComponent } from '../common/create-secret-modal/create-secret-modal.component';
-import { CreateEncryptionModalComponent } from '../common/create-encryption-modal/create-encryption-modal.component';
-import { CreateOuterspaceModalComponent } from '../common/create-outerspace-modal/create-outerspace-modal.component';
-import { getFnAlert, getFnPromptPassword_AlertController } from '../common/helper';
+import { getFnAlert, } from '../common/helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -58,7 +53,6 @@ export class IbGibPage extends IbgibComponentBase
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
     private activatedRoute: ActivatedRoute,
-    protected alertController: AlertController,
   ) {
     super(common, ref);
   }
@@ -190,6 +184,7 @@ export class IbGibPage extends IbgibComponentBase
     });
 
   }
+
   unsubscribeParamMap() {
     const lc = `${this.lc}[${this.unsubscribeParamMap.name}]`;
     if (logalot) { console.log(`${lc} unsubscribe called`); }
@@ -218,8 +213,6 @@ export class IbGibPage extends IbgibComponentBase
     }
 
   }
-
-
 
   async handleSyncClick(): Promise<void> {
     const lc = `${this.lc}[${this.handleSyncClick.name}]`;
@@ -290,6 +283,7 @@ export class IbGibPage extends IbgibComponentBase
       this.item.syncing = false;
     }
   }
+
   async handleRefreshClick(): Promise<void> {
     const lc = `${this.lc}[${this.handleRefreshClick.name}]`;
     try {
@@ -319,6 +313,7 @@ export class IbGibPage extends IbgibComponentBase
       console.error(`${lc} ${error.message}`);
     }
   }
+
   async handleIbGib_NewLatest(info: LatestEventInfo): Promise<void> {
     const lc = `${this.lc}[${this.handleIbGib_NewLatest.name}]`;
     try {
@@ -378,5 +373,3 @@ export class IbGibPage extends IbgibComponentBase
   }
 
  }
-
-

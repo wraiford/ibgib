@@ -8,7 +8,7 @@ import { IbgibsService } from 'src/app/services/ibgibs.service';
 import { IonicIbgibNavService } from 'src/app/services/ionic-ibgib-nav.service';
 import { IbgibItem } from '../types';
 import { IbgibListComponentBase } from './ibgib-list-component-base';
-import { NavController } from '@ionic/angular';
+import { ModalController, NavController } from '@ionic/angular';
 
 
 // class TestList extends IbgibListComponentBase<IbgibItem> {
@@ -29,6 +29,7 @@ describe('IbgibListComponentBase', () => {
   let nav: IbgibNav;
   let common: CommonService;
   let changeDetectorRef: ChangeDetectorRef;
+  let modalController: ModalController;
   beforeEach(() => {
     TestBed.configureTestingModule({ providers: [
       HttpHandler, Router, HttpClient,
@@ -36,13 +37,15 @@ describe('IbgibListComponentBase', () => {
       NavController,
       { provide: 'IbgibNav', useClass: IonicIbgibNavService, },
       // FilesService,
-      IbgibsService, ChangeDetectorRef,
+      IbgibsService, ChangeDetectorRef, ModalController,
     ]});
     // files = TestBed.inject(FilesService);
     ibgibs = TestBed.inject(IbgibsService);
     nav = TestBed.inject(IonicIbgibNavService);
+    modalController = TestBed.inject(ModalController);
     // common = new CommonService(ibgibs, files, nav);
-    common = new CommonService(ibgibs, nav);
+    // public modalController: ModalController,
+    common = new CommonService(ibgibs, modalController, nav);
     changeDetectorRef = TestBed.inject(ChangeDetectorRef);
   });
 
