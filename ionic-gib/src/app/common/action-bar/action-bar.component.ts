@@ -60,10 +60,11 @@ export class ActionBarComponent extends IbgibComponentBase
     },
     {
       name: 'camera',
-      type: 'button',
+      type: 'inputfile-camera',
       text: 'camera',
       icon: 'camera-outline',
-      handler: async (event) => await this.actionAddPic(event),
+      filepicked: async (event) => await this.actionAddImage(event),
+      // filepicked: async (event) => await this.handleHtml5PicButton(event),
     },
     {
       name: 'file',
@@ -203,7 +204,10 @@ export class ActionBarComponent extends IbgibComponentBase
       } else {
         navToAddr = getIbGibAddr({ibGib: newComment});
       }
-      await this.navTo({addr: navToAddr});
+      // await this.go({
+      //   toAddr: navToAddr,
+      //   fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
+      // });
 
     } catch (error) {
       console.error(`${lc} ${error.message}`)
@@ -336,7 +340,10 @@ export class ActionBarComponent extends IbgibComponentBase
         const navToAddr = this.isMeta ?
           getIbGibAddr({ibGib: ibGibToRel8}) :
           getIbGibAddr({ibGib: newContext});
-        await this.navTo({addr: navToAddr});
+        await this.go({
+          toAddr: navToAddr,
+          fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
+        });
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -377,6 +384,10 @@ export class ActionBarComponent extends IbgibComponentBase
         this.ref.detectChanges();
       }
     }
+  }
+
+  async handleHtml5PicButton(event: any): Promise<void> {
+    await this.actionAddImage(event);
   }
 
   async actionShowInfo(event: MouseEvent): Promise<void> {

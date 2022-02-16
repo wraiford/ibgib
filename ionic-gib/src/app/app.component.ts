@@ -196,6 +196,10 @@ export class AppComponent extends IbgibComponentBase
         }
 
         // navToAddr = this.tagsAddr;
+        this.platform.backButton.subscribeWithPriority(10, async () => {
+          if (this.common?.nav) { await this.common.nav.back(); }
+        });
+
       } catch (error) {
         console.error(`${lc} ${error.message}`);
         console.error(`${lc} debug create here`);
@@ -204,9 +208,15 @@ export class AppComponent extends IbgibComponentBase
       } finally {
         this.initializing = false;
         this.splashScreen.hide();
-        if (navToAddr) { await this.navTo({addr: navToAddr}); }
+        if (navToAddr) {
+          await this.go({
+            toAddr: navToAddr,
+            fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
+          });
+        }
       }
     });
+
     if (logalot) { console.log(`${lc} complete. waiting for platform.ready...`); }
   }
 

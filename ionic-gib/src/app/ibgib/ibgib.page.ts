@@ -11,13 +11,12 @@ import * as h from 'ts-gib';
 import { IbGibAddr, } from 'ts-gib';
 import { getIbGibAddr, pretty } from 'ts-gib/dist/helper';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
-import { encrypt, decrypt, SaltStrategy } from 'encrypt-gib';
 
+import * as c from '../common/constants';
 import { IbgibComponentBase } from '../common/bases/ibgib-component-base';
 import { CommonService } from '../services/common.service';
 import { SPECIAL_URLS } from '../common/constants';
 import { LatestEventInfo, } from '../common/types';
-import * as c from '../common/constants';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
 import { getFnAlert, } from '../common/helper';
 
@@ -60,63 +59,13 @@ export class IbGibPage extends IbgibComponentBase
   async ngOnInit() {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
     if (logalot) { console.log(`${lc} called.`) }
-    // this.folder = this.activatedRoute.snapshot.paramMap.get('addr');
-    this.subscribeParamMap();
-    super.ngOnInit();
-
-    // await this.testEncryptGib();
-  }
-
-  async testEncryptGib(): Promise<void> {
-    const lc = `${this.lc}[${this.testEncryptGib.name}]`;
-    // debug test enc-gib
-    let initialData = 'here is some text';
-    // let hexString = await encGib.encodeStringToHexString(data);
-    // let data2 = await encGib.decodeHexStringToString(hexString);
-    // console.log(`${lc} data: ${data}`);
-    // console.log(`${lc} hexString: ${hexString}`);
-    // console.log(`${lc} data2: ${data2}`);
-    const salt = await h.getUUID();
-    const secret = `great p4SSw0rd?`;
-    let {encryptedData, errors} = await encrypt({
-      dataToEncrypt: initialData,
-      initialRecursions: 100,
-      recursionsPerHash: 10,
-      salt,
-      saltStrategy: SaltStrategy.appendPerHash,
-      secret,
-      confirm: true,
-    });
-
-    if (logalot) { console.log(`${lc} initialData: ${initialData}`); }
-    if (encryptedData) {
-      if (logalot) { console.log(`${lc} encryptedData: ${encryptedData}`); }
-
-      let { decryptedData, errors: errorsDecrypt } = await decrypt({
-        encryptedData,
-        initialRecursions: 100,
-        recursionsPerHash: 10,
-        salt,
-        saltStrategy: SaltStrategy.appendPerHash,
-        secret,
-      });
-
-      if (decryptedData) {
-        if (logalot) { console.log(`${lc} decryptedData: ${decryptedData}`); }
-        if (decryptedData === initialData) {
-          if (logalot) { console.log(`${lc} initialData equals decryptedData`); }
-        }
-      } else {
-        console.error(`${lc} decryptedData falsy!`);
-      }
-    } else if (errors?.length > 0) {
-      console.error(`${lc} errored!!! here they are...`);
-      for (let error in errors) { console.error(`${lc} ${error}`); }
-      console.error(`${lc} end of errors.`)
-    } else {
-      if (logalot) { console.log(`${lc} no encryptedData and no errors?`); }
+    try {
+      // this.folder = this.activatedRoute.snapshot.paramMap.get('addr');
+      this.subscribeParamMap();
+      super.ngOnInit();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
     }
-
   }
 
   ngOnDestroy() {
@@ -153,7 +102,7 @@ export class IbGibPage extends IbgibComponentBase
   }
 
   updatePaused(): void {
-    this.paused = (this.activatedRoute.snapshot.queryParams['paused'] || 'false') === 'true';
+    this.paused = (this.activatedRoute.snapshot.queryParams[c.QUERY_PARAM_PAUSED] || 'false') === 'true';
    }
 
   subscribeParamMap() {
@@ -175,10 +124,10 @@ export class IbGibPage extends IbgibComponentBase
         }
       } else {
         // default special non-ibgib handler, go to the tags ibGib
-        if (logalot) { console.log(`${lc} special url entered, navTo to tags ibGib`); }
         const tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
-        addr = getIbGibAddr({ibGib: tagsIbGib});
-        await this.navTo({addr});
+        let tagsAddr = getIbGibAddr({ibGib: tagsIbGib});
+        console.warn(`${lc} special url entered, so defaulting nav to tags ibGib (tagsAddr: ${tagsAddr}) (W: bcc8a669f4f44cbb837080615c3db51a)`);
+        await this.go({ toAddr: tagsAddr, fromAddr: this.addr });
       }
 
     });
@@ -292,7 +241,13 @@ export class IbGibPage extends IbgibComponentBase
 
       if (this.paused) {
         this.paused = false;
-        await this.navTo({addr: this.addr, queryParams: { paused: null }, queryParamsHandling: 'merge'})
+        await this.go({
+          toAddr: this.addr,
+          fromAddr: this.addr,
+          queryParams: { [c.QUERY_PARAM_PAUSED]: null },
+          queryParamsHandling: 'merge',
+          force: true,
+        });
       }
       if (this.item) { this.item.refreshing = true; }
       await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjp: this.tjp});
@@ -308,7 +263,12 @@ export class IbGibPage extends IbgibComponentBase
       if (!this.tjp) { await this.loadTjp(); }
 
       this.paused = true;
-      await this.navTo({addr: this.addr, queryParams: { paused: true }, queryParamsHandling: 'merge'})
+      await this.go({
+        toAddr: this.addr,
+        fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
+        queryParams: { [c.QUERY_PARAM_PAUSED]: true },
+        queryParamsHandling: 'merge'
+      });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     }
@@ -325,7 +285,10 @@ export class IbGibPage extends IbgibComponentBase
       if (!this.tjpAddr) { await this.loadTjp(); }
       if (info.tjpAddr !== this.tjpAddr) { return; }
       if (this.addr !== info.latestAddr) {
-        await this.navTo({addr: info.latestAddr}); // hack
+        await this.go({
+          toAddr: info.latestAddr,
+          fromAddr: this.addr,
+        });
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);

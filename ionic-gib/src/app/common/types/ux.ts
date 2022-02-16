@@ -180,7 +180,7 @@ export const ActionItemName = {
 }
 export interface ActionItem {
     name: ActionItemName;
-    type: 'button' | 'inputfile';
+    type: 'button' | 'inputfile' | 'inputfile-camera';
     text: string;
     icon: string;
     handler?: (event: MouseEvent) => Promise<void>;

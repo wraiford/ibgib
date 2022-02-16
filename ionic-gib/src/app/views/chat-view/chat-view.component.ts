@@ -1,10 +1,13 @@
 import { Component, OnInit, OnDestroy, Input, ChangeDetectorRef } from '@angular/core';
+
+import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib';
+import { IbGib_V1 } from 'ts-gib/dist/V1';
+
+import * as c from '../../common/constants';
 import { CommonService } from 'src/app/services/common.service';
 import { IbgibItem } from 'src/app/common/types';
 import { IbgibListComponentBase } from 'src/app/common/bases/ibgib-list-component-base';
-import { IbGib_V1 } from 'ts-gib/dist/V1';
-import * as c from '../../common/constants';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -53,7 +56,10 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
 
   async itemClicked(item: IbgibItem): Promise<void> {
     if (logalot) { console.log(`item: ${JSON.stringify(item, null, 2)}`); }
-    await this.navTo({addr: item.addr});
+    await this.go({
+      toAddr: item.addr,
+      fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
+    });
     // this.clicked.emit(item);
   }
 }

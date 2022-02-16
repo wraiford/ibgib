@@ -4,11 +4,12 @@ import { IbGibAddr, Ib, Gib, V1, TransformResult } from "ts-gib";
 import { Injectable } from "@angular/core";
 // import { FilesService } from 'src/app/services/files.service';
 import { IbgibItem, PicData, CommentData, LatestEventInfo } from '../types';
-import { CommonService } from 'src/app/services/common.service';
+import { CommonService, NavInfo } from 'src/app/services/common.service';
 import { DEFAULT_META_IB_STARTS } from '../constants';
 import { Subscription } from 'rxjs';
 import * as h from 'ts-gib/dist/helper';
 import * as c from '../../common/constants';
+import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -299,17 +300,37 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         }
     }
 
-    async navTo({
-        addr,
-        queryParamsHandling = 'preserve',
+    async go({
+        toAddr,
+        fromAddr,
         queryParams,
-    }: {
-        addr: string,
-        queryParamsHandling?: 'merge' | 'preserve',
-        queryParams?: { [key: string]: any },
-   }): Promise<void> {
-        if (logalot) { console.log(`navigating to addr: ${addr}`); }
-        this.common.nav.navTo({addr, queryParamsHandling, queryParams});
+        queryParamsHandling = 'preserve',
+        isModal,
+    }: NavInfo): Promise<void> {
+        let lc: string = '[invalid lc] (E: 9048c65ff92e4a08b840cf15d0a2867c)';
+        try {
+            lc = `${this.lc}[${this.go.name}(${toAddr || 'falsy'}) from (${fromAddr || 'falsy'})]`;
+            if (logalot) { console.log(`starting`); }
+
+            if (!toAddr) { throw new Error(`toAddr required. (E: 963988b52c9047a6bfd3adc87db8d99b)`); }
+            const toAddr_TjpGib = getGibInfo({ibGibAddr: toAddr}).tjpGib;
+
+            fromAddr = fromAddr ?? this.addr ?? undefined;
+            const fromAddr_TjpGib = this.addr ? getGibInfo({ibGibAddr: this.addr}).tjpGib : undefined;
+
+            await this.common.nav.go({
+                toAddr, toAddr_TjpGib,
+                fromAddr, fromAddr_TjpGib,
+                queryParamsHandling,
+                queryParams,
+                isModal,
+            });
+
+            console.log(`${lc} complete.`)
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+        }
+
         // await this.common.nav.navigateRoot(['ibgib', addr], {
         //     queryParamsHandling: 'preserve',
         //     animated: true,

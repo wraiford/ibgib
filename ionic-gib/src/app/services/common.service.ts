@@ -1,19 +1,57 @@
-import { Injectable, Inject } from '@angular/core';
-// import { FilesService } from './files.service';
-import { IbgibsService } from './ibgibs.service';
-import { IbGibAddr } from 'ts-gib';
 import { ModalController } from '@ionic/angular';
+import { Injectable, Inject } from '@angular/core';
+
+import { IbgibsService } from './ibgibs.service';
+import { Gib, IbGibAddr } from 'ts-gib';
+
+export interface NavInfo {
+  /** The ibgib address we're going to.  */
+  toAddr: IbGibAddr,
+  /**
+   * tjpGib of the toAddr.
+   *
+   * if not provided, will get from incoming `toAddr`.
+   *
+   * ## notes
+   *
+   * When we navigate, sometimes it's just to update an ibgib
+   * within its own timeline. In this case, unless we're paused, we
+   * don't want to push the new address to the navigation stack,
+   * rather we want to replace the prior navigation info with the
+   * updated address.
+   */
+  toAddr_TjpGib?: Gib;
+  /** The starting ibgib address from which we're leaving.  */
+  fromAddr: IbGibAddr,
+  /**
+   * tjpGib of the fromAddr.
+   *
+   * if not provided, will get from incoming `fromAddr`.
+   *
+   * ## notes
+   *
+   * When we navigate, sometimes it's just to update an ibgib
+   * within its own timeline. In this case, unless we're paused, we
+   * don't want to push the new address to the navigation stack,
+   * rather we want to replace the prior navigation info with the
+   * updated address.
+   */
+  fromAddr_TjpGib?: Gib;
+  /** New query params for the navigation. */
+  queryParams?: { [key: string]: any },
+  /** How to reconcile existing query params with the new ones. */
+  queryParamsHandling?: 'merge' | 'preserve' | '',
+  /** If true, then this navigation is opening a modal dialog. */
+  isModal?: boolean;
+  /**
+   * If true, will navigate even if `toAddr === fromAddr`.
+   */
+  force?: boolean;
+}
 
 export interface IbgibNav {
-  navTo({
-    addr,
-    queryParamsHandling,
-    queryParams,
-  }: {
-    addr: string,
-    queryParamsHandling?: 'merge' | 'preserve',
-    queryParams?: { [key: string]: any },
-  }): Promise<void>;
+  go(info: NavInfo): Promise<void>;
+  back(): Promise<void>;
 }
 
 /**
