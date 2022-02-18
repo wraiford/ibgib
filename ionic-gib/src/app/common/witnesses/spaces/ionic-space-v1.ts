@@ -44,8 +44,13 @@ export interface IonicSpaceData_V1 extends IbGibSpaceData {
 
 /**
  * Used in bootstrapping.
+ *
+ * DO NOT ADD NEW KEYS TO THIS. THIS BASICALLY checks for v1 keys
+ * and it is extremely naive. If you add keys here, validation will break
+ * later.
  */
 const DEFAULT_IONIC_SPACE_DATA_V1: IonicSpaceData_V1 = {
+    version: '2',
     uuid: '',
     name: c.IBGIB_SPACE_NAME_DEFAULT,
     baseDir: c.IBGIB_BASE_DIR,
@@ -57,6 +62,7 @@ const DEFAULT_IONIC_SPACE_DATA_V1: IonicSpaceData_V1 = {
     binSubPath: c.IBGIB_BIN_SUBPATH,
     dnaSubPath: c.IBGIB_DNA_SUBPATH,
     persistOptsAndResultIbGibs: false,
+    validateIbGibAddrsMatchIbGibs: false,
 }
 
 /** Marker interface atm */
@@ -387,16 +393,17 @@ export class IonicSpace_V1<
                 throw new Error(`either ibGibs or binData/binHash/binExt required. (E: b4930d564b284fb9b26b542f14143a28)`);
             }
 
-            const reqKeys = Object.keys(DEFAULT_IONIC_SPACE_DATA_V1);
-            const thisDataKeys = Object.keys(this.data || {});
-            const nonInitializedKeys: string[] = [];
-            reqKeys.forEach(key => {
-                if (!thisDataKeys.includes(key)) { nonInitializedKeys.push(key); }
-            });
-            if (nonInitializedKeys.length > 0) {
-                console.warn(`${lc} this.data: ${h.pretty(this.data ?? {})}`);
-                throw new Error(`not initialized yet. data keys not found: ${nonInitializedKeys}. (E: 32f7273516a0457ba2e2bbda69c5aae6)`);
-            }
+            // removing this because adding keys blows it up on older spaces.
+            // const reqKeys = Object.keys(DEFAULT_IONIC_SPACE_DATA_V1);
+            // const thisDataKeys = Object.keys(this.data || {});
+            // const nonInitializedKeys: string[] = [];
+            // reqKeys.forEach(key => {
+            //     if (!thisDataKeys.includes(key)) { nonInitializedKeys.push(key); }
+            // });
+            // if (nonInitializedKeys.length > 0) {
+            //     console.warn(`${lc} this.data: ${h.pretty(this.data ?? {})}`);
+            //     throw new Error(`not initialized yet. data keys not found: ${nonInitializedKeys}. (E: 32f7273516a0457ba2e2bbda69c5aae6)`);
+            // }
 
             if (logalot) { console.log(`arg and internal state validated...calling impl func`); }
             return await this.putIbGibsImpl(arg); // returns

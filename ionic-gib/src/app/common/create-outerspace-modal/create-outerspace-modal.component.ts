@@ -46,6 +46,7 @@ const EXAMPLE_SYNC_SPACE_AWSDYNAMODB: SyncSpaceData_AWSDynamoDB = {
 
     catchAllErrors: true,
     persistOptsAndResultIbGibs: true,
+    validateIbGibAddrsMatchIbGibs: true,
     trace: false,
 }
 
@@ -306,6 +307,7 @@ export class CreateOuterspaceModalComponent
       // create the info
       const uuid = await h.getUUID();
       const syncSpaceData: SyncSpaceData_AWSDynamoDB = {
+        version: '2',
         uuid,
         name: this.name,
         description: this.description,
@@ -326,6 +328,7 @@ export class CreateOuterspaceModalComponent
         throttleMsBetweenPuts: c.DEFAULT_AWS_PUT_THROTTLE_MS,
         throttleMsBetweenGets: c.DEFAULT_AWS_GET_THROTTLE_MS,
         throttleMsDueToThroughputError: c.DEFAULT_AWS_RETRY_THROUGHPUT_THROTTLE_MS,
+        validateIbGibAddrsMatchIbGibs: c.DEFAULT_AWS_VALIDATE_IBGIBADDRS_MATCH_IBGIBS,
       };
 
       // create the ciphertext ibgib, encrypting with the encryption and secret(s)

@@ -17,7 +17,6 @@
     "poststart": "npm run man:start",
     "start:android": "ionic capacitor run android",
     "start:ios": "ionic capacitor run ios",
-
     "man:build": "echo 'builds project with aot flag and outputs to www folder. use this with extension development in combination with \"npm run ff\".'",
     "build": "ng build --aot --output-path www",
     "postbuild": "npm run man:build",
@@ -28,17 +27,14 @@
     "build:ios": "ionic build && ionic capacitor sync ios",
     "build:android:prod": "ionic capacitor build android --prod",
     "build:ios:prod": "ionic capacitor build ios --prod",
-
     "man:watch": "echo 'builds with aot flag, outputting to www with `-watch` flag enabled for live-reloading. Use this with extension development.'",
     "watch": "ng build --aot --output-path www --watch",
     "postwatch": "npm run man:watch",
     "watch:android": "ionic capacitor run android --live-reload",
     "watch:ios": "ionic capacitor run ios --live-reload",
-
     "sync": "ionic capacitor sync",
     "sync:android": "ionic capacitor sync android",
     "sync:ios": "ionic capacitor sync ios",
-
     "man:ff:createprofiles": "echo 'creates test profiles for ff. each profile retains data between sessions. you can delete profiles in ff at url \"about:profiles\"'",
     "ff:createprofiles": "/Applications/Firefox.app/Contents/MacOS/firefox -CreateProfile \"ibgibtest1\" && /Applications/Firefox.app/Contents/MacOS/firefox -CreateProfile \"ibgibtest2\" && /Applications/Firefox.app/Contents/MacOS/firefox -CreateProfile \"ibgibtest3\"",
     "man:ff": "echo 'ff starts firefox with web-ext. the numbers after are the test profiles, for simultaneous users. the \"none\" is no profile, which does not retain data between sessions.'",
@@ -76,7 +72,7 @@
     "encrypt-gib": "^0.1.2",
     "lex-gib": "^0.10.1",
     "rxjs": "~6.5.1",
-    "ts-gib": "^0.3.9",
+    "ts-gib": "^0.3.15",
     "tslib": "^2.0.0",
     "zone.js": "~0.11.4"
   },

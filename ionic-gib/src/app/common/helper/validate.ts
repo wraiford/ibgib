@@ -30,7 +30,10 @@ export async function validateIbGibIntrinsically({
         if (ibGib) {
             errors = validateIbGibAddr({addr: h.getIbGibAddr({ibGib})}) ?? [];
 
-            if (errors.length > 0) { return errors; } // returns
+            if (errors.length > 0) {
+                debugger;
+                return errors;
+            } // returns
 
             // rest of the function assumes correctly formatted ib and gib
 
@@ -40,11 +43,13 @@ export async function validateIbGibIntrinsically({
 
             const gottenGib = await getGib({ibGib, hasTjp: hasTjp({ibGib})});
             if (gottenGib !== ibGib.gib) {
+                debugger;
                 errors.push(`Ibgib invalid intrinsically - gottenGib (${gottenGib}) does not equal ibGib.gib (${ibGib.gib}). (E: 7416db016878430ca3c5b20697f164ed)`);
             }
 
             return errors.length > 0 ? errors : null;
         } else {
+            debugger;
             errors.push(`ibGib is itself falsy. (E: 4fb98caf6ed24ef7b35a19cef56e2d7e)`);
             return errors;
         }

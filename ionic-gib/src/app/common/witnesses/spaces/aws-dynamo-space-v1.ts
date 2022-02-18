@@ -635,6 +635,7 @@ export interface SyncSpaceRel8ns_AWSDynamoDB
 }
 
 const DEFAULT_AWS_DYNAMO_SPACE_DATA_V1: SyncSpaceData_AWSDynamoDB = {
+    version: '2',
     name: c.IBGIB_SPACE_NAME_DEFAULT,
     type: 'sync',
     subtype: 'aws-dynamodb',
@@ -651,6 +652,7 @@ const DEFAULT_AWS_DYNAMO_SPACE_DATA_V1: SyncSpaceData_AWSDynamoDB = {
     throttleMsBetweenPuts: c.DEFAULT_AWS_PUT_THROTTLE_MS,
     throttleMsBetweenGets: c.DEFAULT_AWS_GET_THROTTLE_MS,
     throttleMsDueToThroughputError: c.DEFAULT_AWS_RETRY_THROUGHPUT_THROTTLE_MS,
+    validateIbGibAddrsMatchIbGibs: true,
 }
 
 /**
@@ -888,7 +890,10 @@ export class AWSDynamoSpace_V1<
     protected async initialize(): Promise<void> {
         const lc = `${this.lc}[${this.initialize.name}]`;
         try {
-            if (!this.data) { this.data = h.clone(DEFAULT_AWS_DYNAMO_SPACE_DATA_V1); }
+            if (!this.data) {
+                if (logalot) { console.log(`${lc} initializing data with DEFAULT_AWS_DYNAMO_SPACE_DATA_V1`); }
+                this.data = h.clone(DEFAULT_AWS_DYNAMO_SPACE_DATA_V1);
+            }
 
             // let resPrompt = await Plugins.Modals.prompt({title: 'hi', message: 'yo enter the thing'});
 

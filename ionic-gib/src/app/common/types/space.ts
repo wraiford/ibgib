@@ -5,6 +5,7 @@ import { Witness, WitnessData_V1 } from './witness';
 import * as c from '../constants';
 
 export interface IbGibSpaceData extends WitnessData_V1 {
+    version?: string;
     /**
      * Name for the space.
      *
@@ -51,6 +52,17 @@ export interface IbGibSpaceData extends WitnessData_V1 {
      * This is like providing a logging feature for the space itself.
      */
     persistOptsAndResultIbGibs?: boolean;
+    /**
+     * If true, when this space receives a command that includes incoming ibGibs
+     * and ibGibAddrs, we will ensure the ibGibs have a 1-to-1 correspondence to
+     * the addrs we're logging, and that the gib hashes are verified against the
+     * ibGibs themselves.
+     *
+     * Otherwise, someone could pass in a bunch of legitimate addresses and
+     * illegitimate ibGibs (that have little to do with the addresses). This
+     * could at best be a coding mistake & at worst be malicious.
+     */
+    validateIbGibAddrsMatchIbGibs?: boolean;
 }
 
 export interface IbGibSpaceRel8ns extends IbGibRel8ns_V1 {
@@ -76,10 +88,6 @@ export const IbGibSpaceOptionsCmd = {
     put: 'put' as IbGibSpaceOptionsCmd,
     /** Delete an ibGib from a space */
     delete: 'delete' as IbGibSpaceOptionsCmd,
-    /** Ask to watch space's incoming/outgoing ibGibs to some degree. Analogous to event handler. */
-    watch: 'watch' as IbGibSpaceOptionsCmd,
-    /** Ask to stop watching space's incoming/outgoing ibGibs. Analogous to event handler. */
-    unwatch: 'unwatch' as IbGibSpaceOptionsCmd,
 }
 
 /**
@@ -113,6 +121,14 @@ export const IbGibSpaceOptionsCmdModifier = {
      * get "newer" ibgibs, not just the latest.
      */
     latest: 'latest' as IbGibSpaceOptionsCmdModifier,
+    /**
+     * Ask to get updates on tjps in ibGibAddrs.
+     */
+    watch: 'watch' as IbGibSpaceOptionsCmdModifier,
+    /*
+     * Ask to stop getting updates on tjps in ibGibAddrs.
+     */
+    unwatch: 'unwatch' as IbGibSpaceOptionsCmdModifier,
 }
 
 /** Information for interacting with spaces. */
@@ -121,6 +137,10 @@ export interface IbGibSpaceOptionsData {
      * Not really in use atm, but will use in the future.
      */
     version?: string;
+    /**
+     * Spaces use the command pattern. The `cmd` property is the name of the
+     * command, analogous to a function name.
+     */
     cmd: IbGibSpaceOptionsCmd | string;
     /**
      * Optional modifier flag(s) to the command.
@@ -164,10 +184,26 @@ export interface IbGibSpaceOptionsIbGib<
     /**
      * When putting ibGibs, we don't want to persist the entire graph in the
      * data object. So these ibGibs live on the ibGib arg object itself.
+     *
+     * If only ibGibs are passed in, and not their corresponding ibGibAddrs in
+     * the `TOptsData`, then you can't confirm cryptographically if the ibGibs
+     * are legit.  But if you include their corresponding ibGibAddrs in that
+     * data, then the space can confirm that the ibGibs have not been altered
+     * from the expected cryptographic audit trail.
+     *
+     * This doesn't mean that the ibGibs are kosher completely, but at least
+     * there is internal agreement and an audit trail.
+     *
+     * ## example
+     *
+     * For an example, check out sync space saga
      */
     ibGibs?: TIbGib[];
 }
 
+/**
+ * Shape of result data common to all (most) space interactions.
+ */
 export interface IbGibSpaceResultData {
     /**
      * The address of the options ibGib that corresponds this space result.
@@ -217,6 +253,32 @@ export interface IbGibSpaceResultData {
      * Addresses for ibGibs which had errors.
      */
     addrsErrored?: IbGibAddr[];
+    /**
+     * Map of TjpAddr -> newer LatestIbGibAddr notification.
+     *
+     * ## about
+     *
+     * When using the `watch` command modifier, a caller can subscribe to
+     * updates/notifications to a timeline. When an update occurs in the space
+     * via a `put` cmd that ends up creating/storing a newer ibgib address than
+     * the one the receiving space knows the caller is aware of, it will try to
+     * make the caller aware of the update.
+     *
+     * There are two ways to do this:
+     * 1. Store the notification info locally until the next interaction between
+     *    the space and the caller.
+     * 2. Send the notification actively to the caller.
+     *
+     * For the first implementation of notifications, only the first will be
+     * implemented. Local notifications will be implemented, but active
+     * internodal notification in the general sense will be implemented at a
+     * later time.
+     *
+     * ## notes
+     *
+     * * may also implement a dedicated command to watch subscriptions.
+     */
+    watchTjpUpdateMap?: { [tjpAddr: string]: IbGibAddr; }
 }
 
 export interface IbGibSpaceResultRel8ns extends IbGibRel8ns_V1 { }

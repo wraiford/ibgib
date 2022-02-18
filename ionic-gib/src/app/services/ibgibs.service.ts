@@ -7,7 +7,7 @@ import { Injectable } from '@angular/core';
 import { AlertController, ModalController } from '@ionic/angular';
 import { ReplaySubject, } from 'rxjs';
 
-import { IbGib_V1, GIB, GIB_DELIMITER } from 'ts-gib/dist/V1';
+import { IbGib_V1, GIB, GIB_DELIMITER, sha256v1 } from 'ts-gib/dist/V1';
 import { IbGibAddr, TransformResult, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { Factory_V1 as factory } from 'ts-gib/dist/V1';
@@ -348,6 +348,7 @@ export class IbgibsService {
         metaSubPath: c.IBGIB_META_SUBPATH,
         encoding: c.IBGIB_ENCODING,
         persistOptsAndResultIbGibs: c.PERSIST_OPTS_AND_RESULTS_IBGIBS_DEFAULT,
+        validateIbGibAddrsMatchIbGibs: false,
       }, /*initialRel8ns*/ null);
       if (logalot) { console.log(`${lc} userSpace.ib: ${userSpace.ib}`); }
       if (logalot) { console.log(`${lc} userSpace.gib: ${userSpace.gib} (before sha256v1)`); }
@@ -854,6 +855,12 @@ export class IbgibsService {
 
   // #endregion
 
+
+
+  /**
+   * So when loading the local user space, even if the class changes or default
+   * constructors change, the internal `data` is loaded from file.
+   */
   private async loadUserLocalSpace({
     localDefaultSpace,
     bootstrapGib,

@@ -375,6 +375,7 @@ export const DEFAULT_AWS_GET_THROTTLE_MS = 500;
 /** Will send query commands in parallel in batches of this size.  */
 export const DEFAULT_AWS_QUERY_LATEST_BATCH_SIZE = 5;
 export const DEFAULT_AWS_RETRY_THROUGHPUT_THROTTLE_MS = 3000;
+export const DEFAULT_AWS_VALIDATE_IBGIBADDRS_MATCH_IBGIBS = true;
 /**
  * This is returned if we're trying to do things too quickly when batch write/get
  *

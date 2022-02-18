@@ -1,6 +1,7 @@
 import {
     IbGib_V1, IbGibRel8ns_V1, IbGibData_V1, sha256v1, Factory_V1,
 } from 'ts-gib/dist/V1';
+import * as h from 'ts-gib/dist/helper';
 
 import {
     IbGibSpace,
@@ -11,9 +12,9 @@ import {
 } from '../../types';
 import { WitnessBase_V1, resulty_, argy_ } from '../witnesses';
 import * as c from '../../constants';
-import { getTimestampInTicks } from '../../helper';
+import { getTimestampInTicks, validateIbGibIntrinsically } from '../../helper';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 export interface IbGibSpaceAny
     extends SpaceBase_V1<any,any,any,any,any,any,any> {
@@ -199,22 +200,66 @@ export abstract class SpaceBase_V1<
         let errors: string[] = [];
         try {
             errors = await super.validateWitnessArg(arg);
-            if (!arg.data) { errors.push(`arg.data required`); return errors; } // <<<< returns immediately
+            console.log(`${lc} validate 1`);
+            if (!arg.data) {
+                errors.push(`arg.data required (E: 8ee544d7d88a45c6adcbc15838a283a7)`);
+                return errors; // <<<< returns immediately
+            }
+
             const { cmd, ibGibAddrs, } = arg.data!;
             let cmdModifiers = arg.data!.cmdModifiers ?? [];
             const ibGibs  = arg.ibGibs;
-            if (!cmd) { errors.push(`arg.data.cmd required`); }
-            if (!Object.values(IbGibSpaceOptionsCmd).includes(<any>cmd)) { errors.push(`unknown arg.data.cmd: ${cmd}`); }
+            if (!cmd) { errors.push(`arg.data.cmd required (E: 72a11ee87a0d4896bcacd65a9c0284d9)`); }
+            if (!Object.values(IbGibSpaceOptionsCmd).includes(<any>cmd)) { errors.push(`unknown arg.data.cmd: ${cmd}. (E: 95282ce61e97429f8049e61ec9f14f0b)`); }
+            const ibGibAddrsLength = ibGibAddrs?.length ?? 0;
             if (
                 cmd === IbGibSpaceOptionsCmd.get &&
                 !cmdModifiers?.includes('addrs') && // we allow get addrs to be get ALL addrs
                 !cmdModifiers?.includes('latest') &&
-                (ibGibAddrs || []).length === 0
+                ibGibAddrsLength === 0
             ) {
-                errors.push(`ibGibAddrs required when cmd is ${cmd}`);
+                errors.push(`ibGibAddrs required when cmd is ${cmd}. (E: ee55a3f60b90423cbe054f27c34ab7d5)`);
             }
-            if (cmd === IbGibSpaceOptionsCmd.put && (ibGibs || []).length === 0) {
-                errors.push(`ibGibs required when cmd is ${cmd}`);
+            if (cmd === IbGibSpaceOptionsCmd.put) {
+                console.log(`${lc} validate put cmd`);
+                const ibGibsLength = ibGibs?.length ?? 0;
+                if (ibGibsLength === 0) {
+                    errors.push(`ibGibs required when cmd is ${cmd}. (E: b3a422169f7344a48a1d44e7ad1ba44e)`);
+                } else if (this.data.validateIbGibAddrsMatchIbGibs) {
+                    // #region validate ibGib map to ibGibAddrs
+                    console.log(`${lc} validate 2`);
+                    if (logalot) { console.log(`${lc} validateIbGibAddrsMatchIbGibs true, so doing so.`); }
+
+                    // confirm the incoming ibGibs match up with the addresses
+                    // we have in `ibGibAddrs`.
+                    if (ibGibsLength !== ibGibAddrsLength) {
+                        errors.push(`ibGibsLength !== ibGibAddrsLength and this.data.validateIbGibAddrsMatchIbGibs is true. (E: 6c6bf824ab32443aa4d6b8bf4f8113dd)`);
+                    } else {
+                        // lengths match, so validate ibgibs
+                        if (logalot) { console.log(`${lc} validateIbGibAddrsMatchIbGibs, lengths match. validating intrinsically`); }
+                        const ibGibAddrsCopy = ibGibAddrs.concat();
+                        for (let i = 0; i < ibGibs.length; i++) {
+                            const ibGib = ibGibs[i];
+                            const intrinsicErrors = await validateIbGibIntrinsically({ibGib});
+                            if (intrinsicErrors?.length ?? 0 > 0) {
+                                intrinsicErrors.forEach(x => errors.push(x));
+                            } else {
+                                // intrinsically valid, but ensure the ibGib
+                                // addr maps 1-to-1 in ibGibAddrs
+                                const xAddr = h.getIbGibAddr({ibGib});
+                                const xIndex = ibGibAddrsCopy.indexOf(xAddr);
+                                if (xIndex === -1) {
+                                    errors.push(`ibGibAddrs don't map to calculated ibGib addrs. calculated Addr: (${xAddr}) (E: b21b3a7a74db43e5a8722acc97274646)`);
+                                    break;
+                                } else {
+                                    ibGibAddrsCopy.splice(xIndex, 1);
+                                }
+                            }
+                        }
+                    }
+
+                    // #endregion validate ibGib map to ibGibAddrs
+                }
             }
             return errors;
         } catch (error) {
