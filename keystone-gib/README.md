@@ -1,45 +1,91 @@
+# being picked clean...
+
+This low-level project is being slowly subsumed by the ionic-gib app project
+while being actively developed. This act of recoupling is to increase the
+iteration speed (since it's just me doing the development), since this is a
+completely new paradigm. The ideas of keystones and on-chain challenge
+mechanisms are still entirely valid though.
+
+ATOW, I have incorporated and improved the basic witness and repo code from this
+project, but I have not gotten to the keystone-related authentication part yet.
+It is acting upon an anonymous, access-is-authorization model for simplicity.
+Once I have that up and going, I am going to return to pecking from this project
+until I have the keystones fully integrated, at which time I will then pull the
+keystone layer back out into its own library as seems appropriate at that time.
+
+## some notes on differences with current implementation
+
+I'm just looking through this readme and I'm thinking of changes I've made
+and the current state actually running in code.
+
+* Spaces as opposed to nodes.
+  * Interestingly, thinking of a space is much like thinking of a node.
+  * I'm still toying around with how this affects the paradigm.
+  * Coordinating and sharing data among nodes is now like projections
+    in spaces.
+  * Currently when you "publish to the cloud", you add a sync(hronization)
+    space and connect it with the local space.
+    * atow these are built on top of space base classes that descends from witness.
+      * the sync space is an AWS DynamoDB + S3 substrate adapter.
+      * the local space is an Ionic storage substrate adapter.
+      * the app itself acts as an interface for interacting with these
+        spaces, basically becoming itself a metaspace.
+      * all of these things are similar to thinking of nodes, but the space
+        paradigm seems to be more appropriate. Molecules, matter, the universe,
+        they are all mostly space right?
+* Stone is not explicitly structured.
+  * Data-only ibgib are just the JS objects.
+* Witness code is cleaned up.
+  * Still one thin layer of behavior on top of data, adding `witness` function.
+    * This makes a witness largely an on-chain function analog itself.
+  * All on-chain parameters of how the witness operate are still in the `data`
+    map, with anything exposed on the classes themselves as needed per use case.
+  * Because acts as a single point of interaction, I'm using this with the
+    command pattern, so all `canGet` type of functions are encoded in 
+    TOptionsInData/Rel8ns/IbGib.
+    * e.g. `{ cmd: 'get', cmdModifiers: ['can'] ...}`
+
 # ts-keystone
 
-Keystone is the identity framework built on the ibGib protocol.
-The ts is for TypeScript, so this uses the ts-gib lib.
+Keystone is the identity framework built on the ibGib protocol.  The ts is for
+TypeScript, so this uses the ts-gib lib.
 
-This README document will serve as the initial whitepaper for the
-keystone architecture. Though, fair warning, I'm writing this
-before my typescript implementation and it's been awhile since I first
-implemented it years ago. Details may change and get out of sync with
-actual implementation! (That's rather the point of the protocol anyway:
-to better coordinate versions of metadata like this with the data it
-is supposed to describe.)
+This README document will serve as the initial whitepaper for the keystone
+architecture. Though, fair warning, I'm writing this before my typescript
+implementation and it's been awhile since I first implemented it years ago.
+Details may change and get out of sync with actual implementation! (That's
+rather the point of the protocol anyway: to better coordinate versions of
+metadata like this with the data it is supposed to describe.)
 
 Another good thing to read is the documentation for the interfaces/types/etc.
 in `types.ts`. That will be slightly more up-to-date more than likely.
 
 ## about
 
-IbGib is a data protocol that builds on top of a DLT substrate (Merkle DAG),
-but changes over time. So individual ibgibs are each like their own
-timeline, each like a git repo. Each and every one of them can be forked,
-and if also producing dna, they can be merged into other timelines.
-Because they relate to each other (via `rel8ns`) with Merkle links,
-each one is like its own little blockchain when viewed as nodes on the DAG.
-But because of specific special `rel8ns` like `ancestor` and `past`, the ibgibs
-also have cyclic and non-directed properties. So it's also NOT a DAG, and
-this is one aspect that is unique to the DLT protocol.
+IbGib is a data protocol that builds on top of a DLT substrate (Merkle DAG), but
+changes over time. So individual ibgibs are each like their own timeline, each
+like a git repo. Each and every one of them can be forked, and if also producing
+dna, they can be merged into other timelines.  Because they relate to each other
+(via `rel8ns`) with Merkle links, each one is like its own little blockchain
+when viewed as nodes on the DAG.  But because of specific special `rel8ns` like
+`ancestor` and `past`, the ibgibs also have cyclic and non-directed properties.
+So it's also NOT a DAG, and this is one aspect that is unique to the DLT
+protocol.
 
 The keystones leverage this unique architecture to provide a mechanism for
-self-sovereign identity, authentication, authorization and the corresponding validation
-rules for acting upon the core ibgibs. And it does this such that the _process_
-of identity, authentication, etc., is contained
-_in the same DAG as the data with which it interacts._ So were you to see some
-data records, you would not have to check a separate logging/audit trail to see
-the identity/path of that data, since it's right there next to the data in the same
-base DLT semi-structure.
+self-sovereign identity, authentication, authorization and the corresponding
+validation rules for acting upon the core ibgibs. And it does this such that the
+_process_ of identity, authentication, etc., is contained _in the same DAG as
+the data with which it interacts._ So were you to see some data records, you
+would not have to check a separate logging/audit trail to see the identity/path
+of that data, since it's right there next to the data in the same base DLT
+semi-structure.
 
 ## security related: lamport, ots, winternitz, etc.
 
-The architecture includes properties quite similar to existing mechanisms including
-Lamport signatures, One-Time Signatures (OTS), Winternitz OTSs,
-and other hash-based signature protocols. It (V1) utilizes a zero-knowledge proof
+The architecture includes properties quite similar to existing mechanisms
+including Lamport signatures, One-Time Signatures (OTS), Winternitz OTSs, and
+other hash-based signature protocols. It (V1) utilizes a zero-knowledge proof
 challenge mechanism that reveals answers to problem set(s) (see further for an
 example of a zero knowledge challenge cycle).
 
@@ -51,17 +97,19 @@ the ibgib protocol enables macro-level optimization for n-node scalability.
 In two words: simplicity & reusability.
 
 The maintainenance is easier, because the code base for generating data is the
-same code base that is driving the keystone identity mechanism. Many tools created
-for analyzing regular data/code can also be reused (DRY) for the identity mechanism.
+same code base that is driving the keystone identity mechanism. Many tools
+created for analyzing regular data/code can also be reused (DRY) for the
+identity mechanism.
 
-Also, the requirements/configurations of the challenge requirements can be included
-"on-chain" in the keystones themselves. So instead, e.g., of hard-coding in a siloed
-source code repository that 4 witnesses must sign in a cluster with a quorum of a minimum
-of 8 out of 12 in order to allow a mutation of a given data record (ibgib), you
-can have this already on chain and linked to that ibgib via its authorization rules.
-Now when you go to communicate these rules (metadata), you leverage the same security
-mechanisms that the data itself has in the same, consistent way (DRY). Consequently,
-this applies to altering those the on-chain authorization rules as well.
+Also, the requirements/configurations of the challenge requirements can be
+included "on-chain" in the keystones themselves. So instead, e.g., of
+hard-coding in a siloed source code repository that 4 witnesses must sign in a
+cluster with a quorum of a minimum of 8 out of 12 in order to allow a mutation
+of a given data record (ibgib), you can have this already on chain and linked to
+that ibgib via its authorization rules.  Now when you go to communicate these
+rules (metadata), you leverage the same security mechanisms that the data itself
+has in the same, consistent way (DRY). Consequently, this applies to altering
+those the on-chain authorization rules as well.
 
 _NOTE: In advanced use cases, you can actually use other protocols/mechanisms as well, and any other challenge mechanism like certs, and simply track the metadata in the keystone DAGs. But the challenges in v1 are strictly on-chain hash-based challenges._
 
@@ -69,8 +117,10 @@ _NOTE: In advanced use cases, you can actually use other protocols/mechanisms as
 
 There are two main use cases for the keystones:
 
-1) mutating an ibGib data record which contains authorization requirements on a single node, attempting a "single source of truth".
-2) exchanging and witnessing ibGibs among (possibly remote) witness nodes, leading to a continuous stream of beliefs.
+1) mutating an ibGib data record which contains authorization requirements on a
+single node, attempting a "single source of truth".
+2) exchanging and witnessing ibGibs among (possibly remote) witness nodes,
+leading to a continuous stream of beliefs.
 
 _NOTE: Really no. 2 is a corollary to the no. 1, but it is remarkable enough to list it explicitly._
 
@@ -129,7 +179,8 @@ We want to get to `A2`:
 _NOTE: We're going to be ignoring the dna, but it would be included in the dependency graph, and specifically in the `A2` rel8ns object. Dna though does not have its own keystone, i.e. dna has no "owner" or any similar thing. This is necessary for applying dna in n-dimensional identity spaces._
 
 A good faith keystone implementation would check the authorization rules located
-in the "keystone [scope={transform}] [keystoneTjpGib]^XYZ321" which could look something like this:
+in the "keystone [scope={transform}] [keystoneTjpGib]^XYZ321" which could look
+something like this:
 
 ```json
 {
@@ -233,8 +284,9 @@ and it's corresponding config:
     }
 }
 ```
-These offer close to a simplest case example, showing the basic challenge structure
-and how this information can be stored "on chain" alongside the challenges themselves.
+These offer close to a simplest case example, showing the basic challenge
+structure and how this information can be stored "on chain" alongside the
+challenges themselves.
 
 **In general, metadata sits alongside the data in all of the ibGib data, which is a fundamental benefit of the architecture.**
 
@@ -242,29 +294,30 @@ and how this information can be stored "on chain" alongside the challenges thems
 
 _Marty McFly: That’s right, Doc. November 12, 1955. Doc: Unbelievable, that old Biff could have chosen that particular date. It could mean that that point in time inherently contains some sort of cosmic significance. Almost as if it were the temporal junction point for the entire space-time continuum. On the other hand, it could just be an amazing coincidence. From IMDB._
 
-A Temporal Junction Point (tjp) is like a checkpoint for a timeline, like its "birthday".
-it acts essentially as that ibgib's unique "name". We can think of it as the
-first entry in its `past` rel8n that is unique. We can reference this tjp when, e.g.,
-we sign up to a bus looking for updates to an ibgib. We don't want to say give me
-the updates for some intermediate one, because the bus would have to search through
-the ibgib's entire history. With the tjp, we can always get an immediate handle on
-the entire timeline. That the tjp's use is essential cannot be overstated!
+A Temporal Junction Point (tjp) is like a checkpoint for a timeline, like its
+"birthday".  it acts essentially as that ibgib's unique "name". We can think of
+it as the first entry in its `past` rel8n that is unique. We can reference this
+tjp when, e.g., we sign up to a bus looking for updates to an ibgib. We don't
+want to say give me the updates for some intermediate one, because the bus would
+have to search through the ibgib's entire history. With the tjp, we can always
+get an immediate handle on the entire timeline. That the tjp's use is essential
+cannot be overstated!
 
-And including the tjp in the keystone's ib is extremely important, and so in generating
-keystones we must first `mut8` its `ib` to include it _after_ its original "birthday"
-fork. Once we have done this, now we can start using the keystone in relating to
-other ibgibs.
+And including the tjp in the keystone's ib is extremely important, and so in
+generating keystones we must first `mut8` its `ib` to include it _after_ its
+original "birthday" fork. Once we have done this, now we can start using the
+keystone in relating to other ibgibs.
 
 _NOTE: We can't include it before it's birthday fork because of the chicken/egg dilemma with the progression of time._
 
 ##### generating challenges & validating solutions
 
-The `challenges` has a `mut8` section, with a list of hashing challenges.
-The corresponding keystone config contains metadata about the requirements for
-those challenges. So in this case, at least/most `min/maxChallengesRequired` entries
+The `challenges` has a `mut8` section, with a list of hashing challenges.  The
+corresponding keystone config contains metadata about the requirements for those
+challenges. So in this case, at least/most `min/maxChallengesRequired` entries
 in the `mut8` section must be solved in order to perform the `mut8` operation on
-an ibgib. An entry is "solved" with a `challengeSecret`, such that in generating/
-validating an entry:
+an ibgib. An entry is "solved" with a `challengeSecret`, such that in
+generating/ validating an entry:
 
 ```javascript
 
@@ -280,8 +333,8 @@ assert(out === challengeResult); // if validating challengeSecret
 
 But how do we generate the challengeSecret itself in the first place?
 
-Well, a single keystone has an implied single secret, call it `keySecret`.
-The `challengeSecret` would be generated off of this `keySecret` in whatever manner
+Well, a single keystone has an implied single secret, call it `keySecret`.  The
+`challengeSecret` would be generated off of this `keySecret` in whatever manner
 the implementer wants. For keystone-gib v1, the algorithm is based on the
 `suggestedSaltGenMethod` value `hashn` where n is recursive hashes:
 
@@ -296,57 +349,59 @@ for (let i = 1; i <= n; i++) {
 
 _NOTE: you can have more than one secret per keystone, just like you are responsible for being able to map from the `challengeSalt` to the `challengeSecret`. But this would largely defeat the purpose, as the secret to the keystone would actually be conceptualized as "both" secrets concatenated and the mapping would know how to index into it per challenge._
 
-The important thing is that the node that generates the keystone, and all nodes that
-will mut8 the stone, know how to produce the `challengeSecret`. This could be from
-direct user input. It could be based on a whole lot of things. But the mechanism
-needs to be consistent from the `suggestedSaltGenMethod`.
+The important thing is that the node that generates the keystone, and all nodes
+that will mut8 the stone, know how to produce the `challengeSecret`. This could
+be from direct user input. It could be based on a whole lot of things. But the
+mechanism needs to be consistent from the `suggestedSaltGenMethod`.
 
 **For this reason, it's very important to choose a strong method of generation that shields the node's `keySecret` for as long as possible.**
 
-Once a node's `keySecret` is exposed, its entire future (and some percentage of its past)
-becomes potentially invalid, so it's important for witnesses (discussed later in this
-document) to witness and document this invalidation! So you wouldn't want just one hash
-to separate the generated `challengeSalt` from the `keySecret`. Depending on the use
-case and scope of the keystone, it may be generating _thousands_ (or more!) of challenges.
+Once a node's `keySecret` is exposed, its entire future (and some percentage of
+its past) becomes potentially invalid, so it's important for witnesses
+(discussed later in this document) to witness and document this invalidation! So
+you wouldn't want just one hash to separate the generated `challengeSalt` from
+the `keySecret`. Depending on the use case and scope of the keystone, it may be
+generating _thousands_ (or more!) of challenges.
 
 ##### notes on keystone metadata (config)
 
-The `min/maxChallengesRequired` and `hashIterations` are examples of configuration
-options, where you can choose the qualities of the challenges. This can vary
-depending on use case. For example, low security probably only would require one
-iteration, with one min/max required. While higher security environments may involve
-more challenges. But remember, you can also associate multiple keystone to the ibgibs,
-so just increasing the difficulty of one keystone may not be needed or desired. It
-may be better to add an additional keystone, possibly owned by a different witness,
-like having multiple physically separate keys on a submarine.
+The `min/maxChallengesRequired` and `hashIterations` are examples of
+configuration options, where you can choose the qualities of the challenges.
+This can vary depending on use case. For example, low security probably only
+would require one iteration, with one min/max required. While higher security
+environments may involve more challenges. But remember, you can also associate
+multiple keystone to the ibgibs, so just increasing the difficulty of one
+keystone may not be needed or desired. It may be better to add an additional
+keystone, possibly owned by a different witness, like having multiple physically
+separate keys on a submarine.
 
 ##### bad actors...
 
-Obviously, bad actors could do things here to attempt to rewrite history. If there
-are enough challenges gathered, it could be attempted to hijack a timeline via
-a replay attack or some other vector. This is why multiple witness nodes are important,
-and the importance of the number of witnesses is directly related to the importance of
-the integrity of the data.
+Obviously, bad actors could do things here to attempt to rewrite history. If
+there are enough challenges gathered, it could be attempted to hijack a timeline
+via a replay attack or some other vector. This is why multiple witness nodes are
+important, and the importance of the number of witnesses is directly related to
+the importance of the integrity of the data.
 
 Which brings us to...
 
 #### case no. 2: exchanging ibgibs among multiple witness nodes
 
-Internally, i.e. intranodally (on a single node), the application of this mechanism may
-be curioiusly interesting but not necessarily exciting...But that's why we'll discuss
-inter-nodal communication among many participants in a distributed system, i.e.,
-**witnesses and consensus**.
+Internally, i.e. intranodally (on a single node), the application of this
+mechanism may be curioiusly interesting but not necessarily exciting...But
+that's why we'll discuss inter-nodal communication among many participants in a
+distributed system, i.e., **witnesses and consensus**.
 
 When exchanging ibgibs among multiple witness nodes, the entire workflow is
-encapsulated in exchanges of ibgibs, their metadata (which are also ibgibs), and the
-accompanied dependencies, all in a single DAG,
-a **projection inevitably encapsulated in a single ibgib**.
+encapsulated in exchanges of ibgibs, their metadata (which are also ibgibs), and
+the accompanied dependencies, all in a single DAG, a **projection inevitably
+encapsulated in a single ibgib**.
 
-There is no out-of-band complexity required, such as authenticating via a certificate/PKI,
-the trail of which gets stored in another silo(s) (probably one or more log files).
-This is because the ibgib DAGs themselves act as the PKI, and checking with, e.g., a
-CA authority is simply the same exchange of ibgibs with a witness we trust enough to
-call an authority.
+There is no out-of-band complexity required, such as authenticating via a
+certificate/PKI, the trail of which gets stored in another silo(s) (probably one
+or more log files).  This is because the ibgib DAGs themselves act as the PKI,
+and checking with, e.g., a CA authority is simply the same exchange of ibgibs
+with a witness we trust enough to call an authority.
 
 Though this of course does not preclude the use of leveraging these out-of-band
 mechanisms, nor does it imply only a single channel among witnesses. Indeed,
@@ -354,27 +409,29 @@ _multiple channels of communicating is highly encouraged_ for verification of
 `gib` hashes and challenges, to fight against all sorts of nasty things like
 replay attacks and other forgeries.
 
-In the end though, you have multiple witnesses with the same ibgibs stored locally
-to whatever extent their function (in the workflow) requires. These ibgibs are
-internally verifiable, to multiple extents depending on what you're verifying.
-The bonus is that the witness node could (should) also be able to explain _how_
-it came to receive the nodes and of course in the same consistent data structure.
+In the end though, you have multiple witnesses with the same ibgibs stored
+locally to whatever extent their function (in the workflow) requires. These
+ibgibs are internally verifiable, to multiple extents depending on what you're
+verifying.  The bonus is that the witness node could (should) also be able to
+explain _how_ it came to receive the nodes and of course in the same consistent
+data structure.
 
-**Because of this, witnesses can even share this metadata of previous exchanges as the payloads in future exchanges with other witnesses**,
-again to whatever extent is required per use case.
+**Because of this, witnesses can even share this metadata of previous exchanges 
+as the payloads in future exchanges with other witnesses**, again to whatever
+extent is required per use case.
 
 _NOTE: this says nothing about encryption. The level of temporary opacity is entirely up to participants._
 
-So the same infrastructure that is created to navigate/analyze data at the protocol
-level can be used on the data used in transmissions.
+So the same infrastructure that is created to navigate/analyze data at the
+protocol level can be used on the data used in transmissions.
 
 ##### keystone exchange v1 goal
 
 In the first intranodal example for allowing a `mut8`, the config described the
 requirements for the authorization of that ibgib alone. When exchanging ibgibs
 among nodes, there are of course requirements stored in the same way. But the
-problem is slightly different, because there is the possibility for
-adversarial participants.
+problem is slightly different, because there is the possibility for adversarial
+participants.
 
 _NOTE: In the case of intranodal authorization with your own node being compromised, then **you** are the adversarial participant so this is encapsulated in the internodal case._
 
@@ -518,11 +575,11 @@ _NOTE: There is no need for any dna for the transmission/reception metadata, sin
 
 Because data is widely content addressed via hashes, optimizations abound.
 
-Say your node doesn't have all of the ibgibs in the transaction.
-But you're not really interested in _all_ of the ibgibs, only some subset.
-This is especially common when considering, e.g., dna ibgibs.
-But for your use case, you want to be a trusted node and still want to have a
-verifiable exchange. What are your options?
+Say your node doesn't have all of the ibgibs in the transaction.  But you're not
+really interested in _all_ of the ibgibs, only some subset.  This is especially
+common when considering, e.g., dna ibgibs.  But for your use case, you want to
+be a trusted node and still want to have a verifiable exchange. What are your
+options?
 
 Well just as you inevitably will trust some subset of witnesses to varying degrees,
 so too will you trust some for these types of scenarios. If someone you trust has
