@@ -1,4 +1,6 @@
-# ibgib monorepo
+# ibgib
+
+## monorepo of code
 
 This monorepo holds multiple projects building up a web3 DLT data protocol for
 distributed, decentralized and inevitably sovereign computation.
@@ -7,7 +9,7 @@ In its current implementation, ibgib comprises the following TypeScript projects
 built on top of [ts-gib](https://gitlab.com/ibgib/ts-gib), the lowest level
 ibgib graphing library.
 
-## [ionic-gib](./ionic-gib)
+### [ionic-gib](./ionic-gib)
 
 **Primary project in this monorepo atm.**
 
@@ -27,7 +29,7 @@ hosted separately on GitLab for the time being.
 The entire idea is that ibgib is dogfooding its own hash-based DLT
 p2p paradigm using ibgibs, spaces and keystones for identity.
 
-## [keystone-gib](./keystone-gib)
+### [keystone-gib](./keystone-gib)
 
 Keystones are hash-based authentication, authorization and identity
 that leverage the unique ibgib design to perform these functions
