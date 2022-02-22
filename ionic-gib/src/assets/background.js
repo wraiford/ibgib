@@ -21,12 +21,13 @@ chrome.contextMenus.onClicked.addListener(function(itemData){
     if (itemData.id === idLink) {
         chrome.tabs.create({url: ibgibUrl});
     } else {
-        console.log(`some other context menu item clicked.`);
+        debugger;
+        console.log(`hoogleberries context menu item clicked.`);
+
     }
 });
 
 /*
-
     "browser_action": {
         "default_area": "personaltoolbar",
         "default_popup": "index.html",

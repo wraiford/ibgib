@@ -79,7 +79,8 @@ export interface IbGibSpaceRel8ns extends IbGibRel8ns_V1 {
  *
  * change these commands to better structure, e.g., verb/do/mod, can/get/addrs
  * */
-export type IbGibSpaceOptionsCmd = 'get' | 'put' | 'delete' | 'watch' | 'unwatch';
+export type IbGibSpaceOptionsCmd =
+    'get' | 'put' | 'delete';
 /** Cmds for interacting with ibgib spaces.  */
 export const IbGibSpaceOptionsCmd = {
     /** Retrieve ibGib(s) out of the space (does not remove them). */
@@ -93,7 +94,8 @@ export const IbGibSpaceOptionsCmd = {
 /**
  * Flags to affect the command's interpretation.
  */
-export type IbGibSpaceOptionsCmdModifier = 'can' | 'addrs' | 'latest';
+export type IbGibSpaceOptionsCmdModifier =
+    'can' | 'addrs' | 'latest' | 'watch' | 'unwatch';
 /**
  * Flags to affect the command's interpretation.
  */

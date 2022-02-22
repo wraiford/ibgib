@@ -162,11 +162,7 @@ export interface ParticipantInfo {
  */
 export interface OuterSpaceOptionsData extends IbGibSpaceOptionsData {
     /**
-     * Modifying flags for cmd routing for the associated cmd ibGib.
-     */
-    cmdModifiers?: (OuterSpaceOptionsCmdModifier | string)[];
-    /**
-     * This id is used when communicating among spaces.
+     * Operation id across multiple spaces.
      *
      * ## notes
      *
@@ -175,6 +171,19 @@ export interface OuterSpaceOptionsData extends IbGibSpaceOptionsData {
      * all of them. If there are only two spaces, then the
      * gib of the individual status ibgib is just as uniquely
      * identifying.
+     */
+    multiSpaceOpId?: string;
+    /**
+     * Modifying flags for cmd routing for the associated cmd ibGib.
+     */
+    cmdModifiers?: (OuterSpaceOptionsCmdModifier | string)[];
+    /**
+     * This id is used when communicating between two spaces.  During that
+     * communication, multiple ibgibs will be passed back and forth, and this
+     * `sagaId` will be common among those messages.
+     *
+     * There is also an id that is common to operations that
+     * refer to multiple spaces. {@see multiSpaceOpId}
      */
     sagaId?: string;
     /**
@@ -498,6 +507,9 @@ export interface SyncStatusIbGib extends IbGib_V1<SyncStatusData, SyncStatusRel8
     ibGibsMergeMap?: { [oldAddr: string]: IbGib_V1 };
 }
 
+/**
+ * A saga atow refers only to the saga across a single space.
+ */
 export interface SagaInfo<
     TIbGib extends IbGib_V1,
     TSpaceOptionsData extends OuterSpaceOptionsData,
@@ -509,11 +521,24 @@ export interface SagaInfo<
     TStatusIbGib extends TIbGib,
     > {
     /**
-     * UUID generated at the beginning of a sync Id generated
+     * UUID generated at the beginning of a multi-space operation that is common
+     * across all spaces.
+     *
+     * This is in contrast with a `sagaId`, which only pertains to a saga within
+     * a single space.
+     */
+    multiSpaceOpId: string;
+    /**
+     * UUID generated at the beginning of a sync saga for a single space.
+     *
+     * This is in contrast with the `syncId`, which pertains to a sync operation
+     * across all spaces.
      */
     sagaId: string;
-    syncSpace: IbGibSpaceAny;
-    //   spaceGib: string;
+    /**
+     * Reference to the space with which we're communicating.
+     */
+    outerSpace: IbGibSpaceAny;
     spaceId: string;
     participants: ParticipantInfo[];
 
@@ -526,28 +551,21 @@ export interface SagaInfo<
     syncStatusSubscriptions: Subscription[];
 
     /**
-     * For each communication saga, there will be one or more calls to
-     * each space's `witness` function. This will produce arg & result
-     * ibgibs. This is the observable stream/subject of those witness
-     * calls.
+     * For each communication saga, there will be one or more calls to each
+     * space's `witness` function. This will produce arg & result ibgibs. This
+     * is the observable stream/subject of those witness calls.
      */
     witnessFnArgsAndResults$: ReplaySubject<TSpaceOptionsIbGib|TSpaceResultIbGib>;
 
-    // /**
-    //  * ORDERED list of status ibGibs in the order that they are
-    //  * published to syncStatus$.
-    //  */
-    // syncStatusIbGibs: SyncStatusIbGib[];
-
     syncIbGibs_All: IbGib_V1[];
     syncAddrs_All: IbGibAddr[];
-    syncAddrs_All_Tjps: IbGibAddr[];
-    syncAddrs_All_NonTjps: IbGibAddr[];
+    syncAddrs_All_AreTjps: IbGibAddr[];
+    syncAddrs_All_WithTjps: IbGibAddr[];
+    syncAddrs_All_WithoutTjps: IbGibAddr[];
     syncAddrs_Skipped: IbGibAddr[];
     syncAddrs_ToDo: IbGibAddr[];
     syncAddrs_InProgress: IbGibAddr[];
     syncAddrs_Failed: IbGibAddr[];
-
 }
 
 /**
@@ -555,9 +573,8 @@ export interface SagaInfo<
  *
  * ## notes
  *
- * This will be attached to each space arg/result ibgib, but
- * this info object WILL NOT be part of the internal `data`
- * of either arg or result ibGib.
+ * This will be attached to each space arg/result ibgib, but this info object
+ * WILL NOT be part of the internal `data` of either arg or result ibGib.
  */
 export interface SyncSagaInfo
     extends SagaInfo<

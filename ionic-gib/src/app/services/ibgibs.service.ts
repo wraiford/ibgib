@@ -2862,16 +2862,16 @@ export class IbgibsService {
         return;
       }
       const participants: ParticipantInfo[] = [
+        // local user space
         { id: this.localUserSpace.data.uuid, gib: this.localUserSpace.gib, s_d: 'src', },
+
+        // sync spaces
         ...appSyncSpaces.map(s => {
           if (!s.data) { throw new Error(`space.data required. (E: 3c192771e84445a4b6476d5193b07e9d)`); }
           if (!s.data.uuid) { throw new Error(`space.data.uuid required. (E: d27e9998227840f99d45a3ed245f3196)`); }
-          if (!s.gib) {
-            debugger;
-            throw new Error(`space.gib required. (E: db73aceb2f8445d8964ae49b59957072)`);
-          }
+          if (!s.gib) { throw new Error(`space.gib required. (E: db73aceb2f8445d8964ae49b59957072)`); }
           return <ParticipantInfo>{ id: s.data.uuid, gib: s.gib, s_d: 'dest', };
-        })
+        }),
       ];
       // #endregion
 
@@ -2887,12 +2887,18 @@ export class IbgibsService {
       // are nice and coordinated (which they aren't).
 
       if (logalot) { console.log(`${lc} syncing to spaces in parallel...`); }
+      const multiSpaceOpId = await h.getUUID();
       const allSagaInfos: SyncSagaInfo[] = [];
       const startSyncPromises: Promise<void>[] = appSyncSpaces.map(async syncSpace => {
 
         // create the info that will track progress over entire sync saga
         const sagaInfo =
-          await this._createNewSyncSagaInfo({allIbGibsToSync, syncSpace, participants});
+          await this._createNewSyncSagaInfo({
+            multiSpaceOpId,
+            allIbGibsToSync,
+            syncSpace,
+            participants,
+          });
         this.sagaInfoMap[sagaInfo.sagaId] = sagaInfo;
         allSagaInfos.push(sagaInfo);
         try {
@@ -2901,11 +2907,10 @@ export class IbgibsService {
           // updating our own local space based on those status updates.
           await this._startSync({syncSagaInfo: sagaInfo, confirm});
         } catch (error) {
-          // if this throws, then that is unexpected.
-          // The above result should always be returned,
-          // and if it's errored then it should indicate as such.
+          // if this throws, then that is unexpected. The above result should
+          // always be returned, and if it's errored then it should indicate as
+          // such.
           console.error(`${lc} (UNEXPECTED) ${error.message}`);
-          // this._syncSagaInfos = {};
           throw error;
         }
       });
@@ -2991,44 +2996,49 @@ export class IbgibsService {
   }
 
   private async _createNewSyncSagaInfo({
+    multiSpaceOpId,
     allIbGibsToSync,
-    syncSpace,
+    syncSpace: outerSpace,
     participants
   }: {
+    multiSpaceOpId: string,
     allIbGibsToSync: IbGib_V1[],
     syncSpace: IbGibSpaceAny,
     participants: ParticipantInfo[],
   }): Promise<SyncSagaInfo> {
     const lc = `${this.lc}[${this._createNewSyncSagaInfo.name}]`;
     try {
+      if (!multiSpaceOpId) { throw new Error(`multiSpaceOpId required. (E: a7e228dbd63948d784a67ddbb342e4f7)`); }
+
       // do the addrs outside of info initializer
       const syncAddrs_All = allIbGibsToSync.map(x => h.getIbGibAddr({ibGib: x}));
-      const syncAddrs_All_Tjps = allIbGibsToSync
+      const syncAddrs_All_WithTjps = allIbGibsToSync
         .filter(x => hasTjp({ibGib: x}))
         .map(x => h.getIbGibAddr({ibGib: x}));
-      const syncAddrs_All_NonTjps =
-        syncAddrs_All.filter(addr => !syncAddrs_All_Tjps.includes(addr));
+      const syncAddrs_All_AreTjps = allIbGibsToSync
+        .filter(x => x.gib !== GIB && x.data?.isTjp === true)
+        .map(x => h.getIbGibAddr({ibGib: x}));
+      const syncAddrs_All_WithoutTjps =
+        syncAddrs_All.filter(addr => !syncAddrs_All_WithTjps.includes(addr));
 
       // do the info initializer
       const syncSagaInfo: SyncSagaInfo = {
-        syncSpace,
+        multiSpaceOpId,
+        outerSpace,
         // spaceGib: syncSpace.gib,
-        spaceId: syncSpace.data.uuid,
+        spaceId: outerSpace.data.uuid,
         sagaId: (await h.getUUID()).slice(0,24),
         participants,
         witnessFnArgsAndResults$: new ReplaySubject<SyncSpaceOptionsIbGib|SyncSpaceResultIbGib>(),
-    // arg: SyncSpaceOptionsIbGib;
-    // result?: SyncSpaceResultIbGib;
-        // subSyncCycles$: new ReplaySubject<SyncCycleInfo>(),
-        // syncStatusIbGibs: [],
 
         syncStatus$: new ReplaySubject<SyncStatusIbGib>(),
         syncStatusSubscriptions: [],
 
         syncIbGibs_All: allIbGibsToSync,
         syncAddrs_All,
-        syncAddrs_All_Tjps,
-        syncAddrs_All_NonTjps,
+        syncAddrs_All_AreTjps,
+        syncAddrs_All_WithTjps,
+        syncAddrs_All_WithoutTjps,
         syncAddrs_Skipped: [],
         syncAddrs_ToDo: [],
         syncAddrs_InProgress: [],
@@ -3073,10 +3083,10 @@ export class IbgibsService {
   }): Promise<SyncSpaceResultIbGib> {
     const lc = `${this.lc}[${this._startSync.name}]`;
     try {
-
       const {
-        syncSpace, sagaId, syncIbGibs_All, participants,
-        syncAddrs_All, syncAddrs_All_Tjps, syncAddrs_All_NonTjps,
+        multiSpaceOpId, participants, sagaId, outerSpace: syncSpace,
+        syncIbGibs_All,
+        syncAddrs_All, syncAddrs_All_WithTjps: syncAddrs_All_Tjps, syncAddrs_All_WithoutTjps: syncAddrs_All_NonTjps,
       } = syncSagaInfo;
 
       // first we want to get the ball rolling

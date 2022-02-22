@@ -34,9 +34,9 @@ import {
 } from '@aws-sdk/client-s3';
 import { ReplaySubject } from 'rxjs/internal/ReplaySubject';
 
-import { IbGib_V1, Factory_V1 as factory, FORBIDDEN_ADD_RENAME_REMOVE_REL8N_NAMES, IbGibRel8ns_V1} from 'ts-gib/dist/V1';
+import { IbGib_V1, Factory_V1 as factory, FORBIDDEN_ADD_RENAME_REMOVE_REL8N_NAMES, IbGibRel8ns_V1, GIB} from 'ts-gib/dist/V1';
 import {
-    getIbGibAddr, Gib, IbGibAddr,
+    getIbGibAddr, Gib, Ib, IbGibAddr,
     TransformOpts, TransformOpts_Mut8, TransformOpts_Rel8,
     TransformResult,
     V1,
@@ -706,7 +706,7 @@ export interface AWSDynamoSpaceOptionsIbGib
      * This is not in the data interface itself, because we don't want
      * to persist this data
      */
-    binData?: any;
+    // binData?: any;
 }
 
 /** Marker interface atm */
@@ -727,8 +727,38 @@ export interface AWSDynamoSpaceResultIbGib
      * This is not in the data interface itself, because we don't want
      * to persist this data
      */
-    binData?: any;
+    // binData?: any;
 }
+
+interface AWSDynamoWatchSpaceData {
+    /**
+     * the keys of this map are all of the tjpAddrs that this
+     * space is watching. If there are any updates, the latest
+     * ibGib address will be the value, else it will be null.
+     */
+    updates?: { [tjpAddr: string]: IbGibAddr|null };
+}
+interface AWSDynamoWatchSpaceRel8ns extends IbGibRel8ns_V1 { }
+/**
+ * IbGib for keeping track of watching tjp timeline for updates,
+ * from the space end.
+ */
+interface AWSDynamoWatchSpaceIbGib
+    extends IbGib_V1<AWSDynamoWatchSpaceData, AWSDynamoWatchSpaceRel8ns> { }
+
+interface AWSDynamoWatchTjpData {
+    /**
+     * List of spaceIds watching this tjp's timeline for updates.
+     */
+    spaceIdsWatching: string[];
+}
+interface AWSDynamoWatchTjpRel8ns extends IbGibRel8ns_V1 { }
+/**
+ * IbGib for keeping track of watching tjp timeline for updates,
+ * from the tjp end.
+ */
+interface AWSDynamoWatchTjpIbGib
+    extends IbGib_V1<AWSDynamoWatchTjpData, AWSDynamoWatchTjpRel8ns> { }
 
 // #endregion
 
@@ -795,6 +825,14 @@ export class AWSDynamoSpace_V1<
      * Naive caching in-memory. Memory leak as it stands right now!
      */
     protected ibGibs: { [key: string]: IbGib_V1 } = {};
+
+    /**
+     * Cache of addresses that we have confirmed already that do
+     * indeed exist in S3.
+     *
+     * Used in {@link `existsInS3`}
+     */
+    private cache_existsInS3: IbGibAddr[] = [];
 
     constructor(
         // /**
@@ -934,7 +972,7 @@ export class AWSDynamoSpace_V1<
         }
     }
 
-    protected routeAndDoCommand<TCmdModifier extends SyncSpaceOptionsCmdModifier = SyncSpaceOptionsCmdModifier>({
+    protected async routeAndDoCommand<TCmdModifier extends SyncSpaceOptionsCmdModifier = SyncSpaceOptionsCmdModifier>({
         cmd,
         cmdModifiers,
         arg,
@@ -952,6 +990,12 @@ export class AWSDynamoSpace_V1<
             case IbGibSpaceOptionsCmd.put:
                 if (cmdModifiers.includes('sync')) {
                     if (logalot) { console.log(`${lc} cmd is put and modifier includes sync. Routing to putSync function. (I: 2dc358c88a1746329b379d4e8ba7e09e)`); }
+                    if (cmdModifiers.includes('watch')) {
+                        if (logalot) { console.log(`${lc} cmd is put, modifier includes watch sync. Hooking into tjp addr updates. (I: f1d1ed57d03c4842b0654215113297e6)`); }
+                        // hook into any updates if the caller has included the
+                        // `watch` CmdModifier.
+                        await this.putSync_AddWatches({arg});
+                    }
                     return this.putSync(arg);
                 } else {
                     return super.routeAndDoCommand({cmd, cmdModifiers, arg});
@@ -962,10 +1006,274 @@ export class AWSDynamoSpace_V1<
         }
     }
 
+    /**
+     * ## dev notes
+     *
+     * OOOOOOk, this is how watch will work. When you put the watch, there
+     * are two ends that we have to create:
+     *
+     * 1. From the space end.
+     * 2. From the tjpAddr end.
+     *
+     * From the space end, we want to know, given a space, what are our watch
+     * updates. From the tjpAddr end, we want to know, given a tjpAddr that is
+     * updated, what are the spaces that are watching this.
+     *
+     * So given the space (and in particular spaceId which is space.data.uuid),
+     * we will construct a deterministic `ib` of something like `watch space
+     * ${spaceId}` and pair this up with a no-metadata `gib` of `"gib"` (or the
+     * constant `GIB` in code). So the total address will be `watch space
+     * ${spaceId}^gib`. This watch space has a record of all tjpAddrs that it is
+     * watching, and any updates to that tjpAddr.
+     *
+     * When a tjpAddr is updated, you don't yet know which spaces are watching,
+     * regardless of what space is doing the updating.  So given a tjpAddr, we
+     * will construct a deterministic `ib` of something like `watch tjp
+     * ${tjpGib} ${tjpAddrHash}` which has a record of all interested spaces.
+     * It then triggers the update for the space + tjpAddr combination, which in
+     * the first naive, optimistic, non-locking implementation, will just access
+     * the `watch space ${spaceId}` ibgib to point to the updated address (the
+     * addr hash helps avoid collisions further than just tjpGib collisions).
+     *
+     * This will have race conditions, even if there are atomic read/writes, but
+     * I believe the worst that will happen is that a most-recent update is
+     * replaced by a different, slightly less recent update. In the future, this
+     * should be remedied, but most likely an outer sync space not built on
+     * dynamodb + s3 is a better allocation of resources.
+     *
+     */
+    private async putSync_AddWatches({
+        arg,
+    }: {
+        arg: AWSDynamoSpaceOptionsIbGib,
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.putSync_AddWatches.name}]`;
+        try {
+            if (!arg.syncSagaInfo) {
+                console.warn(`${lc} arg.syncSagaInfo required to watch. (W: 0e3641020d96479eb6a8a29dfff8e994)`);
+                return; // returns
+            }
+
+            const {spaceId, syncAddrs_All_AreTjps} = arg.syncSagaInfo;
+
+            if ((syncAddrs_All_AreTjps ?? []).length === 0) {
+                if (logalot) { console.log(`${lc} no tjp timelines to watch. (I: 36b0d293025a47a980bde66672ff23e2)`); }
+                return; // returns
+            }
+            if (!spaceId) {
+                console.warn(`${lc} spaceId required to watch. (W: ee815a021f2c48b0a3764809d69e942a)`);
+                return; // returns
+            }
+
+            const client = createDynamoDBClient({
+                accessKeyId: this.data.accessKeyId,
+                secretAccessKey: this.data.secretAccessKey,
+                region: this.data.region,
+            });
+
+            // get/create the `watch space [spaceId]` index ibgib
+            /**
+             * List that we need to add. If we're already watching all incoming
+             * tjpAddrs, then we don't need to add any and we don't need to
+             * save anything new (and we can return at that point).
+             */
+            let tjpAddrsToAddToWatchList: IbGibAddr[];
+
+            const addrWatch_Space = await this.getWatchAddr({ spaceId });
+
+            let resGetWatch_Space: IbGib_V1[];
+            let watchIbGib_Space: AWSDynamoWatchSpaceIbGib =
+                await this.getWatchIbGib_Space({client, addrWatch_Space})
+            if (watchIbGib_Space) {
+                // already exists. if we have no new tjps, then we're already
+                // done so go ahead and check for this
+                let existingTjpAddrsWatched = Object.keys(watchIbGib_Space.data.updates);
+                for (let i = 0; i < syncAddrs_All_AreTjps.length; i++) {
+                    const tjpAddr = syncAddrs_All_AreTjps[i];
+                    if (!existingTjpAddrsWatched.includes(tjpAddr)) {
+                        tjpAddrsToAddToWatchList.push(tjpAddr);
+                    }
+                }
+
+                if (tjpAddrsToAddToWatchList.length === 0) {
+                    // watch space already exists and no new addresses to watch
+                    return; // <<<< returns
+                }
+            } else {
+                // doesn't exist, so create it
+                const {ib,gib} = h.getIbAndGib({ibGibAddr: addrWatch_Space});
+                const updates: { [tjpAddr: string]: IbGibAddr|null } = {};
+                syncAddrs_All_AreTjps.forEach(tjpAddr => { updates[tjpAddr] = null; });
+                watchIbGib_Space = <AWSDynamoWatchSpaceIbGib>{
+                    ib, gib,
+                    data: { updates },
+                    rel8ns: { ancestor: [`watch space^gib`] }
+                };
+                tjpAddrsToAddToWatchList = syncAddrs_All_AreTjps.concat();
+            }
+
+
+            // If we've gotten here, then we have a watchIbGib_Space and
+            // possibly some tjpAddrs to add. We need to get/create a watch
+            // ibGib for each tjp, and add the incoming space to its list of
+            // watching spaces if it's not already related. Remember, that none
+            // of these contain gib metadata integrity checks, so we don't need
+            // to calculate those gib hashes. (they're all the string literal
+            // 'gib')
+
+            /** Existing watches, possibly already related to spaceId */
+            let watchIbGibs_Tjp_ThatAlreadyExist: AWSDynamoWatchTjpIbGib[];
+            /** YES overwrite these, because newly adding spaceId */
+            let watchIbGibs_Tjp_ThatAlreadyExist_NotYetRelatedToIncomingSpace: AWSDynamoWatchTjpIbGib[] = [];
+            /** DO NOT re-put/save these, because already related to spaceId. */
+            let watchIbGibs_Tjp_ThatAlreadyExist_AlreadyRelatedToIncomingSpace: AWSDynamoWatchTjpIbGib[] = [];
+            try {
+                const warnings: string[] = [];
+                const errors: string[] = [];
+                watchIbGibs_Tjp_ThatAlreadyExist = <AWSDynamoWatchTjpIbGib[]>(await this.getIbGibs({
+                    client,
+                    ibGibAddrs: tjpAddrsToAddToWatchList.concat(),
+                    warnings, errors,
+                    addrsNotFound: [],
+                }));
+                if ((warnings?.length ?? 0) > 0) { console.warn(`${lcGetWatchSpace} warnings: ${warnings.join('\n')} (W: f83ff79a548f499b955ecdc17e2206e4)`); }
+                if ((errors?.length ?? 0) > 0) { console.error(`${lcGetWatchSpace} errors: ${errors.join('\n')} (E: 3dfd4d762105416494f9b18c7f83b36e)`); }
+            } catch (error) {
+                const hmmMsg = `hmm, if it's throwing because it doesnt exist,
+                then we don't care. If it's throwing for some other reason, and
+                one DOES already exist, then we don't want to just overwrite it
+                because then existing watch references would be lost. (The space
+                watch would still have a reference though). Perhaps this is
+                self-healing though, since we're about to add the space if the
+                reference doesnt exist.`.replace(/\n/g, ' ').replace(/  /g, '');
+                debugger;
+                console.error(`${lc}[get watch space] ${error.message} (${hmmMsg})`);
+                watchIbGibs_Tjp_ThatAlreadyExist = [];
+            }
+            watchIbGibs_Tjp_ThatAlreadyExist.forEach(watchIbGib_Tjp => {
+                if (!watchIbGib_Tjp.data.spaceIdsWatching) { watchIbGib_Tjp.data.spaceIdsWatching = []; }
+                if (watchIbGib_Tjp.data.spaceIdsWatching.includes(spaceId)) {
+                    // do nothing more with these, b/c already related to space
+                    watchIbGibs_Tjp_ThatAlreadyExist_AlreadyRelatedToIncomingSpace.push(watchIbGib_Tjp);
+                } else {
+                    // overwrite existing watch with this one
+                    watchIbGibs_Tjp_ThatAlreadyExist_NotYetRelatedToIncomingSpace.push(watchIbGib_Tjp);
+                    watchIbGib_Tjp.data.spaceIdsWatching.push(spaceId);
+                }
+            });
+
+            /** We will create/save new watches for these */
+            const tjpAddrsToAdd_ThatDontExistYet =
+                tjpAddrsToAddToWatchList.filter(tjpAddr =>
+                    !watchIbGibs_Tjp_ThatAlreadyExist.some(x =>
+                        tjpAddr === h.getIbGibAddr({ibGib: x})
+                    )
+                );
+            const watchIbGibs_Tjp_ThatDidntExistYet: AWSDynamoWatchTjpIbGib[] = [];
+            for (let i = 0; i < tjpAddrsToAdd_ThatDontExistYet.length; i++) {
+                const tjpAddr = tjpAddrsToAdd_ThatDontExistYet[i];
+                    const watchAddr_Tjp = await this.getWatchAddr({tjpAddr});
+                    const {ib, gib} = h.getIbAndGib({ibGibAddr: watchAddr_Tjp});
+                    watchIbGibs_Tjp_ThatDidntExistYet.push({
+                        ib, gib,
+                        data: { spaceIdsWatching: [spaceId], },
+                        rel8ns: { ancestor: ['watch tjp^gib'] },
+                    });
+            }
+
+            const watchIbGibs_Tjp_ToPut =
+                watchIbGibs_Tjp_ThatAlreadyExist_NotYetRelatedToIncomingSpace.concat(
+                    watchIbGibs_Tjp_ThatDidntExistYet
+                );
+
+            /** IbGibs to put, guaranteed to be at least one (the space watch) */
+            const allWatches_ToPut: IbGib_V1[] =
+                [ watchIbGib_Space, ...watchIbGibs_Tjp_ToPut ];
+
+            const errors: string[] = [];
+            const warnings: string[] = [];
+            await this.putIbGibs({client, ibGibs: allWatches_ToPut, errors, warnings});
+            if ((warnings?.length ?? 0) > 0) { console.warn(`${lc} warnings: ${warnings.join('\n')} (W: a3a1de795f5d47428259ec5267e2633f)`); }
+            if ((errors?.length ?? 0) > 0) { throw new Error(`Error(s) saving watches. Errors: ${errors.join('\n')} (E: 4554560203c8416f84c34f13501a7ec8)`); }
+
+        } catch (error) {
+            // does not rethrow atm, because this is not "mission critical"
+            // (but I sure want to know if something is happening here...)
+            debugger;
+            console.error(`${lc} ${error.message}`);
+        }
+    }
+
+    private async getWatchAddr({
+        spaceId,
+        tjpAddr,
+    }: {
+        spaceId?: string,
+        tjpAddr?: IbGibAddr,
+    }): Promise<IbGibAddr> {
+        const lc = `${this.lc}[${this.getWatchAddr.name}]`;
+        try {
+            let ib: Ib;
+            if (spaceId) {
+                ib = `watch space ${spaceId}`;
+            } else if (tjpAddr) {
+                const tjpGib = h.getIbAndGib({ibGibAddr: tjpAddr}).gib;
+                /**
+                 * In the extremely rare occurrence of a tjpGib collision, this
+                 * would ensure that the tjp's ib (metadata) is equal as well.
+                 * (but we can't just have the address, because it has an
+                 * ibGibAddr delimiter). If both the ib and gib are "colliding",
+                 * probably something rotten in Denmark.
+                 */
+                const tjpAddrHash = await h.hash({s: tjpAddr, algorithm: 'SHA-256'});
+                ib = `watch tjp ${tjpGib} ${tjpAddrHash}`;
+            } else {
+                throw new Error(`Either spaceId or tjpAddr is required. (E: fb258615d27b41209d5caefaaacd6010)`);
+            }
+            return h.getIbGibAddr({ib, gib: GIB});
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        }
+    }
+
+    private async getWatchIbGib_Space({
+        client,
+        addrWatch_Space,
+    }: {
+        client: DynamoDBClient,
+        addrWatch_Space: IbGibAddr,
+    }): Promise<AWSDynamoWatchSpaceIbGib | null> {
+        const lc = `${this.lc}[${this.getWatchIbGib_Space.name}]`;
+        try {
+            const warnings: string[] = [];
+            const errors: string[] = [];
+            const resGetWatch_Space = await this.getIbGibs({
+                client,
+                ibGibAddrs: [addrWatch_Space],
+                warnings, errors,
+                addrsNotFound: [],
+            });
+            if ((warnings?.length ?? 0) > 0) { console.warn(`${lc} warnings: ${warnings.join('\n')} (W: f83ff79a548f499b955ecdc17e2206e4)`); }
+            if ((errors?.length ?? 0) > 0) { console.error(`${lc} errors: ${errors.join('\n')} (E: 3dfd4d762105416494f9b18c7f83b36e)`); }
+            return (resGetWatch_Space ?? []).length === 1 ?
+                <AWSDynamoWatchSpaceIbGib>resGetWatch_Space[0] :
+                null;
+        } catch (error) {
+            // not overly concerned with errors here I don't _think_...
+            // because we will be overwriting whatever we get anyway.  but
+            // leaving this as error and not info log atm.  definitely not
+            // rethrowing
+            console.error(`${lc}[get watch space] ${error.message}`);
+            return null;
+        }
+    }
+
     protected async getImpl(arg: AWSDynamoSpaceOptionsIbGib):
         Promise<AWSDynamoSpaceResultIbGib> {
-        const lc = `${this.lc}[${this.get.name}]`;
-        const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        const lc = `${this.lc}[${this.getImpl.name}]`;
+        const resultData: AWSDynamoSpaceResultData =
+            { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
         const warnings: string[] = [];
         const addrsNotFound: string[] = [];
@@ -986,7 +1294,7 @@ export class AWSDynamoSpace_V1<
                     addrsNotFound,
                 });
             } else {
-                throw new Error(`either ibGibs or binData/binHash/binExt required.`);
+                throw new Error(`ibGibAddrs required. (E: 3acec57e5eef4c5482fcdca847061ef6)`);
             }
             if (addrsNotFound.length > 0) { resultData.addrsNotFound = addrsNotFound; }
             if (warnings.length > 0) { resultData.warnings = warnings; }
@@ -1103,6 +1411,7 @@ export class AWSDynamoSpace_V1<
             throw error;
         }
     }
+
     /**
      * Sends a given `cmd`, which for ease of coding atm is just typed as `any`,
      * using the given `client`.
@@ -2034,7 +2343,7 @@ export class AWSDynamoSpace_V1<
     }
 
     protected async putImpl(arg: AWSDynamoSpaceOptionsIbGib): Promise<AWSDynamoSpaceResultIbGib> {
-        const lc = `${this.lc}[${this.put.name}]`;
+        const lc = `${this.lc}[${this.putImpl.name}]`;
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
         try {
@@ -2047,7 +2356,7 @@ export class AWSDynamoSpace_V1<
             if (arg.ibGibs?.length > 0) {
                 return await this.putIbGibsImpl({arg, client}); // returns
             } else {
-                throw new Error(`either ibGibs or binData/binHash/binExt required.`);
+                throw new Error(`ibGibs required. (E: 235902107ad64c6fa2232041b234b546)`);
             }
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
@@ -2055,11 +2364,7 @@ export class AWSDynamoSpace_V1<
             resultData.success = false;
         }
         // only executes if there is an error.
-        const result = await this.resulty({resultData});
-        // const result = await resulty_<AWSDynamoSpaceResultData, AWSDynamoSpaceResultIbGib>({
-        //     resultData
-        // });
-        return result;
+        return await this.resulty({resultData});
     }
 
     /**
@@ -2109,6 +2414,10 @@ export class AWSDynamoSpace_V1<
         try {
             if (!addr) { throw new Error(`addr required. (E: 242ee3f7cccb4cbfb1fe80e853320443)`); }
 
+            // if we're already sure it exists, go ahead and return true.
+            if (this.cache_existsInS3.includes(addr)) { return true; }
+
+            // prepare...
             const client = createS3Client({
                 accessKeyId: this.data.accessKeyId,
                 secretAccessKey: this.data.secretAccessKey,
@@ -2121,10 +2430,21 @@ export class AWSDynamoSpace_V1<
                 Key: await getS3Key({addr}),
                 // Content of the new object.
             };
+
+            // head just gets metadata (i.e. if it exists)
             const cmd = new HeadObjectCommand(bucketParams);
+
+            // send it.
             const data: HeadObjectCommandOutput = await client.send(cmd);
-            const exists = data.$metadata.httpStatusCode === 200; // maybe?
+
+            // 200 means that it found it (but just returned metadata)
+            const exists = data.$metadata.httpStatusCode === 200;
+
+            // cache the result if it does indeed exist
+            if (exists) { this.cache_existsInS3.push(addr); }
+
             if (logalot) { console.log(`${lc} ibgib checked from s3 bucket. addr: ${addr}. exists: ${exists}`); }
+
             return exists;
         } catch (error) {
             if (error.$metadata?.httpStatusCode === 404) {
@@ -2136,7 +2456,7 @@ export class AWSDynamoSpace_V1<
             } else {
                 // some other error
                 debugger;
-                const emsg = `${lc} ${error.message ?? 'some kinda aws error... (E: 29c23afd29ff4c2fa92f6d6e46b995fa)'}`;
+                const emsg = `${lc} ${error.message ?? 'some kind of aws error... (E: 29c23afd29ff4c2fa92f6d6e46b995fa)'}`;
                 console.error(emsg);
                 throw new Error(emsg);
             }
@@ -2331,7 +2651,6 @@ export class AWSDynamoSpace_V1<
                 return {ib: x.ib, gib: x.gib, data: x.data, rel8ns: x.rel8ns}
             });
 
-
             let runningCount = 0;
             const batchSize = this.data.putBatchSize || c.DEFAULT_AWS_PUT_BATCH_SIZE;
             const throttleMs = this.data.throttleMsBetweenPuts || c.DEFAULT_AWS_PUT_THROTTLE_MS;
@@ -2401,7 +2720,7 @@ export class AWSDynamoSpace_V1<
 
     protected async deleteImpl(arg: AWSDynamoSpaceOptionsIbGib):
         Promise<AWSDynamoSpaceResultIbGib> {
-        const lc = `${this.lc}[${this.delete.name}]`;
+        const lc = `${this.lc}[${this.deleteImpl.name}]`;
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
         const warnings: string[] = [];
@@ -2431,12 +2750,10 @@ export class AWSDynamoSpace_V1<
      */
     protected async getAddrsImpl(arg: AWSDynamoSpaceOptionsIbGib):
         Promise<AWSDynamoSpaceResultIbGib> {
-        const lc = `${this.lc}[${this.getAddrs.name}]`;
-        throw new Error(`${lc} not implemented`);
+        const lc = `${this.lc}[${this.getAddrsImpl.name}]`;
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
-            resultData.addrs = Object.keys(this.ibGibs).concat();
-            resultData.success = true;
+            throw new Error(`${lc} not implemented (E: bd3c8909bbe54bbe97b42cf11dbdf64d)`);
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];
@@ -2463,7 +2780,7 @@ export class AWSDynamoSpace_V1<
      */
     protected async canGetImpl(arg: AWSDynamoSpaceOptionsIbGib):
         Promise<AWSDynamoSpaceResultIbGib> {
-        const lc = `${this.lc}[${this.canGet.name}]`;
+        const lc = `${this.lc}[${this.canGetImpl.name}]`;
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
             throw new Error('not implemented');
@@ -2476,7 +2793,7 @@ export class AWSDynamoSpace_V1<
     }
     protected async canPutImpl(arg: AWSDynamoSpaceOptionsIbGib):
         Promise<AWSDynamoSpaceResultIbGib> {
-        const lc = `${this.lc}[${this.canPut.name}]`;
+        const lc = `${this.lc}[${this.canPutImpl.name}]`;
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
             throw new Error('not implemented');
@@ -2544,6 +2861,7 @@ export class AWSDynamoSpace_V1<
                 secretAccessKey: this.data.secretAccessKey,
                 region: this.data.region,
             });
+
 
             // create the initial status ibgib.
             // we will mut8/rel8 this status over course of sync.
@@ -3783,27 +4101,6 @@ export class AWSDynamoSpace_V1<
         } catch (error) {
             const emsg = `${lc} ${error.message}`;
             console.error(emsg);
-            throw error;
-        }
-    }
-
-    /**
-     * Calculates the hash of the given `binData`.
-     *
-     * ## notes
-     *
-     * I've pulled this out into its own method because I'm sure this is going
-     * to adapt to multiple hashing algorithms in the future depending on the
-     * version.
-     *
-     * @returns hash string of the given `binData`
-     */
-    protected getBinHash({binData, version}: {binData: any, version?: string}): Promise<string> {
-        const lc = `${this.lc}[${this.getBinHash.name}]`;
-        try {
-            return h.hash({s: binData});
-        } catch (error) {
-            console.error(`${lc} ${error.message}`);
             throw error;
         }
     }

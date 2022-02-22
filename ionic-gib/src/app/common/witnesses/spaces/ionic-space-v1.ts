@@ -387,13 +387,11 @@ export class IonicSpace_V1<
         try {
 
             if (logalot) { console.log(`validating arg and internal state...`); }
-            if (!arg.data) { throw new Error('arg.data is falsy (E: d64a46e5efab4b09b57850ecf0854386)'); }
-
-            if (arg.ibGibs?.length === 0) {
-                throw new Error(`either ibGibs or binData/binHash/binExt required. (E: b4930d564b284fb9b26b542f14143a28)`);
-            }
+            if (!arg.data) { throw new Error('arg.data required. (E: d64a46e5efab4b09b57850ecf0854386)'); }
+            if (arg.ibGibs?.length === 0) { throw new Error(`arg.ibGibs required. (E: b4930d564b284fb9b26b542f14143a28)`); }
 
             // removing this because adding keys blows it up on older spaces.
+            // it's a klugy hack anyway.
             // const reqKeys = Object.keys(DEFAULT_IONIC_SPACE_DATA_V1);
             // const thisDataKeys = Object.keys(this.data || {});
             // const nonInitializedKeys: string[] = [];
@@ -539,7 +537,7 @@ export class IonicSpace_V1<
     protected async getAddrsImpl(arg: IonicSpaceOptionsIbGib):
         Promise<IonicSpaceResultIbGib> {
         const lc = `${this.lc}[${this.getAddrsImpl.name}]`;
-        throw new Error(`${lc} not implemented`);
+        throw new Error(`${lc} not implemented. (E: 74dd50ce4b564559bc44d6c08d446cb3)`);
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
             resultData.addrs = Object.keys(this.ibGibs).concat();
@@ -627,7 +625,7 @@ export class IonicSpace_V1<
     protected async canDeleteImpl(arg: IonicSpaceOptionsIbGib):
         Promise<IonicSpaceResultIbGib> {
         const lc = `${this.lc}[${this.canDeleteImpl.name}]`;
-        throw new Error(`${lc} not implemented`);
+        throw new Error(`${lc} not implemented (E: a3306138b4ac429ba5f8f293ad7dd07b)`);
     }
 
     /**
