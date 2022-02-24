@@ -3114,14 +3114,31 @@ export class IbgibsService {
       if (!resStartSync.data?.statusTjpAddr) { throw new Error(`resStartSync.data.statusTjpAddr is falsy. sagaId: ${sagaId} (E: 727b5cc1a0254497bc6e06e9c6760564)`); }
       syncSagaInfo.witnessFnArgsAndResults$.next(resStartSync);
 
-      // now that we have the progress ibGib, we can ping it's get latest at intervals
-      // to check the status of what to do.
-      // if it needs ibGibs, then
+      // in our return, we can check for updates since our last communication.
+      if (Object.keys(resStartSync.data.watchTjpUpdateMap ?? {}).length > 0) {
+        debugger;
+        await this.handleWatchTjpUpdates({updates: resStartSync.data.watchTjpUpdateMap});
+      }
 
+      // most of our handling will be in subscription to syncStatus$ updates.
       return resStartSync;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
+    }
+  }
+  private async handleWatchTjpUpdates({
+    updates,
+  }: {
+    updates: { [tjpAddr: string]: IbGibAddr; }
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.handleWatchTjpUpdates.name}]`;
+    try {
+      // handle updates here like publish notifications
+      console.log(`${lc} there were some updates found. length: ${Object.keys(updates).length}`);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      // does not rethrow
     }
   }
 
