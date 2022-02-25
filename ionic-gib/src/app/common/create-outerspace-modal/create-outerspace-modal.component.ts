@@ -155,6 +155,7 @@ export class CreateOuterspaceModalComponent
       label: "Table Name",
       regexp: c.AWS_DYNAMODB_REGEXP_TABLE_OR_INDEX,
       required: true,
+      private: true,
     },
     bucketName: {
       name: "bucketName",
@@ -162,6 +163,7 @@ export class CreateOuterspaceModalComponent
       label: "S3 Bucket Name",
       regexp: c.AWS_S3_REGEXP_BUCKET,
       required: true,
+      private: true,
     },
     primaryKeyName: {
       name: "primaryKeyName",
@@ -171,6 +173,7 @@ export class CreateOuterspaceModalComponent
       fnErrorMsg: `Invalid primary key name. Right now, this must be IbGibAddrHash`,
       regexp: c.AWS_DYNAMODB_REGEXP_ATTR,
       required: true,
+      private: true,
     },
     accessKeyId: {
       name: "accessKeyId",
@@ -178,6 +181,7 @@ export class CreateOuterspaceModalComponent
       label: "Access Key Id",
       regexp: getRegExp({min: 1, max: 50, chars: c.ALLISH_SPECIAL_CHARS}),
       required: true,
+      private: true,
     },
     secretAccessKey: {
       name: "secretAccessKey",
@@ -185,6 +189,7 @@ export class CreateOuterspaceModalComponent
       label: "Secret Access Key",
       regexp: getRegExp({min: 1, max: 100, chars: c.ALLISH_SPECIAL_CHARS}),
       required: true,
+      private: true,
     },
 
 
@@ -199,6 +204,7 @@ export class CreateOuterspaceModalComponent
       description: "Select one or more secrets to associate with this endpoint. You'll be required to enter the password for each one in order for us to encrypt your space endpoint.",
       label: "Secrets",
       fnErrorMsg: `At least one secret is required.`,
+      private: true,
     },
   }
 

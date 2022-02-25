@@ -123,12 +123,14 @@ export class CreateSecretModalComponent
       }),
       fnErrorMsg: `Password must only contain letters, numbers and ${c.ALLISH_SPECIAL_CHARS}. Min: ${c.MIN_ENCRYPTION_PASSWORD_LENGTH}. Max: ${c.MAX_ENCRYPTION_PASSWORD_LENGTH}`,
       required: true,
+      private: true,
     },
     userPasswordConfirm: {
       name: "userPasswordConfirm",
       label: "Password (confirm)",
       description: "Make sure we type in the same password...",
       required: true,
+      private: true,
     },
     hint: {
       name: "hint",
@@ -137,6 +139,7 @@ export class CreateSecretModalComponent
       placeholder: "Optional...",
       regexp: getRegExp({min: 1, max: 50, chars: c.SAFE_SPECIAL_CHARS}),
       fnErrorMsg: `Optional hint must contain letters, numbers and ${c.SAFE_SPECIAL_CHARS}`,
+      private: true,
     },
 
   }

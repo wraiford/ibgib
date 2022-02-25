@@ -207,7 +207,8 @@ export class IbGibPage extends IbgibComponentBase
         const dependencyGraph =
           await this.common.ibgibs.getDependencyGraph({ibGib: this.ibGib});
         const sagaInfos = await this.common.ibgibs.syncIbGibs({
-          dependencyGraphIbGibs: Object.values(dependencyGraph)
+          dependencyGraphIbGibs: Object.values(dependencyGraph),
+          watch: true,
         });
         if (sagaInfos) {
           await new Promise<void>((resolve, reject) => {

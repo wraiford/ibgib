@@ -134,6 +134,10 @@ export interface FieldInfo {
    * If the field is required.
    */
   required?: boolean;
+  /**
+   *
+   */
+  private?: boolean;
 }
 
 /**

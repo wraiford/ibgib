@@ -87,7 +87,13 @@ export abstract class CreateModalComponentBase<TDataOut> implements OnInit, OnDe
       let value = this[field.name];
       if (logalot) { console.log(`${lc} doing ${field.name}`); }
       if (value) {
-        if (logalot) { console.log(`${lc} value: ${value}`); }
+        if (logalot) {
+          if (field.private) {
+            console.log(`${lc} value: [field is private]`);
+          } else {
+            console.log(`${lc} value: ${value}`);
+          }
+        }
 
         if (typeof value === 'string') {
           if (field.regexp) {

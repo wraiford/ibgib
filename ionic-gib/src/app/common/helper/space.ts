@@ -2019,3 +2019,36 @@ function rel8TagToTagsIbGib({
         fnUpdateBootstrap,
     });
 }
+
+
+/**
+ * Throws an error if any duplicates found in either array.
+ *
+ * ## notes
+ *
+ * Only pass in ibGib or ibGibAddrs, not both. Warns if both are passed in though.
+ *
+ * @throws if both params are falsy or if addrs || mapped addrs contains duplicates.
+ */
+export function throwIfDuplicates({
+    ibGibs,
+    ibGibAddrs,
+}: {
+    ibGibs?: IbGib_V1[],
+    ibGibAddrs?: IbGibAddr[],
+}): void {
+    const lc = `[${throwIfDuplicates.name}]`;
+    try {
+        if (!ibGibs && !ibGibAddrs) { throw new Error(`either ibGibs or ibGibAddrs required. (E: 37776788620f4966b0964945ce181fc6)`); }
+        if (ibGibs && ibGibAddrs) { console.warn(`${lc} both ibGibs and ibGibAddrs provided. You should only provide one. Only ibGibAddrs will be checked. (W: dc13f9e197834e2daaba3bcfd08418db)`); }
+
+        const addrs = ibGibAddrs ? ibGibAddrs.concat() : ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
+        for (let i = 0; i < addrs.length; i++) {
+            const addr = addrs[i];
+            if (addrs.filter(x => x === addr).length > 1) { throw new Error(`duplicate addr found: ${addr} (E: 70fbef040dd449c38c667d53b8092053)`); }
+        }
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}

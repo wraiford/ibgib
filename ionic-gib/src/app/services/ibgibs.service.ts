@@ -2101,7 +2101,6 @@ export class IbgibsService {
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized. (E: 1b281661f24e487688d78725a6b91c38)`); }
       return getFromSpace({ addr, isMeta, isDna, space });
     } catch (error) {
-      debugger;
       console.error(`${lc} ${error.message}`);
       return Promise.resolve({ errorMsg: error.message });
     }
@@ -2828,10 +2827,16 @@ export class IbgibsService {
 
   async syncIbGibs({
     dependencyGraphIbGibs,
-    confirm,
+    // confirm,
+    watch,
   }: {
     dependencyGraphIbGibs?: IbGib_V1[],
-    confirm?: boolean,
+    // confirm?: boolean,
+    /**
+     * If true, will watch ibgibs in dependency graph that have timelines
+     * (tjps).
+     */
+    watch?: boolean,
   }): Promise<SyncSagaInfo[]|undefined> {
     const lc = `${this.lc}[${this.syncIbGibs.name}]`;
     // map of saga infos across all spaces
@@ -2905,7 +2910,8 @@ export class IbgibsService {
           // _startSync creates a status observable that can keep us up to date
           // on the status updates throughout the sync saga. We can handle
           // updating our own local space based on those status updates.
-          await this._startSync({syncSagaInfo: sagaInfo, confirm});
+          // await this._startSync({syncSagaInfo: sagaInfo, confirm});
+          await this._startSync({syncSagaInfo: sagaInfo, watch});
         } catch (error) {
           // if this throws, then that is unexpected. The above result should
           // always be returned, and if it's errored then it should indicate as
@@ -3070,16 +3076,18 @@ export class IbgibsService {
    */
   private async _startSync({
     syncSagaInfo,
-    confirm,
+    watch,
+    // confirm,
   }: {
     syncSagaInfo: SyncSagaInfo,
+    watch?: boolean,
     /**
      * Will confirm via checking existence of ibgibs in sync space after
      * writing them.
      *
      * NOTE: IGNORED ATM
      */
-    confirm?: boolean,
+    // confirm?: boolean,
   }): Promise<SyncSpaceResultIbGib> {
     const lc = `${this.lc}[${this._startSync.name}]`;
     try {
@@ -3094,7 +3102,7 @@ export class IbgibsService {
       // entire operation wrt this space.
       const argStartSync: SyncSpaceOptionsIbGib = await syncSpace.argy({
         argData: <SyncSpaceOptionsData>{
-          cmd: 'put', cmdModifiers: ['sync'],
+          cmd: 'put', cmdModifiers: watch ? ['sync', 'watch'] : ['sync'],
           sagaId,
           participants,
           ibGibAddrs: syncAddrs_All,
@@ -3115,6 +3123,7 @@ export class IbgibsService {
       syncSagaInfo.witnessFnArgsAndResults$.next(resStartSync);
 
       // in our return, we can check for updates since our last communication.
+      debugger;
       if (Object.keys(resStartSync.data.watchTjpUpdateMap ?? {}).length > 0) {
         debugger;
         await this.handleWatchTjpUpdates({updates: resStartSync.data.watchTjpUpdateMap});
