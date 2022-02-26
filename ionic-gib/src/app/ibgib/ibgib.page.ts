@@ -60,6 +60,11 @@ export class IbGibPage extends IbgibComponentBase
     return platform === 'ios';
   }
 
+  /**
+   * Number of tjp timelines that have updates in outer space(s).
+   */
+  @Input()
+  tjpUpdatesAvailableCount: number = 0;
 
   constructor(
     protected common: CommonService,

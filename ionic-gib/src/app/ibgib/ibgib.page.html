@@ -32,6 +32,7 @@
       </ion-button>
       <ion-button [disabled]="syncing"
         slot="end" (click)="handleSyncClick()" class="toolbar-sync">
+        <ion-badge *ngIf="tjpUpdatesAvailableCount" color="primary" slot="end">{{ tjpUpdatesAvailableCount }}</ion-badge>
         <ion-icon name="sparkles-outline"></ion-icon>
         <ion-spinner *ngIf="syncing" name="circles" color="tertiary"></ion-spinner>
       </ion-button>

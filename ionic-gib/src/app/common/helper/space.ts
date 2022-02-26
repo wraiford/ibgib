@@ -241,6 +241,7 @@ export async function getDependencyGraph({
     ibGibAddr,
     ibGibAddrs,
     gotten,
+    skipAddrs,
     skipRel8nNames,
     space,
 }: {
@@ -277,6 +278,22 @@ export async function getDependencyGraph({
      */
     gotten?: { [addr: string]: IbGib_V1 },
     /**
+     * NOT IMPLEMENTED ATOW
+     *
+     * List of ibgib addresses to skip not retrive in the dependency graph.
+     *
+     * This will also skip any ibgib addresses that would have occurred in the
+     * past of these ibgibs, as when skipping an ibgib, you are also skipping
+     * its dependencies implicitly as well (unless those others are related via
+     * another ibgib that is not skipped of course).
+     *
+     * ## driving use case
+     *
+     * We don't want to get ibgibs that we already have, and this is
+     * cleaner than using the `gotten` parameter for double-duty.
+     */
+    skipAddrs?: IbGibAddr[],
+    /**
      * Skip these particular rel8n names.
      *
      * ## driving intent
@@ -297,20 +314,31 @@ export async function getDependencyGraph({
         }
 
         skipRel8nNames = skipRel8nNames || [];
+        skipAddrs = skipAddrs || [];
+        gotten = gotten || {};
 
         // convert single args (ibGib, ibGibAddr) into the array args, filtering
         // out primitives that we don't want. The `filter` function creates the
         // copy here, so we won't mutate the incoming arrays. (The ibgibs and
         // addrs themselves are immutable).
         ibGibAddrs = (ibGibAddrs ?? [])
-            .filter(x => !isPrimitive({gib: h.getIbAndGib({ibGibAddr: x}).gib})); // no primitives
-        ibGibs = (ibGibs ?? []).filter(x => !isPrimitive({ibGib: x})); // no primitives
-        if (ibGib && !isPrimitive({ibGib}) && !ibGibs.some(x => x.gib === ibGib.gib)) {
+            .filter(x => !isPrimitive({gib: h.getIbAndGib({ibGibAddr: x}).gib})) // no primitives
+            .filter(x => !skipAddrs.includes(x));
+        ibGibs =
+            (ibGibs ?? [])
+            .filter(x => !isPrimitive({ibGib: x})) // no primitives
+            .filter(x => !skipAddrs.includes(h.getIbGibAddr({ibGib: x})));
+        if (ibGib &&
+            !isPrimitive({ibGib}) &&
+            !ibGibs.some(x => x.gib === ibGib.gib) &&
+            !skipAddrs.includes(h.getIbGibAddr({ibGib}))
+        ) {
             ibGibs.push(ibGib);
         }
         if (ibGibAddr &&
             !isPrimitive({gib: h.getIbAndGib({ibGibAddr}).gib}) &&
-            !ibGibAddrs.includes(ibGibAddr)
+            !ibGibAddrs.includes(ibGibAddr) &&
+            !skipAddrs.includes(ibGibAddr)
         ) {
             ibGibAddrs.push(ibGibAddr);
         }
@@ -320,8 +348,6 @@ export async function getDependencyGraph({
         // am refactorishing and I'm letting you know.)
         ibGib = undefined;
         ibGibAddr = undefined;
-
-        gotten = gotten || {};
 
         // // before doing anything else (i.e. recursive calls), we have to add
         // // any passed in ibGibs (which are already gotten by definition) to
@@ -346,7 +372,7 @@ export async function getDependencyGraph({
                 const gottenAddrs: IbGibAddr[] = Object.keys(gotten); // compute once
                 for (let i = 0; i < addrs.length; i++) {
                     const addrToCheck = addrs[i];
-                    if (!gottenAddrs.includes(addrToCheck)) {
+                    if (!gottenAddrs.includes(addrToCheck) && !skipAddrs.includes(addrToCheck)) {
                         const alreadyGivenIbGibMaybe =
                             ibGibs.filter(x => h.getIbGibAddr({ibGib: x}) === addrToCheck);
                         if (alreadyGivenIbGibMaybe.length === 0) {
@@ -364,7 +390,8 @@ export async function getDependencyGraph({
         // So first, go ahead and do the passed in ibGibAddrs.  These are the
         // addrs that we need to not only get and load if we don't already have
         // them, but we will check their rel8ns as well.
-        const addrsWeDontHaveAlready_IncomingIbGibAddrs = getAddrsThatWeDontHaveAlready(ibGibAddrs);
+        const addrsWeDontHaveAlready_IncomingIbGibAddrs =
+            getAddrsThatWeDontHaveAlready(ibGibAddrs);
 
         // go ahead and retrieve any associated ibGibs from the space that we
         // don't already have (if any)
@@ -419,6 +446,7 @@ export async function getDependencyGraph({
                 const rel8dAddrsNotGottenYetThisRel8n =
                     rel8dAddrs
                     .filter(addr => !gottenKeys.includes(addr))
+                    .filter(addr => !skipAddrs.includes(addr))
                     .filter(addr => h.getIbAndGib({ibGibAddr: addr}).gib !== GIB)
                     .filter(addr => !addrsWeDontHaveAlready_Rel8dAddrs.includes(addr));
                 rel8dAddrsNotGottenYetThisRel8n.forEach(rel8dAddr => {
@@ -449,7 +477,7 @@ export async function getDependencyGraph({
                     // return a recursive call for the newly-gotten ibgibs'
                     // dependencies, passing in the now-larger accumulating
                     // `gotten` map of ibgibs already processed.
-                    return await getDependencyGraph({ibGibs: resGet.ibGibs, gotten, skipRel8nNames, space}); // returns
+                    return await getDependencyGraph({ibGibs: resGet.ibGibs, gotten, skipAddrs, skipRel8nNames, space}); // returns
                 } else if (resGet.ibGibs?.length > 0 && resGet.ibGibs.length < addrsWeDontHaveAlready_Rel8dAddrs.length) {
                     debugger;
                     if (logalot) { console.warn(`${lc} got SOME of them (happy-ish path?). not sure what to do here... (W: e3458f61a1ae4979af9e6b18ac935c14)`); }

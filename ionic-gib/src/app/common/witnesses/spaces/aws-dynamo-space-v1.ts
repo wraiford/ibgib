@@ -1384,17 +1384,20 @@ export class AWSDynamoSpace_V1<
             tjpWatchIbGibs_ThatAlreadyExist.forEach(tjpWatchIbGib => {
                 // initialize just in case was cleared out previously
                 if (!tjpWatchIbGib.data.spaceIdsWatching) {
+                    if (logalot) { console.log(`${lc} initializing falsy tjpWatchIbGib.data.spaceIdsWatching (${h.getIbGibAddr({ibGib: tjpWatchIbGib})})`); }
                     tjpWatchIbGib.data.spaceIdsWatching = [];
                 }
 
                 if (tjpWatchIbGib.data.spaceIdsWatching.includes(srcSpaceId)) {
                     // do nothing more with these, b/c already related to space
+                    if (logalot) { console.log(`${lc} existing tjpWatchIbGib already related to src space.`); }
                     tjpWatchIbGibs_ThatAlreadyExist_AlreadyRelatedToIncomingSpace.push(tjpWatchIbGib);
                 } else {
                     // overwrite existing watch with this one
                     tjpWatchIbGibs_ThatAlreadyExist_NotYetRelatedToIncomingSpace.push(tjpWatchIbGib);
                     if (logalot) { console.log(`${lc} adding srcSpaceId (${srcSpaceId} to tjpWatchIbGib (${h.getIbGibAddr({ibGib: tjpWatchIbGib})}))`); }
                     tjpWatchIbGib.data.spaceIdsWatching.push(srcSpaceId);
+                    if (logalot) { console.log(`${lc} modified tjpWatchIbGib: ${h.pretty(tjpWatchIbGib)}`); }
                 }
             });
 
@@ -1402,7 +1405,7 @@ export class AWSDynamoSpace_V1<
             const tjpAddrsToAdd_ThatDontExistYet =
                 tjpAddrsToAddToWatchList.filter(tjpAddr =>
                     !tjpWatchIbGibs_ThatAlreadyExist.some(x =>
-                        tjpAddr === h.getIbGibAddr({ibGib: x})
+                        tjpAddr === x.data.tjpAddr
                     )
                 );
             const tjpWatchIbGibs_ThatDidntAlreadyExist: AWSDynamoWatchTjpIbGib[] = [];
@@ -1420,7 +1423,7 @@ export class AWSDynamoSpace_V1<
                     },
                     rel8ns: { ancestor: ['watch tjp^gib'] },
                 };
-                if (logalot) { console.log(`newTjpWatchIbgib: ${h.pretty(newTjpWatchIbgib)}`); }
+                if (logalot) { console.log(`${lc} newTjpWatchIbgib: ${h.pretty(newTjpWatchIbgib)}`); }
                 tjpWatchIbGibs_ThatDidntAlreadyExist.push(newTjpWatchIbgib);
             }
 
@@ -3562,6 +3565,8 @@ export class AWSDynamoSpace_V1<
                     // will be picked up on the next call by the incoming
                     // space.
                     await this.updateTjpWatches({client, srcSpaceId, updates});
+                } else {
+                    if (logalot) { console.log(`${lc} no updates occurred, so NOT calling updateTjpWatches.`); }
                 }
 
 
@@ -3743,6 +3748,7 @@ export class AWSDynamoSpace_V1<
 
             // we now have a map of spaceId -> tjpAddr, so get the space watch
             // ibGibs, update and save/overwrite them
+            if (logalot) { console.log(`${lc} building spaceIdsToUpdate`); }
             let spaceIdsToUpdate = Object.keys(spaceToTjpAddrUpdateMap);
             if (spaceIdsToUpdate.length === 0) {
                 if (logalot) { console.log(`${lc} spaceIdsToUpdate.length === 0, so returning without updating any space watch ibgibs (I: c6cd69a708184bad9b604cc531f79f0e)`); }
@@ -3750,19 +3756,20 @@ export class AWSDynamoSpace_V1<
             } else {
                 if (logalot) { console.log(`${lc} spaceIdsToUpdate: ${spaceIdsToUpdate.join('|')}`); }
             }
+            if (logalot) { console.log(`${lc} spaceIdsToUpdate: ${spaceIdsToUpdate}`); }
 
-            if (logalot) { console.log(`${lc} building spaceWatchAddrs`); }
-            let spaceWatchAddrs: IbGibAddr[] = [];
-            for (let i = 0; i < spaceIdsToUpdate.length; i++) {
-                const spaceId = spaceIdsToUpdate[i];
-                const spaceWatchAddr = await this.getWatchAddr({spaceId});
-                spaceWatchAddrs.push(spaceWatchAddr);
-            }
-            if (logalot) { console.log(`${lc} spaceWatchAddrs: ${h.pretty(spaceWatchAddrs ?? [])}`); }
+            // if (logalot) { console.log(`${lc} building spaceWatchAddrs`); }
+            // let spaceWatchAddrs: IbGibAddr[] = [];
+            // for (let i = 0; i < spaceIdsToUpdate.length; i++) {
+            //     const spaceId = spaceIdsToUpdate[i];
+            //     const spaceWatchAddr = await this.getWatchAddr({spaceId});
+            //     spaceWatchAddrs.push(spaceWatchAddr);
+            // }
+            // if (logalot) { console.log(`${lc} spaceWatchAddrs: ${h.pretty(spaceWatchAddrs ?? [])}`); }
 
             if (logalot) { console.log(`${lc} getting spaceWatchIbGibs`); }
             let spaceWatchIbGibs = await this.getSpaceWatchIbGibsOrNull({
-                client, spaceIds: spaceWatchAddrs,
+                client, spaceIds: spaceIdsToUpdate,
             });
             if (logalot) { console.log(`${lc} spaceWatchIbGibs gotten: ${h.pretty(spaceWatchIbGibs ?? {})}`); }
 

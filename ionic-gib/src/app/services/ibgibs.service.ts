@@ -3123,9 +3123,8 @@ export class IbgibsService {
       syncSagaInfo.witnessFnArgsAndResults$.next(resStartSync);
 
       // in our return, we can check for updates since our last communication.
-      debugger;
       if (Object.keys(resStartSync.data.watchTjpUpdateMap ?? {}).length > 0) {
-        debugger;
+        // debugger;
         await this.handleWatchTjpUpdates({updates: resStartSync.data.watchTjpUpdateMap});
       }
 
@@ -3143,7 +3142,10 @@ export class IbgibsService {
   }): Promise<void> {
     const lc = `${this.lc}[${this.handleWatchTjpUpdates.name}]`;
     try {
-      // handle updates here like publish notifications
+      // get the latest for tjpAddr locally
+      // get the dependency graph for the latest local
+      // get dependency graph from spaces, skipping all addrs in local already
+      // save dependency graph
       console.log(`${lc} there were some updates found. length: ${Object.keys(updates).length}`);
     } catch (error) {
       console.error(`${lc} ${error.message}`);

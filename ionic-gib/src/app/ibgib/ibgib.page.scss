@@ -138,3 +138,14 @@ action-bar, ion-footer {
 .move-up {
   transform: translateY(-10px);
 }
+
+ion-badge {
+  position: absolute;
+  font-size: 6pt;
+  height: 6px;
+  right: -7px;
+  top: 0px;
+  overflow: visible !important;
+  padding-top: 1px;
+  border-radius: 50%;
+}
