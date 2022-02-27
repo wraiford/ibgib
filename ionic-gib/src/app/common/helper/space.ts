@@ -1071,7 +1071,9 @@ export async function registerNewIbGib({
                 defaultSpace,
                 fnUpdateBootstrap,
             });
-            fnBroadcast({tjpAddr, latestAddr: ibGibAddr, latestIbGib: ibGib});
+            if (fnBroadcast) {
+                fnBroadcast({tjpAddr, latestAddr: ibGibAddr, latestIbGib: ibGib});
+            }
             // this._latestSubj.next({tjpAddr, latestAddr: ibGibAddr, latestIbGib: ibGib});
         }
 

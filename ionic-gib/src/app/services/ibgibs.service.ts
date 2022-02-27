@@ -2003,51 +2003,71 @@ export class IbgibsService {
    */
   async getLatestAddr({
     ibGib,
+    tjpAddr,
     tjp,
     space,
   }: {
-    ibGib: IbGib_V1<any>,
+    ibGib?: IbGib_V1<any>,
+    tjpAddr?: IbGibAddr,
     tjp?: IbGib_V1<any>,
     space?: IbGibSpaceAny,
   }): Promise<IbGibAddr> {
     let lc = `${this.lc}[${this.getLatestAddr.name}]`;
     if (logalot) { console.log(`${lc} starting...`); }
-    if (!ibGib) {
-      console.error(`${lc} ibGib falsy`);
-      return;
-    }
-    let ibGibAddr = h.getIbGibAddr({ibGib});
+    let defaultReturnAddrIfTjpNotFoundOrIfError: IbGibAddr;
     try {
+      if (!ibGib && !tjp && !tjpAddr) {
+        throw new Error(`ibGib && tjp && tjpAddr falsy (E: fe725654342c4d80a33219160b5d81d3)`);
+      }
+
       space = space ?? this.localUserSpace;
       if (!space) {
         console.warn(`${lc} space falsy and localUserSpace not initialized.`);
       }
 
-      const {gib} = h.getIbAndGib({ibGibAddr});
-      if (gib === GIB) { return ibGibAddr; }
-      let specialLatest = await this.getSpecialIbgib({type: "latest", space});
-      if (!specialLatest.rel8ns) { specialLatest.rel8ns = {}; }
+      // latest addr is indexed by tjpAddr, so we need to get this first...
+      if (tjpAddr) {
+        defaultReturnAddrIfTjpNotFoundOrIfError = ibGib ? h.getIbGibAddr({ibGib}) : tjpAddr;
+      } else {
+        if (tjp) {
+          if (logalot) { console.log(`${lc} tjp: ${JSON.stringify(tjp)}`); }
+          tjpAddr = h.getIbGibAddr({ibGib: tjp});
+          defaultReturnAddrIfTjpNotFoundOrIfError = ibGib ? h.getIbGibAddr({ibGib}) : tjpAddr;
+        } else {
+          // ibGib guaranteed not to be falsy
+          // need to get tjpAddr from ibGib
+          let ibGibAddr = h.getIbGibAddr({ibGib});
+          if (ibGib.gib === GIB) { return ibGibAddr; }
 
-      // get the tjp for the rel8nName mapping, and also for some checking logic
-      if (logalot) { console.log(`${lc} tjp: ${JSON.stringify(tjp)}`); }
-      if (!tjp) {
-        tjp = await this.getTjpIbGib({ibGib, space});
-        if (!tjp) {
-          console.warn(`${lc} tjp not found for ${ibGibAddr}? Should at least just be the ibGib's address itself.`);
-          tjp = ibGib;
+          // get the tjp for the rel8nName mapping, and also for some checking logic
+          tjp = await this.getTjpIbGib({ibGib, space});
+          if (!tjp) {
+            console.warn(`${lc} tjp not found for ${ibGibAddr}? Should at least just be the ibGib's address itself.`);
+            tjp = ibGib;
+          }
+          tjpAddr = h.getIbGibAddr({ibGib: tjp});
+          if (logalot) { console.log(`${lc} tjp (${tjpAddr})`); }
+          defaultReturnAddrIfTjpNotFoundOrIfError = ibGib ? ibGibAddr : tjpAddr;
         }
       }
-      let tjpAddr = h.getIbGibAddr({ibGib: tjp});
-      if (logalot) { console.log(`${lc} tjp (${tjpAddr})...`); }
 
+      let specialLatest = await this.getSpecialIbgib({type: "latest", space});
+      if (!specialLatest) { throw new Error(`(UNEXPECTED) specialLatest falsy. Not initialized? (E: 3f475efb6b1b4447a0b002461304bbce)`); }
+      if (!specialLatest.rel8ns) { specialLatest.rel8ns = {}; }
       if (logalot) { console.log(`${lc} specialLatest addr: ${h.getIbGibAddr({ibGib: specialLatest})}`); }
+
       let latestAddr = specialLatest.rel8ns[tjpAddr]?.length > 0 ?
         specialLatest.rel8ns[tjpAddr][0] :
-        ibGibAddr;
+        defaultReturnAddrIfTjpNotFoundOrIfError;
+
       return latestAddr;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-      return
+      if (defaultReturnAddrIfTjpNotFoundOrIfError) {
+        return defaultReturnAddrIfTjpNotFoundOrIfError;
+      } else {
+        throw error;
+      }
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
     }
@@ -2166,30 +2186,62 @@ export class IbgibsService {
    */
   getDependencyGraph({
     ibGib,
+    ibGibs,
     ibGibAddr,
+    ibGibAddrs,
     gotten,
+    skipAddrs,
     skipRel8nNames,
     space,
   }: {
     /**
      * source ibGib to grab dependencies of.
      *
-     * caller must provide this or `ibGibAddr`
+     * caller can pass in `ibGib` or `ibGibs` or `ibGibAddr` or `ibGibAddrs`.
      */
     ibGib?: IbGib_V1,
     /**
+     * source ibGibs to grab dependencies of.
+     *
+     * caller can pass in `ibGib` or `ibGibs` or `ibGibAddr` or `ibGibAddrs`.
+     */
+    ibGibs?: IbGib_V1[],
+    /**
      * source ibGib address to grab dependencies of.
      *
-     * caller must provide this or `ibGib`
+     * caller can pass in `ibGib` or `ibGibs` or `ibGibAddr` or `ibGibAddrs`.
      */
     ibGibAddr?: IbGibAddr,
     /**
+     * source ibGib addresses to grab dependencies of.
+     *
+     * caller can pass in `ibGib` or `ibGibs` or `ibGibAddr` or `ibGibAddrs`.
+     */
+    ibGibAddrs?: IbGibAddr[],
+    /**
      * object that will be populated through recursive calls to this function.
      *
-     * First caller of this function should not provide this and I'm not atow
-     * coding a separate implementation function to ensure this.
+     * First caller of this function should not (doesn't need to?) provide this
+     * and I'm not atow coding a separate implementation function to ensure
+     * this.
      */
     gotten?: { [addr: string]: IbGib_V1 },
+    /**
+     * NOT IMPLEMENTED ATOW
+     *
+     * List of ibgib addresses to skip not retrive in the dependency graph.
+     *
+     * This will also skip any ibgib addresses that would have occurred in the
+     * past of these ibgibs, as when skipping an ibgib, you are also skipping
+     * its dependencies implicitly as well (unless those others are related via
+     * another ibgib that is not skipped of course).
+     *
+     * ## driving use case
+     *
+     * We don't want to get ibgibs that we already have, and this is
+     * cleaner than using the `gotten` parameter for double-duty.
+     */
+    skipAddrs?: IbGibAddr[],
     /**
      * Skip these particular rel8n names.
      *
@@ -2198,12 +2250,21 @@ export class IbgibsService {
      * I'm adding this to be able to skip getting dna ibgibs.
      */
     skipRel8nNames?: string[],
+    /**
+     * Space within which we should be looking for ibGibs.
+     */
     space?: IbGibSpaceAny,
   }): Promise<{ [addr: string]: IbGib_V1 }> {
     const lc = `${this.lc}[${this.getDependencyGraph.name}]`;
     try {
       space = space ?? this.localUserSpace;
-      return getDependencyGraph({ibGib, ibGibAddr, gotten, skipRel8nNames, space});
+      return getDependencyGraph({
+        ibGib, ibGibs,
+        ibGibAddr, ibGibAddrs,
+        gotten,
+        skipAddrs, skipRel8nNames,
+        space,
+      });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -3124,8 +3185,12 @@ export class IbgibsService {
 
       // in our return, we can check for updates since our last communication.
       if (Object.keys(resStartSync.data.watchTjpUpdateMap ?? {}).length > 0) {
-        // debugger;
-        await this.handleWatchTjpUpdates({updates: resStartSync.data.watchTjpUpdateMap});
+        if (logalot) { console.log(`${lc} resStartSync.data.watchTjpUpdateMap: ${h.pretty(resStartSync.data.watchTjpUpdateMap)}`); }
+        debugger;
+        await this.handleWatchTjpUpdates({
+          outerSpace: syncSpace,
+          updates: resStartSync.data.watchTjpUpdateMap
+        });
       }
 
       // most of our handling will be in subscription to syncStatus$ updates.
@@ -3137,19 +3202,85 @@ export class IbgibsService {
   }
   private async handleWatchTjpUpdates({
     updates,
+    outerSpace,
   }: {
     updates: { [tjpAddr: string]: IbGibAddr; }
+    outerSpace: IbGibSpaceAny,
   }): Promise<void> {
     const lc = `${this.lc}[${this.handleWatchTjpUpdates.name}]`;
+    if (logalot) { console.log(`${lc} starting...`); }
     try {
-      // get the latest for tjpAddr locally
-      // get the dependency graph for the latest local
-      // get dependency graph from spaces, skipping all addrs in local already
-      // save dependency graph
-      console.log(`${lc} there were some updates found. length: ${Object.keys(updates).length}`);
+      debugger;
+
+      /**
+       * compile list of addrs we have locally for all updates, so we don't try
+       * to download them from outer space unnecessarily.
+       */
+      const latestAddrsLocallyWithUpdate: IbGibAddr[] = [];
+      const tjpAddrs = Object.keys(updates);
+      const latestAddrs_Store = Object.values(updates);
+      for (let i = 0; i < tjpAddrs.length; i++) {
+        const tjpAddr = tjpAddrs[i];
+        if (logalot) { console.log(`${lc} tjpAddr: ${tjpAddr}`); }
+        const latestAddrLocally =
+          await this.getLatestAddr({tjpAddr, space: this.localUserSpace});
+        if (
+          !latestAddrs_Store.includes(latestAddrLocally) &&
+          !latestAddrsLocallyWithUpdate.includes(latestAddrLocally)
+        ) {
+          latestAddrsLocallyWithUpdate.push(latestAddrLocally);
+        }
+      }
+      if (latestAddrsLocallyWithUpdate.length === 0) {
+        if (logalot) { console.log(`${lc} latestAddrsLocallyWithUpdate.length === 0. We already had all of the updates locally perhaps. Returning early. (I: 844193c515084d0ebc348349f1ac41f4)`); }
+        return; // <<<< returns early
+      }
+
+      /**
+       * LOCAL dependencies for latest LOCAL addrs for all tjpAddrs in updates.
+       */
+      const localDependencyGraphs = await this.getDependencyGraph({
+        ibGibAddrs: latestAddrsLocallyWithUpdate,
+        space: this.localUserSpace
+      });
+
+      /** all addrs we already have locally */
+      const addrsAlreadyStoredLocally = Object.keys(localDependencyGraphs);
+
+      // get dependency graph from outer space, skipping all addrs in local already
+      const newerAddrsFromOuterSpace: IbGibAddr[] = Object.values(updates);
+      const newerIbGibDependencyGraphFromOuterSpace = await getDependencyGraph({
+        ibGibAddrs: newerAddrsFromOuterSpace,
+        space: outerSpace,
+        skipAddrs: addrsAlreadyStoredLocally,
+      });
+      const newerIbGibsFromOuterSpace: IbGib_V1[] =
+        Object.values(newerIbGibDependencyGraphFromOuterSpace);
+
+      if (logalot) { console.log(`${lc} got ${newerIbGibsFromOuterSpace.length} ibGibs from outerspace`); }
+
+      // save locally
+      if (logalot) { console.log(`${lc} saving new ibgibs from outerspace in local space...`); }
+      await this.put({ibGibs: newerIbGibsFromOuterSpace, space: this.localUserSpace});
+
+      // register the newest tjp ibGibs locally
+      if (logalot) { console.log(`${lc} registering "new" updated tjp ibgibs locally...`); }
+      for (let i = 0; i < tjpAddrs.length; i++) {
+        const tjpAddr = tjpAddrs[i];
+        const updatedAddr = updates[tjpAddr];
+        const updatedIbGib = newerIbGibDependencyGraphFromOuterSpace[updatedAddr];
+        if (!updatedIbGib) {
+          debugger;
+          throw new Error(`did not get updatedIbGib (${updatedAddr}) from outerspace (${outerSpace.data.uuid}) (E: 818de70f5b444a3ba198ba6480a15b04)`);
+        }
+        await this.registerNewIbGib({ibGib: updatedIbGib});
+      }
+
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       // does not rethrow
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 

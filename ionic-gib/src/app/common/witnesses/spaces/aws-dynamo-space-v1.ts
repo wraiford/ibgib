@@ -3107,6 +3107,7 @@ export class AWSDynamoSpace_V1<
         }
         try {
             const result = await this.resulty({resultData});
+            if (logalot) { console.log(`${lc} result.data: ${result.data}`); }
             result.syncSagaInfo = syncSagaInfo;
             return result;
         } catch (error) {
