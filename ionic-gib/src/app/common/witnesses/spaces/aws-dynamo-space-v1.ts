@@ -3203,14 +3203,11 @@ export class AWSDynamoSpace_V1<
     protected async saveInStoreAndPublishStatus({
         client,
         statusIbGib,
-        // statusIbGibGraph,
         syncStatus$,
     }: {
         client: DynamoDBClient,
         /** primary status ibGib */
         statusIbGib: SyncStatusIbGib,
-        /** includes `statusIbGib` */
-        // statusIbGibGraph: IbGib_V1[],
         syncStatus$: ReplaySubject<SyncStatusIbGib>;
     }): Promise<void> {
         const lc = `${this.lc}[${this.saveInStoreAndPublishStatus.name}]`;
@@ -3289,7 +3286,6 @@ export class AWSDynamoSpace_V1<
 
             // #endregion
 
-
             /**
              * We will populate this list in this function.
              *
@@ -3307,7 +3303,6 @@ export class AWSDynamoSpace_V1<
              * update(s) via the sync status updates).
              */
             const updates: { [tjpAddr: string]: IbGibAddr } = {};
-
 
             // now that we've started some paperwork, we can begin doing
             // the actual work.

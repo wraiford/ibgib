@@ -4,16 +4,17 @@ import { MenuController, Platform } from '@ionic/angular';
 import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { Subscription } from 'rxjs';
-import { filter } from 'rxjs/operators';
+import { concatMap, filter } from 'rxjs/operators';
 
 import { IbGibAddr, TransformResult, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
+import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 import { IbgibComponentBase } from './common/bases/ibgib-component-base';
 import { CommonService } from './services/common.service';
 import * as c from './common/constants';
-import { EncryptionData_V1, OuterSpaceIbGib, RootData, SecretIbGib_V1, } from './common/types';
+import { EncryptionData_V1, OuterSpaceIbGib, RootData, SecretIbGib_V1, TagData, } from './common/types';
 import { CreateSecretModalComponent } from './common/create-secret-modal/create-secret-modal.component';
 import { CreateOuterspaceModalComponent } from './common/create-outerspace-modal/create-outerspace-modal.component';
 import { CreateEncryptionModalComponent } from './common/create-encryption-modal/create-encryption-modal.component';
@@ -91,6 +92,8 @@ export class AppComponent extends IbgibComponentBase
       setTimeout(() => { this.ref.detectChanges(); });
     }
   }
+  private _subTagsUpdate: Subscription;
+  private _subTagsUpdateTEST: Subscription;
 
   private _rootsAddr: IbGibAddr;
   @Input()
@@ -222,14 +225,21 @@ export class AppComponent extends IbgibComponentBase
 
   ngOnInit() {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
-    this.subscribeParamMap();
-    // const path = window.location.pathname.split('ibgib/')[1];
-    // console.log(`path: ${path}`);
-    // if (path !== undefined) {
-    //   this.selectedIndex =
-    //     this.menuItems.findIndex(page => page.title.toLowerCase() === path.toLowerCase());
-    // }
-    if (logalot) { console.log(`${lc} doodle`); }
+    if (logalot) { console.log(`${lc} starting...`); }
+    try {
+      this.subscribeParamMap();
+      super.ngOnInit();
+      // const path = window.location.pathname.split('ibgib/')[1];
+      // console.log(`path: ${path}`);
+      // if (path !== undefined) {
+      //   this.selectedIndex =
+      //     this.menuItems.findIndex(page => page.title.toLowerCase() === path.toLowerCase());
+      // }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
   ngOnDestroy() {
@@ -289,12 +299,13 @@ export class AppComponent extends IbgibComponentBase
    * having a local index for the other meta ibGibs, which contain
    * information like settings/config.
    */
-  async loadTags(): Promise<void> {
-    if (!this.item) { this.item = {} }
-    this.item.isMeta = true;
+  async loadTagsAddrAndGetTagsIbGib(): Promise<IbGib_V1<TagData>> {
     if (logalot) { console.log(`getting tags addr`) }
-    const special = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
-    this.tagsAddr = h.getIbGibAddr({ibGib: special});
+    const tagsIbGib = <IbGib_V1<TagData>>(
+      await this.common.ibgibs.getSpecialIbgib({type: "tags"})
+    );
+    this.tagsAddr = h.getIbGibAddr({ibGib: tagsIbGib});
+    return tagsIbGib;
   }
 
   /**
@@ -344,8 +355,44 @@ export class AppComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.initializeMyTags.name}]`;
     if (logalot) { console.log(`${lc} starting...`); }
     try {
-      const tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
-      this.tagsAddr = h.getIbGibAddr({ibGib: tagsIbGib});
+      const tagsIbGib = await this.loadTagsAddrAndGetTagsIbGib();
+      // const tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
+      if (!tagsIbGib) { throw new Error(`tagsIbGib falsy. (E: 8e624b39bd34481a82be6efc521c24dc)`); }
+      // this.tagsAddr = h.getIbGibAddr({ibGib: tagsIbGib});
+
+      // subscribe to tags updates
+      const tagsTjpIbGib =
+        await this.common.ibgibs.getTjpIbGib({ibGib: tagsIbGib, naive: true});
+      const tagsTjpAddr = h.getIbGibAddr({ibGib: tagsTjpIbGib});
+      if (this._subTagsUpdate && !this._subTagsUpdate.closed) {
+        this._subTagsUpdate.unsubscribe();
+      }
+
+      this._subTagsUpdateTEST = this.common.ibgibs.latestObs.subscribe(x => {
+          if (logalot) { console.log(`${lc} TEST ibGib update heard. latestAddr: ${x.latestAddr}.`); }
+      });
+      this._subTagsUpdate = this.common.ibgibs.latestObs.pipe(
+        concatMap(async (latestEvent) => {
+          if (logalot) { console.log(`${lc} ibGib update heard. latestAddr: ${latestEvent.latestAddr}.`); }
+          if (
+            latestEvent?.tjpAddr === tagsTjpAddr &&
+            latestEvent.latestAddr !== this.tagsAddr
+          ) {
+            // we have a new tags ibgib. easiest way to handle with
+            // existing code is just to clear out the exising tagsAddr
+            // and run updateMenu_Tags
+            if (logalot) { console.log(`${lc} triggering tags menu update...`); }
+            this._tagsAddr = null;
+            await this.updateMenu_Tags();
+            setTimeout(() => { this.ref.detectChanges(); })
+          } else {
+            if (logalot) { console.log(`${lc} nope. latestEvent?.tjpAddr: ${latestEvent?.tjpAddr}`); }
+            if (logalot) { console.log(`${lc} nope. tagsTjpAddr: ${tagsTjpAddr}`); }
+            if (logalot) { console.log(`${lc} nope. latestEvent.latestAddr: ${latestEvent.latestAddr}`); }
+            if (logalot) { console.log(`${lc} nope. this.tagsAddr: ${this.tagsAddr}`); }
+          }
+        })
+      ).subscribe();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -372,6 +419,11 @@ export class AppComponent extends IbgibComponentBase
       await super.updateIbGib(addr);
       await this.loadIbGib();
       await this.loadTjp();
+
+      // do I need these two lines??
+      if (!this.item) { this.item = {} }
+      this.item.isMeta = true;
+
       await this.updateMenu();
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);
@@ -401,38 +453,48 @@ export class AppComponent extends IbgibComponentBase
 
   async updateMenu_Tags(): Promise<void> {
     const lc = `${this.lc}[${this.updateMenu_Tags.name}]`;
-    const tagMenuItems: MenuItem[] = [];
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      const tagMenuItems: MenuItem[] = [];
 
-    // load tags if needed
-    if (!this.tagsAddr) {
-      if (logalot) { console.log(`${lc} this.tagsAddr falsy`); }
-      await this.loadTags();
+      // load tags if needed
+      if (!this.tagsAddr) {
+        if (logalot) { console.log(`${lc} this.tagsAddr falsy`); }
+        await this.loadTagsAddrAndGetTagsIbGib();
+      }
+
+      // get tags, but don't initialize
+      let tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
+      let tagAddrs = tagsIbGib?.rel8ns?.tag || [];
+
+      // if we have gotten the tags object and there are no associated individual
+      // tags, try re-initializing with default tags.
+      if (!tagAddrs || tagAddrs.length === 0) {
+        if (logalot) { console.log(`${lc} couldn't get tagsIbGib?`); }
+        tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags", initialize: true});
+        tagAddrs = tagsIbGib?.rel8ns?.tag || [];
+      }
+
+      // give up if we still don't have any tags.
+      if (!tagAddrs || tagAddrs.length === 0) { console.error(`${lc} no tags found?`); return; }
+
+      // load individual tag items
+      for (let tagAddr of tagAddrs) {
+        const tagItem = await this.getTagItem(tagAddr);
+        if (tagItem) { tagMenuItems.push(tagItem); }
+      }
+
+      // "load" them into the bound property and detect the changes
+      this.tagItems = tagMenuItems;
+      this.ref.detectChanges();
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      this.tagItems = [];
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
     }
 
-    // get tags, but don't initialize
-    let tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
-    let tagAddrs = tagsIbGib?.rel8ns?.tag || [];
-
-    // if we have gotten the tags object and there are no associated individual
-    // tags, try re-initializing with default tags.
-    if (!tagAddrs || tagAddrs.length === 0) {
-      if (logalot) { console.log(`${lc} couldn't get tagsIbGib?`); }
-      tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags", initialize: true});
-      tagAddrs = tagsIbGib?.rel8ns?.tag || [];
-    }
-
-    // give up if we still don't have any tags.
-    if (!tagAddrs || tagAddrs.length === 0) { console.error(`${lc} no tags found?`); return; }
-
-    // load individual tag items
-    for (let tagAddr of tagAddrs) {
-      const tagItem = await this.getTagItem(tagAddr);
-      if (tagItem) { tagMenuItems.push(tagItem); }
-    }
-
-    // "load" them into the bound property and detect the changes
-    this.tagItems = tagMenuItems;
-    this.ref.detectChanges();
   }
 
   async getTagItem(addr: IbGibAddr): Promise<MenuItem> {

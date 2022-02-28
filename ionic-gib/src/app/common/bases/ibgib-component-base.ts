@@ -44,12 +44,16 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
             if (logalot) { console.log(`${lc} already updatingIbGib`) }
             return;
         }
-        if (logalot) { console.log(`${lc} updating ibgib ${value}`); }
-        this._updatingIbGib = true;
-        this.updateIbGib(value).finally(() => {
-            this._updatingIbGib = false;
-            setTimeout(() => { this.ref.detectChanges(); }, 500)
-        });
+        if (value === this.addr) {
+            if (logalot) { console.log(`${lc} value already === this.addr`); }
+        } else {
+            if (logalot) { console.log(`${lc} updating ibgib ${value}`); }
+            this._updatingIbGib = true;
+            this.updateIbGib(value).finally(() => {
+                this._updatingIbGib = false;
+                setTimeout(() => { this.ref.detectChanges(); }, 500)
+            });
+        }
     }
     @Input()
     item: TItem;
@@ -167,8 +171,10 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
      * {@link handleIbGib_NewLatest} function.
      */
     subscribeLatest(): void {
+        const lc = `${this.lc}[${this.subscribeLatest.name}]`;
         if (this.subLatest) { this.subLatest.unsubscribe(); }
         this.subLatest = this.common.ibgibs.latestObs.subscribe((evnt: LatestEventInfo) => {
+            if (logalot) { console.log(`${lc} latestEvent heard...`); }
             this.handleIbGib_NewLatest(evnt); // SPINS OFF ASYNC!!
         });
     }
@@ -438,14 +444,32 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
   async handleIbGib_NewLatest(info: LatestEventInfo): Promise<void> {
     const lc = `${this.lc}[${this.handleIbGib_NewLatest.name}]`;
     try {
+        if (logalot) { console.log(`${lc} starting...`)}
         if (!this.tjp) { await this.loadTjp(); }
-        if (this.tjpAddr !== info.tjpAddr) { return; }
-        if (logalot) { console.log(`${lc} triggeredd.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)}`); }
-        if (this._updatingIbGib || this.paused || this.errored) { return; }
+        if (!this.tjp) {
+            if (logalot) { console.log(`${lc} no tjp, so returning early.`); }
+            return;
+        }
+        if (this.tjpAddr !== info.tjpAddr) {
+            if (logalot) { console.log(`${lc} tjpAddr isn't us, so returning early.`); }
+            return;
+        }
+        if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)}`); }
+        if (this.paused) {
+            if (logalot) { console.log(`${lc} this.paused truthy, so returning early.`); }
+            return;
+        }
+        if (this.errored) {
+            if (logalot) { console.log(`${lc} this.errored truthy, so returning early.`); }
+            return;
+        }
+        if (logalot) { console.log(`${lc} setting this.addr (${this.addr}) to info.latestAddr (${info.latestAddr}).`); }
         this.addr = info.latestAddr;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         this.errored = true;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`)}
     }
   }
 

@@ -23,6 +23,7 @@ import {
 } from '../helper';
 import { LatestEventInfo, RootData, SpecialIbGibType, TagData, } from '../types';
 import { validateIbGibAddr } from './validate';
+import { getTjpAddrs } from './ibgib';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -1070,6 +1071,7 @@ export async function registerNewIbGib({
                 space,
                 defaultSpace,
                 fnUpdateBootstrap,
+                fnBroadcast,
             });
             if (fnBroadcast) {
                 fnBroadcast({tjpAddr, latestAddr: ibGibAddr, latestIbGib: ibGib});
@@ -1163,6 +1165,7 @@ export async function rel8ToSpecialIbGib({
     space,
     defaultSpace,
     fnUpdateBootstrap,
+    fnBroadcast,
 }: {
     type: SpecialIbGibType,
     rel8nName: string,
@@ -1192,6 +1195,7 @@ export async function rel8ToSpecialIbGib({
     space: IbGibSpaceAny,
     defaultSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpaceAddr: IbGibAddr) => Promise<void>,
+    fnBroadcast: (info: LatestEventInfo) => void,
 }): Promise<IbGibAddr> {
     const lc = `[${rel8ToSpecialIbGib.name}](type:${type},rel8nName:${rel8nName})`;
     try {
@@ -1236,13 +1240,23 @@ export async function rel8ToSpecialIbGib({
 
         // return the new special address (not the incoming new ibGib)
         const { newIbGib: newSpecialIbGib } = resNewSpecial;
-        let newSpecialAddr = h.getIbGibAddr({ibGib: newSpecialIbGib});
+        const newSpecialAddr = h.getIbGibAddr({ibGib: newSpecialIbGib});
+        const specialTjpAddrs = getTjpAddrs({ibGibs: [newSpecialIbGib]});
+        const specialTjpAddr = specialTjpAddrs?.length > 0 ? specialTjpAddrs[0] : null;
 
         await setConfigAddr({key: configKey, addr: newSpecialAddr, space, defaultSpace, fnUpdateBootstrap});
 
         // delete if required, only after updating config with the new special addr.
         if (deletePreviousSpecialIbGib) {
             await deleteFromSpace({addr: specialAddr, isMeta: true, space});
+        }
+
+        if (fnBroadcast && specialTjpAddr) {
+            fnBroadcast({
+                tjpAddr: specialTjpAddr,
+                latestIbGib: newSpecialIbGib,
+                latestAddr: newSpecialAddr,
+            });
         }
 
         return newSpecialAddr;
@@ -1513,6 +1527,7 @@ export async function createTagIbGib({
 }): Promise<{newTagIbGib: IbGib_V1, newTagsAddr: string}> {
     const lc = `[${createTagIbGib.name}]`;
     try {
+        if (logalot) { console.log(`${lc} starting...`); }
         if (!space) { throw new Error(`space required. (E: 5def0b1afab74b0c9286e3ac5060cb8f)`); }
 
         if (!text) { throw new Error(`${lc} text required`); }
@@ -1532,11 +1547,15 @@ export async function createTagIbGib({
         const { newIbGib: newTag } = resNewTag;
         await persistTransformResult({resTransform: resNewTag, isMeta: true, space});
         await registerNewIbGib({ibGib: newTag, space, defaultSpace, fnBroadcast, fnUpdateBootstrap});
-        const newTagsAddr = await rel8TagToTagsIbGib({tagIbGib: newTag, space, defaultSpace, fnUpdateBootstrap});
+        const newTagsAddr = await rel8TagToTagsIbGib({
+            tagIbGib: newTag, space, defaultSpace, fnUpdateBootstrap, fnBroadcast,
+        });
         return { newTagIbGib: newTag, newTagsAddr };
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
     }
 }
 
@@ -1656,6 +1675,7 @@ async function createRootIbGib({
             space,
             defaultSpace,
             fnUpdateBootstrap,
+            fnBroadcast,
         });
         return { newRootIbGib: <IbGib_V1<RootData>>newIbGib, newRootsAddr };
     } catch (error) {
@@ -2034,11 +2054,13 @@ function rel8TagToTagsIbGib({
     space,
     defaultSpace,
     fnUpdateBootstrap,
+    fnBroadcast,
 }: {
     tagIbGib: IbGib_V1,
     space: IbGibSpaceAny,
     defaultSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpaceAddr: IbGibAddr) => Promise<void>,
+    fnBroadcast: (info: LatestEventInfo) => void,
 }): Promise<IbGibAddr> {
     return rel8ToSpecialIbGib({
         type: "tags",
@@ -2047,6 +2069,7 @@ function rel8TagToTagsIbGib({
         space,
         defaultSpace,
         fnUpdateBootstrap,
+        fnBroadcast,
     });
 }
 
