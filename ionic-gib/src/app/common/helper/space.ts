@@ -835,13 +835,6 @@ export async function setConfigAddr({
         // messy atm...
         space.loadDto(newSpace);
 
-        // if (isSameSpace({a: space, b: this.localUserSpace})) {
-        //     if (logalot) { console.log(`${lc} space is localUserSpace, so updating localUserSpace.`); }
-        //     this.localUserSpace = <IonicSpace_V1<AppSpaceData, AppSpaceRel8ns>>space;
-        // } else {
-        //     if (logalot) { console.log(`${lc} space is NOT localUserSpace, so NOT updating localUserSpace.`); }
-        // }
-
         // so the proper space (config) is loaded on next app start
         if (fnUpdateBootstrap) {
             // await this.updateBootstrapIbGibSpaceAddr({ newSpaceAddr, localDefaultSpace: this._localDefaultSpace });
@@ -1249,6 +1242,25 @@ export async function rel8ToSpecialIbGib({
         // delete if required, only after updating config with the new special addr.
         if (deletePreviousSpecialIbGib) {
             await deleteFromSpace({addr: specialAddr, isMeta: true, space});
+        }
+
+        // I'm thinking we also want to register the special ibgib in the latest index...
+        if (type === 'latest') {
+            // we're relating somethign to the latest index special ibgib (most
+            // likely via registerNewIbgib), and we have a new latest index.
+            // we already have updated our reference to space(?) so I'm
+            // not sure what the problem is right now...
+        } else {
+            // we're relating something to a special ibgib that is NOT the
+            // latest index, so our new special ibgib needs to be registered
+            // with that latest index.
+            await registerNewIbGib({
+                ibGib: newSpecialIbGib,
+                defaultSpace,
+                fnBroadcast,
+                fnUpdateBootstrap,
+                space,
+            });
         }
 
         if (fnBroadcast && specialTjpAddr) {

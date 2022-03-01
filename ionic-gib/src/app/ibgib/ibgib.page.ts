@@ -3,14 +3,14 @@ import {
   ChangeDetectorRef, ChangeDetectionStrategy, Input
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, interval, pipe } from 'rxjs';
 import { Capacitor, Plugins } from '@capacitor/core';
 const { Modals, Clipboard } = Plugins;
 
 import * as h from 'ts-gib';
 import { IbGibAddr, } from 'ts-gib';
 import { getIbGibAddr, pretty } from 'ts-gib/dist/helper';
-import { IbGib_V1 } from 'ts-gib/dist/V1';
+import { IbGib_V1, ROOT } from 'ts-gib/dist/V1';
 
 import * as c from '../common/constants';
 import { IbgibComponentBase } from '../common/bases/ibgib-component-base';
@@ -19,8 +19,9 @@ import { SPECIAL_URLS } from '../common/constants';
 import { LatestEventInfo, } from '../common/types';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
 import { getFnAlert, } from '../common/helper';
+import { concatMap } from 'rxjs/operators';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
@@ -89,19 +90,108 @@ export class IbGibPage extends IbgibComponentBase
   ngOnDestroy() {
     const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
     if (logalot) { console.log(`${lc} called.`) }
+    this.stopPollingLatest_Local();
     this.unsubscribeParamMap();
     super.ngOnDestroy();
+  }
+
+  private _subPollLatest_Local: Subscription;
+  private _pollingLatest_Local: boolean;
+
+  startPollingLatest_Local(): void {
+    const lc = `${this.lc}[${this.startPollingLatest_Local.name}]`;
+    try {
+      if (this._subPollLatest_Local && !this._subPollLatest_Local.closed) {
+        // should we unsubscribe and resubscribe or not continue?...hmm...
+        // return;
+        this.stopPollingLatest_Local();
+      }
+
+      setTimeout(() => {
+        // just a hack here for initial testing
+        this._subPollLatest_Local =
+          interval(c.DEFAULT_SPACE_POLLING_INTERVAL_MS).pipe(
+            concatMap(async (_) => { await this.pollLatest_Local(); })
+          ).subscribe();
+      }, 1000*60*2);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      // not critical
+    }
+  }
+
+  private async pollLatest_Local(): Promise<void> {
+    const lc = `${this.lc}[${this.pollLatest_Local.name}]`;
+    if (this.syncing) {
+      if (logalot) { console.log(`${lc} currently syncing, so skipping poll call.`); }
+      return; // <<<< returns
+    } else if (this.refreshing) {
+      if (logalot) { console.log(`${lc} currently refreshing, so skipping poll call.`); }
+      return; // <<<< returns
+    } else if (this._pollingLatest_Local) {
+      if (logalot) { console.log(`${lc} currently already polling, so skipping new poll call.`); }
+      return; // <<<< returns
+    } else {
+      this._pollingLatest_Local = true;
+    }
+    try {
+      if (!this.tjpAddr) { await this.loadTjp(); }
+      if (this.tjpAddr) {
+        if (logalot) { console.log(`${lc} this.tjpAddr: ${this.tjpAddr}`); }
+        const latestAddr =
+          await this.common.ibgibs.getLatestAddr({tjpAddr: this.tjpAddr});
+        if (latestAddr !== this.addr) {
+          console.log(`${lc} there is a new latest addr: ${latestAddr}`);
+          const resLatestIbGib = await this.common.ibgibs.get({addr: latestAddr});
+          if (resLatestIbGib.success && resLatestIbGib.ibGibs?.length > 0) {
+            const latestIbGib = resLatestIbGib.ibGibs[0];
+            const currentPastLength = this.ibGib.rel8ns?.past?.length ?? 0;
+            const latestPastLength = latestIbGib.rel8ns?.past?.length ?? 0;
+            const diff = latestPastLength - currentPastLength;
+            if (diff > 0) {
+              this.tjpUpdatesAvailableCount = diff;
+            } else {
+              console.warn(`${lc} latestIbGib registered is newer than current ibGib`);
+            }
+          }
+        }
+      } else {
+        if (logalot) { console.log(`${lc} this ibgib has no tjp. stopping further polling.`); }
+        this.stopPollingLatest_Local();
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      this.stopPollingLatest_Local();
+    } finally {
+      this._pollingLatest_Local = false;
+    }
+  }
+
+  stopPollingLatest_Local(): void {
+    const lc = `${this.lc}[${this.stopPollingLatest_Local.name}]`;
+    try {
+      if (this._subPollLatest_Local && !this._subPollLatest_Local.closed) {
+        this._subPollLatest_Local.unsubscribe();
+      }
+      delete this._subPollLatest_Local;
+      this._pollingLatest_Local = false;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      // not critical
+    }
   }
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
     if (logalot) { console.log(`${lc} updating...`); }
     try {
+      this.stopPollingLatest_Local();
       await super.updateIbGib(addr);
       await this.loadIbGib();
       await this.loadTjp();
       if (logalot) { console.log(`${lc} ibGib: ${pretty(this.ibGib)}`); }
       await this.loadItem();
+      if (this.tjp) { this.startPollingLatest_Local(); }
       this.updatePaused();
       if (!this.paused && !this.ib.startsWith('bin.')) {
         this.item.refreshing = true;

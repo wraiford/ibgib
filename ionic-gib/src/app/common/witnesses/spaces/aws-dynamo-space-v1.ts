@@ -636,7 +636,7 @@ export interface SyncSpaceRel8ns_AWSDynamoDB
 }
 
 const DEFAULT_AWS_DYNAMO_SPACE_DATA_V1: SyncSpaceData_AWSDynamoDB = {
-    version: '2',
+    version: '3',
     name: c.IBGIB_SPACE_NAME_DEFAULT,
     type: 'sync',
     subtype: 'aws-dynamodb',
@@ -654,6 +654,7 @@ const DEFAULT_AWS_DYNAMO_SPACE_DATA_V1: SyncSpaceData_AWSDynamoDB = {
     throttleMsBetweenGets: c.DEFAULT_AWS_GET_THROTTLE_MS,
     throttleMsDueToThroughputError: c.DEFAULT_AWS_RETRY_THROUGHPUT_THROTTLE_MS,
     validateIbGibAddrsMatchIbGibs: true,
+    longPollingIntervalMs: c.DEFAULT_SPACE_POLLING_INTERVAL_MS,
 }
 
 /**
@@ -870,6 +871,7 @@ export class AWSDynamoSpace_V1<
         // })
 
         this.ib = `witness space ${AWSDynamoSpace_V1.name}`;
+        this.gib = GIB;
     }
 
     /**
@@ -941,6 +943,10 @@ export class AWSDynamoSpace_V1<
             if (!this.data) {
                 if (logalot) { console.log(`${lc} initializing data with DEFAULT_AWS_DYNAMO_SPACE_DATA_V1`); }
                 this.data = h.clone(DEFAULT_AWS_DYNAMO_SPACE_DATA_V1);
+            }
+
+            if (!this.data.longPollingIntervalMs && this.data.longPollingIntervalMs !== 0) {
+                this.data.longPollingIntervalMs = c.DEFAULT_SPACE_POLLING_INTERVAL_MS;
             }
 
             // let resPrompt = await Plugins.Modals.prompt({title: 'hi', message: 'yo enter the thing'});

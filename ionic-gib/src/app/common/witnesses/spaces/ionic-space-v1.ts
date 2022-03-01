@@ -50,7 +50,7 @@ export interface IonicSpaceData_V1 extends IbGibSpaceData {
  * later.
  */
 const DEFAULT_IONIC_SPACE_DATA_V1: IonicSpaceData_V1 = {
-    version: '2',
+    version: '3',
     uuid: '',
     name: c.IBGIB_SPACE_NAME_DEFAULT,
     baseDir: c.IBGIB_BASE_DIR,
@@ -63,6 +63,7 @@ const DEFAULT_IONIC_SPACE_DATA_V1: IonicSpaceData_V1 = {
     dnaSubPath: c.IBGIB_DNA_SUBPATH,
     persistOptsAndResultIbGibs: false,
     validateIbGibAddrsMatchIbGibs: false,
+    longPollingIntervalMs: c.DEFAULT_SPACE_POLLING_INTERVAL_MS,
 }
 
 /** Marker interface atm */

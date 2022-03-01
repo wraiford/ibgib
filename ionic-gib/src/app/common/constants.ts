@@ -383,6 +383,16 @@ export const DEFAULT_AWS_VALIDATE_IBGIBADDRS_MATCH_IBGIBS = true;
  */
 export const AWS_THROUGHPUT_ERROR_NAME = "ProvisionedThroughputExceededException";
 export const AWS_ERROR_MSG_ITEM_SIZE_EXCEEDED = "Item size has exceeded the maximum allowed size";
+/**
+ * Interval in ms between polling for updates ("notifications") between local
+ * space (ibgibs service) and dynamo sync space(s), or for use within a single
+ * space for checking its internal state.
+ *
+ * Of course, long polling is very hacky, but so is using DynamoDB in the cloud
+ * for a sync space. Obviously need to progress to a more mature and robust
+ * sync space/outer space architecture.
+ */
+export const DEFAULT_SPACE_POLLING_INTERVAL_MS = 30_000;
 
 /**
  * AWS DynamoDB only allows 400K per item-ish.

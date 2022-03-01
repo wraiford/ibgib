@@ -207,6 +207,23 @@ export class IbgibsService {
   private fnPromptEncryption: () => Promise<IbGib_V1 | undefined>;
   private fnPromptOuterSpace: () => Promise<IbGib_V1 | undefined>;
 
+  syncConfirmed: IbGibAddr[] = [];
+
+  private _syncing: boolean;
+  /**
+   * should only syncIbGibs when not already syncing.
+   */
+  get syncing(): boolean {
+    return this._syncing;
+  }
+  // set syncing(value: boolean) {
+  //   this._syncing = value;
+  // }
+
+  // private _syncSagaInfos: { [spaceGib: string]: SyncSagaInfo } = {};
+  private sagaInfoMap: { [sagaId: string]: SyncSagaInfo } = {};
+
+
   constructor(
     public modalController: ModalController,
     public alertController: AlertController,
@@ -498,7 +515,6 @@ export class IbgibsService {
     }
   }
 
-
   /**
    * Updates the bootstrap^gib record in the default space data store
    * with the 'space' rel8n set to the `newSpaceAddr`.
@@ -753,39 +769,6 @@ export class IbgibsService {
         fnBroadcast: (x) => this.fnBroadcast(x),
         fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       });
-
-      // let currentRoot = await this.getCurrentRoot({space});
-      // if (!currentRoot) { throw new Error('currentRoot undefined'); }
-
-      // // todo: change this to only rel8 if the tjp doesn't already exist on the root
-      // let ibGibAddr = h.getIbGibAddr({ibGib});
-
-      // // check to see if it's already rel8d. If so, we're done.
-      // // NOTE: (very) naive!
-      // if (currentRoot.rel8ns[rel8nName] &&
-      //     currentRoot.rel8ns[rel8nName].includes(ibGibAddr)) {
-      //   // already rel8d
-      //   return;
-      // }
-
-      // rel8nName = rel8nName || DEFAULT_ROOT_REL8N_NAME;
-
-      // // we only need to add the ibgib itself to the root, not the tjp
-      // // and not any dependent ibgibs. ...wakka doodle.
-      // const resNewRoot = await V1.rel8({
-      //   src: currentRoot,
-      //   dna: false,
-      //   linkedRel8ns: linked ? ["past", "ancestor", rel8nName] : ["past", "ancestor"],
-      //   rel8nsToAddByAddr: { [rel8nName]: [ibGibAddr] },
-      //   nCounter: true,
-      // });
-      // await this.persistTransformResult({isMeta: true, resTransform: resNewRoot, space});
-      // const newRoot = <IbGib_V1<RootData>>resNewRoot.newIbGib;
-      // const newRootAddr = h.getIbGibAddr({ibGib: newRoot});
-      // if (logalot) { console.log(`${lc} updating _currentRoot root. newRootAddr: ${newRootAddr}`); }
-      // await this.registerNewIbGib({ibGib: newRoot, space});
-      // await this.setCurrentRoot({root: newRoot, space});
-
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       return;
@@ -804,7 +787,7 @@ export class IbgibsService {
    * @see {@link createSpecial}
    * @see {@link createTags}
    */
-  async getSpecialIbgib({
+  getSpecialIbgib({
     type,
     initialize,
     space,
@@ -834,7 +817,7 @@ export class IbgibsService {
     }
   }
 
-  async getSpecialRel8dIbGibs<TIbGib extends IbGib_V1 = IbGib_V1>({
+  getSpecialRel8dIbGibs<TIbGib extends IbGib_V1 = IbGib_V1>({
     type,
     rel8nName,
     space,
@@ -855,13 +838,11 @@ export class IbgibsService {
     }
   }
 
-  async rel8ToSpecialIbGib({
+  rel8ToSpecialIbGib({
     type,
     rel8nName,
     ibGibsToRel8,
-    // isMeta,
     linked,
-    // skipRel8ToRoot,
     severPast,
     deletePreviousSpecialIbGib,
     space,
@@ -872,9 +853,7 @@ export class IbgibsService {
      * multiple ibgibs to rel8
      */
     ibGibsToRel8: IbGib_V1[],
-    // isMeta: boolean,
     linked?: boolean,
-    // skipRel8ToRoot?: boolean,
     /**
      * Clears out the special.rel8ns.past array to an empty array.
      *
@@ -902,9 +881,7 @@ export class IbgibsService {
         type,
         rel8nName,
         ibGibsToRel8,
-        // isMeta,
         linked,
-        // skipRel8ToRoot,
         severPast,
         deletePreviousSpecialIbGib,
         space,
@@ -984,59 +961,59 @@ export class IbgibsService {
     }
   }
 
-  private async promptReplaceLatest({
-    existingLatestAddr,
-    ibGibAddr,
-  }: {
-    existingLatestAddr: IbGibAddr,
-    ibGibAddr: IbGibAddr,
-  }): Promise<boolean> {
-    const lc = `${this.lc}[${this.promptReplaceLatest.name}]`;
-    try {
-      const fnConfirm = getFnConfirm();
-      let resReplace = await fnConfirm({
-        title: `Can't find ibGib data...`,
-        msg:
-          `
-            Can't find the ibGib locally for latest address: ${existingLatestAddr}.
-            Do you want to replace it and point to the new address?
+  // private async promptReplaceLatest({
+  //   existingLatestAddr,
+  //   ibGibAddr,
+  // }: {
+  //   existingLatestAddr: IbGibAddr,
+  //   ibGibAddr: IbGibAddr,
+  // }): Promise<boolean> {
+  //   const lc = `${this.lc}[${this.promptReplaceLatest.name}]`;
+  //   try {
+  //     const fnConfirm = getFnConfirm();
+  //     let resReplace = await fnConfirm({
+  //       title: `Can't find ibGib data...`,
+  //       msg:
+  //         `
+  //           Can't find the ibGib locally for latest address: ${existingLatestAddr}.
+  //           Do you want to replace it and point to the new address?
 
-            Existing "latest" address for which we don't have the corresponding record (locally): ${existingLatestAddr}
+  //           Existing "latest" address for which we don't have the corresponding record (locally): ${existingLatestAddr}
 
-            "New" Address that we do have: ${ibGibAddr}
+  //           "New" Address that we do have: ${ibGibAddr}
 
-            Yes, replace:
-              Will replace the local reference on this device to point to the "new" address.
+  //           Yes, replace:
+  //             Will replace the local reference on this device to point to the "new" address.
 
-            No, keep old:
-              Will NOT replace but I don't know how it will work going forward.
-              The ibGib may be frozen in time until we load that record and things may get out of sync.
-          `,
-          okButtonTitle: 'Yes, replace',
-          cancelButtonTitle: 'No, keep old',
-      });
-      if (resReplace) {
-        //
-        let resAlwaysReplace = await fnConfirm({
-          title: `Always replace?`,
-          msg: `Do want to always replace address not found locally? This applies only to this session.`,
-          okButtonTitle: 'Yes, always replace',
-          cancelButtonTitle: 'No, ask me every time',
-        });
-        if (resAlwaysReplace) {
-          console.warn(`${lc} user chose YES, always replace latest not found for this session.`);
-          this.alwaysReplaceLatestNotFound = true;
-        }
-        return true;
-      } else {
-        // don't do nuffin'
-        return false;
-      }
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      return false;
-    }
-  }
+  //           No, keep old:
+  //             Will NOT replace but I don't know how it will work going forward.
+  //             The ibGib may be frozen in time until we load that record and things may get out of sync.
+  //         `,
+  //         okButtonTitle: 'Yes, replace',
+  //         cancelButtonTitle: 'No, keep old',
+  //     });
+  //     if (resReplace) {
+  //       //
+  //       let resAlwaysReplace = await fnConfirm({
+  //         title: `Always replace?`,
+  //         msg: `Do want to always replace address not found locally? This applies only to this session.`,
+  //         okButtonTitle: 'Yes, always replace',
+  //         cancelButtonTitle: 'No, ask me every time',
+  //       });
+  //       if (resAlwaysReplace) {
+  //         console.warn(`${lc} user chose YES, always replace latest not found for this session.`);
+  //         this.alwaysReplaceLatestNotFound = true;
+  //       }
+  //       return true;
+  //     } else {
+  //       // don't do nuffin'
+  //       return false;
+  //     }
+  //   } catch (error) {
+  //     console.error(`${lc} ${error.message}`);
+  //     return false;
+  //   }
+  // }
 
   /**
    * Will trigger a latest info event to be fired.
@@ -1139,8 +1116,14 @@ export class IbgibsService {
         console.warn(`${lc} space falsy and localUserSpace not initialized.`);
       }
 
+      // debugger; // at this point the latest address is different in spaces among two tabs, but
+      // they should be equal. somewhere there is an effectively cached value of the space that
+      // isn't getting updated in the setCurrentAddr (or somewhere) when we download the tjp
+      // updated ibgibs.
+
       // latest addr is indexed by tjpAddr, so we need to get this first...
       if (tjpAddr) {
+        // debugger;
         defaultReturnAddrIfTjpNotFoundOrIfError = ibGib ? h.getIbGibAddr({ibGib}) : tjpAddr;
       } else {
         if (tjp) {
@@ -1986,20 +1969,6 @@ export class IbgibsService {
     }
   }
 
-  private _syncing: boolean;
-  /**
-   * should only syncIbGibs when not already syncing.
-   */
-  get syncing(): boolean {
-    return this._syncing;
-  }
-  // set syncing(value: boolean) {
-  //   this._syncing = value;
-  // }
-
-  // private _syncSagaInfos: { [spaceGib: string]: SyncSagaInfo } = {};
-  private sagaInfoMap: { [sagaId: string]: SyncSagaInfo } = {};
-
   async syncIbGibs({
     dependencyGraphIbGibs,
     // confirm,
@@ -2234,8 +2203,6 @@ export class IbgibsService {
     }
   }
 
-  syncConfirmed: IbGibAddr[] = [];
-
   /**
    * this {@link IbGibsService} acts as the local app space intermediary,
    * a broker between the local space and the sync space(s). So this
@@ -2312,89 +2279,6 @@ export class IbgibsService {
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
-    }
-  }
-  private async handleWatchTjpUpdates({
-    updates,
-    outerSpace,
-  }: {
-    updates: { [tjpAddr: string]: IbGibAddr; }
-    outerSpace: IbGibSpaceAny,
-  }): Promise<void> {
-    const lc = `${this.lc}[${this.handleWatchTjpUpdates.name}]`;
-    if (logalot) { console.log(`${lc} starting...`); }
-    try {
-      debugger;
-
-      /**
-       * compile list of addrs we have locally for all updates, so we don't try
-       * to download them from outer space unnecessarily.
-       */
-      const latestAddrsLocallyWithUpdate: IbGibAddr[] = [];
-      const tjpAddrs = Object.keys(updates);
-      const latestAddrs_Store = Object.values(updates);
-      for (let i = 0; i < tjpAddrs.length; i++) {
-        const tjpAddr = tjpAddrs[i];
-        if (logalot) { console.log(`${lc} tjpAddr: ${tjpAddr}`); }
-        const latestAddrLocally =
-          await this.getLatestAddr({tjpAddr, space: this.localUserSpace});
-        if (
-          !latestAddrs_Store.includes(latestAddrLocally) &&
-          !latestAddrsLocallyWithUpdate.includes(latestAddrLocally)
-        ) {
-          latestAddrsLocallyWithUpdate.push(latestAddrLocally);
-        }
-      }
-      if (latestAddrsLocallyWithUpdate.length === 0) {
-        if (logalot) { console.log(`${lc} latestAddrsLocallyWithUpdate.length === 0. We already had all of the updates locally perhaps. Returning early. (I: 844193c515084d0ebc348349f1ac41f4)`); }
-        return; // <<<< returns early
-      }
-
-      /**
-       * LOCAL dependencies for latest LOCAL addrs for all tjpAddrs in updates.
-       */
-      const localDependencyGraphs = await this.getDependencyGraph({
-        ibGibAddrs: latestAddrsLocallyWithUpdate,
-        space: this.localUserSpace
-      });
-
-      /** all addrs we already have locally */
-      const addrsAlreadyStoredLocally = Object.keys(localDependencyGraphs);
-
-      // get dependency graph from outer space, skipping all addrs in local already
-      const newerAddrsFromOuterSpace: IbGibAddr[] = Object.values(updates);
-      const newerIbGibDependencyGraphFromOuterSpace = await getDependencyGraph({
-        ibGibAddrs: newerAddrsFromOuterSpace,
-        space: outerSpace,
-        skipAddrs: addrsAlreadyStoredLocally,
-      });
-      const newerIbGibsFromOuterSpace: IbGib_V1[] =
-        Object.values(newerIbGibDependencyGraphFromOuterSpace);
-
-      if (logalot) { console.log(`${lc} got ${newerIbGibsFromOuterSpace.length} ibGibs from outerspace`); }
-
-      // save locally
-      if (logalot) { console.log(`${lc} saving new ibgibs from outerspace in local space...`); }
-      await this.put({ibGibs: newerIbGibsFromOuterSpace, space: this.localUserSpace});
-
-      // register the newest tjp ibGibs locally
-      if (logalot) { console.log(`${lc} registering "new" updated tjp ibgibs locally...`); }
-      for (let i = 0; i < tjpAddrs.length; i++) {
-        const tjpAddr = tjpAddrs[i];
-        const updatedAddr = updates[tjpAddr];
-        const updatedIbGib = newerIbGibDependencyGraphFromOuterSpace[updatedAddr];
-        if (!updatedIbGib) {
-          debugger;
-          throw new Error(`did not get updatedIbGib (${updatedAddr}) from outerspace (${outerSpace.data.uuid}) (E: 818de70f5b444a3ba198ba6480a15b04)`);
-        }
-        await this.registerNewIbGib({ibGib: updatedIbGib});
-      }
-
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      // does not rethrow
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
@@ -2744,6 +2628,90 @@ export class IbgibsService {
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
+    }
+  }
+
+  private async handleWatchTjpUpdates({
+    updates,
+    outerSpace,
+  }: {
+    updates: { [tjpAddr: string]: IbGibAddr; }
+    outerSpace: IbGibSpaceAny,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.handleWatchTjpUpdates.name}]`;
+    if (logalot) { console.log(`${lc} starting...`); }
+    try {
+      debugger;
+
+      /**
+       * compile list of addrs we have locally for all updates, so we don't try
+       * to download them from outer space unnecessarily.
+       */
+      const latestAddrsLocallyWithUpdate: IbGibAddr[] = [];
+      const tjpAddrs = Object.keys(updates);
+      const latestAddrs_Store = Object.values(updates);
+      for (let i = 0; i < tjpAddrs.length; i++) {
+        const tjpAddr = tjpAddrs[i];
+        if (logalot) { console.log(`${lc} tjpAddr: ${tjpAddr}`); }
+        const latestAddrLocally =
+          await this.getLatestAddr({tjpAddr, space: this.localUserSpace});
+        if (
+          !latestAddrs_Store.includes(latestAddrLocally) &&
+          !latestAddrsLocallyWithUpdate.includes(latestAddrLocally)
+        ) {
+          latestAddrsLocallyWithUpdate.push(latestAddrLocally);
+        }
+      }
+      if (latestAddrsLocallyWithUpdate.length === 0) {
+        if (logalot) { console.log(`${lc} latestAddrsLocallyWithUpdate.length === 0. We already had all of the updates locally perhaps. Returning early. (I: 844193c515084d0ebc348349f1ac41f4)`); }
+        return; // <<<< returns early
+      }
+
+      /**
+       * LOCAL dependencies for latest LOCAL addrs for all tjpAddrs in updates.
+       */
+      const localDependencyGraphs = await this.getDependencyGraph({
+        ibGibAddrs: latestAddrsLocallyWithUpdate,
+        space: this.localUserSpace
+      });
+
+      /** all addrs we already have locally */
+      const addrsAlreadyStoredLocally = Object.keys(localDependencyGraphs);
+
+      // get dependency graph from outer space, skipping all addrs in local already
+      const newerAddrsFromOuterSpace: IbGibAddr[] = Object.values(updates);
+      const newerIbGibDependencyGraphFromOuterSpace = await getDependencyGraph({
+        ibGibAddrs: newerAddrsFromOuterSpace,
+        space: outerSpace,
+        skipAddrs: addrsAlreadyStoredLocally,
+      });
+      const newerIbGibsFromOuterSpace: IbGib_V1[] =
+        Object.values(newerIbGibDependencyGraphFromOuterSpace);
+
+      if (logalot) { console.log(`${lc} got ${newerIbGibsFromOuterSpace.length} ibGibs from outerspace`); }
+
+      // save locally
+      if (logalot) { console.log(`${lc} saving new ibgibs from outerspace in local space...`); }
+      await this.put({ibGibs: newerIbGibsFromOuterSpace, space: this.localUserSpace});
+
+      // register the newest tjp ibGibs locally
+      if (logalot) { console.log(`${lc} registering "new" updated tjp ibgibs locally...`); }
+      for (let i = 0; i < tjpAddrs.length; i++) {
+        const tjpAddr = tjpAddrs[i];
+        const updatedAddr = updates[tjpAddr];
+        const updatedIbGib = newerIbGibDependencyGraphFromOuterSpace[updatedAddr];
+        if (!updatedIbGib) {
+          debugger;
+          throw new Error(`did not get updatedIbGib (${updatedAddr}) from outerspace (${outerSpace.data.uuid}) (E: 818de70f5b444a3ba198ba6480a15b04)`);
+        }
+        await this.registerNewIbGib({ibGib: updatedIbGib});
+      }
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      // does not rethrow
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 

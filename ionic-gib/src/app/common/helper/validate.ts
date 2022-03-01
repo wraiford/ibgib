@@ -15,9 +15,20 @@ import {hasTjp} from './ibgib';
 // const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 /**
- * validates the ibGib's address (`ib` and `gib` properties)
- * and recalculates the `gib` against the `ibGib.gib`.
- * @param param0
+ * validates the ibGib's address (`ib` and `gib` properties) and recalculates
+ * the `gib` against the `ibGib.gib`.
+ *
+ * this validates not only that the punctiliar gib hash for this ibgib record
+ * hashes to the same value, but it also checks the internal tjp address and
+ * ensures that it is the same tjp gib in the gib field.
+ *
+ * ## notes
+ *
+ * * By checking the tjp gib is the same in the address as in the tjp rel8n, we
+ *   are providing (extremely?) good corroboration that the tjp listed in the
+ *   address is accurate. However, it may still be theoretically possible to
+ *   forge an ibgib that both hashes to the punctiliar hash and matches up this
+ *   tjpAddr.gib. This would be AFAICT quite challenging.
  */
 export async function validateIbGibIntrinsically({
     ibGib
@@ -41,6 +52,9 @@ export async function validateIbGibIntrinsically({
             // metadata guarantees.
             if (isPrimitive({gib: ibGib.gib})) { return null; }
 
+            // this validates not only that the punctiliar gib hash for this ibgib record
+            // hashes to the same value, but it also checks the internal tjp address and
+            // ensures that it is the same tjp gib.
             const gottenGib = await getGib({ibGib, hasTjp: hasTjp({ibGib})});
             if (gottenGib !== ibGib.gib) {
                 debugger;

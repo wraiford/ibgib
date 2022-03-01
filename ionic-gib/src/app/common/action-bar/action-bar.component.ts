@@ -798,6 +798,7 @@ export class ActionBarComponent extends IbgibComponentBase
         let resPutGraph =
           await this.common.ibgibs.put({ibGibs: Object.values(graph)});
         if (resPutGraph.success) {
+          await this.common.ibgibs.registerNewIbGib({ibGib: gotIbGib});
           // now that we've stored the dependency graph, we can rel8 the import
           // to the current context
           await this._rel8ToCurrentContext({

@@ -63,6 +63,21 @@ export interface IbGibSpaceData extends WitnessData_V1 {
      * could at best be a coding mistake & at worst be malicious.
      */
     validateIbGibAddrsMatchIbGibs?: boolean;
+    /**
+     * interval between polling calls made to other spaces, e.g. sync spaces,
+     * or used within a space to check inside itself for updates.
+     *
+     * ## notes
+     *
+     * * use as needed
+     * * I want to just have this as a sync space setting, but since they are
+     *   enciphered, I don't want to just have them sitting around in plaintext.
+     *   * So I'm going to have it in the local app space, which the ibgibs
+     *     service will check in order for it to decide on interval.
+     *   * definitely a code smell, but I'm still resolving what a local app
+     *     space is vs the service that accesses it.
+     */
+    longPollingIntervalMs?: number;
 }
 
 export interface IbGibSpaceRel8ns extends IbGibRel8ns_V1 {
