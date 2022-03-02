@@ -16,6 +16,5 @@
         "**/www": true
     },
     "files.trimTrailingWhitespace": true,
-    "editor.tabCompletion": "on",
-    "editor.snippetSuggestions": "top"
+    "editor.tabCompletion": "on"
 }
