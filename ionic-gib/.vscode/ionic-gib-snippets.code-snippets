@@ -1,0 +1,124 @@
+{
+    // Place your ionic-gib workspace snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and
+    // description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope
+    // is left empty or omitted, the snippet gets applied to all languages. The prefix is what is
+    // used to trigger the snippet and the body will be expanded and inserted. Possible variables are:
+    // $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders.
+    // Placeholders with the same ids are connected.
+    // Example:
+    // "Print to console": {
+    //     "scope": "javascript,typescript",
+    //     "prefix": "log",
+    //     "body": [
+    //         "console.log('$1');",
+    //         "$2"
+    //     ],
+    //     "description": "Log output to console"
+    // }
+    "lc try..catch rethrow": {
+        "scope": "javascript,typescript",
+		"prefix": "lc_trycatch_rethrow",
+		"body": [
+			"const lc = `\\${this.lc}[\\${this.$1.name}]`;",
+			"try {",
+			"\t$0",
+			"} catch (error) {",
+			"\tconsole.error(`\\${lc} \\${error.message}`);",
+			"\tthrow error;",
+			"}"
+		],
+    },
+    "lc try..catch..finally rethrow": {
+        "scope": "javascript,typescript",
+		"prefix": "lc_trycatchfinally_rethrow",
+		"body": [
+			"const lc = `\\${this.lc}[\\${this.$1.name}]`;",
+			"try {",
+			"\t$0",
+			"} catch (error) {",
+			"\tconsole.error(`\\${lc} \\${error.message}`);",
+			"\tthrow error;",
+			"} finally {",
+			"\t$2",
+			"}"
+		],
+    },
+    "lc try..catch..finally rethrow with logging": {
+        "scope": "javascript,typescript",
+		"prefix": "lc_trycatchfinally_rethrow_withlogging",
+		"body": [
+			"const lc = `\\${this.lc}[\\${this.$1.name}]`;",
+			"try {",
+			"\tif (logalot) { console.log(`\\${lc} starting...`); }",
+			"\t$0",
+			"} catch (error) {",
+			"\tconsole.error(`\\${lc} \\${error.message}`);",
+			"\tthrow error;",
+			"} finally {",
+			"\tif (logalot) { console.log(`\\${lc} complete.`); }",
+			"}"
+		],
+    },
+    "func async lc try..catch rethrow": {
+        "scope": "javascript,typescript",
+		"prefix": "func_lc_trycatch_rethrow",
+		"body": [
+			"async $1({",
+			"\t$2,",
+			"}: {",
+			"\t$2: $3,",
+			"}): Promise<$4> {",
+			"\tconst lc = `\\${this.lc}[\\${this.$1.name}]`;",
+			"\ttry {",
+			"\t\t$0",
+			"\t} catch (error) {",
+			"\t\tconsole.error(`\\${lc} \\${error.message}`);",
+			"\t\tthrow error;",
+			"\t}",
+			"}"
+		],
+    },
+    "func async lc try..catch..finally rethrow": {
+        "scope": "javascript,typescript",
+		"prefix": "func_lc_trycatchfinally_rethrow",
+		"body": [
+			"async $1({",
+			"\t$2,",
+			"}: {",
+			"\t$2: $3,",
+			"}): Promise<$4> {",
+			"\tconst lc = `\\${this.lc}[\\${this.$1.name}]`;",
+			"\ttry {",
+			"\t\t$0",
+			"\t} catch (error) {",
+			"\t\tconsole.error(`\\${lc} \\${error.message}`);",
+			"\t\tthrow error;",
+			"\t} finally {",
+			"\t\t$5",
+			"\t}",
+			"}"
+		],
+    },
+    "func async lc try..catch..finally rethrow with logging": {
+        "scope": "javascript,typescript",
+		"prefix": "func_lc_trycatchfinally_rethrow_withlogging",
+		"body": [
+			"async $1({",
+			"\t$2,",
+			"}: {",
+			"\t$2: $3,",
+			"}): Promise<$4> {",
+			"\tconst lc = `\\${this.lc}[\\${this.$1.name}]`;",
+			"\ttry {",
+			"\t\tif (logalot) { console.log(`\\${lc} starting...`); }",
+			"\t\t$0",
+			"\t} catch (error) {",
+			"\t\tconsole.error(`\\${lc} \\${error.message}`);",
+			"\t\tthrow error;",
+			"\t} finally {",
+			"\t\tif (logalot) { console.log(`\\${lc} complete.`); }",
+			"\t}",
+			"}"
+		],
+    }
+}
