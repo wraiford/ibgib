@@ -20,7 +20,7 @@ import { IbGibAddr, TransformResult } from 'ts-gib';
 import { CommonService } from 'src/app/services/common.service';
 import { SyncSpaceData_AWSDynamoDB } from '../witnesses/spaces/aws-dynamo-space-v1';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 const EXAMPLE_SYNC_SPACE_AWSDYNAMODB: SyncSpaceData_AWSDynamoDB = {
     uuid: '01c4bb00999741018716c47bf7bebcf2',

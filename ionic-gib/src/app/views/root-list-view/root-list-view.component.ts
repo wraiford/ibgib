@@ -9,7 +9,7 @@ import { IbgibListComponentBase } from 'src/app/common/bases/ibgib-list-componen
 import { CommonService } from 'src/app/services/common.service';
 import { IbgibItem } from 'src/app/common/types';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 @Component({
   selector: 'root-list',

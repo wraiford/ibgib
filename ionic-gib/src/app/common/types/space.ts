@@ -3,6 +3,8 @@ import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 import { IbGibAddr, IbGib, IbGibWithDataAndRel8ns, IbGibRel8ns } from 'ts-gib';
 import { Witness, WitnessData_V1 } from './witness';
 import * as c from '../constants';
+import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
+import { TjpIbGibAddr } from './ibgib';
 
 export interface IbGibSpaceData extends WitnessData_V1 {
     version?: string;
@@ -335,4 +337,77 @@ export interface IbGibSpace<
     >
     extends Witness<TOptionsIbGib, TResultIbGib, TData, TRel8ns> {
     witness(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
+}
+
+/**
+ * Data shape for {@link IbGibSpaceLockIbGib}.
+ *
+ * This includes the options passed in and contains any result data of the lock
+ * as well.
+ */
+export interface IbGibSpaceLockData {
+    action: 'lock' | 'unlock';
+    /**
+     * When setting the lock, this was the maximum amount of time the lock is
+     * valid.
+     *
+     * {@link expirationUTC}
+     */
+    secondsValid: number;
+    /**
+     * When setting the lock, this was the calculated expiration string based on
+     * {@link secondsValid}.
+     *
+     * If the lock is not manually released, this will determine if the lock is
+     * adhered to.
+     */
+    expirationUTC?: string;
+    /**
+     * The scope to which the lock applies.
+     */
+    scope: 'all' | TjpIbGibAddr;
+    /**
+     * True if space was already locked.
+     */
+    alreadyLocked?: boolean;
+    /**
+     * True if caller's request to lock the space was executed.
+     */
+    success?: boolean;
+}
+
+/**
+ * Options for the funciton that locks a space.
+
+ * {@link IbGibSpaceLockData}
+ * {@link IbGibSpaceLockIbGib}
+ */
+export interface IbGibSpaceLockOptions extends IbGibSpaceLockData {
+    /**
+     * the space to lock/unlock
+     */
+    space: IbGibSpaceAny;
+}
+
+/**
+ * Rel8ns shape for {@link IbGibSpaceLockIbGib}
+ *
+ * marker interface atm
+ */
+export interface IbGibSpaceLockRel8ns extends IbGibRel8ns_V1 { }
+
+/**
+ * When locking a space, this is the ibGib that contains informatino regarding
+ * the process. This includes if the lock was successful, how long the lock is
+ * good for, etc.
+ *
+ * ## notes
+ *
+ * * This is meant to be completely ephemeral and there will be no gib. There
+ *   may be many calls to lock/release in tight loops and atow it wouldn't seem
+ *   provide us with much benefit to store this kind of metadata.
+ */
+export interface IbGibSpaceLockIbGib
+    extends IbGib_V1<IbGibSpaceLockData, IbGibSpaceLockRel8ns> {
+
 }

@@ -20,7 +20,7 @@ import { CreateOuterspaceModalComponent } from './common/create-outerspace-modal
 import { CreateEncryptionModalComponent } from './common/create-encryption-modal/create-encryption-modal.component';
 import { getFn_promptCreateEncryptionIbGib, getFn_promptCreateOuterSpaceIbGib, getFn_promptCreateSecretIbGib } from './common/helper';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 interface MenuItem {
   title: string;

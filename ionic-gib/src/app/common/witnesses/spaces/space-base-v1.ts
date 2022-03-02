@@ -14,7 +14,7 @@ import { WitnessBase_V1, resulty_, argy_ } from '../witnesses';
 import * as c from '../../constants';
 import { getTimestampInTicks, validateIbGibIntrinsically } from '../../helper';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 export interface IbGibSpaceAny
     extends SpaceBase_V1<any,any,any,any,any,any,any> {
@@ -200,7 +200,6 @@ export abstract class SpaceBase_V1<
         let errors: string[] = [];
         try {
             errors = await super.validateWitnessArg(arg);
-            console.log(`${lc} validate 1`);
             if (!arg.data) {
                 errors.push(`arg.data required (E: 8ee544d7d88a45c6adcbc15838a283a7)`);
                 return errors; // <<<< returns immediately
@@ -221,13 +220,12 @@ export abstract class SpaceBase_V1<
                 errors.push(`ibGibAddrs required when cmd is ${cmd}. (E: ee55a3f60b90423cbe054f27c34ab7d5)`);
             }
             if (cmd === IbGibSpaceOptionsCmd.put) {
-                console.log(`${lc} validate put cmd`);
+                if (logalot) { console.log(`${lc} validate put cmd`); }
                 const ibGibsLength = ibGibs?.length ?? 0;
                 if (ibGibsLength === 0) {
                     errors.push(`ibGibs required when cmd is ${cmd}. (E: b3a422169f7344a48a1d44e7ad1ba44e)`);
                 } else if (this.data.validateIbGibAddrsMatchIbGibs) {
                     // #region validate ibGib map to ibGibAddrs
-                    console.log(`${lc} validate 2`);
                     if (logalot) { console.log(`${lc} validateIbGibAddrsMatchIbGibs true, so doing so.`); }
 
                     // confirm the incoming ibGibs match up with the addresses

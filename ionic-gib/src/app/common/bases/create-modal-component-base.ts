@@ -10,7 +10,7 @@ import {
 } from '../types';
 import { getRegExp } from '../helper';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 /**
  * Prompts the user for information gathering and generates a new ibGib.

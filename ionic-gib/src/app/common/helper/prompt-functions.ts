@@ -15,7 +15,7 @@ import { CreateEncryptionModalComponent } from '../create-encryption-modal/creat
 import { CreateOuterspaceModalComponent } from '../create-outerspace-modal/create-outerspace-modal.component';
 import { CommonService } from '../../services/common.service';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 
 /**

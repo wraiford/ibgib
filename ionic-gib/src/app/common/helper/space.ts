@@ -25,7 +25,7 @@ import { LatestEventInfo, RootData, SpecialIbGibType, TagData, } from '../types'
 import { validateIbGibAddr } from './validate';
 import { getTjpAddrs } from './ibgib';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 
 /**
@@ -759,6 +759,7 @@ export async function getConfigAddr({
     const lc = `[${getConfigAddr.name}](${key})`;
     try {
         if (logalot) { console.log(`${lc} getting...`) }
+
         if (!space) { throw new Error(`space required. (E: 4f135d4276e64054ba21aeb9c304ecec)`); }
 
         if (!space.rel8ns) {
@@ -2115,5 +2116,27 @@ export function throwIfDuplicates({
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
+    }
+}
+
+export function getSpaceLockAddr({
+    space,
+}: {
+    space: IbGibSpaceAny,
+}): IbGibAddr {
+    const lc = `[${getSpaceLockAddr.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting...`); }
+        if (!space) { throw new Error(`space required. (E: 3ba16e6c3e5e47948b0e63448da11752)`); }
+        if (!space.data?.uuid) { throw new Error(`invalid space (space.data.uuid falsy) (E: 273262b32f2ef27b2e690bc699f33822)`); }
+        const spaceId = space.data!.uuid;
+        const ib = `space_lock ${spaceId}`;
+        const gib = GIB;
+        return h.getIbGibAddr({ib, gib});
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
     }
 }

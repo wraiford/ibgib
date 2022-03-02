@@ -21,7 +21,7 @@ import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/
 import { getFnAlert, } from '../common/helper';
 import { concatMap } from 'rxjs/operators';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
@@ -141,7 +141,7 @@ export class IbGibPage extends IbgibComponentBase
         const latestAddr =
           await this.common.ibgibs.getLatestAddr({tjpAddr: this.tjpAddr});
         if (latestAddr !== this.addr) {
-          console.log(`${lc} there is a new latest addr: ${latestAddr}`);
+          if (logalot) { console.log(`${lc} there is a new latest addr: ${latestAddr}`); }
           const resLatestIbGib = await this.common.ibgibs.get({addr: latestAddr});
           if (resLatestIbGib.success && resLatestIbGib.ibGibs?.length > 0) {
             const latestIbGib = resLatestIbGib.ibGibs[0];

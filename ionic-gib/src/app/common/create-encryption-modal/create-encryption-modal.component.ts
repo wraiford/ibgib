@@ -15,7 +15,7 @@ import { HashAlgorithm } from 'encrypt-gib';
 import { TransformResult } from 'ts-gib';
 import { getExpirationUTCString, getRegExp } from '../helper';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 /**
  * Prompts the user for information gathering and generates a new ibGib.

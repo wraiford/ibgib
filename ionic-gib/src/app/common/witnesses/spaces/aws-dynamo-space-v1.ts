@@ -70,7 +70,7 @@ import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 // #endregion imports
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 // #region AWS related
 

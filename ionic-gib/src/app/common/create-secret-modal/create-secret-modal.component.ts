@@ -14,7 +14,7 @@ import { TransformResult } from 'ts-gib';
 import { getExpirationUTCString, getRegExp, hash16816 } from '../helper';
 import { CreateModalComponentBase } from '../bases/create-modal-component-base';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 /**
  * Prompts the user for information gathering and generates a new ibGib.

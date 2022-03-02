@@ -20,7 +20,7 @@ import {
 import * as c from '../../constants';
 import { getBinHashAndExt, isBinary } from '../../helper';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 // #region Space related interfaces/constants
 

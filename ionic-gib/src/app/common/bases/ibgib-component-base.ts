@@ -332,7 +332,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
                 isModal,
             });
 
-            console.log(`${lc} complete.`)
+            if (logalot) { console.log(`${lc} complete.`); }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
         }

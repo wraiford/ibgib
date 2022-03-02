@@ -22,7 +22,7 @@ import {
 import * as c from '../constants';
 import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 // const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 const debugBorder = false;
 

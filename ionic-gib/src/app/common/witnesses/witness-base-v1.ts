@@ -8,7 +8,7 @@ import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { validateGib, validateIb, validateIbGibIntrinsically } from '../helper';
 import { argy_ } from './witness-helper';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 export abstract class WitnessBase_V1<
     TOptionsData extends any,
