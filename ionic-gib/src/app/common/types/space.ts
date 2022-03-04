@@ -339,6 +339,9 @@ export interface IbGibSpace<
     witness(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;
 }
 
+export type SpaceLockAction = 'lock' | 'unlock';
+export type SpaceLockScope = 'all' | TjpIbGibAddr;
+
 /**
  * Data shape for {@link IbGibSpaceLockIbGib}.
  *
@@ -346,14 +349,28 @@ export interface IbGibSpace<
  * as well.
  */
 export interface IbGibSpaceLockData {
-    action: 'lock' | 'unlock';
+    /**
+     * In-memory unique identifier associated with the lock.
+     *
+     * ## intent
+     *
+     * I intend this mainly as a device for differentiating among multiple
+     * tabs open on the same browser. These share the same IndexedDB instance
+     * (and thus the same space bucket), but they have different caching
+     * mechanisms and interfaces to this bucket.
+     */
+    instanceId?: string;
+    /**
+     * self-explanatory
+     */
+    // action?: SpaceLockAction;
     /**
      * When setting the lock, this was the maximum amount of time the lock is
      * valid.
      *
      * {@link expirationUTC}
      */
-    secondsValid: number;
+    secondsValid?: number;
     /**
      * When setting the lock, this was the calculated expiration string based on
      * {@link secondsValid}.
@@ -365,7 +382,7 @@ export interface IbGibSpaceLockData {
     /**
      * The scope to which the lock applies.
      */
-    scope: 'all' | TjpIbGibAddr;
+    scope: SpaceLockScope;
     /**
      * True if space was already locked.
      */
@@ -374,6 +391,10 @@ export interface IbGibSpaceLockData {
      * True if caller's request to lock the space was executed.
      */
     success?: boolean;
+    /**
+     * If errored, this is the message.
+     */
+    errorMsg?: string;
 }
 
 /**

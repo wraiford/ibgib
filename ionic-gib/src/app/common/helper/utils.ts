@@ -164,3 +164,25 @@ export function getExpirationUTCString({
         throw error;
     }
 }
+
+
+export function isExpired({
+    expirationTimestampUTC,
+}: {
+    expirationTimestampUTC: string,
+}): boolean {
+    const lc = `${this.lc}[${isExpired.name}]`;
+    try {
+        if (!expirationTimestampUTC) { throw new Error(`expirationTimestampUTC required (E: 5eeb1e29f93d64f70c71a8112080a222)`); }
+
+        let expirationDate = new Date(expirationTimestampUTC);
+        if (expirationDate.toUTCString() === "Invalid Date") { throw new Error(`invalid expirationTimestampUTC: ${expirationTimestampUTC} (E: 66a1a165bcf1f9336fe78856ab777822)`); }
+
+        const now = new Date();
+        const expired = expirationDate < now;
+        return expired;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}

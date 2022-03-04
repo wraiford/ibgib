@@ -8,7 +8,12 @@ export interface FileResult {
    * If errored, this will contain the errorMsg.
    */
   errorMsg?: string;
+  /**
+   * True if failed due to timing out.
+   */
+  timedOut?: boolean;
 }
+
 /**
  * Options for retrieving data from the file system.
  */
@@ -35,7 +40,17 @@ export interface GetIbGibOpts {
    * @default localUserSpace
    */
   space?: IbGibSpaceAny,
+  /**
+   * If supplied, first acquires the lock with this scope on the
+   * given `space` (which defaults to localUserSpace).
+   */
+  lockScope?: string,
+  /**
+   * Cancels if can't acquire lock after approximately this time.
+   */
+  lockTimeoutMs?: number,
 }
+
 /**
  * Result for retrieving an ibGib from the file system.
  */

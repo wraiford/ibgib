@@ -294,8 +294,8 @@ export function validateUserSpaceName(name: string): boolean {
     }
 }
 
-export async function validateBootstrapGib(bootstrapSpace: IbGib_V1): Promise<boolean> {
-    const lc = `[${validateBootstrapGib.name}]`;
+export async function validateBootstrapIbGib(bootstrapSpace: IbGib_V1): Promise<boolean> {
+    const lc = `[${validateBootstrapIbGib.name}]`;
     const errors: string[] = [];
     try {
         let addr = h.getIbGibAddr({ibGib: bootstrapSpace});

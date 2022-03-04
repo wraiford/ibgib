@@ -41,7 +41,7 @@ import {
   getDependencyGraph, getSpecialIbgib, getSpecialRel8dIbGibs, getTjpIbGib,
   groupBy, hasTjp, isSameSpace, persistTransformResult, putInSpace,
   registerNewIbGib, rel8ToCurrentRoot, rel8ToSpecialIbGib, setConfigAddr,
-  setCurrentRoot, validateBootstrapGib, validateUserSpaceName, getConfigAddr, getSpaceLockAddr,
+  setCurrentRoot, validateBootstrapIbGib, validateUserSpaceName, getConfigAddr, getSpaceLockAddr, isExpired, getExpirationUTCString,
 } from '../common/helper';
 import { AppSpaceData, AppSpaceRel8ns } from '../common/types/app';
 import {
@@ -148,6 +148,8 @@ export class IbgibsService {
   // we won't get an object back, only a DTO ibGib essentially
   private lc: string = `[${IbgibsService.name}]`;
 
+  private _instanceId: string;
+
   private _initialized: boolean;
   get initialized(): boolean { return this._initialized; }
 
@@ -245,6 +247,8 @@ export class IbgibsService {
   }): Promise<void> {
     const lc = `${this.lc}[${this.initialize.name}]`;
     try {
+      this._instanceId = await h.getUUID();
+
       this.fnPromptSecret = fnPromptSecret;
       this.fnPromptEncryption = fnPromptEncryption;
       this.fnPromptOuterSpace = fnPromptOuterSpace;
@@ -303,12 +307,12 @@ export class IbgibsService {
         },
       });
       if (logalot) { console.log(`${lc} getting from default space...`)}
-      const result = await localDefaultSpace.witness(argGet);
-      if (result?.data?.success) {
+      const resGetBootstrapIbGib = await localDefaultSpace.witness(argGet);
+      if (resGetBootstrapIbGib?.data?.success) {
         if (logalot) { console.log(`${lc} getting from default space...Success!`)}
         // load userSpace that was already initialized and recorded in the bootstrapGib "primitive" ibGib
-        const bootstrapGib = result!.ibGibs![0]!;
-        await this.loadUserLocalSpace({localDefaultSpace: localDefaultSpace, bootstrapGib});
+        const bootstrapIbGib = resGetBootstrapIbGib!.ibGibs![0]!;
+        await this.loadUserLocalSpace({localDefaultSpace, bootstrapIbGib});
       } else {
         if (logalot) { console.log(`${lc} getting from default space...not found. bootstrap space not found.`); }
         // bootstrap space ibgib not found, so first run probably for user.
@@ -488,15 +492,15 @@ export class IbgibsService {
    */
   private async loadUserLocalSpace({
     localDefaultSpace,
-    bootstrapGib,
+    bootstrapIbGib,
   }: {
     localDefaultSpace: IonicSpace_V1,
-    bootstrapGib: IbGib_V1,
+    bootstrapIbGib: IbGib_V1,
   }): Promise<void> {
     const lc = `${this.lc}[${this.loadUserLocalSpace.name}]`;
     try {
-        if (await validateBootstrapGib(bootstrapGib)) {
-          const userSpaceAddr = bootstrapGib.rel8ns![c.SPACE_REL8N_NAME_BOOTSTRAP_SPACE][0];
+        if (await validateBootstrapIbGib(bootstrapIbGib)) {
+          const userSpaceAddr = bootstrapIbGib.rel8ns![c.SPACE_REL8N_NAME_BOOTSTRAP_SPACE][0];
           const argGet = await localDefaultSpace.argy({
             ibMetadata: localDefaultSpace.getSpaceArgMetadata(),
             argData: {
@@ -854,7 +858,7 @@ export class IbgibsService {
           if (logalot) { console.log(`${lc} getting from default space...Success!`)}
           // load userSpace that was already initialized and recorded in the bootstrapGib "primitive" ibGib
           const bootstrapGib = result!.ibGibs![0]!;
-          if (await validateBootstrapGib(bootstrapGib)) {
+          if (await validateBootstrapIbGib(bootstrapGib)) {
             const userSpaceAddr = bootstrapGib.rel8ns![c.SPACE_REL8N_NAME_BOOTSTRAP_SPACE][0];
             const argGet = await this.localDefaultSpace.argy({
               ibMetadata: this.localDefaultSpace.getSpaceArgMetadata(),
@@ -970,34 +974,97 @@ export class IbgibsService {
     }
   }
 
-  private _spaceLocks: { [spaceLockAddr: string]: IbGibSpaceLockIbGib } = {};
+  /**
+   * In-memory cache of space locks....maybe hsouldn't use? hmm
+   */
+  private _spaceLocks: { [spaceLockAddr_scope: string]: IbGibSpaceLockIbGib } = {};
 
   async lockSpace({
-    secondsValid: msMax,
-    action,
     space,
+    scope,
+    secondsValid,
   }: IbGibSpaceLockOptions): Promise<IbGibSpaceLockIbGib> {
     const lc = `${this.lc}[${this.lockSpace.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
-      space = space ?? this.localUserSpace;
-      if (!space) { throw new Error(`${lc} space falsy and localUserSpace not initialized. (E: 5c0a7197a75f483a82d74e5eea60df37)`); }
 
+      if (!space) { throw new Error(` space required. (E: 5c0a7197a75f483a82d74e5eea60df37)`); }
+      if (!scope) { throw new Error(`scope required. (E: c7f1dde9570f4df3b450faa2c2f85122)`); }
+      if (!secondsValid) { throw new Error(`secondsValid required and positive (E: b42b6733638b46c06c9aff59a6c49822)`); }
+      if (secondsValid < 0) { throw new Error(`secondsValid must be positive (E: bbe3b6d567583bfb35a1c0825eb29622)`); }
+
+      /** what we will return */
+      let resLockIbGib: IbGibSpaceLockIbGib;
+
+      /** space lock address is deterministic ibgib primitive (gib === 'gib') */
+      const spaceLockAddr = getSpaceLockAddr({space, scope});
 
       // check for existing lock...
+      let existingLock: IbGibSpaceLockIbGib;
+
       // ...in memory for given space
-      const spaceLockAddr = getSpaceLockAddr({space});
       if (this._spaceLocks[spaceLockAddr]) {
-        const existingLock = this._spaceLocks[spaceLockAddr];
-
+        existingLock = this._spaceLocks[spaceLockAddr];
+        if (isExpired({expirationTimestampUTC: existingLock.data.expirationUTC})) {
+          // lock expired, so delete the in-memory reference and resume just as
+          // if it hadn't existed.
+          console.warn(`${lc} removing in-memory expired space lock at ${spaceLockAddr}`);
+          delete this._spaceLocks[spaceLockAddr];
+          existingLock = undefined;
+        }
       }
-      // ...in space if not locked in memory
 
-      // if validly locked already, return early informing caller, including
-      // what the worst-case expirationUTC of the existing lock is.
+      if (!existingLock) {
+        // ...in space's backing store (file, IndexedDB entry, DB, etc.)
 
-      // else not yet locked so immediately lock in memory for space...
-      // then lock via space ibgib record (via put).
+        let getLock = await this.get({addr: spaceLockAddr, isMeta: true});
+        if (getLock.success && getLock.ibGibs?.length === 1) {
+          existingLock = <IbGibSpaceLockIbGib>getLock.ibGibs[0];
+          if (isExpired({expirationTimestampUTC: existingLock.data.expirationUTC})) {
+            // lock expired, so log only. skipping delete atow because should be overwritten
+            // when the new lock is in place.
+            if (logalot) { console.log(`${lc} ignoring expired existing lock in space at ${spaceLockAddr}. Should be overwritten (I: 7421c5b051724b189f88cecbbd449b22)`); }
+            existingLock = undefined;
+            // await this.unlockSpace({space, scope});
+          }
+        } else {
+          if (logalot) { console.log(`${lc} existing lock not found for ${spaceLockAddr} (I: 191af56ec4e2db3d19084e46bf949222)`); }
+        }
+      }
+
+      if (existingLock) {
+        // valid lock already exists, so return informing caller.  this includes
+        // the existing lock's info, i.e. its expiration
+        resLockIbGib = <IbGibSpaceLockIbGib>h.clone(existingLock);
+        resLockIbGib.data.alreadyLocked = true;
+        resLockIbGib.data.success = false;
+      } else {
+        // not yet locked so immediately lock in memory for space, then via
+        // `space.put(lock)`
+        const {ib, gib} = h.getIbAndGib({ibGibAddr: spaceLockAddr});
+        resLockIbGib = <IbGibSpaceLockIbGib>{
+          ib, gib,
+          data: {
+            scope,
+            instanceId: this._instanceId,
+            secondsValid,
+            expirationUTC: getExpirationUTCString({seconds: secondsValid}),
+          }
+        };
+        this._spaceLocks[spaceLockAddr] = h.clone(resLockIbGib);
+        const resPut = await this.put({ibGib: resLockIbGib, isMeta: true, force: true, space});
+        if (resPut.success) {
+          resLockIbGib.data.success = true;
+        } else {
+          delete this._spaceLocks[spaceLockAddr];
+          const emsg = `${lc} there was an error putting the lock in the space: ${resPut.errorMsg}`;
+          resLockIbGib.data.success = false;
+          resLockIbGib.data.errorMsg = emsg;
+          console.error(emsg);
+        }
+      }
+
+      return resLockIbGib;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -1006,6 +1073,73 @@ export class IbgibsService {
     }
   }
 
+  async unlockSpace({
+    space,
+    scope,
+  }: IbGibSpaceLockOptions): Promise<IbGibSpaceLockIbGib> {
+    const lc = `${this.lc}[${this.lockSpace.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      if (!space) { throw new Error(` space required. (E: 5c0a7197a75f483a82d74e5eea60df37)`); }
+      if (!scope) { throw new Error(`scope required. (E: c7f1dde9570f4df3b450faa2c2f85122)`); }
+
+      /** space lock address is deterministic ibgib primitive (gib === 'gib') */
+      const spaceLockAddr = getSpaceLockAddr({space, scope});
+
+      // delete in memory if it exists
+      if (this._spaceLocks[spaceLockAddr]) { delete this._spaceLocks[spaceLockAddr]; }
+
+      // delete in file if it exists
+      debugger; // change addr to ib^gib that doesn't exist. I want to see what
+      // happens/errorMsg when deleting a non-existent addr
+
+      let resDelete = await this.delete({addr: spaceLockAddr, isMeta: true, space});
+      if (resDelete.success) {
+        const {ib,gib} = h.getIbAndGib({ibGibAddr: spaceLockAddr});
+        return <IbGibSpaceLockIbGib>{
+          ib, gib,
+          data: {
+            // action: 'unlock',
+            success: true,
+            instanceId: this._instanceId,
+            scope,
+          }
+        };
+      } else {
+        debugger; // want to see what the error msg if it fails because file
+        // doesn't exist (which we don't care about) or fails for some other
+        // reason (which we may care about)
+        const emsg = `Delete lock in space failed. delete errorMsg: ${resDelete.errorMsg}`;
+        if (emsg.includes('not implemented')) {
+          // rethrow error if space has not implemented a delete command handler
+          throw new Error(emsg);
+        } else if (emsg.toLowerCase().includes(`doesn't exist`) || emsg.toLowerCase().includes(`not found`)) {
+          debugger; // maybe gets here?
+          // don't want to warn if just file didn't exist
+          if (logalot) { console.log(`${lc} ${emsg} (I: b647916fd0f3e5366e9387131be21c22)`); }
+          const {ib,gib} = h.getIbAndGib({ibGibAddr: spaceLockAddr});
+          return <IbGibSpaceLockIbGib>{
+            ib, gib,
+            data: {
+              action: 'unlock',
+              success: true,
+              instanceId: this._instanceId,
+              scope,
+            }
+          };
+        } else {
+          debugger; // just curious if gets here ever
+          console.warn(`${lc} ${emsg} (W: 14c84fcac15944bd9a417099964d5d9d)`);
+        }
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 
   async getTjpIbGib({
     ibGib,

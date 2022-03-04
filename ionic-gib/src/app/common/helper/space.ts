@@ -21,7 +21,7 @@ import {
     getRootIb,
     getSpecialConfigKey, getSpecialIbgibIb, tagTextToIb,
 } from '../helper';
-import { LatestEventInfo, RootData, SpecialIbGibType, TagData, } from '../types';
+import { LatestEventInfo, RootData, SpaceLockScope, SpecialIbGibType, TagData, } from '../types';
 import { validateIbGibAddr } from './validate';
 import { getTjpAddrs } from './ibgib';
 
@@ -2121,18 +2121,62 @@ export function throwIfDuplicates({
 
 export function getSpaceLockAddr({
     space,
+    scope,
 }: {
     space: IbGibSpaceAny,
+    scope: SpaceLockScope,
 }): IbGibAddr {
     const lc = `[${getSpaceLockAddr.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting...`); }
+
         if (!space) { throw new Error(`space required. (E: 3ba16e6c3e5e47948b0e63448da11752)`); }
         if (!space.data?.uuid) { throw new Error(`invalid space (space.data.uuid falsy) (E: 273262b32f2ef27b2e690bc699f33822)`); }
+        if (!scope) { throw new Error(`scope required. (E: f47801d6c45e2247b42a53d9b604b522)`); }
+
         const spaceId = space.data!.uuid;
-        const ib = `space_lock ${spaceId}`;
+        const ib = `space_lock ${spaceId} ${scope}`;
         const gib = GIB;
         return h.getIbGibAddr({ib, gib});
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+export async function getBootstrapIbGib({
+    defaultSpace,
+    lock,
+}: {
+    defaultSpace: IbGibSpaceAny,
+    lock: boolean,
+}): Promise<IbGib_V1|null> {
+    const lc = `[${getBootstrapIbGib.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting...`); }
+
+        if (!defaultSpace) {throw new Error(`defaultSpace required. (E: 66fd8f21a5b2b572d18cdeb9472a7722)`); }
+
+        const argGet = await defaultSpace.argy({
+            ibMetadata: defaultSpace.getSpaceArgMetadata(),
+            argData: {
+                cmd: 'get',
+                ibGibAddrs: [c.BOOTSTRAP_SPACE_ADDR],
+                isMeta: true,
+            },
+        });
+        if (logalot) { console.log(`${lc} getting from default space...`)}
+        const resGetBootstrapIbGib = await defaultSpace.witness(argGet);
+        if (resGetBootstrapIbGib?.data?.success && resGetBootstrapIbGib.ibGibs?.length === 1) {
+            const bootstrapIbGib = resGetBootstrapIbGib!.ibGibs![0]!;
+            if (logalot) { console.log(`${lc} bootstrapibGib found: ${h.pretty(bootstrapIbGib)}`); }
+            return bootstrapIbGib;
+        } else {
+            if (logalot) { console.log(`${lc} bootstrapIbGib NOT found.`); }
+            return null;
+        }
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

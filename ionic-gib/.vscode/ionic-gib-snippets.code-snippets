@@ -128,4 +128,11 @@
 			"throw new Error(`$1 (E: $RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$CURRENT_YEAR_SHORT)`); $0"
 		],
     },
+    "log if logalot": {
+        "scope": "javascript,typescript",
+		"prefix": "log_if_logalot",
+		"body": [
+			"if (logalot) { console.log(`\\${lc} $1 (I: $RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$CURRENT_YEAR_SHORT)`); }"
+		],
+    },
 }
