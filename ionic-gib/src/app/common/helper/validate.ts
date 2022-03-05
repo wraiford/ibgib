@@ -299,17 +299,17 @@ export async function validateBootstrapIbGib(bootstrapSpace: IbGib_V1): Promise<
     const errors: string[] = [];
     try {
         let addr = h.getIbGibAddr({ibGib: bootstrapSpace});
-        if (addr !== c.BOOTSTRAP_SPACE_ADDR) {
-            errors.push(`invalid bootstrapSpace addr. Should equal "${c.BOOTSTRAP_SPACE_ADDR}"`);
+        if (addr !== c.BOOTSTRAP_IBGIB_ADDR) {
+            errors.push(`invalid bootstrapSpace addr. Should equal "${c.BOOTSTRAP_IBGIB_ADDR}"`);
         }
         if (Object.keys(bootstrapSpace.data || {}).length > 0) {
             errors.push(`invalid bootstrapSpace data. Data should be falsy/empty`);
         }
         if (Object.keys(bootstrapSpace.rel8ns || {}).length === 0) {
-            errors.push(`invalid bootstrapSpace rel8ns (empty). Should have one rel8n, with rel8nName ${c.SPACE_REL8N_NAME_BOOTSTRAP_SPACE}`);
+            errors.push(`invalid bootstrapSpace rel8ns (empty). Should have one rel8n, with rel8nName ${c.BOOTSTRAP_REL8N_NAME_SPACE}`);
         }
         if (Object.keys(bootstrapSpace.rel8ns || {}).length > 1) {
-            errors.push(`invalid bootstrapSpace rel8ns (more than 1). Should have only one rel8n, with rel8nName ${c.SPACE_REL8N_NAME_BOOTSTRAP_SPACE}`);
+            errors.push(`invalid bootstrapSpace rel8ns (more than 1). Should have only one rel8n, with rel8nName ${c.BOOTSTRAP_REL8N_NAME_SPACE}`);
         }
         if (errors.length === 0) {
             return true;

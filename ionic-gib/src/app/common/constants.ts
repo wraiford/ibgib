@@ -11,40 +11,20 @@ export const GLOBAL_LOG_A_LOT: boolean | number = false;
 
 export const GLOBAL_DEBUG_BORDER = false;
 
+export const IBGIB_SPACE_NAME_DEFAULT = 'default_space';
 
 /**
- * When the application first starts, it looks to bootstrap itself.
- * So it will look for a file with this primitive address.
- *
- * This file should contain the absolute minimum information required
- * to resolve to an ibgib proper with a valid ^gib hash.
- * Atow I can't think of any further information required
- * than simply the ib^gib address of that ibgib, accompanied with
- * any required pathing metadata to find it.
- *
- * ## notes
- *
- * Usually primitives are not stored/persisted. This is because the
- * `gib` indicates that there is no hash corroboration ("guarantee")
- * to the internal data or rel8ns. However, a newly started app
- * has to start somewhere. This offers an alternative to using
- * app storage and streamlines the app overall, since instead of
- * working with two stores (in Ionic: `Storage` and `FileSystem`)
- * we will just be working with one (`FileSystem`).
- *
- * In the future, we'll want to do a workflow here where the user
- * can start from an existing space, but for now it's just located
- * here.
+ * See {@link BootstrapIbGib}
  */
-export const BOOTSTRAP_SPACE_ADDR = `bootstrap^${GIB}`;
-// export const IBGIB_SPACE_UUID_DEFAULT = 'ib';
-export const IBGIB_SPACE_NAME_DEFAULT = 'default_space';
-export const IBGIB_META_SPACE_NAME_DEFAULT = 'default_meta_space';
+export const BOOTSTRAP_IBGIB_ADDR = `bootstrap^${GIB}`;
 /**
- * The bootstrap space should be primitive except a single rel8n
+ * The bootstrap space contains no gib punctiliar hash or tjp, but is just 'gib'.
+ *
+ * should be primitive except a single rel8n
  * with this rel8n name with a single rel8d address.
  */
-export const SPACE_REL8N_NAME_BOOTSTRAP_SPACE = `space`;
+export const BOOTSTRAP_REL8N_NAME_SPACE = `space`;
+export const BOOTSTRAP_DATA_DEFAULT_SPACE_ID_KEY = `defaultSpaceId`;
 /**
  * rel8n name in a space ibgib to the config ibgib(s?)
  */
@@ -427,6 +407,22 @@ export const STATUS_UNDEFINED_TJP_GIB = GIB;
  * the txId has not been set.
  */
 export const STATUS_UNDEFINED_TX_ID = '0';
+
+/**
+ * When attempting to acquire a lock ona  space, and it is already lock, it will
+ * wait a random amount of ms before trying to lock again. This is the default
+ * max amount of ms before reattempting.
+ */
+export const DEFAULT_MAX_DELAY_MS_RETRY_LOCK_ACQUIRE = 100;
+/**
+ * Will retry this many times before giving up...
+ */
+export const DEFAULT_MAX_DELAY_RETRY_LOCK_ACQUIRE_ATTEMPTS = 100;
+// export const DEFAULT_MAX_LOCK_SECONDS_VALID = 15;
+/**
+ * We don't want someone locking a space forever by accident.
+ */
+export const MAX_LOCK_SECONDS_VALID = 60 * 2; // two minutes
 
 export const AWS_RESERVED_WORDS = [
     'ABORT',

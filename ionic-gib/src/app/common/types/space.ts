@@ -6,6 +6,12 @@ import * as c from '../constants';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { TjpIbGibAddr } from './ibgib';
 
+/**
+ * Marker type to show intent that it should be the spaceId, i.e.
+ * space.data.uuid.
+ */
+export type SpaceId = string;
+
 export interface IbGibSpaceData extends WitnessData_V1 {
     version?: string;
     /**
@@ -23,7 +29,7 @@ export interface IbGibSpaceData extends WitnessData_V1 {
      *
      * DEBUG Make this optional after compiler stuff DEBUG
      */
-    uuid?: string;
+    uuid: SpaceId;
     /**
      * Optional configuration for `witness` call.
      * If true, then this space will not catch an error in `witnessImpl`
@@ -431,4 +437,78 @@ export interface IbGibSpaceLockRel8ns extends IbGibRel8ns_V1 { }
 export interface IbGibSpaceLockIbGib
     extends IbGib_V1<IbGibSpaceLockData, IbGibSpaceLockRel8ns> {
 
+}
+
+
+/**
+ * Data of a {@link BootstrapIbGib}
+ */
+export interface BootstrapData {
+    /**
+     * this id will be the default space of the bootstrap (meta space).
+     *
+     * The `bootstrapIbGib.rel8ns` will contain links to the space addresses,
+     * with `rel8nName === spaceId`.
+     *
+     * So to get the default space, you need the default space address. To get
+     * that address, you first read this data value, then index into
+     * `bootstrap.rel8ns[spaceId]`.
+     */
+    [c.BOOTSTRAP_DATA_DEFAULT_SPACE_ID_KEY]: SpaceId;
+}
+
+/**
+ * Rel8ns of a {@link BootstrapIbGib}
+ */
+export interface BootstrapRel8ns extends IbGibRel8ns_V1 {
+    [c.BOOTSTRAP_REL8N_NAME_SPACE]: IbGibAddr[];
+}
+
+
+/**
+ * When the application first starts, it looks to bootstrap itself.  So it will
+ * look for an ibgib with this "primitive" address, i.e. where the gib is the
+ * string literal 'gib'. It looks for this address inside what is called the
+ * "zero space". This is a default space with default parameters that always
+ * points to the same location, relative to the context/app.
+ *
+ * So the application (context) starts, creates a default zero space ibgib,
+ * which has a default location/parameters that the space looks in, and it gets
+ * a bootstrap ibgib with a known address "bootstrap^gib" (atow).  Inside that
+ * bootstrap ibgib, there is at least one local space, or a new one must be
+ * created and then stored here for future app/context startups.
+ *
+ * Spaces are rel8d by their `spaceId`'s in `ibgib.rel8ns`, and the `ibgib.data`
+ * key (`ibgib.data.defaultSpaceId` atow) contains the default `spaceId`.  If
+ * there are multiple local spaces that the bootstrap ibgib knows about, there
+ * will be only one "default" set.
+ *
+ * ## first run
+ *
+ * A new local space will be created, whose parameters (including its `uuid` which is its
+ * `spaceId`) contribute to its
+ * reiffied gib hash. A new bootstrap ibgib is created, and in its `data.uuid`
+ * we set the newly created local space's id. We then rel8 the space to the
+ * bootstrap also via this spaceId...hmmm
+ *
+ * ## notes
+ *
+ * Usually primitives are not stored/persisted. This is because the `gib`
+ * indicates that there is no hash corroboration ("guarantee") to the internal
+ * data or rel8ns. However, a newly started app has to start somewhere. This
+ * offers an alternative to using app storage and streamlines the app overall,
+ * since instead of working with two stores (in Ionic: `Storage` and
+ * `FileSystem`) we will just be working with one (`FileSystem`).
+ *
+ * In the future, we'll want to do a workflow here where the user
+ * can start from an existing space, but for now it's just located
+ * here.
+ */
+export interface BootstrapIbGib
+    extends IbGib_V1<BootstrapData, BootstrapRel8ns> {
+
+        leaving off here
+        // fix comments above to reflect workflow that a space should have a tjp
+        // (but no dna). then we can refer to the space's tjpAddr.gib, since the
+        // space itself should not be mutating very often. ...(I think...)
 }

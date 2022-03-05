@@ -41,7 +41,7 @@ import {
   getDependencyGraph, getSpecialIbgib, getSpecialRel8dIbGibs, getTjpIbGib,
   groupBy, hasTjp, isSameSpace, persistTransformResult, putInSpace,
   registerNewIbGib, rel8ToCurrentRoot, rel8ToSpecialIbGib, setConfigAddr,
-  setCurrentRoot, validateBootstrapIbGib, validateUserSpaceName, getConfigAddr, getSpaceLockAddr, isExpired, getExpirationUTCString,
+  setCurrentRoot, validateBootstrapIbGib, validateUserSpaceName, getConfigAddr, getSpaceLockAddr, isExpired, getExpirationUTCString, getBootstrapIbGib, getLocalSpace, execInSpaceWithLocking,
 } from '../common/helper';
 import { AppSpaceData, AppSpaceRel8ns } from '../common/types/app';
 import {
@@ -191,13 +191,49 @@ export class IbgibsService {
       delete this._localUserSpace;
     }
   }
+  private async getLocalUserSpace({
+    lock,
+    noCache,
+  }: {
+    /**
+     * If true, locks bootstrap before trying to retrieve.
+     */
+    lock?: boolean,
+    /**
+     * If true, forces a fresh retrieval from zero space.
+     */
+    noCache?: boolean,
+  }):
+    Promise<IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> | undefined> {
+    const lc = `${this.lc}[${this.getLocalUserSpace.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (!noCache && this._localUserSpace) { return this._localUserSpace; }
 
-  private _localDefaultSpace: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> | undefined;
-  private get localDefaultSpace(): IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> {
-    if (!this._localDefaultSpace) {
-      this._localDefaultSpace = new IonicSpace_V1(/*initialData*/ null, /*initialRel8ns*/ null);
+      const bootstrapIbGib =
+        await getBootstrapIbGib({ zeroSpace: this.zeroSpace, lock });
+
+      const localSpace =
+        await getLocalSpace<IonicSpace_V1<AppSpaceData, AppSpaceRel8ns>>({
+          zeroSpace: this.zeroSpace,
+          bootstrapIbGib,
+        });
+
+      return localSpace;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
     }
-    return this._localDefaultSpace;
+  }
+
+  private _zeroSpace: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> | undefined;
+  private get zeroSpace(): IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> {
+    if (!this._zeroSpace) {
+      this._zeroSpace = new IonicSpace_V1(/*initialData*/ null, /*initialRel8ns*/ null);
+    }
+    return this._zeroSpace;
   }
 
   private _localUserSpaceCurrentRoot: IbGib_V1<RootData> | undefined;
@@ -289,53 +325,52 @@ export class IbgibsService {
    */
   private async initializeLocalSpaces(): Promise<void> {
     const lc = `${this.lc}[${this.initializeLocalSpaces.name}]`;
-    let localDefaultSpace: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns>;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
       // we're going to use the default space first to find/load the actual user's space (if it exists)
-      localDefaultSpace = this.localDefaultSpace;
-      if (!localDefaultSpace.gib) {
-        localDefaultSpace.gib = await getGib({ibGib: localDefaultSpace, hasTjp: false});
+      let zeroSpace = this.zeroSpace;
+      if (!zeroSpace.gib) {
+        zeroSpace.gib = await getGib({ibGib: zeroSpace, hasTjp: false});
       }
-      const argGet = await localDefaultSpace.argy({
-        ibMetadata: localDefaultSpace.getSpaceArgMetadata(),
-        argData: {
-          cmd: 'get',
-          ibGibAddrs: [c.BOOTSTRAP_SPACE_ADDR],
-          isMeta: true,
-        },
+
+      let bootstrapIbGib =
+        await getBootstrapIbGib({zeroSpace: zeroSpace});
+      const bootstrapAddr = c.BOOTSTRAP_IBGIB_ADDR;
+      bootstrapIbGib = await execInSpaceWithLocking<IbGib_V1>({
+        space: zeroSpace,
+        scope: bootstrapAddr,
+        fn: () => { return getBootstrapIbGib({zeroSpace}); },
       });
-      if (logalot) { console.log(`${lc} getting from default space...`)}
-      const resGetBootstrapIbGib = await localDefaultSpace.witness(argGet);
-      if (resGetBootstrapIbGib?.data?.success) {
-        if (logalot) { console.log(`${lc} getting from default space...Success!`)}
-        // load userSpace that was already initialized and recorded in the bootstrapGib "primitive" ibGib
-        const bootstrapIbGib = resGetBootstrapIbGib!.ibGibs![0]!;
-        await this.loadUserLocalSpace({localDefaultSpace, bootstrapIbGib});
+
+      if (bootstrapIbGib) {
+        if (logalot) { console.log(`${lc} getting from zero space...Success!`)}
+        // load localSpace that was already initialized and recorded in the bootstrapGib "primitive" ibGib
+        // const bootstrapIbGib = resGetBootstrapIbGib!.ibGibs![0]!;
+        // await this.loadUserLocalSpace({zeroSpace, bootstrapIbGib});
       } else {
         if (logalot) { console.log(`${lc} getting from default space...not found. bootstrap space not found.`); }
         // bootstrap space ibgib not found, so first run probably for user.
         // so create a new bootstrapGib and user space
-        await this.createNewUserSpaceAndBootstrapGib({localDefaultSpace: localDefaultSpace});
+        await this.createNewLocalSpaceAndBootstrapGib({zeroSpace});
       }
-      if (logalot) { console.log(`${lc} complete.`); }
     } catch (error) {
       if (logalot) { console.log(`${lc} getting from default space...not found. bootstrap space not found.`); }
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
   // #region create functions
 
-  private async createNewUserSpaceAndBootstrapGib({
-    localDefaultSpace,
+  private async createNewLocalSpaceAndBootstrapGib({
+    zeroSpace,
   }: {
-    localDefaultSpace: IonicSpace_V1,
+    zeroSpace: IonicSpace_V1,
   }): Promise<void> {
-    const lc = `${this.lc}[${this.createNewUserSpaceAndBootstrapGib.name}]`;
+    const lc = `${this.lc}[${this.createNewLocalSpaceAndBootstrapGib.name}]`;
     try {
       let spaceName: string;
 
@@ -360,7 +395,7 @@ export class IbgibsService {
       // create a new user space
       while (!spaceName) { await promptName(); }
 
-      let userSpace = new IonicSpace_V1(/*initialData*/ <IonicSpaceData_V1>{
+      let newLocalSpace = new IonicSpace_V1(/*initialData*/ <IonicSpaceData_V1>{
         uuid: await h.getUUID(),
         name: spaceName,
         baseDir: c.IBGIB_BASE_DIR,
@@ -374,47 +409,47 @@ export class IbgibsService {
         persistOptsAndResultIbGibs: c.PERSIST_OPTS_AND_RESULTS_IBGIBS_DEFAULT,
         validateIbGibAddrsMatchIbGibs: false,
       }, /*initialRel8ns*/ null);
-      if (logalot) { console.log(`${lc} userSpace.ib: ${userSpace.ib}`); }
-      if (logalot) { console.log(`${lc} userSpace.gib: ${userSpace.gib} (before sha256v1)`); }
-      if (logalot) { console.log(`${lc} userSpace.data: ${h.pretty(userSpace.data || 'falsy')}`); }
-      if (logalot) { console.log(`${lc} userSpace.rel8ns: ${h.pretty(userSpace.rel8ns || 'falsy')}`); }
-      // userSpace.gib = await sha256v1(userSpace);
-      userSpace.gib = await getGib({ibGib: userSpace, hasTjp: false});
-      if (userSpace.gib === GIB) { throw new Error(`userSpace.gib not updated correctly.`); }
-      if (logalot) { console.log(`${lc} userSpace.gib: ${userSpace.gib} (after sha256v1)`); }
+      if (logalot) { console.log(`${lc} localSpace.ib: ${newLocalSpace.ib}`); }
+      if (logalot) { console.log(`${lc} localSpace.gib: ${newLocalSpace.gib} (before sha256v1)`); }
+      if (logalot) { console.log(`${lc} localSpace.data: ${h.pretty(newLocalSpace.data || 'falsy')}`); }
+      if (logalot) { console.log(`${lc} localSpace.rel8ns: ${h.pretty(newLocalSpace.rel8ns || 'falsy')}`); }
+      // localSpace.gib = await sha256v1(localSpace);
+      newLocalSpace.gib = await getGib({ibGib: newLocalSpace, hasTjp: false});
+      if (newLocalSpace.gib === GIB) { throw new Error(`localSpace.gib not updated correctly.`); }
+      if (logalot) { console.log(`${lc} localSpace.gib: ${newLocalSpace.gib} (after sha256v1)`); }
 
       // must set this before trying to persist
-      this.localUserSpace = userSpace;
+      this.localUserSpace = newLocalSpace;
 
-      let argPutUserSpace = await localDefaultSpace.argy({
-        ibMetadata: userSpace.getSpaceArgMetadata(),
+      let argPutUserSpace = await zeroSpace.argy({
+        ibMetadata: newLocalSpace.getSpaceArgMetadata(),
         argData: { cmd: 'put', isMeta: true, },
-        ibGibs: [userSpace],
+        ibGibs: [newLocalSpace],
       });
 
-      // save the userspace in default space
-      if (logalot) { console.log(`${lc} save the userspace in default space`); }
-      const resDefaultSpace = await localDefaultSpace.witness(argPutUserSpace);
+      // save the localSpace in default space
+      if (logalot) { console.log(`${lc} save the localSpace in default space`); }
+      const resDefaultSpace = await zeroSpace.witness(argPutUserSpace);
       if (resDefaultSpace?.data?.success) {
         if (logalot) { console.log(`${lc} default space witnessed the user space`); }
       } else {
-        throw new Error(`${resDefaultSpace?.data?.errors?.join('|') || "There was a problem with localDefaultSpace witnessing the new userSpace"}`);
+        throw new Error(`${resDefaultSpace?.data?.errors?.join('|') || "There was a problem with zeroSpace witnessing the new localSpace"}`);
       }
 
-      // save the userspace in its own space?
-      if (logalot) { console.log(`${lc} save the userspace in its own space`); }
-      const resUserSpace = await userSpace.witness(argPutUserSpace);
+      // save the localSpace in its own space?
+      if (logalot) { console.log(`${lc} save the localSpace in its own space`); }
+      const resUserSpace = await newLocalSpace.witness(argPutUserSpace);
       if (resUserSpace?.data?.success) {
-        // we now have saved the userspace ibgib "in" its own space.
+        // we now have saved the localSpace ibgib "in" its own space.
         // but atow, this does NOT change the space's gib hash, so no
         // need to update the space
         if (logalot) { console.log(`${lc} user space witnessed itself`); }
       } else {
-        throw new Error(`${resUserSpace?.data?.errors?.join('|') || "There was a problem with userSpace witnessing itself"}`);
+        throw new Error(`${resUserSpace?.data?.errors?.join('|') || "There was a problem with localSpace witnessing itself"}`);
       }
 
-      const userSpaceAddr = h.getIbGibAddr({ibGib: userSpace});
-      await this.updateBootstrapIbGibSpaceAddr({newSpaceAddr: userSpaceAddr, localDefaultSpace});
+      const userSpaceAddr = h.getIbGibAddr({ibGib: newLocalSpace});
+      await this.updateBootstrapIbGibSpaceAddr({newSpaceAddr: userSpaceAddr, zeroSpace});
     } catch (error) {
       delete this.localUserSpace;
       console.error(`${lc} ${error.message}`);
@@ -442,7 +477,7 @@ export class IbgibsService {
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized.`); }
       await this.refreshSpaceIfLocal({space});
       return createSpecial({
-        type, space, defaultSpace: this.localDefaultSpace,
+        type, space, defaultSpace: this.zeroSpace,
         fnBroadcast: (x) => this.fnBroadcast(x),
         fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       });
@@ -474,7 +509,7 @@ export class IbgibsService {
         icon,
         description,
         space,
-        defaultSpace: this.localDefaultSpace,
+        defaultSpace: this.zeroSpace,
         fnBroadcast: (x) => this.fnBroadcast(x),
         fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       });
@@ -485,105 +520,6 @@ export class IbgibsService {
   }
 
   // #endregion
-
-  /**
-   * So when loading the local user space, even if the class changes or default
-   * constructors change, the internal `data` is loaded from file.
-   */
-  private async loadUserLocalSpace({
-    localDefaultSpace,
-    bootstrapIbGib,
-  }: {
-    localDefaultSpace: IonicSpace_V1,
-    bootstrapIbGib: IbGib_V1,
-  }): Promise<void> {
-    const lc = `${this.lc}[${this.loadUserLocalSpace.name}]`;
-    try {
-        if (await validateBootstrapIbGib(bootstrapIbGib)) {
-          const userSpaceAddr = bootstrapIbGib.rel8ns![c.SPACE_REL8N_NAME_BOOTSTRAP_SPACE][0];
-          const argGet = await localDefaultSpace.argy({
-            ibMetadata: localDefaultSpace.getSpaceArgMetadata(),
-            argData: {
-              cmd: 'get',
-              ibGibAddrs: [userSpaceAddr],
-              isMeta: true,
-            },
-          });
-          const resUserSpace = await localDefaultSpace.witness(argGet);
-          if (resUserSpace?.data?.success) {
-            this.localUserSpace = <IonicSpace_V1>resUserSpace.ibGibs[0];
-          } else {
-            throw new Error(`Could not load user space addr (${userSpaceAddr}) specified in bootstrap space (${c.BOOTSTRAP_SPACE_ADDR}).`);
-          }
-        } else {
-          throw new Error(`Invalid bootstrap space. It should be a primitive ibGib with a single rel8n named "${c.SPACE_REL8N_NAME_BOOTSTRAP_SPACE}" with a single ibGib address.`);
-        }
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Updates the bootstrap^gib record in the default space data store
-   * with the 'space' rel8n set to the `newSpaceAddr`.
-   *
-   * This way, if the app closes at this point, it will know to look at this
-   * space when it loads.
-   *
-   * ## notes
-   *
-   * I'm probably typing this all over, but the bootstrap^gib is the
-   * first record that the app looks at to know what space to load.
-   * The space itself has configuration and has a proper gib hash
-   * so it's verifiable. But the initial bootstrap^gib record is
-   * NOT, since it only has 'gib' as its address (and thus its not hashed).
-   *
-   * In the future, this could be alleviated by asking other witnesses
-   * "Hey what was my last bootstrap^gib hash", but there's no way to
-   * do it beyond this without using some kind of authentication/secret(s)
-   * that generate the record, i.e. encrypting bootstrap^gib cleverly.
-   */
-  private async updateBootstrapIbGibSpaceAddr({
-    newSpaceAddr,
-    localDefaultSpace,
-  }: {
-    newSpaceAddr: IbGibAddr,
-    localDefaultSpace?: IonicSpace_V1,
-  }): Promise<void> {
-    const lc = `${this.lc}[${this.updateBootstrapIbGibSpaceAddr.name}](${newSpaceAddr})`;
-    try {
-      if (logalot) { console.log(`${lc} starting...`); }
-      localDefaultSpace = localDefaultSpace || new IonicSpace_V1(/*initialData*/ null, /*initialRel8ns*/ null);
-
-      // create the bootstrap^gib space that points to user space
-      const { ib: bootstrapIb } = h.getIbAndGib({ibGibAddr: c.BOOTSTRAP_SPACE_ADDR});
-      const bootstrapIbGib = factory.primitive({ib: bootstrapIb});
-      bootstrapIbGib.gib = GIB;
-      delete bootstrapIbGib.data;
-      bootstrapIbGib.rel8ns = { [c.SPACE_REL8N_NAME_BOOTSTRAP_SPACE]: [newSpaceAddr], }
-
-      // save the bootstrap^gib "primitive" in the default space for future initializations
-      if (logalot) { console.log(`${lc} building arg...`); }
-      const argPutBootstrap = await localDefaultSpace.argy({
-        ibMetadata: bootstrapIbGib.ib,
-        argData: { cmd: 'put', isMeta: true, force: true},
-        ibGibs: [bootstrapIbGib],
-      });
-      if (logalot) { console.log(`${lc} localDefaultSpace will witness...`); }
-      const resDefaultSpacePutBootstrap = await localDefaultSpace.witness(argPutBootstrap);
-      if (resDefaultSpacePutBootstrap ?.data?.success) {
-        if (logalot) { console.log(`${lc} default space witnessed the bootstrap^gib:\n(${h.pretty(bootstrapIbGib)})`); }
-      } else {
-        throw new Error(`${resDefaultSpacePutBootstrap?.data?.errors?.join('|') || "There was a problem with localDefaultSpace witnessing the bootstrap^gib primitive pointing to the new user space"}`);
-      }
-      if (logalot) { console.log(`${lc} complete.`); }
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    }
-
-  }
 
   /**
    * Gets a config addr from the current space via the given key
@@ -649,7 +585,7 @@ export class IbgibsService {
   }
 
   private fnUpdateBootstrap = async (newSpaceAddr: IbGibAddr) => {
-    await this.updateBootstrapIbGibSpaceAddr({ newSpaceAddr, localDefaultSpace: this._localDefaultSpace })
+    await this.updateBootstrapIbGibSpaceAddr({ newSpaceAddr, zeroSpace: this._zeroSpace })
   }
 
   private fnBroadcast = (info: LatestEventInfo) => {
@@ -673,7 +609,7 @@ export class IbgibsService {
       await this.refreshSpaceIfLocal({space});
 
       return await setConfigAddr({
-        key, addr, space, defaultSpace: this.localDefaultSpace,
+        key, addr, space, defaultSpace: this.zeroSpace,
         fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       });
 
@@ -741,7 +677,7 @@ export class IbgibsService {
       return setCurrentRoot({
         root,
         space,
-        defaultSpace: this.localDefaultSpace,
+        defaultSpace: this.zeroSpace,
         fnBroadcast: (x) => this.fnBroadcast(x),
         fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       });
@@ -781,7 +717,7 @@ export class IbgibsService {
         linked,
         rel8nName,
         space,
-        defaultSpace: this.localDefaultSpace,
+        defaultSpace: this.zeroSpace,
         fnBroadcast: (x) => this.fnBroadcast(x),
         fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       });
@@ -822,7 +758,7 @@ export class IbgibsService {
         type,
         initialize,
         space,
-        defaultSpace: this.localDefaultSpace,
+        defaultSpace: this.zeroSpace,
         fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
         fnBroadcast: (x) => this.fnBroadcast(x),
         fnGetInitializing: () => { return this._initializing; },
@@ -844,31 +780,31 @@ export class IbgibsService {
       if (!space) { throw new Error(`space required. (E: 8ca87ca4d57d47c1acf4bf067662e6a1)`); }
       if (space.data.uuid === this.localUserSpace.data.uuid) {
         // reload the local user space fresh...just troubleshooting. should not keep this in here.
-        const argGet = await this.localDefaultSpace.argy({
-          ibMetadata: this.localDefaultSpace.getSpaceArgMetadata(),
+        const argGet = await this.zeroSpace.argy({
+          ibMetadata: this.zeroSpace.getSpaceArgMetadata(),
           argData: {
             cmd: 'get',
-            ibGibAddrs: [c.BOOTSTRAP_SPACE_ADDR],
+            ibGibAddrs: [c.BOOTSTRAP_IBGIB_ADDR],
             isMeta: true,
           },
         });
         if (logalot) { console.log(`${lc} getting from default space...`)}
-        const result = await this.localDefaultSpace.witness(argGet);
+        const result = await this.zeroSpace.witness(argGet);
         if (result?.data?.success) {
           if (logalot) { console.log(`${lc} getting from default space...Success!`)}
-          // load userSpace that was already initialized and recorded in the bootstrapGib "primitive" ibGib
+          // load localSpace that was already initialized and recorded in the bootstrapGib "primitive" ibGib
           const bootstrapGib = result!.ibGibs![0]!;
           if (await validateBootstrapIbGib(bootstrapGib)) {
-            const userSpaceAddr = bootstrapGib.rel8ns![c.SPACE_REL8N_NAME_BOOTSTRAP_SPACE][0];
-            const argGet = await this.localDefaultSpace.argy({
-              ibMetadata: this.localDefaultSpace.getSpaceArgMetadata(),
+            const userSpaceAddr = bootstrapGib.rel8ns![c.BOOTSTRAP_REL8N_NAME_SPACE][0];
+            const argGet = await this.zeroSpace.argy({
+              ibMetadata: this.zeroSpace.getSpaceArgMetadata(),
               argData: {
                 cmd: 'get',
                 ibGibAddrs: [userSpaceAddr],
                 isMeta: true,
               },
             });
-            const resUserSpace = await this.localDefaultSpace.witness(argGet);
+            const resUserSpace = await this.zeroSpace.witness(argGet);
             if (resUserSpace?.data?.success) {
               const gottenSpace = <IonicSpace_V1>resUserSpace.ibGibs[0];
               const gottenSpaceGib = getGib({ibGib: gottenSpace});
@@ -880,11 +816,11 @@ export class IbgibsService {
                 if (logalot) { console.log(`${lc} no need to refresh space, already up-to-date.`); }
               }
             } else {
-              throw new Error(`Could not load user space addr (${userSpaceAddr}) specified in bootstrap space (${c.BOOTSTRAP_SPACE_ADDR}).`);
+              throw new Error(`Could not load user space addr (${userSpaceAddr}) specified in bootstrap space (${c.BOOTSTRAP_IBGIB_ADDR}).`);
             }
           }
         } else {
-          throw new Error(`Invalid bootstrap space. It should be a primitive ibGib with a single rel8n named "${c.SPACE_REL8N_NAME_BOOTSTRAP_SPACE}" with a single ibGib address.`);
+          throw new Error(`Invalid bootstrap space. It should be a primitive ibGib with a single rel8n named "${c.BOOTSTRAP_REL8N_NAME_SPACE}" with a single ibGib address.`);
         }
       }
     } catch (error) {
@@ -963,7 +899,7 @@ export class IbgibsService {
         severPast,
         deletePreviousSpecialIbGib,
         space,
-        defaultSpace: this.localDefaultSpace,
+        defaultSpace: this.zeroSpace,
         fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
         fnBroadcast: (x) => this.fnBroadcast(x),
       });
@@ -974,172 +910,6 @@ export class IbgibsService {
     }
   }
 
-  /**
-   * In-memory cache of space locks....maybe hsouldn't use? hmm
-   */
-  private _spaceLocks: { [spaceLockAddr_scope: string]: IbGibSpaceLockIbGib } = {};
-
-  async lockSpace({
-    space,
-    scope,
-    secondsValid,
-  }: IbGibSpaceLockOptions): Promise<IbGibSpaceLockIbGib> {
-    const lc = `${this.lc}[${this.lockSpace.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting...`); }
-
-      if (!space) { throw new Error(` space required. (E: 5c0a7197a75f483a82d74e5eea60df37)`); }
-      if (!scope) { throw new Error(`scope required. (E: c7f1dde9570f4df3b450faa2c2f85122)`); }
-      if (!secondsValid) { throw new Error(`secondsValid required and positive (E: b42b6733638b46c06c9aff59a6c49822)`); }
-      if (secondsValid < 0) { throw new Error(`secondsValid must be positive (E: bbe3b6d567583bfb35a1c0825eb29622)`); }
-
-      /** what we will return */
-      let resLockIbGib: IbGibSpaceLockIbGib;
-
-      /** space lock address is deterministic ibgib primitive (gib === 'gib') */
-      const spaceLockAddr = getSpaceLockAddr({space, scope});
-
-      // check for existing lock...
-      let existingLock: IbGibSpaceLockIbGib;
-
-      // ...in memory for given space
-      if (this._spaceLocks[spaceLockAddr]) {
-        existingLock = this._spaceLocks[spaceLockAddr];
-        if (isExpired({expirationTimestampUTC: existingLock.data.expirationUTC})) {
-          // lock expired, so delete the in-memory reference and resume just as
-          // if it hadn't existed.
-          console.warn(`${lc} removing in-memory expired space lock at ${spaceLockAddr}`);
-          delete this._spaceLocks[spaceLockAddr];
-          existingLock = undefined;
-        }
-      }
-
-      if (!existingLock) {
-        // ...in space's backing store (file, IndexedDB entry, DB, etc.)
-
-        let getLock = await this.get({addr: spaceLockAddr, isMeta: true});
-        if (getLock.success && getLock.ibGibs?.length === 1) {
-          existingLock = <IbGibSpaceLockIbGib>getLock.ibGibs[0];
-          if (isExpired({expirationTimestampUTC: existingLock.data.expirationUTC})) {
-            // lock expired, so log only. skipping delete atow because should be overwritten
-            // when the new lock is in place.
-            if (logalot) { console.log(`${lc} ignoring expired existing lock in space at ${spaceLockAddr}. Should be overwritten (I: 7421c5b051724b189f88cecbbd449b22)`); }
-            existingLock = undefined;
-            // await this.unlockSpace({space, scope});
-          }
-        } else {
-          if (logalot) { console.log(`${lc} existing lock not found for ${spaceLockAddr} (I: 191af56ec4e2db3d19084e46bf949222)`); }
-        }
-      }
-
-      if (existingLock) {
-        // valid lock already exists, so return informing caller.  this includes
-        // the existing lock's info, i.e. its expiration
-        resLockIbGib = <IbGibSpaceLockIbGib>h.clone(existingLock);
-        resLockIbGib.data.alreadyLocked = true;
-        resLockIbGib.data.success = false;
-      } else {
-        // not yet locked so immediately lock in memory for space, then via
-        // `space.put(lock)`
-        const {ib, gib} = h.getIbAndGib({ibGibAddr: spaceLockAddr});
-        resLockIbGib = <IbGibSpaceLockIbGib>{
-          ib, gib,
-          data: {
-            scope,
-            instanceId: this._instanceId,
-            secondsValid,
-            expirationUTC: getExpirationUTCString({seconds: secondsValid}),
-          }
-        };
-        this._spaceLocks[spaceLockAddr] = h.clone(resLockIbGib);
-        const resPut = await this.put({ibGib: resLockIbGib, isMeta: true, force: true, space});
-        if (resPut.success) {
-          resLockIbGib.data.success = true;
-        } else {
-          delete this._spaceLocks[spaceLockAddr];
-          const emsg = `${lc} there was an error putting the lock in the space: ${resPut.errorMsg}`;
-          resLockIbGib.data.success = false;
-          resLockIbGib.data.errorMsg = emsg;
-          console.error(emsg);
-        }
-      }
-
-      return resLockIbGib;
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
-
-  async unlockSpace({
-    space,
-    scope,
-  }: IbGibSpaceLockOptions): Promise<IbGibSpaceLockIbGib> {
-    const lc = `${this.lc}[${this.lockSpace.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting...`); }
-
-      if (!space) { throw new Error(` space required. (E: 5c0a7197a75f483a82d74e5eea60df37)`); }
-      if (!scope) { throw new Error(`scope required. (E: c7f1dde9570f4df3b450faa2c2f85122)`); }
-
-      /** space lock address is deterministic ibgib primitive (gib === 'gib') */
-      const spaceLockAddr = getSpaceLockAddr({space, scope});
-
-      // delete in memory if it exists
-      if (this._spaceLocks[spaceLockAddr]) { delete this._spaceLocks[spaceLockAddr]; }
-
-      // delete in file if it exists
-      debugger; // change addr to ib^gib that doesn't exist. I want to see what
-      // happens/errorMsg when deleting a non-existent addr
-
-      let resDelete = await this.delete({addr: spaceLockAddr, isMeta: true, space});
-      if (resDelete.success) {
-        const {ib,gib} = h.getIbAndGib({ibGibAddr: spaceLockAddr});
-        return <IbGibSpaceLockIbGib>{
-          ib, gib,
-          data: {
-            // action: 'unlock',
-            success: true,
-            instanceId: this._instanceId,
-            scope,
-          }
-        };
-      } else {
-        debugger; // want to see what the error msg if it fails because file
-        // doesn't exist (which we don't care about) or fails for some other
-        // reason (which we may care about)
-        const emsg = `Delete lock in space failed. delete errorMsg: ${resDelete.errorMsg}`;
-        if (emsg.includes('not implemented')) {
-          // rethrow error if space has not implemented a delete command handler
-          throw new Error(emsg);
-        } else if (emsg.toLowerCase().includes(`doesn't exist`) || emsg.toLowerCase().includes(`not found`)) {
-          debugger; // maybe gets here?
-          // don't want to warn if just file didn't exist
-          if (logalot) { console.log(`${lc} ${emsg} (I: b647916fd0f3e5366e9387131be21c22)`); }
-          const {ib,gib} = h.getIbAndGib({ibGibAddr: spaceLockAddr});
-          return <IbGibSpaceLockIbGib>{
-            ib, gib,
-            data: {
-              action: 'unlock',
-              success: true,
-              instanceId: this._instanceId,
-              scope,
-            }
-          };
-        } else {
-          debugger; // just curious if gets here ever
-          console.warn(`${lc} ${emsg} (W: 14c84fcac15944bd9a417099964d5d9d)`);
-        }
-      }
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
 
   async getTjpIbGib({
     ibGib,
@@ -1195,7 +965,7 @@ export class IbgibsService {
       return registerNewIbGib({
         ibGib,
         space,
-        defaultSpace: this.localDefaultSpace,
+        defaultSpace: this.zeroSpace,
         fnBroadcast: (x) => this.fnBroadcast(x),
         fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       });

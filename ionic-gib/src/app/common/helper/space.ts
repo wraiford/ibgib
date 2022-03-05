@@ -18,11 +18,12 @@ import {
     DeleteIbGibOpts, DeleteIbGibResult,
 } from '../types/legacy';
 import {
+    getExpirationUTCString,
     getRootIb,
-    getSpecialConfigKey, getSpecialIbgibIb, tagTextToIb,
+    getSpecialConfigKey, getSpecialIbgibIb, isExpired, tagTextToIb,
 } from '../helper';
-import { LatestEventInfo, RootData, SpaceLockScope, SpecialIbGibType, TagData, } from '../types';
-import { validateIbGibAddr } from './validate';
+import { IbGibSpaceLockIbGib, IbGibSpaceLockOptions, LatestEventInfo, RootData, SpaceLockScope, SpecialIbGibType, TagData, } from '../types';
+import { validateBootstrapIbGib, validateIbGibAddr } from './validate';
 import { getTjpAddrs } from './ibgib';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -2146,35 +2147,135 @@ export function getSpaceLockAddr({
     }
 }
 
-export async function getBootstrapIbGib({
-    defaultSpace,
-    lock,
+/**
+ * Executes some function `fn` against/in a given `space` while
+ * performing lock plumbing in that space.
+ *
+ * By this, I mean that this function takes care of acquiring the lock,
+ * attempting retries according to the parameters, and then unlocking
+ * the space regardless of result/error.
+ *
+ * @returns result of inner `fn` with `TResult`
+ */
+export async function execInSpaceWithLocking<TResult>({
+    space,
+    scope,
+    secondsValid,
+    maxDelayMs,
+    fn,
 }: {
-    defaultSpace: IbGibSpaceAny,
-    lock: boolean,
+    space: IbGibSpaceAny,
+    scope: string,
+    secondsValid?: number,
+    /**
+     * If resource locked, will delay at max this ms.
+     */
+    maxDelayMs?: number,
+    fn: () => Promise<TResult>,
+}): Promise<TResult> {
+    const lc = `[${execInSpaceWithLocking.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting...`); }
+
+        // #region validation
+
+        if (!space) { throw new Error(`space required. (E: 66fd8f21a5b2b572d18cdeb9472a7722)`); }
+        if (!secondsValid) { throw new Error(`secondsValid required. (E: 92c5610e57ceede5ce83cff86d5c2a22)`); }
+        if (secondsValid < 0) { throw new Error(`secondsValid must be positive. (E: 970a7510c517235d7a355a843d18d222)`); }
+        if (secondsValid > c.MAX_LOCK_SECONDS_VALID) { throw new Error(`secondsValid arg (${secondsValid}) exceeds max secondsValid (${c.MAX_LOCK_SECONDS_VALID}) (E: 4cffe49a23c8f1698bf7c78eaccbb722)`); }
+        if (!fn) { throw new Error(`fnGet required (E: 7022e280252ec2faf756b6db05c56e22)`); }
+
+        // #endregion validation
+
+        let resultFn: TResult;
+
+        if (logalot) { console.log(`${lc} attempting to acquire lock with scope ${scope} (I: fed36d42a975b1c52897a4df804ac722)`); }
+        let lockIbGib: IbGibSpaceLockIbGib;
+        maxDelayMs =
+            (maxDelayMs ?? 0) > 0 ? maxDelayMs : c.DEFAULT_MAX_DELAY_MS_RETRY_LOCK_ACQUIRE
+        let attempts = 0;
+        do {
+            lockIbGib = await lockSpace({
+                space,
+                scope,
+                secondsValid,
+            });
+            if (lockIbGib?.data?.success) { break; }
+            /** Delay a small random amount of time before trying again. */
+            let delayMs = Math.ceil(Math.random() * maxDelayMs);
+            await h.delay(delayMs);
+        } while (attempts < c.DEFAULT_MAX_DELAY_RETRY_LOCK_ACQUIRE_ATTEMPTS);
+        if (lockIbGib?.data?.success) {
+            if (logalot) { console.log(`${lc} lock acquired. (I: d847fa953ee131a57e1a89c537342722)`); }
+        } else {
+            throw new Error(`could not acquire lock after ${attempts} attempts with intermittent delays of ${maxDelayMs} ms (E: 898c559dbd0c9bf20c14cf87a8f1e222)`);
+        }
+
+        // execute the actual get inside an additional try..catch..finally
+        // to ensure (attempted) unlockSpace call.
+        const lc2 = `${lc}[fn]`;
+        try {
+            if (logalot) { console.log(`${lc2} starting... (I: c2f7bedf95d3f1dd1f76de34a68d3f22)`); }
+            resultFn = await fn();
+        } catch (error) {
+            console.error(`${lc2} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc2} unlocking space with scope: ${scope} (I: 21034d9c3395499756e9000e40417d22)`); }
+            await unlockSpace({space: space, scope: scope});
+            if (logalot) { console.log(`${lc2} complete. (I: 79d8ac03714a4d429c7e6c2ac6e18d22)`); }
+        }
+
+        return resultFn;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+/**
+ * Gets the bootstrap ibgib in the given `zeroSpace`.
+ *
+ * @returns bootstrapIbGib if found
+ */
+export async function getBootstrapIbGib({
+    zeroSpace,
+}: {
+    zeroSpace: IbGibSpaceAny,
 }): Promise<IbGib_V1|null> {
     const lc = `[${getBootstrapIbGib.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting...`); }
 
-        if (!defaultSpace) {throw new Error(`defaultSpace required. (E: 66fd8f21a5b2b572d18cdeb9472a7722)`); }
+        if (!zeroSpace) {throw new Error(`zeroSpace required. (E: 66fd8f21a5b2b572d18cdeb9472a7722)`); }
 
-        const argGet = await defaultSpace.argy({
-            ibMetadata: defaultSpace.getSpaceArgMetadata(),
+        const bootstrapAddr = c.BOOTSTRAP_IBGIB_ADDR;
+
+        if (logalot) { console.log(`${lc} getting from zeroSpace...`); }
+        const argGet = await zeroSpace.argy({
+            ibMetadata: zeroSpace.getSpaceArgMetadata(),
             argData: {
                 cmd: 'get',
-                ibGibAddrs: [c.BOOTSTRAP_SPACE_ADDR],
+                ibGibAddrs: [bootstrapAddr],
                 isMeta: true,
             },
         });
-        if (logalot) { console.log(`${lc} getting from default space...`)}
-        const resGetBootstrapIbGib = await defaultSpace.witness(argGet);
+        const resGetBootstrapIbGib = await zeroSpace.witness(argGet);
+
         if (resGetBootstrapIbGib?.data?.success && resGetBootstrapIbGib.ibGibs?.length === 1) {
+            // bootstrap found
             const bootstrapIbGib = resGetBootstrapIbGib!.ibGibs![0]!;
             if (logalot) { console.log(`${lc} bootstrapibGib found: ${h.pretty(bootstrapIbGib)}`); }
-            return bootstrapIbGib;
+            if (await validateBootstrapIbGib(bootstrapIbGib)) {
+                return bootstrapIbGib;
+            } else {
+                if (logalot) { console.log(`${lc} bootstrapIbGib was invalid. (I: cce66b26805404fc85525d565e1f8b22)`); }
+                return null;
+            }
         } else {
-            if (logalot) { console.log(`${lc} bootstrapIbGib NOT found.`); }
+            if (logalot) { console.log(`${lc} bootstrapIbGib NOT found. (I: 421562993bf3464eb507d2967d311e22)`); }
             return null;
         }
     } catch (error) {
@@ -2183,4 +2284,334 @@ export async function getBootstrapIbGib({
     } finally {
         if (logalot) { console.log(`${lc} complete.`); }
     }
+}
+
+
+/**
+ * So when loading the local user space, even if the class changes or default
+ * constructors change, the internal `data` is loaded from file.
+ */
+export async function getLocalSpace<TSpace extends IbGibSpaceAny>({
+    zeroSpace,
+    bootstrapIbGib,
+    lock,
+}: {
+    /**
+     * A zero space is a space that is built with default settings that
+     * is not specific to a user.
+     *
+     * This is the foundational space that all spaces share, out of which
+     * a bootstrap ibgib can be found that will itself have rel8ns to other
+     * spaces.
+     *
+     * ## notes
+     *
+     * This is what I was calling a defaultSpace, but that will in the future
+     * mean a default space among a group of spaces.
+     */
+    zeroSpace: IbGibSpaceAny,
+    /**
+     * bootstrap ibGib, if provided, which was found in the zero space.
+     * The bootstrap ibgib should have a rel8n entry to the local space.
+     *
+     * ## future
+     *
+     * We will have multiple local spaces to choose from, with a default
+     * being the one that we're referring to atow.
+     */
+    bootstrapIbGib?: IbGib_V1,
+    /**
+     * If true, we will lock on getting the bootstrap ibgib (if needed), as
+     * well as getting the user space.
+     */
+    lock?: boolean,
+}): Promise<TSpace> {
+    const lc = `[${getLocalSpace.name}]`;
+    try {
+        if (!zeroSpace) { throw new Error(`zeroSpace required. (E: 0793781a98c456a666cfa9eb960bcd22)`); }
+
+        if (!bootstrapIbGib) {
+            if (lock) {
+                const bootstrapAddr = c.BOOTSTRAP_IBGIB_ADDR;
+                bootstrapIbGib = await execInSpaceWithLocking<IbGib_V1>({
+                    space: zeroSpace,
+                    scope: bootstrapAddr,
+                    fn: () => { return getBootstrapIbGib({zeroSpace}); },
+                });
+            } else {
+                bootstrapIbGib = await getBootstrapIbGib({zeroSpace});
+            }
+        }
+
+        const localSpaceAddr = bootstrapIbGib.rel8ns![c.BOOTSTRAP_REL8N_NAME_SPACE][0];
+
+        const fnGet: () => Promise<TSpace> = async () => {
+
+            const argGet = await zeroSpace.argy({
+                ibMetadata: zeroSpace.getSpaceArgMetadata(),
+                argData: {
+                    cmd: 'get',
+                    ibGibAddrs: [localSpaceAddr],
+                    isMeta: true,
+                },
+            });
+            const resLocalSpace = await zeroSpace.witness(argGet);
+            if (resLocalSpace?.data?.success && resLocalSpace.ibGibs?.length === 1) {
+                const localSpace = <TSpace>resLocalSpace.ibGibs[0];
+                return localSpace;
+            } else {
+                throw new Error(`Could not get local space addr (${localSpaceAddr}) specified in bootstrap space (${h.getIbGibAddr({ibGib: bootstrapIbGib})}). (E: 6d6b45e7eae4472697ddc971438e4922)`);
+            }
+        }
+
+        if (lock) {
+            return await execInSpaceWithLocking({
+                space: zeroSpace,
+                // going to try using the ib of the space which should be
+                // deterministic and contain the space's id
+                scope: h.getIbAndGib({ibGibAddr: localSpaceAddr}).ib,
+                fn: () => { return fnGet(); },
+            });
+        } else {
+            return fnGet();
+        }
+
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
+
+export async function lockSpace({
+    space,
+    scope,
+    secondsValid,
+}: IbGibSpaceLockOptions): Promise<IbGibSpaceLockIbGib> {
+    const lc = `[${lockSpace.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting...`); }
+
+        if (!space) { throw new Error(` space required. (E: 5c0a7197a75f483a82d74e5eea60df37)`); }
+        if (!scope) { throw new Error(`scope required. (E: c7f1dde9570f4df3b450faa2c2f85122)`); }
+        if (!secondsValid) { throw new Error(`secondsValid required and positive (E: b42b6733638b46c06c9aff59a6c49822)`); }
+        if (secondsValid < 0) { throw new Error(`secondsValid must be positive (E: bbe3b6d567583bfb35a1c0825eb29622)`); }
+
+        /** what we will return */
+        let resLockIbGib: IbGibSpaceLockIbGib;
+
+        /** space lock address is deterministic ibgib primitive (gib === 'gib') */
+        const spaceLockAddr = getSpaceLockAddr({space, scope});
+
+        // check for existing lock...
+        let existingLock: IbGibSpaceLockIbGib;
+
+        // ...in space's backing store (file, IndexedDB entry, DB, etc.)
+
+        let getLock = await this.get({addr: spaceLockAddr, isMeta: true});
+        if (getLock.success && getLock.ibGibs?.length === 1) {
+            existingLock = <IbGibSpaceLockIbGib>getLock.ibGibs[0];
+            if (isExpired({expirationTimestampUTC: existingLock.data.expirationUTC})) {
+                // lock expired, so log only. skipping delete atow because should be overwritten
+                // when the new lock is in place.
+                if (logalot) { console.log(`${lc} ignoring expired existing lock in space at ${spaceLockAddr}. Should be overwritten (I: 7421c5b051724b189f88cecbbd449b22)`); }
+                existingLock = undefined;
+                // await this.unlockSpace({space, scope});
+            }
+        } else {
+            if (logalot) { console.log(`${lc} existing lock not found for ${spaceLockAddr} (I: 191af56ec4e2db3d19084e46bf949222)`); }
+        }
+
+        // populate resLockIbGib if/else existingLock
+        if (existingLock) {
+            // valid lock already exists, so return informing caller.  this includes
+            // the existing lock's info, i.e. its expiration
+            resLockIbGib = <IbGibSpaceLockIbGib>h.clone(existingLock);
+            resLockIbGib.data.alreadyLocked = true;
+            resLockIbGib.data.success = false;
+        } else {
+            // not yet locked so immediately lock in memory for space, then via
+            // `space.put(lock)`
+            const {ib, gib} = h.getIbAndGib({ibGibAddr: spaceLockAddr});
+            resLockIbGib = <IbGibSpaceLockIbGib>{
+                ib, gib,
+                data: {
+                    scope,
+                    instanceId: this._instanceId,
+                    secondsValid,
+                    expirationUTC: getExpirationUTCString({seconds: secondsValid}),
+                }
+            };
+            const resPut = await this.put({ibGib: resLockIbGib, isMeta: true, force: true, space});
+            if (resPut.success) {
+                resLockIbGib.data.success = true;
+            } else {
+                const emsg = `${lc} there was an error putting the lock in the space: ${resPut.errorMsg}`;
+                resLockIbGib.data.success = false;
+                resLockIbGib.data.errorMsg = emsg;
+                console.error(emsg);
+            }
+        }
+
+        return resLockIbGib;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+export async function unlockSpace({
+    space,
+    scope,
+}: IbGibSpaceLockOptions): Promise<IbGibSpaceLockIbGib> {
+    const lc = `[${unlockSpace.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting...`); }
+
+        if (!space) { throw new Error(`space required. (E: 5c0a7197a75f483a82d74e5eea60df37)`); }
+        if (!scope) { throw new Error(`scope required. (E: c7f1dde9570f4df3b450faa2c2f85122)`); }
+
+        /** space lock address is deterministic ibgib primitive (gib === 'gib') */
+        const spaceLockAddr = getSpaceLockAddr({space, scope});
+
+        // delete in file if it exists
+        debugger; // change addr to ib^gib that doesn't exist. I want to see what
+        // happens/errorMsg when deleting a non-existent addr
+
+        let resDelete = await this.delete({addr: spaceLockAddr, isMeta: true, space});
+        if (resDelete.success) {
+            const {ib,gib} = h.getIbAndGib({ibGibAddr: spaceLockAddr});
+            return <IbGibSpaceLockIbGib>{
+                ib, gib,
+                data: {
+                    // action: 'unlock',
+                    success: true,
+                    instanceId: this._instanceId,
+                    scope,
+                }
+            };
+        } else {
+            debugger; // want to see what the error msg if it fails because file
+            // doesn't exist (which we don't care about) or fails for some other
+            // reason (which we may care about)
+            const emsg = `Delete lock in space failed. delete errorMsg: ${resDelete.errorMsg}`;
+            if (emsg.includes('not implemented')) {
+                // rethrow error if space has not implemented a delete command handler
+                throw new Error(emsg);
+            } else if (emsg.toLowerCase().includes(`doesn't exist`) || emsg.toLowerCase().includes(`not found`)) {
+                debugger; // maybe gets here?
+                // don't want to warn if just file didn't exist
+                if (logalot) { console.log(`${lc} ${emsg} (I: b647916fd0f3e5366e9387131be21c22)`); }
+                const {ib,gib} = h.getIbAndGib({ibGibAddr: spaceLockAddr});
+                return <IbGibSpaceLockIbGib>{
+                    ib, gib,
+                    data: {
+                        action: 'unlock',
+                        success: true,
+                        instanceId: this._instanceId,
+                        scope,
+                    }
+                };
+            } else {
+                debugger; // just curious if gets here ever
+                console.warn(`${lc} ${emsg} (W: 14c84fcac15944bd9a417099964d5d9d)`);
+            }
+        }
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+/**
+ * Updates the bootstrap^gib record in the default space data store
+ * with the 'space' rel8n set to the `newSpaceAddr`.
+ *
+ * This way, if the app closes at this point, it will know to look at this
+ * space when it loads.
+ *
+ * ## notes
+ *
+ * I'm probably typing this all over, but the bootstrap^gib is the
+ * first record that the app looks at to know what space to load.
+ * The space itself has configuration and has a proper gib hash
+ * so it's verifiable. But the initial bootstrap^gib record is
+ * NOT, since it only has 'gib' as its address (and thus its not hashed).
+ *
+ * In the future, this could be alleviated by asking other witnesses
+ * "Hey what was my last bootstrap^gib hash", but there's no way to
+ * do it beyond this without using some kind of authentication/secret(s)
+ * that generate the record, i.e. encrypting bootstrap^gib cleverly.
+ */
+export async function updateBootstrapIbGib({
+    space,
+    zeroSpace,
+    setSpaceAsDefault,
+}: {
+    /**
+     * space to add/replace in the bootstrap^gib ibgib.
+     */
+    space: IbGibSpaceAny,
+    /**
+     * default "zero" space which contains a bootstrap^gib ibgib.
+     */
+    zeroSpace?: IbGibSpaceAny,
+    /**
+     * set the space as the default local space in the bootstrap^gib ibgib.
+     */
+    setSpaceAsDefault?: boolean,
+}): Promise<void> {
+    const lc = `[${updateBootstrapIbGib.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting...`); }
+
+        if (!space) { throw new Error(`space required. (E: 6fc19548fa7d1d5219e19871f280a322)`); }
+        if (!space.data?.uuid) { throw new Error(`space.data.uuid required (E: 6483188ca6f2ed2085fd355595f3ab22)`); }
+        if (!zeroSpace) { throw new Error(`zeroSpace required. (E: abbf156e18b1018d96273e22a260f122)`); }
+
+        const spaceId = space.data.uuid;
+        const newSpaceAddr = h.getIbGibAddr({ibGib: space});
+
+        let bootstrapIbGib = await getBootstrapIbGib({zeroSpace});
+        if (!bootstrapIbGib) {
+            // create the bootstrap^gib space that points to user space
+            if (logalot) { console.log(`${lc} creating new bootstrap ibgib (I: 651959c27bf2ebc5be1f7f44e2b9e422)`); }
+            const { ib: bootstrapIb } = h.getIbAndGib({ibGibAddr: c.BOOTSTRAP_IBGIB_ADDR});
+            bootstrapIbGib = factory.primitive({ib: bootstrapIb});
+            bootstrapIbGib.gib = GIB;
+            // regardless of `setSpaceAsDefault` value, first space is automatically set
+            bootstrapIbGib.data = {
+                [c.BOOTSTRAP_DATA_DEFAULT_SPACE_ID_KEY]: spaceId,
+            };
+            bootstrapIbGib.rel8ns = {
+                [c.BOOTSTRAP_REL8N_NAME_SPACE]: [newSpaceAddr],
+            };
+        }
+
+        bootstrapIbGib.rel8ns[spaceId] = [newSpaceAddr];
+
+
+        // save the bootstrap^gib "primitive" in the zero space for future initializations
+        if (logalot) { console.log(`${lc} building arg... (I: d134488d81874f9e8dad07d468c8d93c)`); }
+        const argPutBootstrap = await zeroSpace.argy({
+            ibMetadata: bootstrapIbGib.ib,
+            argData: { cmd: 'put', isMeta: true, force: true},
+            ibGibs: [bootstrapIbGib],
+        });
+        if (logalot) { console.log(`${lc} zeroSpace will witness...`); }
+        const resPutBootstrap = await zeroSpace.witness(argPutBootstrap);
+        if (resPutBootstrap ?.data?.success) {
+            if (logalot) { console.log(`${lc} zero space witnessed the bootstrap^gib:\n(${h.pretty(bootstrapIbGib)})`); }
+        } else {
+            throw new Error(`${resPutBootstrap?.data?.errors?.join('|') || "There was a problem with zeroSpace witnessing the bootstrap^gib primitive pointing to the new user space"}`);
+        }
+        if (logalot) { console.log(`${lc} complete.`); }
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+
 }
