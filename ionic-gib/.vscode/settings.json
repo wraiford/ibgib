@@ -1,7 +1,7 @@
 {
     "workbench.colorTheme": "Tomorrow Night Blue",
     "workbench.colorCustomizations": {
-        "editor.background": "#0d4894",
+        "editor.background": "#2b0312",
         "editor.selectionBackground": "#105a1ab7",
         "editor.selectionHighlightBackground": "#0e6906ca",
         "editor.findMatchBackground": "#e05353",
@@ -10,10 +10,14 @@
         "editorCursor.foreground": "#51c682",
         "editorHint.foreground": "#34e43d",
         "editorError.foreground": "#e93bf5",
-        "editorError.background": "#eeff0018"
+        "editorError.background": "#eeff0018",
+        "sideBar.background": "#201125",
+        "statusBar.background": "#201125",
+        "tab.inactiveBackground": "#201125",
     },
     "search.exclude": {
-        "**/www": true
+        "**/www": true,
+        "**/node_modules"
     },
     "files.trimTrailingWhitespace": true,
     "editor.tabCompletion": "on"
