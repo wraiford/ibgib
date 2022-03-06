@@ -18,13 +18,14 @@ export const IBGIB_SPACE_NAME_DEFAULT = 'default_space';
  */
 export const BOOTSTRAP_IBGIB_ADDR = `bootstrap^${GIB}`;
 /**
- * The bootstrap space contains no gib punctiliar hash or tjp, but is just 'gib'.
- *
- * should be primitive except a single rel8n
- * with this rel8n name with a single rel8d address.
+ * {@see BootstrapData}
  */
-export const BOOTSTRAP_REL8N_NAME_SPACE = `space`;
 export const BOOTSTRAP_DATA_DEFAULT_SPACE_ID_KEY = `defaultSpaceId`;
+/**
+ * Key for index tracking known spaceIds in a bootstrap ibgib.
+ * {@see BootstrapData}
+ */
+export const BOOTSTRAP_DATA_KNOWN_SPACE_IDS_KEY = `spaceIds`;
 /**
  * rel8n name in a space ibgib to the config ibgib(s?)
  */
@@ -103,6 +104,10 @@ export const IBGIB_DNA_SUBPATH = 'dna';
  *
  */
 export const PERSIST_OPTS_AND_RESULTS_IBGIBS_DEFAULT = false;
+/**
+ * Yep, this one starts with default instead of ending with it.
+ */
+export const DEFAULT_LOCAL_SPACE_DESCRIPTION = `This is a local space. There are many like it, but this one is...`;
 
 // export const TAGS_IB = 'tags';
 // export const TAGS_IBGIB_ADDR = `${TAGS_IB}^${GIB}`;

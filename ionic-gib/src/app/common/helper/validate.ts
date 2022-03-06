@@ -11,6 +11,7 @@ import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import * as c from '../constants';
 
 import {hasTjp} from './ibgib';
+import { BootstrapData, BootstrapRel8ns } from '../types';
 
 // const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -298,18 +299,34 @@ export async function validateBootstrapIbGib(bootstrapSpace: IbGib_V1): Promise<
     const lc = `[${validateBootstrapIbGib.name}]`;
     const errors: string[] = [];
     try {
-        let addr = h.getIbGibAddr({ibGib: bootstrapSpace});
+        const addr = h.getIbGibAddr({ibGib: bootstrapSpace});
         if (addr !== c.BOOTSTRAP_IBGIB_ADDR) {
-            errors.push(`invalid bootstrapSpace addr. Should equal "${c.BOOTSTRAP_IBGIB_ADDR}"`);
+            errors.push(`invalid bootstrapSpace addr. Should equal "${c.BOOTSTRAP_IBGIB_ADDR}" (E: ecfdbed719284db7a1aa3f867f706fe9)`);
         }
-        if (Object.keys(bootstrapSpace.data || {}).length > 0) {
-            errors.push(`invalid bootstrapSpace data. Data should be falsy/empty`);
+        let intrinsicErrors = await validateIbGibIntrinsically({ibGib: bootstrapSpace});
+        if (intrinsicErrors?.length > 0) { intrinsicErrors.forEach(e => errors.push(e)); }
+
+        const data = <BootstrapData>bootstrapSpace.data;
+        const rel8ns = <BootstrapRel8ns>bootstrapSpace.rel8ns;
+
+        if (Object.keys(data || {}).length === 0) {
+            errors.push(`invalid bootstrapSpace data. data required (E: 5a9bd15dd0644f9b93cafbbba660cfdf)`);
+        }
+        if ((data.spaceIds ?? []).length === 0) {
+            errors.push(`invalid bootstrapSpace, data.spaceIds required. (E: 6b91ddc12cfd41e59ded7d7502c1909f)`);
         }
         if (Object.keys(bootstrapSpace.rel8ns || {}).length === 0) {
-            errors.push(`invalid bootstrapSpace rel8ns (empty). Should have one rel8n, with rel8nName ${c.BOOTSTRAP_REL8N_NAME_SPACE}`);
+            errors.push(`invalid bootstrapSpace rel8ns (empty). Should have at least one rel8n, with rel8nName corresponding to the spaceId (E: b188ce4ae25e49f794f35e141bc2ecde)`);
         }
-        if (Object.keys(bootstrapSpace.rel8ns || {}).length > 1) {
-            errors.push(`invalid bootstrapSpace rel8ns (more than 1). Should have only one rel8n, with rel8nName ${c.BOOTSTRAP_REL8N_NAME_SPACE}`);
+        data.spaceIds.forEach(spaceId => {
+            if ((rel8ns[spaceId] ?? []).length === 0) {
+                errors.push(`invalid bootstrap. Each spaceId listed in data should have a corresponding address in rel8ns. spaceId (${spaceId}) missing. (E: 62dd0d76e29a415a98b4b27deb8db17e)`);
+            }
+        });
+        if (!data.defaultSpaceId) {
+            errors.push(`invalid bootstrap. data.defaultSpaceId required. (E: f763af2e275f445cbf1db5801bacafad)`);
+        } else if ((rel8ns[data.defaultSpaceId] ?? []).length === 0) {
+            errors.push(`invalid bootstrap. data.defaultSpaceId (${data.defaultSpaceId}) not found in rel8ns. (E: 44d0799d232f4a51a0b0019ebebe019f)`);
         }
         if (errors.length === 0) {
             return true;

@@ -455,15 +455,22 @@ export interface BootstrapData {
      * `bootstrap.rel8ns[spaceId]`.
      */
     [c.BOOTSTRAP_DATA_DEFAULT_SPACE_ID_KEY]: SpaceId;
+    /**
+     * List of known spaces in this bootstrap. These should be rel8n names in
+     * the bootstrap's `rel8ns` map.
+     */
+    [c.BOOTSTRAP_DATA_KNOWN_SPACE_IDS_KEY]: SpaceId[];
 }
 
 /**
  * Rel8ns of a {@link BootstrapIbGib}
+ *
+ * atow, these will have rel8nNames of [spaceId] that point to the corresponding
+ * latest spaceAddr, such that the length is always === 1.
  */
 export interface BootstrapRel8ns extends IbGibRel8ns_V1 {
-    [c.BOOTSTRAP_REL8N_NAME_SPACE]: IbGibAddr[];
+    // [c.BOOTSTRAP_REL8N_NAME_SPACE]: IbGibAddr[];
 }
-
 
 /**
  * When the application first starts, it looks to bootstrap itself.  So it will
@@ -485,11 +492,11 @@ export interface BootstrapRel8ns extends IbGibRel8ns_V1 {
  *
  * ## first run
  *
- * A new local space will be created, whose parameters (including its `uuid` which is its
- * `spaceId`) contribute to its
- * reiffied gib hash. A new bootstrap ibgib is created, and in its `data.uuid`
- * we set the newly created local space's id. We then rel8 the space to the
- * bootstrap also via this spaceId...hmmm
+ * A new local space will be created, whose parameters (including its `uuid`
+ * which is its `spaceId`) contribute to its reiffied gib hash. A new bootstrap
+ * ibgib is created, and in its `data.uuid` we set the newly created local
+ * space's id. We then rel8 the space to the bootstrap also via this spaceId as
+ * the rel8nName.
  *
  * ## notes
  *
@@ -507,8 +514,4 @@ export interface BootstrapRel8ns extends IbGibRel8ns_V1 {
 export interface BootstrapIbGib
     extends IbGib_V1<BootstrapData, BootstrapRel8ns> {
 
-        leaving off here
-        // fix comments above to reflect workflow that a space should have a tjp
-        // (but no dna). then we can refer to the space's tjpAddr.gib, since the
-        // space itself should not be mutating very often. ...(I think...)
 }

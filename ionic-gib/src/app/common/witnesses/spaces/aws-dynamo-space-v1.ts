@@ -638,6 +638,7 @@ export interface SyncSpaceRel8ns_AWSDynamoDB
 const DEFAULT_AWS_DYNAMO_SPACE_DATA_V1: SyncSpaceData_AWSDynamoDB = {
     version: '3',
     name: c.IBGIB_SPACE_NAME_DEFAULT,
+    uuid: undefined, // must be set when this is used.
     type: 'sync',
     subtype: 'aws-dynamodb',
     tableName: '',
@@ -943,6 +944,7 @@ export class AWSDynamoSpace_V1<
             if (!this.data) {
                 if (logalot) { console.log(`${lc} initializing data with DEFAULT_AWS_DYNAMO_SPACE_DATA_V1`); }
                 this.data = h.clone(DEFAULT_AWS_DYNAMO_SPACE_DATA_V1);
+                this.data.uuid = await h.getUUID();
             }
 
             if (!this.data.longPollingIntervalMs && this.data.longPollingIntervalMs !== 0) {
