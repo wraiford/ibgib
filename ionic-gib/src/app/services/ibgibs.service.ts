@@ -1,13 +1,13 @@
 /**
- * Gigantic file with a bunch of shift in it. Needs to be
- * refactored when we have a clearer picture...
+ * Gigantic file with a bunch of shift in it. Needs to be refactored when we
+ * have a clearer picture and the prototype is up and limping along...
  */
 
 import { Injectable } from '@angular/core';
 import { AlertController, ModalController } from '@ionic/angular';
 import { ReplaySubject, } from 'rxjs';
 
-import { IbGib_V1, GIB, GIB_DELIMITER, sha256v1 } from 'ts-gib/dist/V1';
+import { IbGib_V1, GIB, GIB_DELIMITER, } from 'ts-gib/dist/V1';
 import { IbGibAddr, TransformResult, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { Factory_V1 as factory } from 'ts-gib/dist/V1';
@@ -24,9 +24,6 @@ import {
   SyncSpaceResultIbGib, StatusCode, SyncStatusIbGib,
   ParticipantInfo, SyncSpaceOptionsIbGib, SyncSpaceOptionsData,
   SyncSagaInfo,
-  IbGibSpaceLockIbGib,
-  IbGibSpaceLockData,
-  IbGibSpaceLockOptions,
   BootstrapIbGib,
 } from '../common/types';
 import {
@@ -38,11 +35,14 @@ import { IbGibSpaceAny } from '../common/witnesses/spaces/space-base-v1';
 import { AWSDynamoSpace_V1 } from '../common/witnesses/spaces/aws-dynamo-space-v1';
 import {
   createSpecial, createTagIbGib, deleteFromSpace, getFromSpace, getFnAlert,
-  getFnConfirm, getFnPrompt, getFnPromptPassword_AlertController,
-  getDependencyGraph, getSpecialIbgib, getSpecialRel8dIbGibs, getTjpIbGib,
+  getFnPrompt, getFnPromptPassword_AlertController,
+  getDependencyGraph, getSpecialIbGib, getSpecialRel8dIbGibs, getTjpIbGib,
   groupBy, hasTjp, isSameSpace, persistTransformResult, putInSpace,
   registerNewIbGib, rel8ToCurrentRoot, rel8ToSpecialIbGib, setConfigAddr,
-  setCurrentRoot, validateBootstrapIbGib, validateUserSpaceName, getConfigAddr, getSpaceLockAddr, isExpired, getExpirationUTCString, getValidatedBootstrapIbGib, getLocalSpace, execInSpaceWithLocking, updateBootstrapIbGib,
+  setCurrentRoot, validateUserSpaceName, getConfigAddr,
+  getValidatedBootstrapIbGib, getLocalSpace, execInSpaceWithLocking,
+  updateBootstrapIbGib,
+  getSpaceArgMetadata,
 } from '../common/helper';
 import { AppSpaceData, AppSpaceRel8ns } from '../common/types/app';
 import {
@@ -50,9 +50,9 @@ import {
   GetIbGibOpts, GetIbGibResult,
   PutIbGibOpts, PutIbGibResult
 } from '../common/types/legacy';
-import { concatMap, switchMap } from 'rxjs/operators';
+import { concatMap, } from 'rxjs/operators';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 interface TempCacheEntry {
   /**
@@ -212,6 +212,10 @@ export class IbgibsService {
           zeroSpace: this.zeroSpace,
           bootstrapIbGib,
           lock: !skipLock,
+          callerInstanceId: this._instanceId,
+          fnDtoToSpace: (spaceDto: IbGib_V1<AppSpaceData, AppSpaceRel8ns>) => {
+            return Promise.resolve(IonicSpace_V1.createFromDto(spaceDto));
+          },
         });
 
       return localSpace;
@@ -328,26 +332,29 @@ export class IbgibsService {
         zeroSpace.gib = await getGib({ibGib: zeroSpace, hasTjp: false});
       }
 
-      let bootstrapIbGib =
-        await getValidatedBootstrapIbGib({zeroSpace: zeroSpace});
+      if (logalot) { console.log(`${lc} getting bootstrap ibgib (I: a4ad1cfd5c6f895e879d9e6a5f607b22)`); }
+      // first call without locking, because we just want to see if it exists.
+      // note that because of race conditions, this may be out of date though.
       const bootstrapAddr = c.BOOTSTRAP_IBGIB_ADDR;
-      bootstrapIbGib = await execInSpaceWithLocking<BootstrapIbGib>({
-        space: zeroSpace,
-        scope: bootstrapAddr,
-        fn: () => { return getValidatedBootstrapIbGib({zeroSpace}); },
-      });
-
+      let bootstrapIbGib = await getValidatedBootstrapIbGib({zeroSpace});
       if (bootstrapIbGib) {
-        if (logalot) { console.log(`${lc} getting from zero space...Success!`)}
-        // load localSpace that was already initialized and recorded in the bootstrapGib "primitive" ibGib
-        // const bootstrapIbGib = resGetBootstrapIbGib!.ibGibs![0]!;
-        // await this.loadUserLocalSpace({zeroSpace, bootstrapIbGib});
+        // re-get it using locking to ensure we've gotten the correct one.
+        if (logalot) { console.log(`${lc} getting bootstrap ibgib with locking from zero space...`)}
+        bootstrapIbGib = await execInSpaceWithLocking<BootstrapIbGib>({
+          space: zeroSpace,
+          scope: bootstrapAddr,
+          secondsValid: c.DEFAULT_SECONDS_VALID_LOCAL,
+          fn: () => { return getValidatedBootstrapIbGib({zeroSpace}); },
+          callerInstanceId: this._instanceId,
+        });
+        if (logalot) { console.log(`${lc} got bootstrap ibgib with locking from zero space.`)}
       } else {
         if (logalot) { console.log(`${lc} getting from default space...not found. bootstrap space not found.`); }
         // bootstrap space ibgib not found, so first run probably for user.
         // so create a new bootstrapGib and user space
         await this.createNewLocalSpaceAndBootstrapGib({zeroSpace});
       }
+
     } catch (error) {
       if (logalot) { console.log(`${lc} getting from default space...not found. bootstrap space not found.`); }
       console.error(`${lc} ${error.message}`);
@@ -418,12 +425,16 @@ export class IbgibsService {
       if (newLocalSpace.gib === GIB) { throw new Error(`localSpace.gib not updated correctly.`); }
       if (logalot) { console.log(`${lc} localSpace.gib: ${newLocalSpace.gib} (after sha256v1)`); }
 
-      // must set this before trying to persist
-      // this.localUserSpace = newLocalSpace;
+      // creates bootstrap
+      await updateBootstrapIbGib({
+        space: newLocalSpace, zeroSpace,
+        setSpaceAsDefault: true,
+        createIfNotFound: true,
+      });
 
       let argPutUserSpace = await zeroSpace.argy({
-        ibMetadata: newLocalSpace.getSpaceArgMetadata(),
-        argData: { cmd: 'put', isMeta: true, },
+        ibMetadata: getSpaceArgMetadata({space: newLocalSpace}),
+        argData: { cmd: 'put', isMeta: true, ibGibAddrs: [h.getIbGibAddr({ibGib: newLocalSpace})]},
         ibGibs: [newLocalSpace],
       });
 
@@ -445,7 +456,8 @@ export class IbgibsService {
         // need to update the space
         if (logalot) { console.log(`${lc} user space witnessed itself`); }
       } else {
-        throw new Error(`${resUserSpace?.data?.errors?.join('|') || "There was a problem with localSpace witnessing itself"}`);
+        debugger;
+        throw new Error(`${resUserSpace?.data?.errors?.join('|') || "There was a problem with localSpace witnessing itself. (E: 33d4b1ffcca64160afe67046531958b5)"}`);
       }
 
       // update the bootstrap ibgib to point to the new local space
@@ -608,10 +620,10 @@ export class IbgibsService {
       space = space ?? await this.getLocalUserSpace({});
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: 1f4dc5e9560341a993bf0b28accd75fe)`); }
 
-      // if (isSameSpace({a: space, b: this.localUserSpace}) && this._localUserSpaceCurrentRoot) {
-      //   return this._localUserSpaceCurrentRoot;
-      // }
-
+      while (this.initializing) {
+        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 5fd759510e584cb69b232259b891cca1)`); }
+        await h.delay(100);
+      }
       const roots = await this.getSpecialIbgib({type: "roots", space});
       if (!roots) {
         throw new Error(`Roots not initialized. (E: e7712dc3d183487e98cd44a2b4324bc2)`);
@@ -727,7 +739,12 @@ export class IbgibsService {
       space = space ?? await this.getLocalUserSpace({});
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: e08e85d8422e479f9d101194fd26cbda)`); }
 
-      return getSpecialIbgib({
+      while (this.initializing) {
+        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 497d4becb94f4515a2ec389630420d6c)`); }
+        await h.delay(100);
+      }
+
+      return getSpecialIbGib({
         type,
         initialize,
         space,

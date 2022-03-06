@@ -11,6 +11,12 @@ export const GLOBAL_LOG_A_LOT: boolean | number = false;
 
 export const GLOBAL_DEBUG_BORDER = false;
 
+/**
+ * Zero space is a default space that uses default values that should be
+ * reproducible and not break or something...it's all in flux really.
+ */
+export const ZERO_SPACE_ID = 'zero';
+
 export const IBGIB_SPACE_NAME_DEFAULT = 'default_space';
 
 /**
@@ -423,11 +429,20 @@ export const DEFAULT_MAX_DELAY_MS_RETRY_LOCK_ACQUIRE = 100;
  * Will retry this many times before giving up...
  */
 export const DEFAULT_MAX_DELAY_RETRY_LOCK_ACQUIRE_ATTEMPTS = 100;
-// export const DEFAULT_MAX_LOCK_SECONDS_VALID = 15;
 /**
  * We don't want someone locking a space forever by accident.
  */
 export const MAX_LOCK_SECONDS_VALID = 60 * 2; // two minutes
+/**
+ * Default value for secondsValid when acquiring/releasing lock in/on LOCAL
+ * space.
+ */
+export const DEFAULT_SECONDS_VALID_LOCAL = 15;
+/**
+ * Default value for secondsValid when acquiring/releasing lock in/on
+ * OUTER space, e.g. sync spaces like aws dynamo sync space.
+ */
+export const DEFAULT_SECONDS_VALID_OUTER = 30;
 
 export const AWS_RESERVED_WORDS = [
     'ABORT',

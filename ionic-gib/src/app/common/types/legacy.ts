@@ -49,6 +49,11 @@ export interface GetIbGibOpts {
    * Cancels if can't acquire lock after approximately this time.
    */
   lockTimeoutMs?: number,
+  /**
+   * If true, will not get from cache and will force retrieval from the real
+   * bucket. In Ionic space, this means will look in ionic storage proper.
+   */
+  force?: boolean;
 }
 
 /**

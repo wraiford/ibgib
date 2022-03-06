@@ -232,6 +232,10 @@ export class IbGibPage extends IbgibComponentBase
         }
       } else {
         // default special non-ibgib handler, go to the tags ibGib
+        while (this.common.ibgibs.initializing) {
+          if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 936911af9f942cbdde7de4bf65fef822)`); }
+          await h.delay(100);
+        }
         const tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
         let tagsAddr = getIbGibAddr({ibGib: tagsIbGib});
         console.warn(`${lc} special url entered, so defaulting nav to tags ibGib (tagsAddr: ${tagsAddr}) (W: bcc8a669f4f44cbb837080615c3db51a)`);

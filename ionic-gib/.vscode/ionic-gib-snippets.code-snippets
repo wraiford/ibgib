@@ -132,7 +132,7 @@
         "scope": "javascript,typescript",
 		"prefix": "log_if_logalot",
 		"body": [
-			"if (logalot) { console.log(`\\${lc} $1 (I: $RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$CURRENT_YEAR_SHORT)`); }"
+			"$0if (logalot) { console.log(`\\${lc} $1 (I: $RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$CURRENT_YEAR_SHORT)`); }"
 		],
     },
     "surround log if logalot": {

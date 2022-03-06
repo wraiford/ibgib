@@ -20,7 +20,7 @@ import {
 import * as c from '../../constants';
 import { getBinHashAndExt, isBinary } from '../../helper';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 // #region Space related interfaces/constants
 
@@ -45,13 +45,13 @@ export interface IonicSpaceData_V1 extends IbGibSpaceData {
 /**
  * Used in bootstrapping.
  *
- * DO NOT ADD NEW KEYS TO THIS. THIS BASICALLY checks for v1 keys
- * and it is extremely naive. If you add keys here, validation will break
- * later.
+ * If you change this, please bumpt the version
+ *
+ * (but of course won't be the end of the world when this doesn't happen).
  */
 const DEFAULT_IONIC_SPACE_DATA_V1: IonicSpaceData_V1 = {
-    version: '3',
-    uuid: '',
+    version: '5',
+    uuid: c.ZERO_SPACE_ID,
     name: c.IBGIB_SPACE_NAME_DEFAULT,
     baseDir: c.IBGIB_BASE_DIR,
     encoding: c.IBGIB_ENCODING,
@@ -64,6 +64,10 @@ const DEFAULT_IONIC_SPACE_DATA_V1: IonicSpaceData_V1 = {
     persistOptsAndResultIbGibs: false,
     validateIbGibAddrsMatchIbGibs: false,
     longPollingIntervalMs: c.DEFAULT_SPACE_POLLING_INTERVAL_MS,
+    allowPrimitiveArgs: false,
+    catchAllErrors: true,
+    description: c.DEFAULT_LOCAL_SPACE_DESCRIPTION,
+    trace: false,
 }
 
 /** Marker interface atm */
@@ -286,7 +290,7 @@ export class IonicSpace_V1<
     }
 
     /**
-     * Check for the bootstrap data at
+     * Initializes to default space values.
      */
     protected async initialize(): Promise<void> {
         const lc = `${this.lc}[${this.initialize.name}]`;
@@ -325,7 +329,7 @@ export class IonicSpace_V1<
             if (logalot) { console.log(`${lc} getting non-bin ibgibs. ibGibAddrsNonBin: ${ibGibAddrsNonBin}`); }
             for (let i = 0; i < ibGibAddrsNonBin.length; i++) {
                 const addr = ibGibAddrsNonBin[i];
-                if (Object.keys(this.ibGibs).includes(addr)) {
+                if (!arg.data.force && Object.keys(this.ibGibs).includes(addr)) {
                     if (logalot) { console.log(`${lc} found in naive cache.`); }
                     resultIbGibs.push(this.ibGibs[addr]);
                 } else {
@@ -501,6 +505,13 @@ export class IonicSpace_V1<
             const { isMeta, isDna, } = arg.data!;
             const ibGibAddrs = arg.data!.ibGibAddrs || [];
 
+            // delete cached entries first
+            const cachedAddrs = Object.entries(this.ibGibs)
+                .filter(([x,y]) => ibGibAddrs.includes(x))
+                .map(([x,y]) => x);
+            cachedAddrs.forEach(addr => { delete this.ibGibs[addr]; });
+
+
             // iterate through ibGibs, but this may be an empty array if we're doing binData.
             for (let i = 0; i < ibGibAddrs.length; i++) {
                 const addr = ibGibAddrs[i];
@@ -649,14 +660,16 @@ export class IonicSpace_V1<
         if (logalot || this.data?.trace) {
             console.log(`${lc} doing arg?.data?.cmd: ${arg?.data?.cmd}, result?.data?.success: ${result?.data?.success}`);
         }
+        const ibGibs = [arg, result];
         let argPersist = await argy_<IonicSpaceOptionsData, IonicSpaceOptionsRel8ns, IonicSpaceOptionsIbGib>({
             argData: {
                 cmd: 'put',
                 isMeta: true,
                 catchAllErrors: true,
+                ibGibAddrs: ibGibs.map(x => h.getIbGibAddr({ibGib: x})),
             },
         });
-        argPersist.ibGibs = [arg, result];
+        argPersist.ibGibs = ibGibs;
         // this is a best effort storage, so we aren't using the result
         // in the future, we should incorporate what to do if this persistence
         // fails into the larger success requirements of spaces.

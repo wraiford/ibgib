@@ -470,6 +470,10 @@ export class ActionBarComponent extends IbgibComponentBase
       // console.log(`${lc} contextAddr: ${contextAddr}`);
 
 
+      while (this.common.ibgibs.initializing) {
+        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 67e795e53b9c4732ab53837bcaa22c1f)`); }
+        await h.delay(109);
+      }
       const tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
       const tagAddrs = tagsIbGib.rel8ns.tag;
       const tagInfos: TagInfo[] = tagAddrs.map(addr => {

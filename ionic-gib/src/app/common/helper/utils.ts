@@ -171,7 +171,7 @@ export function isExpired({
 }: {
     expirationTimestampUTC: string,
 }): boolean {
-    const lc = `${this.lc}[${isExpired.name}]`;
+    const lc = `[${isExpired.name}]`;
     try {
         if (!expirationTimestampUTC) { throw new Error(`expirationTimestampUTC required (E: 5eeb1e29f93d64f70c71a8112080a222)`); }
 

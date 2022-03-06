@@ -46,7 +46,7 @@ export abstract class WitnessBase_V1<
             console.warn(`${lc} data is falsy. Can't set.`);
         }
     }
-    protected get trace(): string[] { return (<any>this.data)?.trace; }
+    protected get trace(): string[] { return (<any>this.data)?.trace ?? []; }
 
     /**
      * Optional configuration for `witness` call.
@@ -200,7 +200,9 @@ export abstract class WitnessBase_V1<
                 for (const error of validationErrors_arg) { console.error(`${lc} ${error}`); }
                 throw new Error(`validation failed.`);
             }
-            if (this.trace?.includes(this.witness.name)) { console.log(`${lc} addr: ${getIbGibAddr(arg)}`); }
+            if (this.trace && Array.isArray(this.trace) && this.trace.includes(this.witness.name)) {
+                console.log(`${lc} addr: ${getIbGibAddr(arg)}`);
+            }
             return await this.witnessImpl(arg);
         } catch (error) {
             console.error(`${lc} ${error.message || 'unknown error'}`);

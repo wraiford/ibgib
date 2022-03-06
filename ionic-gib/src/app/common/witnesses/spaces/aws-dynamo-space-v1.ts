@@ -4644,14 +4644,16 @@ export class AWSDynamoSpace_V1<
         if (logalot || this.data?.trace) {
             console.log(`${lc} doing arg?.data?.cmd: ${arg?.data?.cmd}, result?.data?.success: ${result?.data?.success}`);
         }
+        const ibGibs = [arg, result];
         const argPersist = await this.argy({
             argData: {
                 cmd: 'put',
                 isMeta: true,
                 catchAllErrors: true,
+                ibGibAddrs: ibGibs.map(x => h.getIbGibAddr({ibGib: x})),
             },
+            ibGibs: ibGibs.concat(),
         });
-        argPersist.ibGibs = [arg, result];
 
         const client = createDynamoDBClient({
             accessKeyId: this.data.accessKeyId,

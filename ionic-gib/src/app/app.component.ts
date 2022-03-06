@@ -300,7 +300,12 @@ export class AppComponent extends IbgibComponentBase
    * information like settings/config.
    */
   async loadTagsAddrAndGetTagsIbGib(): Promise<IbGib_V1<TagData>> {
-    if (logalot) { console.log(`getting tags addr`) }
+    const lc = `${this.lc}[${this.loadTagsAddrAndGetTagsIbGib.name}]`;
+    if (logalot) { console.log(`${lc} getting tags addr`) }
+    while (this.common.ibgibs.initializing) {
+      if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 1a41f1e1a28748bc88f913780bd74b4f)`); }
+      await h.delay(100);
+    }
     const tagsIbGib = <IbGib_V1<TagData>>(
       await this.common.ibgibs.getSpecialIbgib({type: "tags"})
     );
@@ -317,6 +322,11 @@ export class AppComponent extends IbgibComponentBase
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       // initializes with current ibgibs.localUserspace
+
+      while (this.common.ibgibs.initializing) {
+        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: de1ca706872740b98dfce57a5a9da4d4)`); }
+        await h.delay(100);
+      }
       const rootsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "roots"});
       this.rootsAddr = h.getIbGibAddr({ibGib: rootsIbGib});
       const currentRootIbGib = await this.common.ibgibs.getCurrentRoot({});
@@ -464,6 +474,10 @@ export class AppComponent extends IbgibComponentBase
       }
 
       // get tags, but don't initialize
+      while (this.common.ibgibs.initializing) {
+        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 5fd759510e584cb69b232259b891cca1)`); }
+        await h.delay(100);
+      }
       let tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
       let tagAddrs = tagsIbGib?.rel8ns?.tag || [];
 
@@ -544,6 +558,10 @@ export class AppComponent extends IbgibComponentBase
       if (!this.rootsAddr) { throw new Error(`rootsAddr is falsy, i.e. hasn't been initialized?`); };
 
       // get roots, but don't initialize
+      while (this.common.ibgibs.initializing) {
+        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 8f261e9bc175463e88d173700b3797ed)`); }
+        await h.delay(100);
+      }
       let rootsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "roots"});
       let rootAddrs = rootsIbGib?.rel8ns[c.ROOT_REL8N_NAME] || [];
 
