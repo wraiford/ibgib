@@ -125,7 +125,7 @@ export async function getFromSpace({
             if (logalot) { console.log(`${lc} didn't get.`) }
             return {
                 success: false,
-                errorMsg: result.data?.errors?.join('|') || `${lc} something went wrong`,
+                errorMsg: result.data?.errors?.join('|') || `${lc} something went wrong. addrs: ${addrs.join('\n')} (E: b9e9d5ce0cde4122bfb74f7688db85e0)`,
                 rawResultIbGib: result,
             }
         }
@@ -226,7 +226,7 @@ export async function deleteFromSpace({
                 console.warn(`${lc} partial addrs deleted: ${result.data!.addrs!.join('|')}`);
             }
             return {
-                errorMsg: result.data?.errors?.join('|') || `${lc} something went wrong`,
+                errorMsg: result.data?.errors?.join('|') || `${lc} something went wrong (E: e397fd09b4a746a3ba3305d6ea0893cb)`,
             }
         }
     } catch (error) {

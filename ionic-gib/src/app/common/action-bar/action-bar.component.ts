@@ -583,7 +583,7 @@ export class ActionBarComponent extends IbgibComponentBase
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`)
-      await Modals.alert({title: 'something went wrong...', message: error.message});
+      await Modals.alert({title: 'something went awry...', message: error.message});
     } finally {
       actionItem.busy = false;
       this.ref.detectChanges();

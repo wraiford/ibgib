@@ -164,7 +164,7 @@ export class AppComponent extends IbgibComponentBase
     this.platform.ready().then(async () => {
       this.statusBar.styleDefault();
 
-      let navToAddr: IbGibAddr; //= 'hmm something went wrong^gib';
+      let navToAddr: IbGibAddr;
 
       try {
         if (this.initializing) {

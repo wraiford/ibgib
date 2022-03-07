@@ -561,7 +561,7 @@ export class IbGibPage extends IbgibComponentBase
       await Modals.alert({title: 'yess', message: `Tagged.`});
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-      await Modals.alert({title: 'something went wrong...', message: error.message});
+      await Modals.alert({title: 'something went awry...', message: error.message});
     } finally {
       this.tagging = false;
       this.ref.detectChanges();

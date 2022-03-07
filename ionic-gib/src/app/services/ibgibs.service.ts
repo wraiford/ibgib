@@ -227,12 +227,15 @@ export class IbgibsService {
     }
   }
 
-  private _zeroSpace: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> | undefined;
+  // private _zeroSpace: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> | undefined;
   private get zeroSpace(): IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> {
-    if (!this._zeroSpace) {
-      this._zeroSpace = new IonicSpace_V1(/*initialData*/ null, /*initialRel8ns*/ null);
-    }
-    return this._zeroSpace;
+    const zeroSpace = new IonicSpace_V1(/*initialData*/ null, /*initialRel8ns*/ null);
+    zeroSpace.gib = 'gib';
+    return zeroSpace;
+    // if (!this._zeroSpace) {
+    //   this._zeroSpace = new IonicSpace_V1(/*initialData*/ null, /*initialRel8ns*/ null);
+    // }
+    // return this._zeroSpace;
   }
 
   // private _localUserSpaceCurrentRoot: IbGib_V1<RootData> | undefined;
@@ -466,7 +469,7 @@ export class IbgibsService {
       }
 
       // update the bootstrap ibgib to point to the new local space
-      await updateBootstrapIbGib({space: newLocalSpace, zeroSpace: this._zeroSpace});
+      await updateBootstrapIbGib({space: newLocalSpace, zeroSpace: this.zeroSpace});
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       const alert = getFnAlert();
@@ -581,7 +584,7 @@ export class IbgibsService {
 
   private fnUpdateBootstrap = async (newSpace: IbGibSpaceAny) => {
     const space = await this.getLocalUserSpace({});
-    await updateBootstrapIbGib({space: newSpace, zeroSpace: this._zeroSpace});
+    await updateBootstrapIbGib({space: newSpace, zeroSpace: this.zeroSpace});
   }
 
   private fnBroadcast = (info: LatestEventInfo) => {

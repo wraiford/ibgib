@@ -1,10 +1,16 @@
-import { Component, OnInit, ChangeDetectorRef, Input } from '@angular/core';
+import {
+  Component, OnInit, ChangeDetectorRef, Input
+} from '@angular/core';
+
+import { IbGibAddr } from 'ts-gib';
+import { IbGib_V1 } from 'ts-gib/dist/V1';
+
 import { IbgibComponentBase } from 'src/app/common/bases/ibgib-component-base';
 import { CommonService } from 'src/app/services/common.service';
-import { IbGibAddr } from 'ts-gib';
-import { PicData } from 'src/app/common/types';
-import { Capacitor } from '@capacitor/core';
-import { IbGib_V1 } from 'ts-gib/dist/V1';
+
+import * as c from '../../common/constants';
+
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 @Component({
   selector: 'pic-view',
@@ -36,7 +42,7 @@ export class PicViewComponent
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-    console.log(`${lc} updating...`);
+    if (logalot) { console.log(`${lc} updating...`); }
     try {
       await super.updateIbGib(addr);
       await this.loadIbGib();
