@@ -20,7 +20,7 @@ import {
 import * as c from '../../constants';
 import { getBinHashAndExt, getSpaceIb, isBinary } from '../../helper';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 // #region Space related interfaces/constants
 
@@ -445,7 +445,7 @@ export class IonicSpace_V1<
                     if (logalot) { console.log(`${lc} already exists...`); }
                     if (force) {
                         // ...but save anyway.
-                        warnings.push(`${lc} Forcing save of already put addr: ${addr}`);
+                        if (logalot) { console.log(`${lc} Forcing save of already put addr: ${addr} (I: 325f363e5d438b43c24b810c150e4e22)`); }
                         const putResult = await this.putFile({ibGib, isMeta, isDna});
                         if (putResult.success) {
                             if (!isDna) {
@@ -780,7 +780,11 @@ export class IonicSpace_V1<
             result.success = true;
         } catch (error) {
             const errorMsg = `${lc} ${error.message}`;
-            console.error(errorMsg);
+            if (!errorMsg.includes('File does not exist')) {
+                console.error(errorMsg);
+            } else {
+                if (logalot) { console.log(`${lc} attempted to delete non-existent file. ${errorMsg} (I: 8953b51a5f14960e5ea2e86f6c6a7622)`); }
+            }
             result.errorMsg = errorMsg;
         }
 
@@ -856,8 +860,7 @@ export class IonicSpace_V1<
                 if (x?.data) { resRead = x; break; }
             }
             if (!resRead) {
-                // throw new Error(`paths not found: ${JSON.stringify(paths)}`)
-                console.warn(`${lc} paths not found: ${JSON.stringify(paths)}`)
+                if (logalot) { console.log(`${lc} paths not found: ${JSON.stringify(paths)} (I: 6a3bd3b125619da7a944200b14e7e922)`); }
                 return;
             }
             if (!addrIsBin) {

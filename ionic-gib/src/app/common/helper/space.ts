@@ -27,7 +27,7 @@ import { validateBootstrapIbGib, validateIbGibAddr, validateIbGibIntrinsically }
 import { getTjpAddrs } from './ibgib';
 import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 
 /**
@@ -2351,7 +2351,7 @@ export async function lockSpace({
     try {
         if (logalot) { console.log(`${lc} starting...`); }
 
-        if (!space) { throw new Error(` space required. (E: 5c0a7197a75f483a82d74e5eea60df37)`); }
+        if (!space) { throw new Error(`space required. (E: 5c0a7197a75f483a82d74e5eea60df37)`); }
         if (!scope) { throw new Error(`scope required. (E: c7f1dde9570f4df3b450faa2c2f85122)`); }
         if (!secondsValid) { throw new Error(`secondsValid required and positive (E: b42b6733638b46c06c9aff59a6c49822)`); }
         if (secondsValid < 0) { throw new Error(`secondsValid must be positive (E: bbe3b6d567583bfb35a1c0825eb29622)`); }
@@ -2438,7 +2438,6 @@ export async function unlockSpace({
         const spaceLockAddr = getSpaceLockAddr({space, scope});
 
         // delete in file if it exists
-
         let resDelete = await deleteFromSpace({addr: spaceLockAddr, isMeta: true, space, force: true});
         if (resDelete.success) {
             const {ib,gib} = h.getIbAndGib({ibGibAddr: spaceLockAddr});

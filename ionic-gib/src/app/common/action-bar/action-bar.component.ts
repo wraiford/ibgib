@@ -73,13 +73,13 @@ export class ActionBarComponent extends IbgibComponentBase
       icon: 'image-outline',
       filepicked: async (event) => await this.actionAddImage(event),
     },
-    {
-      name: 'tag',
-      type: 'button',
-      text: 'tag',
-      icon: 'pricetag-outline',
-      handler: async (event) => await this.actionTag(event),
-    },
+    // {
+    //   name: 'tag',
+    //   type: 'button',
+    //   text: 'tag',
+    //   icon: 'pricetag-outline',
+    //   handler: async (event) => await this.actionTag(event),
+    // },
     {
       name: 'import',
       type: 'button',
@@ -87,13 +87,13 @@ export class ActionBarComponent extends IbgibComponentBase
       icon: 'sparkles-outline',
       handler: async (event) => await this.addImport(event),
     },
-    {
-      name: 'info',
-      type: 'button',
-      text: 'info',
-      icon: 'information',
-      handler: async (event) => await this.actionShowInfo(event),
-    },
+    // {
+    //   name: 'info',
+    //   type: 'button',
+    //   text: 'info',
+    //   icon: 'information',
+    //   handler: async (event) => await this.actionShowInfo(event),
+    // },
   ];
 
   @Input()
@@ -390,18 +390,6 @@ export class ActionBarComponent extends IbgibComponentBase
     await this.actionAddImage(event);
   }
 
-  async actionShowInfo(event: MouseEvent): Promise<void> {
-    const lc = `${this.lc}[${this.actionShowInfo.name}]`;
-    try {
-      let info = JSON.stringify(this.ibGib_Context, null, 2);
-      let addr = getIbGibAddr({ibGib: this.ibGib_Context});
-      await Modals.alert({title: addr, message: info});
-      console.log(info);
-    } catch (error) {
-      console.error(`${lc} ${error.message}`)
-    }
-  }
-
   getExt(path: string): { filename: string, ext: string } {
     const pathPieces = path.split('/');
     const fullFilename = pathPieces[pathPieces.length-1];
@@ -456,250 +444,6 @@ export class ActionBarComponent extends IbgibComponentBase
         this.ref.detectChanges();
       }
     }
-  }
-
-  async actionTag(_: MouseEvent): Promise<void> {
-    const lc = `${this.lc}[${this.actionTag.name}]`;
-    let actionItem: ActionItem;
-    try {
-      actionItem = this.items.filter(x => x.name === 'tag')[0];
-      actionItem.busy = true;
-      if (!this.ibGib) { throw new Error(`There isn't a current ibGib loaded...?`); }
-      if (!this.addr) { throw new Error(`There isn't a current ibGib addr loaded...?`); }
-      // const contextAddr = getIbGibAddr({ibGib: this.ibGib});
-      // console.log(`${lc} contextAddr: ${contextAddr}`);
-
-
-      while (this.common.ibgibs.initializing) {
-        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 67e795e53b9c4732ab53837bcaa22c1f)`); }
-        await h.delay(109);
-      }
-      const tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
-      const tagAddrs = tagsIbGib.rel8ns.tag;
-      const tagInfos: TagInfo[] = tagAddrs.map(addr => {
-        const { ib } = getIbAndGib({ibGibAddr: addr});
-        const tag = ib.substring('tag '.length);
-        const tagInfo: TagInfo = { title: tag, addr };
-        return tagInfo;
-      });
-
-      const resPrompt = await Modals.showActions({
-        title: 'Select tag',
-        message: 'Select a tag to add this ibGib to',
-        options: [
-          {
-            // index 0
-            title: 'Cancel',
-            style: ActionSheetOptionStyle.Cancel
-          },
-          {
-            // index 1
-            title: 'New Tag...',
-            style: ActionSheetOptionStyle.Default
-          },
-
-          // index = i-2
-          ...tagInfos,
-        ]
-      });
-
-      let tagIbGib: IbGib_V1;
-      if (resPrompt.index === 0) {
-
-        if (logalot) { console.log(`${lc} cancelled`); }
-        await Plugins.Modals.alert({ title: 'nope', message: 'cancelled' });
-        actionItem.busy = false;
-        this.ref.detectChanges();
-        return;
-
-      } else if (resPrompt.index === 1) {
-
-        if (logalot) { console.log(`${lc} create new tag`); }
-        tagIbGib = await this.createNewTag();
-        if (!tagIbGib) {
-          if (logalot) { console.log(`${lc} aborting creating new tag.`); }
-          actionItem.busy = false;
-          this.ref.detectChanges();
-          return;
-        }
-
-      } else {
-
-        if (logalot) { console.log(`${lc} tag with existing tag, but may not be latest addr`); }
-        const tagInfo: TagInfo = tagInfos[resPrompt.index - 2];
-        const resTagIbGib = await this.common.ibgibs.get({addr: tagInfo.addr});
-        if (resTagIbGib.success && resTagIbGib.ibGibs?.length === 1) {
-          const rel8dTagIbGibAddr = getIbGibAddr({ibGib: resTagIbGib.ibGibs[0]});
-          if (logalot) { console.log(`${lc} the rel8d tag may not be the latest: ${rel8dTagIbGibAddr}`); }
-          const latestTagAddr = await this.common.ibgibs.getLatestAddr({ibGib: resTagIbGib.ibGibs[0]});
-          if (logalot) { console.log(`${lc} latestTagAddr: ${latestTagAddr}`); }
-          if (rel8dTagIbGibAddr === latestTagAddr) {
-            console.error(`${lc} tag is already the latest`);
-            tagIbGib = resTagIbGib.ibGibs[0]!;
-          } else {
-            console.error(`${lc} tag is NOT the latest`);
-            const resTagIbGibLatest = await this.common.ibgibs.get({addr: latestTagAddr});
-            if (resTagIbGibLatest.success && resTagIbGibLatest.ibGibs?.length === 1) {
-              console.error(`${lc} tag is NOT the latest and we got a new ibgib`);
-              tagIbGib = resTagIbGibLatest.ibGibs![0];
-            } else {
-              console.error(`${lc} couldn't find latest tag addr (${latestTagAddr}). using previous tag (${rel8dTagIbGibAddr})`);
-              tagIbGib = resTagIbGib.ibGibs![0];
-            }
-          }
-        } else {
-          throw new Error(`${resTagIbGib.errorMsg || 'there was a problem getting the tag ibGib.'}`);
-        }
-
-      }
-
-      // relate context to tag
-      const rel8nsToAddByAddr = { target: [this.addr] };
-      const resRel8ToTag =
-        await V1.rel8({src: tagIbGib, rel8nsToAddByAddr, dna: true, nCounter: true});
-      await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToTag});
-      const { newIbGib: newTag } = resRel8ToTag;
-      await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newTag, linked: true});
-      await this.common.ibgibs.registerNewIbGib({ibGib: newTag});
-
-      if (logalot) { console.log(`${lc} tag successful.`); }
-      await Modals.alert({title: 'yess', message: `Tagged.`});
-    } catch (error) {
-      console.error(`${lc} ${error.message}`)
-      await Modals.alert({title: 'something went wrong...', message: error.message});
-    } finally {
-      if (actionItem) {
-        actionItem.busy = false;
-        this.ref.detectChanges();
-      }
-    }
-
-  }
-
-  async createNewTag(): Promise<IbGib_V1 | undefined> {
-    const lc = `${this.lc}[${this.createNewTag.name}]`;
-
-    try {
-      if (logalot) { console.log(`${lc} starting...`); }
-
-      const text = await this.chooseTagText();
-      if (!text) { return; }
-      const icon = await this.chooseTagIcon();
-      if (!icon) { return; }
-      const description = await this.chooseTagDescription(text);
-      if (!description) { return; }
-
-      const resNewTag = await this.common.ibgibs.createTagIbGib({text, icon, description});
-
-      return resNewTag.newTagIbGib;
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      return;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
-
-  /**
-   * Returns the text/title of the tag.
-   * @returns
-   */
-  async chooseTagText(): Promise<string | undefined> {
-    const lc = `${this.lc}[${this.chooseTagText.name}]`;
-    let tagText: string;
-    try {
-      for (let i = 0; i < 10; i++) {
-        let resTagText = await Plugins.Modals.prompt({
-          title: 'Tag Text?',
-          message: `What's the tag called?`,
-          cancelButtonTitle: 'Cancel',
-          okButtonTitle: 'Next...',
-        });
-
-        if (resTagText.cancelled || !resTagText.value) {
-          if (logalot) { console.log(`${lc} cancelled? no value?`) }
-          return;
-        }
-
-        if (c.ILLEGAL_TAG_TEXT_CHARS.some(x => resTagText.value.includes(x))) {
-          await Plugins.Modals.alert({
-            title: 'Nope...',
-            message: `Tag Text can't contain spaces or ${c.ILLEGAL_TAG_TEXT_CHARS}`,
-          });
-        } else {
-          tagText = resTagText.value;
-          if (logalot) { console.log(`${lc} tagText: ${tagText}`); }
-          break;
-        }
-      }
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      tagText = undefined;
-    }
-
-    return tagText;
-  }
-
-  async chooseTagIcon(): Promise<string | undefined> {
-    const lc = `${this.lc}[${this.chooseTagIcon.name}]`;
-    try {
-      const modal = await this.common.modalController.create({
-        component: ChooseIconModalComponent,
-      });
-      await modal.present();
-      let resModal = await modal.onWillDismiss();
-      const iconItem: IconItem = resModal.data;
-      if (!iconItem) {
-        if (logalot) { console.log(`${lc} cancelled.`) }
-        return;
-      }
-      if (logalot) { console.log(`${lc} icon: ${iconItem.icon}`); }
-      return iconItem!.icon;
-    } catch (error) {
-      console.error(`${lc} error: ${error.message}`);
-      return undefined;
-    }
-  }
-
-  /**
-   * Returns the description of the tag.
-   * @returns
-   */
-  async chooseTagDescription(tagText: string): Promise<string | undefined> {
-    const lc = `${this.lc}[${this.chooseTagDescription.name}]`;
-    let tagDesc: string;
-    try {
-      for (let i = 0; i < 10; i++) {
-        let resTagDesc = await Plugins.Modals.prompt({
-          title: 'Tag Description?',
-          message: `What's the tag description?`,
-          inputPlaceholder: tagText,
-          cancelButtonTitle: 'Cancel',
-          okButtonTitle: 'Create Tag',
-        });
-
-        if (resTagDesc.cancelled) {
-          if (logalot) { console.log(`${lc} cancelled? no value?`) }
-          return;
-        }
-
-        if (c.ILLEGAL_TAG_DESC_CHARS.some(x => resTagDesc.value.includes(x))) {
-          await Plugins.Modals.alert({
-            title: 'Nope...',
-            message: `Description can't contain ${c.ILLEGAL_TAG_DESC_CHARS}`,
-          });
-        } else {
-          tagDesc = resTagDesc.value || `${tagText} is cool tag.`;
-          if (logalot) { console.log(`${lc} tagText: ${tagDesc}`); }
-          break;
-        }
-      }
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      tagDesc = undefined;
-    }
-
-    return tagDesc;
   }
 
   /**
@@ -848,10 +592,6 @@ export class ActionBarComponent extends IbgibComponentBase
 
 }
 
-interface TagInfo {
-  title: string;
-  addr: string;
-}
 
 // comment some comme^7BA39343AB46ED03EC50EBE86D03E2BC9BB478C2E5B14BE16041CF6D84429E86.8D2E66D2F96EC083C33381CC2789D8F940D55BACBD9AED7E2CFC17FAC0ED3480
 

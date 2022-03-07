@@ -4,11 +4,11 @@ import {
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription, interval, pipe } from 'rxjs';
-import { Capacitor, Plugins } from '@capacitor/core';
+import { ActionSheetOptionStyle, Capacitor, Plugins } from '@capacitor/core';
 const { Modals, Clipboard } = Plugins;
 
 import * as h from 'ts-gib';
-import { IbGibAddr, } from 'ts-gib';
+import { IbGibAddr, V1 } from 'ts-gib';
 import { getIbGibAddr, pretty } from 'ts-gib/dist/helper';
 import { IbGib_V1, ROOT } from 'ts-gib/dist/V1';
 
@@ -20,6 +20,7 @@ import { LatestEventInfo, } from '../common/types';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
 import { getFnAlert, } from '../common/helper';
 import { concatMap } from 'rxjs/operators';
+import { ChooseIconModalComponent, IconItem } from '../common/choose-icon-modal/choose-icon-modal.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -66,6 +67,9 @@ export class IbGibPage extends IbgibComponentBase
    */
   @Input()
   tjpUpdatesAvailableCount: number = 0;
+
+  @Input()
+  tagging: boolean;
 
   constructor(
     protected common: CommonService,
@@ -452,4 +456,262 @@ export class IbGibPage extends IbgibComponentBase
     await this.common.nav.back();
   }
 
+  async handleTagClick(_: MouseEvent): Promise<void> {
+    const lc = `${this.lc}[${this.handleTagClick.name}]`;
+    try {
+      this.tagging = true;
+      if (!this.ibGib) { throw new Error(`There isn't a current ibGib loaded...?`); }
+      if (!this.addr) { throw new Error(`There isn't a current ibGib addr loaded...?`); }
+      // const contextAddr = getIbGibAddr({ibGib: this.ibGib});
+      // console.log(`${lc} contextAddr: ${contextAddr}`);
+
+      while (this.common.ibgibs.initializing) {
+        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 67e795e53b9c4732ab53837bcaa22c1f)`); }
+        await h.delay(109);
+      }
+      const tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
+      const tagAddrs = tagsIbGib.rel8ns.tag;
+      const tagInfos: TagInfo[] = tagAddrs.map(addr => {
+        const { ib } = h.getIbAndGib({ibGibAddr: addr});
+        const tag = ib.substring('tag '.length);
+        const tagInfo: TagInfo = { title: tag, addr };
+        return tagInfo;
+      });
+
+      const resPrompt = await Modals.showActions({
+        title: 'Select tag',
+        message: 'Select a tag to add this ibGib to',
+        options: [
+          {
+            // index 0
+            title: 'Cancel',
+            style: ActionSheetOptionStyle.Cancel
+          },
+          {
+            // index 1
+            title: 'New Tag...',
+            style: ActionSheetOptionStyle.Default
+          },
+
+          // index = i-2
+          ...tagInfos,
+        ]
+      });
+
+      let tagIbGib: IbGib_V1;
+      if (resPrompt.index === 0) {
+
+        if (logalot) { console.log(`${lc} cancelled`); }
+        await Plugins.Modals.alert({ title: 'nope', message: 'cancelled' });
+        this.tagging = false;
+        this.ref.detectChanges();
+        return;
+
+      } else if (resPrompt.index === 1) {
+
+        if (logalot) { console.log(`${lc} create new tag`); }
+        tagIbGib = await this.createNewTag();
+        if (!tagIbGib) {
+          if (logalot) { console.log(`${lc} aborting creating new tag.`); }
+          this.tagging = false;
+          this.ref.detectChanges();
+          return;
+        }
+
+      } else {
+
+        if (logalot) { console.log(`${lc} tag with existing tag, but may not be latest addr`); }
+        const tagInfo: TagInfo = tagInfos[resPrompt.index - 2];
+        const resTagIbGib = await this.common.ibgibs.get({addr: tagInfo.addr});
+        if (resTagIbGib.success && resTagIbGib.ibGibs?.length === 1) {
+          const rel8dTagIbGibAddr = getIbGibAddr({ibGib: resTagIbGib.ibGibs[0]});
+          if (logalot) { console.log(`${lc} the rel8d tag may not be the latest: ${rel8dTagIbGibAddr}`); }
+          const latestTagAddr = await this.common.ibgibs.getLatestAddr({ibGib: resTagIbGib.ibGibs[0]});
+          if (logalot) { console.log(`${lc} latestTagAddr: ${latestTagAddr}`); }
+          if (rel8dTagIbGibAddr === latestTagAddr) {
+            console.error(`${lc} tag is already the latest`);
+            tagIbGib = resTagIbGib.ibGibs[0]!;
+          } else {
+            console.error(`${lc} tag is NOT the latest`);
+            const resTagIbGibLatest = await this.common.ibgibs.get({addr: latestTagAddr});
+            if (resTagIbGibLatest.success && resTagIbGibLatest.ibGibs?.length === 1) {
+              console.error(`${lc} tag is NOT the latest and we got a new ibgib`);
+              tagIbGib = resTagIbGibLatest.ibGibs![0];
+            } else {
+              console.error(`${lc} couldn't find latest tag addr (${latestTagAddr}). using previous tag (${rel8dTagIbGibAddr})`);
+              tagIbGib = resTagIbGib.ibGibs![0];
+            }
+          }
+        } else {
+          throw new Error(`${resTagIbGib.errorMsg || 'there was a problem getting the tag ibGib.'}`);
+        }
+
+      }
+
+      // relate context to tag
+      const rel8nsToAddByAddr = { target: [this.addr] };
+      const resRel8ToTag =
+        await V1.rel8({src: tagIbGib, rel8nsToAddByAddr, dna: true, nCounter: true});
+      await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToTag});
+      const { newIbGib: newTag } = resRel8ToTag;
+      await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newTag, linked: true});
+      await this.common.ibgibs.registerNewIbGib({ibGib: newTag});
+
+      if (logalot) { console.log(`${lc} tag successful.`); }
+      await Modals.alert({title: 'yess', message: `Tagged.`});
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      await Modals.alert({title: 'something went wrong...', message: error.message});
+    } finally {
+      this.tagging = false;
+      this.ref.detectChanges();
+    }
+
+  }
+
+  async createNewTag(): Promise<IbGib_V1 | undefined> {
+    const lc = `${this.lc}[${this.createNewTag.name}]`;
+
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      const text = await this.chooseTagText();
+      if (!text) { return; }
+      const icon = await this.chooseTagIcon();
+      if (!icon) { return; }
+      const description = await this.chooseTagDescription(text);
+      if (!description) { return; }
+
+      const resNewTag = await this.common.ibgibs.createTagIbGib({text, icon, description});
+
+      return resNewTag.newTagIbGib;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  /**
+   * Returns the text/title of the tag.
+   * @returns
+   */
+  async chooseTagText(): Promise<string | undefined> {
+    const lc = `${this.lc}[${this.chooseTagText.name}]`;
+    let tagText: string;
+    try {
+      for (let i = 0; i < 10; i++) {
+        let resTagText = await Plugins.Modals.prompt({
+          title: 'Tag Text?',
+          message: `What's the tag called?`,
+          cancelButtonTitle: 'Cancel',
+          okButtonTitle: 'Next...',
+        });
+
+        if (resTagText.cancelled || !resTagText.value) {
+          if (logalot) { console.log(`${lc} cancelled? no value?`) }
+          return;
+        }
+
+        if (c.ILLEGAL_TAG_TEXT_CHARS.some(x => resTagText.value.includes(x))) {
+          await Plugins.Modals.alert({
+            title: 'Nope...',
+            message: `Tag Text can't contain spaces or ${c.ILLEGAL_TAG_TEXT_CHARS}`,
+          });
+        } else {
+          tagText = resTagText.value;
+          if (logalot) { console.log(`${lc} tagText: ${tagText}`); }
+          break;
+        }
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      tagText = undefined;
+    }
+
+    return tagText;
+  }
+
+  async chooseTagIcon(): Promise<string | undefined> {
+    const lc = `${this.lc}[${this.chooseTagIcon.name}]`;
+    try {
+      const modal = await this.common.modalController.create({
+        component: ChooseIconModalComponent,
+      });
+      await modal.present();
+      let resModal = await modal.onWillDismiss();
+      const iconItem: IconItem = resModal.data;
+      if (!iconItem) {
+        if (logalot) { console.log(`${lc} cancelled.`) }
+        return;
+      }
+      if (logalot) { console.log(`${lc} icon: ${iconItem.icon}`); }
+      return iconItem!.icon;
+    } catch (error) {
+      console.error(`${lc} error: ${error.message}`);
+      return undefined;
+    }
+  }
+
+  /**
+   * Returns the description of the tag.
+   * @returns
+   */
+  async chooseTagDescription(tagText: string): Promise<string | undefined> {
+    const lc = `${this.lc}[${this.chooseTagDescription.name}]`;
+    let tagDesc: string;
+    try {
+      for (let i = 0; i < 10; i++) {
+        let resTagDesc = await Plugins.Modals.prompt({
+          title: 'Tag Description?',
+          message: `What's the tag description?`,
+          inputPlaceholder: tagText,
+          cancelButtonTitle: 'Cancel',
+          okButtonTitle: 'Create Tag',
+        });
+
+        if (resTagDesc.cancelled) {
+          if (logalot) { console.log(`${lc} cancelled? no value?`) }
+          return;
+        }
+
+        if (c.ILLEGAL_TAG_DESC_CHARS.some(x => resTagDesc.value.includes(x))) {
+          await Plugins.Modals.alert({
+            title: 'Nope...',
+            message: `Description can't contain ${c.ILLEGAL_TAG_DESC_CHARS}`,
+          });
+        } else {
+          tagDesc = resTagDesc.value || `${tagText} is cool tag.`;
+          if (logalot) { console.log(`${lc} tagText: ${tagDesc}`); }
+          break;
+        }
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      tagDesc = undefined;
+    }
+
+    return tagDesc;
+  }
+
+  async handleInfoClick(event: MouseEvent): Promise<void> {
+    const lc = `${this.lc}[${this.handleInfoClick.name}]`;
+    try {
+      // let info = JSON.stringify(this.ibGib_Context, null, 2);
+      // let addr = getIbGibAddr({ibGib: this.ibGib_Context});
+      let info = JSON.stringify(this.ibGib, null, 2);
+      let addr = getIbGibAddr({ibGib: this.ibGib});
+      await Modals.alert({title: addr, message: info});
+      console.log(info);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`)
+    }
+  }
+
  }
+
+interface TagInfo {
+  title: string;
+  addr: string;
+}

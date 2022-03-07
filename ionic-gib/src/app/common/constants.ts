@@ -437,7 +437,7 @@ export const MAX_LOCK_SECONDS_VALID = 60 * 2; // two minutes
  * Default value for secondsValid when acquiring/releasing lock in/on LOCAL
  * space.
  */
-export const DEFAULT_SECONDS_VALID_LOCAL = 15;
+export const DEFAULT_SECONDS_VALID_LOCAL = 2;
 /**
  * Default value for secondsValid when acquiring/releasing lock in/on
  * OUTER space, e.g. sync spaces like aws dynamo sync space.

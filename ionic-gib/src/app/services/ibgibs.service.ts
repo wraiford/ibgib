@@ -52,7 +52,7 @@ import {
 } from '../common/types/legacy';
 import { concatMap, } from 'rxjs/operators';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 interface TempCacheEntry {
   /**

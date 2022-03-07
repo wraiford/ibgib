@@ -25,6 +25,8 @@
     <ion-title *ngIf='!isTag && !isPic && !isComment' class='toolbar-title-yo'>
       {{ title }}
     </ion-title>
+  </ion-toolbar>
+  <ion-toolbar color="background">
     <ion-buttons slot="end" collapse="true">
       <ion-button
         slot="end" (click)="handleShareClick()" class="toolbar-share">
@@ -43,9 +45,18 @@
         <ion-icon *ngIf="!refreshing" name="refresh"></ion-icon>
         <ion-spinner *ngIf="refreshing" name="bubbles" color="tertiary"></ion-spinner>
       </ion-button>
-      <ion-button [disabled]="refreshing || paused"
+      <!-- <ion-button [disabled]="refreshing || paused"
         slot="end" (click)="handlePauseClick()" class="toolbar-pause">
         <ion-icon name="pause"></ion-icon>
+      </ion-button> -->
+      <ion-button [disabled]="syncing || refreshing || paused || tagging"
+        slot="end" (click)="handleTagClick()" class="toolbar-pause">
+        <ion-icon name="pricetag-outline"></ion-icon>
+        <ion-spinner *ngIf="tagging" name="bubbles" color="tertiary"></ion-spinner>
+      </ion-button>
+      <ion-button [disabled]="syncing || refreshing || paused || tagging"
+        slot="end" (click)="handleInfoClick()" class="toolbar-pause">
+        <ion-icon name="information"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>

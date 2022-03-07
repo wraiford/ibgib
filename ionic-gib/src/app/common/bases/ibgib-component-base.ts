@@ -1,5 +1,5 @@
 import { OnInit, OnDestroy, Input, ChangeDetectorRef } from '@angular/core';
-import { IbGib_V1, GIB, Factory_V1, Rel8n } from "ts-gib/dist/V1";
+import { IbGib_V1, GIB, Factory_V1, Rel8n, ROOT_ADDR } from "ts-gib/dist/V1";
 import { IbGibAddr, Ib, Gib, V1, TransformResult } from "ts-gib";
 import { Injectable } from "@angular/core";
 // import { FilesService } from 'src/app/services/files.service';
@@ -35,6 +35,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     public debugBorderStyle: string = "solid";
 
     private _updatingIbGib: boolean;
+
     // private _addr: IbGibAddr;
     get addr(): IbGibAddr { return this.item?.addr; }
     @Input()
@@ -127,7 +128,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     @Input()
     errored: boolean;
     @Input()
-    get refreshing(): boolean { return this._updatingIbGib || this.item?.refreshing; }
+    get refreshing(): boolean { return this._updatingIbGib || this.item?.refreshing || !this.item || this.addr === ROOT_ADDR; }
     @Input()
     get syncing(): boolean { return this._updatingIbGib || this.item?.syncing; }
 
