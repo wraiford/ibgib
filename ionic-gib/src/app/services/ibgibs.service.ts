@@ -290,7 +290,6 @@ export class IbgibsService {
 
       await this.initializeLocalSpaces();
 
-      debugger;
       await this.getSpecialIbgib({type: "latest", initialize: true});
 
       await this.getSpecialIbgib({type: "roots", initialize: true});
@@ -467,7 +466,6 @@ export class IbgibsService {
       }
 
       // update the bootstrap ibgib to point to the new local space
-      debugger;
       await updateBootstrapIbGib({space: newLocalSpace, zeroSpace: this._zeroSpace});
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -1013,14 +1011,8 @@ export class IbgibsService {
       space = space ?? await this.getLocalUserSpace({});
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: fd01bb85e91f4c54bfe8b35714d48a38)`); }
 
-      // debugger; // at this point the latest address is different in spaces
-      // among two tabs, but they should be equal. somewhere there is an
-      // effectively cached value of the space that isn't getting updated in the
-      // setCurrentAddr (or somewhere) when we download the tjp updated ibgibs.
-
       // latest addr is indexed by tjpAddr, so we need to get this first...
       if (tjpAddr) {
-        // debugger;
         defaultReturnAddrIfTjpNotFoundOrIfError = ibGib ? h.getIbGibAddr({ibGib}) : tjpAddr;
       } else {
         if (tjp) {
@@ -2171,7 +2163,6 @@ export class IbgibsService {
       // in our return, we can check for updates since our last communication.
       if (Object.keys(resStartSync.data.watchTjpUpdateMap ?? {}).length > 0) {
         if (logalot) { console.log(`${lc} resStartSync.data.watchTjpUpdateMap: ${h.pretty(resStartSync.data.watchTjpUpdateMap)}`); }
-        debugger;
         await this.handleWatchTjpUpdates({
           outerSpace: syncSpace,
           updates: resStartSync.data.watchTjpUpdateMap
@@ -2450,7 +2441,6 @@ export class IbgibsService {
       // So we need to call multiple times until we get the same number in as out.
       let latestIbGibsWithTjps_CHECK = await this._getLatestIbGibsWithTjps({ibGibs: latestIbGibsWithTjps});
       while (latestIbGibsWithTjps_CHECK.length > latestIbGibsWithTjps.length) {
-        debugger;
         console.warn(`${lc} another tjp found. calling getLatestIbGibsWithTjps again to check for more. (W: 9735c4194d1243269d4fe4a4ed93cf59)`);
         latestIbGibsWithTjps = latestIbGibsWithTjps_CHECK;
         latestIbGibsWithTjps_CHECK = await this._getLatestIbGibsWithTjps({ibGibs: latestIbGibsWithTjps});
@@ -2545,8 +2535,6 @@ export class IbgibsService {
     const lc = `${this.lc}[${this.handleWatchTjpUpdates.name}]`;
     if (logalot) { console.log(`${lc} starting...`); }
     try {
-      debugger;
-
       /**
        * compile list of addrs we have locally for all updates, so we don't try
        * to download them from outer space unnecessarily.

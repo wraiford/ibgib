@@ -23,8 +23,9 @@ import {
     getSpecialConfigKey, getSpecialIbgibIb, getTimestampInTicks, isExpired, tagTextToIb,
 } from '../helper';
 import { BootstrapData, BootstrapIbGib, BootstrapRel8ns, IbGibSpaceLockIbGib, IbGibSpaceLockOptions, LatestEventInfo, RootData, SpaceId, SpaceLockScope, SpecialIbGibType, TagData, } from '../types';
-import { validateBootstrapIbGib, validateIbGibAddr } from './validate';
+import { validateBootstrapIbGib, validateIbGibAddr, validateIbGibIntrinsically } from './validate';
 import { getTjpAddrs } from './ibgib';
+import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -1041,7 +1042,6 @@ export async function registerNewIbGib({
         // this is the latest index ibGib. It's just the mapping of tjp -> latestAddr.
         // Other refs to "latest" in this function
         // will refer to the actual/attempted latest of the ibGib arg.
-        debugger;
         let specialLatest = await getSpecialIbGib({type: "latest", space});
         if (!specialLatest.rel8ns) { specialLatest.rel8ns = {}; }
 
@@ -1217,15 +1217,19 @@ export async function rel8ToSpecialIbGib({
             nCounter: true,
         });
 
-        if (severPast) { resNewSpecial.newIbGib.rel8ns.past = []; }
+        const newSpecialIbGib = resNewSpecial.newIbGib;
 
-        if (resNewSpecial.intermediateIbGibs) { throw new Error('new special creates intermediate ibgibs. so severing past is harder.'); }
+        // sever
+        if (severPast) {
+            if (resNewSpecial.intermediateIbGibs) { throw new Error('new special creates intermediate ibgibs. so severing past is harder. (E: b580c0c56253494192e9c62212ee187d)'); }
+            newSpecialIbGib.rel8ns.past = [];
+            newSpecialIbGib.gib = await getGib({ibGib: newSpecialIbGib});
+        }
 
         // persist
         await persistTransformResult({resTransform: resNewSpecial, isMeta: true, space});
 
         // return the new special address (not the incoming new ibGib)
-        const { newIbGib: newSpecialIbGib } = resNewSpecial;
         const newSpecialAddr = h.getIbGibAddr({ibGib: newSpecialIbGib});
         const specialTjpAddrs = getTjpAddrs({ibGibs: [newSpecialIbGib]});
         const specialTjpAddr = specialTjpAddrs?.length > 0 ? specialTjpAddrs[0] : null;
