@@ -44,15 +44,16 @@ export abstract class SpaceBase_V1<
      */
     protected lc: string = `${super.lc}[${SpaceBase_V1.name}]`;
 
-    getSpaceIb(classname: string): string {
-        const lc = `${this.lc}[${this.getSpaceIb.name}]`;
-        if (!classname) {
-            classname = this.lc?.replace('[','').replace(']','') || SpaceBase_V1.name+'_descendant';
-            console.warn(`${lc} classname is falsy. Using ${classname}.`);
-        }
-        const name = this.data?.name || c.IBGIB_SPACE_NAME_DEFAULT;
-        return `witness space ${classname} ${name}`;
-    }
+    // getSpaceIb(classname: string): string {
+    //     const lc = `${this.lc}[${this.getSpaceIb.name}]`;
+    //     if (!classname) {
+    //         classname = this.lc?.replace('[','').replace(']','') || SpaceBase_V1.name+'_descendant';
+    //         console.warn(`${lc} classname is falsy. Using ${classname}.`);
+    //     }
+    //     const name = this.data?.name || c.IBGIB_SPACE_NAME_DEFAULT;
+    //     const id = this.data?.uuid || undefined;
+    //     return `witness space ${classname} ${name} ${id}`;
+    // }
 
     constructor(initialData?: TData, initialRel8ns?: TRel8ns) {
         super(initialData, initialRel8ns);

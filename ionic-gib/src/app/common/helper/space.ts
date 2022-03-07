@@ -1,5 +1,5 @@
 import {
-    IbGibAddr, TransformResult, V1,
+    Ib, IbGibAddr, TransformResult, V1,
 } from 'ts-gib';
 import {
     GIB, IbGib_V1, Rel8n,
@@ -1041,6 +1041,7 @@ export async function registerNewIbGib({
         // this is the latest index ibGib. It's just the mapping of tjp -> latestAddr.
         // Other refs to "latest" in this function
         // will refer to the actual/attempted latest of the ibGib arg.
+        debugger;
         let specialLatest = await getSpecialIbGib({type: "latest", space});
         if (!specialLatest.rel8ns) { specialLatest.rel8ns = {}; }
 
@@ -2622,4 +2623,26 @@ export function getSpaceArgMetadata({space}: {space: IbGibSpaceAny}): string {
 
 export function getSpaceResultMetadata({space}: {space: IbGibSpaceAny}): string {
     return `${space.ib} ${getTimestampInTicks()}`;
+}
+
+export function getSpaceIb({
+    space,
+    classname,
+}: {
+    space: IbGibSpaceAny,
+    classname: string,
+}): Ib {
+    const lc = `[${getSpaceIb.name}]`;
+    try {
+        if (!space) { throw new Error(`space required (E: 4dabec34ee77d67c9cc30ee3c3049622)`); }
+        if (!classname) { throw new Error(`classname required (E: fa3af4613ad56742dab51d1b0d839322)`); }
+        // classname = this.lc?.replace('[','').replace(']','') || SpaceBase_V1.name+'_descendant';
+        // console.warn(`${lc} classname is falsy. Using ${classname}. (W: a8cda20797ca4eadaabf9a50ef4a4ac8)`);
+        const name = space.data?.name || c.IBGIB_SPACE_NAME_DEFAULT;
+        const id = space.data?.uuid || undefined;
+        return `witness space ${classname} ${name} ${id}`;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
 }

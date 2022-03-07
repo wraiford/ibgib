@@ -235,7 +235,7 @@ export class IbgibsService {
     return this._zeroSpace;
   }
 
-  private _localUserSpaceCurrentRoot: IbGib_V1<RootData> | undefined;
+  // private _localUserSpaceCurrentRoot: IbGib_V1<RootData> | undefined;
 
   /**
    * Just to prevent plaintext passwords from just sitting in memory,
@@ -290,9 +290,10 @@ export class IbgibsService {
 
       await this.initializeLocalSpaces();
 
-      await this.getSpecialIbgib({type: "roots", initialize: true});
-
+      debugger;
       await this.getSpecialIbgib({type: "latest", initialize: true});
+
+      await this.getSpecialIbgib({type: "roots", initialize: true});
 
       await this.getSpecialIbgib({type: "tags", initialize: true});
 
@@ -396,7 +397,7 @@ export class IbgibsService {
       // create a new user space
       while (!spaceName) { await promptName(); }
 
-      let newLocalSpace = new IonicSpace_V1(/*initialData*/ <IonicSpaceData_V1>{
+      const newLocalSpace = new IonicSpace_V1(/*initialData*/ <IonicSpaceData_V1>{
         version: '1',
         uuid: await h.getUUID(),
         name: spaceName,
@@ -426,15 +427,21 @@ export class IbgibsService {
       if (logalot) { console.log(`${lc} localSpace.gib: ${newLocalSpace.gib} (after sha256v1)`); }
 
       // creates bootstrap
+      if (logalot) { console.log(`${lc} creating new bootstrap ibgib (I: ecc58dd4af21a0c69a16b3d71dad9c22)`); }
       await updateBootstrapIbGib({
-        space: newLocalSpace, zeroSpace,
+        space: newLocalSpace,
+        zeroSpace,
         setSpaceAsDefault: true,
         createIfNotFound: true,
       });
 
-      let argPutUserSpace = await zeroSpace.argy({
+      const argPutUserSpace = await zeroSpace.argy({
         ibMetadata: getSpaceArgMetadata({space: newLocalSpace}),
-        argData: { cmd: 'put', isMeta: true, ibGibAddrs: [h.getIbGibAddr({ibGib: newLocalSpace})]},
+        argData: {
+          cmd: 'put',
+          isMeta: true,
+          ibGibAddrs: [h.getIbGibAddr({ibGib: newLocalSpace})],
+        },
         ibGibs: [newLocalSpace],
       });
 
@@ -449,18 +456,18 @@ export class IbgibsService {
 
       // save the localSpace in its own space?
       if (logalot) { console.log(`${lc} save the localSpace in its own space`); }
-      const resUserSpace = await newLocalSpace.witness(argPutUserSpace);
-      if (resUserSpace?.data?.success) {
+      const resPutUserSpaceInUserSpace = await newLocalSpace.witness(argPutUserSpace);
+      if (resPutUserSpaceInUserSpace?.data?.success) {
         // we now have saved the localSpace ibgib "in" its own space.
         // but atow, this does NOT change the space's gib hash, so no
         // need to update the space
         if (logalot) { console.log(`${lc} user space witnessed itself`); }
       } else {
-        debugger;
-        throw new Error(`${resUserSpace?.data?.errors?.join('|') || "There was a problem with localSpace witnessing itself. (E: 33d4b1ffcca64160afe67046531958b5)"}`);
+        throw new Error(`${resPutUserSpaceInUserSpace?.data?.errors?.join('|') || "There was a problem with localSpace witnessing itself. (E: 33d4b1ffcca64160afe67046531958b5)"}`);
       }
 
       // update the bootstrap ibgib to point to the new local space
+      debugger;
       await updateBootstrapIbGib({space: newLocalSpace, zeroSpace: this._zeroSpace});
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -906,60 +913,6 @@ export class IbgibsService {
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
-
-  // private async promptReplaceLatest({
-  //   existingLatestAddr,
-  //   ibGibAddr,
-  // }: {
-  //   existingLatestAddr: IbGibAddr,
-  //   ibGibAddr: IbGibAddr,
-  // }): Promise<boolean> {
-  //   const lc = `${this.lc}[${this.promptReplaceLatest.name}]`;
-  //   try {
-  //     const fnConfirm = getFnConfirm();
-  //     let resReplace = await fnConfirm({
-  //       title: `Can't find ibGib data...`,
-  //       msg:
-  //         `
-  //           Can't find the ibGib locally for latest address: ${existingLatestAddr}.
-  //           Do you want to replace it and point to the new address?
-
-  //           Existing "latest" address for which we don't have the corresponding record (locally): ${existingLatestAddr}
-
-  //           "New" Address that we do have: ${ibGibAddr}
-
-  //           Yes, replace:
-  //             Will replace the local reference on this device to point to the "new" address.
-
-  //           No, keep old:
-  //             Will NOT replace but I don't know how it will work going forward.
-  //             The ibGib may be frozen in time until we load that record and things may get out of sync.
-  //         `,
-  //         okButtonTitle: 'Yes, replace',
-  //         cancelButtonTitle: 'No, keep old',
-  //     });
-  //     if (resReplace) {
-  //       //
-  //       let resAlwaysReplace = await fnConfirm({
-  //         title: `Always replace?`,
-  //         msg: `Do want to always replace address not found locally? This applies only to this session.`,
-  //         okButtonTitle: 'Yes, always replace',
-  //         cancelButtonTitle: 'No, ask me every time',
-  //       });
-  //       if (resAlwaysReplace) {
-  //         console.warn(`${lc} user chose YES, always replace latest not found for this session.`);
-  //         this.alwaysReplaceLatestNotFound = true;
-  //       }
-  //       return true;
-  //     } else {
-  //       // don't do nuffin'
-  //       return false;
-  //     }
-  //   } catch (error) {
-  //     console.error(`${lc} ${error.message}`);
-  //     return false;
-  //   }
-  // }
 
   /**
    * Will trigger a latest info event to be fired.

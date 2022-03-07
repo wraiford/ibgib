@@ -18,7 +18,7 @@ import {
     IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns,
 } from '../../types';
 import * as c from '../../constants';
-import { getBinHashAndExt, isBinary } from '../../helper';
+import { getBinHashAndExt, getSpaceIb, isBinary } from '../../helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -231,14 +231,15 @@ export class IonicSpace_V1<
         super(initialData ?? h.clone(DEFAULT_IONIC_SPACE_DATA_V1), initialRel8ns);
         const lc = `${this.lc}[ctor]`;
 
-        if (logalot) { console.log(`${lc} initializing...`); }
-        this.initialize().catch(e => {
-            console.error(`${lc} ${e.message}`);
-        }).finally(() => {
-            if (logalot) { console.log(`${lc} initializing complete.`); }
-        })
-
-        this.ib = this.getSpaceIb(IonicSpace_V1.name);
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            this.initialize();
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
     }
 
     /**
@@ -292,7 +293,7 @@ export class IonicSpace_V1<
     /**
      * Initializes to default space values.
      */
-    protected async initialize(): Promise<void> {
+    protected initialize(): void {
         const lc = `${this.lc}[${this.initialize.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
@@ -305,6 +306,8 @@ export class IonicSpace_V1<
             if (!this.data.metaSubPath) { this.data.metaSubPath = c.IBGIB_META_SUBPATH; }
             if (!this.data.binSubPath) { this.data.binSubPath = c.IBGIB_BIN_SUBPATH; }
             if (!this.data.dnaSubPath) { this.data.dnaSubPath = c.IBGIB_DNA_SUBPATH; }
+
+            this.ib = getSpaceIb({space: this, classname: IonicSpace_V1.name});
         } catch (error) {
             console.error(`${lc} ${error.message}`);
         } finally {
