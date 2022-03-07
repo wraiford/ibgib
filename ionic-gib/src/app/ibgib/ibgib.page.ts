@@ -22,7 +22,7 @@ import { getFnAlert, } from '../common/helper';
 import { concatMap } from 'rxjs/operators';
 import { ChooseIconModalComponent, IconItem } from '../common/choose-icon-modal/choose-icon-modal.component';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
@@ -66,7 +66,7 @@ export class IbGibPage extends IbgibComponentBase
    * Number of tjp timelines that have updates in outer space(s).
    */
   @Input()
-  tjpUpdatesAvailableCount: number = 0;
+  tjpUpdatesAvailableCount_Local: number = 0;
 
   @Input()
   tagging: boolean;
@@ -105,27 +105,35 @@ export class IbGibPage extends IbgibComponentBase
   startPollingLatest_Local(): void {
     const lc = `${this.lc}[${this.startPollingLatest_Local.name}]`;
     try {
+      if (logalot) { console.log(`${lc} starting... (I: 682afa3d6093319848ee801f9a14cc22)`); }
       if (this._subPollLatest_Local && !this._subPollLatest_Local.closed) {
         // should we unsubscribe and resubscribe or not continue?...hmm...
         // return;
         this.stopPollingLatest_Local();
       }
 
+      // this.tjpUpdatesAvailableCount_Local = 0;
+
       setTimeout(() => {
         // just a hack here for initial testing
+        if (logalot) { console.log(`${lc} subscribing to polling... (I: a81a3f43ace6500126d3d29f4bb1ec22)`); }
         this._subPollLatest_Local =
           interval(c.DEFAULT_SPACE_POLLING_INTERVAL_MS).pipe(
             concatMap(async (_) => { await this.pollLatest_Local(); })
           ).subscribe();
-      }, 1000*60*2);
+      }, 1000);
+      // }, 1000*60*2);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       // not critical
+    } finally {
+      if (logalot) { console.log(`${lc} complete. (I: 793116f74278cb3f4b181322ff639b22)`); }
     }
   }
 
   private async pollLatest_Local(): Promise<void> {
     const lc = `${this.lc}[${this.pollLatest_Local.name}]`;
+    // return early if busy with some other job...
     if (this.syncing) {
       if (logalot) { console.log(`${lc} currently syncing, so skipping poll call.`); }
       return; // <<<< returns
@@ -135,9 +143,10 @@ export class IbGibPage extends IbgibComponentBase
     } else if (this._pollingLatest_Local) {
       if (logalot) { console.log(`${lc} currently already polling, so skipping new poll call.`); }
       return; // <<<< returns
-    } else {
-      this._pollingLatest_Local = true;
     }
+
+    if (logalot) { console.log(`${lc} poll call starting... (I: 3b58bc80651d831e3d421e5647cbcd22)`); }
+    this._pollingLatest_Local = true;
     try {
       if (!this.tjpAddr) { await this.loadTjp(); }
       if (this.tjpAddr) {
@@ -153,7 +162,9 @@ export class IbGibPage extends IbgibComponentBase
             const latestPastLength = latestIbGib.rel8ns?.past?.length ?? 0;
             const diff = latestPastLength - currentPastLength;
             if (diff > 0) {
-              this.tjpUpdatesAvailableCount = diff;
+              if (logalot) { console.log(`${lc} diff === ${diff} (I: 8ed2a7eea4c95933acb0d337f7b23722)`); }
+              this.tjpUpdatesAvailableCount_Local = diff;
+              setTimeout(() => this.ref.detectChanges(), 100);
             } else {
               console.warn(`${lc} latestIbGib registered is newer than current ibGib`);
             }
@@ -167,6 +178,7 @@ export class IbGibPage extends IbgibComponentBase
       console.error(`${lc} ${error.message}`);
       this.stopPollingLatest_Local();
     } finally {
+      if (logalot) { console.log(`${lc} poll call complete. (I: cc0d9a254cc83350e151de2e9df3cd22)`); }
       this._pollingLatest_Local = false;
     }
   }
@@ -179,6 +191,7 @@ export class IbGibPage extends IbgibComponentBase
       }
       delete this._subPollLatest_Local;
       this._pollingLatest_Local = false;
+      this.tjpUpdatesAvailableCount_Local = 0;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       // not critical

@@ -34,9 +34,6 @@
       </ion-button>
       <ion-button [disabled]="syncing"
         slot="end" (click)="handleSyncClick()" class="toolbar-sync">
-        <ion-badge *ngIf="tjpUpdatesAvailableCount" color="primary" slot="end">
-          {{ tjpUpdatesAvailableCount }}
-        </ion-badge>
         <ion-icon name="sparkles-outline"></ion-icon>
         <ion-spinner *ngIf="syncing" name="circles" color="tertiary"></ion-spinner>
       </ion-button>
@@ -44,6 +41,9 @@
         slot="end" (click)="handleRefreshClick()" class="toolbar-refresh">
         <ion-icon *ngIf="!refreshing" name="refresh"></ion-icon>
         <ion-spinner *ngIf="refreshing" name="bubbles" color="tertiary"></ion-spinner>
+        <ion-badge *ngIf="tjpUpdatesAvailableCount_Local" color="primary" slot="end">
+          {{ tjpUpdatesAvailableCount_Local }}
+        </ion-badge>
       </ion-button>
       <!-- <ion-button [disabled]="refreshing || paused"
         slot="end" (click)="handlePauseClick()" class="toolbar-pause">

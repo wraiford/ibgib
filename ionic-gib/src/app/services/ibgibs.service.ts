@@ -232,10 +232,6 @@ export class IbgibsService {
     const zeroSpace = new IonicSpace_V1(/*initialData*/ null, /*initialRel8ns*/ null);
     zeroSpace.gib = 'gib';
     return zeroSpace;
-    // if (!this._zeroSpace) {
-    //   this._zeroSpace = new IonicSpace_V1(/*initialData*/ null, /*initialRel8ns*/ null);
-    // }
-    // return this._zeroSpace;
   }
 
   // private _localUserSpaceCurrentRoot: IbGib_V1<RootData> | undefined;
