@@ -422,9 +422,6 @@ export function getTjpAddrs({
  * 2. If a key exists in both maps and the type is array or map, then these will be recursively merged.
  * 3. If a key exists in both maps but is not an array or map, the dominant map's value wins.
  *
- * @param dominant map, when two keys are not arrays or maps themselves, this one's value is chosen for output.
- * @param recessive map, when two keys are not arrays or maps themselves, this one's value is NOT chosen for output.
- *
  * ## future
  *
  * In the future, if we want to keep these kinds of things around and be more
@@ -435,7 +432,15 @@ export function mergeMapsOrArrays_Naive<T extends {}|any[]>({
     dominant,
     recessive,
 }: {
+    /**
+     * when two keys are not arrays or maps themselves, this one's value is
+     * chosen for output.
+     */
     dominant: T,
+    /**
+     * when two keys are not arrays or maps themselves, this one's value is NOT
+     * chosen for output.
+     */
     recessive: T,
 }): T {
     const lc = `[${mergeMapsOrArrays_Naive.name}]`;

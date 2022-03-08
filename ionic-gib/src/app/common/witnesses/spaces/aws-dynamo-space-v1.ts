@@ -47,14 +47,11 @@ import { SpaceBase_V1 } from './space-base-v1';
 import {
     SyncSpaceData, SyncSpaceRel8ns,
     SyncSpaceOptionsData, SyncSpaceOptionsRel8ns, SyncSpaceOptionsIbGib,
-    IbGibSpaceOptionsCmd, SyncSpaceOptionsCmdModifier,
     SyncSpaceResultData, SyncSpaceResultRel8ns, SyncSpaceResultIbGib,
+    IbGibSpaceOptionsCmd, SyncSpaceOptionsCmdModifier,
     AWSRegion,
-    SyncStatusData,
-    getStatusIb,
-    getNewTxId,
-    SyncStatusIbGib,
-    StatusCode,
+    getStatusIb, StatusCode,
+    SyncStatusData, SyncStatusIbGib,
     ParticipantInfo,
     SyncSagaInfo,
 } from '../../types';
@@ -655,7 +652,7 @@ const DEFAULT_AWS_DYNAMO_SPACE_DATA_V1: SyncSpaceData_AWSDynamoDB = {
     throttleMsBetweenGets: c.DEFAULT_AWS_GET_THROTTLE_MS,
     throttleMsDueToThroughputError: c.DEFAULT_AWS_RETRY_THROUGHPUT_THROTTLE_MS,
     validateIbGibAddrsMatchIbGibs: true,
-    longPollingIntervalMs: c.DEFAULT_SPACE_POLLING_INTERVAL_MS,
+    longPollingIntervalMs: c.DEFAULT_LOCAL_SPACE_POLLING_INTERVAL_MS,
 }
 
 /**
@@ -948,7 +945,7 @@ export class AWSDynamoSpace_V1<
             }
 
             if (!this.data.longPollingIntervalMs && this.data.longPollingIntervalMs !== 0) {
-                this.data.longPollingIntervalMs = c.DEFAULT_SPACE_POLLING_INTERVAL_MS;
+                this.data.longPollingIntervalMs = c.DEFAULT_LOCAL_SPACE_POLLING_INTERVAL_MS;
             }
 
             // let resPrompt = await Plugins.Modals.prompt({title: 'hi', message: 'yo enter the thing'});

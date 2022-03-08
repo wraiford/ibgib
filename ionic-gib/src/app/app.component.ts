@@ -6,22 +6,27 @@ import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { Subscription } from 'rxjs';
 import { concatMap, filter } from 'rxjs/operators';
 
-import { IbGibAddr, TransformResult, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
+import { IbGibAddr, } from 'ts-gib';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
-import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
+import * as c from './common/constants';
 import { IbgibComponentBase } from './common/bases/ibgib-component-base';
 import { CommonService } from './services/common.service';
-import * as c from './common/constants';
-import { EncryptionData_V1, OuterSpaceIbGib, RootData, SecretIbGib_V1, TagData, } from './common/types';
-import { CreateSecretModalComponent } from './common/create-secret-modal/create-secret-modal.component';
-import { CreateOuterspaceModalComponent } from './common/create-outerspace-modal/create-outerspace-modal.component';
-import { CreateEncryptionModalComponent } from './common/create-encryption-modal/create-encryption-modal.component';
-import { getFn_promptCreateEncryptionIbGib, getFn_promptCreateOuterSpaceIbGib, getFn_promptCreateSecretIbGib } from './common/helper';
+import { RootData, TagData, } from './common/types';
+import {
+  getFn_promptCreateEncryptionIbGib,
+  getFn_promptCreateOuterSpaceIbGib,
+  getFn_promptCreateSecretIbGib
+} from './common/helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
+/**
+ * Hamburger menu in top left.
+ *
+ * This includes both header items and child items.
+ */
 interface MenuItem {
   title: string;
   url: string;

@@ -8,7 +8,7 @@ import { AlertController, ModalController } from '@ionic/angular';
 import { ReplaySubject, } from 'rxjs';
 
 import { IbGib_V1, GIB, GIB_DELIMITER, } from 'ts-gib/dist/V1';
-import { IbGibAddr, TransformResult, } from 'ts-gib';
+import { Gib, IbGibAddr, TransformResult, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { Factory_V1 as factory } from 'ts-gib/dist/V1';
 import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
@@ -246,7 +246,10 @@ export class IbgibsService {
   private fnPromptEncryption: () => Promise<IbGib_V1 | undefined>;
   private fnPromptOuterSpace: () => Promise<IbGib_V1 | undefined>;
 
-  syncConfirmed: IbGibAddr[] = [];
+  /**
+   * non-encapsulated hack...
+   */
+  tjpGibsWithAutosyncTurnedOn: Set<IbGibAddr>= new Set<Gib>([]);
 
   private _syncing: boolean;
   /**
@@ -298,6 +301,8 @@ export class IbgibsService {
       await this.getSpecialIbgib({type: "secrets", initialize: true});
 
       await this.getSpecialIbgib({type: "encryptions", initialize: true});
+
+      await this.getSpecialIbgib({type: "outerspaces", initialize: true});
 
       await this.getSpecialIbgib({type: "outerspaces", initialize: true});
 
@@ -413,7 +418,7 @@ export class IbgibsService {
         description: c.DEFAULT_LOCAL_SPACE_DESCRIPTION,
         allowPrimitiveArgs: false,
         catchAllErrors: true,
-        longPollingIntervalMs: c.DEFAULT_SPACE_POLLING_INTERVAL_MS,
+        longPollingIntervalMs: c.DEFAULT_LOCAL_SPACE_POLLING_INTERVAL_MS,
       }, /*initialRel8ns*/ null);
       if (logalot) { console.log(`${lc} localSpace.ib: ${newLocalSpace.ib}`); }
       if (logalot) { console.log(`${lc} localSpace.gib: ${newLocalSpace.gib} (before sha256v1)`); }

@@ -12,6 +12,9 @@ import { TjpIbGibAddr } from './ibgib';
  */
 export type SpaceId = string;
 
+/**
+ * Common data among all ibgib spaces.
+ */
 export interface IbGibSpaceData extends WitnessData_V1 {
     version?: string;
     /**
@@ -515,3 +518,8 @@ export interface BootstrapIbGib
     extends IbGib_V1<BootstrapData, BootstrapRel8ns> {
 
 }
+
+/**
+ * Marker type to indicate that a string is meant to be a transmission id.
+ */
+export type TxId = 'string';

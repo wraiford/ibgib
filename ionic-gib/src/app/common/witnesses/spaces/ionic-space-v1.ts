@@ -63,7 +63,7 @@ const DEFAULT_IONIC_SPACE_DATA_V1: IonicSpaceData_V1 = {
     dnaSubPath: c.IBGIB_DNA_SUBPATH,
     persistOptsAndResultIbGibs: false,
     validateIbGibAddrsMatchIbGibs: false,
-    longPollingIntervalMs: c.DEFAULT_SPACE_POLLING_INTERVAL_MS,
+    longPollingIntervalMs: c.DEFAULT_LOCAL_SPACE_POLLING_INTERVAL_MS,
     allowPrimitiveArgs: false,
     catchAllErrors: true,
     description: c.DEFAULT_LOCAL_SPACE_DESCRIPTION,

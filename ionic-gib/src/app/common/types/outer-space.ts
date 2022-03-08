@@ -680,37 +680,3 @@ export function getStatusIbInfo({
         throw error;
     }
 }
-
-/**
- * Helper function that generates a unique-ish id.
- *
- * atow this is just `return (await h.getUUID()).slice(0, c.DEFAULT_TX_ID_LENGTH);`
- *
- * ## notes
- *
- * The thinking is that it only has to be a couple characters in length
- * because this is supposed to only be a unique id within the scope of
- * a tx which has its own tjp (gib) used as the id for the entire communication
- * saga.
- *
- * @returns txId
- */
-export async function getNewTxId({
-    length,
-}: {
-    /**
-     * length of txId
-     *
-     * @default c.DEFAULT_TX_ID_LENGTH
-     */
-    length?: number,
-} = { length: c.DEFAULT_TX_ID_LENGTH }): Promise<string> {
-    const lc = `[${getNewTxId.name}]`;
-    try {
-        length = length || c.DEFAULT_TX_ID_LENGTH;
-        return (await h.getUUID()).slice(0, length);
-    } catch (error) {
-        console.error(`${lc} ${error.message}`);
-        throw error;
-    }
-}

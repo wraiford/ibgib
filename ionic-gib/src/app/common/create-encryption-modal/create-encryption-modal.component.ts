@@ -1,8 +1,7 @@
-import { ChangeDetectorRef, Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { ModalController } from '@ionic/angular';
 
 import { IbGib_V1, Factory_V1 as factory } from 'ts-gib/dist/V1';
-import * as h from 'ts-gib/dist/helper';
 
 import * as c from '../constants';
 import {
@@ -30,32 +29,6 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
 export class CreateEncryptionModalComponent implements OnInit, OnDestroy {
 
   protected lc: string = `[${CreateEncryptionModalComponent.name}]`;
-
-  @Input()
-  name: string;
-  @Input()
-  description: string;
-
-  @Input()
-  method: EncryptionMethod = EncryptionMethod.encrypt_gib_weak;
-
-  @Input()
-  userSalt: string;
-  @Input()
-  initialRecursions: number = c.DEFAULT_ENCRYPTION_INITIAL_RECURSIONS;
-  @Input()
-  recursionsPerHash: number = c.DEFAULT_ENCRYPTION_RECURSIONS_PER_HASH;
-  @Input()
-  hashAlgorithm: HashAlgorithm = 'SHA-256';
-  @Input()
-  expirationUTC: string = getExpirationUTCString({years: 1});
-
-  @Input()
-  validationErrors: string[] = [];
-  @Input()
-  validationErrorString: string;
-  @Input()
-  erroredFields: string[] = [];
 
   public fields: { [name: string]: FieldInfo } = {
     name: {
@@ -130,6 +103,32 @@ export class CreateEncryptionModalComponent implements OnInit, OnDestroy {
     },
 
   }
+
+  @Input()
+  name: string;
+  @Input()
+  description: string;
+
+  @Input()
+  method: EncryptionMethod = EncryptionMethod.encrypt_gib_weak;
+
+  @Input()
+  userSalt: string;
+  @Input()
+  initialRecursions: number = c.DEFAULT_ENCRYPTION_INITIAL_RECURSIONS;
+  @Input()
+  recursionsPerHash: number = c.DEFAULT_ENCRYPTION_RECURSIONS_PER_HASH;
+  @Input()
+  hashAlgorithm: HashAlgorithm = 'SHA-256';
+  @Input()
+  expirationUTC: string = getExpirationUTCString({years: 1});
+
+  @Input()
+  validationErrors: string[] = [];
+  @Input()
+  validationErrorString: string;
+  @Input()
+  erroredFields: string[] = [];
 
   @Input()
   showHelp: boolean;

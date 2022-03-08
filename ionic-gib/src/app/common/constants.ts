@@ -383,7 +383,17 @@ export const AWS_ERROR_MSG_ITEM_SIZE_EXCEEDED = "Item size has exceeded the maxi
  * for a sync space. Obviously need to progress to a more mature and robust
  * sync space/outer space architecture.
  */
-export const DEFAULT_SPACE_POLLING_INTERVAL_MS = 30_000;
+export const DEFAULT_LOCAL_SPACE_POLLING_INTERVAL_MS = 30_000;
+export const DEFAULT_LOCAL_SPACE_POLLING_DELAY_FIRST_RUN_MS = 10_000;
+/**
+ * {@link DEFAULT_LOCAL_SPACE_POLLING_INTERVAL_MS} but for outer spaces, so
+ * longer interval atow.
+ */
+export const DEFAULT_OUTER_SPACE_POLLING_INTERVAL_MS = 60_000;
+/**
+ * Amount of time to delay for FIRST poll execution.
+ */
+export const DEFAULT_OUTER_SPACE_POLLING_DELAY_FIRST_RUN_MS = 60_000;
 
 /**
  * AWS DynamoDB only allows 400K per item-ish.

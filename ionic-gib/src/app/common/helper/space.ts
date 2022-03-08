@@ -22,7 +22,7 @@ import {
     getRootIb,
     getSpecialConfigKey, getSpecialIbgibIb, getTimestampInTicks, isExpired, tagTextToIb,
 } from '../helper';
-import { BootstrapData, BootstrapIbGib, BootstrapRel8ns, IbGibSpaceLockIbGib, IbGibSpaceLockOptions, LatestEventInfo, RootData, SpaceId, SpaceLockScope, SpecialIbGibType, TagData, } from '../types';
+import { BootstrapData, BootstrapIbGib, BootstrapRel8ns, IbGibSpaceLockIbGib, IbGibSpaceLockOptions, LatestEventInfo, RootData, SpaceId, SpaceLockScope, SpecialIbGibType, TagData, TxId, } from '../types';
 import { validateBootstrapIbGib, validateIbGibAddr, validateIbGibIntrinsically } from './validate';
 import { getTjpAddrs } from './ibgib';
 import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
@@ -2644,6 +2644,40 @@ export function getSpaceIb({
         const name = space.data?.name || c.IBGIB_SPACE_NAME_DEFAULT;
         const id = space.data?.uuid || undefined;
         return `witness space ${classname} ${name} ${id}`;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
+
+/**
+ * Helper function that generates a unique-ish id.
+ *
+ * atow this is just `return (await h.getUUID()).slice(0, c.DEFAULT_TX_ID_LENGTH);`
+ *
+ * ## notes
+ *
+ * The thinking is that it only has to be a couple characters in length
+ * because this is supposed to only be a unique id within the scope of
+ * a tx which has its own tjp (gib) used as the id for the entire communication
+ * saga.
+ *
+ * @returns txId
+ */
+export async function getNewTxId({
+    length,
+}: {
+    /**
+     * length of txId
+     *
+     * @default c.DEFAULT_TX_ID_LENGTH
+     */
+    length?: number,
+} = { length: c.DEFAULT_TX_ID_LENGTH }): Promise<TxId> {
+    const lc = `[${getNewTxId.name}]`;
+    try {
+        length = length || c.DEFAULT_TX_ID_LENGTH;
+        return <TxId>(await h.getUUID()).slice(0, length);
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

@@ -87,9 +87,34 @@ export interface IbgibItem {
     syncing?: boolean;
 }
 
+/**
+ * Special ibgib types, used for metadata within a space.
+ */
 export type SpecialIbGibType =
     "tags" | "roots" | "latest" | "outerspaces" | "secrets" |
-    "encryptions";
+    "encryptions" | "autosyncs";
+/**
+ * Special ibgib types, used for metadata within a space.
+ */
+export const SpecialIbGibType = {
+    /** indexes all tag ibgibs within a space */
+    tags: "tags" as SpecialIbGibType,
+    /** indexes all root ibgibs within a space */
+    roots: "roots" as SpecialIbGibType,
+    /**
+     * Ephemeral index ibgib that maps a tjp address -> latest local address in
+     * a space.
+     */
+    latest: "latest" as SpecialIbGibType,
+    /** indexes all outerspace ibgibs, including sync spaces, within a space */
+    outerspaces: "outerspaces" as SpecialIbGibType,
+    /** indexes all secret ibgibs within a space */
+    secrets: "secrets" as SpecialIbGibType,
+    /** indexes all encryption setting ibgibs within a space */
+    encryptions: "encryptions" as SpecialIbGibType,
+    /** indexes all tjp addresses that automatically sync. */
+    autosyncs: "autosyncs" as SpecialIbGibType,
+}
 
 /**
  * There has been a new ibGib that is the latest for a given tjp timeline.

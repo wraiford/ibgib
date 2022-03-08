@@ -16,11 +16,13 @@ import * as c from '../common/constants';
 import { IbgibComponentBase } from '../common/bases/ibgib-component-base';
 import { CommonService } from '../services/common.service';
 import { SPECIAL_URLS } from '../common/constants';
-import { LatestEventInfo, } from '../common/types';
+import { LatestEventInfo, TjpIbGibAddr, } from '../common/types';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
 import { getFnAlert, } from '../common/helper';
 import { concatMap } from 'rxjs/operators';
 import { ChooseIconModalComponent, IconItem } from '../common/choose-icon-modal/choose-icon-modal.component';
+import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { IbGibSpaceAny } from '../common/witnesses/spaces/space-base-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -40,15 +42,24 @@ export class IbGibPage extends IbgibComponentBase
   public debugBorderColor: string = "#abc123";
   public debugBorderStyle: string = "solid";
 
+  private paramMapSub: Subscription;
+
+  private _subPollLatest_Local: Subscription;
+  private _pollingLatest_Local: boolean;
+
+  private _subPollLatest_Store: Subscription;
+  private _pollingLatest_Store: boolean;
+
   @Input()
   get addr(): IbGibAddr { return super.addr; }
   set addr(value: IbGibAddr) { super.addr = value; }
 
+  /**
+   * For the ibgib page, our context is just our ibgib itself.
+   */
   @Input()
-  get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
-  set ibGib_Context(value: IbGib_V1 ) { super.ibGib_Context = value; }
-
-  private paramMapSub: Subscription;
+  get ibGib_Context(): IbGib_V1 { return this.ibGib; }
+  set ibGib_Context(value: IbGib_V1 ) { console.warn(`${this.lc}[set ibGib_Context] not implemented for IbGibPage, as its ibGib is the context for other views/components.`); }
 
   /**
    * I do my own stack navigation, so have to show iOS back chevron
@@ -68,8 +79,27 @@ export class IbGibPage extends IbgibComponentBase
   @Input()
   tjpUpdatesAvailableCount_Local: number = 0;
 
+  /**
+   * Number of tjp timelines that have updates in outer space(s).
+   */
+  @Input()
+  tjpUpdatesAvailableCount_Store: number = 0;
+
   @Input()
   tagging: boolean;
+
+  /**
+   * If true, the current ibgib will automatically sync with user-selected sync
+   * spaces.
+   *
+   * This is tracked by the special ibgib 'autosyncs' `SpecialIbGibType`.
+   */
+  @Input()
+  autosync: boolean = false;
+
+  @Input()
+  get autoRefresh(): boolean { return !this.paused; }
+  set autoRefresh(value: boolean) { this.paused = value; }
 
   constructor(
     protected common: CommonService,
@@ -94,107 +124,51 @@ export class IbGibPage extends IbgibComponentBase
   ngOnDestroy() {
     const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
     if (logalot) { console.log(`${lc} called.`) }
-    this.stopPollingLatest_Local();
+    this.stopPollLatest_Local();
+    this.stopPollLatest_Store();
     this.unsubscribeParamMap();
     super.ngOnDestroy();
   }
 
-  private _subPollLatest_Local: Subscription;
-  private _pollingLatest_Local: boolean;
-
-  startPollingLatest_Local(): void {
-    const lc = `${this.lc}[${this.startPollingLatest_Local.name}]`;
+  /**
+   * If we have a new address that we're loading, then it may be an update to
+   * the existing tjp timeline. If so, then we want to keep the same autosync
+   * setting.
+   *
+   * If it's a different timeline, or doesn't have timeline at all, then we want
+   * to disable autosync.
+   *
+   * The sync polling loop checks for this value before starting each loop,
+   * so setting it to false will prevent any more loops from executing.
+   */
+  updateIbGib_Autosync({
+    oldTjpAddr: currTjpAddr,
+    oldAddr: currAddr,
+    newAddr,
+  }: {
+    oldTjpAddr: TjpIbGibAddr,
+    oldAddr: IbGibAddr,
+    newAddr: IbGibAddr,
+  }): void {
+    const lc = `${this.lc}[${this.updateIbGib_Autosync.name}]`;
     try {
-      if (logalot) { console.log(`${lc} starting... (I: 682afa3d6093319848ee801f9a14cc22)`); }
-      if (this._subPollLatest_Local && !this._subPollLatest_Local.closed) {
-        // should we unsubscribe and resubscribe or not continue?...hmm...
-        // return;
-        this.stopPollingLatest_Local();
-      }
-
-      // this.tjpUpdatesAvailableCount_Local = 0;
-
-      setTimeout(() => {
-        // just a hack here for initial testing
-        if (logalot) { console.log(`${lc} subscribing to polling... (I: a81a3f43ace6500126d3d29f4bb1ec22)`); }
-        this._subPollLatest_Local =
-          interval(c.DEFAULT_SPACE_POLLING_INTERVAL_MS).pipe(
-            concatMap(async (_) => { await this.pollLatest_Local(); })
-          ).subscribe();
-      }, 1000);
-      // }, 1000*60*2);
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      // not critical
-    } finally {
-      if (logalot) { console.log(`${lc} complete. (I: 793116f74278cb3f4b181322ff639b22)`); }
-    }
-  }
-
-  private async pollLatest_Local(): Promise<void> {
-    const lc = `${this.lc}[${this.pollLatest_Local.name}]`;
-    // return early if busy with some other job...
-    if (this.syncing) {
-      if (logalot) { console.log(`${lc} currently syncing, so skipping poll call.`); }
-      return; // <<<< returns
-    } else if (this.refreshing) {
-      if (logalot) { console.log(`${lc} currently refreshing, so skipping poll call.`); }
-      return; // <<<< returns
-    } else if (this._pollingLatest_Local) {
-      if (logalot) { console.log(`${lc} currently already polling, so skipping new poll call.`); }
-      return; // <<<< returns
-    }
-
-    if (logalot) { console.log(`${lc} poll call starting... (I: 3b58bc80651d831e3d421e5647cbcd22)`); }
-    this._pollingLatest_Local = true;
-    try {
-      if (!this.tjpAddr) { await this.loadTjp(); }
-      if (this.tjpAddr) {
-        if (logalot) { console.log(`${lc} this.tjpAddr: ${this.tjpAddr}`); }
-        const latestAddr =
-          await this.common.ibgibs.getLatestAddr({tjpAddr: this.tjpAddr});
-        if (latestAddr !== this.addr) {
-          if (logalot) { console.log(`${lc} there is a new latest addr: ${latestAddr}`); }
-          const resLatestIbGib = await this.common.ibgibs.get({addr: latestAddr});
-          if (resLatestIbGib.success && resLatestIbGib.ibGibs?.length > 0) {
-            const latestIbGib = resLatestIbGib.ibGibs[0];
-            const currentPastLength = this.ibGib.rel8ns?.past?.length ?? 0;
-            const latestPastLength = latestIbGib.rel8ns?.past?.length ?? 0;
-            const diff = latestPastLength - currentPastLength;
-            if (diff > 0) {
-              if (logalot) { console.log(`${lc} diff === ${diff} (I: 8ed2a7eea4c95933acb0d337f7b23722)`); }
-              this.tjpUpdatesAvailableCount_Local = diff;
-              setTimeout(() => this.ref.detectChanges(), 100);
-            } else {
-              console.warn(`${lc} latestIbGib registered is newer than current ibGib`);
-            }
-          }
+      // we want to do things if we are updating the ibgib with the same tjpAddr
+      if (newAddr && currAddr && newAddr !== currAddr && currTjpAddr) {
+        const currAddrTjpGib = h.getIbAndGib({ibGibAddr: this.tjpAddr}).gib;
+        const newAddrTjpGib = getGibInfo({ibGibAddr: newAddr}).tjpGib;
+        if (!newAddrTjpGib) {
+          this.autosync = false;
+        } else if (newAddrTjpGib && newAddrTjpGib !== currAddrTjpGib) {
+          // we have a new tjp, see if it's turned on in ibgibs service.
+          this.autosync =
+            this.common.ibgibs.tjpGibsWithAutosyncTurnedOn.has(newAddrTjpGib);
+        } else if (newAddrTjpGib === currAddrTjpGib) {
+          if (logalot) { console.log(`${lc} newAddrTjpGib === currAddrTjpGib (${newAddrTjpGib}), so no change to autosync (I: 3b8a1774ec563c882a54efe41fdcc922)`); }
         }
-      } else {
-        if (logalot) { console.log(`${lc} this ibgib has no tjp. stopping further polling.`); }
-        this.stopPollingLatest_Local();
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-      this.stopPollingLatest_Local();
-    } finally {
-      if (logalot) { console.log(`${lc} poll call complete. (I: cc0d9a254cc83350e151de2e9df3cd22)`); }
-      this._pollingLatest_Local = false;
-    }
-  }
-
-  stopPollingLatest_Local(): void {
-    const lc = `${this.lc}[${this.stopPollingLatest_Local.name}]`;
-    try {
-      if (this._subPollLatest_Local && !this._subPollLatest_Local.closed) {
-        this._subPollLatest_Local.unsubscribe();
-      }
-      delete this._subPollLatest_Local;
-      this._pollingLatest_Local = false;
-      this.tjpUpdatesAvailableCount_Local = 0;
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      // not critical
+      throw error;
     }
   }
 
@@ -202,14 +176,19 @@ export class IbGibPage extends IbgibComponentBase
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
     if (logalot) { console.log(`${lc} updating...`); }
     try {
-      this.stopPollingLatest_Local();
+      const oldAddr = this.addr;
+      const oldTjpAddr = this.tjpAddr;
+      this.stopPollLatest_Local();
+      this.stopPollLatest_Store();
       await super.updateIbGib(addr);
       await this.loadIbGib();
       await this.loadTjp();
       if (logalot) { console.log(`${lc} ibGib: ${pretty(this.ibGib)}`); }
       await this.loadItem();
-      if (this.tjp) { this.startPollingLatest_Local(); }
-      this.updatePaused();
+      if (this.tjp) { this.startPollLatest_Local(); }
+      this.updateIbGib_Autosync({oldTjpAddr, oldAddr, newAddr: addr});
+      if (this.autosync) { this.startPollLatest_Store(); }
+      this.updateIbGib_Paused();
       if (!this.paused && !this.ib.startsWith('bin.')) {
         this.item.refreshing = true;
         setTimeout(async () => {
@@ -226,9 +205,12 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
-  updatePaused(): void {
+  /**
+   * Updates this.paused per current query params 'paused' value, if exists.
+   */
+  updateIbGib_Paused(): void {
     this.paused = (this.activatedRoute.snapshot.queryParams[c.QUERY_PARAM_PAUSED] || 'false') === 'true';
-   }
+  }
 
   subscribeParamMap() {
     let lc = `${this.lc}[${this.subscribeParamMap.name}]`;
@@ -293,73 +275,133 @@ export class IbGibPage extends IbgibComponentBase
   }
 
   async handleSyncClick(): Promise<void> {
-    const lc = `${this.lc}[${this.handleSyncClick.name}]`;
-    this.item.syncing = true;
+    if (this.autosync) {
+      await this.handleSyncClick_TurnOffSyncing();
+    } else {
+      await this.handleSyncClick_TurnOnSyncing();
+    }
+  }
+
+  async handleSyncClick_TurnOffSyncing(): Promise<void> {
+    const lc = `${this.lc}[${this.handleSyncClick_TurnOffSyncing.name}]`;
     try {
-      if (logalot) { console.log(`${lc}`); }
-      if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
-
-      if (!this.tjpAddr) { console.warn(`${lc} tjpAddr is falsy. (W: 9336c52b8a8745f1b969cac6b4cdf4ca)`); }
-
-      let syncConfirmed = false;
-      if (this.tjpAddr && this.common.ibgibs.syncConfirmed.includes(this.tjpAddr)) {
-        syncConfirmed = true;
-      } else {
-        const resConfirmSync = await Modals.confirm({
-          title: 'Sync with outerspace?',
-          message: `This will sync your current ibGib (${this.ib}) and ALL its rel8ns to your outerspace(s)? Proceed?`,
-        });
-        syncConfirmed = resConfirmSync.value;
+      if (logalot) { console.log(`${lc} starting...`); }
+      this.autosync = false;
+      if (this.tjpAddr && this.common.ibgibs.tjpGibsWithAutosyncTurnedOn.has(this.tjpAddr)) {
+        this.common.ibgibs.tjpGibsWithAutosyncTurnedOn.delete(this.tjpAddr);
       }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 
-      if (syncConfirmed) {
-        // get newer ones
-
-        if (this.tjpAddr && !this.common.ibgibs.syncConfirmed.includes(this.tjpAddr)) {
-          this.common.ibgibs.syncConfirmed.push(this.tjpAddr);
-        }
-
-        // publish this one
-        const dependencyGraph =
-          await this.common.ibgibs.getDependencyGraph({ibGib: this.ibGib});
-        const sagaInfos = await this.common.ibgibs.syncIbGibs({
-          dependencyGraphIbGibs: Object.values(dependencyGraph),
-          watch: true,
-        });
-        if (sagaInfos) {
-          await new Promise<void>((resolve, reject) => {
-            let sagaCompleteOrErroredCount = 0;
-            for (let i = 0; i < sagaInfos.length; i++) {
-              const info = sagaInfos[i];
-              info.syncStatus$.subscribe(status => {
-                // do nothing atm
-              },
-              error => {
-                const emsg = typeof error === 'string' ?
-                  `${lc} Sync failed: ${error}` :
-                  `${lc} Sync failed: ${error?.message ?? 'some error(?) (UNEXPECTED)'}`;
-                console.error(emsg);
-                reject(new Error(emsg));
-              },
-              () => {
-                sagaCompleteOrErroredCount++;
-                if (sagaCompleteOrErroredCount === sagaInfos.length) {
-                  this.item.syncing = false;
-                  setTimeout(() => { this.ref.detectChanges(); })
-                  resolve();
-                }
-              });
-            }
-          });
-        }
-      } else {
-        await Modals.alert({title: 'Sync cancelled.', message: 'Sync has been cancelled.'});
-        this.item.syncing = false;
-      }
+  async foo(): Promise<void> {
+    const lc = `${this.lc}[${this.foo.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleSyncClick_TurnOnSyncing(): Promise<void> {
+    const lc = `${this.lc}[${this.handleSyncClick_TurnOnSyncing.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      this.item.syncing = true;
+
+      if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
+      if (!this.tjpAddr) { console.warn(`${lc} tjpAddr is falsy. (W: 9336c52b8a8745f1b969cac6b4cdf4ca)`); }
+
+      // the user has not previously turned on autosync for this tjpAddr this session.
+      const body =
+        `This will TURN ON syncing for the current ibGib (${this.ib}) and ALL its related ibGibs to your outerspace(s).`;
+      const note = `(note: to turn off auto syncing, press the sync button again)`;
+      const resConfirmSync = await Modals.confirm({
+        title: 'Sync with outerspace?',
+        message: `${body}\n\nProceed?\n\n${note}`,
+      });
+
+
+      if (!resConfirmSync.value) {
+        await Modals.alert({title: 'Sync cancelled.', message: 'Sync has been cancelled.'});
+        this.item.syncing = false;
+        // this.autosync = false; // unnecessary?
+        return; // <<<< returns
+      }
+
+      // get newer ones
+
+      if (this.tjpAddr && !this.common.ibgibs.tjpGibsWithAutosyncTurnedOn.has(this.tjpAddr)) {
+        this.common.ibgibs.tjpGibsWithAutosyncTurnedOn.add(this.tjpAddr);
+      }
+
+      // get the latest
+      const latestAddr =
+        await this.common.ibgibs.getLatestAddr({
+          ibGib: this.ibGib,
+          tjpAddr: this.tjpAddr
+        });
+      if (latestAddr !== this.addr) {
+        await Modals.alert({
+          title: 'Recent local changes available',
+          message:
+            `We are not currently at the latest local ibgib...do you have
+            another tab open? Please hit the refresh button (until we get this
+            automatic in the near future!).`.replace(/\n/g, ' ').replace(/  /g, '')
+        });
+        return; // <<<< returns
+      }
+
+      // publish this one
+      const dependencyGraph =
+        await this.common.ibgibs.getDependencyGraph({ibGib: this.ibGib});
+      const sagaInfos = await this.common.ibgibs.syncIbGibs({
+        dependencyGraphIbGibs: Object.values(dependencyGraph),
+        watch: true,
+      });
+      if (sagaInfos) {
+        await new Promise<void>((resolve, reject) => {
+          let sagaCompleteOrErroredCount = 0;
+          for (let i = 0; i < sagaInfos.length; i++) {
+            const info = sagaInfos[i];
+            info.syncStatus$.subscribe(status => {
+              // do nothing atm as this is handled in ibgibs.service
+            },
+            error => {
+              const emsg = typeof error === 'string' ?
+                `${lc} Sync failed: ${error}` :
+                `${lc} Sync failed: ${error?.message ?? 'some error(?) (UNEXPECTED)'}`;
+              console.error(emsg);
+              reject(new Error(emsg));
+            },
+            () => {
+              sagaCompleteOrErroredCount++;
+              if (sagaCompleteOrErroredCount === sagaInfos.length) {
+                this.item.syncing = false;
+                setTimeout(() => { this.ref.detectChanges(); })
+                resolve();
+              }
+            });
+          }
+        });
+      }
+
+      // won't turn on autosync until the sync succeeds
+      this.autosync = true;
+      this.startPollLatest_Store();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
       this.item.syncing = false;
+    } finally {
+      if (logalot) { console.log(`${lc} complete. (I: 2334b5444103f24178e4d2d2116de322)`); }
     }
   }
 
@@ -468,6 +510,8 @@ export class IbGibPage extends IbgibComponentBase
   async handleBackButtonClick(): Promise<void> {
     await this.common.nav.back();
   }
+
+  // #region tagging
 
   async handleTagClick(_: MouseEvent): Promise<void> {
     const lc = `${this.lc}[${this.handleTagClick.name}]`;
@@ -708,6 +752,8 @@ export class IbGibPage extends IbgibComponentBase
     return tagDesc;
   }
 
+  // #endregion tagging
+
   async handleInfoClick(event: MouseEvent): Promise<void> {
     const lc = `${this.lc}[${this.handleInfoClick.name}]`;
     try {
@@ -722,7 +768,246 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
- }
+  // #region Polling
+
+  private startPollLatest_Local(): void {
+    const lc = `${this.lc}[${this.startPollLatest_Local.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 682afa3d6093319848ee801f9a14cc22)`); }
+      if (this._subPollLatest_Local && !this._subPollLatest_Local.closed) {
+        this.stopPollLatest_Local();
+      }
+
+      // initial delay for first run
+      setTimeout(() => {
+        if (logalot) { console.log(`${lc} subscribing to polling... (I: a81a3f43ace6500126d3d29f4bb1ec22)`); }
+        this._subPollLatest_Local =
+          interval(c.DEFAULT_LOCAL_SPACE_POLLING_INTERVAL_MS).pipe(
+            concatMap(async (_) => { await this.execPollLatest_Local(); })
+          ).subscribe();
+      }, c.DEFAULT_LOCAL_SPACE_POLLING_DELAY_FIRST_RUN_MS);
+      // }, 5_000); // for debugging only!!!! DO NOT PUT IN PRODUCTION
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      // not critical
+    } finally {
+      if (logalot) { console.log(`${lc} complete. (I: 793116f74278cb3f4b181322ff639b22)`); }
+    }
+  }
+
+  private async execPollLatest_Local(): Promise<void> {
+    const lc = `${this.lc}[${this.execPollLatest_Local.name}]`;
+    // return early if busy with some other job...
+    if (this.syncing) {
+      if (logalot) { console.log(`${lc} currently syncing, so skipping poll call.`); }
+      return; // <<<< returns
+    } else if (this.refreshing) {
+      if (logalot) { console.log(`${lc} currently refreshing, so skipping poll call.`); }
+      return; // <<<< returns
+    } else if (this._pollingLatest_Local) {
+      if (logalot) { console.log(`${lc} currently already polling, so skipping new poll call.`); }
+      return; // <<<< returns
+    }
+
+    if (logalot) { console.log(`${lc} poll call starting... (I: 3b58bc80651d831e3d421e5647cbcd22)`); }
+    this._pollingLatest_Local = true;
+    try {
+      if (!this.tjpAddr) { await this.loadTjp(); }
+      if (this.tjpAddr) {
+        if (logalot) { console.log(`${lc} this.tjpAddr: ${this.tjpAddr}`); }
+        const latestAddr =
+          await this.common.ibgibs.getLatestAddr({tjpAddr: this.tjpAddr});
+        if (latestAddr !== this.addr) {
+          if (logalot) { console.log(`${lc} there is a new latest addr: ${latestAddr}`); }
+          const resLatestIbGib = await this.common.ibgibs.get({addr: latestAddr});
+          if (resLatestIbGib.success && resLatestIbGib.ibGibs?.length > 0) {
+            const latestIbGib = resLatestIbGib.ibGibs[0];
+            const currentPastLength = this.ibGib.rel8ns?.past?.length ?? 0;
+            const latestPastLength = latestIbGib.rel8ns?.past?.length ?? 0;
+            const diff = latestPastLength - currentPastLength;
+            if (diff > 0) {
+              if (logalot) { console.log(`${lc} diff === ${diff} (I: 8ed2a7eea4c95933acb0d337f7b23722)`); }
+              this.tjpUpdatesAvailableCount_Local = diff;
+              setTimeout(() => this.ref.detectChanges(), 100);
+            } else {
+              console.warn(`${lc} latestIbGib registered is newer than current ibGib`);
+            }
+          }
+        }
+      } else {
+        if (logalot) { console.log(`${lc} this ibgib has no tjp. stopping further polling.`); }
+        this.stopPollLatest_Local();
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      this.stopPollLatest_Local();
+    } finally {
+      if (logalot) { console.log(`${lc} poll call complete. (I: cc0d9a254cc83350e151de2e9df3cd22)`); }
+      this._pollingLatest_Local = false;
+    }
+  }
+
+  private stopPollLatest_Local(): void {
+    const lc = `${this.lc}[${this.stopPollLatest_Local.name}]`;
+    try {
+      if (this._subPollLatest_Local && !this._subPollLatest_Local.closed) {
+        this._subPollLatest_Local.unsubscribe();
+      }
+      delete this._subPollLatest_Local;
+      this._pollingLatest_Local = false;
+      this.tjpUpdatesAvailableCount_Local = 0;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      // not critical
+    }
+  }
+
+  private startPollLatest_Store(): void {
+    const lc = `${this.lc}[${this.startPollLatest_Store.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: f4ce620a632f4177936d5e0fa61c92ad)`); }
+      if (this._subPollLatest_Store && !this._subPollLatest_Store.closed) {
+        this.stopPollLatest_Store();
+      }
+
+      setTimeout(() => {
+        // just a hack here for initial testing
+        if (logalot) { console.log(`${lc} subscribing to polling... (I: ec9ddb3d270d4cc3a9a94dd3bf4bf952)`); }
+        this._subPollLatest_Store =
+          // interval(c.DEFAULT_OUTER_SPACE_POLLING_INTERVAL_MS).pipe(
+          interval(15_000).pipe( // for debugging only!!!! DO NOT PUT IN PRODUCTION
+            concatMap(async (_) => { await this.execPollLatest_Store(); })
+          ).subscribe();
+      }, 5_000); // for debugging only!!!! DO NOT PUT IN PRODUCTION
+      // }, c.DEFAULT_OUTER_SPACE_POLLING_DELAY_FIRST_RUN_MS); // for debugging only!!!! DO NOT PUT IN PRODUCTION
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      // not critical
+    } finally {
+      if (logalot) { console.log(`${lc} complete. (I: 33f3b03cb3cd496895b30cb146938e02)`); }
+    }
+  }
+
+  private async execPollLatest_Store(): Promise<void> {
+    const lc = `${this.lc}[${this.execPollLatest_Store.name}]`;
+    // return early if busy with some other job...
+    if (this.syncing) {
+      if (logalot) { console.log(`${lc} currently syncing, so skipping poll call.`); }
+      return; // <<<< returns
+    } else if (this.refreshing) {
+      if (logalot) { console.log(`${lc} currently refreshing, so skipping poll call.`); }
+      return; // <<<< returns
+    } else if (this._pollingLatest_Store) {
+      if (logalot) { console.log(`${lc} currently already polling, so skipping new poll call.`); }
+      return; // <<<< returns
+    } else if (!this.autosync) {
+      if (logalot) { console.log(`${lc} this.autosync is false, so stopping polling. (I: b7c151e1b1afa40a4160e31f88824522)`); }
+      setTimeout(() => this.stopPollLatest_Store());
+      return; // <<<< returns
+    } else if (this.tjpUpdatesAvailableCount_Store > 0) {
+      if (logalot) { console.log(`${lc} updates already available, so skipping poll call. (I: dcc433c400134ee45773c81c9af4fb22)`); }
+      return; // <<<< returns
+    }
+
+    if (logalot) { console.log(`${lc} poll call starting... (I: b12f7fd857a4483989057bb62f0ab204)`); }
+    this._pollingLatest_Store = true;
+    try {
+      if (!this.tjpAddr) { await this.loadTjp(); }
+      if (this.tjpAddr) {
+        if (logalot) { console.log(`${lc} this.tjpAddr: ${this.tjpAddr}`); }
+        // get our sync spaces
+        const appSyncSpaces = await this.common.ibgibs.getAppSyncSpaces({
+          unwrapEncrypted: true,
+          createIfNone: true,
+        });
+        const syncSpaceIds = appSyncSpaces.map(space => space?.data?.uuid);
+        if (logalot) { console.log(`${lc} syncSpaceIds: ${syncSpaceIds} (I: 141f050b682f1a1a23ebb06c69b2c422)`); }
+
+        // look in each space (in parallel) for a newer latest address for a tjp
+        const spacesAndGetLatestAddrPromises = appSyncSpaces.map(space => {
+          // note this does NOT await, so we can await all in parallel
+          return <[IbGibSpaceAny, Promise<string>]>[
+            // the space
+            space,
+            // the promise
+            this.common.ibgibs.getLatestAddr({
+              tjpAddr: this.tjpAddr,
+              space,
+            }),
+          ];
+        });
+        /** This will track the updates across all spaces. */
+        let runningDiffCountAcrossAllSpaces = 0;
+        await Promise.all(spacesAndGetLatestAddrPromises.map(([_, p]) => p));
+        for (let i = 0; i < spacesAndGetLatestAddrPromises.length; i++) {
+          const lc2 = `${lc}[getLatestAddr]`;
+          try {
+            const [space, getLatestAddrPromise] = spacesAndGetLatestAddrPromises[i];
+            const spaceIb = space.ib;
+            if (!spaceIb) { throw new Error(`invalid space. ib required (E: 7194b47156afd9e492f7c4d8ea386d22)`); }
+            if (logalot) { console.log(`${lc} doing spaceIb: ${spaceIb} (I: 5facc3c362540642ea78196778b05622)`); }
+            const latestAddr = await getLatestAddrPromise;
+            if (latestAddr !== this.addr) {
+              if (logalot) { console.log(`${lc} there is a new latest addr in the sync space. latestAddr: ${latestAddr} (I: 72cbfbb603b349f3a85b3265c679a9bf)`); }
+              // get the latest but don't save it, we're just going to see how many
+              // iterations we're behind.
+              const resLatestIbGib = await this.common.ibgibs.get({
+                addr: latestAddr,
+                space,
+              });
+              if (resLatestIbGib.success && resLatestIbGib.ibGibs?.length > 0) {
+                const latestIbGib = resLatestIbGib.ibGibs[0];
+                const currentPastLength = this.ibGib.rel8ns?.past?.length ?? 0;
+                const latestPastLength = latestIbGib.rel8ns?.past?.length ?? 0;
+                const diff = latestPastLength - currentPastLength;
+                if (diff > 0) {
+                  if (logalot) { console.log(`${lc} diff === ${diff} in spaceIb: ${spaceIb} (I: 7ca33c3361d54fb5918dea5ff1a5b1b5)`); }
+                  runningDiffCountAcrossAllSpaces += diff;
+                } else {
+                  console.warn(`${lc} latestIbGib registered is newer than current ibGib`);
+                }
+              }
+            }
+          } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+          }
+        }
+        if (runningDiffCountAcrossAllSpaces > 0) {
+          this.tjpUpdatesAvailableCount_Store = runningDiffCountAcrossAllSpaces;
+        }
+      } else {
+        if (logalot) { console.log(`${lc} this ibgib has no tjp. stopping further polling. (I: 5e79aba1ffb6490eb89994fa2415e4d4)`); }
+        this.stopPollLatest_Store();
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      this.stopPollLatest_Store();
+    } finally {
+      if (logalot) { console.log(`${lc} poll call complete. (I: 76ec7ace62064277a258ebd223fc727b)`); }
+      this._pollingLatest_Store = false;
+    }
+  }
+
+  private stopPollLatest_Store(): void {
+    const lc = `${this.lc}[${this.stopPollLatest_Store.name}]`;
+    try {
+      this.autosync = false;
+      if (this._subPollLatest_Store && !this._subPollLatest_Store.closed) {
+        this._subPollLatest_Store.unsubscribe();
+      }
+      delete this._subPollLatest_Store;
+      this._pollingLatest_Store = false;
+      this.tjpUpdatesAvailableCount_Store = 0;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      // not critical
+    }
+  }
+
+  // #endregion Polling
+
+}
 
 interface TagInfo {
   title: string;

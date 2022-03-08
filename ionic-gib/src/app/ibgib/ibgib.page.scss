@@ -1,7 +1,4 @@
 :host {
-  // border-width: 5px;
-  // border-style: solid;
-  // border-color: brown;
   box-sizing: border-box !important;
   scrollbar-color: var(--ion-color-primary) transparent;
 }
@@ -11,19 +8,8 @@ ion-menu-button, ion-button, .back-btn, ion-title {
 }
 
 #container {
-  // text-align: center;
-  // position: absolute;
-  // left: 0;
-  // right: 0;
-  // top: 50%;
-  // transform: translateY(-50%);
-
   height: 100%;
   width: 100%;
-
-  // border-width: 5px;
-  // border-style: solid;
-  // border-color: #8ffcbe;
   display: flex;
   flex-direction: column;
 }
@@ -51,14 +37,12 @@ pre {
   border-radius: 15px;
   border-style: solid;
   border-width: 1px;
-  // border-color: pink;
   margin: 2px;
 }
 
 .pic-title {
   display: flex;
   flex-direction: row;
-  // background-color: pink;
 }
 
 action-bar, ion-footer {
@@ -66,32 +50,16 @@ action-bar, ion-footer {
   flex-direction: row;
   height: 55px !important;
 }
-// ion-title {
-//   overflow-y: hidden;
-//   border-radius: 15px;
-//   border-style: solid;
-//   border-width: 1px;
-//   border-color: darkseagreen;
-//   height: 55px;
-// }
-// ion-title > pic-view, ion-title > pic-view > img {
-//   height: 100%;
-// }
 
-.toolbar-refresh, .toolbar-pause, .toolbar-syncing {
-  padding: 3px !important;
+.toolbar-title-btn {
+  padding: 1px !important;
 }
 
 .toolbar-title-yo {
   overflow-x: scroll;
-  // border-color: #d4319b;
-  // border-style: solid;
-  // border-width: 3px;
 }
 
 .loading-div {
-  // width: 100%;
-  // height: 100%;
   display: flex;
   flex-direction: column;
 
@@ -148,4 +116,11 @@ ion-badge {
   overflow: visible !important;
   padding-top: 1px;
   border-radius: 50%;
+}
+
+
+.active-btn {
+  // can't convert css to scss variable here...i'm a terrible ui person
+  $color: #213b23;
+  background-color: rgba(red($color), green($color), blue($color), 1.0);
 }
