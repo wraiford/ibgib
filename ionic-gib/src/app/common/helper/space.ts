@@ -10,7 +10,7 @@ import {
 import * as h from 'ts-gib/dist/helper';
 
 
-import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
+import { IbGibSpaceAny, SpaceBase_V1 } from '../witnesses/spaces/space-base-v1';
 import * as c from '../constants';
 import {
     GetIbGibOpts, GetIbGibResult,
@@ -20,12 +20,12 @@ import {
 import {
     getExpirationUTCString,
     getRootIb,
-    getSpecialConfigKey, getSpecialIbgibIb, getTimestampInTicks, isExpired, tagTextToIb,
+    getSpecialConfigKey, getSpecialIbGibIb, getTimestampInTicks, isExpired, tagTextToIb,
 } from '../helper';
-import { BootstrapData, BootstrapIbGib, BootstrapRel8ns, IbGibSpaceLockIbGib, IbGibSpaceLockOptions, LatestEventInfo, RootData, SpaceId, SpaceLockScope, SpecialIbGibType, TagData, TxId, } from '../types';
+import { BootstrapData, BootstrapIbGib, BootstrapRel8ns, IbGibSpaceLockIbGib, IbGibSpaceLockOptions, IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns, LatestEventInfo, RootData, SpaceId, SpaceLockScope, SpecialIbGibType, TagData, TxId, } from '../types';
 import { validateBootstrapIbGib, validateIbGibAddr, validateIbGibIntrinsically } from './validate';
-import { getTjpAddrs } from './ibgib';
-import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { getTjpAddrs, isTjp_Naive } from './ibgib';
+import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -1283,7 +1283,7 @@ export async function getTjpIbGib({
     ibGib: IbGib_V1<any>,
     naive?: boolean,
     space: IbGibSpaceAny,
-}): Promise<IbGib_V1<any>> {
+}): Promise<IbGib_V1<any>|undefined> {
     const lc = `[${getTjpIbGib.name}]`;
 
     try {
@@ -1297,12 +1297,24 @@ export async function getTjpIbGib({
         if (isTjp) { return ibGib; }
 
         // the given ibGib arg isn't itself the tjp
-        if (!ibGib.rel8ns) { throw new Error('ibGib.rel8ns required.'); }
 
+        // if no rel8ns, then there is no tjp ibgib, since this is not
+        // intrinsically the tjp and there is no 'tjp' or 'past' rel8n to check
+        if (!ibGib.rel8ns) {
+            if (logalot) { console.log(`${lc} ibgib not tjp in data, and rel8ns is falsy. so tjp is undefined (I: acdadb76a7568807db7a68f6f866de22)`); }
+            return undefined; // <<<< returns
+        }
+
+        // check explicitly listed tjp in rel8ns
         if (ibGib.rel8ns!.tjp && ibGib.rel8ns!.tjp.length > 0) {
-        let firstTjpAddr = ibGib.rel8ns!.tjp[0];
-        let resGetTjpIbGib = await getFromSpace({addr: firstTjpAddr, space});
-        if (resGetTjpIbGib.success && resGetTjpIbGib.ibGibs?.length === 1) { return resGetTjpIbGib.ibGibs[0] }
+            let firstTjpAddr = ibGib.rel8ns!.tjp[0];
+            let resGetTjpIbGib = await getFromSpace({addr: firstTjpAddr, space});
+            if (resGetTjpIbGib.success && resGetTjpIbGib.ibGibs?.length === 1) {
+                return resGetTjpIbGib.ibGibs[0]
+            } else {
+                const resErrorMsg = resGetTjpIbGib.errorMsg ?? '[unspecified error in get result]';
+                throw new Error(`ibGib references tjp but could not retrieve from space. res error: ${resErrorMsg} (E: 94f0340706ad48c794c6a62c1b235a22)`);
+            }
         }
 
         // couldn't get the tjp from the rel8ns.tjp, so look for manually in past.
@@ -1312,8 +1324,9 @@ export async function getTjpIbGib({
 
         const past = ibGib.rel8ns!.past || [];
         if (past.length === 0) {
-        console.warn(`${lc} past.length === 0, but assumption atow is that code wouldnt reach here if that were the case.`)
-        return ibGib;
+            console.warn(`${lc} past.length === 0, so there is no tjp.`)
+            if (logalot) { console.log(`${lc} ibgib is not tjp in data, not in tjp rel8n, and past is empty. so tjp is undefined (I: bf06f664917dcf4492fb9c4c106a6222)`); }
+            return undefined; // <<<< returns
         }
         const pastIbGibAddr = past[past.length-1];
         const resGetPastIbGib = await getFromSpace({addr: pastIbGibAddr, space});
@@ -1322,39 +1335,6 @@ export async function getTjpIbGib({
 
         // call this method recursively!
         return await getTjpIbGib({ibGib: pastIbGib, naive, space});
-    } catch (error) {
-        console.error(`${lc} ${error.message}`);
-        throw error;
-    }
-}
-
-/**
- * Returns true if the given {@param ibGib} is the temporal junction
- * point for a given ibGib timeline.
- */
-export async function isTjp_Naive({
-    ibGib,
-    naive = true,
-}: {
-    ibGib: IbGib_V1<any>,
-    naive?: boolean,
-}): Promise<boolean> {
-    const lc = `[${isTjp_Naive.name}]`;
-    try {
-        if (!ibGib) { throw new Error('ibGib required.'); }
-        if (naive) {
-            if (ibGib.data) {
-                if (ibGib.data!.isTjp) { return true; }
-                if (!ibGib.rel8ns) { throw new Error('ibGib.rel8ns required.'); }
-                if (ibGib.rel8ns.past && ibGib.rel8ns.past.length > 0) { return false; }
-                if (ibGib.rel8ns.past && ibGib.rel8ns.past.length === 0) { return true; }
-                return false;
-            } else {
-                throw new Error('loaded ibGib required (data).');
-            }
-        } else {
-            throw new Error('only naive implemented right now.');
-        }
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -1436,7 +1416,7 @@ export async function createSpecialIbGib({
     const lc = `[${createSpecialIbGib.name}][${type || 'falsy type?'}]`;
     try {
         if (logalot) { console.log(`${lc} starting...`); }
-        const specialIb = getSpecialIbgibIb({type});
+        const specialIb = getSpecialIbGibIb({type});
         const src = factory.primitive({ib: specialIb});
         const resNewSpecial = await V1.fork({
             src,
@@ -2639,8 +2619,6 @@ export function getSpaceIb({
     try {
         if (!space) { throw new Error(`space required (E: 4dabec34ee77d67c9cc30ee3c3049622)`); }
         if (!classname) { throw new Error(`classname required (E: fa3af4613ad56742dab51d1b0d839322)`); }
-        // classname = this.lc?.replace('[','').replace(']','') || SpaceBase_V1.name+'_descendant';
-        // console.warn(`${lc} classname is falsy. Using ${classname}. (W: a8cda20797ca4eadaabf9a50ef4a4ac8)`);
         const name = space.data?.name || c.IBGIB_SPACE_NAME_DEFAULT;
         const id = space.data?.uuid || undefined;
         return `witness space ${classname} ${name} ${id}`;
@@ -2679,6 +2657,87 @@ export async function getNewTxId({
         length = length || c.DEFAULT_TX_ID_LENGTH;
         return <TxId>(await h.getUUID()).slice(0, length);
     } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
+
+/**
+ * wrapper for dealing with a space.
+ *
+ * convenience function for creating an arg ibgib to send to the given space
+ * using Cmd/CmdModifiers for getting latest addrs.
+ *
+ * @returns space result ibgib from the given `space.witness` call.
+ */
+export async function getLatestAddrs({
+    ibGibs,
+    addrs,
+    tjps,
+    tjpAddrs,
+    space,
+  }: {
+    ibGibs?: IbGib_V1[],
+    addrs?: IbGibAddr[],
+    tjps?: IbGib_V1[],
+    tjpAddrs?: IbGibAddr[],
+    space?: SpaceBase_V1<IbGib_V1>,
+  }): Promise<IbGibSpaceResultIbGib<IbGib_V1, IbGibSpaceResultData, IbGibSpaceResultRel8ns>> {
+    let lc = `[${getLatestAddrs.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting...`); }
+
+        if (!space) { throw new Error(`space required. (E: 4d188d6c863246f28aa575753a052304)`); }
+
+        // so we don't have to do a bunch of conditional checks all over
+        ibGibs = ibGibs ?? []; addrs = addrs ?? [];
+        tjps = tjps ?? []; tjpAddrs = tjpAddrs ?? [];
+
+        if (
+            addrs.length === 0 && ibGibs.length === 0 &&
+            tjps.length === 0 && tjpAddrs.length === 0
+        ) {
+            throw new Error(`Either ibGibAddrs, ibGibs, tjps, or tjpAddrs required. (E: 1a0b92564ba942f1ba91a089ac1a2125)`);
+        }
+
+        /**
+         * Addrs that we'll ultimately send to the space. They start off as
+         * tjpAddrs (and derived from `tjps` if any), and then add the incoming
+         * ibgibs/addrs if we don't already have their corresponding tjpAddrs
+         * being queried.
+         * */
+        const addrsToQuery = new Set<IbGibAddr>(
+            tjpAddrs.concat(tjps.map(ibGib => h.getIbGibAddr({ibGib})))
+        );
+
+        // add ibgibs/addrs only if they do not already have their corresponding
+        // tjpAddr in the query addrs. We can do this by checking if the tjpGib
+        // is located in the ibGibAddr.gib, which has the form
+        // [punctiliarHash].[tjpGib]
+        const tjpGibs = Array.from(addrsToQuery).map(x => h.getIbAndGib({ibGibAddr: x}).gib);
+        ibGibs.map(ibGib => h.getIbGibAddr({ibGib}))
+            .concat(addrs)
+            .forEach(ibGibAddr => {
+                const { gib } = h.getIbAndGib({ibGibAddr});
+                const addrHasExistingTjpGib =
+                    tjpGibs.some(tjpGib => gib.includes(tjpGib));
+                if (!addrHasExistingTjpGib) { addrsToQuery.add(ibGibAddr); }
+            });
+
+        if (!space.argy) { debugger; } // remove at some point...
+
+        // construct the arg and execute
+        const argGet = await space.argy({
+            ibMetadata: getSpaceArgMetadata({space}),
+            argData: {
+                cmd: 'get',
+                cmdModifiers: ['latest', 'addrs'],
+                ibGibAddrs: Array.from(addrsToQuery),
+            },
+        });
+        return await space.witness(argGet);
+    } catch (error) {
+        debugger; // until done with this function
         console.error(`${lc} ${error.message}`);
         throw error;
     }

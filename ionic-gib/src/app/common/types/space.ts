@@ -121,7 +121,7 @@ export const IbGibSpaceOptionsCmd = {
  * Flags to affect the command's interpretation.
  */
 export type IbGibSpaceOptionsCmdModifier =
-    'can' | 'addrs' | 'latest' | 'watch' | 'unwatch';
+    'can' | 'addrs' | 'latest' | 'watch' | 'unwatch' | 'tjps';
 /**
  * Flags to affect the command's interpretation.
  */
@@ -157,6 +157,10 @@ export const IbGibSpaceOptionsCmdModifier = {
      * Ask to stop getting updates on tjps in ibGibAddrs.
      */
     unwatch: 'unwatch' as IbGibSpaceOptionsCmdModifier,
+    /**
+     * Get the tjp ibgibs/addrs for given ibgib(s)
+     */
+    tjps: 'tjps' as IbGibSpaceOptionsCmdModifier,
 }
 
 /** Information for interacting with spaces. */

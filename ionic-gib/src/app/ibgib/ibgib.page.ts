@@ -3,7 +3,7 @@ import {
   ChangeDetectorRef, ChangeDetectionStrategy, Input
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { Subscription, interval, pipe } from 'rxjs';
+import { Subscription, interval } from 'rxjs';
 import { ActionSheetOptionStyle, Capacitor, Plugins } from '@capacitor/core';
 const { Modals, Clipboard } = Plugins;
 
@@ -235,7 +235,7 @@ export class IbGibPage extends IbgibComponentBase
           if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 936911af9f942cbdde7de4bf65fef822)`); }
           await h.delay(100);
         }
-        const tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
+        const tagsIbGib = await this.common.ibgibs.getSpecialIbGib({type: "tags"});
         let tagsAddr = getIbGibAddr({ibGib: tagsIbGib});
         console.warn(`${lc} special url entered, so defaulting nav to tags ibGib (tagsAddr: ${tagsAddr}) (W: bcc8a669f4f44cbb837080615c3db51a)`);
         await this.go({ toAddr: tagsAddr, fromAddr: this.addr });
@@ -526,7 +526,7 @@ export class IbGibPage extends IbgibComponentBase
         if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 67e795e53b9c4732ab53837bcaa22c1f)`); }
         await h.delay(109);
       }
-      const tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
+      const tagsIbGib = await this.common.ibgibs.getSpecialIbGib({type: "tags"});
       const tagAddrs = tagsIbGib.rel8ns.tag;
       const tagInfos: TagInfo[] = tagAddrs.map(addr => {
         const { ib } = h.getIbAndGib({ibGibAddr: addr});
@@ -878,8 +878,8 @@ export class IbGibPage extends IbgibComponentBase
           interval(15_000).pipe( // for debugging only!!!! DO NOT PUT IN PRODUCTION
             concatMap(async (_) => { await this.execPollLatest_Store(); })
           ).subscribe();
-      }, 5_000); // for debugging only!!!! DO NOT PUT IN PRODUCTION
-      // }, c.DEFAULT_OUTER_SPACE_POLLING_DELAY_FIRST_RUN_MS); // for debugging only!!!! DO NOT PUT IN PRODUCTION
+      // }, 5_000); // for debugging only!!!! DO NOT PUT IN PRODUCTION
+      }, c.DEFAULT_OUTER_SPACE_POLLING_DELAY_FIRST_RUN_MS);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       // not critical
@@ -930,10 +930,7 @@ export class IbGibPage extends IbgibComponentBase
             // the space
             space,
             // the promise
-            this.common.ibgibs.getLatestAddr({
-              tjpAddr: this.tjpAddr,
-              space,
-            }),
+            this.common.ibgibs.getLatestAddr({tjpAddr: this.tjpAddr, space}),
           ];
         });
         /** This will track the updates across all spaces. */
@@ -951,10 +948,8 @@ export class IbGibPage extends IbgibComponentBase
               if (logalot) { console.log(`${lc} there is a new latest addr in the sync space. latestAddr: ${latestAddr} (I: 72cbfbb603b349f3a85b3265c679a9bf)`); }
               // get the latest but don't save it, we're just going to see how many
               // iterations we're behind.
-              const resLatestIbGib = await this.common.ibgibs.get({
-                addr: latestAddr,
-                space,
-              });
+              const resLatestIbGib =
+                await this.common.ibgibs.get({addr: latestAddr, space});
               if (resLatestIbGib.success && resLatestIbGib.ibGibs?.length > 0) {
                 const latestIbGib = resLatestIbGib.ibGibs[0];
                 const currentPastLength = this.ibGib.rel8ns?.past?.length ?? 0;

@@ -312,7 +312,7 @@ export class AppComponent extends IbgibComponentBase
       await h.delay(100);
     }
     const tagsIbGib = <IbGib_V1<TagData>>(
-      await this.common.ibgibs.getSpecialIbgib({type: "tags"})
+      await this.common.ibgibs.getSpecialIbGib({type: "tags"})
     );
     this.tagsAddr = h.getIbGibAddr({ibGib: tagsIbGib});
     return tagsIbGib;
@@ -332,7 +332,7 @@ export class AppComponent extends IbgibComponentBase
         if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: de1ca706872740b98dfce57a5a9da4d4)`); }
         await h.delay(100);
       }
-      const rootsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "roots"});
+      const rootsIbGib = await this.common.ibgibs.getSpecialIbGib({type: "roots"});
       this.rootsAddr = h.getIbGibAddr({ibGib: rootsIbGib});
       const currentRootIbGib = await this.common.ibgibs.getCurrentRoot({});
       if (!currentRootIbGib) { throw new Error(`currentRoot not found(?)`); }
@@ -371,7 +371,7 @@ export class AppComponent extends IbgibComponentBase
     if (logalot) { console.log(`${lc} starting...`); }
     try {
       const tagsIbGib = await this.loadTagsAddrAndGetTagsIbGib();
-      // const tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
+      // const tagsIbGib = await this.common.ibgibs.getSpecialIbGib({type: "tags"});
       if (!tagsIbGib) { throw new Error(`tagsIbGib falsy. (E: 8e624b39bd34481a82be6efc521c24dc)`); }
       // this.tagsAddr = h.getIbGibAddr({ibGib: tagsIbGib});
 
@@ -483,14 +483,14 @@ export class AppComponent extends IbgibComponentBase
         if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 5fd759510e584cb69b232259b891cca1)`); }
         await h.delay(100);
       }
-      let tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags"});
+      let tagsIbGib = await this.common.ibgibs.getSpecialIbGib({type: "tags"});
       let tagAddrs = tagsIbGib?.rel8ns?.tag || [];
 
       // if we have gotten the tags object and there are no associated individual
       // tags, try re-initializing with default tags.
       if (!tagAddrs || tagAddrs.length === 0) {
         if (logalot) { console.log(`${lc} couldn't get tagsIbGib?`); }
-        tagsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "tags", initialize: true});
+        tagsIbGib = await this.common.ibgibs.getSpecialIbGib({type: "tags", initialize: true});
         tagAddrs = tagsIbGib?.rel8ns?.tag || [];
       }
 
@@ -567,7 +567,7 @@ export class AppComponent extends IbgibComponentBase
         if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 8f261e9bc175463e88d173700b3797ed)`); }
         await h.delay(100);
       }
-      let rootsIbGib = await this.common.ibgibs.getSpecialIbgib({type: "roots"});
+      let rootsIbGib = await this.common.ibgibs.getSpecialIbGib({type: "roots"});
       let rootAddrs = rootsIbGib?.rel8ns[c.ROOT_REL8N_NAME] || [];
 
       // we should have initialized with roots

@@ -17,6 +17,7 @@ import { getSpaceResultMetadata, getTimestampInTicks, validateIbGibIntrinsically
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 export interface IbGibSpaceAny
+    // extends SpaceBase_V1<any> {
     extends SpaceBase_V1<any,any,any,any,any,any,any> {
 }
 
@@ -116,10 +117,20 @@ export abstract class SpaceBase_V1<
                     return this.get(arg);
                 } else if (cmdModifiers.includes('can')) {
                     return this.canGet(arg);
+                } else if (cmdModifiers.includes('latest')) {
+                    if (cmdModifiers.includes('addrs')) {
+                        return this.getLatestAddrs(arg);
+                    } else {
+                        return this.getLatestIbGibs(arg);
+                    }
+                } else if (cmdModifiers.includes('tjps')) {
+                    if (cmdModifiers.includes('addrs')) {
+                        return this.getTjpAddrs(arg);
+                    } else {
+                        return this.getTjpIbGibs(arg);
+                    }
                 } else if (cmdModifiers.includes('addrs')) {
                     return this.getAddrs(arg);
-                } else if (cmdModifiers.includes('latest')) {
-                    return this.getLatest(arg);
                 } else {
                     return this.get(arg);
                 }
@@ -159,36 +170,116 @@ export abstract class SpaceBase_V1<
         throw new Error(`${lc} not implemented`);
     }
 
+    /**
+     * Get all (public?) addrs in space.
+     *
+     * @optional method for space.
+     *
+     * @returns all addresses in space (that it wants to reveal).
+     */
     protected getAddrs(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.getAddrsImpl(arg); }
     protected getAddrsImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
         const lc = `${this.lc}[${this.getAddrsImpl.name}]`;
         throw new Error(`${lc} not implemented`);
     }
 
-    protected getLatest(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.getLatestImpl(arg); }
-    protected getLatestImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
-        const lc = `${this.lc}[${this.getLatestImpl.name}]`;
+    /**
+     * Get latest ibGibs for given ibGib addresses.
+     *
+     * Usually I pass in the tjp address(es) if I have them.
+     *
+     * @optional method for space.
+     *
+     * @returns latest ibGibs in timelines for each given ibgib address.
+     */
+    protected getLatestIbGibs(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.getLatestIbGibsImpl(arg); }
+    protected getLatestIbGibsImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
+        const lc = `${this.lc}[${this.getLatestIbGibsImpl.name}]`;
         throw new Error(`${lc} not implemented`);
     }
 
+    /**
+     * Get latest addrs for given ibGib(s)/address(es).
+     *
+     * Usually I pass in the tjp address(es) if I have them.
+     *
+     * @optional method for space.
+     *
+     * @returns latest addrs in timelines for each given ibgib address.
+     */
+    protected getLatestAddrs(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.getLatestAddrsImpl(arg); }
+    protected getLatestAddrsImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
+        const lc = `${this.lc}[${this.getLatestAddrsImpl.name}]`;
+        throw new Error(`${lc} not implemented`);
+    }
+
+    /**
+     * Get temporal junction point ibgibs for given ibgib(s) or address(es).
+     *
+     * @optional method for space.
+     *
+     * @returns tjp ibgib for each given ibgib/address.
+     */
+    protected getTjpIbGibs(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.getTjpIbGibsImpl(arg); }
+    protected getTjpIbGibsImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
+        const lc = `${this.lc}[${this.getTjpIbGibsImpl.name}]`;
+        throw new Error(`${lc} not implemented`);
+    }
+
+    /**
+     * Get temporal junction point addr(s) for given ibgib(s) or address(es).
+     *
+     * @optional method for space.
+     *
+     * @returns tjp addrs in timelines for each given ibgib/address.
+     */
+    protected getTjpAddrs(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.getTjpAddrsImpl(arg); }
+    protected getTjpAddrsImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
+        const lc = `${this.lc}[${this.getTjpAddrsImpl.name}]`;
+        throw new Error(`${lc} not implemented`);
+    }
+
+    /**
+     * Supposed to be a check on either authorization, accessibility, existence...
+     *
+     * @notimplementedyet
+     */
     protected canGet(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.canGetImpl(arg); }
     protected canGetImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
         const lc = `${this.lc}[${this.canGetImpl.name}]`;
         throw new Error(`${lc} not implemented`);
     }
 
+    /**
+     * Supposed to be a check on either authorization, accessibility, existence...
+     *
+     * @notimplementedyet
+     */
     protected canPut(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.canPutImpl(arg); }
     protected canPutImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
         const lc = `${this.lc}[${this.canPutImpl.name}]`;
         throw new Error(`${lc} not implemented`);
     }
 
+    /**
+     * Supposed to be a check on either authorization, accessibility, existence...
+     *
+     * @notimplementedyet
+     */
     protected canDelete(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> { return this.canPutImpl(arg); }
     protected canDeleteImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
         const lc = `${this.lc}[${this.canDeleteImpl.name}]`;
         throw new Error(`${lc} not implemented`);
     }
 
+    /**
+     * Centralized location for general argument validation for a given witness.
+     *
+     * In the case of spaces, this is where I usually put my common validation
+     * for various cases on cmd+modifier combinations.
+     *
+     * @returns validation error string, empty if no errors.
+     */
     protected async validateWitnessArg(arg: TOptionsIbGib): Promise<string[]> {
         const lc = `${this.lc}[${this.validateWitnessArg.name}]`;
         let errors: string[] = [];

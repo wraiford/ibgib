@@ -121,11 +121,18 @@
 			"}"
 		],
     },
-    "throw new error with guid": {
+    "throw with guid": {
         "scope": "javascript,typescript",
-		"prefix": "throw_new_error_with_guid",
+		"prefix": "throw_with_guid",
 		"body": [
-			"throw new Error(`$1 (E: $RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$CURRENT_YEAR_SHORT)`); $0"
+			"$0throw new Error(`$1 (E: $RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$CURRENT_YEAR_SHORT)`); "
+		],
+    },
+    "if..throw with guid": {
+        "scope": "javascript,typescript",
+		"prefix": "if_throw_with_guid",
+		"body": [
+			"$0if ($1) { throw new Error(`$2 (E: $RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$CURRENT_YEAR_SHORT)`); }"
 		],
     },
     "log if logalot": {

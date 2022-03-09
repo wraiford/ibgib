@@ -4,7 +4,7 @@ import {
 const { Filesystem } = Plugins;
 
 import {
-    IbGib_V1, IbGibRel8ns_V1, sha256v1, IBGIB_DELIMITER,
+    IbGib_V1, IbGibRel8ns_V1, sha256v1, IBGIB_DELIMITER, GIB,
 } from 'ts-gib/dist/V1';
 import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
@@ -18,7 +18,8 @@ import {
     IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns,
 } from '../../types';
 import * as c from '../../constants';
-import { getBinHashAndExt, getSpaceIb, isBinary } from '../../helper';
+import { getBinHashAndExt, getSpaceIb, getTjpIbGib, isBinary,  } from '../../helper';
+import { getSpecialIbGib } from '../../helper/space';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -643,6 +644,109 @@ export class IonicSpace_V1<
         throw new Error(`${lc} not implemented (E: a3306138b4ac429ba5f8f293ad7dd07b)`);
     }
 
+    protected async getLatestAddrsImpl(arg: IonicSpaceOptionsIbGib):
+        Promise<IonicSpaceResultIbGib> {
+        const lc = `${this.lc}[${this.getLatestAddrsImpl.name}]`;
+        const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+
+            const latestAddrs = new Set<IbGibAddr>();
+            const addrsNotFound = new Set<IbGibAddr>();
+            const addrsErrored = new Set<IbGibAddr>();
+
+            // iterate through incoming ibGibAddrs, get their corresponding
+            // ibgib from ionic ("file") storage, and use our existing
+            // `getLatestAddr` function
+            for (let i = 0; i < arg.data.ibGibAddrs.length; i++) {
+                const addr = arg.data.ibGibAddrs[i];
+                debugger; // put in ib^gib and see what error pops up when not found
+                const getResult = await this.getFile({addr});
+                if (getResult?.success && getResult.ibGib) {
+                    const ibGib = getResult.ibGib!;
+                    const latestAddr = await this.getLatestAddr_Yo({ibGib});
+                    if (latestAddr) {
+                        latestAddrs.add(latestAddr);
+                    } else {
+                        debugger; // til tested
+                        console.warn(`expecting latestAddr to either be assigned or throw. Adding addr (${addr}) to addrsErrored. (W: 35c3712b1a1e579ccf28c389eb2ecc22)`);
+                        addrsErrored.add(addr);
+                    }
+                } else if (getResult?.success) {
+                    addrsNotFound.add(addr);
+                } else if (getResult.errorMsg) {
+                    debugger;
+                    addrsErrored.add(addr);
+                } else {
+                    debugger;
+                    throw new Error(`unknown (invalid) getResult: ${h.pretty(getResult)} (E: 2674ad5d30294be29a3d3fdcf54ef6d9)`);
+                }
+            }
+
+            resultData.addrs = latestAddrs.size > 0 ? [...latestAddrs] : undefined;
+            resultData.addrsErrored = addrsErrored.size > 0 ? [...addrsErrored] : undefined;
+            resultData.addrsNotFound = addrsNotFound.size > 0 ? [...addrsNotFound] : undefined;
+        } catch (error) {
+            const emsg = `${lc} ${error.message}`;
+            console.error(emsg);
+            resultData.errors = [emsg];
+        }
+        try {
+            let result = await this.resulty({resultData});
+            return result;
+        } catch (error) {
+            console.error(`${lc}[resulty] ${error.message}`);
+            throw error;
+        }
+    }
+
+    /**
+     * Ionic space uses a special ibgib "latest" to track the latest ibgibs in
+     * timelines locally.
+     *
+     * @returns latest addr in this space according to the "latest" special ibgib index
+     */
+    private async getLatestAddr_Yo({
+        ibGib,
+    }: {
+        ibGib: IbGib_V1,
+    }): Promise<IbGibAddr> {
+        let lc = `${this.lc}[${this.getLatestAddr_Yo.name}]`;
+        if (logalot) { console.log(`${lc} starting...`); }
+        try {
+            if (!ibGib) { throw new Error(`ibGib required (E: 1f8f0cb61d1b4c708b06762048735c22)`); }
+
+            // latest addr is indexed by tjpAddr, so we need to get this first...
+            let ibGibAddr = h.getIbGibAddr({ibGib});
+            if (ibGib.gib === GIB) { return ibGibAddr; }
+
+            // get the tjp for the rel8nName mapping, and also for some checking logic
+            let tjp = await getTjpIbGib({ibGib, space: this});
+            if (!tjp) {
+                console.warn(`${lc} tjp not found for ${ibGibAddr}? Should at least just be the ibGib's address itself. (W: 860bdcaaf80548feb6b61b4cde21a722)`);
+                tjp = ibGib;
+            }
+            const tjpAddr = h.getIbGibAddr({ibGib: tjp});
+            if (logalot) { console.log(`${lc} tjp (${tjpAddr}) (I: 5245a2ec85a943f98479e93a32d67f22)`); }
+
+            const specialLatest = await getSpecialIbGib({type: "latest", space: this});
+            if (!specialLatest) { throw new Error(`(UNEXPECTED) specialLatest falsy. Not initialized? (E: 3f475efb6b1b4447a0b002461304bbce)`); }
+            if (!specialLatest.rel8ns) { specialLatest.rel8ns = {}; }
+            if (logalot) { console.log(`${lc} specialLatest addr: ${h.getIbGibAddr({ibGib: specialLatest})}`); }
+
+            const latestAddr = specialLatest.rel8ns[tjpAddr]?.length > 0 ?
+                specialLatest.rel8ns[tjpAddr][0] :
+                ibGibAddr;
+
+            return latestAddr;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
     /**
      * Extremely crude implementation that just
      * saves the ibgibs alongside existing data.
@@ -798,7 +902,7 @@ export class IonicSpace_V1<
     }: GetIbGibFileOpts): Promise<GetIbGibFileResult> {
         let lc = `${this.lc}[${this.getFile.name}(${addr})]`;
 
-        const tryRead: (p:string, data: any) => Promise<FileReadResult> = async (p, data) => {
+        const tryRead: (p:string, data: any) => Promise<FileReadResult|null> = async (p, data) => {
             const lcTry = `${lc}[${tryRead.name}]`;
             try {
                 if (logalot) {
@@ -861,7 +965,8 @@ export class IonicSpace_V1<
             }
             if (!resRead) {
                 if (logalot) { console.log(`${lc} paths not found: ${JSON.stringify(paths)} (I: 6a3bd3b125619da7a944200b14e7e922)`); }
-                return;
+                // will return success since it's not really an error, but ibgib
+                // will not be populated, indicating the addr was not found.
             }
             if (!addrIsBin) {
                 // ibGib(s) retrieved

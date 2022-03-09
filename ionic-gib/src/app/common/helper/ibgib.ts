@@ -15,7 +15,7 @@ import { validateIb } from './validate';
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { groupBy } from './utils';
 
-// const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 /**
  * Utility function to generate hard-coded ibgibs to use at runtime "on-chain" but
@@ -194,17 +194,17 @@ export async function hash16816({
     }
 }
 
-export function getSpecialIbgibIb({type}: {type: SpecialIbGibType}): Ib {
+export function getSpecialIbGibIb({type}: {type: SpecialIbGibType}): Ib {
     return `meta special ${type}`;
 }
 
-export function getSpecialIbgibAddr({type}: {type: SpecialIbGibType}): string {
-    const ib = getSpecialIbgibIb({type});
+export function getSpecialIbGibAddr({type}: {type: SpecialIbGibType}): string {
+    const ib = getSpecialIbGibIb({type});
     return `${ib}^${GIB}`;
 }
 
 export function getSpecialConfigKey({type}: {type: SpecialIbGibType}): string {
-    return `config_key ${getSpecialIbgibAddr({type})}`;
+    return `config_key ${getSpecialIbGibAddr({type})}`;
 }
 
 /**
@@ -511,3 +511,39 @@ export function mergeMapsOrArrays_Naive<T extends {}|any[]>({
         throw error;
     }
 };
+
+/**
+ * Returns true if the given {@param ibGib} is the temporal junction
+ * point for a given ibGib timeline.
+ */
+export async function isTjp_Naive({
+    ibGib,
+    naive = true,
+}: {
+    ibGib: IbGib_V1<any>,
+    naive?: boolean,
+}): Promise<boolean> {
+    const lc = `[${isTjp_Naive.name}]`;
+    try {
+        if (!ibGib) { throw new Error('ibGib required.'); }
+        if (naive) {
+            if (ibGib.data) {
+                if (ibGib.data.isTjp) { return true; }
+                if (!ibGib.rel8ns) {
+                    if (logalot) { console.log(`${lc} ibGib.rel8ns falsy (I: c69c9e78b34845311ce7c674d7195622)`); }
+                    return false;
+                }
+                if (ibGib.rel8ns.past && ibGib.rel8ns.past.length > 0) { return false; }
+                if (ibGib.rel8ns.past && ibGib.rel8ns.past.length === 0) { return true; }
+                return false;
+            } else {
+                throw new Error('loaded ibGib required (data).');
+            }
+        } else {
+            throw new Error('only naive implemented right now.');
+        }
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}

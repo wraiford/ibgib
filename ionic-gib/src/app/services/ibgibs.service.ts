@@ -43,6 +43,7 @@ import {
   getValidatedBootstrapIbGib, getLocalSpace, execInSpaceWithLocking,
   updateBootstrapIbGib,
   getSpaceArgMetadata,
+  getLatestAddrs,
 } from '../common/helper';
 import { AppSpaceData, AppSpaceRel8ns } from '../common/types/app';
 import {
@@ -292,19 +293,19 @@ export class IbgibsService {
 
       await this.initializeLocalSpaces();
 
-      await this.getSpecialIbgib({type: "latest", initialize: true});
+      await this.getSpecialIbGib({type: "latest", initialize: true});
 
-      await this.getSpecialIbgib({type: "roots", initialize: true});
+      await this.getSpecialIbGib({type: "roots", initialize: true});
 
-      await this.getSpecialIbgib({type: "tags", initialize: true});
+      await this.getSpecialIbGib({type: "tags", initialize: true});
 
-      await this.getSpecialIbgib({type: "secrets", initialize: true});
+      await this.getSpecialIbGib({type: "secrets", initialize: true});
 
-      await this.getSpecialIbgib({type: "encryptions", initialize: true});
+      await this.getSpecialIbGib({type: "encryptions", initialize: true});
 
-      await this.getSpecialIbgib({type: "outerspaces", initialize: true});
+      await this.getSpecialIbGib({type: "outerspaces", initialize: true});
 
-      await this.getSpecialIbgib({type: "outerspaces", initialize: true});
+      await this.getSpecialIbGib({type: "outerspaces", initialize: true});
 
       this._initialized = true;
     } catch (error) {
@@ -633,7 +634,7 @@ export class IbgibsService {
         if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 5fd759510e584cb69b232259b891cca1)`); }
         await h.delay(100);
       }
-      const roots = await this.getSpecialIbgib({type: "roots", space});
+      const roots = await this.getSpecialIbGib({type: "roots", space});
       if (!roots) {
         throw new Error(`Roots not initialized. (E: e7712dc3d183487e98cd44a2b4324bc2)`);
       }
@@ -734,7 +735,7 @@ export class IbgibsService {
    * @see {@link createSpecial}
    * @see {@link createTags}
    */
-  async getSpecialIbgib({
+  async getSpecialIbGib({
     type,
     initialize,
     space,
@@ -743,7 +744,7 @@ export class IbgibsService {
     initialize?: boolean,
     space?: IbGibSpaceAny,
   }): Promise<IbGib_V1 | null> {
-    const lc = `${this.lc}[${this.getSpecialIbgib.name}]`;
+    const lc = `${this.lc}[${this.getSpecialIbGib.name}]`;
     try {
       space = space ?? await this.getLocalUserSpace({});
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: e08e85d8422e479f9d101194fd26cbda)`); }
@@ -1003,10 +1004,9 @@ export class IbgibsService {
     tjpAddr?: IbGibAddr,
     tjp?: IbGib_V1<any>,
     space?: IbGibSpaceAny,
-  }): Promise<IbGibAddr> {
+  }): Promise<IbGibAddr|undefined> {
     let lc = `${this.lc}[${this.getLatestAddr.name}]`;
     if (logalot) { console.log(`${lc} starting...`); }
-    let defaultReturnAddrIfTjpNotFoundOrIfError: IbGibAddr;
     try {
       if (!ibGib && !tjp && !tjpAddr) {
         throw new Error(`ibGib && tjp && tjpAddr falsy (E: fe725654342c4d80a33219160b5d81d3)`);
@@ -1015,49 +1015,35 @@ export class IbgibsService {
       space = space ?? await this.getLocalUserSpace({});
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: fd01bb85e91f4c54bfe8b35714d48a38)`); }
 
-      // latest addr is indexed by tjpAddr, so we need to get this first...
-      if (tjpAddr) {
-        defaultReturnAddrIfTjpNotFoundOrIfError = ibGib ? h.getIbGibAddr({ibGib}) : tjpAddr;
-      } else {
-        if (tjp) {
-          if (logalot) { console.log(`${lc} tjp: ${JSON.stringify(tjp)}`); }
-          tjpAddr = h.getIbGibAddr({ibGib: tjp});
-          defaultReturnAddrIfTjpNotFoundOrIfError = ibGib ? h.getIbGibAddr({ibGib}) : tjpAddr;
+      const resGetLatest = await getLatestAddrs({
+        ibGibs: ibGib ? [ibGib] : undefined,
+        tjpAddrs: tjpAddr ? [tjpAddr] : undefined,
+        tjps: tjp ? [tjp] : undefined,
+        space,
+      });
+
+      if (!resGetLatest) { throw new Error(`resGetLatest falsy (E: 3851bbe4427ae11771f222234e8c6622)`); }
+      if (!resGetLatest.data) { throw new Error(`invalid resGetLatest: data falsy (E: 134e0f1f65edc69c6951c32e00a4bb22)`); }
+      if (resGetLatest.data.success) {
+        debugger;
+        if (resGetLatest.data.addrs?.length === 1) {
+          return resGetLatest.data.addrs[0];
+        } else if (resGetLatest.data.addrsNotFound?.length === 1) {
+          return undefined;
+        } else if (resGetLatest.data.addrsErrored?.length === 1) {
+          const emsg = resGetLatest.data.errors?.join('|') ?? "[unspecified error(s)] (E: 24f338036aa84ac99e3c39a660207222)";
+          throw new Error(`resGetLatest had error(s): ${emsg}`);
         } else {
-          // ibGib guaranteed not to be falsy
-          // need to get tjpAddr from ibGib
-          let ibGibAddr = h.getIbGibAddr({ibGib});
-          if (ibGib.gib === GIB) { return ibGibAddr; }
-
-          // get the tjp for the rel8nName mapping, and also for some checking logic
-          tjp = await this.getTjpIbGib({ibGib, space});
-          if (!tjp) {
-            console.warn(`${lc} tjp not found for ${ibGibAddr}? Should at least just be the ibGib's address itself.`);
-            tjp = ibGib;
-          }
-          tjpAddr = h.getIbGibAddr({ibGib: tjp});
-          if (logalot) { console.log(`${lc} tjp (${tjpAddr})`); }
-          defaultReturnAddrIfTjpNotFoundOrIfError = ibGib ? ibGibAddr : tjpAddr;
+          debugger;
+          throw new Error(`unknown error, invalid resGetLatest: ${h.pretty(resGetLatest)} (E: 6aa5aa225ebf49b588664370cb8feb22)`);
         }
+      } else {
+        const emsg = resGetLatest.data.errors?.join('|') ?? "[unspecified error(s)] (E: dcd6dcd6ec052fd112a4d48f1afa2922)";
+        throw new Error(`resGetLatest had error(s): ${emsg}`);
       }
-
-      let specialLatest = await this.getSpecialIbgib({type: "latest", space});
-      if (!specialLatest) { throw new Error(`(UNEXPECTED) specialLatest falsy. Not initialized? (E: 3f475efb6b1b4447a0b002461304bbce)`); }
-      if (!specialLatest.rel8ns) { specialLatest.rel8ns = {}; }
-      if (logalot) { console.log(`${lc} specialLatest addr: ${h.getIbGibAddr({ibGib: specialLatest})}`); }
-
-      let latestAddr = specialLatest.rel8ns[tjpAddr]?.length > 0 ?
-        specialLatest.rel8ns[tjpAddr][0] :
-        defaultReturnAddrIfTjpNotFoundOrIfError;
-
-      return latestAddr;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-      if (defaultReturnAddrIfTjpNotFoundOrIfError) {
-        return defaultReturnAddrIfTjpNotFoundOrIfError;
-      } else {
-        throw error;
-      }
+      throw error;
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
     }
