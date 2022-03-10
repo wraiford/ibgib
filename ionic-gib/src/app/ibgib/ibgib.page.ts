@@ -329,7 +329,6 @@ export class IbGibPage extends IbgibComponentBase
         message: `${body}\n\nProceed?\n\n${note}`,
       });
 
-
       if (!resConfirmSync.value) {
         await Modals.alert({title: 'Sync cancelled.', message: 'Sync has been cancelled.'});
         this.item.syncing = false;
@@ -392,6 +391,11 @@ export class IbGibPage extends IbgibComponentBase
             });
           }
         });
+      } else {
+        if (logalot) { console.log(`${lc} user cancelled sync. returning... (I: 7e0cd20a9796ff5b0a8afd2d14ff6a22)`); }
+        this.item.syncing = false;
+        setTimeout(() => this.ref.detectChanges(), 200);
+        return; // <<<< returns
       }
 
       // won't turn on autosync until the sync succeeds
@@ -798,7 +802,7 @@ export class IbGibPage extends IbgibComponentBase
   private async execPollLatest_Local(): Promise<void> {
     const lc = `${this.lc}[${this.execPollLatest_Local.name}]`;
     // return early if busy with some other job...
-    if (this.syncing) {
+    if (this.syncing || this.common.ibgibs.syncing) {
       if (logalot) { console.log(`${lc} currently syncing, so skipping poll call.`); }
       return; // <<<< returns
     } else if (this.refreshing) {
@@ -906,6 +910,7 @@ export class IbGibPage extends IbgibComponentBase
       return; // <<<< returns
     } else if (this.tjpUpdatesAvailableCount_Store > 0) {
       if (logalot) { console.log(`${lc} updates already available, so skipping poll call. (I: dcc433c400134ee45773c81c9af4fb22)`); }
+      setTimeout(() => this.ref.detectChanges());
       return; // <<<< returns
     }
 
@@ -970,6 +975,7 @@ export class IbGibPage extends IbgibComponentBase
         }
         if (runningDiffCountAcrossAllSpaces > 0) {
           this.tjpUpdatesAvailableCount_Store = runningDiffCountAcrossAllSpaces;
+          setTimeout(() => this.ref.detectChanges());
         }
       } else {
         if (logalot) { console.log(`${lc} this ibgib has no tjp. stopping further polling. (I: 5e79aba1ffb6490eb89994fa2415e4d4)`); }

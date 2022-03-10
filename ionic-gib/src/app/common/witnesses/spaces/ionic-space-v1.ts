@@ -654,19 +654,20 @@ export class IonicSpace_V1<
             const latestAddrs = new Set<IbGibAddr>();
             const addrsNotFound = new Set<IbGibAddr>();
             const addrsErrored = new Set<IbGibAddr>();
+            resultData.latestAddrsMap = {};
 
             // iterate through incoming ibGibAddrs, get their corresponding
             // ibgib from ionic ("file") storage, and use our existing
             // `getLatestAddr` function
             for (let i = 0; i < arg.data.ibGibAddrs.length; i++) {
                 const addr = arg.data.ibGibAddrs[i];
-                debugger; // put in ib^gib and see what error pops up when not found
                 const getResult = await this.getFile({addr});
                 if (getResult?.success && getResult.ibGib) {
                     const ibGib = getResult.ibGib!;
                     const latestAddr = await this.getLatestAddr_Yo({ibGib});
                     if (latestAddr) {
                         latestAddrs.add(latestAddr);
+                        resultData.latestAddrsMap[addr] = latestAddr;
                     } else {
                         debugger; // til tested
                         console.warn(`expecting latestAddr to either be assigned or throw. Adding addr (${addr}) to addrsErrored. (W: 35c3712b1a1e579ccf28c389eb2ecc22)`);
@@ -674,6 +675,7 @@ export class IonicSpace_V1<
                     }
                 } else if (getResult?.success) {
                     addrsNotFound.add(addr);
+                    resultData.latestAddrsMap[addr] = null;
                 } else if (getResult.errorMsg) {
                     debugger;
                     addrsErrored.add(addr);
@@ -686,6 +688,9 @@ export class IonicSpace_V1<
             resultData.addrs = latestAddrs.size > 0 ? [...latestAddrs] : undefined;
             resultData.addrsErrored = addrsErrored.size > 0 ? [...addrsErrored] : undefined;
             resultData.addrsNotFound = addrsNotFound.size > 0 ? [...addrsNotFound] : undefined;
+
+            // we didn't throw, so that's a success
+            resultData.success = true;
         } catch (error) {
             const emsg = `${lc} ${error.message}`;
             console.error(emsg);
@@ -908,7 +913,6 @@ export class IonicSpace_V1<
                 if (logalot) {
                     if (addr.includes('bootstrap^gib')) {
                         console.log(`${lc} trying bootstrap^gib...`);
-                        // debugger;
                     }
                 }
                 const resRead = await Filesystem.readFile({
@@ -963,18 +967,19 @@ export class IonicSpace_V1<
                 let x = await tryRead(tryPath, data);
                 if (x?.data) { resRead = x; break; }
             }
-            if (!resRead) {
+            if (resRead) {
+                if (!addrIsBin) {
+                    // ibGib(s) retrieved
+                    result.ibGib = <IbGib_V1>JSON.parse(resRead.data);
+                } else {
+                    // bin
+                    const { ib, gib } = h.getIbAndGib({ibGibAddr: addr});
+                    result.ibGib = { ib, gib, data: resRead.data, };
+                }
+            } else {
                 if (logalot) { console.log(`${lc} paths not found: ${JSON.stringify(paths)} (I: 6a3bd3b125619da7a944200b14e7e922)`); }
                 // will return success since it's not really an error, but ibgib
                 // will not be populated, indicating the addr was not found.
-            }
-            if (!addrIsBin) {
-                // ibGib(s) retrieved
-                result.ibGib = <IbGib_V1>JSON.parse(resRead.data);
-            } else {
-                // bin
-                const { ib, gib } = h.getIbAndGib({ibGibAddr: addr});
-                result.ibGib = { ib, gib, data: resRead.data, };
             }
 
             result.success = true;

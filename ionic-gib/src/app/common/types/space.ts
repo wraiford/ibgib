@@ -286,6 +286,16 @@ export interface IbGibSpaceResultData {
      */
     addrsErrored?: IbGibAddr[];
     /**
+     * Result map used when
+     *
+     * Mapping of incoming ibGibAddr -> latestAddr | null
+     *
+     * If there is a tjp/timeline -> maps to the latest in the store.
+     * If there is no tjp -> maps to the incoming addr.
+     * If the incoming addr is not found in the store -> maps to null.
+     */
+    latestAddrsMap?: { [addr: string]: IbGibAddr | null }
+    /**
      * Map of TjpAddr -> newer LatestIbGibAddr notification.
      *
      * ## about

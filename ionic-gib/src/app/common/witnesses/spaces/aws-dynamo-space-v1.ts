@@ -2007,7 +2007,7 @@ export class AWSDynamoSpace_V1<
      * The map is composed with the incoming ibGib addr as the key and the latest
      * address or `undefined` as the value.
      *
-     * @returns a map of incoming ibGib addr's -> latest addr | `undefined`
+     * @returns a map of incoming ibGib addr's -> latest addr | `null`
      */
     protected async getLatestIbGibAddrsInStore({
         client,
@@ -2047,24 +2047,28 @@ export class AWSDynamoSpace_V1<
             const tjpIbGibs = ibGibsWithTjp.filter(x => x.data.isTjp); // ASSUMES ONLY ONE TJP ATOW!
 
             // Do the tjp part, this mutates resLatestMap
-            await this.getLatestIbGibAddrsInStore_Tjp({
-                client, warnings, errors,
-                tjpIbGibs, ibGibsWithTjpGroupedByTjpAddr, resLatestMap
-            })
+            if (tjpIbGibs?.length > 0) {
+                await this.getLatestIbGibAddrsInStore_Tjp({
+                    client, warnings, errors,
+                    tjpIbGibs, ibGibsWithTjpGroupedByTjpAddr, resLatestMap
+                });
 
-            if (logalot) { console.log(`${lc} resLatestMap: ${h.pretty(resLatestMap)}`); }
+                if (logalot) { console.log(`${lc} resLatestMap: ${h.pretty(resLatestMap)}`); }
 
-            // at this point, resLatestMap should have mappings for all incoming
-            // ibgibs with tjps, including any tjps proper (n=0).
-            if (Object.keys(resLatestMap).length !== ibGibsWithTjp.length) {
-                console.warn(`${lc}(UNEXPECTED) resLatestMap size is not equal to size of tjp ibgibs(?) (W: 9e07d44c527f49b48fb9320422a70481)`);
+                // at this point, resLatestMap should have mappings for all incoming
+                // ibgibs with tjps, including any tjps proper (n=0).
+                if (Object.keys(resLatestMap).length !== ibGibsWithTjp.length) {
+                    console.warn(`${lc}(UNEXPECTED) resLatestMap size is not equal to size of tjp ibgibs(?) (W: 9e07d44c527f49b48fb9320422a70481)`);
+                }
             }
 
             // Do the non-tjp part, this mutates resLatestMap
-            await this.getLatestIbGibAddrsInStore_NonTjp({
-                client, warnings, errors,
-                ibGibsWithoutTjp, resLatestMap
-            });
+            if (ibGibsWithoutTjp.length > 0) {
+                await this.getLatestIbGibAddrsInStore_NonTjp({
+                    client, warnings, errors,
+                    ibGibsWithoutTjp, resLatestMap
+                });
+            }
 
             // at this point, our resLatestMap should be completely filled for
             // all incoming ibGibs.
@@ -2947,44 +2951,65 @@ export class AWSDynamoSpace_V1<
         try {
             if (logalot) { console.log(`${lc} starting...`); }
 
-            const latestAddrs = new Set<IbGibAddr>();
-            const addrsNotFound = new Set<IbGibAddr>();
-            const addrsErrored = new Set<IbGibAddr>();
+            // #region initialize
+
+            const latestAddrs: IbGibAddr[] = [];
+            const addrsNotFound: IbGibAddr[] = [];
+            const addrsErrored: IbGibAddr[] = [];
+
+            const client = createDynamoDBClient({
+                accessKeyId: this.data.accessKeyId,
+                secretAccessKey: this.data.secretAccessKey,
+                region: this.data.region,
+            });
+
+            // #endregion initialize
 
             /** This is a map of incoming ibGibAddr -> corresponding ibGib */
-            const incomingAddrIbGibMap: { [addr: string]: IbGib_V1 } = {};
-
-            // iterate through incoming ibGibAddrs, get their corresponding
-            // ibgib from ionic ("file") storage, and use our existing
-            // `getLatestAddr` function
-            for (let i = 0; i < arg.data.ibGibAddrs.length; i++) {
-                const addr = arg.data.ibGibAddrs[i];
-                debugger; // put in ib^gib and see what error pops up when not found
-                const getResult = await this.getIbGibs({ibGibAddrs: [addr]});
-                if (getResult?.success && getResult.ibGib) {
-                    const ibGib = getResult.ibGib!;
-                    const latestAddr = await this.getLatestAddr_Yo({ibGib});
-                    if (latestAddr) {
-                        latestAddrs.add(latestAddr);
-                    } else {
-                        debugger; // til tested
-                        console.warn(`expecting latestAddr to either be assigned or throw. Adding addr (${addr}) to addrsErrored. (W: 35c3712b1a1e579ccf28c389eb2ecc22)`);
-                        addrsErrored.add(addr);
-                    }
-                } else if (getResult?.success) {
-                    addrsNotFound.add(addr);
-                } else if (getResult.errorMsg) {
-                    debugger;
-                    addrsErrored.add(addr);
-                } else {
-                    debugger;
-                    throw new Error(`unknown (invalid) getResult: ${h.pretty(getResult)} (E: 2674ad5d30294be29a3d3fdcf54ef6d9)`);
-                }
+            const errors: string[] = [];
+            const warnings_getIbGibs: string[] = [];
+            const ibGibs = await this.getIbGibs({
+                client,
+                ibGibAddrs: arg.data.ibGibAddrs,
+                addrsNotFound,
+                errors,
+                warnings: warnings_getIbGibs,
+            });
+            if (errors.length > 0) { throw new Error(`errors getting ibgibs: ${errors.join('|')} (E: e9271532d74646d3bdaf2c763d436622)`); }
+            if (warnings_getIbGibs.length > 0) {
+                console.warn(`${lc}[getIbGibs] warnings: ${warnings_getIbGibs.join('|')} (W: 62d18f251767434493338a7024fa7d22)`);
             }
 
-            resultData.addrs = latestAddrs.size > 0 ? [...latestAddrs] : undefined;
-            resultData.addrsErrored = addrsErrored.size > 0 ? [...addrsErrored] : undefined;
-            resultData.addrsNotFound = addrsNotFound.size > 0 ? [...addrsNotFound] : undefined;
+            // populate addrs not found map (will merge later)
+            let addrsNotFoundMap: { [addr: string]: IbGibAddr } = {};
+            addrsNotFound.forEach(addr => { addrsNotFoundMap[addr] = null; });
+
+            // of the ibgibs that WERE found, get the latest
+            const warnings_getLatestInStore: string[] = [];
+            const resGetLatestInStore = await this.getLatestIbGibAddrsInStore({
+                client,
+                ibGibs,
+                errors,
+                warnings: warnings_getLatestInStore,
+            });
+            if (errors.length > 0) { throw new Error(`resGetLatestInStore errors: ${errors.join('|')} (E: b5f26ea26aa043778389cd9ef2d13222)`); }
+            if (warnings_getIbGibs.length > 0) {
+                console.warn(`${lc}[getIbGibs] warnings: ${warnings_getIbGibs.join('|')} (W: 2c43e487ab9f4cf8b2eb3753ba6bb022)`);
+            }
+
+            // populate our result map with merger of two maps
+            resultData.latestAddrsMap = {
+                ...addrsNotFoundMap,
+                ...resGetLatestInStore,
+            };
+
+            // not sure if necessary, but I'm going ahead and populating these...
+            resultData.addrs = Object.values(resGetLatestInStore).filter(x => !!x);
+            resultData.addrsNotFound = addrsNotFound.length > 0 ?
+                addrsNotFound.concat() :
+                undefined;
+
+            resultData.success = true;
         } catch (error) {
             const emsg = `${lc} ${error.message}`;
             console.error(emsg);
@@ -2996,53 +3021,6 @@ export class AWSDynamoSpace_V1<
         } catch (error) {
             console.error(`${lc}[resulty] ${error.message}`);
             throw error;
-        }
-    }
-
-    /**
-     * Ionic space uses a special ibgib "latest" to track the latest ibgibs in
-     * timelines locally.
-     *
-     * @returns latest addr in this space according to the "latest" special ibgib index
-     */
-    private async getLatestAddr_Yo({
-        ibGib,
-    }: {
-        ibGib: IbGib_V1,
-    }): Promise<IbGibAddr> {
-        let lc = `${this.lc}[${this.getLatestAddr_Yo.name}]`;
-        if (logalot) { console.log(`${lc} starting...`); }
-        try {
-            if (!ibGib) { throw new Error(`ibGib required (E: 1f8f0cb61d1b4c708b06762048735c22)`); }
-
-            // latest addr is indexed by tjpAddr, so we need to get this first...
-            let ibGibAddr = h.getIbGibAddr({ibGib});
-            if (ibGib.gib === GIB) { return ibGibAddr; }
-
-            // get the tjp for the rel8nName mapping, and also for some checking logic
-            let tjp = await getTjpIbGib({ibGib, space: this});
-            if (!tjp) {
-                console.warn(`${lc} tjp not found for ${ibGibAddr}? Should at least just be the ibGib's address itself. (W: 860bdcaaf80548feb6b61b4cde21a722)`);
-                tjp = ibGib;
-            }
-            const tjpAddr = h.getIbGibAddr({ibGib: tjp});
-            if (logalot) { console.log(`${lc} tjp (${tjpAddr}) (I: 5245a2ec85a943f98479e93a32d67f22)`); }
-
-            const specialLatest = await getSpecialIbGib({type: "latest", space: this});
-            if (!specialLatest) { throw new Error(`(UNEXPECTED) specialLatest falsy. Not initialized? (E: 3f475efb6b1b4447a0b002461304bbce)`); }
-            if (!specialLatest.rel8ns) { specialLatest.rel8ns = {}; }
-            if (logalot) { console.log(`${lc} specialLatest addr: ${h.getIbGibAddr({ibGib: specialLatest})}`); }
-
-            const latestAddr = specialLatest.rel8ns[tjpAddr]?.length > 0 ?
-                specialLatest.rel8ns[tjpAddr][0] :
-                ibGibAddr;
-
-            return latestAddr;
-        } catch (error) {
-            console.error(`${lc} ${error.message}`);
-            throw error;
-        } finally {
-            if (logalot) { console.log(`${lc} complete.`); }
         }
     }
 
@@ -3442,6 +3420,11 @@ export class AWSDynamoSpace_V1<
             // that are currently in the store.
             const resLatestAddrsMap =
                 await this.getLatestIbGibAddrsInStore({client, ibGibs, errors, warnings});
+            if (errors.length > 0) { throw new Error(`[getLatestAddrsInStore] errors: ${errors.join('|')} (E: 0c929b53b906412781da867c68288b03)`); }
+            if (warnings.length > 0) {
+                console.warn(`${lc}[getLatestAddrsInStore] warnings: ${warnings.join('|')} (W: 9bca93caf1bd43218da0749a62c8f722) `)
+                warnings = [];
+            }
 
             // now that we have a map of local addr => latest store addr | null,
             // we will group our incoming ibgibs by tjp in preparation to

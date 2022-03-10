@@ -39,6 +39,9 @@
         (click)="handleSyncClick()">
         <ion-icon name="sparkles-outline"></ion-icon>
         <ion-spinner *ngIf="syncing" name="circles" color="tertiary"></ion-spinner>
+        <ion-badge *ngIf="tjpUpdatesAvailableCount_Store" color="primary" slot="end">
+          {{ tjpUpdatesAvailableCount_Store }}
+        </ion-badge>
       </ion-button>
       <ion-button [disabled]="refreshing"
         [ngClass]="{'active-btn':!paused}"

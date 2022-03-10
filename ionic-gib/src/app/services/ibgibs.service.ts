@@ -1025,12 +1025,12 @@ export class IbgibsService {
       if (!resGetLatest) { throw new Error(`resGetLatest falsy (E: 3851bbe4427ae11771f222234e8c6622)`); }
       if (!resGetLatest.data) { throw new Error(`invalid resGetLatest: data falsy (E: 134e0f1f65edc69c6951c32e00a4bb22)`); }
       if (resGetLatest.data.success) {
-        debugger;
         if (resGetLatest.data.addrs?.length === 1) {
           return resGetLatest.data.addrs[0];
         } else if (resGetLatest.data.addrsNotFound?.length === 1) {
           return undefined;
         } else if (resGetLatest.data.addrsErrored?.length === 1) {
+          debugger;
           const emsg = resGetLatest.data.errors?.join('|') ?? "[unspecified error(s)] (E: 24f338036aa84ac99e3c39a660207222)";
           throw new Error(`resGetLatest had error(s): ${emsg}`);
         } else {
@@ -1038,6 +1038,7 @@ export class IbgibsService {
           throw new Error(`unknown error, invalid resGetLatest: ${h.pretty(resGetLatest)} (E: 6aa5aa225ebf49b588664370cb8feb22)`);
         }
       } else {
+        debugger;
         const emsg = resGetLatest.data.errors?.join('|') ?? "[unspecified error(s)] (E: dcd6dcd6ec052fd112a4d48f1afa2922)";
         throw new Error(`resGetLatest had error(s): ${emsg}`);
       }
