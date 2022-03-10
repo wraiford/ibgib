@@ -154,6 +154,10 @@ export const ENCRYPTION_REL8N_NAME = 'encryption';
  */
 export const CIPHERTEXT_REL8N_NAME = 'ciphertext';
 export const CONSENSUS_REL8N_NAME = 'consensus';
+/**
+ * The primary rel8n name atm for the autosyncs feature.
+ */
+export const AUTOSYNC_ALWAYS_REL8N_NAME = 'always';
 
 export const CONSENSUS_ADDR_SYNC_NAIVE_PUT_MERGE = 'sync naive put merge^gib'
 
@@ -393,7 +397,7 @@ export const DEFAULT_OUTER_SPACE_POLLING_INTERVAL_MS = 60_000;
 /**
  * Amount of time to delay for FIRST poll execution.
  */
-export const DEFAULT_OUTER_SPACE_POLLING_DELAY_FIRST_RUN_MS = 60_000;
+export const DEFAULT_OUTER_SPACE_POLLING_DELAY_FIRST_RUN_MS = 16_000;
 
 /**
  * AWS DynamoDB only allows 400K per item-ish.

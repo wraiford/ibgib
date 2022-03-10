@@ -96,7 +96,9 @@ export class IonicIbgibNavService implements IbgibNav {
       }
 
       // since we are handling our own stack information, we use `navigateRoot`
-      // which clears the stack with ionic nav.
+      // which clears the stack with ionic nav. atow, see app.routing to see
+      // that this instantiates an ibgib page component, which from testing
+      // creates a new ibgib page component each nav.
       await this.nav?.navigateRoot(['ibgib', toAddr], {
           queryParamsHandling,
           animated: false,

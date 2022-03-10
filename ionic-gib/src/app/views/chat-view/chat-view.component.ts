@@ -41,25 +41,30 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
   }
 
   ngOnInit() {
+  }
+
+  async updateItems(): Promise<void> {
+    await super.updateItems();
+
     // hack for demo purposes
     setTimeout(() => {
       if (document) {
         const list = document.getElementById('theList');
         if (list) {
+          console.log(`scrolling`);
           list.scrollTop = list.scrollHeight;
         }
       }
-    },700);
+    }, 4700);
   }
 
   ngOnDestroy() {}
 
   async itemClicked(item: IbgibItem): Promise<void> {
-    if (logalot) { console.log(`item: ${JSON.stringify(item, null, 2)}`); }
+    if (logalot) { console.log(`item: ${h.pretty(item)}`); }
     await this.go({
       toAddr: item.addr,
       fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
     });
-    // this.clicked.emit(item);
   }
 }

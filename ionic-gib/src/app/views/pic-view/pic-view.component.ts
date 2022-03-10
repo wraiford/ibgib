@@ -53,7 +53,7 @@ export class PicViewComponent
       this.clearItem();
     } finally {
       this.ref.detectChanges();
-      console.log(`${lc} updated.`);
+      if (logalot) { console.log(`${lc} updated (I: 85b00398f851cc57dc5aeda673ba5222)`); }
     }
   }
 

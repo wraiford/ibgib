@@ -1,6 +1,6 @@
 import {
   Component, OnInit, OnDestroy,
-  ChangeDetectorRef, ChangeDetectionStrategy, Input
+  ChangeDetectorRef, ChangeDetectionStrategy, Input, ViewChild
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
@@ -18,7 +18,7 @@ import { CommonService } from '../services/common.service';
 import { SPECIAL_URLS } from '../common/constants';
 import { LatestEventInfo, TjpIbGibAddr, } from '../common/types';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
-import { getFnAlert, } from '../common/helper';
+import { getDependencyGraph, getFnAlert, groupBy, splitPerTjpAndOrDna, } from '../common/helper';
 import { concatMap } from 'rxjs/operators';
 import { ChooseIconModalComponent, IconItem } from '../common/choose-icon-modal/choose-icon-modal.component';
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
@@ -130,54 +130,14 @@ export class IbGibPage extends IbgibComponentBase
     super.ngOnDestroy();
   }
 
-  /**
-   * If we have a new address that we're loading, then it may be an update to
-   * the existing tjp timeline. If so, then we want to keep the same autosync
-   * setting.
-   *
-   * If it's a different timeline, or doesn't have timeline at all, then we want
-   * to disable autosync.
-   *
-   * The sync polling loop checks for this value before starting each loop,
-   * so setting it to false will prevent any more loops from executing.
-   */
-  updateIbGib_Autosync({
-    oldTjpAddr: currTjpAddr,
-    oldAddr: currAddr,
-    newAddr,
-  }: {
-    oldTjpAddr: TjpIbGibAddr,
-    oldAddr: IbGibAddr,
-    newAddr: IbGibAddr,
-  }): void {
-    const lc = `${this.lc}[${this.updateIbGib_Autosync.name}]`;
-    try {
-      // we want to do things if we are updating the ibgib with the same tjpAddr
-      if (newAddr && currAddr && newAddr !== currAddr && currTjpAddr) {
-        const currAddrTjpGib = h.getIbAndGib({ibGibAddr: this.tjpAddr}).gib;
-        const newAddrTjpGib = getGibInfo({ibGibAddr: newAddr}).tjpGib;
-        if (!newAddrTjpGib) {
-          this.autosync = false;
-        } else if (newAddrTjpGib && newAddrTjpGib !== currAddrTjpGib) {
-          // we have a new tjp, see if it's turned on in ibgibs service.
-          this.autosync =
-            this.common.ibgibs.tjpGibsWithAutosyncTurnedOn.has(newAddrTjpGib);
-        } else if (newAddrTjpGib === currAddrTjpGib) {
-          if (logalot) { console.log(`${lc} newAddrTjpGib === currAddrTjpGib (${newAddrTjpGib}), so no change to autosync (I: 3b8a1774ec563c882a54efe41fdcc922)`); }
-        }
-      }
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    }
-  }
-
   async updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
     if (logalot) { console.log(`${lc} updating...`); }
     try {
-      const oldAddr = this.addr;
-      const oldTjpAddr = this.tjpAddr;
+      while (this.common.ibgibs.initializing) {
+        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 936911af9f942cbdde7de4bf65fef822)`); }
+        await h.delay(100);
+      }
       this.stopPollLatest_Local();
       this.stopPollLatest_Store();
       await super.updateIbGib(addr);
@@ -185,8 +145,12 @@ export class IbGibPage extends IbgibComponentBase
       await this.loadTjp();
       if (logalot) { console.log(`${lc} ibGib: ${pretty(this.ibGib)}`); }
       await this.loadItem();
-      if (this.tjp) { this.startPollLatest_Local(); }
-      this.updateIbGib_Autosync({oldTjpAddr, oldAddr, newAddr: addr});
+      if (this.tjp) {
+        this.startPollLatest_Local();
+        this.autosync = this.common.ibgibs.autosyncIsEnabled({tjp: this.tjp});
+      } else {
+        this.autosync = false;
+      }
       if (this.autosync) { this.startPollLatest_Store(); }
       this.updateIbGib_Paused();
       if (!this.paused && !this.ib.startsWith('bin.')) {
@@ -196,6 +160,7 @@ export class IbGibPage extends IbgibComponentBase
         });
       }
       document.title = this.item?.text ?? this.ibGib?.data?.text ?? this.gib;
+
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);
       this.clearItem();
@@ -217,15 +182,15 @@ export class IbGibPage extends IbgibComponentBase
 
     this.paramMapSub = this.activatedRoute.paramMap.subscribe(async map => {
       let addr = map.get('addr');
-      lc = `${lc}[${addr}]`;
-      if (logalot) { console.log(`${lc} new addr`) }
+      lc = `${lc}[paramMapSub]`;
+      if (logalot) { console.log(`${lc} new addr: ${addr}`); }
 
       if (!SPECIAL_URLS.includes((addr || "").toLowerCase()) && encodeURI(addr).includes('%5E')) {
         // normal handling for a normal ibGib is to update the page's ibgib
         // and load everything.
-        if (logalot) { console.log(`new paramMap. addr: ${addr}`); }
+        if (logalot) { console.log(`${lc} new paramMap. addr: ${addr}`); }
         if (addr !== this.addr) {
-          this.updateIbGib(addr);
+          await this.updateIbGib(addr);
         } else {
           // do nothing, it's the same as the current addr
         }
@@ -275,20 +240,49 @@ export class IbGibPage extends IbgibComponentBase
   }
 
   async handleSyncClick(): Promise<void> {
-    if (this.autosync) {
-      await this.handleSyncClick_TurnOffSyncing();
+    if (this.tjpUpdatesAvailableCount_Store) {
+      // just sync to get updates (skip anything to do with autosync)
+      await this.execSync({turnOnAutosyncing: false});
+    } else if (this.autosync) {
+      // no updates and autosync is already on, so disable autosyncing
+      await this.handleSyncClick_DisableAutoSyncing();
     } else {
-      await this.handleSyncClick_TurnOnSyncing();
+      // no updates and autosync is not not, so turn it on and sync
+      await this.execSync({turnOnAutosyncing: true});
     }
   }
 
-  async handleSyncClick_TurnOffSyncing(): Promise<void> {
-    const lc = `${this.lc}[${this.handleSyncClick_TurnOffSyncing.name}]`;
+  async handleSyncClick_DisableAutoSyncing(): Promise<void> {
+    const lc = `${this.lc}[${this.handleSyncClick_DisableAutoSyncing.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       this.autosync = false;
-      if (this.tjpAddr && this.common.ibgibs.tjpGibsWithAutosyncTurnedOn.has(this.tjpAddr)) {
-        this.common.ibgibs.tjpGibsWithAutosyncTurnedOn.delete(this.tjpAddr);
+
+      if (!this.tjp) {
+        await this.loadTjp();
+        if (!this.tjp) {
+          await Modals.alert({title: `No timeline`, message: `Hmm, we can't turn off syncing because this ibgib does not have a timeline to sync. We shouldn't have even asked you to stop syncing! Sorry about that.`});
+          throw new Error(`tried to turn off syncing for non-tjp ibgib (E: 50f8354976e3ae3867126e7d02b34d22)`);
+        }
+      }
+      const resConfirmDisableAutosync = await Modals.confirm({
+        title: `Disable autosync for this ibgib's timeline?`,
+        message: `Disable autosync for this ibgib's timeline until you re-enable it in the future?`,
+      });
+
+      if (resConfirmDisableAutosync.value) {
+        // sync requires the entire dependency graph of the current ibgib
+        const dependencyGraph =
+          await this.common.ibgibs.getDependencyGraph({ibGib: this.ibGib});
+
+        // pull out the tjp ibgibs, for which we will turn on autosync
+        const tjpIbGibs =
+          Object.values(dependencyGraph).filter(x => x.data.isTjp);
+
+        await this.common.ibgibs.disableAutosync({tjpIbGibs});
+      } else {
+        if (logalot) { console.log(`${lc} disable autosync cancelled. continuing to sync. (I: 61b9de6368cc45ef6825d831f6628722)`); }
+        await Modals.alert({title: `Cancelled`, message: `Turn OFF autosync CANCELLED.`});
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -311,38 +305,25 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
-  async handleSyncClick_TurnOnSyncing(): Promise<void> {
-    const lc = `${this.lc}[${this.handleSyncClick_TurnOnSyncing.name}]`;
+  async execSync({
+    turnOnAutosyncing,
+  }: {
+    turnOnAutosyncing: boolean,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.execSync.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
+      if (this.syncing) {
+        if (logalot) { console.log(`${lc} sync called, but already syncing. (I: e3d3b51b431ded802fc02a11478f7c22)`); }
+        return; // <<<< returns
+      }
       this.item.syncing = true;
+      this.ref.detectChanges();
 
       if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
       if (!this.tjpAddr) { console.warn(`${lc} tjpAddr is falsy. (W: 9336c52b8a8745f1b969cac6b4cdf4ca)`); }
 
-      // the user has not previously turned on autosync for this tjpAddr this session.
-      const body =
-        `This will TURN ON syncing for the current ibGib (${this.ib}) and ALL its related ibGibs to your outerspace(s).`;
-      const note = `(note: to turn off auto syncing, press the sync button again)`;
-      const resConfirmSync = await Modals.confirm({
-        title: 'Sync with outerspace?',
-        message: `${body}\n\nProceed?\n\n${note}`,
-      });
-
-      if (!resConfirmSync.value) {
-        await Modals.alert({title: 'Sync cancelled.', message: 'Sync has been cancelled.'});
-        this.item.syncing = false;
-        // this.autosync = false; // unnecessary?
-        return; // <<<< returns
-      }
-
-      // get newer ones
-
-      if (this.tjpAddr && !this.common.ibgibs.tjpGibsWithAutosyncTurnedOn.has(this.tjpAddr)) {
-        this.common.ibgibs.tjpGibsWithAutosyncTurnedOn.add(this.tjpAddr);
-      }
-
-      // get the latest
+      // check for if we're doing the latest, stop if it's not the latest.
       const latestAddr =
         await this.common.ibgibs.getLatestAddr({
           ibGib: this.ibGib,
@@ -359,9 +340,38 @@ export class IbGibPage extends IbgibComponentBase
         return; // <<<< returns
       }
 
-      // publish this one
+      // sync requires the entire dependency graph of the current ibgib
       const dependencyGraph =
         await this.common.ibgibs.getDependencyGraph({ibGib: this.ibGib});
+
+      // pull out the tjp ibgibs, for which we will turn on autosync
+      const tjpIbGibs =
+        Object.values(dependencyGraph).filter(x => x.data.isTjp);
+
+      // turn on autosyncing if that's asked for by caller
+      if (turnOnAutosyncing) {
+        // prompt the user to turn on autosync. if not, then return early
+        const body =
+          `This will TURN ON auto syncing for the current ibGib (${this.ib}) and ALL its related ibGibs to your outerspace(s).`;
+        const note = `(note: to turn off auto syncing, press the sync button again)`;
+        const listTjpIbs = `List of ${tjpIbGibs.length} other tjp ibs that will autosync:\n${tjpIbGibs.map(x => x.ib).join('\n')}`;
+        const resConfirmSync = await Modals.confirm({
+          title: 'Sync with outerspace?',
+          message: `${body}\n\nProceed?\n\n${note}\n\n${listTjpIbs}`,
+        });
+        if (!resConfirmSync.value) {
+          await Modals.alert({title: 'Sync cancelled.', message: 'Sync has been cancelled.'});
+          this.item.syncing = false;
+          // this.autosync = false; // unnecessary?
+          return; // <<<< returns
+        }
+
+        // enable autosync for regardless of first-run success, but do not start
+        // polling or turn on this.autosync until success
+        await this.common.ibgibs.enableAutosync({tjpIbGibs});
+      }
+
+      // initiate syncing
       const sagaInfos = await this.common.ibgibs.syncIbGibs({
         dependencyGraphIbGibs: Object.values(dependencyGraph),
         watch: true,
@@ -373,6 +383,7 @@ export class IbGibPage extends IbgibComponentBase
             const info = sagaInfos[i];
             info.syncStatus$.subscribe(status => {
               // do nothing atm as this is handled in ibgibs.service
+              if (logalot) { console.log(`${lc} status update, code: ${status?.data?.statusCode} (I: 1d26927edd789353bf9350f436d29922)`); }
             },
             error => {
               const emsg = typeof error === 'string' ?
@@ -382,6 +393,7 @@ export class IbGibPage extends IbgibComponentBase
               reject(new Error(emsg));
             },
             () => {
+              if (logalot) { console.log(`${lc} syncStatus$ complete handler (I: 7a99f3f44476e0b46892e53cc39d8322)`); }
               sagaCompleteOrErroredCount++;
               if (sagaCompleteOrErroredCount === sagaInfos.length) {
                 this.item.syncing = false;
@@ -398,9 +410,11 @@ export class IbGibPage extends IbgibComponentBase
         return; // <<<< returns
       }
 
-      // won't turn on autosync until the sync succeeds
-      this.autosync = true;
-      this.startPollLatest_Store();
+      if (turnOnAutosyncing) {
+        // won't turn on autosync until the sync succeeds
+        this.autosync = true;
+        this.startPollLatest_Store();
+      }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       this.item.syncing = false;
@@ -834,7 +848,7 @@ export class IbGibPage extends IbgibComponentBase
               this.tjpUpdatesAvailableCount_Local = diff;
               setTimeout(() => this.ref.detectChanges(), 100);
             } else {
-              console.warn(`${lc} latestIbGib registered is newer than current ibGib`);
+              console.warn(`${lc} latestIbGib registered is newer than current ibGib (W: 5250115b6f5d44968ae7a9e49c745d87)`);
             }
           }
         }
@@ -910,7 +924,10 @@ export class IbGibPage extends IbgibComponentBase
       return; // <<<< returns
     } else if (this.tjpUpdatesAvailableCount_Store > 0) {
       if (logalot) { console.log(`${lc} updates already available, so skipping poll call. (I: dcc433c400134ee45773c81c9af4fb22)`); }
-      setTimeout(() => this.ref.detectChanges());
+      setTimeout(() => this.ref.detectChanges(), 100);
+      setTimeout(() => this.ref.detectChanges(), 100);
+      setTimeout(() => this.ref.detectChanges(), 100);
+      setTimeout(() => this.ref.detectChanges(), 100);
       return; // <<<< returns
     }
 
@@ -925,48 +942,65 @@ export class IbGibPage extends IbgibComponentBase
           unwrapEncrypted: true,
           createIfNone: true,
         });
-        const syncSpaceIds = appSyncSpaces.map(space => space?.data?.uuid);
+        const syncSpaceIds = appSyncSpaces.map(syncSpace => syncSpace?.data?.uuid);
         if (logalot) { console.log(`${lc} syncSpaceIds: ${syncSpaceIds} (I: 141f050b682f1a1a23ebb06c69b2c422)`); }
 
         // look in each space (in parallel) for a newer latest address for a tjp
-        const spacesAndGetLatestAddrPromises = appSyncSpaces.map(space => {
+        const spacesAndGetLatestAddrPromises = appSyncSpaces.map(syncSpace => {
           // note this does NOT await, so we can await all in parallel
           return <[IbGibSpaceAny, Promise<string>]>[
             // the space
-            space,
+            syncSpace,
             // the promise
-            this.common.ibgibs.getLatestAddr({tjpAddr: this.tjpAddr, space}),
+            this.common.ibgibs.getLatestAddr({tjpAddr: this.tjpAddr, space: syncSpace}),
           ];
         });
-        /** This will track the updates across all spaces. */
+        /** This will track the updates across all sync spaces. */
         let runningDiffCountAcrossAllSpaces = 0;
         await Promise.all(spacesAndGetLatestAddrPromises.map(([_, p]) => p));
         for (let i = 0; i < spacesAndGetLatestAddrPromises.length; i++) {
           const lc2 = `${lc}[getLatestAddr]`;
           try {
-            const [space, getLatestAddrPromise] = spacesAndGetLatestAddrPromises[i];
-            const spaceIb = space.ib;
+            const [syncSpace, getLatestAddrPromise] = spacesAndGetLatestAddrPromises[i];
+            const spaceIb = syncSpace.ib;
             if (!spaceIb) { throw new Error(`invalid space. ib required (E: 7194b47156afd9e492f7c4d8ea386d22)`); }
             if (logalot) { console.log(`${lc} doing spaceIb: ${spaceIb} (I: 5facc3c362540642ea78196778b05622)`); }
             const latestAddr = await getLatestAddrPromise;
+            if (logalot) { console.log(`${lc} latestAddr: ${latestAddr} (I: ebc8fac522767b94785ba4377f142f22)`); }
             if (latestAddr !== this.addr) {
               if (logalot) { console.log(`${lc} there is a new latest addr in the sync space. latestAddr: ${latestAddr} (I: 72cbfbb603b349f3a85b3265c679a9bf)`); }
               // get the latest but don't save it, we're just going to see how many
               // iterations we're behind.
               const resLatestIbGib =
-                await this.common.ibgibs.get({addr: latestAddr, space});
+                await this.common.ibgibs.get({addr: latestAddr, space: syncSpace});
               if (resLatestIbGib.success && resLatestIbGib.ibGibs?.length > 0) {
                 const latestIbGib = resLatestIbGib.ibGibs[0];
                 const currentPastLength = this.ibGib.rel8ns?.past?.length ?? 0;
-                const latestPastLength = latestIbGib.rel8ns?.past?.length ?? 0;
-                const diff = latestPastLength - currentPastLength;
+                const latestPastLength_Store = latestIbGib.rel8ns?.past?.length ?? 0;
+                const diff = latestPastLength_Store - currentPastLength;
                 if (diff > 0) {
-                  if (logalot) { console.log(`${lc} diff === ${diff} in spaceIb: ${spaceIb} (I: 7ca33c3361d54fb5918dea5ff1a5b1b5)`); }
+                  if (logalot) { console.log(`${lc} newer ibgib in store. diff === ${diff} in spaceIb: ${spaceIb} (I: 7ca33c3361d54fb5918dea5ff1a5b1b5)`); }
                   runningDiffCountAcrossAllSpaces += diff;
+                } else if (diff < 0) {
+                  if (this.autosync) {
+                    if (!this.syncing) {
+                      if (logalot) { console.log(`${lc} starting execSync automatically because local is newer than store latest ibgib... (I: d92f5c7a9bec749c4b4bd1b61a4a3e22)`); }
+                      await this.execSync({turnOnAutosyncing: false});
+                      if (logalot) { console.log(`${lc} executed sync, so aborting this poll call. (I: 9aa1a4dcba06bb6eee7db686a31ce822)`); }
+                    } else {
+                      if (logalot) { console.log(`${lc} local latestIbGib is newer than store, but already syncing in progress... (I: 029f69c149d614fb26412696efbcd122)`); }
+                    }
+                  } else {
+                    console.warn(`${lc} local latestIbGib registered is newer than latest ibGib in store but autosync is off. (W: 6941969946b04f539ba4f15c6b68ea22)`);
+                    runningDiffCountAcrossAllSpaces += Math.abs(diff);
+                  }
                 } else {
-                  console.warn(`${lc} latestIbGib registered is newer than current ibGib`);
+                  // equal
+                  if (logalot) { console.log(`${lc} diff === 0 (I: 9072dfeb65d140e196544cc9c1239222)`); }
                 }
               }
+            } else {
+              if (logalot) { console.log(`${lc} latestAddr === this.addr (I: 36a3b311076ae894ded4219e90807922)`); }
             }
           } catch (error) {
             console.error(`${lc} ${error.message}`);

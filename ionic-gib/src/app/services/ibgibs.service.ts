@@ -25,6 +25,7 @@ import {
   ParticipantInfo, SyncSpaceOptionsIbGib, SyncSpaceOptionsData,
   SyncSagaInfo,
   BootstrapIbGib,
+  TjpIbGibAddr,
 } from '../common/types';
 import {
   IonicSpace_V1,
@@ -247,11 +248,6 @@ export class IbgibsService {
   private fnPromptEncryption: () => Promise<IbGib_V1 | undefined>;
   private fnPromptOuterSpace: () => Promise<IbGib_V1 | undefined>;
 
-  /**
-   * non-encapsulated hack...
-   */
-  tjpGibsWithAutosyncTurnedOn: Set<IbGibAddr>= new Set<Gib>([]);
-
   private _syncing: boolean;
   /**
    * should only syncIbGibs when not already syncing.
@@ -266,6 +262,10 @@ export class IbgibsService {
   // private _syncSagaInfos: { [spaceGib: string]: SyncSagaInfo } = {};
   private sagaInfoMap: { [sagaId: string]: SyncSagaInfo } = {};
 
+  /**
+   * unique set of tjp addresses that will auto sync to sync spaces.
+   */
+  private _alwaysAutosyncTjpAddrsCache = new Set<TjpIbGibAddr>();
 
   constructor(
     public modalController: ModalController,
@@ -305,7 +305,8 @@ export class IbgibsService {
 
       await this.getSpecialIbGib({type: "outerspaces", initialize: true});
 
-      await this.getSpecialIbGib({type: "outerspaces", initialize: true});
+      await this.getSpecialIbGib({type: "autosyncs", initialize: true});
+      await this.loadAutoSyncs();
 
       this._initialized = true;
     } catch (error) {
@@ -791,10 +792,16 @@ export class IbgibsService {
     }
   }
 
+  /**
+   * rel8s given ibgibs to special ibgib.
+   * @see {@link rel8ToSpecialIbGib}
+   * @returns new special ibgib addr
+   */
   async rel8ToSpecialIbGib({
     type,
     rel8nName,
     ibGibsToRel8,
+    ibGibsToUnRel8,
     linked,
     severPast,
     deletePreviousSpecialIbGib,
@@ -805,7 +812,11 @@ export class IbgibsService {
     /**
      * multiple ibgibs to rel8
      */
-    ibGibsToRel8: IbGib_V1[],
+    ibGibsToRel8?: IbGib_V1[],
+    /**
+     * multiple ibgibs to remove rel8n.
+     */
+    ibGibsToUnRel8?: IbGib_V1[],
     linked?: boolean,
     /**
      * Clears out the special.rel8ns.past array to an empty array.
@@ -834,11 +845,12 @@ export class IbgibsService {
         type,
         rel8nName,
         ibGibsToRel8,
+        ibGibsToUnRel8,
         linked,
         severPast,
         deletePreviousSpecialIbGib,
         space,
-        defaultSpace: this.zeroSpace,
+        zeroSpace: this.zeroSpace,
         fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
         fnBroadcast: (x) => this.fnBroadcast(x),
       });
@@ -848,7 +860,6 @@ export class IbgibsService {
       throw error;
     }
   }
-
 
   async getTjpIbGib({
     ibGib,
@@ -2595,5 +2606,178 @@ export class IbgibsService {
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
+
+  // #region autosync
+
+  async enableAutosync({
+    tjpIbGibs,
+  }: {
+    tjpIbGibs: IbGib_V1[],
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.enableAutosync.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if ((tjpIbGibs ?? []).length === 0) { throw new Error(`tjps required. (E: 3e3bb6ef1a3d483795440e0efcef8e04)`); }
+
+      // validate tjps
+      if (tjpIbGibs.some(tjp => !tjp.data?.isTjp)) {
+        const wonkyTjpAddrs =
+          tjpIbGibs
+            .filter(tjp => !tjp.data?.isTjp)
+            .map(x => h.getIbGibAddr({ibGib: x}));
+        console.warn(`${lc} unrelating tjp whose data.isTjp is false. tjpAddrs: ${wonkyTjpAddrs.join('|')} (W: 03b3d7a94e6d4ccaace3df4657a82322)`);
+      }
+
+      // we'll use addrs to compare to cache and autosync special ibgib
+      let tjpAddrs = tjpIbGibs.map(tjp => h.getIbGibAddr({ibGib: tjp}));
+
+      // if we're already autosyncing all tjps, warn and return early check
+      // locally since this is very fast/cheap
+      let notAlreadySyncingTjpAddrs =
+        tjpAddrs.filter(tjpAddr => !this._alwaysAutosyncTjpAddrsCache.has(tjpAddr));
+      if (notAlreadySyncingTjpAddrs.length === 0) {
+        console.warn(`${lc} all tjpAddrs already auto syncing. tjpAddrs: ${tjpAddrs.join('\n')} (W: 7fbe51c8187840efa1b259417053bd22)`);
+        return; // <<<< returns
+      }
+
+      // ...and double check in autosyncs itself, more expensive though
+      const autosyncsIbGib = await this.getSpecialIbGib({type: "autosyncs"});
+      const alreadySyncing = autosyncsIbGib.rel8ns[c.AUTOSYNC_ALWAYS_REL8N_NAME] ?? [];
+      notAlreadySyncingTjpAddrs = tjpAddrs.filter(tjpAddr => !alreadySyncing.includes(tjpAddr));
+      if (notAlreadySyncingTjpAddrs.length === 0) {
+        console.error(`${lc} (UNEXPECTED) all tjpAddrs already auto syncing per special ibgib. Proceeding without throwing here, but this means that the cache is out of sync with the special ibgib also. tjpAddrs: ${tjpAddrs.join('\n')} (E: 574e163118f043fa8c50cfd575e62122)`);
+        return; // <<<< returns
+      }
+
+      // map back from tjp addrs to the tjp ibgibs
+      const notAlreadySyncingTjps = notAlreadySyncingTjpAddrs.map(tjpAddr => {
+        return tjpIbGibs.filter(tjp => h.getIbGibAddr({ibGib: tjp}) === tjpAddr)[0];
+      });
+
+      // execute rel8 transform and plumbing
+      await this.rel8ToSpecialIbGib({
+        type: 'autosyncs',
+        ibGibsToRel8: notAlreadySyncingTjps,
+        rel8nName: c.AUTOSYNC_ALWAYS_REL8N_NAME,
+      });
+
+      // add to cache and we're done
+      notAlreadySyncingTjpAddrs.forEach(tjpAddr => {
+        this._alwaysAutosyncTjpAddrsCache.add(tjpAddr);
+      });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async disableAutosync({
+    tjpIbGibs,
+  }: {
+    tjpIbGibs: IbGib_V1[],
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.disableAutosync.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if ((tjpIbGibs ?? []).length === 0) { throw new Error(`tjps required. (E: 7b7e34e20b5848b882e14ff8b6c53622)`); }
+
+      if (tjpIbGibs.some(tjp => !tjp.data?.isTjp)) {
+        const wonkyTjpAddrs =
+          tjpIbGibs
+            .filter(tjp => !tjp.data?.isTjp)
+            .map(x => h.getIbGibAddr({ibGib: x}));
+        console.warn(`${lc} unrelating tjp whose data.isTjp is false. tjpAddrs: ${wonkyTjpAddrs.join('|')} (W: 7babdf67dda54a2a9905c6c45ef36522)`);
+      }
+      let tjpAddrs = tjpIbGibs.map(tjp => h.getIbGibAddr({ibGib: tjp}));
+
+      // if we're already autosyncing this tjp, warn and return early
+      // check locally...
+      // ...and double check in autosyncs itself.
+      const autosyncsIbGib = await this.getSpecialIbGib({type: "autosyncs"});
+      if (!autosyncsIbGib.rel8ns) { throw new Error(`(UNEXPECTED) invalid autosyncIbGibs. rel8ns falsy. (E: 5f6211c8a41896003db8bfc40230af22)`); }
+      const alreadySyncing = autosyncsIbGib.rel8ns[c.AUTOSYNC_ALWAYS_REL8N_NAME] ?? [];
+      const tjpAddrsToRemove: TjpIbGibAddr[] = [];
+      tjpAddrs.forEach(tjpAddr => {
+        if (alreadySyncing.includes(tjpAddr)) {
+          if (logalot) { console.log(`${lc} disabling autosync for ${tjpAddr} (I: 63087804e6c436143971e5039b5e5e22)`); }
+          tjpAddrsToRemove.push(tjpAddr);
+        } else {
+          if (logalot) { console.log(`${lc} already NOT auto syncing ${tjpAddr} (I: 88e00fea009964cd2bab4cc580aa2922)`); }
+        }
+      });
+      if (tjpAddrsToRemove.length === 0) {
+        console.warn(`${lc} tried to disable autosync for tjpAddrs but none were valid. returning early. (W: f9bdda90d906471aa56804d76b6e9522)`);
+        return; // <<<< returns
+      }
+
+      const uniqueTjpAddrsToRemove = Array.from(new Set(tjpAddrsToRemove));
+      const tjpsToRemove = uniqueTjpAddrsToRemove.map(tjpAddr => {
+        return tjpIbGibs.filter(tjp => h.getIbGibAddr({ibGib: tjp}) === tjpAddr)[0];
+      });
+
+
+      // execute rel8 transform and plumbing
+      await this.rel8ToSpecialIbGib({
+        type: 'autosyncs',
+        ibGibsToUnRel8: tjpsToRemove,
+        rel8nName: c.AUTOSYNC_ALWAYS_REL8N_NAME,
+      });
+
+      // remove from cache and we're done
+      uniqueTjpAddrsToRemove.forEach(tjpAddr => {
+        this._alwaysAutosyncTjpAddrsCache.delete(tjpAddr);
+      });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  private async loadAutoSyncs(): Promise<void> {
+    const lc = `${this.lc}[${this.loadAutoSyncs.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      const autosyncsIbGib = await this.getSpecialIbGib({type: "autosyncs"});
+      if (autosyncsIbGib.rel8ns) {
+        this._alwaysAutosyncTjpAddrsCache =
+          new Set(autosyncsIbGib.rel8ns[c.AUTOSYNC_ALWAYS_REL8N_NAME]);
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  /**
+   * checks to see if autosync is enabled for a given `tjp`.
+   *
+   * NOTE: this only checks cache atm.
+   *
+   * @returns true if autosync is enabled for the given tjp, else false
+   */
+  autosyncIsEnabled({
+    tjp,
+  }: {
+    tjp: IbGib_V1,
+  }): boolean {
+    const lc = `${this.lc}[${this.autosyncIsEnabled.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      return this._alwaysAutosyncTjpAddrsCache.has(h.getIbGibAddr({ibGib: tjp}));
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  // #endregion autosync
 
 }

@@ -33,7 +33,8 @@
         (click)="handleShareClick()">
         <ion-icon name="share-social-outline" ios="share-outline"></ion-icon>
       </ion-button>
-      <ion-button [disabled]="syncing"
+      <ion-button *ngIf="tjp"
+        [disabled]="syncing"
         [ngClass]="{'active-btn': autosync}"
         class="toolbar-title-btn"
         (click)="handleSyncClick()">

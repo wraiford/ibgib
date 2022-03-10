@@ -121,9 +121,9 @@
 			"}"
 		],
     },
-    "throw with guid": {
+    "throw new error with guid": {
         "scope": "javascript,typescript",
-		"prefix": "throw_with_guid",
+		"prefix": "throw_new_error_with_guid",
 		"body": [
 			"$0throw new Error(`$1 (E: $RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$CURRENT_YEAR_SHORT)`); "
 		],
@@ -135,11 +135,11 @@
 			"$0if ($1) { throw new Error(`$2 (E: $RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$CURRENT_YEAR_SHORT)`); }"
 		],
     },
-    "log if logalot": {
+    "if logalot": {
         "scope": "javascript,typescript",
-		"prefix": "log_if_logalot",
+		"prefix": "if_logalot",
 		"body": [
-			"$0if (logalot) { console.log(`\\${lc} $1 (I: $RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$CURRENT_YEAR_SHORT)`); }"
+			"$0if (logalot$1) { console.${2:log}(`\\${lc} $3 (I: $RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$CURRENT_YEAR_SHORT)`); }"
 		],
     },
     "surround log if logalot": {

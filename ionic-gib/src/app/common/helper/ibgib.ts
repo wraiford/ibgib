@@ -15,7 +15,7 @@ import { validateIb } from './validate';
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { groupBy } from './utils';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 /**
  * Utility function to generate hard-coded ibgibs to use at runtime "on-chain" but

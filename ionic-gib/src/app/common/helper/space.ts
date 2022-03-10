@@ -1066,7 +1066,7 @@ export async function registerNewIbGib({
                 severPast: true,
                 // skipRel8ToRoot: true,
                 space,
-                defaultSpace,
+                zeroSpace: defaultSpace,
                 fnUpdateBootstrap,
                 fnBroadcast,
             });
@@ -1149,29 +1149,66 @@ export async function registerNewIbGib({
     }
 }
 
+/**
+ * Performs a rel8 transform on the special ibgib corresponding to the incoming
+ * `type`.
+ *
+ * ## special ibgibs
+ *
+ * much metadata configuration is stored via "special" ibgibs. Most of these are
+ * tracked in a space's ibgib directly, and the space itself is tracked in the
+ * bootstrap. So when storing configuration data, I usually create a new special
+ * ibgib. this function performs the plumbing for the rel8 transform related to
+ * that special ibgib.
+ *
+ * ## notes
+ *
+ * * special ibgib must exist in the space, i.e. previously initialized
+ * * i'm using this atm for mainly the local ionic space, but sometimes
+ *   might be good in sync space, i dunno at this point.
+ *   * I've migrated a lot of local space behavior into this space-agnostic file.
+ *
+ * @returns new special ibgib addr
+ */
 export async function rel8ToSpecialIbGib({
     type,
     rel8nName,
     ibGibsToRel8,
-    // isMeta,
+    ibGibsToUnRel8,
     linked,
-    // skipRel8ToRoot,
     severPast,
     deletePreviousSpecialIbGib,
     space,
-    defaultSpace,
+    zeroSpace,
     fnUpdateBootstrap,
     fnBroadcast,
 }: {
+    /**
+     * the "name" of the special ibgib.
+     *
+     * This will drive deterministically what the special ibgib's `ib` will be,
+     * among other things.
+     */
     type: SpecialIbGibType,
+    /**
+     * The rel8nName by which to rel8 the target incoming `ibGibsToRel8`.
+     */
     rel8nName: string,
     /**
      * multiple ibgibs to rel8
      */
-    ibGibsToRel8: IbGib_V1[],
-    // isMeta: boolean,
+    ibGibsToRel8?: IbGib_V1[],
+    /**
+     * multiple ibgibs to UNrel8
+     */
+    ibGibsToUnRel8?: IbGib_V1[],
+    /**
+     * If linked, then the rel8nName will only contain one address, i.e. the
+     * last rel8d ibgib's address.
+     *
+     * This depends on your use case.
+     */
     linked?: boolean,
-    // skipRel8ToRoot?: boolean,
     /**
      * Clears out the special.rel8ns.past array to an empty array.
      *
@@ -1188,16 +1225,40 @@ export async function rel8ToSpecialIbGib({
      * keep around past incarnations.
      */
     deletePreviousSpecialIbGib?: boolean,
+    /**
+     * The space in which the special ibgib resides.
+     */
     space: IbGibSpaceAny,
-    defaultSpace: IbGibSpaceAny,
+    /**
+     * The default zero space that contains metaspace information, i.e.
+     * bootstrap ibgib, space ibgibs, etc.
+     */
+    zeroSpace: IbGibSpaceAny,
+    /**
+     * The function by which to update the bootstrap ibgib.
+     *
+     * This is necessary, because when you update a special ibgib,
+     * the address of that special ibgib must be updated in the given
+     * `space`. This will require an update to the space's address, which
+     * itself is tracked in the bootstrap ibgib.
+     */
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
+    /**
+     * Use this if you want to broadcast the new space's address after this
+     * function performs the rel8 transform.
+     */
     fnBroadcast: (info: LatestEventInfo) => void,
 }): Promise<IbGibAddr> {
     const lc = `[${rel8ToSpecialIbGib.name}](type:${type},rel8nName:${rel8nName})`;
     try {
         if (!space) { throw new Error(`space required. (E: 956192eea28047eba6dad81620bb96fb)`); }
+        if ((ibGibsToRel8 ?? []).length === 0 && (ibGibsToUnRel8 ?? []).length === 0) {
+            throw new Error(`either ibGibsToRel8 or ibGibsToUnRel8 required. (E: 5add49c8e46a54e2c6b057c22646a822)`);
+        }
 
-        const addrsToRel8 = ibGibsToRel8.map(ibGib => h.getIbGibAddr({ibGib}));
+
+        const addrsToRel8 = ibGibsToRel8?.map(ibGib => h.getIbGibAddr({ibGib}));
+        const addrsToUnRel8 = ibGibsToUnRel8?.map(ibGib => h.getIbGibAddr({ibGib}));
 
         // get the special ibgib
         const configKey = getSpecialConfigKey({type});
@@ -1211,12 +1272,12 @@ export async function rel8ToSpecialIbGib({
         // rel8 the new tag to the special ibgib.
         const resNewSpecial = await V1.rel8({
             src: resGetSpecial.ibGibs![0],
-            rel8nsToAddByAddr: { [rel8nName]: addrsToRel8 },
+            rel8nsToAddByAddr: addrsToRel8 ? { [rel8nName]: addrsToRel8 } : undefined,
+            rel8nsToRemoveByAddr: addrsToUnRel8 ? { [rel8nName]: addrsToUnRel8 } : undefined,
             dna: false,
             linkedRel8ns: linked ? [Rel8n.past, rel8nName] : [Rel8n.past],
             nCounter: true,
         });
-
         const newSpecialIbGib = resNewSpecial.newIbGib;
 
         // sever
@@ -1234,7 +1295,8 @@ export async function rel8ToSpecialIbGib({
         const specialTjpAddrs = getTjpAddrs({ibGibs: [newSpecialIbGib]});
         const specialTjpAddr = specialTjpAddrs?.length > 0 ? specialTjpAddrs[0] : null;
 
-        await setConfigAddr({key: configKey, addr: newSpecialAddr, space, zeroSpace: defaultSpace, fnUpdateBootstrap});
+        // update the space ibgib which contains the special/config information
+        await setConfigAddr({key: configKey, addr: newSpecialAddr, space, zeroSpace: zeroSpace, fnUpdateBootstrap});
 
         // delete if required, only after updating config with the new special addr.
         if (deletePreviousSpecialIbGib) {
@@ -1253,7 +1315,7 @@ export async function rel8ToSpecialIbGib({
             // with that latest index.
             await registerNewIbGib({
                 ibGib: newSpecialIbGib,
-                defaultSpace,
+                defaultSpace: zeroSpace,
                 fnBroadcast,
                 fnUpdateBootstrap,
                 space,
@@ -1384,6 +1446,9 @@ export async function createSpecial({
         case "outerspaces":
             return createOuterSpaces({space, defaultSpace, fnBroadcast, fnUpdateBootstrap});
 
+        case "autosyncs":
+            return createAutosyncs({space, zeroSpace: defaultSpace, fnBroadcast, fnUpdateBootstrap});
+
         default:
             throw new Error(`not implemented. type: ${type}`);
         }
@@ -1402,14 +1467,14 @@ export async function createSpecialIbGib({
     type,
     skipRel8ToRoot,
     space,
-    defaultSpace,
+    zeroSpace: defaultSpace,
     fnUpdateBootstrap,
     fnBroadcast,
 }: {
     type: SpecialIbGibType,
     skipRel8ToRoot?: boolean,
     space: IbGibSpaceAny,
-    defaultSpace: IbGibSpaceAny,
+    zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: LatestEventInfo) => void,
 }): Promise<IbGib_V1> {
@@ -1471,7 +1536,7 @@ export async function createTags({
         const special = await createSpecialIbGib({
             type: "tags",
             space,
-            defaultSpace,
+            zeroSpace: defaultSpace,
             fnBroadcast,
             fnUpdateBootstrap,
         });
@@ -1568,7 +1633,7 @@ export async function createRootsIbGib({
         const rootsIbGib = await createSpecialIbGib({
             type: "roots",
             space,
-            defaultSpace,
+            zeroSpace: defaultSpace,
             fnBroadcast,
             fnUpdateBootstrap,
         });
@@ -1662,7 +1727,7 @@ async function createRootIbGib({
             ibGibsToRel8: [newIbGib],
             // isMeta: true,
             space,
-            defaultSpace,
+            zeroSpace: defaultSpace,
             fnUpdateBootstrap,
             fnBroadcast,
         });
@@ -1695,7 +1760,7 @@ async function createLatest({
             type: "latest",
             space,
             skipRel8ToRoot: true,
-            defaultSpace,
+            zeroSpace: defaultSpace,
             fnBroadcast,
             fnUpdateBootstrap,
         });
@@ -1735,7 +1800,7 @@ async function createSecrets({
         const secretsIbgib = await createSpecialIbGib({
             type: "secrets",
             space,
-            defaultSpace,
+            zeroSpace: defaultSpace,
             fnBroadcast,
             fnUpdateBootstrap,
         });
@@ -1772,7 +1837,7 @@ async function createEncryptions({
         const encryptionsIbgib = await createSpecialIbGib({
             type: "encryptions",
             space,
-            defaultSpace,
+            zeroSpace: defaultSpace,
             fnBroadcast,
             fnUpdateBootstrap,
         });
@@ -1809,7 +1874,7 @@ async function createOuterSpaces({
         const outerSpacesIbGib = await createSpecialIbGib({
             type: "outerspaces",
             space,
-            defaultSpace,
+            zeroSpace: defaultSpace,
             fnBroadcast,
             fnUpdateBootstrap,
         });
@@ -1823,6 +1888,40 @@ async function createOuterSpaces({
     }
 }
 
+async function createAutosyncs({
+    space,
+    zeroSpace,
+    fnUpdateBootstrap,
+    fnBroadcast,
+}: {
+    space: IbGibSpaceAny,
+    zeroSpace: IbGibSpaceAny,
+    fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
+    fnBroadcast: (info: LatestEventInfo) => void,
+}): Promise<IbGibAddr | null> {
+    const lc = `[${createAutosyncs.name}]`;
+    try {
+        if (!space) { throw new Error(`space required. (E: f01cf6a4a460486796e16d505d629522)`); }
+
+        let autosyncsAddr: IbGibAddr;
+        const configKey = getSpecialConfigKey({type: "autosyncs"});
+
+        const autosyncsIbGib = await createSpecialIbGib({
+            type: "autosyncs",
+            space,
+            zeroSpace,
+            fnBroadcast,
+            fnUpdateBootstrap,
+        });
+        autosyncsAddr = h.getIbGibAddr({ibGib: autosyncsIbGib});
+        await setConfigAddr({key: configKey, addr: autosyncsAddr, space, zeroSpace: zeroSpace, fnUpdateBootstrap});
+
+        return autosyncsAddr;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        return null;
+    }
+}
 /**
  * We are NOT searching through all of our data looking for a needle in a haystack.
  * What we ARE doing is we are looking through the past of the existing latest and
@@ -1969,7 +2068,7 @@ function rel8TagToTagsIbGib({
         rel8nName: c.TAG_REL8N_NAME,
         ibGibsToRel8: [tagIbGib],
         space,
-        defaultSpace,
+        zeroSpace: defaultSpace,
         fnUpdateBootstrap,
         fnBroadcast,
     });

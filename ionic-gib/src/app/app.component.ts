@@ -249,52 +249,52 @@ export class AppComponent extends IbgibComponentBase
 
   ngOnDestroy() {
     const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
+    if (logalot) { console.log(`${lc} starting... (I: e57d82b671684a80b9a2882c996a1422)`); }
     this.unsubscribeParamMap();
-    if (logalot) { console.log(`${lc} doodle`); }
+    if (logalot) { console.log(`${lc} complete. (I: de0dfbff72484ebc956b39e8f3aa9b22)`); }
   }
 
   subscribeParamMap() {
     const lc = `${this.lc}[${this.subscribeParamMap.name}]`;
 
-    if (logalot) { console.log(`${lc} subscribing...`) }
+    if (logalot) { console.log(`${lc} subscribing...`); }
 
-    let piper = this.router.events.pipe(filter(x => x instanceof NavigationEnd));
-    this._paramMapSub_App = piper.subscribe(async (event: any) => {
-      const addr = await this.getCurrentIbgibAddrInURL();
-      if (logalot) { console.log(`${lc} addr: ${addr}`); }
-      if (logalot) { console.log(`${lc} router.url: ${h.pretty(this.router.url)}`) }
-      if (event.id && event.url && addr && addr !== this.addr) {
-        if (logalot) { console.log(`${lc} event.id: ${event.id}`); }
-        if (logalot) { console.log(`${lc} event.url: ${event.url}`); }
-        if (logalot) { console.log(`${lc} addr is different`); }
-        await this.updateIbGib(addr);
-        this.ref.detectChanges();
-      }
-    });
-
-    // this.paramMapSub = this.router.events.subscribe(async (event: RouterEvent) => {
-
-    //   const addr = this.router.url && this.router.url.startsWith('/ibgib/') ?
-    //     decodeURI(this.router.url.split('/')[2]) :
-    //     undefined;
-    //   console.log(`${lc} addr: ${addr}`);
-    //   console.log(`${lc} router.url: ${h.pretty(this.router.url)}`)
-    //   if (event.id && event.url && addr && addr !== this.addr) {
-    //     console.log(`${lc} event.id: ${event.id}`);
-    //     console.log(`${lc} event.url: ${event.url}`);
-    //     console.log(`${lc} addr is different`);
-    //     await this.updateIbGib(addr);
-    //     this.ref.detectChanges();
-    //   }
-
-    // });
+    this._paramMapSub_App =
+      this.router.events.pipe(filter(x => x instanceof NavigationEnd))
+        .subscribe(async (event: any) => {
+          const lc2 = `${lc}[NavigationEndEvent]`;
+          if (logalot) { console.log(`${lc2} starting... (I: f379e341482d5837d456b72b4bc1c922)`); }
+          try {
+            const addr = await this.getCurrentIbgibAddrInURL();
+            if (logalot) { console.log(`${lc} addr: ${addr}`); }
+            if (logalot) { console.log(`${lc} router.url: ${h.pretty(this.router.url)}`) }
+            if (event.id && event.url && addr && addr !== this.addr) {
+              if (logalot) { console.log(`${lc} event.id: ${event.id}`); }
+              if (logalot) { console.log(`${lc} event.url: ${event.url}`); }
+              if (logalot) { console.log(`${lc} addr is different`); }
+              await this.updateIbGib(addr);
+              this.ref.detectChanges();
+            }
+          } catch (error) {
+            console.error(`${lc2} ${error.message}`);
+            throw error;
+          } finally {
+            if (logalot) { console.log(`${lc2} complete. (I: 8fc2215676968802bb983ac8f3eb5622)`); }
+          }
+      });
   }
 
   unsubscribeParamMap() {
+    const lc = `${this.lc}[${this.unsubscribeParamMap.name}]`;
+    if (logalot) { console.log(`${lc} starting... (I: ebe0e74ea9b2cc58541d14f5a84dba22)`); }
     if (this._paramMapSub_App) {
+      if (logalot) { console.log(`${lc} unsubscribing (I: 098fa9c9a049d2ae681efd5599e9d722)`); }
       this._paramMapSub_App.unsubscribe();
       delete this._paramMapSub_App;
+    } else {
+      if (logalot) { console.log(`${lc} nothing to unsubscribe (I: 66b4774bdcc4aa48de9c2cfcfa071d22)`); }
     }
+    if (logalot) { console.log(`${lc} complete. (I: 4514b9aed3fe52cd713d8d7590242d22)`); }
   }
 
   /**
