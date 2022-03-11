@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, Input, ChangeDetectorRef } from '@angular/core';
+import { Capacitor } from '@capacitor/core';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib';
@@ -44,18 +45,38 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
   }
 
   async updateItems(): Promise<void> {
-    await super.updateItems();
+    const lc = `${this.lc}[${this.updateItems.name}]`;
+    try {
+      await super.updateItems();
 
-    // hack for demo purposes
-    setTimeout(() => {
-      if (document) {
-        const list = document.getElementById('theList');
-        if (list) {
-          console.log(`scrolling`);
-          list.scrollTop = list.scrollHeight;
-        }
+      // hack for demo purposes
+      let scrollDelayMs: number;
+      const platform = Capacitor.getPlatform();
+      switch (platform) {
+        case 'android':
+          scrollDelayMs = c.DEFAULT_SCROLL_DELAY_MS_ANDROID_HACK;
+          break;
+        case 'ios':
+          scrollDelayMs = c.DEFAULT_SCROLL_DELAY_MS_IOS_HACK;
+          break;
+        default:
+          scrollDelayMs = c.DEFAULT_SCROLL_DELAY_MS_WEB_HACK;
+          break;
       }
-    }, 4700);
+      setTimeout(() => {
+        if (document) {
+          const list = document.getElementById('theList');
+          if (list) {
+            if (logalot) { console.log(`${lc} scrolling`); }
+            list.scrollTop = list.scrollHeight;
+          }
+        }
+      }, scrollDelayMs);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      // throw error; // don't rethrow atm
+    }
+
   }
 
   ngOnDestroy() {}

@@ -18,7 +18,7 @@ import { CommonService } from '../services/common.service';
 import { SPECIAL_URLS } from '../common/constants';
 import { LatestEventInfo, TjpIbGibAddr, } from '../common/types';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
-import { getDependencyGraph, getFnAlert, groupBy, splitPerTjpAndOrDna, } from '../common/helper';
+import { getDependencyGraph, getFnAlert, getTimestampInTicks, groupBy, splitPerTjpAndOrDna, } from '../common/helper';
 import { concatMap } from 'rxjs/operators';
 import { ChooseIconModalComponent, IconItem } from '../common/choose-icon-modal/choose-icon-modal.component';
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
@@ -868,9 +868,7 @@ export class IbGibPage extends IbgibComponentBase
   private stopPollLatest_Local(): void {
     const lc = `${this.lc}[${this.stopPollLatest_Local.name}]`;
     try {
-      if (this._subPollLatest_Local && !this._subPollLatest_Local.closed) {
-        this._subPollLatest_Local.unsubscribe();
-      }
+      if (this._subPollLatest_Local) { this._subPollLatest_Local.unsubscribe(); }
       delete this._subPollLatest_Local;
       this._pollingLatest_Local = false;
       this.tjpUpdatesAvailableCount_Local = 0;

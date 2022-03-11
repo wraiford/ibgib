@@ -42,9 +42,7 @@ export class ListViewComponent
     protected ref: ChangeDetectorRef,
   ) {
     super(common, ref);
-    setTimeout(() => {
-      this.ref.detectChanges();
-    }, 5000);
+    setTimeout(() => { this.ref.detectChanges(); }, 5000); // no idea
   }
 
   ngOnInit() {
@@ -56,22 +54,6 @@ export class ListViewComponent
     if (logalot) { console.log(`${lc}`) }
     return super.updateIbGib(addr);
   }
-  // async updateIbGib(addr: IbGibAddr): Promise<void> {
-  //   const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-  //   console.log(`${lc} updating...`);
-  //   try {
-  //     await super.updateIbGib(addr);
-  //     await this.loadIbGib();
-      // await this.loadTjp();
-  //     await this.updateItems();
-  //   } catch (error) {
-  //     console.error(`${lc} error: ${error.message}`);
-  //     this.clearItem();
-  //   } finally {
-  //     this.ref.detectChanges();
-  //     console.log(`${lc} updated.`);
-  //   }
-  // }
 
   async handleClicked(item: IbgibItem): Promise<void> {
     if (logalot) { console.log(`item: ${JSON.stringify(item, null, 2)}`); }

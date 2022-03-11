@@ -400,6 +400,19 @@ export const DEFAULT_OUTER_SPACE_POLLING_INTERVAL_MS = 20_000;
 export const DEFAULT_OUTER_SPACE_POLLING_DELAY_FIRST_RUN_MS = 10_000;
 
 /**
+ * hacky scroll to bottom after items load per platform
+ */
+export const DEFAULT_SCROLL_DELAY_MS_WEB_HACK = 5_000;
+/**
+ * hacky scroll to bottom after items load per platform
+ */
+export const DEFAULT_SCROLL_DELAY_MS_ANDROID_HACK = 3_000;
+/**
+ * hacky scroll to bottom after items load per platform
+ */
+export const DEFAULT_SCROLL_DELAY_MS_IOS_HACK = 2_000;
+
+/**
  * AWS DynamoDB only allows 400K per item-ish.
  *
  * Somehow indexes affect this limit, but it's apparently convoluted.

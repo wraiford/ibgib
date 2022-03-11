@@ -62,8 +62,8 @@ export class ActionBarComponent extends IbgibComponentBase
       type: 'inputfile-camera',
       text: 'camera',
       icon: 'camera-outline',
-      filepicked: async (event) => await this.actionAddImage(event),
-      // filepicked: async (event) => await this.handleHtml5PicButton(event),
+      // filepicked: async (event) => await this.actionAddImage(event),
+      filepicked: async (event) => await this.handleHtml5PicButton(event),
     },
     {
       name: 'file',

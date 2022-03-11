@@ -7,6 +7,7 @@ import * as h from 'ts-gib/dist/helper';
 import * as c from '../common/constants';
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { IBGIB_DELIMITER } from 'ts-gib/dist/V1';
+import { getTimestampInTicks } from '../common/helper/utils';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -45,8 +46,28 @@ export class IonicIbgibNavService implements IbgibNav {
       if (logalot) { console.log(`${lc} BEFORE stack: ${h.pretty(this.stack)}`); }
 
       if (this.stack.length > 0 && this.stack[this.stack.length-1].toAddr === toAddr) {
-        console.warn(`${lc} duplicate toAddr requested. Nav aborted. (W: cccab7e6ccd840f3a3ea32d9818da233)`)
-        return;
+        // currently there is a bug with pressing the back button
+        // based on a mismatch being registered with pics...
+        const keyLastBackTimestamp = 'ibgib_last_back_press_timestamp_hack';
+        const lastTimestamp = localStorage.getItem(keyLastBackTimestamp);
+        const now = getTimestampInTicks();
+        if (Number.parseInt(lastTimestamp)) {
+          const delta  = Number.parseInt(now) - Number.parseInt(lastTimestamp);
+          if (delta < 1000) {
+            // hack: user has double-clicked the back button, so probably messed up...
+            console.warn(`${lc} duplicate toAddr requested but user "double-clicked" go (probably back), so calling this.back(). (W: ae6962ad44ba4baf909bc6333c865022)`);
+            localStorage.removeItem(keyLastBackTimestamp);
+            await this.back();
+          } else {
+            console.warn(`${lc} duplicate toAddr requested but not "double-click" go (probably back), so aborting nav but setting timestamp. (W: aa6cc9fd4744470db552cdcc4d9ed6be)`)
+            localStorage.setItem(keyLastBackTimestamp, now);
+            return;
+          }
+        } else {
+          console.warn(`${lc} duplicate toAddr requested but not "double-click" go (probably back), so aborting nav and clearing timestamp. (W: cccab7e6ccd840f3a3ea32d9818da233)`)
+          localStorage.setItem(keyLastBackTimestamp, now);
+          return;
+        }
       } else {
         /** if we force with to/from addrs equal, then we're forcing a refresh */
         let forceRefresh = false;
