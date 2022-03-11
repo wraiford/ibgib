@@ -5,6 +5,7 @@
 
 import { Injectable } from '@angular/core';
 import { AlertController, ModalController } from '@ionic/angular';
+import { Capacitor } from '@capacitor/core';
 import { ReplaySubject, } from 'rxjs';
 
 import { IbGib_V1, GIB, GIB_DELIMITER, } from 'ts-gib/dist/V1';
@@ -195,16 +196,27 @@ export class IbgibsService {
   //   }
   // }
   private async getLocalUserSpace({
-    skipLock,
+    lock,
   }: {
     /**
-     * If true, SKIPS locking bootstrap/spaceId before trying to retrieve.
+     * If true, then we lock by bootstrap/spaceId before trying to retrieve.
+     *
+     * @default If undefined, will default to false if platform is 'web', else true
      */
-    skipLock?: boolean,
+    lock?: boolean,
   }): Promise<IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> | undefined> {
     const lc = `${this.lc}[${this.getLocalUserSpace.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
+
+      // if we're not explicit with skipLock, go by platform
+      // we only need to lock when doing the web, because we could
+      // have multiple tabs open.
+      if (lock === undefined) {
+        if (!this._platform) { this._platform = Capacitor.getPlatform(); }
+        if (logalot) { console.log(`${this.lc} platform: ${this._platform}`); }
+        lock = this._platform === 'web';
+      }
 
       const bootstrapIbGib =
         await getValidatedBootstrapIbGib({ zeroSpace: this.zeroSpace });
@@ -213,7 +225,7 @@ export class IbgibsService {
         await getLocalSpace<IonicSpace_V1<AppSpaceData, AppSpaceRel8ns>>({
           zeroSpace: this.zeroSpace,
           bootstrapIbGib,
-          lock: !skipLock,
+          lock,
           callerInstanceId: this._instanceId,
           fnDtoToSpace: (spaceDto: IbGib_V1<AppSpaceData, AppSpaceRel8ns>) => {
             return Promise.resolve(IonicSpace_V1.createFromDto(spaceDto));
@@ -266,6 +278,11 @@ export class IbgibsService {
    * unique set of tjp addresses that will auto sync to sync spaces.
    */
   private _alwaysAutosyncTjpAddrsCache = new Set<TjpIbGibAddr>();
+
+  /**
+   * Cached platform value via `Capacitor.getPlatform()`.
+   */
+  private _platform: string;
 
   constructor(
     public modalController: ModalController,

@@ -440,7 +440,8 @@ export class IonicSpace_V1<
                 const ibGib = ibGibs[i];
                 const addr = getIbGibAddr({ibGib});
                 if (logalot) { console.log(`${lc} checking to see if already exists...`); }
-                const getResult = await this.getFile({addr, isMeta, isDna});
+                // const getResult = await this.getFile({addr, isMeta, isDna});
+                const getResult: any = null; // testing performance
                 if (getResult?.success && getResult.ibGib) {
                     // already exists...
                     if (logalot) { console.log(`${lc} already exists...`); }
@@ -465,9 +466,6 @@ export class IonicSpace_V1<
                 } else {
                     // does not already exist.
                     if (logalot) { console.log(`${lc} does NOT already exist...`); }
-                    // if (Capacitor.getPlatform() === 'android') {
-                    //     //
-                    // }
                     const putResult = await this.putFile({ibGib, isMeta, isDna, });
                     if (putResult.success) {
                         if (!isDna) { this.ibGibs[addr] = ibGib; } // cache
@@ -994,9 +992,12 @@ export class IonicSpace_V1<
 
     protected async ensurePermissions(): Promise<boolean> {
         const lc = `${this.lc}[${this.ensurePermissions.name}]`;
+        const keyPermissionRequested: string = 'ibgib_permissionRequested_ensurePermissions';
         try {
-            if (Filesystem.requestPermissions) {
+            const requested = localStorage.getItem(keyPermissionRequested);
+            if (!requested && Filesystem.requestPermissions) {
                 const resPermissions = await Filesystem.requestPermissions();
+                localStorage.setItem(keyPermissionRequested, 'true');
                 if (resPermissions?.results) {
                     if (logalot) { console.log(`${lc} resPermissions: ${JSON.stringify(resPermissions.results)} falsy`); }
                     return true;
@@ -1005,11 +1006,13 @@ export class IonicSpace_V1<
                     return true;
                 }
             } else {
+                localStorage.setItem(keyPermissionRequested, 'true');
                 console.warn(`${lc} Filesystem.requestPermissions falsy but that's ok, didn't throw.`);
                 return true;
             }
         } catch (error) {
             console.error(`${lc} Dont have permissions... error: ${error.message}`);
+            localStorage.removeItem(keyPermissionRequested);
             return false;
         }
     }
@@ -1019,12 +1022,20 @@ export class IonicSpace_V1<
      */
     protected async ensureDirs(): Promise<void> {
         const lc = `${this.lc}[${this.ensureDirs.name}]`;
+        const keyPermissionRequested: string = `ibgib_permissionRequested_ensureDirs_${this.data.uuid}`;
+        if (logalot) { console.log(`${lc} keyPermissionRequested: ${keyPermissionRequested} (I: 11f32ea3170b11a0c70e1ae3e3395922)`); }
+
+        // return immediately if we've already done this
+        const alreadyEnsured = localStorage.getItem(keyPermissionRequested);
+        if (alreadyEnsured === 'true') {
+            if (logalot) { console.log(`${lc} alreadyEnsured via localStorage (I: 374cabd8be6c2f163402b33b211aa222)`); }
+            return;
+        }
+
         const data = this.data!;
         const directory = data.baseDir;
 
-        const permitted = await this.ensurePermissions();
-        if (!permitted) { console.error(`${lc} permission not granted.`); return; }
-
+        /** these are the paths we're ensuring exist. all ibgibs are stored here. */
         const paths = [
             data.baseSubPath, // = 'ibgib';
             data.baseSubPath + '/' + data.spaceSubPath,
@@ -1034,12 +1045,26 @@ export class IonicSpace_V1<
             data.baseSubPath + '/' + data.spaceSubPath + '/' + data.dnaSubPath,
         ];
 
+        const getPathKey = (p: string) => { return directory.toString() + '/' + p; }
+
+        let allExist = paths.every(path => this.pathExistsMap[getPathKey(path)]);
+        if (allExist) {
+            if (logalot) { console.log(`${lc} allExist (I: f14ad6db1d29e368c37c3117fee1cb22)`); }
+            return; // <<<< returns
+        }
+
+        const permitted = await this.ensurePermissions();
+        if (!permitted) {
+            console.error(`${lc} permission not granted.`);
+            return; // <<<< returns
+        }
+
         for (let i = 0; i < paths.length; i++) {
             const path = paths[i];
             const lc2 = `${lc}[(path: ${path}, directory: ${directory})]`;
 
             // check if we've already ensured for this path
-            const pathExistsKey = directory.toString() + '/' + path;
+            const pathExistsKey = getPathKey(path);
             let exists = this.pathExistsMap[pathExistsKey] || false;
 
             if (!exists) {
@@ -1065,6 +1090,13 @@ export class IonicSpace_V1<
                     if (logalot) { console.log(`${lc2} complete.`); }
                 }
             }
+        }
+
+        allExist = paths.every(path => this.pathExistsMap[getPathKey(path)]);
+        if (allExist) {
+            localStorage.setItem(keyPermissionRequested, 'true');
+        } else {
+            localStorage.remove(keyPermissionRequested);
         }
     }
 

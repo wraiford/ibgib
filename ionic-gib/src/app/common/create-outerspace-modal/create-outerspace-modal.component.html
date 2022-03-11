@@ -93,8 +93,7 @@
         (ionChange)="handleSelectedEncryptionChange($event)"
         >
         <ion-select-option *ngFor="let item of encryptions" [value]="item">
-          <ion-label>asdf</ion-label>
-          <!-- <ion-label>{{ item.data.name }}</ion-label> -->
+          <ion-label>{{ item.data.name }}</ion-label>
         </ion-select-option>
       </ion-select>
     </ion-item>

@@ -42,6 +42,8 @@
     "ff:chrome": "web-ext run -s './www' -t firefox-desktop -t chromium --firefox-profile=ibgibtest1 --keep-profile-changes --browser-console",
     "man:ff:0": "echo 'runs web-ext ff with a temporary, clean session profile, i.e., does not keep data between sessions.'",
     "ff:0": "web-ext run -s './www' -t firefox-desktop --browser-console",
+    "ff:noprofile": "npm run ff:0",
+    "man:ff:1": "echo 'runs web-ext ff with ibgibtest1 profile. use ff:createprofiles to do create this'",
     "ff:1": "web-ext run -s './www' -t firefox-desktop --firefox-profile=ibgibtest1 --keep-profile-changes --browser-console",
     "ff:2": "web-ext run -s './www' -t firefox-desktop --firefox-profile=ibgibtest2 --keep-profile-changes --browser-console",
     "ff:3": "web-ext run -s './www' -t firefox-desktop --firefox-profile=ibgibtest3 --keep-profile-changes --browser-console",

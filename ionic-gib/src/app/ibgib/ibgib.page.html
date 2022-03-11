@@ -56,13 +56,13 @@
       </ion-button>
       <ion-button [disabled]="syncing || refreshing || paused || tagging"
         class="toolbar-title-btn"
-        (click)="handleTagClick()">
+        (click)="handleTagClick($event)">
         <ion-icon name="pricetag-outline"></ion-icon>
         <ion-spinner *ngIf="tagging" name="bubbles" color="tertiary"></ion-spinner>
       </ion-button>
       <ion-button [disabled]="syncing || refreshing || paused || tagging"
         class="toolbar-title-btn"
-        (click)="handleInfoClick()">
+        (click)="handleInfoClick($event)">
         <ion-icon name="information"></ion-icon>
       </ion-button>
     </ion-buttons>
@@ -99,16 +99,16 @@
       <ion-spinner class="slant-right" name="dots" color="tertiary"></ion-spinner>
     </div>
     <div class="loading-hair">
-      <ion-spinner name="asdf" color="tertiary"></ion-spinner>
+      <ion-spinner color="tertiary"></ion-spinner>
       <ion-spinner class="slant-right" name="dots" color="tertiary"></ion-spinner>
       <ion-spinner class="slant-left" name="dots" color="tertiary"></ion-spinner>
-      <ion-spinner name="asdf" color="tertiary"></ion-spinner>
+      <ion-spinner color="tertiary"></ion-spinner>
     </div>
     <div class="loading-hair">
-      <ion-spinner name="asdf" color="tertiary"></ion-spinner>
+      <ion-spinner color="tertiary"></ion-spinner>
       <ion-spinner class="slant-left" name="dots" color="tertiary"></ion-spinner>
       <ion-spinner class="slant-right" name="dots" color="tertiary"></ion-spinner>
-      <ion-spinner name="asdf" color="tertiary"></ion-spinner>
+      <ion-spinner color="tertiary"></ion-spinner>
     </div>
   </div>
     <!-- [ngStyle]="{'border-color': '[debugBorderColor]','border-width':'155px','border-stroke':'solid'}" -->

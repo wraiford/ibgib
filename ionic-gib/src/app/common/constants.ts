@@ -393,11 +393,11 @@ export const DEFAULT_LOCAL_SPACE_POLLING_DELAY_FIRST_RUN_MS = 10_000;
  * {@link DEFAULT_LOCAL_SPACE_POLLING_INTERVAL_MS} but for outer spaces, so
  * longer interval atow.
  */
-export const DEFAULT_OUTER_SPACE_POLLING_INTERVAL_MS = 60_000;
+export const DEFAULT_OUTER_SPACE_POLLING_INTERVAL_MS = 20_000;
 /**
  * Amount of time to delay for FIRST poll execution.
  */
-export const DEFAULT_OUTER_SPACE_POLLING_DELAY_FIRST_RUN_MS = 16_000;
+export const DEFAULT_OUTER_SPACE_POLLING_DELAY_FIRST_RUN_MS = 10_000;
 
 /**
  * AWS DynamoDB only allows 400K per item-ish.

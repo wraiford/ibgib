@@ -24,7 +24,7 @@ import { ChooseIconModalComponent, IconItem } from '../common/choose-icon-modal/
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { IbGibSpaceAny } from '../common/witnesses/spaces/space-base-v1';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
@@ -354,7 +354,7 @@ export class IbGibPage extends IbgibComponentBase
         const body =
           `This will TURN ON auto syncing for the current ibGib (${this.ib}) and ALL its related ibGibs to your outerspace(s).`;
         const note = `(note: to turn off auto syncing, press the sync button again)`;
-        const listTjpIbs = `List of ${tjpIbGibs.length} other tjp ibs that will autosync:\n${tjpIbGibs.map(x => x.ib).join('\n')}`;
+        const listTjpIbs = `List of ${tjpIbGibs.length} ibGibs that will autosync:\n${tjpIbGibs.map(x => x.ib).join('\n')}`;
         const resConfirmSync = await Modals.confirm({
           title: 'Sync with outerspace?',
           message: `${body}\n\nProceed?\n\n${note}\n\n${listTjpIbs}`,
