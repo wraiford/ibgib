@@ -114,6 +114,12 @@ Here are descriptions of the extension scripts that I use the most in
     to emulate multiple different simultaneous participants in ibgib chats.
 * `npm run ff:chrome` for testing both simultaneously.
 
+# local workspace settings
+
+While working on the project alone, I keep different editor colors for
+differentiating among vscode windows. I'm open to changing this if it offends,
+just let me know.
+
 # notes
 
 [^1]: A DLT technology, but not coming from the blockchain/Bitcoin paradigm; rather it has been a separate evolutionary path to address issues of massively parallel execution more akin to Event Sourcing (if anything) with content address hashes being Gödelian number addresses across infinite address spaces.
