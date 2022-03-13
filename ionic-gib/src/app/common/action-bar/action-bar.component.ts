@@ -9,7 +9,7 @@ import * as h from 'ts-gib/dist/helper';
 
 import { CommonService } from 'src/app/services/common.service';
 import {
-  ActionItem, PicData, CommentData, SyncSpaceResultIbGib,
+  ActionItem, PicData, CommentData, SyncSpaceResultIbGib, ActionItemName,
 } from '../types';
 import { ChooseIconModalComponent, IconItem } from '../choose-icon-modal/choose-icon-modal.component';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
@@ -70,7 +70,7 @@ export class ActionBarComponent extends IbgibComponentBase
       type: 'inputfile',
       text: 'image',
       icon: 'image-outline',
-      filepicked: async (event) => await this.actionAddImage(event),
+      filepicked: async (event) => await this.actionAddImage(event, 'file'),
     },
     // {
     //   name: 'tag',
@@ -386,7 +386,7 @@ export class ActionBarComponent extends IbgibComponentBase
   }
 
   async handleHtml5PicButton(event: any): Promise<void> {
-    await this.actionAddImage(event);
+    await this.actionAddImage(event, 'camera');
   }
 
   getExt(path: string): { filename: string, ext: string } {
@@ -403,11 +403,11 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
-  async actionAddImage(event: any): Promise<void> {
+  async actionAddImage(event: any, actionItemName: ActionItemName): Promise<void> {
     const lc = `${this.lc}[${this.actionAddImage.name}]`;
     let actionItem: ActionItem;
     try {
-      actionItem = this.items.filter(x => x.name === 'file')[0];
+      actionItem = this.items.filter(x => x.name === actionItemName)[0];
       actionItem.busy = true;
 
       // await Modals.alert({title: 'file', message: `picked a file yo`});

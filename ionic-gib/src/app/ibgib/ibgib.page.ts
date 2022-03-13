@@ -490,9 +490,6 @@ export class IbGibPage extends IbgibComponentBase
       if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)}`); }
       const isNewer = (info_latestIbGib.data?.n ?? -1) > (this.ibGib.data?.n ?? -1);
       if (isNewer) {
-        // if (!this.tjpAddr) { await this.loadTjp(); } // already did this?
-        // if (info.tjpAddr !== this.tjpAddr) { return; }
-        // if (this.addr !== info.latestAddr) {
           // for now, we'll just navigate to the latest addr
           await this.go({
             toAddr: info.latestAddr,
@@ -500,7 +497,8 @@ export class IbGibPage extends IbgibComponentBase
           });
         // }
       } else {
-        if (logalot) { console.log(`${lc} ignoring "latest" info because it's not newer. (I: c88d135984c39a2aaefd48620d913b22)`); }
+        console.warn(`${lc} ignoring "latest" info because it's not newer. We're going to register this.ibGib the new latest as a fix for recent test data. (W: c88d135984c39a2aaefd48620d913b22)`);
+        await this.common.ibgibs.registerNewIbGib({ibGib: this.ibGib});
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);

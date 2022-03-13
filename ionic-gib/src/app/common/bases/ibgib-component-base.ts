@@ -465,7 +465,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
             return;
         }
         if (logalot) { console.log(`${lc} setting this.addr (${this.addr}) to info.latestAddr (${info.latestAddr}).`); }
-        this.addr = info.latestAddr;
+        this.addr = info.latestAddr; // results in `updateIbGib` call
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         this.errored = true;
