@@ -17,7 +17,7 @@
     },
     "search.exclude": {
         "**/www": true,
-        "**/node_modules"
+        "**/node_modules": true
     },
     "files.trimTrailingWhitespace": true,
     "editor.tabCompletion": "on"
