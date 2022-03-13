@@ -98,7 +98,7 @@ export class AppComponent extends IbgibComponentBase
     }
   }
   private _subTagsUpdate: Subscription;
-  private _subTagsUpdateTEST: Subscription;
+  // private _subTagsUpdateTEST: Subscription;
 
   private _rootsAddr: IbGibAddr;
   @Input()
@@ -383,9 +383,9 @@ export class AppComponent extends IbgibComponentBase
         this._subTagsUpdate.unsubscribe();
       }
 
-      this._subTagsUpdateTEST = this.common.ibgibs.latestObs.subscribe(x => {
-          if (logalot) { console.log(`${lc} TEST ibGib update heard. latestAddr: ${x.latestAddr}.`); }
-      });
+      // this._subTagsUpdateTEST = this.common.ibgibs.latestObs.subscribe(x => {
+      //     if (logalot) { console.log(`${lc} TEST ibGib update heard. latestAddr: ${x.latestAddr}.`); }
+      // });
       this._subTagsUpdate = this.common.ibgibs.latestObs.pipe(
         concatMap(async (latestEvent) => {
           if (logalot) { console.log(`${lc} ibGib update heard. latestAddr: ${latestEvent.latestAddr}.`); }

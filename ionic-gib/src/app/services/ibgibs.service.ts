@@ -46,6 +46,7 @@ import {
   updateBootstrapIbGib,
   getSpaceArgMetadata,
   getLatestAddrs,
+  getTimelinesGroupedByTjp,
 } from '../common/helper';
 import { AppSpaceData, AppSpaceRel8ns } from '../common/types/app';
 import {
@@ -2372,19 +2373,41 @@ export class IbgibsService {
       // optionally see this later without modifying the ibgib timeline by a
       // mut8 or rel8 function directly on the now-vestigial/abandoned timeline.
 
+      /**
+       * groups the incoming `ibGibsToRegister` by tjp and registers each latest.
+       *
+       * @param ibGibsToRegister will call `registerNewIbGib` on the lastest in each timeline
+       */
+      const registerLatestInTimelines = async (ibGibsToRegister: IbGib_V1[]) => {
+        const timelines =
+          getTimelinesGroupedByTjp({ibGibs: ibGibsToRegister});
+        for (let i = 0; i < Object.keys(timelines).length; i++) {
+          const tjpAddr = Object.keys(timelines)[i];
+          const timeline = timelines[tjpAddr];
+          const latestIbGibInTimeline = timeline[timeline.length-1];
+          // registerNewIbGib is idempotent if already registered as latest
+          await this.registerNewIbGib({ibGib: latestIbGibInTimeline});
+        }
+      };
+
       // first, we will store the newly created ibgibs (if any) in the local space.
       // created ibgibs may not exist if only the sync space branch has changed.
+      // meanwhile, we must collect all ibgib timelines (with tjps) to register
       if (status.createdIbGibs?.length > 0) {
         if (logalot) { console.log(`${lc} putting createdIbGibs (${status.createdIbGibs.length}): ${status.createdIbGibs.map(x => h.getIbGibAddr({ibGib: x})).join('\n')}.`); }
         const resPutCreated = await this.put({ibGibs: status.createdIbGibs});
         if (!resPutCreated.success) { throw new Error(`Couldn't save created ibGibs locally? (E: f8bc91259c5043d589cd2e7ad2220c1f)`); }
+        await registerLatestInTimelines(status.storeOnlyIbGibs)
       } else {
         if (logalot) { console.log(`${lc} no createdIbGibs`); }
       }
+
+
       if (status.storeOnlyIbGibs?.length > 0) {
         if (logalot) { console.log(`${lc} putting storeOnlyIbGibs (${status.storeOnlyIbGibs.length}): ${status.storeOnlyIbGibs.map(x => h.getIbGibAddr({ibGib: x})).join('\n')}.`); }
         const resPutStoreOnly = await this.put({ibGibs: status.storeOnlyIbGibs});
         if (!resPutStoreOnly.success) { throw new Error(`Couldn't save storeonly ibGibs locally? (E: c5ab044718ab42bba27f5852149b7ddc)`); }
+        await registerLatestInTimelines(status.storeOnlyIbGibs)
       } else {
         if (logalot) { console.log(`${lc} no storeOnlyIbGibs`); }
       }
@@ -2399,6 +2422,7 @@ export class IbgibsService {
         if (logalot) { console.log(`${lc} registering latestIbGib in localUserSpace: ${h.getIbGibAddr({ibGib: latestIbGib})}`); }
         await this.registerNewIbGib({ibGib: latestIbGib});
       }
+
       if (logalot) { console.log(`${lc} complete.`); }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -2601,19 +2625,23 @@ export class IbgibsService {
 
       // save locally
       if (logalot) { console.log(`${lc} saving new ibgibs from outerspace in local space...`); }
-      await this.put({ibGibs: newerIbGibsFromOuterSpace});
+      if (newerIbGibsFromOuterSpace.length > 0) {
+        await this.put({ibGibs: newerIbGibsFromOuterSpace});
 
-      // register the newest tjp ibGibs locally
-      if (logalot) { console.log(`${lc} registering "new" updated tjp ibgibs locally...`); }
-      for (let i = 0; i < tjpAddrs.length; i++) {
-        const tjpAddr = tjpAddrs[i];
-        const updatedAddr = updates[tjpAddr];
-        const updatedIbGib = newerIbGibDependencyGraphFromOuterSpace[updatedAddr];
-        if (!updatedIbGib) {
-          debugger;
-          throw new Error(`did not get updatedIbGib (${updatedAddr}) from outerspace (${outerSpace.data.uuid}) (E: 818de70f5b444a3ba198ba6480a15b04)`);
+        // register the newest tjp ibGibs locally
+        if (logalot) { console.log(`${lc} registering "new" updated tjp ibgibs locally...`); }
+        for (let i = 0; i < tjpAddrs.length; i++) {
+          const tjpAddr = tjpAddrs[i];
+          const updatedAddr = updates[tjpAddr];
+          if (!addrsAlreadyStoredLocally.includes(updatedAddr)) {
+            const updatedIbGib = newerIbGibDependencyGraphFromOuterSpace[updatedAddr];
+            if (!updatedIbGib) {
+              debugger;
+              throw new Error(`did not get updatedIbGib (${updatedAddr}) from outerspace (${outerSpace.data.uuid}) (E: 818de70f5b444a3ba198ba6480a15b04)`);
+            }
+            await this.registerNewIbGib({ibGib: updatedIbGib});
+          }
         }
-        await this.registerNewIbGib({ibGib: updatedIbGib});
       }
 
     } catch (error) {

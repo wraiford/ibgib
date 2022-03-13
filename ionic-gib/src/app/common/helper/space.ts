@@ -1079,17 +1079,25 @@ export async function registerNewIbGib({
         if (existingMapping.length > 0) {
             if (logalot) { console.log(`${lc} tjp mapping exists. Checking which is newer.`) }
             let existingLatestAddr = existingMapping[0];
+
+            // check to see if ibgib is already the latest
+            if (existingLatestAddr === ibGibAddr) {
+                if (logalot) { console.log(`${lc} Neither is newer because ibGibAddr is already registered as latest, so returning without any further action. (I: 7f5bd5d3391be95919240f0e97976e22)`); }
+                return; // <<<< returns
+            }
+
+            // not the latest or not registered, so get the full existing latest
+            // ibgib analyze to see if the incoming ibgib is indeed newer
             let resExistingLatest = await getFromSpace({addr: existingLatestAddr, space});
             if (!resExistingLatest.success || resExistingLatest.ibGibs?.length !== 1) {
                 console.error(`Didn't find existing latest ibGib (${existingLatestAddr}). I haven't implemented more robust multi-node/distributed strategies for this scenario yet. User chose YES to replace.`);
                 await replaceLatest();
                 return;
             }
-
             const existingLatest = resExistingLatest.ibGibs![0];
 
-            // if there is an nCounter, then we can go by that. Otherwise, we'll have to
-            // brute force it.
+            // if there is an nCounter, then we can go by that. Otherwise, we'll
+            // try to brute force "latest" comparison
             const ibGibHasNCounter =
                 ibGib.data?.n &&
                 typeof ibGib.data!.n! === 'number' &&

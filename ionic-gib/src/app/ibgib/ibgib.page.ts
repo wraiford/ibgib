@@ -467,18 +467,40 @@ export class IbGibPage extends IbgibComponentBase
   async handleIbGib_NewLatest(info: LatestEventInfo): Promise<void> {
     const lc = `${this.lc}[${this.handleIbGib_NewLatest.name}]`;
     try {
-      if (!this.tjp) { await this.loadTjp(); }
+      if (!this.tjp || !this.tjpAddr) { await this.loadTjp(); }
+      if (!this.tjpAddr) {
+        if (logalot) { console.log(`${lc} no tjp, so ignoring latest. (I: 298b2557007a7f310436f4c7c3716722)`); }
+        return; // <<<< returns
+      }
       if (this.tjpAddr !== info.tjpAddr) { return; }
-      if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)}`); }
+
+      let info_latestIbGib = info.latestIbGib;
+      if (!info_latestIbGib) {
+        let resGet = await this.common.ibgibs.get({addr: info.latestAddr});
+        if (resGet.success && resGet.ibGibs?.length === 1) {
+          info_latestIbGib = resGet.ibGibs[0];
+        } else {
+          console.error(`${lc} could not get latest ibgib that was published. (E: 85599b5cca4a4bba93578a3156c98b50)`);
+          return; // returns
+        }
+      }
 
       if (!this.ibGib) { return; }
-      if (!this.tjpAddr) { await this.loadTjp(); }
-      if (info.tjpAddr !== this.tjpAddr) { return; }
-      if (this.addr !== info.latestAddr) {
-        await this.go({
-          toAddr: info.latestAddr,
-          fromAddr: this.addr,
-        });
+
+      if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)}`); }
+      const isNewer = (info_latestIbGib.data?.n ?? -1) > (this.ibGib.data?.n ?? -1);
+      if (isNewer) {
+        // if (!this.tjpAddr) { await this.loadTjp(); } // already did this?
+        // if (info.tjpAddr !== this.tjpAddr) { return; }
+        // if (this.addr !== info.latestAddr) {
+          // for now, we'll just navigate to the latest addr
+          await this.go({
+            toAddr: info.latestAddr,
+            fromAddr: this.addr,
+          });
+        // }
+      } else {
+        if (logalot) { console.log(`${lc} ignoring "latest" info because it's not newer. (I: c88d135984c39a2aaefd48620d913b22)`); }
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);

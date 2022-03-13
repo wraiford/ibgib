@@ -1938,10 +1938,10 @@ export class AWSDynamoSpace_V1<
             // argibGibs guaranteed at this point to be non-null and > 0
 
             // only need to get newer ibGibs for those with timelines.
-            let {mapWithTjp_YesDna, mapWithTjp_NoDna, mapWithout} = splitPerTjpAndOrDna({ibGibs});
+            let {mapWithTjp_YesDna, mapWithTjp_NoDna, mapWithoutTjps} = splitPerTjpAndOrDna({ibGibs});
             const mapIbGibsWithTjp = { ...mapWithTjp_YesDna, ...mapWithTjp_NoDna };
             const ibGibsWithTjp = Object.values(mapIbGibsWithTjp);
-            const ibGibsWithoutTjp = Object.values(mapWithout);
+            const ibGibsWithoutTjp = Object.values(mapWithoutTjps);
 
             if (ibGibsWithTjp.length === 0) {
                 const warning = `${lc} ibGibsWithTjp.length is zero, meaning
@@ -2035,10 +2035,10 @@ export class AWSDynamoSpace_V1<
             // (because no timeline === no "latest" beyond itself)
 
             // prepare our collections
-            let {mapWithTjp_YesDna, mapWithTjp_NoDna, mapWithout} = splitPerTjpAndOrDna({ibGibs});
+            let {mapWithTjp_YesDna, mapWithTjp_NoDna, mapWithoutTjps} = splitPerTjpAndOrDna({ibGibs});
             const mapIbGibsWithTjp = { ...mapWithTjp_YesDna, ...mapWithTjp_NoDna };
             const ibGibsWithTjp = Object.values(mapIbGibsWithTjp);
-            const ibGibsWithoutTjp = Object.values(mapWithout);
+            const ibGibsWithoutTjp = Object.values(mapWithoutTjps);
 
             const ibGibsWithTjpGroupedByTjpAddr = groupBy({
                 items: ibGibsWithTjp,
@@ -3429,9 +3429,9 @@ export class AWSDynamoSpace_V1<
             // now that we have a map of local addr => latest store addr | null,
             // we will group our incoming ibgibs by tjp in preparation to
             // iterate.
-            let {mapWithTjp_YesDna, mapWithTjp_NoDna, mapWithout} = splitPerTjpAndOrDna({ibGibs});
+            let {mapWithTjp_YesDna, mapWithTjp_NoDna, mapWithoutTjps} = splitPerTjpAndOrDna({ibGibs});
             const mapIbGibsWithTjp = { ...mapWithTjp_YesDna, ...mapWithTjp_NoDna };
-            const ibGibsWithoutTjp = Object.values(mapWithout);
+            const ibGibsWithoutTjp = Object.values(mapWithoutTjps);
 
             const ibGibsWithTjp = Object.values(mapIbGibsWithTjp);
             const mapIbGibsWithTjpGroupedByTjpAddr = groupBy({
@@ -3765,6 +3765,7 @@ export class AWSDynamoSpace_V1<
                 // hmm, try to handle this post hoc?
                 console.error(emsg);
             } else {
+                debugger; // this should stop the busy indicator but it isn't
                 console.error(emsg);
             }
 
@@ -4064,11 +4065,16 @@ export class AWSDynamoSpace_V1<
          * Map of old local latest ibgib addr to the latest ibgib in the store
          * after merger.
          *
+         * ## on what to do with old ibgibs
+         *
          * The calling code may choose to orphan these ibgibs, or somehow
-         * mark/tag them as being involved in this operation. But if this is
-         * done, then it should somehow be noted to stay locally and not be
-         * synced, otherwise this would become a neverending cycle of metadata
-         * for sync, which then itself gets synced and produces more metadata.
+         * mark/tag them as being involved in this operation, but if they do it
+         * will become MUCH MORE COMPLICATED! There may be references to the
+         * newly vestigial old ibGib. Also orphaning may lead to cyclical
+         * metadata updates when syncing, etc.
+         *
+         * So basically, keep them around unless some other mechanism is put
+         * in place that takes into account various complexity issues.
          */
         ibGibMergeMap: { [oldLatestAddr: string]: IbGib_V1 },
         /**

@@ -283,13 +283,13 @@ export function splitPerTjpAndOrDna({
     /** ibgibs have tjp but NO dna */
     mapWithTjp_NoDna: { [gib: string]: IbGib_V1 },
     /** ibgibs that have no tjp (and implicitly no dna) */
-    mapWithout: { [gib: string]: IbGib_V1 }
+    mapWithoutTjps: { [gib: string]: IbGib_V1 }
 } {
     const lc = `[${splitPerTjpAndOrDna.name}]`;
     try {
         const mapWithTjp_YesDna: { [gib: string]: IbGib_V1 } = {};
         const mapWithTjp_NoDna: { [gib: string]: IbGib_V1 } = {};
-        const mapWithout: { [gib: string]: IbGib_V1 } = {};
+        const mapWithoutTjps: { [gib: string]: IbGib_V1 } = {};
         // const mapLivingIbGibs: { [gib: string]: IbGib_V1 } = {};
         // const mapStoneIbGibs: { [gib: string]: IbGib_V1 } = {};
         const ibGibsTodo = filterPrimitives ?
@@ -303,13 +303,70 @@ export function splitPerTjpAndOrDna({
                     mapWithTjp_NoDna[ibGib.gib] = ibGib;
                 }
             } else {
-                mapWithout[ibGib.gib] = ibGib;
+                mapWithoutTjps[ibGib.gib] = ibGib;
             }
         });
-        return {mapWithTjp_YesDna, mapWithTjp_NoDna, mapWithout};
+        return {mapWithTjp_YesDna, mapWithTjp_NoDna, mapWithoutTjps};
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
+    }
+}
+
+/**
+ * Takes incoming `ibGibs`, filters out those that do
+ * not have tjps( i.e. non-timelines), and groups
+ * the timeline ibgibs by tjp in ascending order.
+ *
+ * This means that each map entry will be in the form:
+ * `[tjpAddr] => [ibgib0 (tjp), ibgib1, ibgib2, ..., ibgibN (latest)]`
+ *
+ * ## notes
+ *
+ * * sorts by `ibgib.data.n`. If this is undefined, will not sort in ascending
+ *   order properly.
+ *
+ * @returns filtered, sorted map of incoming `ibGibs` [tjpAddr] => timeline [ibgib0 (tjp), ibgib1, ibgib2, ..., ibgibN (latest)]
+ */
+export function getTimelinesGroupedByTjp({
+    ibGibs,
+}: {
+    /**
+     * group of source ibGibs to filter/group/sort by tjp.
+     */
+    ibGibs: IbGib_V1[],
+}): { [tjpAddr: string] : IbGib_V1[] } {
+    const lc = `[${getTimelinesGroupedByTjp.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting...`); }
+
+        // pull out only the ibgibs in timelines (either is tjp or has tjp)
+        let {mapWithTjp_YesDna, mapWithTjp_NoDna} =
+            splitPerTjpAndOrDna({ibGibs, filterPrimitives: true});
+        const mapIbGibsWithTjp = { ...mapWithTjp_YesDna, ...mapWithTjp_NoDna };
+        const ibGibsWithTjp = Object.values(mapIbGibsWithTjp);
+
+        const mapTjpTimelines_Ascending = groupBy({
+            items: ibGibsWithTjp,
+            keyFn: x => x.data.isTjp ? h.getIbGibAddr({ibGib: x}) : x.rel8ns.tjp[0]
+        });
+
+        if (logalot) { console.log(`${lc} sorting (ascending) ibGibsWithTjpGroupedByTjpAddr: ${h.pretty(mapTjpTimelines_Ascending)} (I: 9b9fff5ce61444a6cb06d62db9a99422)`); }
+        Object.entries(mapTjpTimelines_Ascending).forEach(([_tjpAddr, timeline]) => {
+            if (timeline.some(ibGib => ibGib.data?.n === undefined)) {
+                console.warn(`${lc} timeline includes ibgibs with ibGib.data?.n === undefined (W: cab9a6b64a38c4279fe82c3569bbab22)`);
+            }
+            // sort mutates array in place
+            timeline.sort((a, b) => (a.data?.n ?? -1) > (b.data?.n ?? -1) ? 1 : -1); // sorts ascending, e.g., 0,1,2...[Highest]
+        });
+        if (logalot) { console.log(`${lc} after sort ibGibsWithTjpGroupedByTjpAddr: ${h.pretty(mapTjpTimelines_Ascending)} (I: 9b9fff5ce61444a6cb06d62db9a99422)`); }
+
+        return mapTjpTimelines_Ascending; // ascending
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
     }
 }
 
