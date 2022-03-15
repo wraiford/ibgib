@@ -37,6 +37,8 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
         protected ref: ChangeDetectorRef,
     ) {
         super(common, ref);
+        const lc = `${this.lc}[ctor]`;
+        if (logalot) { console.log(`${lc}${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
     }
 
     ngOnInit() {
@@ -51,10 +53,29 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
         const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
         if (logalot) { console.log(`${lc} updating...`); }
         try {
+
+            let timerName: string;
+            const timerEnabled = false;
+            if (logalot && timerEnabled) {
+                timerName = lc.substring(0, 24) + '[timer d2e45a]';
+                console.log(`${timerName} starting timer`);
+                console.time(timerName);
+            }
+
             await super.updateIbGib(addr);
+            // if (logalot) { console.timeLog(timerName); }
             await this.loadIbGib();
+            // if (logalot) { console.timeLog(timerName); }
             await this.loadTjp();
+            // if (logalot) { console.timeLog(timerName); }
             await this.updateItems();
+            // if (logalot) { console.timeLog(timerName); }
+
+            if (logalot && timerEnabled) {
+                console.timeEnd(timerName);
+                console.log(`${timerName} timer complete.`);
+            }
+
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
             this.clearItem();
@@ -78,10 +99,21 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
         if (this._updatingItems) { return; }
         this._updatingItems = true;
         try {
+            if (logalot) { console.log(`${lc}${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
             this.items = [];
             let newItems = [];
             if (!this.item || !this.item.ibGib || !this.item.ibGib!.rel8ns) { return; }
             if (logalot) { console.log(`${lc} this.rel8nNames: ${this.rel8nNames?.toString()}`); }
+
+            let timerName: string;
+            const timerEnabled = true;
+            if (logalot && timerEnabled) {
+                timerName = lc.substring(0, 24) + '[timer 5d21ea]';
+                console.log(`${timerName} starting timer`);
+                console.time(timerName);
+            }
+            // can intersperse with calls to console.timeLog for intermediate times
+            // if (logalot) { console.timeLog(timerName); }
 
             for (let rel8nName of this.rel8nNames) {
                 const rel8dAddrs = this.item.ibGib?.rel8ns[rel8nName] || [];
@@ -93,12 +125,18 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
                     newItems.push(newItem);
                 }
             }
+
+            if (logalot && timerEnabled) {
+                console.timeEnd(timerName);
+                console.log(`${timerName} timer complete.`);
+            }
+
             // sort by timestamp
             newItems = newItems.sort((a,b) => {
                 if (!a.ibGib?.data?.timestamp || !b.ibGib?.data?.timestamp) {
                     console.error(`${lc} no timestamp `)
                 }
-                return a.ibGib?.data?.timestamp < b.ibGib?.data?.timestamp ? -1 : 1
+                return new Date(a.ibGib?.data?.timestamp) < new Date(b.ibGib?.data?.timestamp) ? -1 : 1
             });
             this.items = newItems || [];
             if (logalot) { console.log(`${lc} this.items count: ${this.items.length}`); }

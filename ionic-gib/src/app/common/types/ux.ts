@@ -211,7 +211,7 @@ export interface ActionItem {
     name: ActionItemName;
     type: 'button' | 'inputfile' | 'inputfile-camera';
     text: string;
-    icon: string;
+    icons: string[];
     handler?: (event: MouseEvent) => Promise<void>;
     filepicked?: (event: any) => Promise<void>;
     busy?: boolean;

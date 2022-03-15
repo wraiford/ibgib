@@ -135,18 +135,47 @@
 			"$0if ($1) { throw new Error(`$2 (E: $RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$CURRENT_YEAR_SHORT)`); }"
 		],
     },
-    "if logalot": {
+    "if logalot log": {
         "scope": "javascript,typescript",
-		"prefix": "if_logalot",
+		"prefix": "if_logalot_log",
 		"body": [
 			"$0if (logalot$1) { console.${2:log}(`\\${lc} $3 (I: $RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$CURRENT_YEAR_SHORT)`); }"
 		],
     },
-    "surround log if logalot": {
+    "surround log if logalot log": {
         "scope": "javascript,typescript",
 		"prefix": "surround_log_if_logalot",
 		"body": [
 			"if (logalot) { $SELECTION }"
+		],
+    },
+    "surround if logalot timer console time-timeEnd": {
+        "scope": "javascript,typescript",
+		"prefix": "surround_if_logalot_timer_console_time_timeend",
+		"body": [
+			"let timerName: string;",
+			"const timerEnabled = true",
+			"if (logalot && timerEnabled) {",
+			"\ttimerName = lc.substring(0, ${1:24}) + '[timer $RANDOM_HEX]';",
+			"\tconsole.log(`\\${timerName} starting...`);",
+			"\tconsole.time(timerName);",
+			"}",
+			"// can intersperse with calls to console.timeLog for intermediate times",
+			"// if (logalot) { console.timeLog(timerName); }",
+			"",
+			"$0$SELECTION",
+			"",
+			"if (logalot && timerEnabled) {",
+			"\tconsole.timeEnd(timerName);",
+			"\tconsole.log(`\\${timerName} complete.`);",
+			"}",
+		],
+    },
+    "if logalot global ibgib timer": {
+        "scope": "javascript,typescript",
+		"prefix": "if_logalot_ibgib_timer",
+		"body": [
+			"if (logalot) { console.log(`\\${lc}\\${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }$0"
 		],
     },
 }

@@ -1,7 +1,6 @@
 import {
   Component, OnInit, OnDestroy,
-  ChangeDetectorRef, ChangeDetectionStrategy, Input, ViewChild
-} from '@angular/core';
+  ChangeDetectorRef, ChangeDetectionStrategy, Input} from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
 import { ActionSheetOptionStyle, Capacitor, Plugins } from '@capacitor/core';
@@ -10,18 +9,17 @@ const { Modals, Clipboard } = Plugins;
 import * as h from 'ts-gib';
 import { IbGibAddr, V1 } from 'ts-gib';
 import { getIbGibAddr, pretty } from 'ts-gib/dist/helper';
-import { IbGib_V1, ROOT } from 'ts-gib/dist/V1';
+import { IbGib_V1 } from 'ts-gib/dist/V1';
 
 import * as c from '../common/constants';
 import { IbgibComponentBase } from '../common/bases/ibgib-component-base';
 import { CommonService } from '../services/common.service';
 import { SPECIAL_URLS } from '../common/constants';
-import { LatestEventInfo, TjpIbGibAddr, } from '../common/types';
+import { LatestEventInfo, } from '../common/types';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
-import { getDependencyGraph, getFnAlert, getTimestampInTicks, groupBy, splitPerTjpAndOrDna, } from '../common/helper';
+import { getFnAlert, } from '../common/helper';
 import { concatMap } from 'rxjs/operators';
 import { ChooseIconModalComponent, IconItem } from '../common/choose-icon-modal/choose-icon-modal.component';
-import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { IbGibSpaceAny } from '../common/witnesses/spaces/space-base-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -54,12 +52,12 @@ export class IbGibPage extends IbgibComponentBase
   get addr(): IbGibAddr { return super.addr; }
   set addr(value: IbGibAddr) { super.addr = value; }
 
-  /**
-   * For the ibgib page, our context is just our ibgib itself.
-   */
-  @Input()
-  get ibGib_Context(): IbGib_V1 { return this.ibGib; }
-  set ibGib_Context(value: IbGib_V1 ) { console.warn(`${this.lc}[set ibGib_Context] not implemented for IbGibPage, as its ibGib is the context for other views/components.`); }
+  // /**
+  //  * For the ibgib page, our context is just our ibgib itself.
+  //  */
+  // @Input()
+  // get ibGib_Context(): IbGib_V1 { return this.ibGib; }
+  // set ibGib_Context(value: IbGib_V1 ) { console.warn(`${this.lc}[set ibGib_Context] not implemented for IbGibPage, as its ibGib is the context for other views/components.`); }
 
   /**
    * I do my own stack navigation, so have to show iOS back chevron
@@ -239,17 +237,17 @@ export class IbGibPage extends IbgibComponentBase
 
   }
 
-  async handleSyncClick(): Promise<void> {
-    if (this.tjpUpdatesAvailableCount_Store) {
-      // just sync to get updates (skip anything to do with autosync)
-      await this.execSync({turnOnAutosyncing: false});
-    } else if (this.autosync) {
-      // no updates and autosync is already on, so disable autosyncing
-      await this.handleSyncClick_DisableAutoSyncing();
-    } else {
-      // no updates and autosync is not not, so turn it on and sync
+  async handleSpaceClick(): Promise<void> {
+    if (!this.autosync) {
+      // autosync is not set yet, so prompt to turn it on and sync
       await this.execSync({turnOnAutosyncing: true});
+    } else {
+      // no updates and autosync is already on, so prompt to disable autosyncing
+      await this.handleSyncClick_DisableAutoSyncing();
     }
+  }
+  async handleSyncClick(): Promise<void> {
+    await this.execSync({turnOnAutosyncing: false});
   }
 
   async handleSyncClick_DisableAutoSyncing(): Promise<void> {
@@ -354,7 +352,7 @@ export class IbGibPage extends IbgibComponentBase
         const body =
           `This will TURN ON auto syncing for the current ibGib (${this.ib}) and ALL its related ibGibs to your outerspace(s).`;
         const note = `(note: to turn off auto syncing, press the sync button again)`;
-        const listTjpIbs = `List of ${tjpIbGibs.length} ibGibs that will autosync:\n${tjpIbGibs.map(x => x.ib).join('\n')}`;
+        const listTjpIbs = `List of ${tjpIbGibs.length} ibGib(s) that will autosync:\n${tjpIbGibs.map(x => x.ib).join('\n')}`;
         const resConfirmSync = await Modals.confirm({
           title: 'Sync with outerspace?',
           message: `${body}\n\nProceed?\n\n${note}\n\n${listTjpIbs}`,
@@ -362,6 +360,9 @@ export class IbGibPage extends IbgibComponentBase
         if (!resConfirmSync.value) {
           await Modals.alert({title: 'Sync cancelled.', message: 'Sync has been cancelled.'});
           this.item.syncing = false;
+          setTimeout(() => this.ref.detectChanges());
+          setTimeout(() => this.ref.detectChanges());
+          setTimeout(() => this.ref.detectChanges());
           // this.autosync = false; // unnecessary?
           return; // <<<< returns
         }
@@ -446,23 +447,24 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
-  async handlePauseClick(): Promise<void> {
-    const lc = `${this.lc}[${this.handlePauseClick.name}]`;
-    try {
-      if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
-      if (!this.tjp) { await this.loadTjp(); }
+  // async handlePauseClick(): Promise<void> {
+  //   const lc = `${this.lc}[${this.handlePauseClick.name}]`;
+  //   try {
+  //     if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
+  //     if (!this.tjp) { await this.loadTjp(); }
 
-      this.paused = true;
-      await this.go({
-        toAddr: this.addr,
-        fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
-        queryParams: { [c.QUERY_PARAM_PAUSED]: true },
-        queryParamsHandling: 'merge'
-      });
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-    }
-  }
+  //     this.paused = true;
+  //     await this.go({
+  //       toAddr: this.addr,
+  //       // fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
+  //       fromAddr: this.addr,
+  //       queryParams: { [c.QUERY_PARAM_PAUSED]: true },
+  //       queryParamsHandling: 'merge'
+  //     });
+  //   } catch (error) {
+  //     console.error(`${lc} ${error.message}`);
+  //   }
+  // }
 
   async handleIbGib_NewLatest(info: LatestEventInfo): Promise<void> {
     const lc = `${this.lc}[${this.handleIbGib_NewLatest.name}]`;
@@ -638,13 +640,13 @@ export class IbGibPage extends IbgibComponentBase
             }
           }
         } else {
-          throw new Error(`${resTagIbGib.errorMsg || 'there was a problem getting the tag ibGib.'}`);
+          throw new Error(`${resTagIbGib.errorMsg || 'there was a problem getting the tag ibGib. (E: 62d65029338d4929b5b12ca57d9c0222)'}`);
         }
 
       }
 
       // relate context to tag
-      const rel8nsToAddByAddr = { target: [this.addr] };
+      const rel8nsToAddByAddr = { [c.TAGGED_REL8N_NAME]: [this.addr] };
       const resRel8ToTag =
         await V1.rel8({src: tagIbGib, rel8nsToAddByAddr, dna: true, nCounter: true});
       await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToTag});

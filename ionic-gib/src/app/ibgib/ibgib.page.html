@@ -37,12 +37,25 @@
         [disabled]="syncing"
         [ngClass]="{'active-btn': autosync}"
         class="toolbar-title-btn"
-        (click)="handleSyncClick()">
+        (click)="handleSpaceClick()">
         <ion-icon name="sparkles-outline"></ion-icon>
+      </ion-button>
+      <ion-button *ngIf="tjp"
+        [disabled]="syncing"
+        class="toolbar-title-btn"
+        (click)="handleSyncClick()">
+        <ion-icon name="rocket-outline"></ion-icon>
+        <ion-icon name="sync-outline"></ion-icon>
         <ion-spinner *ngIf="syncing" name="circles" color="tertiary"></ion-spinner>
         <ion-badge *ngIf="tjpUpdatesAvailableCount_Store" color="primary" slot="end">
           {{ tjpUpdatesAvailableCount_Store }}
         </ion-badge>
+      </ion-button>
+      <ion-button [disabled]="syncing || refreshing || paused || tagging"
+        class="toolbar-title-btn"
+        (click)="handleTagClick($event)">
+        <ion-icon name="pricetag-outline"></ion-icon>
+        <ion-spinner *ngIf="tagging" name="bubbles" color="tertiary"></ion-spinner>
       </ion-button>
       <ion-button [disabled]="refreshing"
         [ngClass]="{'active-btn':!paused}"
@@ -56,14 +69,8 @@
       </ion-button>
       <ion-button [disabled]="syncing || refreshing || paused || tagging"
         class="toolbar-title-btn"
-        (click)="handleTagClick($event)">
-        <ion-icon name="pricetag-outline"></ion-icon>
-        <ion-spinner *ngIf="tagging" name="bubbles" color="tertiary"></ion-spinner>
-      </ion-button>
-      <ion-button [disabled]="syncing || refreshing || paused || tagging"
-        class="toolbar-title-btn"
         (click)="handleInfoClick($event)">
-        <ion-icon name="information"></ion-icon>
+        <ion-icon name="glasses"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
@@ -119,9 +126,9 @@
     [style.border-style]="debugBorderStyle"
     >
 
-    <tag-list *ngIf='isTags || isTag' [addr]='addr' [ibGib_Context]='ibGib'></tag-list>
+    <tag-list *ngIf='isTags' [addr]='addr' [ibGib_Context]='ibGib'></tag-list>
     <root-list *ngIf='isRoots' [addr]='addr' [ibGib_Context]='ibGib'></root-list>
-    <chat-view *ngIf='!(isTag || isTags || isRoots)' [addr]='addr' [ibGib_Context]='ibGib'></chat-view>
+    <chat-view *ngIf='!(isTags || isRoots)' [addr]='addr' [ibGib_Context]='ibGib'></chat-view>
 
   </div>
 

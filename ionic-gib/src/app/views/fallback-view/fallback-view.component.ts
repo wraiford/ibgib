@@ -1,8 +1,13 @@
 import { Component, OnInit, ChangeDetectorRef, Input } from '@angular/core';
-import { IbgibComponentBase } from 'src/app/common/bases/ibgib-component-base';
-import { CommonService } from 'src/app/services/common.service';
+
 import { IbGibAddr } from 'ts-gib';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
+
+import * as c from '../../common/constants';
+import { IbgibComponentBase } from 'src/app/common/bases/ibgib-component-base';
+import { CommonService } from 'src/app/services/common.service';
+
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 @Component({
   selector: 'fallback-view',
@@ -11,6 +16,8 @@ import { IbGib_V1 } from 'ts-gib/dist/V1';
 })
 export class FallbackViewComponent extends IbgibComponentBase
   implements OnInit {
+
+  protected lc: string = `[${FallbackViewComponent.name}]`;
 
   @Input()
   get addr(): IbGibAddr { return super.addr; }
@@ -23,8 +30,11 @@ export class FallbackViewComponent extends IbgibComponentBase
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
-  ) { 
+  ) {
     super(common, ref);
+    const lc = `${this.lc}[ctor]`;
+    if (logalot) { console.log(`${lc} called (I: 144a7879d86480b8482b982379f00f22)`); }
+    if (logalot) { console.log(`${lc}${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
   }
 
   ngOnInit() {

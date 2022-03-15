@@ -8,6 +8,11 @@ import { SaltStrategy } from 'encrypt-gib';
  * Naive selective logging/tracing mechanism.
  */
 export const GLOBAL_LOG_A_LOT: boolean | number = false;
+/**
+ * Used in console.timeLog() calls...
+ * Initialized in app component constructor
+ */
+export const GLOBAL_TIMER_NAME = '[ib^gib timer]';
 
 export const GLOBAL_DEBUG_BORDER = false;
 
@@ -134,7 +139,7 @@ export const ROOT_REL8N_NAME = 'root';
 /**
  * A tag ibGib uses this rel8n name for the ibgibs that it targets.
  */
-export const TAGGED_REL8N_NAME = 'tagged';
+export const TAGGED_REL8N_NAME = 'target';
 /**
  * A spaces ibGib uses this rel8n name for related sync spaces, used
  * in replicating ibgib spaces.

@@ -41,18 +41,21 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     @Input()
     set addr(value: IbGibAddr) {
         const lc = `${this.lc}[set addr(${value})]`;
+        if (logalot) { console.log(`${lc}[start]${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
         if (this._updatingIbGib) {
             if (logalot) { console.log(`${lc} already updatingIbGib`) }
             return;
         }
         if (value === this.addr) {
             if (logalot) { console.log(`${lc} value already === this.addr`); }
+            if (logalot) { console.log(`${lc}[end]${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
         } else {
             if (logalot) { console.log(`${lc} updating ibgib ${value}`); }
             this._updatingIbGib = true;
             this.updateIbGib(value).finally(() => {
                 this._updatingIbGib = false;
                 setTimeout(() => { this.ref.detectChanges(); }, 500)
+                if (logalot) { console.log(`${lc}[end]${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
             });
         }
     }
@@ -160,7 +163,8 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         protected common: CommonService,
         protected ref: ChangeDetectorRef,
     ) {
-
+        const lc = `${this.lc}[ctor]`;
+        if (logalot) { console.log(`${lc}${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
     }
 
     /**

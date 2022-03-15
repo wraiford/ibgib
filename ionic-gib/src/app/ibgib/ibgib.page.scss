@@ -6,6 +6,12 @@
 ion-menu-button, ion-button, .back-btn, ion-title {
   color: var(--ion-color-primary);
 }
+ion-button, ion-menu-button {
+  border-color: var(--ion-color-primary);
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 5px;
+}
 
 #container {
   height: 100%;

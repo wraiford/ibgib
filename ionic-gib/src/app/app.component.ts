@@ -157,8 +157,15 @@ export class AppComponent extends IbgibComponentBase
     public menu: MenuController,
   ) {
     super(common, ref);
+    const lc = `${this.lc}[ctor]`;
+
+    console.time(c.GLOBAL_TIMER_NAME);
+    // interstitial calls throughout code as desired
+    setTimeout(() => { console.timeEnd(c.GLOBAL_TIMER_NAME); }, 10000);
 
     this.initializeApp();
+
+    if (logalot) { console.log(`${lc}[end]${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
   }
 
   async initializeApp(): Promise<void> {
@@ -177,14 +184,33 @@ export class AppComponent extends IbgibComponentBase
         } else {
           if (logalot) { console.log(`${lc} this.initializing is falsy`); }
         }
-        // make sure the service is initialized FIRST before any
-        // other ibgib happenings
-        if (logalot) { console.log(`${lc} wakka calling IbgibsService.initialize...`); }
-        await this.common.ibgibs.initialize({
-          fnPromptSecret: getFn_promptCreateSecretIbGib(this.common),
-          fnPromptEncryption: getFn_promptCreateEncryptionIbGib(this.common),
-          fnPromptOuterSpace: getFn_promptCreateOuterSpaceIbGib(this.common),
-        });
+
+        let timerName: string; let infoGuid: string;
+        try {
+          if (logalot) {
+            timerName = lc + '[timer 90f1a9]';
+            infoGuid = 'fa0662edd9a725abc9f2ecca9ab57422';
+            console.log(`${lc} starting timer ${timerName} (I: ${infoGuid})`);
+            console.time(timerName);
+          }
+          // can intersperse with calls to console.timeLog(timerName); for intermediate times
+          // console.timeLog(timerName);
+
+          // make sure the service is initialized FIRST before any
+          // other ibgib happenings
+          if (logalot) { console.log(`${lc} wakka calling IbgibsService.initialize...`); }
+          await this.common.ibgibs.initialize({
+            fnPromptSecret: getFn_promptCreateSecretIbGib(this.common),
+            fnPromptEncryption: getFn_promptCreateEncryptionIbGib(this.common),
+            fnPromptOuterSpace: getFn_promptCreateOuterSpaceIbGib(this.common),
+          });
+
+        } finally {
+          if (logalot) {
+            console.timeEnd(timerName);
+            console.log(`${lc} timer ${timerName} complete. (I: ${infoGuid})`);
+          }
+        }
 
         if (logalot) { console.log(`${lc} doodle IbgibsService.initialize returned.`); }
 

@@ -7,7 +7,7 @@ import { IbGibAddr } from 'ts-gib';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 import * as c from '../../common/constants';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 @Component({
   selector: 'list-view',
@@ -42,6 +42,11 @@ export class ListViewComponent
     protected ref: ChangeDetectorRef,
   ) {
     super(common, ref);
+    const lc = `${this.lc}[ctor]`;
+    if (logalot) { console.log(`${lc} called (I: 42779b92438928ee1c1496289fca2322)`); }
+
+    if (logalot) { console.log(`${lc}${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
+
     setTimeout(() => { this.ref.detectChanges(); }, 5000); // no idea
   }
 

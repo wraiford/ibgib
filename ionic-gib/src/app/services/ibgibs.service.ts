@@ -289,7 +289,9 @@ export class IbgibsService {
     public modalController: ModalController,
     public alertController: AlertController,
   ) {
-    if (logalot) { console.log(`${this.lc}[ctor] doodle `); }
+    const lc = `${this.lc}[ctor]`;
+    if (logalot) { console.log(`${lc} doodle `); }
+    if (logalot) { console.log(`${lc}${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
   }
 
   async initialize({
@@ -309,22 +311,43 @@ export class IbgibsService {
       this.fnPromptEncryption = fnPromptEncryption;
       this.fnPromptOuterSpace = fnPromptOuterSpace;
 
+      let timerName: string;
+      if (logalot) {
+        timerName = lc + '[timer 71cbfa]';
+        console.log(`${lc} starting timer ${timerName}`);
+        console.time(timerName);
+      }
+
       await this.initializeLocalSpaces();
+      if (logalot) { console.timeLog(timerName); }
 
       await this.getSpecialIbGib({type: "latest", initialize: true});
+      if (logalot) { console.timeLog(timerName); }
 
       await this.getSpecialIbGib({type: "roots", initialize: true});
+      if (logalot) { console.timeLog(timerName); }
 
       await this.getSpecialIbGib({type: "tags", initialize: true});
+      if (logalot) { console.timeLog(timerName); }
 
       await this.getSpecialIbGib({type: "secrets", initialize: true});
+      if (logalot) { console.timeLog(timerName); }
 
       await this.getSpecialIbGib({type: "encryptions", initialize: true});
+      if (logalot) { console.timeLog(timerName); }
 
       await this.getSpecialIbGib({type: "outerspaces", initialize: true});
+      if (logalot) { console.timeLog(timerName); }
 
       await this.getSpecialIbGib({type: "autosyncs", initialize: true});
+      if (logalot) { console.timeLog(timerName); }
+
       await this.loadAutoSyncs();
+
+      if (logalot) {
+        console.timeEnd(timerName);
+        console.log(`${lc} timer ${timerName} complete.`);
+      }
 
       this._initialized = true;
     } catch (error) {

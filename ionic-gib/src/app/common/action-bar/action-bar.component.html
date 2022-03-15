@@ -4,20 +4,20 @@
     color="primary" shape="round"
     [disabled]="item.busy"
     (click)='item.handler($event)'>
-    <ion-icon slot="start" [name]="item.icon"></ion-icon>
+    <ion-icon *ngFor="let iconName of item?.icons" slot="start" [name]="iconName"></ion-icon>
     <ion-spinner *ngIf="item.busy" name="circles" color="tertiary"></ion-spinner>
   </ion-button>
 
   <ion-button *ngIf='item.type === "inputfile"' color="primary" shape="round"
     (click)='inputyo1.click()'>
-    <ion-icon slot="start" [name]="item.icon"></ion-icon>
+    <ion-icon *ngFor="let iconName of item?.icons" slot="start" [name]="iconName"></ion-icon>
     <ion-spinner *ngIf="item.busy" name="circles" color="tertiary"></ion-spinner>
     <input #inputyo1 type="file" hidden (change)='item.filepicked($event)'/>
   </ion-button>
 
   <ion-button *ngIf='item.type === "inputfile-camera"' color="primary" shape="round"
     (click)='inputyo2.click()'>
-    <ion-icon slot="start" [name]="item.icon"></ion-icon>
+    <ion-icon *ngFor="let iconName of item?.icons" slot="start" [name]="iconName"></ion-icon>
     <ion-spinner *ngIf="item.busy" name="circles" color="tertiary"></ion-spinner>
     <input #inputyo2 type="file" hidden (change)='item.filepicked($event)' accept="image/*" capture/>
   </ion-button>
