@@ -186,3 +186,12 @@ export function isExpired({
         throw error;
     }
 }
+
+/**
+ * Creates a new array that is a unique set of incoming `arr`.
+ * @param arr array to make unique
+ * @returns new array with unique items
+ */
+export function unique<T>(arr: T[]): T[] {
+    return Array.from(new Set<T>(arr));
+}

@@ -171,6 +171,7 @@ export const CONSENSUS_ADDR_SYNC_NAIVE_PUT_MERGE = 'sync naive put merge^gib'
  */
 export const DEFAULT_LIST_REL8N_NAMES: string[] = [
     'pic', 'comment', 'link', 'result', 'import',
+    'tagged', TAGGED_REL8N_NAME, TAG_REL8N_NAME, ROOT_REL8N_NAME, // hack for now to get all to show
 ]
 
 export const DEFAULT_META_IB_STARTS: Ib[] = [

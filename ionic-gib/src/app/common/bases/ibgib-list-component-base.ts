@@ -6,6 +6,7 @@ import { IbgibComponentBase } from './ibgib-component-base';
 import { CommonService } from 'src/app/services/common.service';
 import * as c from '../constants';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
+import { unique } from '../helper/utils';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -115,7 +116,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
             // can intersperse with calls to console.timeLog for intermediate times
             // if (logalot) { console.timeLog(timerName); }
 
-            for (let rel8nName of this.rel8nNames) {
+            for (let rel8nName of unique(this.rel8nNames)) {
                 const rel8dAddrs = this.item.ibGib?.rel8ns[rel8nName] || [];
                 for (let rel8dAddr of rel8dAddrs) {
                     if (logalot) { console.log(`${lc} adding rel8dAddr: ${rel8dAddr}`); }
