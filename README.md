@@ -1,72 +1,46 @@
 # ibgib
 
-## monorepo of code
-
-This monorepo holds multiple projects building up a web3 DLT data protocol for
+This monorepo holds multiple projects building up a web3 DLT protocol for
 distributed, decentralized and inevitably sovereign computation.
 
-In its current implementation, ibgib comprises the following TypeScript projects
-built on top of [ts-gib](https://gitlab.com/ibgib/ts-gib), the lowest level
-ibgib graphing library.
+I'm in flux right now, as I've been developing this for nigh on two decades, but
+in its current TypeScript incarnation, ibgib now comprises three main projects:
 
-### [ionic-gib](./ionic-gib)
+1. ts-gib
+2. ionic-gib
+3. keystone-gib
 
-**Primary project in this monorepo atm.**
+## [ts-gib](https://gitlab.com/ibgib/ts-gib)
 
-Ionic (capacitor + angular) project targeting:
+Currently hosted on GitLab, ts-gib is the base lib with low-level primitives for
+creating the ibgib DLT graphing substrate. Check out its
+[README.md](https://gitlab.com/ibgib/ts-gib/-/blob/master/README.md) for further
+info.
+
+## [ionic-gib](./ionic-gib)
+
+The primary MVP frontend dapp for ibgib, ionic-gib is an Ionic project, with
+Capacitor & Angular, which targets:
+
 1. SPA web page
 2. Android app
 3. iOS app
 4. FireFox add-on
 5. Chrome extension (and other chromium-based browsers)
 
-Most dev is with the web app and extensions atm, but intermittently
-reconciled to target all. This is possible due to the flexibility
-of the ibgib architecture/infrastructure being built on top of
-[ts-gib](https://gitlab.com/ibgib/ts-gib), which I have being
-hosted separately on GitLab for the time being.
+## [keystone-gib](./keystone-gib)
 
-The entire idea is that ibgib is dogfooding its own hash-based DLT
-p2p paradigm using ibgibs, spaces and keystones for identity.
+_NOTE: ATOW, this project is NOT directly used but is slowly being assimilated into ionic-gib. Once the overall architecture is more fully implemented, I expect to pull keystone-related code back out and into its own lib. I keep this around to pick from, as well as for documentation, as the core concepts have not changed._
 
-### [keystone-gib](./keystone-gib)
+Keystones are meant to provide an "on-chain" identity mechanism used in
+authentication & authorization for humans and non-humans alike, in a
+decentralized environment. This is made possible through ibgib's unique DLT
+which focuses is on-chain semantic versioning, i.e., cryptographically
+reinforced timelines of anything - text, pictures, compositions, collaborations,
+etc. Most existing approaches involve a certificate check, which is logged
+out-of-band. In contrast, keystones enable on-chain and auditable identity
+authentication sigma protocol transcripts using the same Merkle DAG substrate as
+the data itself, but without unnecessary additional code complexity cost.
 
-Keystones are hash-based authentication, authorization and identity
-that leverage the unique ibgib design to perform these functions
-on-chain in a novel approach. Instead of hard-coding out-of-band
-certificate authentication, keystones work in-band like other ibgibs
-on-chain, providing entirely new functionality that simply does not
-exist in any other system on this planet.
-
-Read through the project's documentation to get more detail, but
-the closest thing is thinking of
-[current hash-based approaches](https://en.wikipedia.org/wiki/Hash-based_cryptography) like
-[eXtended Merkle Signature Schemes](https://en.wikipedia.org/wiki/Hash-based_cryptography)
- and [SPHINCS](https://sphincs.org/), which are hyper-optimized
-separate libraries. But since the ibgib architecture already is an ever-expanding
-Merkle tree, we can leverage this with providing the zero-knowledge proofs
-with on-chain & configurably many-times challenge architectures.
-
-Or in other words, we can configure challenge/response requirements **on-chain** in
-the ibgib Merkle DAG[^1], alongside the actual challenge-secret reveals
-data, which itself is also alongside the actual data it's protecting. All
-of this works in-band and on-chain, without requiring additional audit
-logs.
-
-(Not to mention that the AI/Microservices can also live alongside in the same
-system as well).
-
-That's the idea anyway.
-
-The primary benefit of this (and most of ibgib for that matter) is
-sacrificing more immediate optimizations for less technical
-debt and complexity in the long term. Sovereignty allows for local
-micro-optimizations.
-
-[^1] Though it's not strictly a DAG, since it has both acyclic AND cyclic
-properties, depending on context.
-
-## [browser-gib](./browser-gib), [chrome](./chrome) & [webext-gib](./webext-gib)
-
-helper exploratory projects for figuring out approaches using web-ext.
+Check out the [keystone-gib README](./keystone-gib/README.md) for more details.
 

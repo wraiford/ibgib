@@ -13,7 +13,9 @@ Once I have that up and going, I am going to return to pecking from this project
 until I have the keystones fully integrated, at which time I will then pull the
 keystone layer back out into its own library as seems appropriate at that time.
 
-## some notes on differences with current implementation
+## some notes on differences with current implementation 
+
+_NOTE: I include this before the main material to give you proper context. You should probably skip/skim this section before reading the rest and then come back once you have finished._
 
 I'm just looking through this readme and I'm thinking of changes I've made
 and the current state actually running in code.
