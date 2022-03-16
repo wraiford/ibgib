@@ -1,7 +1,0 @@
-{
-  "name": "browser-gib",
-  "integrations": {
-    "capacitor": {}
-  },
-  "type": "angular"
-}
