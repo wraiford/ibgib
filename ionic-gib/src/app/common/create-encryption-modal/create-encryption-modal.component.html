@@ -1,13 +1,13 @@
 <ion-header translucent>
   <ion-toolbar>
-    <ion-title title="Create Encryption...">Create Encryption...</ion-title>
+    <ion-title title="Create Encryption Settings...">Create Encryption Settings...</ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="handleCreateClick()">Create Encryption</ion-button>
+      <ion-button (click)="handleCreateClick()">Create Encryption Settings</ion-button>
       <ion-button (click)="handleCancelClick()">Cancel</ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
-<ion-content fullscreen>
+<ion-content #modalIonContent fullscreen>
   <ion-item-group>
     <ion-item-divider>
       <ion-text color="danger">{{ validationErrors.length > 0 ? 'Errors: ' : ''}}{{ validationErrors.join('\n') }}</ion-text>
@@ -57,7 +57,7 @@
   <!-- Encryption details -->
   <ion-item-group>
     <ion-item-divider>
-      <ion-label>Encryption Details: </ion-label>
+      <ion-label>Encryption Settings Details: </ion-label>
     </ion-item-divider>
 
     <!-- name -->

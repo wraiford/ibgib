@@ -57,7 +57,8 @@
         <ion-icon name="pricetag-outline"></ion-icon>
         <ion-spinner *ngIf="tagging" name="bubbles" color="tertiary"></ion-spinner>
       </ion-button>
-      <ion-button [disabled]="refreshing"
+      <ion-button *ngIf="gib !== 'gib'"
+        [disabled]="refreshing"
         [ngClass]="{'active-btn':!paused}"
         class="toolbar-title-btn"
         (click)="handleRefreshClick()">

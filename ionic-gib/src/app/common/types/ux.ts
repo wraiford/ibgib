@@ -212,6 +212,8 @@ export interface ActionItem {
     type: 'button' | 'inputfile' | 'inputfile-camera';
     text: string;
     icons: string[];
+    /** if true, will show the action even if the context ibgib is primitive */
+    allowPrimitive?: boolean;
     handler?: (event: MouseEvent) => Promise<void>;
     filepicked?: (event: any) => Promise<void>;
     busy?: boolean;

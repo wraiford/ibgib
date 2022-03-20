@@ -97,6 +97,13 @@ export interface EncryptionInfo_EncryptGib extends EncryptionInfo {
 
 export type EncryptionData_V1 = EncryptionInfo_EncryptGib; // extend this with logical OR later
 
+export interface EncryptionRel8ns_V1 extends IbGibRel8ns_V1 { }
+
+/**
+ * IbGib that represents encryption settings
+ */
+export interface EncryptionIbGib extends IbGib_V1<EncryptionData_V1, EncryptionRel8ns_V1> { }
+
 /**
  * Data for the actual encrypted ciphertext.
  */

@@ -37,12 +37,17 @@ All of these is assuming you've cloned the entire ibgib repo but that
 
 * node v16
   * I use [nvm](https://github.com/nvm-sh/nvm) on my mac to install versions of node.
-* `npm install`
+  * v17+ may also work
+* `npm install` inside ionic-gib folder
   * Check out [package.json](./package.json) for the list, which atow includes only...
     * aws sdk clients for s3 and dynamodb
-    * ionic & angular
+    * ionic, capacitor & angular
     * rxjs, zone.js and tslib
     * ts-gib, encrypt-gib
+    * additional dev dependencies
+      * karma, jasmine and their @types
+      * protractor, codelyzer
+      * ts-node, tslib, typescript
 * angular installed globally
   * possibly not needed globally...?
   * `npm install -g @angular@13`
@@ -52,7 +57,6 @@ All of these is assuming you've cloned the entire ibgib repo but that
   * https://ionicframework.com/docs/v5/
   * `npm install -g @ionic/cli@5` (?)
   * still need to upgrade to ionic v6
-
 * [web-ext](https://github.com/mozilla/web-ext) installed globally
 
 

@@ -1,5 +1,5 @@
-import { AfterViewInit, Component, Injectable, Input, OnDestroy, OnInit } from '@angular/core';
-import { ModalController } from '@ionic/angular';
+import { AfterViewInit, Component, Injectable, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { IonContent, ModalController } from '@ionic/angular';
 
 import { IbGib_V1, Factory_V1 as factory } from 'ts-gib/dist/V1';
 import * as h from 'ts-gib/dist/helper';
@@ -10,7 +10,7 @@ import {
 } from '../types';
 import { getRegExp } from '../helper';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 /**
  * Prompts the user for information gathering and generates a new ibGib.
@@ -33,6 +33,17 @@ export abstract class CreateModalComponentBase<TDataOut> implements OnInit, OnDe
 
   @Input()
   showHelp: boolean;
+
+  /**
+   * Put '#modalIonContent' in your ion-content section to scroll to top
+   * when there are validation errors.
+   *
+   * Or, you can override implementation of `scrollToTopToShowValidationErrors`.
+   *
+   * @example <ion-content #modalIonContent fullscreen>
+   */
+  @ViewChild('modalIonContent')
+  ionContent: IonContent;
 
   constructor(
     protected modalController: ModalController,
@@ -121,9 +132,24 @@ export abstract class CreateModalComponentBase<TDataOut> implements OnInit, OnDe
     }
 
     errors.forEach(e => this.validationErrors.push(e));
+    if (this.validationErrors.length > 0) {
+      console.error(`${lc} this.validationErrors:\n${this.validationErrors.join('\n')}`);
+      this.scrollToTopToShowValidationErrors();
+    }
     erroredFields.forEach(e => this.erroredFields.push(e));
 
     return errors;
+  }
+
+  scrollToTopToShowValidationErrors(): void {
+    const lc = `${this.lc}[${this.scrollToTopToShowValidationErrors.name}]`;
+    if (logalot) { console.warn(`${lc} implement in modal implementing class to scroll to top to show validation errors. (W: f8e7ee5168f2c567a60c81be16ec2422)`); }
+    if (this.ionContent?.scrollToTop) {
+      if (logalot) { console.log(`${lc} this.ionContent?.scrollToTop truthy (I: 97effa095f38f6b6daca84416c648a22)`); }
+      this.ionContent.scrollToTop();
+    } else {
+      if (logalot) { console.log(`${lc} this.ionContent?.scrollToTop falsy (I: 3d4df466c4043b85d7c3f7e5a767cc22)`); }
+    }
   }
 
   handleShowHelpClick(): void {

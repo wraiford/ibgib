@@ -6,13 +6,13 @@
 import { Injectable } from '@angular/core';
 import { AlertController, ModalController } from '@ionic/angular';
 import { Capacitor } from '@capacitor/core';
-import { ReplaySubject, } from 'rxjs';
+import { Observable, ReplaySubject, Subject, } from 'rxjs';
 
 import { IbGib_V1, GIB, GIB_DELIMITER, } from 'ts-gib/dist/V1';
 import { Gib, IbGibAddr, TransformResult, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { Factory_V1 as factory } from 'ts-gib/dist/V1';
-import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { getGib, getGibInfo, isPrimitive } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { encrypt, decrypt, } from 'encrypt-gib';
 
 import {
@@ -425,9 +425,9 @@ export class IbgibsService {
       const promptName: () => Promise<void> = async () => {
         const fnPrompt = getFnPrompt();
         const resName = await fnPrompt({title: 'Enter a Name...', msg: `
-        We need to create a space for you.
+        We need to create a local space for you.
 
-        Spaces are kinda like usernames, but they dont need to be unique.
+        Spaces are kinda like usernames, but they dont need to be unique and in the future you will have more than one.
 
         So enter a name for your space and choose OK to get started. Or if you just want a random bunch of letters, hit Cancel.`});
 
@@ -686,6 +686,9 @@ export class IbgibsService {
       if (roots.rel8ns.current.length > 1) { throw new Error(`Invalid Roots: multiple current roots selected. (E: 370fe6e3920a4a1299f879e6fcbbc448)`); }
 
       const currentRootAddr = roots.rel8ns.current[0]!;
+      if (!currentRootAddr) {
+        debugger; // debug
+      }
       const resCurrentRoot =
         await this.get({addr: currentRootAddr, isMeta: true, space});
       if (resCurrentRoot.ibGibs?.length === 1) {
@@ -987,7 +990,11 @@ export class IbgibsService {
     try {
       if (!ibGib) {
         if (logalot) { console.log(`${lc} ibGib falsy.`); }
-        return;
+        return; // <<<< returns
+      }
+      if (isPrimitive({ibGib})) {
+        console.warn(`${lc} tried to ping latest for primitive. returning early... (W: 06c50cfe028cc04cca67e97a48e6fe22)`);
+        return; // <<<< returns
       }
       space = space ?? await this.getLocalUserSpace({});
       if (!space) {
@@ -1018,6 +1025,9 @@ export class IbgibsService {
         });
       } else {
         // console.log(`${lc} there is a later version`);
+      if (!latestAddr) {
+        debugger; // debug
+      }
         let resLatestIbGib = await this.get({addr: latestAddr, space});
         if (!resLatestIbGib.success || resLatestIbGib.ibGibs?.length !== 1) {
           throw new Error('latest not found');
@@ -1147,6 +1157,9 @@ export class IbgibsService {
   }: GetIbGibOpts): Promise<GetIbGibResult> {
     let lc = `${this.lc}[${this.get.name}]`;
     try {
+      if (!addr || addr === 'ib^gib') {
+        debugger;
+      }
       space = space ?? await this.getLocalUserSpace({});
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: 86ccdcf3417a45b4a3a8c280fb9a6df7)`); }
 

@@ -2,14 +2,14 @@ import {
   Component, OnInit, OnDestroy,
   ChangeDetectorRef, ChangeDetectionStrategy, Input} from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { Subscription, interval } from 'rxjs';
+import { Subscription, interval, Observable } from 'rxjs';
 import { ActionSheetOptionStyle, Capacitor, Plugins } from '@capacitor/core';
 const { Modals, Clipboard } = Plugins;
 
 import * as h from 'ts-gib';
 import { IbGibAddr, V1 } from 'ts-gib';
 import { getIbGibAddr, pretty } from 'ts-gib/dist/helper';
-import { IbGib_V1 } from 'ts-gib/dist/V1';
+import { IbGib_V1, isPrimitive } from 'ts-gib/dist/V1';
 
 import * as c from '../common/constants';
 import { IbgibComponentBase } from '../common/bases/ibgib-component-base';
@@ -151,7 +151,7 @@ export class IbGibPage extends IbgibComponentBase
       }
       if (this.autosync) { this.startPollLatest_Store(); }
       this.updateIbGib_Paused();
-      if (!this.paused && !this.ib.startsWith('bin.')) {
+      if (!this.paused && !this.ib.startsWith('bin.') && !isPrimitive({gib: this.gib})) {
         this.item.refreshing = true;
         setTimeout(async () => {
           await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjp: this.tjp});
@@ -428,6 +428,10 @@ export class IbGibPage extends IbgibComponentBase
     const lc = `${this.lc}[${this.handleRefreshClick.name}]`;
     try {
       if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
+      if (isPrimitive({ibGib: this.ibGib})) {
+        if (logalot) { console.log(`${lc} refresh clicked for primitive. returning early. (I: af3e72b0a6288fd815a30f251f943f22)`); }
+        return; // <<<< returns
+      }
       if (!this.tjp) { await this.loadTjp(); }
 
       if (this.paused) {
