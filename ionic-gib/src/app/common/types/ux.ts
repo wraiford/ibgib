@@ -160,9 +160,14 @@ export interface FieldInfo {
    */
   required?: boolean;
   /**
-   *
+   * If true, will not log field and will use type='password', unless the field
+   * is {@link unmasked}.
    */
   private?: boolean;
+  /**
+   * If true, will reveal a private field.
+   */
+  unmasked?: boolean;
 }
 
 /**

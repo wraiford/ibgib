@@ -126,7 +126,14 @@
     <!-- tableName -->
     <ion-item title="DynamoDB API tableName">
       <ion-label position="floating">DynamoDB API tableName: </ion-label>
-      <ion-input [(ngModel)]="tableName" type="password"></ion-input>
+      <ion-input [(ngModel)]="tableName"
+        [type]="fields.tableName.unmasked ? 'text' : 'password'">
+      </ion-input>
+      <ion-button slot="end"
+        (click)="fields.tableName.unmasked = !fields.tableName.unmasked">
+        <ion-icon *ngIf="fields.tableName.unmasked" name="eye-off-outline"></ion-icon>
+        <ion-icon *ngIf="!fields.tableName.unmasked" name="eye-outline"></ion-icon>
+      </ion-button>
     </ion-item>
     <!-- primaryKeyName -->
     <ion-item title="DynamoDB API table's primaryKeyName">
@@ -136,17 +143,38 @@
     <!-- bucketName -->
     <ion-item title="S3 API Bucket Name">
       <ion-label position="floating">S3 API Bucket Name: </ion-label>
-      <ion-input [(ngModel)]="bucketName" type="password"></ion-input>
+      <ion-input [(ngModel)]="bucketName"
+        [type]="fields.bucketName.unmasked ? 'text' : 'password'">
+      </ion-input>
+      <ion-button slot="end"
+        (click)="fields.bucketName.unmasked = !fields.bucketName.unmasked">
+        <ion-icon *ngIf="fields.bucketName.unmasked" name="eye-off-outline"></ion-icon>
+        <ion-icon *ngIf="!fields.bucketName.unmasked" name="eye-outline"></ion-icon>
+      </ion-button>
     </ion-item>
     <!-- accessKeyId -->
     <ion-item title="AWS API accessKeyId">
       <ion-label position="floating">AWS API accessKeyId: </ion-label>
-      <ion-input [(ngModel)]="accessKeyId" type="password"></ion-input>
+      <ion-input [(ngModel)]="accessKeyId"
+        [type]="fields.accessKeyId.unmasked ? 'text' : 'password'">
+      </ion-input>
+      <ion-button slot="end"
+        (click)="fields.accessKeyId.unmasked = !fields.accessKeyId.unmasked">
+        <ion-icon *ngIf="fields.accessKeyId.unmasked" name="eye-off-outline"></ion-icon>
+        <ion-icon *ngIf="!fields.accessKeyId.unmasked" name="eye-outline"></ion-icon>
+      </ion-button>
     </ion-item>
     <!-- secretAccessKey -->
     <ion-item title="AWS API secretAccessKey">
       <ion-label position="floating">AWS API secretAccessKey: </ion-label>
-      <ion-input [(ngModel)]="secretAccessKey" type="password"></ion-input>
+      <ion-input [(ngModel)]="secretAccessKey"
+        [type]="fields.secretAccessKey.unmasked ? 'text' : 'password'">
+      </ion-input>
+      <ion-button slot="end"
+        (click)="fields.secretAccessKey.unmasked = !fields.secretAccessKey.unmasked">
+        <ion-icon *ngIf="fields.secretAccessKey.unmasked" name="eye-off-outline"></ion-icon>
+        <ion-icon *ngIf="!fields.secretAccessKey.unmasked" name="eye-outline"></ion-icon>
+      </ion-button>
     </ion-item>
   </ion-item-group>
 
