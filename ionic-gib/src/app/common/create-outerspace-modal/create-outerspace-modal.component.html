@@ -124,7 +124,7 @@
       <ion-input [(ngModel)]="region"></ion-input>
     </ion-item>
     <!-- tableName -->
-    <ion-item title="DynamoDB API tableName">
+    <ion-item title="DynamoDB API tableName" class="has-visible-toggle">
       <ion-label position="floating">DynamoDB API tableName: </ion-label>
       <ion-input [(ngModel)]="tableName"
         [type]="fields.tableName.unmasked ? 'text' : 'password'">
@@ -141,7 +141,7 @@
       <ion-input readonly [value]="primaryKeyName"></ion-input>
     </ion-item>
     <!-- bucketName -->
-    <ion-item title="S3 API Bucket Name">
+    <ion-item title="S3 API Bucket Name" class="has-visible-toggle">
       <ion-label position="floating">S3 API Bucket Name: </ion-label>
       <ion-input [(ngModel)]="bucketName"
         [type]="fields.bucketName.unmasked ? 'text' : 'password'">
@@ -153,7 +153,7 @@
       </ion-button>
     </ion-item>
     <!-- accessKeyId -->
-    <ion-item title="AWS API accessKeyId">
+    <ion-item title="AWS API accessKeyId" class="has-visible-toggle">
       <ion-label position="floating">AWS API accessKeyId: </ion-label>
       <ion-input [(ngModel)]="accessKeyId"
         [type]="fields.accessKeyId.unmasked ? 'text' : 'password'">
@@ -165,7 +165,7 @@
       </ion-button>
     </ion-item>
     <!-- secretAccessKey -->
-    <ion-item title="AWS API secretAccessKey">
+    <ion-item title="AWS API secretAccessKey" class="has-visible-toggle">
       <ion-label position="floating">AWS API secretAccessKey: </ion-label>
       <ion-input [(ngModel)]="secretAccessKey"
         [type]="fields.secretAccessKey.unmasked ? 'text' : 'password'">
