@@ -65,9 +65,11 @@ export class IbGibPage extends IbgibComponentBase
    */
   @Input()
   get showBackChevronBtn(): boolean {
-    // temporary hack
+    const lc = `${this.lc}[get showBackChevronBtn]`;
     const platform = Capacitor.getPlatform();
-    if (logalot) { console.log(`${this.lc} platform: ${platform}`); }
+    if (logalot) { console.log(`${lc} platform: ${platform}`); }
+
+    // temporary hack is to always show the chevron if it's ios
     return platform === 'ios';
   }
 
@@ -111,7 +113,6 @@ export class IbGibPage extends IbgibComponentBase
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
     if (logalot) { console.log(`${lc} called.`) }
     try {
-      // this.folder = this.activatedRoute.snapshot.paramMap.get('addr');
       this.subscribeParamMap();
       super.ngOnInit();
     } catch (error) {
@@ -154,6 +155,7 @@ export class IbGibPage extends IbgibComponentBase
       if (!this.paused && !this.ib.startsWith('bin.') && !isPrimitive({gib: this.gib})) {
         this.item.refreshing = true;
         setTimeout(async () => {
+          await this.smallDelayToLoadBalanceUI();
           await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjp: this.tjp});
         });
       }

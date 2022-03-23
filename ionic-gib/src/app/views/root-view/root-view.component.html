@@ -1,3 +1,6 @@
-<p>
-  root-view works!
-</p>
+<ion-card>
+    <ion-icon [name]="ibGib?.data?.icon"></ion-icon>
+    <ion-card-content>
+        <div class='root-text'> {{ ibGib?.data?.text || '[...]' }}</div>
+    </ion-card-content>
+</ion-card>

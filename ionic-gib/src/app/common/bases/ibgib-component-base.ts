@@ -1,21 +1,20 @@
-import { OnInit, OnDestroy, Input, ChangeDetectorRef } from '@angular/core';
-import { IbGib_V1, GIB, Factory_V1, Rel8n, ROOT_ADDR } from "ts-gib/dist/V1";
-import { IbGibAddr, Ib, Gib, V1, TransformResult } from "ts-gib";
-import { Injectable } from "@angular/core";
-// import { FilesService } from 'src/app/services/files.service';
+import {
+    OnInit, OnDestroy, Input, ChangeDetectorRef, Injectable,
+} from '@angular/core';
+import { Subscription } from 'rxjs';
+
+import * as h from 'ts-gib/dist/helper';
+import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { IbGib_V1, GIB, Factory_V1, ROOT_ADDR } from "ts-gib/dist/V1";
+import { IbGibAddr, Ib, Gib, } from "ts-gib";
+
+import * as c from '../../common/constants';
 import { IbgibItem, PicData, CommentData, LatestEventInfo } from '../types';
 import { CommonService, NavInfo } from 'src/app/services/common.service';
-import { DEFAULT_META_IB_STARTS } from '../constants';
-import { Subscription } from 'rxjs';
-import * as h from 'ts-gib/dist/helper';
-import * as c from '../../common/constants';
-import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
-
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
-// @Injectable({providedIn: "root"})
 @Injectable()
 export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     implements OnInit, OnDestroy {
@@ -69,7 +68,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     get ibGib(): IbGib_V1 { return this.item?.ibGib; }
     @Input()
     get isMeta(): boolean {
-        return this.item?.isMeta || DEFAULT_META_IB_STARTS.some(x => this.ib?.startsWith(x)); // hack
+        return this.item?.isMeta || c.DEFAULT_META_IB_STARTS.some(x => this.ib?.startsWith(x)); // hack
     }
     get ibGib_Context(): IbGib_V1 { return this.item?.ibGib_Context; }
     @Input()
@@ -100,8 +99,6 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         }
     }
 
-//    get files(): FilesService { return this.common.files; }
-
     @Input()
     get isRoot(): boolean { return this.ib?.startsWith('root ') || false; }
     @Input()
@@ -120,7 +117,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
      *
      * this is used in the fallback case.
      */
-    get itemTypes(): string[] { return ['pic','comment','tag', 'root']; }
+    get itemTypes(): string[] { return ['pic', 'comment', 'tag', 'root']; }
 
     /**
      * Set this to true if you don't want updates to this
@@ -131,7 +128,10 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     @Input()
     errored: boolean;
     @Input()
-    get refreshing(): boolean { return this._updatingIbGib || this.item?.refreshing || !this.item || this.addr === ROOT_ADDR; }
+    get refreshing(): boolean {
+        return this._updatingIbGib || this.item?.refreshing ||
+            !this.item || this.addr === ROOT_ADDR;
+    }
     @Input()
     get syncing(): boolean { return this._updatingIbGib || this.item?.syncing; }
 
@@ -170,10 +170,10 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     /**
      * Subscribes for updates to the component's ibGib.
      *
-     * Override this if you want to customize WHEN/HOW to subscribe.
+     * Override this if you want to customize WHEN to subscribe.
      *
-     * If you want to override HOW TO HANDLE this subscription, then override
-     * {@link handleIbGib_NewLatest} function.
+     * If you want to override just HOW TO HANDLE this subscription, then
+     * override {@link handleIbGib_NewLatest} function.
      */
     subscribeLatest(): void {
         const lc = `${this.lc}[${this.subscribeLatest.name}]`;
@@ -202,18 +202,24 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     clearItem(): void {
         const lc = `${this.lc}[${this.clearItem.name}]`;
         if (logalot) { console.log(`${lc} clearing data...`); }
-        // delete this._addr;
         delete this.item;
-        // delete this.ib;
-        // delete this.gib;
-        // delete this.ibGib;
-        // delete this.isMeta;
         if (logalot) { console.log(`${lc} data cleared.`); }
+    }
+
+    /**
+     * This function serves to just spread out execution, similar
+     * to the old school "process messages" in a message loop.
+     * Otherwise, angular tends to freeze a bit afaict.
+     */
+    async smallDelayToLoadBalanceUI(): Promise<void> {
+        await h.delay(Math.ceil(Math.random()*20));
     }
 
     async updateIbGib(addr: IbGibAddr): Promise<void> {
         const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
         if (addr === this.addr) { return; }
+
+        await this.smallDelayToLoadBalanceUI();
 
         this.clearItem();
 
@@ -221,15 +227,9 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
             if (logalot) { console.log(`${lc} setting new address`) }
             // we have an addr which is different than our previous.
             const{ ib, gib } = h.getIbAndGib({ibGibAddr: addr});
-            this.item = <any>{
-                addr,
-                ib,
-                gib,
-            };
+            this.item = <any>{addr, ib, gib};
 
-            if (this.gib === GIB && !this.isMeta) {
-                this.item.isMeta = true;
-            }
+            if (this.gib === GIB && !this.isMeta) { this.item.isMeta = true; }
         } else {
             if (logalot) { console.log(`${lc} no new address`) }
         }
@@ -341,12 +341,6 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         } catch (error) {
             console.error(`${lc} ${error.message}`);
         }
-
-        // await this.common.nav.navigateRoot(['ibgib', addr], {
-        //     queryParamsHandling: 'preserve',
-        //     animated: true,
-        //     animationDirection: 'forward',
-        // });
     }
 
     /**
@@ -436,7 +430,6 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     const data = <CommentData>this.ibGib.data;
     item.text = data.text;
     item.timestamp = data.textTimestamp || data.timestamp;
-
   }
 
   /**

@@ -1,0 +1,23 @@
+
+:host {
+  width: 100%;
+  height: 100%;
+}
+
+ion-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+ion-icon {
+    width: 10%;
+}
+
+.root-text {
+    width: 90%;
+    text-align: center;
+    margin-left: -10%;
+}
+

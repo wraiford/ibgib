@@ -18,6 +18,7 @@ import { ListItemViewComponent } from '../views/list-item-view/list-item-view.co
 import { CommentViewComponent } from '../views/comment-view/comment-view.component';
 import { ChooseIconModalComponent } from '../common/choose-icon-modal/choose-icon-modal.component';
 import { RootListViewComponent } from '../views/root-list-view/root-list-view.component';
+import { RootViewComponent } from '../views/root-view/root-view.component';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
 import { CreateEncryptionModalComponent } from '../common/create-encryption-modal/create-encryption-modal.component';
 import { CreateSecretModalComponent } from '../common/create-secret-modal/create-secret-modal.component';
@@ -43,6 +44,7 @@ import { CreateOuterspaceModalComponent } from '../common/create-outerspace-moda
     IbGibPage,
     ChooseIconModalComponent,
     RootListViewComponent,
+    RootViewComponent,
     IbgibFullscreenModalComponent,
     CreateEncryptionModalComponent,
     CreateSecretModalComponent,

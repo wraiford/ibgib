@@ -22,7 +22,10 @@
     <ion-title *ngIf='isComment' class='comment-title toolbar-title-yo' (click)="handleTitleClick()">
         <comment-view [addr]='item.addr' [isTitle]='true'></comment-view>
     </ion-title>
-    <ion-title *ngIf='!isTag && !isPic && !isComment' class='toolbar-title-yo'>
+    <ion-title *ngIf='isRoot' class='toolbar-title-yo'>
+      <root-view [addr]='item.addr'> </root-view>
+    </ion-title>
+    <ion-title *ngIf='!isTag && !isPic && !isComment && !isRoot' class='toolbar-title-yo'>
       {{ title }}
     </ion-title>
   </ion-toolbar>

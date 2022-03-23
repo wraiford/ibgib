@@ -8,7 +8,7 @@ import * as c from '../constants';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 import { unique } from '../helper/utils';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 @Injectable({providedIn: "root"})
 export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem>
