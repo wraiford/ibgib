@@ -3,12 +3,11 @@ import {
 } from '@capacitor/core';
 const { Filesystem } = Plugins;
 
-import {
-    IbGib_V1, IbGibRel8ns_V1, sha256v1, IBGIB_DELIMITER, GIB,
-} from 'ts-gib/dist/V1';
-import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
+import { IbGib_V1, IbGibRel8ns_V1, GIB, } from 'ts-gib/dist/V1';
+import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 
+import * as c from '../../constants';
 import { SpaceBase_V1 } from './space-base-v1';
 import { argy_, } from '../witnesses';
 import {
@@ -17,9 +16,10 @@ import {
     IbGibSpaceOptionsRel8ns,
     IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns,
 } from '../../types';
-import * as c from '../../constants';
-import { getBinHashAndExt, getSpaceIb, getTjpIbGib, isBinary,  } from '../../helper';
-import { getSpecialIbGib } from '../../helper/space';
+import {
+    getBinHashAndExt, getSpaceIb, getTjpIbGib,
+    isBinary, tryRead, getSpecialIbGib,
+} from '../../helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -440,8 +440,8 @@ export class IonicSpace_V1<
                 const ibGib = ibGibs[i];
                 const addr = getIbGibAddr({ibGib});
                 if (logalot) { console.log(`${lc} checking to see if already exists...`); }
-                // const getResult = await this.getFile({addr, isMeta, isDna});
-                const getResult: any = null; // testing performance
+                const getResult = await this.getFile({addr, isMeta, isDna});
+                // const getResult: any = null; // testing performance
                 if (getResult?.success && getResult.ibGib) {
                     // already exists...
                     if (logalot) { console.log(`${lc} already exists...`); }
@@ -905,27 +905,6 @@ export class IonicSpace_V1<
     }: GetIbGibFileOpts): Promise<GetIbGibFileResult> {
         let lc = `${this.lc}[${this.getFile.name}(${addr})]`;
 
-        const tryRead: (p:string, data: any) => Promise<FileReadResult|null> = async (p, data) => {
-            const lcTry = `${lc}[${tryRead.name}]`;
-            try {
-                if (logalot) {
-                    if (addr.includes('bootstrap^gib')) {
-                        console.log(`${lc} trying bootstrap^gib...`);
-                    }
-                }
-                const resRead = await Filesystem.readFile({
-                    path: p,
-                    directory: data.baseDir,
-                    encoding: data.encoding,
-                });
-                if (logalot) { console.log(`${lcTry} path found: ${p}`); }
-                return resRead;
-            } catch (error) {
-                if (logalot) { console.log(`${lcTry} path not found: ${p}`); }
-                return null;
-            }
-        }
-
         const result: GetIbGibFileResult = {};
         try {
             if (!addr) { throw new Error(`addr required`) };
@@ -962,7 +941,7 @@ export class IonicSpace_V1<
             }
             let resRead: any = null;
             for (const tryPath of paths) {
-                let x = await tryRead(tryPath, data);
+                let x = await tryRead({path: tryPath, directory: data.baseDir, encoding: data.encoding});
                 if (x?.data) { resRead = x; break; }
             }
             if (resRead) {

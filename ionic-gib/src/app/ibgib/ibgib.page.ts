@@ -3,8 +3,8 @@ import {
   ChangeDetectorRef, ChangeDetectionStrategy, Input} from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription, interval, Observable } from 'rxjs';
-import { ActionSheetOptionStyle, Capacitor, Plugins } from '@capacitor/core';
-const { Modals, Clipboard } = Plugins;
+import { ActionSheetOptionStyle, Capacitor, FilesystemDirectory, FilesystemEncoding, Plugins } from '@capacitor/core';
+const { Modals, Clipboard, Filesystem } = Plugins;
 
 import * as h from 'ts-gib';
 import { IbGibAddr, V1 } from 'ts-gib';
@@ -15,9 +15,9 @@ import * as c from '../common/constants';
 import { IbgibComponentBase } from '../common/bases/ibgib-component-base';
 import { CommonService } from '../services/common.service';
 import { SPECIAL_URLS } from '../common/constants';
-import { LatestEventInfo, } from '../common/types';
+import { LatestEventInfo, PicData, } from '../common/types';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
-import { getFnAlert, } from '../common/helper';
+import { getFnAlert, getFnPrompt, pathExists, } from '../common/helper';
 import { concatMap } from 'rxjs/operators';
 import { ChooseIconModalComponent, IconItem } from '../common/choose-icon-modal/choose-icon-modal.component';
 import { IbGibSpaceAny } from '../common/witnesses/spaces/space-base-v1';
@@ -220,6 +220,68 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
+  async handleDownloadPicClick(): Promise<void> {
+    const lc = `${this.lc}[${this.handleDownloadPicClick.name}]`;
+    const alert = getFnAlert();
+    const prompt = getFnPrompt();
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      const picIbGib = <IbGib_V1<PicData>>this.ibGib;
+      const { data } = picIbGib;
+      if (!this.item?.picSrc) { throw new Error(`this.item?.picSrc is falsy...pic not loaded or not a pic? (E: e6c361e80cbd0f6221c51cd3f4b4fb22)`); }
+      if (!data.binHash) { throw new Error(`invalid pic data. binHash is falsy. (E: f2ac49f8451c2054833069aac44b8222)`); }
+
+      debugger; // remove data.filename to test this workflow
+      const filename =
+        data.filename ||
+        await prompt({
+          title: `file name?`,
+          msg: `What's the filename? ${data.filename ? `Leave blank to default to ${data.filename}`: ''}`,
+        }) ||
+        data.binHash;
+      debugger; // remove data.ext to test this workflow
+      const ext =
+        data.ext ||
+        await prompt({
+          title: `file extension?`,
+          msg: `What's the file extension? Leave blank to default to ${c.DEFAULT_PIC_FILE_EXTENSION}`,
+        }) ||
+        c.DEFAULT_PIC_FILE_EXTENSION;
+      debugger; // remove data.ext to test this workflow
+
+      const filenameWithExt = `${filename}.${ext}`;
+
+      let directory: FilesystemDirectory;
+      if (Capacitor.getPlatform() === 'ios') {
+        directory = FilesystemDirectory.External;
+      } else {
+        directory = FilesystemDirectory.Documents;
+      }
+
+      // check to see if file already exists existing file
+      let path = filenameWithExt;
+      let suffixNum: number = 0;
+      let exists: boolean;
+      do {
+        exists = await pathExists({
+          path,
+          directory,
+          encoding: FilesystemEncoding.UTF8,
+        });
+
+        if (exists) {
+          suffixNum++;
+          path = `${filename}(${suffixNum}).${ext}`;
+        }
+      } while (exists);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      await alert({title: 'download pic...', msg: `hmm, something went wrong. error: ${error.message}`});
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
   async handleShareClick(): Promise<void> {
     const alert = getFnAlert();
     try {
@@ -236,7 +298,6 @@ export class IbGibPage extends IbgibComponentBase
     } catch (error) {
       await alert({title: 'ibgib address copied', msg: `clipboard failed...`});
     }
-
   }
 
   async handleSpaceClick(): Promise<void> {

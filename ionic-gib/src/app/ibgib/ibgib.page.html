@@ -31,6 +31,12 @@
   </ion-toolbar>
   <ion-toolbar color="background">
     <ion-buttons slot="end" collapse="true">
+      <ion-button *ngIf="item?.type === 'pic'" [disabled]="syncing || refreshing"
+        class="toolbar-title-btn"
+        (click)="handleDownloadPicClick()">
+        <ion-icon name="download-outline"></ion-icon>
+        <ion-icon name="image-outline"></ion-icon>
+      </ion-button>
       <ion-button
         class="toolbar-title-btn"
         (click)="handleShareClick()">

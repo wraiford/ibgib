@@ -70,6 +70,16 @@ export interface IbgibItem {
      * extension of the image
      */
     binExt?: string;
+    /**
+     * bin64 pic data
+     *
+     * ## notes
+     *
+     * atow this is implemented when loading the pic:
+     * ```
+     * item.picSrc = `data:image/jpeg;base64,${resGet.ibGibs![0].data!}`;
+     * ```
+     */
     picSrc?: any;
     // picSrc?: string;
     text?: string;

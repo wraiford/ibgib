@@ -120,6 +120,15 @@ export const PERSIST_OPTS_AND_RESULTS_IBGIBS_DEFAULT = false;
  */
 export const DEFAULT_LOCAL_SPACE_DESCRIPTION = `This is a local space. There are many like it, but this one is...`;
 
+/**
+ * default if for some reason there is no extension in data.ext
+ *
+ * ## driving itnent
+ *
+ * implementing download pic
+ */
+export const DEFAULT_PIC_FILE_EXTENSION = 'png';
+
 // export const TAGS_IB = 'tags';
 // export const TAGS_IBGIB_ADDR = `${TAGS_IB}^${GIB}`;
 // export const TAGS_IBGIB_ADDR_KEY = `key ${TAGS_IBGIB_ADDR}`;
