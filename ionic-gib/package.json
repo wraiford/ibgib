@@ -55,6 +55,7 @@
   },
   "private": true,
   "dependencies": {
+    "@angular-devkit/core": "^13.3.0",
     "@angular-devkit/schematics": "^13.3.0",
     "@angular/common": "~13.1.1",
     "@angular/core": "~13.1.1",
@@ -73,6 +74,7 @@
     "@ionic/angular": "^6.0.1",
     "@ionic/angular-server": "^6.0.1",
     "@ionic/pwa-elements": "^1.5.2",
+    "@schematics/angular": "^13.3.0",
     "encrypt-gib": "0.1.2",
     "rxjs": "~6.5.1",
     "ts-gib": "^0.3.15",
