@@ -77,36 +77,45 @@ export abstract class WitnessBase_V1<
         return result;
     }
 
-    // These properties are straight properties for ease of implementing
-    // IbGib interface and dealing with DTOs (Data Transfer Objects)
+    // #region IbGib interface fields: ib, gib, data, rel8ns
 
+    /**
+     * Used per use case in implementing class.
+     *
+     * This property is a simple property (no getter/setter with backing
+     * fields).  This is to simplify usage with DTOs (Data Transfer Objects) for
+     * storing in spaces.
+     */
     ib: string | undefined;
-    // protected _ib: string = '';
-    // protected getIb(): string { return this._ib; }
-    // protected setIb(value: string): void { this._ib = value; }
-    // get ib(): string { return this.getIb(); }
-    // set ib(value: string) { this.setIb(value); }
 
+    /**
+     * Used per use case in implementing class.
+     *
+     * This property is a simple property (no getter/setter with backing
+     * fields).  This is to simplify usage with DTOs (Data Transfer Objects) for
+     * storing in spaces.
+     */
     gib: string | undefined;
-    // protected _gib: string | undefined = 'gib';
-    // protected getGib(): string | undefined { return this._gib; }
-    // protected setGib(value: string | undefined): void { this._gib = value; }
-    // get gib(): string | undefined { return this.getGib(); }
-    // set gib(value: string | undefined) { this.setGib(value); }
 
+    /**
+     * Used per use case in implementing class.
+     *
+     * This property is a simple property (no getter/setter with backing
+     * fields).  This is to simplify usage with DTOs (Data Transfer Objects) for
+     * storing in spaces.
+     */
     data: TData | undefined;
-    // protected _data: TData | undefined;
-    // get data(): TData | undefined { return this.getData(); }
-    // set data(value: TData | undefined) { this.setData(value); }
-    // protected getData(): TData | undefined { return this._data; }
-    // protected setData(value: TData | undefined): void { this._data = value; }
 
+    /**
+     * Used per use case in implementing class.
+     *
+     * This property is a simple property (no getter/setter with backing
+     * fields).  This is to simplify usage with DTOs (Data Transfer Objects) for
+     * storing in spaces.
+     */
     rel8ns: TRel8ns | undefined;
-    // protected _rel8ns: TRel8ns | undefined;
-    // get rel8ns(): TRel8ns | undefined { return this.getRel8ns(); }
-    // set rel8ns(value: TRel8ns | undefined) { this.setRel8ns(value); }
-    // protected getRel8ns(): TRel8ns | undefined { return this._rel8ns; }
-    // protected setRel8ns(value: TRel8ns | undefined): void { this._rel8ns = value; }
+
+    // #endregion IbGib interface fields: ib, gib, data, rel8ns
 
     constructor(initialData?: TData, initialRel8ns?: TRel8ns) {
         if (initialData) { this.data = initialData; }

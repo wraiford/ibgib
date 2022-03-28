@@ -844,29 +844,11 @@ export class AWSDynamoSpace_V1<
     private cache_existsInS3: IbGibAddr[] = [];
 
     constructor(
-        // /**
-        //  * Default predicate value when putting an unknown ibGib.
-        //  *
-        //  * ## notes
-        //  *
-        //  * So when a repo witnesses another ibGib, it either defaults to
-        //  * storing that ibGib or not storing that ibGib. This is what that
-        //  * is referring to. If it's optimistic, then it stores any ibGib by
-        //  * default and it passes its put predicate.
-        //  */
-        // public optimisticPut: boolean = true,
         initialData: TData,
         initialRel8ns: TRel8ns,
     ) {
         super(initialData, initialRel8ns);
         const lc = `${this.lc}[ctor]`;
-
-        // console.log(`${lc} initializing...`);
-        // this.initialize().catch(e => {
-        //     console.error(`${lc} ${e.message}`);
-        // }).finally(() => {
-        //     console.log(`${lc} initializing complete.`);
-        // })
 
         this.ib = `witness space ${AWSDynamoSpace_V1.name}`;
         this.gib = GIB;

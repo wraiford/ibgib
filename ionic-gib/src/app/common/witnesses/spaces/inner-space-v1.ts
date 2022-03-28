@@ -1,20 +1,26 @@
 import {
+    IbGib_V1, IbGibRel8ns_V1, IbGibData_V1, sha256v1, Factory_V1,
+} from 'ts-gib/dist/V1';
+import { getIbGibAddr, IbGibAddr } from 'ts-gib';
+
+import * as c from '../../constants';
+import {
     IbGibSpaceData,
     IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib,
     IbGibSpaceResultData, IbGibSpaceResultRel8ns, IbGibSpaceResultIbGib,
 } from '../../types';
-import {
-    IbGib_V1, IbGibRel8ns_V1, IbGibData_V1, sha256v1, Factory_V1,
-} from 'ts-gib/dist/V1';
 import { SpaceBase_V1 } from './space-base-v1';
-import { getIbGibAddr, IbGibAddr } from 'ts-gib';
+import { getSpaceIb } from '../../helper';
+import { WitnessBase_V1 } from '../witness-base-v1';
+
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 export interface InnerSpace_V1_Data extends IbGibSpaceData {
-    /**
-     * If true, then this will include this repo's ibGib's addrs (i.e. index)
-     * in its {@link data} property.
-     */
-    trackAddrs: boolean;
+    // /**
+    //  * If true, then this will include this space's ibGib's addrs (i.e. index)
+    //  * in its {@link data} property.
+    //  */
+    // trackAddrs: boolean;
 }
 
 /**
@@ -45,7 +51,14 @@ export class InnerSpace_V1<
      */
     protected lc: string = `[${InnerSpace_V1.name}]`;
 
+    /**
+     * In-memory store of ibgibs stored in this inner space object.
+     *
+     * @see {@link rel8ns} in {@link WitnessBase_V1} base class.
+     */
     ibGibs: { [key: string]: TIbGib } = {};
+
+
 
     constructor(
         // I have this following commented out. I copied over some of this behavior from the keystone lib
@@ -67,7 +80,36 @@ export class InnerSpace_V1<
     ) {
         super(initialData, initialRel8ns);
 
+        const lc = `${this.lc}[ctor]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            this.initialize();
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
         this.ib = `witness space ${InnerSpace_V1.name}`;
+        this.ib = getSpaceIb({space: this, classname: InnerSpace_V1.name});
+    }
+
+    /**
+     * Initializes to default space values.
+     */
+    protected initialize(): void {
+        const lc = `${this.lc}[${this.initialize.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            // if (!this.data) { this.data = h.clone(DEFAULT_IONIC_SPACE_DATA_V1); }
+            // if (!this.data.baseDir) { this.data.baseDir = c.IBGIB_BASE_DIR; }
+
+            this.ib = getSpaceIb({space: this, classname: InnerSpace_V1.name});
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
     }
 
     protected async getImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns>):
