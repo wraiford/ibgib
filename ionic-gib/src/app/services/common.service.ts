@@ -1,4 +1,4 @@
-import { ModalController, } from '@ionic/angular';
+import { ModalController, Platform, } from '@ionic/angular';
 import { Injectable, Inject } from '@angular/core';
 
 import { IbgibsService } from './ibgibs.service';
@@ -77,6 +77,7 @@ export class CommonService {
     // public files: FilesService,
     public modalController: ModalController,
     @Inject('IbgibNav') public nav: IbgibNav,
+    public platform: Platform,
   ) { }
 
 }

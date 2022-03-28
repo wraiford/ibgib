@@ -1,6 +1,6 @@
 {
   "name": "ionicgib",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "author": "William Raiford",
   "repository": {
     "url": "https://github.com/wraiford/ibgib",
@@ -47,6 +47,7 @@
     "ff:1": "web-ext run -s './www' -t firefox-desktop --firefox-profile=ibgibtest1 --keep-profile-changes --browser-console",
     "ff:2": "web-ext run -s './www' -t firefox-desktop --firefox-profile=ibgibtest2 --keep-profile-changes --browser-console",
     "ff:3": "web-ext run -s './www' -t firefox-desktop --firefox-profile=ibgibtest3 --keep-profile-changes --browser-console",
+    "ff:mobile:android": "web-ext run -s './www' -t firefox-android",
     "chrome": "web-ext run -s './www' -t chromium --keep-profile-changes --browser-console",
     "test": "ng test",
     "lint": "ng lint",

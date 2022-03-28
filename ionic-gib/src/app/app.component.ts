@@ -148,7 +148,6 @@ export class AppComponent extends IbgibComponentBase
   menuOpen: string = 'tags';
 
   constructor(
-    private platform: Platform,
     private splashScreen: SplashScreen,
     private statusBar: StatusBar,
     protected common: CommonService,
@@ -173,7 +172,7 @@ export class AppComponent extends IbgibComponentBase
 
     if (logalot) { console.log(`${lc} starting...`); }
     this.initializing = true;
-    this.platform.ready().then(async () => {
+    this.common.platform.ready().then(async () => {
       this.statusBar.styleDefault();
 
       let navToAddr: IbGibAddr;
@@ -230,7 +229,7 @@ export class AppComponent extends IbgibComponentBase
         }
 
         // navToAddr = this.tagsAddr;
-        this.platform.backButton.subscribeWithPriority(10, async () => {
+        this.common.platform.backButton.subscribeWithPriority(10, async () => {
           if (this.common?.nav) { await this.common.nav.back(); }
         });
 

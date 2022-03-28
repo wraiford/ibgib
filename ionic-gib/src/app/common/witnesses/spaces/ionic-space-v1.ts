@@ -838,6 +838,7 @@ export class IonicSpace_V1<
             //         if (logalot) { console.log(`${lc} tried to delete file first for android, but failed`); }
             //     }
             // }
+            if (logalot) { console.log(`${lc} path: ${path}, directory: ${thisData.baseDir}, encoding: ${thisData.encoding} (I: d4440ececbe6c859f8fcf6d7ece12522)`); }
             const resWrite = await Filesystem.writeFile({
                 path,
                 data,

@@ -81,6 +81,10 @@ export interface IbgibItem {
      * ```
      */
     picSrc?: any;
+    /**
+     * If it's a pic/binary, then this is the filename.ext
+     */
+    filenameWithExt?: string;
     // picSrc?: string;
     text?: string;
     isMeta?: boolean;

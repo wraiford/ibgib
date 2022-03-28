@@ -31,12 +31,31 @@
   </ion-toolbar>
   <ion-toolbar color="background">
     <ion-buttons slot="end" collapse="true">
-      <ion-button *ngIf="item?.type === 'pic'" [disabled]="syncing || refreshing"
-        class="toolbar-title-btn"
-        (click)="handleDownloadPicClick()">
+      <!-- leaving these in for future testing of download the d*$! pic -->
+      <!-- <ion-button *ngIf="item?.type === 'pic' && (ios || android)" class="toolbar-title-btn" -->
+      <ion-button *ngIf="item?.type === 'pic' && (ios || android)" class="toolbar-title-btn"
+        [disabled]="syncing || refreshing" (click)="handleDownloadPicClick()">
         <ion-icon name="download-outline"></ion-icon>
         <ion-icon name="image-outline"></ion-icon>
+        <ion-spinner *ngIf="downloadingPic" name="circles" color="tertiary"></ion-spinner>
       </ion-button>
+      <!-- <a *ngIf="item?.type === 'pic' && android" [href]="item.picSrc" download="testing.jpg">
+        <ion-button [disabled]="syncing || refreshing" class="toolbar-title-btn">
+          <ion-icon name="download-outline"></ion-icon>
+          <ion-icon name="download-outline"></ion-icon>
+          <ion-icon name="download-outline"></ion-icon>
+          <ion-icon name="image-outline"></ion-icon>
+        </ion-button>
+      </a> -->
+      <a *ngIf="item?.type === 'pic' && web" [href]="item.picSrc"
+        [download]="'Downloads/' + (item?.filenameWithExt || 'item.binHash.png')">
+        <ion-button [disabled]="syncing || refreshing" class="toolbar-title-btn">
+          <!-- (click)="handleDownloadPicClick()"> -->
+          <ion-icon name="download-outline"></ion-icon>
+          <ion-icon name="image-outline"></ion-icon>
+          <!-- <ion-spinner *ngIf="downloadingPic" name="circles" color="tertiary"></ion-spinner> -->
+        </ion-button>
+      </a>
       <ion-button
         class="toolbar-title-btn"
         (click)="handleShareClick()">
@@ -145,5 +164,8 @@
 </ion-content>
 
 <ion-footer>
-  <action-bar [addr]='addr' [ibGib_Context]='ibGib'></action-bar>
+  <action-bar
+    [style.height]="actionBarHeightPerPlatform"
+    [addr]='addr' [ibGib_Context]='ibGib'>
+  </action-bar>
 </ion-footer>

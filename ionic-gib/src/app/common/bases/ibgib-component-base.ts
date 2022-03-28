@@ -11,6 +11,7 @@ import { IbGibAddr, Ib, Gib, } from "ts-gib";
 import * as c from '../../common/constants';
 import { IbgibItem, PicData, CommentData, LatestEventInfo } from '../types';
 import { CommonService, NavInfo } from 'src/app/services/common.service';
+import { Capacitor } from '@capacitor/core';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -159,12 +160,23 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
      */
     protected subLatest: Subscription;
 
+    @Input()
+    platform: string = Capacitor.getPlatform();
+
+    @Input()
+    get ios(): boolean { return this.platform === 'ios'; }
+    @Input()
+    get android(): boolean { return this.platform === 'android'; }
+    @Input()
+    get web(): boolean { return this.platform === 'web'; }
+
     constructor(
         protected common: CommonService,
         protected ref: ChangeDetectorRef,
     ) {
         const lc = `${this.lc}[ctor]`;
         if (logalot) { console.log(`${lc}${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
+
     }
 
     /**
@@ -402,6 +414,8 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         const resGet = await this.common.ibgibs.get({addr});
         item.timestamp = data.timestamp;
         if (logalot) { console.log(`${lc} initial item.picSrc.length: ${item?.picSrc?.length}`); }
+
+        item.filenameWithExt = `${data.filename || data.binHash}.${data.ext}`;
 
         const delayRefDetectChangesMs = 2000; // hack
         if (resGet.success && resGet.ibGibs?.length === 1 && resGet.ibGibs[0]!.data) {

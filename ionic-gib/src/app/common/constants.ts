@@ -85,6 +85,7 @@ export const IBGIB_IBGIBS_SUBPATH = 'ibgibs';
  *   e.g. settings, a separate folder will be useful.
  */
 export const IBGIB_META_SUBPATH = 'meta';
+export const IBGIB_DOWNLOADED_PICS_SUBPATH = 'DownloadedPics';
 
 export const VALID_SPACE_NAME_EXAMPLES = [
     'justLetters', 'valid_here', 'hyphens-allowed', '0CanStartOrEndWithNumbers9'

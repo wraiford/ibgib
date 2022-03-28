@@ -17,7 +17,7 @@ import { CommonService } from '../services/common.service';
 import { SPECIAL_URLS } from '../common/constants';
 import { LatestEventInfo, PicData, } from '../common/types';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
-import { getFnAlert, getFnPrompt, pathExists, } from '../common/helper';
+import { ensureDirPath, getBlob, getFnAlert, getFnConfirm, getFnPrompt, pathExists, writeFile, } from '../common/helper';
 import { concatMap } from 'rxjs/operators';
 import { ChooseIconModalComponent, IconItem } from '../common/choose-icon-modal/choose-icon-modal.component';
 import { IbGibSpaceAny } from '../common/witnesses/spaces/space-base-v1';
@@ -98,8 +98,14 @@ export class IbGibPage extends IbgibComponentBase
   autosync: boolean = false;
 
   @Input()
+  downloadingPic: boolean = false;
+
+  @Input()
   get autoRefresh(): boolean { return !this.paused; }
   set autoRefresh(value: boolean) { this.paused = value; }
+
+  @Input()
+  actionBarHeightPerPlatform: string = '55px !important';
 
   constructor(
     protected common: CommonService,
@@ -114,6 +120,9 @@ export class IbGibPage extends IbgibComponentBase
     if (logalot) { console.log(`${lc} called.`) }
     try {
       this.subscribeParamMap();
+      if (this.common.platform.is('mobileweb')) {
+        this.actionBarHeightPerPlatform = '110px !important';
+      }
       super.ngOnInit();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -226,12 +235,24 @@ export class IbGibPage extends IbgibComponentBase
     const prompt = getFnPrompt();
     try {
       if (logalot) { console.log(`${lc} starting...`); }
+      const alert = getFnAlert();
+      const confirm = getFnConfirm();
+      const resConfirm = await confirm({
+        title: 'Not implemented well on Android',
+        msg: `On Android, this will download the file as base64-encoded data. This does not display correctly on some (all?) Android device galleries.\n\nDo you want to proceed?`
+      });
+
+      if (!resConfirm) {
+        await alert({title: 'K', msg: 'Cancelled'});
+        return; // <<<< returns
+      }
+
+      this.downloadingPic = true;
       const picIbGib = <IbGib_V1<PicData>>this.ibGib;
       const { data } = picIbGib;
       if (!this.item?.picSrc) { throw new Error(`this.item?.picSrc is falsy...pic not loaded or not a pic? (E: e6c361e80cbd0f6221c51cd3f4b4fb22)`); }
       if (!data.binHash) { throw new Error(`invalid pic data. binHash is falsy. (E: f2ac49f8451c2054833069aac44b8222)`); }
 
-      debugger; // remove data.filename to test this workflow
       const filename =
         data.filename ||
         await prompt({
@@ -239,7 +260,7 @@ export class IbGibPage extends IbgibComponentBase
           msg: `What's the filename? ${data.filename ? `Leave blank to default to ${data.filename}`: ''}`,
         }) ||
         data.binHash;
-      debugger; // remove data.ext to test this workflow
+
       const ext =
         data.ext ||
         await prompt({
@@ -247,7 +268,6 @@ export class IbGibPage extends IbgibComponentBase
           msg: `What's the file extension? Leave blank to default to ${c.DEFAULT_PIC_FILE_EXTENSION}`,
         }) ||
         c.DEFAULT_PIC_FILE_EXTENSION;
-      debugger; // remove data.ext to test this workflow
 
       const filenameWithExt = `${filename}.${ext}`;
 
@@ -259,26 +279,44 @@ export class IbGibPage extends IbgibComponentBase
       }
 
       // check to see if file already exists existing file
-      let path = filenameWithExt;
+      let path: string;
+      let dirPath: string = `${c.IBGIB_BASE_SUBPATH}/${c.IBGIB_DOWNLOADED_PICS_SUBPATH}`;
+      await ensureDirPath({dirPath, directory});
       let suffixNum: number = 0;
-      let exists: boolean;
+      let pathAlreadyExists: boolean;
+      let attempts = 0;
       do {
-        exists = await pathExists({
+        suffixNum++;
+        path = suffixNum === 1 ?
+          `${dirPath}/${filenameWithExt}` :
+          `${dirPath}/${filename}(${suffixNum}).${ext}`;
+        pathAlreadyExists = await pathExists({
           path,
           directory,
           encoding: FilesystemEncoding.UTF8,
         });
+        attempts++;
+      } while (pathAlreadyExists && attempts < 10); // just hard-coding this here, very edgy edge case.
 
-        if (exists) {
-          suffixNum++;
-          path = `${filename}(${suffixNum}).${ext}`;
-        }
-      } while (exists);
+      if (pathAlreadyExists) { throw new Error(`Tried 10 times and path ${filenameWithExt} (1-10) already exists. Last path tried: ${path}. (E: 09881b77a62747fbb0c2dd5057ae970a)`); }
+
+      // path does not exist, so write it with our picture data.
+      const dataToWrite = this.item.picSrc.replace(/^data\:image\/(jpeg|jpg|png)\;base64\,/i, '');
+      // THIS DOES NOT "WORK". It successfully downloads the base64 encoded
+      // string, but on my android testing this does not show the picture. I've
+      // wasted enough time on this for now.
+
+      await writeFile({path, data: dataToWrite, directory: FilesystemDirectory.Documents});
+
+      await h.delay(100); // so user can see visually that write happened
+      await getFnAlert()({title: 'file downloaded', msg: `Successfully downloaded to ${path} in ${directory}.`});
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       await alert({title: 'download pic...', msg: `hmm, something went wrong. error: ${error.message}`});
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
+      this.downloadingPic = false;
+      setTimeout(() => this.ref.detectChanges());
     }
   }
 

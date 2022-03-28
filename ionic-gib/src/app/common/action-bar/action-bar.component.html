@@ -1,7 +1,7 @@
 <div *ngFor='let item of items'>
-
+    <!-- shape="round" -->
   <ion-button *ngIf='item.type === "button" && (gib !== "gib" || item.allowPrimitive)'
-    color="primary" shape="round"
+    color="primary"
     [disabled]="item.busy"
     (click)='item.handler($event)'>
     <ion-icon *ngFor="let iconName of item?.icons" slot="start" [name]="iconName"></ion-icon>
@@ -9,7 +9,7 @@
   </ion-button>
 
   <ion-button *ngIf='item.type === "inputfile" && (gib !== "gib" || item.allowPrimitive)'
-    color="primary" shape="round"
+    color="primary"
     (click)='inputyo1.click()'>
     <ion-icon *ngFor="let iconName of item?.icons" slot="start" [name]="iconName"></ion-icon>
     <ion-spinner *ngIf="item.busy" name="circles" color="tertiary"></ion-spinner>
@@ -17,7 +17,7 @@
   </ion-button>
 
   <ion-button *ngIf='item.type === "inputfile-camera" && (gib !== "gib" || item.allowPrimitive)'
-    color="primary" shape="round"
+    color="primary"
     (click)='inputyo2.click()'>
     <ion-icon *ngFor="let iconName of item?.icons" slot="start" [name]="iconName"></ion-icon>
     <ion-spinner *ngIf="item.busy" name="circles" color="tertiary"></ion-spinner>

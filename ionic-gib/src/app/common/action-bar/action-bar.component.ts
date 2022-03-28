@@ -1,9 +1,11 @@
 import { Component, OnInit, ChangeDetectorRef, Input } from '@angular/core';
-import { Plugins, Camera, CameraResultType, ActionSheetOptionStyle } from '@capacitor/core';
+import {
+  Plugins, Camera, CameraResultType, Filesystem,
+} from '@capacitor/core';
 const { Modals } = Plugins;
 
 import { IbGibAddr, IbGibRel8ns, V1 } from 'ts-gib';
-import { hash, getIbGibAddr, getTimestamp, getIbAndGib, pretty } from 'ts-gib/dist/helper';
+import { hash, getIbGibAddr, getTimestamp, pretty } from 'ts-gib/dist/helper';
 import { Factory_V1 as factory, IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 import * as h from 'ts-gib/dist/helper';
 
@@ -11,7 +13,6 @@ import { CommonService } from 'src/app/services/common.service';
 import {
   ActionItem, PicData, CommentData, SyncSpaceResultIbGib, ActionItemName,
 } from '../types';
-import { ChooseIconModalComponent, IconItem } from '../choose-icon-modal/choose-icon-modal.component';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { IbgibComponentBase } from '../bases/ibgib-component-base';
 import {
@@ -21,6 +22,7 @@ import {
 } from '../helper';
 import * as c from '../constants';
 import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
+
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -62,7 +64,6 @@ export class ActionBarComponent extends IbgibComponentBase
       type: 'inputfile-camera',
       text: 'camera',
       icons: ['camera-outline'],
-      // filepicked: async (event) => await this.actionAddImage(event),
       filepicked: async (event) => await this.handleHtml5PicButton(event),
     },
     {
@@ -225,13 +226,13 @@ export class ActionBarComponent extends IbgibComponentBase
 
       const binIb = getBinIb({binHash, binExt: ext});
       const binIbGib: IbGib_V1 = { ib: binIb, data: <any>imageBase64 };
+
       const binGib = await getGib({ibGib: binIbGib, hasTjp: false});
       binIbGib.gib = binGib;
       const binAddr = h.getIbGibAddr({ibGib: binIbGib});
 
       if (logalot) { console.log(`${lc} saving initial ibgib pic with data = imageBase64...`); }
       const resSaveBin = await this.common.ibgibs.put({ibGib: binIbGib});
-        // await this.ibgibs.put({binData: image.base64String, binExt: ext});
       if (!resSaveBin.success) { throw new Error(resSaveBin.errorMsg || 'error saving pic'); }
       if (logalot) { console.log(`${lc} saving initial ibgib pic with data = imageBase64 complete.`); }
 
@@ -408,17 +409,27 @@ export class ActionBarComponent extends IbgibComponentBase
       }
 
       reader.onload = async (_: any) => {
-        let imageBase64 = reader.result.toString().split('base64,')[1];
-        let binHash = await hash({s: imageBase64});
-        const filenameWithExt = file.name;
-        const filenamePieces = filenameWithExt.split('.');
-        const filename = filenamePieces.slice(0, filenamePieces.length-1).join('.');
-        const ext = filenamePieces.slice(filenamePieces.length-1)[0];
+        const lc2 = `${lc}[reader.onload]`;
+        try {
+          if (logalot) { console.log(`${lc2} starting... (I: 1e948476ca86b328a12700dc57be0a22)`); }
+          let imageBase64 = reader.result.toString().split('base64,')[1];
+          let binHash = await hash({s: imageBase64});
+          const filenameWithExt = file.name;
+          const filenamePieces = filenameWithExt.split('.');
+          const filename = filenamePieces.slice(0, filenamePieces.length-1).join('.');
+          const ext = filenamePieces.slice(filenamePieces.length-1)[0];
 
-        await this.doPic({imageBase64, binHash, filename, ext});
-        if (actionItem) {
-          actionItem.busy = false;
-          this.ref.detectChanges();
+          await this.doPic({imageBase64, binHash, filename, ext});
+
+        } catch (error) {
+          console.error(`${lc2} ${error.message}`);
+          throw error;
+        } finally {
+          if (actionItem) {
+            actionItem.busy = false;
+            this.ref.detectChanges();
+          }
+          if (logalot) { console.log(`${lc2} complete. (I: d88dcaeb874c4f049d51d58655dc2b62)`); }
         }
       };
       reader.readAsDataURL(file);
