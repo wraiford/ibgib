@@ -56,7 +56,7 @@ import {
 } from '../common/types/legacy';
 import { concatMap, } from 'rxjs/operators';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 interface TempCacheEntry {
   /**
@@ -1935,7 +1935,10 @@ export class IbgibsService {
     // map of saga infos across all spaces
     // const sagaInfoMap: { [spaceGib: string]: SyncSagaInfo } = {};
     try {
-      if (this.syncing) { throw new Error(`already syncing. (E: dfa3ad58e97f4b18b4e4d7dc252208fb)`); }
+      if (this.syncing) {
+        if (logalot) { console.warn(`already syncing. (E: dfa3ad58e97f4b18b4e4d7dc252208fb)`); }
+        return;
+      }
       if (Object.values(this.sagaInfoMap).length > 0) { throw new Error(`this._syncing is false but sagaInfoMap not cleaned up(?). (E: bb69c808877c4931b5481585043c18e7)(UNEXPECTED)`); }
 
       this._syncing = true;

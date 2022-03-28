@@ -67,7 +67,7 @@ import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 // #endregion imports
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 // #region AWS related
 
@@ -2048,12 +2048,13 @@ export class AWSDynamoSpace_V1<
 
             // Do the tjp part, this mutates resLatestMap
             if (tjpIbGibs?.length > 0) {
+                if (logalot) { console.log(`${lc} checking latest addr for ibgibs with tjps (timelines)... (I: e92e6a0c05fce1849f005f0ceaf4c122)`); }
                 await this.getLatestIbGibAddrsInStore_Tjp({
                     client, warnings, errors,
                     tjpIbGibs, ibGibsWithTjpGroupedByTjpAddr, resLatestMap
                 });
 
-                if (logalot) { console.log(`${lc} resLatestMap: ${h.pretty(resLatestMap)}`); }
+                if (logalot) { console.log(`${lc} check complete. resLatestMap: ${h.pretty(resLatestMap)} (I: 2121f39c2af647989e1d54dcf500e6f0)`); }
 
                 // at this point, resLatestMap should have mappings for all incoming
                 // ibgibs with tjps, including any tjps proper (n=0).
@@ -2064,10 +2065,12 @@ export class AWSDynamoSpace_V1<
 
             // Do the non-tjp part, this mutates resLatestMap
             if (ibGibsWithoutTjp.length > 0) {
+                if (logalot) { console.log(`${lc} now doing non-tjp ibgibs (check if e.g. a fork transform exists in store)... (I: 1228a5a70063e33d14b3f69e3d5eab22)`); }
                 await this.getLatestIbGibAddrsInStore_NonTjp({
                     client, warnings, errors,
                     ibGibsWithoutTjp, resLatestMap
                 });
+                if (logalot) { console.log(`${lc} non-tjp ibgibs complete. (I: 853dda4633adce528c4afdef26963b22)`); }
             }
 
             // at this point, our resLatestMap should be completely filled for
