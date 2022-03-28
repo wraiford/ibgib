@@ -118,6 +118,12 @@ Here are descriptions of the extension scripts that I use the most in
     to emulate multiple different simultaneous participants in ibgib chats.
 * `npm run ff:chrome` for testing both simultaneously.
 
+## firefox on android
+
+* https://extensionworkshop.com/documentation/develop/developing-extensions-for-firefox-for-android/#set-up-your-computer-and-android-emulator-or-device
+  * example command: `web-ext run -s './www' -t firefox-android --adb-device XXX --firefox-apk org.mozilla.fenix`
+  * i've added a partial script in `package.json`
+
 # local workspace settings
 
 While working on the project alone, I keep different editor colors for
