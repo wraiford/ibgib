@@ -41,7 +41,7 @@ import {
   getDependencyGraph, getSpecialIbGib, getSpecialRel8dIbGibs, getTjpIbGib,
   groupBy, hasTjp, isSameSpace, persistTransformResult, putInSpace,
   registerNewIbGib, rel8ToCurrentRoot, rel8ToSpecialIbGib, setConfigAddr,
-  setCurrentRoot, validateUserSpaceName, getConfigAddr,
+  setCurrentRoot, spaceNameIsValid, getConfigAddr,
   getValidatedBootstrapIbGib, getLocalSpace, execInSpaceWithLocking,
   updateBootstrapIbGib,
   getSpaceArgMetadata,
@@ -254,6 +254,15 @@ export class IbgibsService {
    */
   private _platform: string;
 
+  /**
+   * Hmm, hacky way of tracking if we're prompt the user for something.
+   * We don't want to prompt while we're already prompting, and this
+   * is a straight-forward approach.
+   *
+   * @see {@link promptForSecrets}
+   */
+  private isPrompting: boolean;
+
   constructor(
     public modalController: ModalController,
     public alertController: AlertController,
@@ -405,7 +414,7 @@ export class IbgibsService {
         if (resName === null) {
           spaceName = (await h.getUUID()).slice(10);
         } else {
-          if (resName && validateUserSpaceName(resName)) {
+          if (resName && spaceNameIsValid(resName)) {
             spaceName = resName;
           }
         }
@@ -1293,7 +1302,22 @@ export class IbgibsService {
     cacheAfter?: boolean,
   }): Promise<string|null> {
     const lc = `${this.lc}[${this.promptForSecrets.name}]`;
+    /** Flag that we'll check in finally clause */
+    let erroredDueToPromptTimeout = false;
     try {
+      let tries = 0;
+      while (this.isPrompting) {
+        if (logalot) { console.log(`${lc} hacky wait while already prompting (I: 852007c8549d42c096defe0105b5e2e6)`); }
+        await h.delay(100);
+        tries++;
+        if (tries > 1000) {
+          erroredDueToPromptTimeout = true;
+          throw new Error(`attempted to prompt for user password, but already prompting for quite awhile now. (E: 8bd4dc907422dd95862b2038ffe2b822)`);
+        }
+      }
+
+      this.isPrompting = true;
+
       // used if we `checkCacheFirst` AND/OR if we `cacheAfter`
       const secretsCacheKey =
         secretIbGibs.map(ibGib => h.getIbGibAddr({ibGib})).join('');
@@ -1350,6 +1374,12 @@ export class IbgibsService {
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
+    } finally {
+      if (!erroredDueToPromptTimeout) {
+        // if we errored due to prompt timeout, then some other call to this
+        // function is prompting and we don't want to turn off their flag.
+        this.isPrompting = false;
+      }
     }
   }
 

@@ -242,7 +242,6 @@ specifically either implies a physical interface to things like databases,
 file systems, and similar; OR, when this space interfaces with other spaces, this
 is a logical organization of ibgib locations, like when configuring clusters or
 consensus algorithms.`;
-
 /**
  * rel8n name used inside the root to those ibgib it contains.
  *
@@ -259,6 +258,7 @@ consensus algorithms.`;
  * ```
  */
 export const DEFAULT_SPACE_REL8N_NAME = 'x';
+
 /**
  *
  */

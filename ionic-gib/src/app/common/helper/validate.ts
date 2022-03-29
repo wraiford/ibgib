@@ -263,8 +263,8 @@ export function validateGib({
     }
 }
 
-export function validateUserSpaceName(name: string): boolean {
-    const lc = `[${validateUserSpaceName.name}]`;
+export function spaceNameIsValid(name: string): boolean {
+    const lc = `[${spaceNameIsValid.name}]`;
     try {
         // non-falsy
         if (!name) {
