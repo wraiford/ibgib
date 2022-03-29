@@ -56,20 +56,24 @@
           <!-- <ion-spinner *ngIf="downloadingPic" name="circles" color="tertiary"></ion-spinner> -->
         </ion-button>
       </a>
-      <ion-button
+      <ion-button *ngIf="ibGib"
         class="toolbar-title-btn"
         (click)="handleShareClick()">
         <ion-icon name="share-social-outline" ios="share-outline"></ion-icon>
       </ion-button>
-      <ion-button *ngIf="tjp"
-        [disabled]="syncing"
+      <ion-button *ngIf="ibGib" [disabled]="refreshing"
+        class="toolbar-title-btn"
+        (click)="handleRobbotClick()">
+        <ion-icon name="body-outline"></ion-icon>
+      </ion-button>
+      <ion-button *ngIf="tjp" [disabled]="syncing || refreshing"
         [ngClass]="{'active-btn': autosync}"
         class="toolbar-title-btn"
         (click)="handleSpaceClick()">
         <ion-icon name="sparkles-outline"></ion-icon>
       </ion-button>
       <ion-button *ngIf="tjp"
-        [disabled]="syncing"
+        [disabled]="syncing || refreshing"
         class="toolbar-title-btn"
         (click)="handleSyncClick()">
         <ion-icon name="rocket-outline"></ion-icon>
@@ -96,7 +100,7 @@
           {{ tjpUpdatesAvailableCount_Local }}
         </ion-badge>
       </ion-button>
-      <ion-button [disabled]="syncing || refreshing || paused || tagging"
+      <ion-button [disabled]="refreshing"
         class="toolbar-title-btn"
         (click)="handleInfoClick($event)">
         <ion-icon name="glasses"></ion-icon>

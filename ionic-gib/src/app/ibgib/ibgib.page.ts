@@ -338,6 +338,23 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
+  /**
+   * Bring this ibgib to the attention of an Abot.
+   */
+  async handleRobbotClick(): Promise<void> {
+    const lc = `${this.lc}[${this.handleRobbotClick.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      //
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
   async handleSpaceClick(): Promise<void> {
     if (!this.autosync) {
       // autosync is not set yet, so prompt to turn it on and sync

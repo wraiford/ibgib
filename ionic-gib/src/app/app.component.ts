@@ -13,12 +13,13 @@ import { IbGib_V1 } from 'ts-gib/dist/V1';
 import * as c from './common/constants';
 import { IbgibComponentBase } from './common/bases/ibgib-component-base';
 import { CommonService } from './services/common.service';
-import { RootData, TagData, } from './common/types';
+import { RootData, SpaceId, TagData, } from './common/types';
 import {
   getFn_promptCreateEncryptionIbGib,
   getFn_promptCreateOuterSpaceIbGib,
   getFn_promptCreateSecretIbGib
 } from './common/helper';
+import { IbGibSpaceAny } from './common/witnesses/spaces/space-base-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -29,8 +30,12 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
  */
 interface MenuItem {
   title: string;
-  url: string;
   icon: string;
+  url?: string;
+  /**
+   * some menu items need to be resolved via click handlers instead of urls
+   */
+  clickHandler?: (item: MenuItem) => Promise<void>;
   addr?: IbGibAddr;
 }
 
@@ -49,6 +54,9 @@ export class AppComponent extends IbgibComponentBase
   @Input()
   rootItems: MenuItem[] = [];
 
+  @Input()
+  spaceItems: MenuItem[] = [];
+
   _currentRoot: MenuItem;
   @Input()
   get currentRoot(): MenuItem {
@@ -60,22 +68,6 @@ export class AppComponent extends IbgibComponentBase
     const lc = `${this.lc}[set currentRoot]`;
     if (logalot) { console.log(`${lc} value: ${h.pretty(value)}`); }
     this._currentRoot = value;
-  }
-
-  @Input()
-  spaceItems: MenuItem[] = [];
-
-  _currentSpace: MenuItem;
-  @Input()
-  get currentSpace(): MenuItem {
-    const lc = `${this.lc}[get currentSpace]`;
-    if (logalot) { console.log(`${lc} this._currentSpace: ${h.pretty(this._currentSpace)}`); }
-    return this._currentSpace;
-  }
-  set currentSpace(value: MenuItem) {
-    const lc = `${this.lc}[set currentSpace]`;
-    if (logalot) { console.log(`${lc} value: ${h.pretty(value)}`); }
-    this._currentSpace = value;
   }
 
   @Input()
@@ -112,17 +104,11 @@ export class AppComponent extends IbgibComponentBase
     }
   }
 
-  private _spacesAddr: IbGibAddr;
   @Input()
-  get spacesAddr(): IbGibAddr { return this._spacesAddr; }
-  set spacesAddr(value: IbGibAddr) {
-    const lc = `${this.lc}[set spacesAddr]`;
-    if (value !== this._spacesAddr) {
-      if (logalot) { console.log(`${lc} updating spacesAddr: ${value}`); }
-      this._spacesAddr = value;
-      this.ref.detectChanges();
-    }
-  }
+  localSpaceName: string;
+
+  @Input()
+  localSpaceId: SpaceId;
 
   private _paramMapSub_App: Subscription;
 
@@ -219,6 +205,7 @@ export class AppComponent extends IbgibComponentBase
         // these are AppComponent-specific initializations
         await this.initializeMyRoots();
         await this.initializeMyTags();
+        await this.initializeMySpaces();
 
         let addr = await this.getCurrentIbgibAddrInURL();
         if (!addr || addr === 'ib^gib') {
@@ -351,7 +338,6 @@ export class AppComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.initializeMyRoots.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
-      // initializes with current ibgibs.localUserspace
 
       while (this.common.ibgibs.initializing) {
         if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: de1ca706872740b98dfce57a5a9da4d4)`); }
@@ -362,19 +348,19 @@ export class AppComponent extends IbgibComponentBase
       const currentRootIbGib = await this.common.ibgibs.getCurrentRoot({});
       if (!currentRootIbGib) { throw new Error(`currentRoot not found(?)`); }
       if (!currentRootIbGib.data) { throw new Error(`currentRoot.data falsy (?)`); }
-      let {icon, text, description} = currentRootIbGib.data;
-      if (!icon) {
-        console.warn(`${lc} root.icon not found. Using default.`);
-        icon = c.DEFAULT_ROOT_ICON;
-      }
-      if (!text) {
-        console.warn(`${lc} root.text not found. Using default.`);
-        text = c.DEFAULT_ROOT_TEXT;
-      }
-      if (!description) {
-        console.warn(`${lc} root.description not found. Using default.`);
-        description = c.DEFAULT_ROOT_DESCRIPTION;
-      }
+      // let {icon, text, description} = currentRootIbGib.data;
+      // if (!icon) {
+      //   console.warn(`${lc} root.icon not found. Using default.`);
+      //   icon = c.DEFAULT_ROOT_ICON;
+      // }
+      // if (!text) {
+      //   console.warn(`${lc} root.text not found. Using default.`);
+      //   text = c.DEFAULT_ROOT_TEXT;
+      // }
+      // if (!description) {
+      //   console.warn(`${lc} root.description not found. Using default.`);
+      //   description = c.DEFAULT_ROOT_DESCRIPTION;
+      // }
       const addr = h.getIbGibAddr({ibGib: currentRootIbGib});
 
       this.currentRoot = await this.getRootItem(addr);
@@ -442,6 +428,37 @@ export class AppComponent extends IbgibComponentBase
   }
 
   /**
+   * Initializes app components properties, NOT the actual special ibgib
+   * on the ibgibs service. That should already be done.
+   */
+  async initializeMySpaces(): Promise<void> {
+    const lc = `${this.lc}[${this.initializeMySpaces.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      // initializes with current ibgibs.localUserspace
+
+      while (this.common.ibgibs.initializing) {
+        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: de1ca706872740b98dfce57a5a9da4d4)`); }
+        await h.delay(100);
+      }
+
+      // we always need to be carefully aware that the local user space can
+      // change in the background and we always want to do things with it while
+      // locking...
+      const localUserSpace = await this.common.ibgibs.getLocalUserSpace({lock: true});
+      if (!localUserSpace) { throw new Error(`(UNEXPECTED) localUserSpace falsy (E: 01e6292fa8514b9d903a7d396e23d173)`); }
+      if (!localUserSpace.data) { throw new Error(`(UNEXPECTED) localUserSpace.data falsy (E: 01e6292fa8514b9d903a7d396e23d173)`); }
+
+      this.localSpaceId = localUserSpace.data.uuid;
+      this.localSpaceName = localUserSpace.data.name;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+  /**
    * Primary update function for the current ibGib associated with
    * this component.
    *
@@ -486,6 +503,7 @@ export class AppComponent extends IbgibComponentBase
     try {
       await this.updateMenu_Tags();
       await this.updateMenu_Roots();
+      await this.updateMenu_Spaces();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     }
@@ -654,6 +672,85 @@ export class AppComponent extends IbgibComponentBase
     return item;
   }
 
+  /**
+   * ATOW the label is the local user space, while the individual children are
+   * the sync spaces.
+   */
+  async updateMenu_Spaces(): Promise<void> {
+    const lc = `${this.lc}[${this.updateMenu_Spaces.name}]`;
+    let spaceMenuItems: MenuItem[] = [];
+
+    try {
+      // spaces should already be initialized
+      if (!this.localSpaceId) { throw new Error(`localSpaceId is falsy, i.e. hasn't been initialized? (E: a5a51fad4a44470a8dc5698a4288eebc)`); };
+
+      // get spaces, but don't initialize
+      while (this.common.ibgibs.initializing) {
+        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 1e84725b134f4992a765c55acd254579)`); }
+        await h.delay(100);
+      }
+
+      let syncSpaces = await this.common.ibgibs.getAppSyncSpaces({
+        unwrapEncrypted: true,
+        createIfNone: false
+      });
+
+      // load individual items
+      for (let i = 0; i < syncSpaces.length; i++) {
+        const syncSpace = syncSpaces[i];
+        const spaceItem = await this.getSpaceItem(syncSpace);
+        if (spaceItem) { spaceMenuItems.push(spaceItem); }
+      }
+    } catch (error) {
+      spaceMenuItems = [{title: 'hmm errored...', icon: 'bug-outline', clickHandler: async (item: MenuItem) => { /*donothing*/ }}];
+      console.error(`${lc} ${error.message}`);
+    } finally {
+      // "load" them into the bound property and detect the changes
+      this.spaceItems = spaceMenuItems;
+      this.ref.detectChanges();
+    }
+
+  }
+
+  async getSpaceItem(space: IbGibSpaceAny): Promise<MenuItem> {
+    const lc = `${this.lc}[${this.getSpaceItem.name}]`;
+    let item: MenuItem;
+    try {
+      const resGet = await this.common.ibgibs.get({addr});
+      if (resGet.success && resGet.ibGibs?.length === 1) {
+        const ibGib = resGet.ibGibs![0];
+        if (ibGib?.ib && ibGib?.gib) {
+          if (ibGib?.data?.icon && ibGib?.data?.text) {
+            const text = ibGib.data!.text;
+            item = {
+              title: text.substring(0, c.MENU_ITEM_IB_SUBSTRING_LENGTH),
+              icon: ibGib.data!.icon || c.DEFAULT_ROOT_ICON,
+              url: `/ibgib/${addr}`,
+              addr,
+            }
+            if (logalot) { console.log(`${lc} ${h.pretty(item)}`); }
+          } else {
+            console.warn(`${lc} loading non-standard tag`);
+            item = {
+              title: ibGib.ib.substring(0, c.MENU_ITEM_IB_SUBSTRING_LENGTH),
+              icon: ibGib.data!.icon || c.DEFAULT_ROOT_ICON,
+              url: `/ibgib/${addr}`,
+              addr,
+            }
+          }
+        } else {
+          throw new Error(`Invalid ibgib gotten`);
+        }
+      } else {
+        throw new Error(resGet.errorMsg || `error getting ${addr}`);
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+    }
+
+    return item;
+  }
+
   async getCurrentIbgibAddrInURL(): Promise<IbGibAddr | undefined> {
     const lc = `${this.lc}[${this.getCurrentIbgibAddrInURL.name}]`
     try {
@@ -676,7 +773,13 @@ export class AppComponent extends IbgibComponentBase
   }
 
   compareRoots(a: MenuItem, b: MenuItem): boolean {
-    const lc = `[${AppComponent.name}][compareRoots]`;
+    const lc = `${this.lc}[compareRoots]`;
+    if (logalot) { console.log(`${lc}`); }
+    return a && b ? a.title === b.title : a === b;
+  }
+
+  compareSpaces(a: MenuItem, b: MenuItem): boolean {
+    const lc = `${this.lc}[compareSpaces]`;
     if (logalot) { console.log(`${lc}`); }
     return a && b ? a.title === b.title : a === b;
   }

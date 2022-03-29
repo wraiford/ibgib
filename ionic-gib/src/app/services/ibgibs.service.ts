@@ -165,38 +165,7 @@ export class IbgibsService {
   private _latestSubj = new ReplaySubject<LatestEventInfo>();
   latestObs = this._latestSubj.asObservable();
 
-  /**
-   * Used with tracking the tjp -> latest ib^gib mapping.
-   *
-   * If we have an addr for an ibGib that we can't find locally, we
-   * will prompt the user if we want to replace the address in the tjp -> latest mapping.
-   * If they say yes, then we'll then ask if they always want to do so.
-   *
-   * This flag represents the answer to that "always replace" prompt.
-   */
-  private alwaysReplaceLatestNotFound = false;
-
-  /**
-   * Contains the configuration metadata for where ibgibs are looked for by default.
-   */
-  // _localUserSpace: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> | undefined;
-  // get localUserSpace(): IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> | undefined {
-  //   return this._localUserSpace;
-  // }
-  // set localUserSpace(value: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> | undefined) {
-  //   if (value) {
-  //     if (value.witness) {
-  //       this._localUserSpace = value;
-  //     } else {
-  //       // if we've done a transform on the space,
-  //       // we won't get an object back, only a DTO ibGib essentially
-  //       this._localUserSpace = IonicSpace_V1.createFromDto<AppSpaceData, AppSpaceRel8ns>(value);
-  //     }
-  //   } else {
-  //     delete this._localUserSpace;
-  //   }
-  // }
-  private async getLocalUserSpace({
+  async getLocalUserSpace({
     lock,
   }: {
     /**
@@ -341,8 +310,10 @@ export class IbgibsService {
 
       await this.getSpecialIbGib({type: "autosyncs", initialize: true});
       if (logalot) { console.timeLog(timerName); }
-
       await this.loadAutoSyncs();
+
+      await this.getSpecialIbGib({type: "robbots", initialize: true});
+      if (logalot) { console.timeLog(timerName); }
 
       if (logalot) {
         console.timeEnd(timerName);
@@ -522,34 +493,6 @@ export class IbgibsService {
     }
   }
 
-  /**
-   * Routing function to various `create_____` functions.
-   *
-   * @returns address of newly created special.
-   */
-  private async createSpecial({
-    type,
-    space,
-  }: {
-    type: SpecialIbGibType,
-    space?: IbGibSpaceAny,
-  }): Promise<IbGibAddr | null> {
-    const lc = `${this.lc}[${this.createSpecial.name}]`;
-    try {
-      space = space ?? await this.getLocalUserSpace({});
-      if (!space) { throw new Error(`space falsy and localUserSpace not initialized. (E: 00e27678754e4d3a92b5cdd9fe9610ef)`); }
-
-      return createSpecial({
-        type, space, defaultSpace: this.zeroSpace,
-        fnBroadcast: (x) => this.fnBroadcast(x),
-        fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
-      });
-
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-    }
-  }
-
   async createTagIbGib({
     text,
     icon,
@@ -571,7 +514,7 @@ export class IbgibsService {
         icon,
         description,
         space,
-        defaultSpace: this.zeroSpace,
+        zeroSpace: this.zeroSpace,
         fnBroadcast: (x) => this.fnBroadcast(x),
         fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       });
@@ -719,7 +662,7 @@ export class IbgibsService {
       return setCurrentRoot({
         root,
         space,
-        defaultSpace: this.zeroSpace,
+        zeroSpace: this.zeroSpace,
         fnBroadcast: (x) => this.fnBroadcast(x),
         fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       });
@@ -758,7 +701,7 @@ export class IbgibsService {
         linked,
         rel8nName,
         space,
-        defaultSpace: this.zeroSpace,
+        zeroSpace: this.zeroSpace,
         fnBroadcast: (x) => this.fnBroadcast(x),
         fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       });
@@ -803,7 +746,7 @@ export class IbgibsService {
         type,
         initialize,
         space,
-        defaultSpace: this.zeroSpace,
+        zeroSpace: this.zeroSpace,
         fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
         fnBroadcast: (x) => this.fnBroadcast(x),
         fnGetInitializing: () => { return this._initializing; },
@@ -959,7 +902,7 @@ export class IbgibsService {
       return registerNewIbGib({
         ibGib,
         space,
-        defaultSpace: this.zeroSpace,
+        zeroSpace: this.zeroSpace,
         fnBroadcast: (x) => this.fnBroadcast(x),
         fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       });
@@ -1319,21 +1262,21 @@ export class IbgibsService {
     }
   }
 
-  async getSyncSpaces({space}: {space: IbGibSpaceAny}): Promise<IbGibSpaceAny[]> {
-    const lc = `${this.lc}[${this.getSyncSpaces.name}]`;
-    try {
-      if (!space) { throw new Error(`space required. (E: c03f80eca6b045b9a73b0aafa44cdf26)`); }
-      let syncSpaces = await this.getSpecialRel8dIbGibs<IbGibSpaceAny>({
-        type: "outerspaces",
-        rel8nName: c.SYNC_SPACE_REL8N_NAME,
-        space
-      });
-      return syncSpaces;
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    }
-  }
+  // async getSyncSpaces({space}: {space: IbGibSpaceAny}): Promise<IbGibSpaceAny[]> {
+  //   const lc = `${this.lc}[${this.getSyncSpaces.name}]`;
+  //   try {
+  //     if (!space) { throw new Error(`space required. (E: c03f80eca6b045b9a73b0aafa44cdf26)`); }
+  //     let syncSpaces = await this.getSpecialRel8dIbGibs<IbGibSpaceAny>({
+  //       type: "outerspaces",
+  //       rel8nName: c.SYNC_SPACE_REL8N_NAME,
+  //       space
+  //     });
+  //     return syncSpaces;
+  //   } catch (error) {
+  //     console.error(`${lc} ${error.message}`);
+  //     throw error;
+  //   }
+  // }
 
   /**
    * Feels klugy.

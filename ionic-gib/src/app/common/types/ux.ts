@@ -106,7 +106,7 @@ export interface IbgibItem {
  */
 export type SpecialIbGibType =
     "tags" | "roots" | "latest" | "outerspaces" | "secrets" |
-    "encryptions" | "autosyncs";
+    "encryptions" | "autosyncs" | "robbots";
 /**
  * Special ibgib types, used for metadata within a space.
  */
@@ -128,6 +128,7 @@ export const SpecialIbGibType = {
     encryptions: "encryptions" as SpecialIbGibType,
     /** indexes all tjp addresses that automatically sync. */
     autosyncs: "autosyncs" as SpecialIbGibType,
+    robbots: "robbots" as SpecialIbGibType,
 }
 
 /**

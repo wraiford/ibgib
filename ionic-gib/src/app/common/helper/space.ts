@@ -660,7 +660,7 @@ export async function getSpecialIbGib({
     type,
     initialize,
     space,
-    defaultSpace,
+    zeroSpace,
     fnUpdateBootstrap,
     fnBroadcast,
     fnGetInitializing,
@@ -672,7 +672,7 @@ export async function getSpecialIbGib({
     /**
      * Only required if `initialize` is true.
      */
-    defaultSpace?: IbGibSpaceAny,
+    zeroSpace?: IbGibSpaceAny,
     /**
      * Only required if `initialize` is true.
      */
@@ -704,7 +704,7 @@ export async function getSpecialIbGib({
             if (initialize && !fnGetInitializing()) {
                 fnSetInitializing(true);
                 try {
-                    addr = await createSpecial({type, space, defaultSpace, fnBroadcast, fnUpdateBootstrap});
+                    addr = await createSpecial({type, space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
                 } catch (error) {
                     console.error(`${lc} error initializing: ${error.message}`);
                 } finally {
@@ -722,7 +722,7 @@ export async function getSpecialIbGib({
         }
         // if (!addr) {
         //     if (initialize) {
-        //         addr = await createSpecial({type, space, defaultSpace, fnUpdateBootstrap, fnBroadcast});
+        //         addr = await createSpecial({type, space, zeroSpace, fnUpdateBootstrap, fnBroadcast});
         //     } else {
         //         throw new Error(`addr not found and initialize is false. (E: 6fc2375c0ba74972aa53da923c963411)`);
         //     }
@@ -899,13 +899,13 @@ export async function getCurrentRoot({
 export async function setCurrentRoot({
     root,
     space,
-    defaultSpace,
+    zeroSpace,
     fnUpdateBootstrap,
     fnBroadcast,
 }: {
     root: IbGib_V1<RootData>,
     space: IbGibSpaceAny,
-    defaultSpace: IbGibSpaceAny,
+    zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: LatestEventInfo) => void,
 }): Promise<void> {
@@ -935,7 +935,7 @@ export async function setCurrentRoot({
 
         const configKey = getSpecialConfigKey({type: "roots"});
         let newRootsAddr = h.getIbGibAddr({ibGib: resNewRoots.newIbGib});
-        await setConfigAddr({key: configKey, addr: newRootsAddr, space, zeroSpace: defaultSpace, fnUpdateBootstrap});
+        await setConfigAddr({key: configKey, addr: newRootsAddr, space, zeroSpace, fnUpdateBootstrap});
 
         // how to let others know roots has changed?
     } catch (error) {
@@ -955,7 +955,7 @@ export async function rel8ToCurrentRoot({
     rel8nName,
     space,
     fnBroadcast,
-    defaultSpace,
+    zeroSpace,
     fnUpdateBootstrap,
 }: {
     ibGib: IbGib_V1,
@@ -963,7 +963,7 @@ export async function rel8ToCurrentRoot({
     rel8nName?: string,
     space: IbGibSpaceAny,
     fnBroadcast: (info: LatestEventInfo) => void,
-    defaultSpace: IbGibSpaceAny,
+    zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
 }): Promise<void> {
     const lc = `[${rel8ToCurrentRoot.name}]`;
@@ -1000,8 +1000,8 @@ export async function rel8ToCurrentRoot({
         const newRoot = <IbGib_V1<RootData>>resNewRoot.newIbGib;
         const newRootAddr = h.getIbGibAddr({ibGib: newRoot});
         if (logalot) { console.log(`${lc} updating _currentRoot root. newRootAddr: ${newRootAddr}`); }
-        await registerNewIbGib({ibGib: newRoot, space, fnBroadcast, defaultSpace, fnUpdateBootstrap});
-        await setCurrentRoot({root: newRoot, space, defaultSpace, fnUpdateBootstrap, fnBroadcast});
+        await registerNewIbGib({ibGib: newRoot, space, fnBroadcast, zeroSpace, fnUpdateBootstrap});
+        await setCurrentRoot({root: newRoot, space, zeroSpace, fnUpdateBootstrap, fnBroadcast});
 
     } catch (error) {
         console.error(`${lc} ${error.message}`);
@@ -1021,13 +1021,13 @@ export async function registerNewIbGib({
     ibGib,
     space,
     fnBroadcast,
-    defaultSpace,
+    zeroSpace,
     fnUpdateBootstrap,
 }: {
     ibGib: IbGib_V1,
     space: IbGibSpaceAny,
     fnBroadcast: (info: LatestEventInfo) => void,
-    defaultSpace: IbGibSpaceAny,
+    zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
 }): Promise<void> {
     let lc = `[${registerNewIbGib.name}]`;
@@ -1066,7 +1066,7 @@ export async function registerNewIbGib({
                 severPast: true,
                 // skipRel8ToRoot: true,
                 space,
-                zeroSpace: defaultSpace,
+                zeroSpace,
                 fnUpdateBootstrap,
                 fnBroadcast,
             });
@@ -1304,7 +1304,7 @@ export async function rel8ToSpecialIbGib({
         const specialTjpAddr = specialTjpAddrs?.length > 0 ? specialTjpAddrs[0] : null;
 
         // update the space ibgib which contains the special/config information
-        await setConfigAddr({key: configKey, addr: newSpecialAddr, space, zeroSpace: zeroSpace, fnUpdateBootstrap});
+        await setConfigAddr({key: configKey, addr: newSpecialAddr, space, zeroSpace, fnUpdateBootstrap});
 
         // delete if required, only after updating config with the new special addr.
         if (deletePreviousSpecialIbGib) {
@@ -1323,7 +1323,7 @@ export async function rel8ToSpecialIbGib({
             // with that latest index.
             await registerNewIbGib({
                 ibGib: newSpecialIbGib,
-                defaultSpace: zeroSpace,
+                zeroSpace,
                 fnBroadcast,
                 fnUpdateBootstrap,
                 space,
@@ -1421,13 +1421,13 @@ export async function getTjpIbGib({
 export async function createSpecial({
     type,
     space,
-    defaultSpace,
+    zeroSpace,
     fnUpdateBootstrap,
     fnBroadcast,
 }: {
     type: SpecialIbGibType,
     space: IbGibSpaceAny,
-    defaultSpace: IbGibSpaceAny,
+    zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: LatestEventInfo) => void,
 }): Promise<IbGibAddr | null> {
@@ -1437,25 +1437,28 @@ export async function createSpecial({
 
         switch (type) {
         case "roots":
-            return createRootsIbGib({space, defaultSpace, fnBroadcast, fnUpdateBootstrap});
+            return createRootsIbGib({space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
 
         case "tags":
-            return createTags({space, defaultSpace, fnBroadcast, fnUpdateBootstrap});
+            return createTags({space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
 
         case "latest":
-            return createLatest({space, defaultSpace, fnBroadcast, fnUpdateBootstrap});
+            return createLatest({space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
 
         case "secrets":
-            return createSecrets({space, defaultSpace, fnBroadcast, fnUpdateBootstrap});
+            return createSecrets({space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
 
         case "encryptions":
-            return createEncryptions({space, defaultSpace, fnBroadcast, fnUpdateBootstrap});
+            return createEncryptions({space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
 
         case "outerspaces":
-            return createOuterSpaces({space, defaultSpace, fnBroadcast, fnUpdateBootstrap});
+            return createOuterSpaces({space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
 
         case "autosyncs":
-            return createAutosyncs({space, zeroSpace: defaultSpace, fnBroadcast, fnUpdateBootstrap});
+            return createAutosyncs({space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
+
+        case "robbots":
+            return createRobbots({space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
 
         default:
             throw new Error(`not implemented. type: ${type}`);
@@ -1475,7 +1478,7 @@ export async function createSpecialIbGib({
     type,
     skipRel8ToRoot,
     space,
-    zeroSpace: defaultSpace,
+    zeroSpace,
     fnUpdateBootstrap,
     fnBroadcast,
 }: {
@@ -1505,7 +1508,7 @@ export async function createSpecialIbGib({
                 ibGib: resNewSpecial.newIbGib,
                 linked: true,
                 space,
-                defaultSpace,
+                zeroSpace,
                 fnBroadcast,
                 fnUpdateBootstrap,
             });
@@ -1527,12 +1530,12 @@ export async function createSpecialIbGib({
  */
 export async function createTags({
     space,
-    defaultSpace,
+    zeroSpace,
     fnUpdateBootstrap,
     fnBroadcast,
 }: {
     space: IbGibSpaceAny,
-    defaultSpace: IbGibSpaceAny,
+    zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: LatestEventInfo) => void,
 }): Promise<IbGibAddr | null> {
@@ -1544,12 +1547,12 @@ export async function createTags({
         const special = await createSpecialIbGib({
             type: "tags",
             space,
-            zeroSpace: defaultSpace,
+            zeroSpace,
             fnBroadcast,
             fnUpdateBootstrap,
         });
         let addr = h.getIbGibAddr({ibGib: special});
-        await setConfigAddr({key: configKey, addr: addr, space, zeroSpace: defaultSpace, fnUpdateBootstrap});
+        await setConfigAddr({key: configKey, addr: addr, space, zeroSpace, fnUpdateBootstrap});
 
         // at this point, our tags ibGib has no associated tag ibGibs.
         // add home, favorite tags
@@ -1558,9 +1561,9 @@ export async function createTags({
             { text: 'favorite', icon: 'heart-outline' },
         ];
         for (const data of initialTagDatas) {
-            const resCreate = await createTagIbGib({...data, space, defaultSpace, fnBroadcast, fnUpdateBootstrap});
+            const resCreate = await createTagIbGib({...data, space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
             addr = resCreate.newTagsAddr;
-            await setConfigAddr({key: configKey, addr: addr, space, zeroSpace: defaultSpace, fnUpdateBootstrap});
+            await setConfigAddr({key: configKey, addr: addr, space, zeroSpace, fnUpdateBootstrap});
         }
 
         return addr;
@@ -1575,7 +1578,7 @@ export async function createTagIbGib({
     icon,
     description,
     space,
-    defaultSpace,
+    zeroSpace,
     fnUpdateBootstrap,
     fnBroadcast,
 }: {
@@ -1583,7 +1586,7 @@ export async function createTagIbGib({
     icon?: string,
     description?: string,
     space: IbGibSpaceAny,
-    defaultSpace: IbGibSpaceAny,
+    zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: LatestEventInfo) => void,
 }): Promise<{newTagIbGib: IbGib_V1, newTagsAddr: string}> {
@@ -1608,9 +1611,9 @@ export async function createTagIbGib({
         });
         const { newIbGib: newTag } = resNewTag;
         await persistTransformResult({resTransform: resNewTag, isMeta: true, space});
-        await registerNewIbGib({ibGib: newTag, space, defaultSpace, fnBroadcast, fnUpdateBootstrap});
+        await registerNewIbGib({ibGib: newTag, space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
         const newTagsAddr = await rel8TagToTagsIbGib({
-            tagIbGib: newTag, space, defaultSpace, fnUpdateBootstrap, fnBroadcast,
+            tagIbGib: newTag, space, zeroSpace, fnUpdateBootstrap, fnBroadcast,
         });
         return { newTagIbGib: newTag, newTagsAddr };
     } catch (error) {
@@ -1623,12 +1626,12 @@ export async function createTagIbGib({
 
 export async function createRootsIbGib({
     space,
-    defaultSpace,
+    zeroSpace,
     fnUpdateBootstrap,
     fnBroadcast,
 }: {
     space: IbGibSpaceAny,
-    defaultSpace: IbGibSpaceAny,
+    zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: LatestEventInfo) => void,
 }): Promise<IbGibAddr | null> {
@@ -1641,12 +1644,12 @@ export async function createRootsIbGib({
         const rootsIbGib = await createSpecialIbGib({
             type: "roots",
             space,
-            zeroSpace: defaultSpace,
+            zeroSpace,
             fnBroadcast,
             fnUpdateBootstrap,
         });
         let rootsAddr = h.getIbGibAddr({ibGib: rootsIbGib});
-        await setConfigAddr({key: configKey, addr: rootsAddr, space, zeroSpace: defaultSpace, fnUpdateBootstrap});
+        await setConfigAddr({key: configKey, addr: rootsAddr, space, zeroSpace, fnUpdateBootstrap});
 
         // at this point, our ibGib has no associated ibGibs.
         // so we add initial roots
@@ -1665,7 +1668,7 @@ export async function createRootsIbGib({
             const resCreate = await createRootIbGib({
                 ...data,
                 space,
-                defaultSpace,
+                zeroSpace,
                 fnUpdateBootstrap,
                 fnBroadcast,
             });
@@ -1673,11 +1676,11 @@ export async function createRootsIbGib({
             rootsAddr = resCreate.newRootsAddr;
             // update the config for the updated **roots** ibgib.
             // that roots ibgib is what points to the just created new root.
-            await setConfigAddr({key: configKey, addr: rootsAddr, space, zeroSpace: defaultSpace, fnUpdateBootstrap});
+            await setConfigAddr({key: configKey, addr: rootsAddr, space, zeroSpace, fnUpdateBootstrap});
         }
 
         // initialize current root
-        await setCurrentRoot({root: firstRoot, space, defaultSpace, fnUpdateBootstrap, fnBroadcast});
+        await setCurrentRoot({root: firstRoot, space, zeroSpace, fnUpdateBootstrap, fnBroadcast});
         // hack: the above line updates the roots in config. so get **that** addr.
 
         rootsAddr = await getConfigAddr({key: configKey, space});
@@ -1694,7 +1697,7 @@ async function createRootIbGib({
     icon,
     description,
     space,
-    defaultSpace,
+    zeroSpace,
     fnUpdateBootstrap,
     fnBroadcast,
 }: {
@@ -1702,7 +1705,7 @@ async function createRootIbGib({
     icon?: string,
     description?: string,
     space: IbGibSpaceAny,
-    defaultSpace: IbGibSpaceAny,
+    zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: LatestEventInfo) => void,
 }): Promise<{newRootIbGib: IbGib_V1<RootData>, newRootsAddr: string}> {
@@ -1735,7 +1738,7 @@ async function createRootIbGib({
             ibGibsToRel8: [newIbGib],
             // isMeta: true,
             space,
-            zeroSpace: defaultSpace,
+            zeroSpace,
             fnUpdateBootstrap,
             fnBroadcast,
         });
@@ -1748,12 +1751,12 @@ async function createRootIbGib({
 
 async function createLatest({
     space,
-    defaultSpace,
+    zeroSpace,
     fnUpdateBootstrap,
     fnBroadcast,
 }: {
     space: IbGibSpaceAny,
-    defaultSpace: IbGibSpaceAny,
+    zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: LatestEventInfo) => void,
 }): Promise<IbGibAddr | null> {
@@ -1768,12 +1771,12 @@ async function createLatest({
             type: "latest",
             space,
             skipRel8ToRoot: true,
-            zeroSpace: defaultSpace,
+            zeroSpace,
             fnBroadcast,
             fnUpdateBootstrap,
         });
         let specialAddr = h.getIbGibAddr({ibGib: special});
-        await setConfigAddr({key: configKey, addr: specialAddr, space, zeroSpace: defaultSpace, fnUpdateBootstrap});
+        await setConfigAddr({key: configKey, addr: specialAddr, space, zeroSpace, fnUpdateBootstrap});
 
         // right now, the latest ibgib doesn't have any more initialization,
         // since it is supposed to be as ephemeral and non-tracked as possible.
@@ -1787,12 +1790,12 @@ async function createLatest({
 
 async function createSecrets({
     space,
-    defaultSpace,
+    zeroSpace,
     fnUpdateBootstrap,
     fnBroadcast,
 }: {
     space: IbGibSpaceAny,
-    defaultSpace: IbGibSpaceAny,
+    zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: LatestEventInfo) => void,
 }): Promise<IbGibAddr | null> {
@@ -1808,12 +1811,12 @@ async function createSecrets({
         const secretsIbgib = await createSpecialIbGib({
             type: "secrets",
             space,
-            zeroSpace: defaultSpace,
+            zeroSpace,
             fnBroadcast,
             fnUpdateBootstrap,
         });
         secretsAddr = h.getIbGibAddr({ibGib: secretsIbgib});
-        await setConfigAddr({key: configKey, addr: secretsAddr, space, zeroSpace: defaultSpace, fnUpdateBootstrap});
+        await setConfigAddr({key: configKey, addr: secretsAddr, space, zeroSpace, fnUpdateBootstrap});
 
         return secretsAddr;
     } catch (error) {
@@ -1824,12 +1827,12 @@ async function createSecrets({
 
 async function createEncryptions({
     space,
-    defaultSpace,
+    zeroSpace,
     fnUpdateBootstrap,
     fnBroadcast,
 }: {
     space: IbGibSpaceAny,
-    defaultSpace: IbGibSpaceAny,
+    zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: LatestEventInfo) => void,
 }): Promise<IbGibAddr | null> {
@@ -1845,12 +1848,12 @@ async function createEncryptions({
         const encryptionsIbgib = await createSpecialIbGib({
             type: "encryptions",
             space,
-            zeroSpace: defaultSpace,
+            zeroSpace,
             fnBroadcast,
             fnUpdateBootstrap,
         });
         addr = h.getIbGibAddr({ibGib: encryptionsIbgib});
-        await setConfigAddr({key: configKey, addr: addr, space, zeroSpace: defaultSpace, fnUpdateBootstrap});
+        await setConfigAddr({key: configKey, addr: addr, space, zeroSpace, fnUpdateBootstrap});
 
         return addr;
     } catch (error) {
@@ -1861,12 +1864,12 @@ async function createEncryptions({
 
 async function createOuterSpaces({
     space,
-    defaultSpace,
+    zeroSpace,
     fnUpdateBootstrap,
     fnBroadcast,
 }: {
     space: IbGibSpaceAny,
-    defaultSpace: IbGibSpaceAny,
+    zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: LatestEventInfo) => void,
 }): Promise<IbGibAddr | null> {
@@ -1882,12 +1885,12 @@ async function createOuterSpaces({
         const outerSpacesIbGib = await createSpecialIbGib({
             type: "outerspaces",
             space,
-            zeroSpace: defaultSpace,
+            zeroSpace,
             fnBroadcast,
             fnUpdateBootstrap,
         });
         outerSpacesAddr = h.getIbGibAddr({ibGib: outerSpacesIbGib});
-        await setConfigAddr({key: configKey, addr: outerSpacesAddr, space, zeroSpace: defaultSpace, fnUpdateBootstrap});
+        await setConfigAddr({key: configKey, addr: outerSpacesAddr, space, zeroSpace, fnUpdateBootstrap});
 
         return outerSpacesAddr;
     } catch (error) {
@@ -1922,7 +1925,7 @@ async function createAutosyncs({
             fnUpdateBootstrap,
         });
         autosyncsAddr = h.getIbGibAddr({ibGib: autosyncsIbGib});
-        await setConfigAddr({key: configKey, addr: autosyncsAddr, space, zeroSpace: zeroSpace, fnUpdateBootstrap});
+        await setConfigAddr({key: configKey, addr: autosyncsAddr, space, zeroSpace, fnUpdateBootstrap});
 
         return autosyncsAddr;
     } catch (error) {
@@ -1930,6 +1933,42 @@ async function createAutosyncs({
         return null;
     }
 }
+
+async function createRobbots({
+    space,
+    zeroSpace,
+    fnUpdateBootstrap,
+    fnBroadcast,
+}: {
+    space: IbGibSpaceAny,
+    zeroSpace: IbGibSpaceAny,
+    fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
+    fnBroadcast: (info: LatestEventInfo) => void,
+}): Promise<IbGibAddr | null> {
+    const lc = `[${createRobbots.name}]`;
+    try {
+        if (!space) { throw new Error(`space required. (E: f01cf6a4a460486796e16d505d629522)`); }
+
+        let robbotsAddr: IbGibAddr;
+        const configKey = getSpecialConfigKey({type: "robbots"});
+
+        const robbotsIbGib = await createSpecialIbGib({
+            type: "robbots",
+            space,
+            zeroSpace,
+            fnBroadcast,
+            fnUpdateBootstrap,
+        });
+        robbotsAddr = h.getIbGibAddr({ibGib: robbotsIbGib});
+        await setConfigAddr({key: configKey, addr: robbotsAddr, space, zeroSpace, fnUpdateBootstrap});
+
+        return robbotsAddr;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        return null;
+    }
+}
+
 /**
  * We are NOT searching through all of our data looking for a needle in a haystack.
  * What we ARE doing is we are looking through the past of the existing latest and
@@ -2061,13 +2100,13 @@ async function getLatestAddr_Brute({
 function rel8TagToTagsIbGib({
     tagIbGib,
     space,
-    defaultSpace,
+    zeroSpace,
     fnUpdateBootstrap,
     fnBroadcast,
 }: {
     tagIbGib: IbGib_V1,
     space: IbGibSpaceAny,
-    defaultSpace: IbGibSpaceAny,
+    zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: LatestEventInfo) => void,
 }): Promise<IbGibAddr> {
@@ -2076,7 +2115,7 @@ function rel8TagToTagsIbGib({
         rel8nName: c.TAG_REL8N_NAME,
         ibGibsToRel8: [tagIbGib],
         space,
-        zeroSpace: defaultSpace,
+        zeroSpace,
         fnUpdateBootstrap,
         fnBroadcast,
     });
@@ -2318,7 +2357,7 @@ export async function getLocalSpace<TSpace extends IbGibSpaceAny>({
      *
      * ## notes
      *
-     * This is what I was calling a defaultSpace, but that will in the future
+     * This is what I was calling a zeroSpace, but that will in the future
      * mean a default space among a group of spaces.
      */
     zeroSpace: IbGibSpaceAny,
@@ -2383,7 +2422,7 @@ export async function getLocalSpace<TSpace extends IbGibSpaceAny>({
 
         if (!bootstrapIbGib) { throw new Error(`bootstrapIbGib falsy. not initialized? (E: 91f5c82b5e124178d958701ebcb09822)`); }
 
-        localSpaceId = localSpaceId ?? bootstrapIbGib.data.defaultSpaceId;
+        localSpaceId = localSpaceId ?? bootstrapIbGib.data.zeroSpaceId;
         const localSpaceAddr = bootstrapIbGib.rel8ns![localSpaceId][0]; // guaranteed b/c bootstrap was validated
 
         const fnGet: () => Promise<TSpace> = async () => {
@@ -2675,7 +2714,7 @@ export async function updateBootstrapIbGib({
             }
             if (setSpaceAsDefault) {
                 if (logalot) { console.log(`${lc} setting spaceId (${spaceId}) as default space (I: f85eda6c6ad2b0bec9750ce3c7795b22)`); }
-                bootstrapIbGib.data.defaultSpaceId = spaceId;
+                bootstrapIbGib.data.zeroSpaceId = spaceId;
             }
         }
 

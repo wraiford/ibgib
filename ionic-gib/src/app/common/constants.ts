@@ -31,7 +31,7 @@ export const BOOTSTRAP_IBGIB_ADDR = `bootstrap^${GIB}`;
 /**
  * {@see BootstrapData}
  */
-export const BOOTSTRAP_DATA_DEFAULT_SPACE_ID_KEY = `defaultSpaceId`;
+export const BOOTSTRAP_DATA_DEFAULT_SPACE_ID_KEY = `zeroSpaceId`;
 /**
  * Key for index tracking known spaceIds in a bootstrap ibgib.
  * {@see BootstrapData}

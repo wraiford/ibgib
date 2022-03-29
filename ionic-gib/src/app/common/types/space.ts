@@ -503,7 +503,7 @@ export interface BootstrapRel8ns extends IbGibRel8ns_V1 {
  * created and then stored here for future app/context startups.
  *
  * Spaces are rel8d by their `spaceId`'s in `ibgib.rel8ns`, and the `ibgib.data`
- * key (`ibgib.data.defaultSpaceId` atow) contains the default `spaceId`.  If
+ * key (`ibgib.data.zeroSpaceId` atow) contains the default `spaceId`.  If
  * there are multiple local spaces that the bootstrap ibgib knows about, there
  * will be only one "default" set.
  *
