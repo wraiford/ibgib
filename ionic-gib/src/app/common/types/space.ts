@@ -1,10 +1,11 @@
-
 import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 import { IbGibAddr, IbGib, IbGibWithDataAndRel8ns, IbGibRel8ns } from 'ts-gib';
-import { Witness, WitnessData_V1 } from './witness';
+
 import * as c from '../constants';
+import { Witness, WitnessData_V1 } from './witness';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { TjpIbGibAddr } from './ibgib';
+import { getLocalSpace } from '../helper/space'; // jsdoc link
 
 /**
  * Marker type to show intent that it should be the spaceId, i.e.
@@ -494,26 +495,53 @@ export interface BootstrapRel8ns extends IbGibRel8ns_V1 {
  * look for an ibgib with this "primitive" address, i.e. where the gib is the
  * string literal 'gib'. It looks for this address inside what is called the
  * "zero space". This is a default space with default parameters that always
- * points to the same location, relative to the context/app.
+ * points to the same location, relative to the context (app in our current case,
+ * but in the future the context could be e.g. an IoT device or AI microservice).
  *
- * So the application (context) starts, creates a default zero space ibgib,
- * which has a default location/parameters that the space looks in, and it gets
- * a bootstrap ibgib with a known address "bootstrap^gib" (atow).  Inside that
- * bootstrap ibgib, there is at least one local space, or a new one must be
- * created and then stored here for future app/context startups.
+ * So the context execution starts, creating a default zero space ibgib in
+ * memory, which itself has a default location/parameters that the space looks
+ * in in storage. Here it looks for the bootstrap ibgib with a known address
+ * "bootstrap^gib" (atow). Inside that bootstrap ibgib, there should be at least
+ * one local space referenced, or a new one must be created and then stored here
+ * for future app/context startups.
  *
  * Spaces are rel8d by their `spaceId`'s in `ibgib.rel8ns`, and the `ibgib.data`
- * key (`ibgib.data.zeroSpaceId` atow) contains the default `spaceId`.  If
+ * key (`ibgib.data.defaultSpaceId` atow) contains the default `spaceId`.  If
  * there are multiple local spaces that the bootstrap ibgib knows about, there
  * will be only one "default" set.
  *
  * ## first run
  *
+ * @see {@link IbgibsService.createNewLocalSpaceAndBootstrapGib}
+ * @see {@link getLocalSpace} in `helper/space.ts`
+ *
  * A new local space will be created, whose parameters (including its `uuid`
  * which is its `spaceId`) contribute to its reiffied gib hash. A new bootstrap
- * ibgib is created, and in its `data.uuid` we set the newly created local
- * space's id. We then rel8 the space to the bootstrap also via this spaceId as
- * the rel8nName.
+ * ibgib is created, and in its `bootstrapIbGib.data.defaultSpaceId` we set the
+ * newly created local space's id. We then rel8 the space to the bootstrap also
+ * via this spaceId as the rel8nName.
+ *
+ * Note that when the local space is updated, its most recent address must
+ * replace the address that the bootstrap ibgib is pointing to.
+ *
+ * @example
+ *
+ * Here is a copy of a bootstrap^gib.json file on March 30, 2022:
+ * ```
+ * {
+ *   "ib":"bootstrap",
+ *   "gib":"gib",
+ *   "data":{
+ *     "defaultSpaceId":"72af3bba9c6da224829de86982346e283469823e49862398a56510c238bad869",
+ *     "spaceIds":["72af3bba9c6da224829de86982346e283469823e49862398a56510c238bad869"]
+ *   },
+ *   "rel8ns":{
+ *     "72af3bba9c6da224829de86982346e283469823e49862398a56510c238bad869": [
+ *       "witness space IonicSpace_V1 test_space_name 72af3bba9c6da224829de86982346e283469823e49862398a56510c238bad869^62879B18C2726D27262626552672868923477EE09171626A386C1982F392AC26"
+ *     ]
+ *   }
+ * }
+ * ```
  *
  * ## notes
  *

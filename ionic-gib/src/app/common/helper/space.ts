@@ -821,6 +821,8 @@ export async function setConfigAddr({
         if (!zeroSpace) { throw new Error(`zeroSpace required. (E: d3707ae5265d464891ad216f64be6184)`); }
 
         // rel8 the `addr` to the current space via rel8n named `key`
+        // note that since we are replacing the pointer, we include the key
+        // in `linkedRel8ns` which will keep only the most recent
         const rel8nsToAddByAddr = { [key]: [addr] };
         const resNewSpace = await V1.rel8({
             src: space.toDto(),
@@ -843,15 +845,14 @@ export async function setConfigAddr({
         // witness in the given space
         await persistTransformResult({isMeta: true, resTransform: resNewSpace, space});
 
-        // update the bootstrap^gib with the new space address,
+        // going to update the bootstrap^gib with the new space address, but first...
         const newSpace = <IbGibSpaceAny>resNewSpace.newIbGib;
-        const newSpaceAddr = h.getIbGibAddr({ibGib: newSpace});
 
-        // must update the original space reference any time we change it.
+        // ...must update the original space reference any time we change it.
         // messy atm...
         space.loadDto(newSpace);
 
-        // so the proper space (config) is loaded on next app start
+        // ...now update so the proper space (config) loads on next app start
         if (fnUpdateBootstrap) {
             await fnUpdateBootstrap(newSpace);
         } else {
@@ -876,11 +877,11 @@ export async function getCurrentRoot({
         if (!space) { throw new Error(`space required. (E: f0d546101fba4c169256158114ab3c56)`); }
 
         const roots = await getSpecialIbGib({type: "roots", space});
-        if (!roots) { throw new Error(`Roots not initialized.`); }
-        if (!roots.rel8ns) { throw new Error(`Roots not initialized properly. No rel8ns.`); }
-        if (!roots.rel8ns.current) { throw new Error(`Roots not initialized properly. No current root.`); }
-        if (roots.rel8ns.current.length === 0) { throw new Error(`Invalid Roots: empty current root rel8n.`); }
-        if (roots.rel8ns.current.length > 1) { throw new Error(`Invalid Roots: multiple current roots selected.`); }
+        if (!roots) { throw new Error(`Roots not initialized. (E: 89b1ba12ed12416aac41cef9fdaf1fc2)`); }
+        if (!roots.rel8ns) { throw new Error(`Roots not initialized properly. No rel8ns. (E: 8513a07cf530484db9521a2a3a27b7f6)`); }
+        if (!roots.rel8ns.current) { throw new Error(`Roots not initialized properly. No current root. (E: 459c3a007a30486d96fb8d83f696e239)`); }
+        if (roots.rel8ns.current.length === 0) { throw new Error(`Invalid Roots: empty current root rel8n. (E: bede5864090440bca01ea7ab7fd107d6)`); }
+        if (roots.rel8ns.current.length > 1) { throw new Error(`Invalid Roots: multiple current roots selected. (E: 97561acbf63a48ecaa037697bd26555a)`); }
 
         const currentRootAddr = roots.rel8ns.current[0]!;
         const resCurrentRoot =
@@ -2422,7 +2423,7 @@ export async function getLocalSpace<TSpace extends IbGibSpaceAny>({
 
         if (!bootstrapIbGib) { throw new Error(`bootstrapIbGib falsy. not initialized? (E: 91f5c82b5e124178d958701ebcb09822)`); }
 
-        localSpaceId = localSpaceId ?? bootstrapIbGib.data.zeroSpaceId;
+        localSpaceId = localSpaceId ?? bootstrapIbGib.data[c.BOOTSTRAP_DATA_DEFAULT_SPACE_ID_KEY];
         const localSpaceAddr = bootstrapIbGib.rel8ns![localSpaceId][0]; // guaranteed b/c bootstrap was validated
 
         const fnGet: () => Promise<TSpace> = async () => {
@@ -2714,7 +2715,7 @@ export async function updateBootstrapIbGib({
             }
             if (setSpaceAsDefault) {
                 if (logalot) { console.log(`${lc} setting spaceId (${spaceId}) as default space (I: f85eda6c6ad2b0bec9750ce3c7795b22)`); }
-                bootstrapIbGib.data.zeroSpaceId = spaceId;
+                bootstrapIbGib.data[c.BOOTSTRAP_DATA_DEFAULT_SPACE_ID_KEY] = spaceId;
             }
         }
 
@@ -2765,8 +2766,11 @@ export function getSpaceIb({
     try {
         if (!space) { throw new Error(`space required (E: 4dabec34ee77d67c9cc30ee3c3049622)`); }
         if (!classname) { throw new Error(`classname required (E: fa3af4613ad56742dab51d1b0d839322)`); }
+        if (classname.includes(' ')) { throw new Error(`invalid classname. cannot contain spaces (E: 243adbf720dcce7904e2665933208b22)`); }
         const name = space.data?.name || c.IBGIB_SPACE_NAME_DEFAULT;
+        if (name.includes(' ')) { throw new Error(`invalid space name. cannot contain spaces (E: a8450e1651081412c8ac018520182422)`); }
         const id = space.data?.uuid || undefined;
+        if (id.includes(' ')) { throw new Error(`invalid space id. cannot contain spaces (E: 8696830fe7f54bfa85e670a063f3e089)`); }
         return `witness space ${classname} ${name} ${id}`;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
@@ -2774,6 +2778,39 @@ export function getSpaceIb({
     }
 }
 
+/**
+ * Current schema is `witness space [classname] [spaceName] [spaceId]
+ *
+ * NOTE this is space-delimited
+ */
+export function getInfoFromSpaceIb({
+    spaceIb,
+}: {
+    spaceIb: Ib,
+}): {
+    spaceClassname: string,
+    spaceName: string,
+    spaceId: SpaceId,
+} {
+    const lc = `[${getInfoFromSpaceIb.name}]`;
+    try {
+        if (!spaceIb) { throw new Error(`spaceIb required (E: fa5424cfb7e846e2851562f2f417944f)`); }
+
+        // const name = space.data?.name || c.IBGIB_SPACE_NAME_DEFAULT;
+        // const id = space.data?.uuid || undefined;
+        // return `witness space ${classname} ${name} ${id}`;
+        const pieces = spaceIb.split(' ');
+
+        return {
+            spaceClassname: pieces[2],
+            spaceName: pieces[3],
+            spaceId: pieces[4],
+        };
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
 /**
  * Helper function that generates a unique-ish id.
  *

@@ -20,7 +20,8 @@ import {
   getFn_promptCreateSecretIbGib,
   validateIbGibIntrinsically,
   spaceNameIsValid,
-  getFnAlert
+  getFnAlert,
+  getSpaceIb
 } from './common/helper';
 import { IbGibSpaceAny } from './common/witnesses/spaces/space-base-v1';
 
@@ -696,7 +697,6 @@ export class AppComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.handleSpaceClick.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
-      // getFnAlert()({title: 'testing', msg: 'handleSpaceClick triggered'});
       const localUserSpace = await this.common.ibgibs.getLocalUserSpace({lock: true});
       await this.go({
         toAddr: h.getIbGibAddr({ibGib: localUserSpace.toDto()}),
@@ -780,6 +780,7 @@ export class AppComponent extends IbgibComponentBase
         title: space.data.name.substring(0, c.MENU_ITEM_IB_SUBSTRING_LENGTH),
         icon: c.DEFAULT_SPACE_ICON ,
         clickHandler: async (item: MenuItem) => {
+          getSpaceIb
           await this.go({
             toAddr: item.addr,
             fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),

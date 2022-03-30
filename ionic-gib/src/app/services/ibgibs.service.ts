@@ -420,9 +420,12 @@ export class IbgibsService {
         }
       };
 
-      // create a new user space
+      // #region create a new user space...
+
+      // ...prompt for name
       while (!spaceName) { await promptName(); }
 
+      // ...create in memory with defaults
       const newLocalSpace = new IonicSpace_V1(/*initialData*/ <IonicSpaceData_V1>{
         version: '1',
         uuid: await h.getUUID(),
@@ -447,12 +450,13 @@ export class IbgibsService {
       if (logalot) { console.log(`${lc} localSpace.gib: ${newLocalSpace.gib} (before sha256v1)`); }
       if (logalot) { console.log(`${lc} localSpace.data: ${h.pretty(newLocalSpace.data || 'falsy')}`); }
       if (logalot) { console.log(`${lc} localSpace.rel8ns: ${h.pretty(newLocalSpace.rel8ns || 'falsy')}`); }
-      // localSpace.gib = await sha256v1(localSpace);
       newLocalSpace.gib = await getGib({ibGib: newLocalSpace, hasTjp: false});
       if (newLocalSpace.gib === GIB) { throw new Error(`localSpace.gib not updated correctly.`); }
       if (logalot) { console.log(`${lc} localSpace.gib: ${newLocalSpace.gib} (after sha256v1)`); }
 
-      // creates bootstrap
+      // #endregion create a new user space...
+
+      // create bootstrap
       if (logalot) { console.log(`${lc} creating new bootstrap ibgib (I: ecc58dd4af21a0c69a16b3d71dad9c22)`); }
       await updateBootstrapIbGib({
         space: newLocalSpace,

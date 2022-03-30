@@ -323,10 +323,10 @@ export async function validateBootstrapIbGib(bootstrapSpace: IbGib_V1): Promise<
                 errors.push(`invalid bootstrap. Each spaceId listed in data should have a corresponding address in rel8ns. spaceId (${spaceId}) missing. (E: 62dd0d76e29a415a98b4b27deb8db17e)`);
             }
         });
-        if (!data.zeroSpaceId) {
-            errors.push(`invalid bootstrap. data.zeroSpaceId required. (E: f763af2e275f445cbf1db5801bacafad)`);
-        } else if ((rel8ns[data.zeroSpaceId] ?? []).length === 0) {
-            errors.push(`invalid bootstrap. data.zeroSpaceId (${data.zeroSpaceId}) not found in rel8ns. (E: 44d0799d232f4a51a0b0019ebebe019f)`);
+        if (!data[c.BOOTSTRAP_DATA_DEFAULT_SPACE_ID_KEY]) {
+            errors.push(`invalid bootstrap. data.${c.BOOTSTRAP_DATA_DEFAULT_SPACE_ID_KEY} required. (E: f763af2e275f445cbf1db5801bacafad)`);
+        } else if ((rel8ns[data[c.BOOTSTRAP_DATA_DEFAULT_SPACE_ID_KEY]] ?? []).length === 0) {
+            errors.push(`invalid bootstrap. data.${c.BOOTSTRAP_DATA_DEFAULT_SPACE_ID_KEY} (${data[c.BOOTSTRAP_DATA_DEFAULT_SPACE_ID_KEY]}) not found in rel8ns. (E: 44d0799d232f4a51a0b0019ebebe019f)`);
         }
         if (errors.length === 0) {
             return true;
