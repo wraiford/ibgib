@@ -789,14 +789,14 @@ export class AppComponent extends IbgibComponentBase
         await h.delay(100);
       }
 
-      let syncSpaces = await this.common.ibgibs.getAppSyncSpaces({
-        unwrapEncrypted: true,
+      let encryptedSyncSpaces = await this.common.ibgibs.getAppSyncSpaces({
+        unwrapEncrypted: false,
         createIfNone: false
       });
 
       // load individual items (only executes if any syncspaces exist)
-      for (let i = 0; i < syncSpaces.length; i++) {
-        const syncSpace = syncSpaces[i];
+      for (let i = 0; i < encryptedSyncSpaces.length; i++) {
+        const syncSpace = encryptedSyncSpaces[i];
         const spaceItem = await this.getSpaceItem_syncSpace(syncSpace);
         if (spaceItem) { spaceMenuItems.push(spaceItem); }
       }
@@ -815,12 +815,13 @@ export class AppComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.getSpaceItem_syncSpace.name}]`;
     let item: MenuItem;
     try {
-      const ibGib = space.toDto();
+      const ibGib = space.toDto ? space.toDto() : space;
+      if (logalot) { console.log(`${lc} ibGib: ${h.pretty(ibGib)} (I: c24a7fc94df7b5403bc221e98083ee22)`); }
       let validateIbGibErrors = await validateIbGibIntrinsically({ibGib});
       if (validateIbGibErrors?.length > 0) { throw new Error(`invalid ibGib intrinsically. errors: ${validateIbGibErrors} (E: d482f5e1ff2db1bb91312128797be922)`); }
       const addr = h.getIbGibAddr({ibGib});
       if (!spaceNameIsValid(ibGib.data.name)) { throw new Error(`invalid spacename: ${space.data.name} (E: ee437d70aa5e8bdf44e692bfa4832f22)`); }
-      const text = ibGib.data.name;
+      const text = ibGib.data.name || ibGib.ib;
       const icon = (<any>space.data).icon || c.DEFAULT_SPACE_ICON;
       item = this.getMenuItem({text, icon, addr});
     } catch (error) {

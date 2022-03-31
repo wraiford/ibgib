@@ -144,6 +144,9 @@ export const TAG_REL8N_NAME = 'tag';
 export const SPACE_REL8N_NAME = 'space';
 /**
  * The main roots^gib ibgib uses this rel8n name to keep track of roots.
+ *
+ * NOTE: This is different than the rel8nName that a root ibgib uses to link to its ibgibs!
+ * {@link DEFAULT_ROOT_REL8N_NAME}
  */
 export const ROOT_REL8N_NAME = 'root';
 /**
@@ -176,7 +179,8 @@ export const AUTOSYNC_ALWAYS_REL8N_NAME = 'always';
 /**
  * rel8n name used inside the root to those ibgib it contains.
  *
- * This is different than the rel8nName 'root' that the roots^gib uses!
+ * NOTE: This is different than the rel8nName 'root' that the roots^gib uses!
+ * {@link ROOT_REL8N_NAME}
  *
  * @example
  * ```json
