@@ -47,6 +47,7 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
   async updateItems(): Promise<void> {
     const lc = `${this.lc}[${this.updateItems.name}]`;
     try {
+      this.rel8nNames = [...c.DEFAULT_LIST_REL8N_NAMES];
       await super.updateItems();
 
       // hack for demo purposes

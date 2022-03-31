@@ -173,6 +173,24 @@ export const CONSENSUS_REL8N_NAME = 'consensus';
  * The primary rel8n name atm for the autosyncs feature.
  */
 export const AUTOSYNC_ALWAYS_REL8N_NAME = 'always';
+/**
+ * rel8n name used inside the root to those ibgib it contains.
+ *
+ * This is different than the rel8nName 'root' that the roots^gib uses!
+ *
+ * @example
+ * ```json
+ *  {
+ *      ib: root,
+ *      gib: ABC123,
+ *      data: {...},
+ *      rel8ns: {
+ *          [rel8nName]: ["a^1", "b^2"]
+ *      }
+ *  }
+ * ```
+ */
+export const DEFAULT_ROOT_REL8N_NAME = 'x';
 
 export const CONSENSUS_ADDR_SYNC_NAIVE_PUT_MERGE = 'sync naive put merge^gib'
 
@@ -181,7 +199,9 @@ export const CONSENSUS_ADDR_SYNC_NAIVE_PUT_MERGE = 'sync naive put merge^gib'
  */
 export const DEFAULT_LIST_REL8N_NAMES: string[] = [
     'pic', 'comment', 'link', 'result', 'import',
-    'tagged', TAGGED_REL8N_NAME, TAG_REL8N_NAME, ROOT_REL8N_NAME, // hack for now to get all to show
+    'tagged', TAGGED_REL8N_NAME, TAG_REL8N_NAME,
+    ROOT_REL8N_NAME, // hack for now to get all to show
+    DEFAULT_ROOT_REL8N_NAME,
 ]
 
 export const DEFAULT_META_IB_STARTS: Ib[] = [
@@ -276,22 +296,6 @@ export const DEFAULT_ROOT_ICON = 'analytics-outline';
  * Default description specifically for roots.
  */
 export const DEFAULT_ROOT_DESCRIPTION = 'This is a root ibgib, which is basically like a root folder that is primarily responsible for "containing" other ibgibs.';
-/**
- * rel8n name used inside the root to those ibgib it contains.
- *
- * @example
- * ```json
- *  {
- *      ib: root,
- *      gib: ABC123,
- *      data: {...},
- *      rel8ns: {
- *          [rel8nName]: ["a^1", "b^2"]
- *      }
- *  }
- * ```
- */
-export const DEFAULT_ROOT_REL8N_NAME = 'x';
 
 export const CURRENT_VERSION = '1';
 export const WITNESS_ARG_METADATA_STRING = 'witness_arg';

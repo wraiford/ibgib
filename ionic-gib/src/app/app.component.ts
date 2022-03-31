@@ -29,7 +29,7 @@ import { IbGibSpaceAny } from './common/witnesses/spaces/space-base-v1';
 
 // #endregion imports & some init
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 /**
  * Hamburger menu in top left.
@@ -81,6 +81,7 @@ export class AppComponent extends IbgibComponentBase
     const lc = `${this.lc}[set currentRoot]`;
     if (logalot) { console.log(`${lc} value: ${h.pretty(value)}`); }
     this._currentRoot = value;
+    setTimeout(() => this.ref.detectChanges());
   }
 
   @Input()
@@ -755,6 +756,7 @@ export class AppComponent extends IbgibComponentBase
   async handleRootsClick(): Promise<void> {
     const lc = `${this.lc}[${this.handleRootsClick.name}]`;
     try {
+      debugger;
       if (logalot) { console.log(`${lc} starting...`); }
       // getFnAlert()({title: 'testing', msg: 'handleTagsClick triggered'});
       await this.go({
@@ -849,14 +851,9 @@ export class AppComponent extends IbgibComponentBase
     }
   }
 
-  compareRoots(a: MenuItem, b: MenuItem): boolean {
-    const lc = `${this.lc}[compareRoots]`;
-    if (logalot) { console.log(`${lc}`); }
-    return a && b ? a.title === b.title : a === b;
-  }
-
-  compareSpaces(a: MenuItem, b: MenuItem): boolean {
-    const lc = `${this.lc}[compareSpaces]`;
+  compareMenuItems(a: MenuItem, b: MenuItem): boolean {
+    // const lc = `${this.lc}[compareMenuItems]`; // this is not defined when compareRoots is used
+    const lc = `[AppComponent][compareMenuItems]`;
     if (logalot) { console.log(`${lc}`); }
     return a && b ? a.title === b.title : a === b;
   }

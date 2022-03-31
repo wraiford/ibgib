@@ -51,7 +51,7 @@ export class RootListViewComponent
 
 
   async updateItems(): Promise<void> {
-    this.rel8nNames = [c.ROOT_REL8N_NAME, ...c.DEFAULT_LIST_REL8N_NAMES];
+    this.rel8nNames = [c.ROOT_REL8N_NAME, c.DEFAULT_ROOT_REL8N_NAME, ...c.DEFAULT_LIST_REL8N_NAMES];
     // await super.updateItems();
     // setTimeout(() => {
     //   this.ref.detectChanges();
