@@ -740,14 +740,16 @@ export class IbgibsService {
     type,
     initialize,
     space,
+    lock,
   }: {
     type: SpecialIbGibType,
     initialize?: boolean,
     space?: IbGibSpaceAny,
+    lock?: boolean,
   }): Promise<IbGib_V1 | null> {
     const lc = `${this.lc}[${this.getSpecialIbGib.name}]`;
     try {
-      space = space ?? await this.getLocalUserSpace({});
+      space = space ?? await this.getLocalUserSpace({lock});
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: e08e85d8422e479f9d101194fd26cbda)`); }
 
       while (this.initializing) {

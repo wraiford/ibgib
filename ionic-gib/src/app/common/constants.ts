@@ -224,6 +224,11 @@ export const DEFAULT_TAG_ICON = 'pricetag-outline';
 export const DEFAULT_TAG_DESCRIPTION = 'This is a tag used for organizing data.';
 
 /**
+ * Icon for a single robbot
+ */
+export const DEFAULT_ROBBOT_ICON = 'body-outline';
+
+/**
  *
  */
 export const DEFAULT_SPACE_TEXT = 'space';

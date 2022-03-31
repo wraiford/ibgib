@@ -1,3 +1,5 @@
+// #region imports & some init
+
 import { Component, OnInit, ChangeDetectorRef, Input, OnDestroy } from '@angular/core';
 import { NavigationEnd, Router, } from '@angular/router';
 import { MenuController, Platform } from '@ionic/angular';
@@ -13,7 +15,7 @@ import { IbGib_V1 } from 'ts-gib/dist/V1';
 import * as c from './common/constants';
 import { IbgibComponentBase } from './common/bases/ibgib-component-base';
 import { CommonService } from './services/common.service';
-import { RootData, SpaceId, TagData, } from './common/types';
+import { RobbotsIbGib_V1, RootData, SpaceId, TagData, } from './common/types';
 import {
   getFn_promptCreateEncryptionIbGib,
   getFn_promptCreateOuterSpaceIbGib,
@@ -24,6 +26,8 @@ import {
   getSpaceIb
 } from './common/helper';
 import { IbGibSpaceAny } from './common/witnesses/spaces/space-base-v1';
+
+// #endregion imports & some init
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -63,6 +67,9 @@ export class AppComponent extends IbgibComponentBase
   @Input()
   spaceItems: MenuItem[] = [];
 
+  @Input()
+  robbotItems: MenuItem[] = [];
+
   _currentRoot: MenuItem;
   @Input()
   get currentRoot(): MenuItem {
@@ -96,6 +103,19 @@ export class AppComponent extends IbgibComponentBase
     }
   }
   private _subTagsUpdate: Subscription;
+
+  private _robbotsAddr: IbGibAddr;
+  @Input()
+  get robbotsAddr(): IbGibAddr { return this._robbotsAddr; }
+  set robbotsAddr(value: IbGibAddr) {
+    const lc = `${this.lc}[set robbotsAddr]`;
+    if (value !== this._robbotsAddr) {
+      if (logalot) { console.log(`${lc} updating robbotsAddr: ${value}`); }
+      this._robbotsAddr = value;
+      setTimeout(() => { this.ref.detectChanges(); });
+    }
+  }
+  private _subRobbotsUpdate: Subscription;
   // private _subTagsUpdateTEST: Subscription;
 
   private _rootsAddr: IbGibAddr;
@@ -212,6 +232,7 @@ export class AppComponent extends IbgibComponentBase
         await this.initializeMyRoots();
         await this.initializeMyTags();
         await this.initializeMySpaces();
+        await this.initializeMyRobbots();
 
         let addr = await this.getCurrentIbgibAddrInURL();
         if (!addr || addr === 'ib^gib') {
@@ -400,9 +421,6 @@ export class AppComponent extends IbgibComponentBase
         this._subTagsUpdate.unsubscribe();
       }
 
-      // this._subTagsUpdateTEST = this.common.ibgibs.latestObs.subscribe(x => {
-      //     if (logalot) { console.log(`${lc} TEST ibGib update heard. latestAddr: ${x.latestAddr}.`); }
-      // });
       this._subTagsUpdate = this.common.ibgibs.latestObs.pipe(
         concatMap(async (latestEvent) => {
           if (logalot) { console.log(`${lc} ibGib update heard. latestAddr: ${latestEvent.latestAddr}.`); }
@@ -460,6 +478,57 @@ export class AppComponent extends IbgibComponentBase
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
+
+  /**
+   * Initializes app components properties, NOT the actual special ibgib
+   * on the ibgibs service. That should already be done.
+   */
+  async initializeMyRobbots(): Promise<void> {
+    const lc = `${this.lc}[${this.initializeMyRobbots.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      let robbotsIbGib = <RobbotsIbGib_V1>(await this.common.ibgibs.getSpecialIbGib({type: 'robbots'}));
+      const robbotsTjpIbGib =
+        await this.common.ibgibs.getTjpIbGib({ibGib: robbotsIbGib, naive: true});
+      const robbotsTjpAddr = h.getIbGibAddr({ibGib: robbotsTjpIbGib});
+      if (!robbotsIbGib) { throw new Error(`(UNEXPECTED) robbotsIbGib falsy (E: 098f213f34cf44629e2d0cca8345d4f7)`); }
+      if (!robbotsIbGib.data) { throw new Error(`(UNEXPECTED) localUserSpace.data falsy (E: e24f2a249ad445da97109f8ecc581f77)`); }
+
+      if (this._subRobbotsUpdate) {
+        this._subRobbotsUpdate.unsubscribe();
+      }
+
+      this._subRobbotsUpdate = this.common.ibgibs.latestObs.pipe(
+        concatMap(async (latestEvent) => {
+          if (logalot) { console.log(`${lc} ibGib update heard. latestAddr: ${latestEvent.latestAddr}.`); }
+          if (
+            latestEvent?.tjpAddr === robbotsTjpAddr &&
+            latestEvent.latestAddr !== this.robbotsAddr
+          ) {
+            // we have a new robbots ibgib. easiest way to handle with
+            // existing code is just to clear out the exising robbotsAddr
+            // and run updateMenu_Robbots
+            if (logalot) { console.log(`${lc} triggering robbots menu update... (I: 4ba9f51fddae41408d7c03ad6eab81b2)`); }
+            this._robbotsAddr = null;
+            await this.updateMenu_Robbots();
+            setTimeout(() => { this.ref.detectChanges(); })
+          } else {
+            if (logalot) { console.log(`${lc} nope. latestEvent?.tjpAddr: ${latestEvent?.tjpAddr}`); }
+            if (logalot) { console.log(`${lc} nope. robbotsTjpAddr: ${robbotsTjpAddr}`); }
+            if (logalot) { console.log(`${lc} nope. latestEvent.latestAddr: ${latestEvent.latestAddr}`); }
+            if (logalot) { console.log(`${lc} nope. this.robbotsAddr: ${this.robbotsAddr}`); }
+          }
+        })
+      ).subscribe();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
   /**
    * Primary update function for the current ibGib associated with
    * this component.
@@ -511,6 +580,7 @@ export class AppComponent extends IbgibComponentBase
       await this.updateMenu_Tags();
       await this.updateMenu_Roots();
       await this.updateMenu_Spaces();
+      await this.updateMenu_Robbots();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     }
@@ -574,23 +644,10 @@ export class AppComponent extends IbgibComponentBase
       const resGet = await this.common.ibgibs.get({addr});
       if (resGet.success && resGet.ibGibs?.length === 1) {
         const ibGib = resGet.ibGibs![0];
-        if (ibGib?.ib && ibGib?.gib) {
-          if (ibGib?.data?.icon && (ibGib?.data?.text || ibGib?.data?.tagText)) {
-            const text = ibGib.data!.text || ibGib.data!.tagText;
-            item = {
-              title: text.substring(0, c.MENU_ITEM_IB_SUBSTRING_LENGTH),
-              icon: ibGib.data!.icon || c.DEFAULT_TAG_ICON,
-              url: `/ibgib/${addr}`,
-            }
-            if (logalot) { console.log(`${lc} ${h.pretty(item)}`); }
-          } else {
-            console.warn(`${lc} loading non-standard tag`);
-            item = {
-              title: ibGib.ib.substring(0, c.MENU_ITEM_IB_SUBSTRING_LENGTH),
-              icon: ibGib.data!.icon || c.DEFAULT_TAG_ICON,
-              url: `/ibgib/${addr}`,
-            }
-          }
+        if (ibGib?.ib && ibGib.gib && ibGib.data) {
+          const text = ibGib.data!.text || ibGib.data!.tagText || ibGib.ib;
+          const icon = ibGib.data!.icon || c.DEFAULT_TAG_ICON;
+          item = this.getMenuItem({text, icon, addr});
         } else {
           throw new Error(`Invalid ibgib gotten`);
         }
@@ -599,8 +656,8 @@ export class AppComponent extends IbgibComponentBase
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
+      item = this.getErroredMenuItem();
     }
-
     return item;
   }
 
@@ -644,30 +701,15 @@ export class AppComponent extends IbgibComponentBase
       const resGet = await this.common.ibgibs.get({addr});
       if (resGet.success && resGet.ibGibs?.length === 1) {
         const ibGib = resGet.ibGibs![0];
-        if (ibGib?.ib && ibGib?.gib) {
-          if (ibGib?.data?.icon && ibGib?.data?.text) {
-            const text = ibGib.data!.text;
-            item = {
-              title: text.substring(0, c.MENU_ITEM_IB_SUBSTRING_LENGTH),
-              icon: ibGib.data!.icon || c.DEFAULT_ROOT_ICON,
-              url: `/ibgib/${addr}`,
-              addr,
-            }
-            if (logalot) { console.log(`${lc} ${h.pretty(item)}`); }
-          } else {
-            console.warn(`${lc} loading non-standard tag`);
-            item = {
-              title: ibGib.ib.substring(0, c.MENU_ITEM_IB_SUBSTRING_LENGTH),
-              icon: ibGib.data!.icon || c.DEFAULT_ROOT_ICON,
-              url: `/ibgib/${addr}`,
-              addr,
-            }
-          }
+        if (ibGib?.ib && ibGib.gib && ibGib.data) {
+          const text = ibGib.data.text || ibGib.ib;
+          const icon = ibGib.data.icon || c.DEFAULT_ROOT_ICON;
+          item = this.getMenuItem({text, icon, addr});
         } else {
-          throw new Error(`Invalid ibgib gotten`);
+          throw new Error(`Invalid ibgib gotten (E: 7e3f5b84014d4a4d98b732f2c53fc331)`);
         }
       } else {
-        throw new Error(resGet.errorMsg || `error getting ${addr}`);
+        throw new Error(resGet.errorMsg || `error getting ${addr} (E: 5e0a0407d13b4f428d7a8b0a68be3ad3)`);
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -776,23 +818,13 @@ export class AppComponent extends IbgibComponentBase
       if (validateIbGibErrors?.length > 0) { throw new Error(`invalid ibGib intrinsically. errors: ${validateIbGibErrors} (E: d482f5e1ff2db1bb91312128797be922)`); }
       const addr = h.getIbGibAddr({ibGib});
       if (!spaceNameIsValid(ibGib.data.name)) { throw new Error(`invalid spacename: ${space.data.name} (E: ee437d70aa5e8bdf44e692bfa4832f22)`); }
-      item = {
-        title: space.data.name.substring(0, c.MENU_ITEM_IB_SUBSTRING_LENGTH),
-        icon: c.DEFAULT_SPACE_ICON ,
-        clickHandler: async (item: MenuItem) => {
-          getSpaceIb
-          await this.go({
-            toAddr: item.addr,
-            fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
-          });
-        },
-        addr,
-      }
-      if (logalot) { console.log(`${lc} ${h.pretty(item)}`); }
+      const text = ibGib.data.name;
+      const icon = (<any>space.data).icon || c.DEFAULT_SPACE_ICON;
+      item = this.getMenuItem({text, icon, addr});
     } catch (error) {
       console.error(`${lc} ${error.message}`);
+      item = this.getErroredMenuItem();
     }
-
     return item;
   }
 
@@ -873,4 +905,149 @@ export class AppComponent extends IbgibComponentBase
     }
   }
 
+  /**
+   * Bring this ibgib to the attention of an Abot.
+   */
+  async handleRobbotsClick(): Promise<void> {
+    const lc = `${this.lc}[${this.handleRobbotsClick.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      const ibGib =
+        await this.common.ibgibs.getSpecialIbGib({type: 'robbots'});
+      await this.go({
+        toAddr: h.getIbGibAddr({ibGib}),
+        fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
+      });
+      //
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async updateMenu_Robbots(): Promise<void> {
+    const lc = `${this.lc}[${this.updateMenu_Robbots.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      const robbotMenuItems: MenuItem[] = [];
+
+      while (this.common.ibgibs.initializing) {
+        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 5fd759510e584cb69b232259b891cca1)`); }
+        await h.delay(100);
+      }
+
+      // load robbots if needed
+      // if (!this.robbotsAddr) {
+        // if (logalot) { console.log(`${lc} this.robbotsAddr falsy`); }
+        // await this.loadRobbotsAddrAndGetRobbotsIbGib();
+      // }
+
+      // get robbots, but don't initialize
+      let robbotsIbGib = await this.common.ibgibs.getSpecialIbGib({type: "robbots"});
+      let robbotAddrs = robbotsIbGib?.rel8ns?.robbot || [];
+
+      // return if we don't have any robbots.
+      if (!robbotAddrs || robbotAddrs.length === 0) {
+        if (logalot) { console.log(`${lc} no robbots found. (I: e0dc2d290a9a9a5b812c1a88b01d2e22)`); }
+        return; // <<<< returns
+      }
+
+      // load individual robbot items
+      for (let robbotAddr of robbotAddrs) {
+        const robbotItem = await this.getRobbotItem(robbotAddr);
+        if (robbotItem) { robbotMenuItems.push(robbotItem); }
+      }
+
+      // "load" them into the bound property and detect the changes
+      this.robbotItems = robbotMenuItems;
+      this.ref.detectChanges();
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      this.robbotItems = [];
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+
+  }
+
+  getErroredMenuItem(): MenuItem {
+    return <MenuItem>{
+      icon: 'alert-outline',
+      title: '[errored...]',
+      clickHandler: async (_) => {
+        await getFnAlert()({title: 'whoops', msg: 'there was a problem getting this menu item...'});
+      },
+    };
+  }
+
+  getMenuItem({
+    text,
+    icon,
+    ibGib,
+    addr,
+  }: {
+    text: string,
+    icon: string,
+    ibGib?: IbGib_V1,
+    addr?: IbGibAddr,
+  }): MenuItem {
+    const lc = `${this.lc}[${this.getMenuItem.name}]`;
+    let item = this.getErroredMenuItem();
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (!text) { throw new Error(`text required (E: 099fdb238e11e3191d9e9b72d981fe22)`); }
+      if (!icon) { throw new Error(`icon required (E: d34a25bab2adf837eed2c274e7fc2322)`); }
+      if (!ibGib && !addr) { throw new Error(`either ibGib or addr required (E: 522c94e9a3bf2c847aa0851e9cdd9122)`); }
+      addr = addr || h.getIbGibAddr({ibGib});
+      item = {
+        title: text.substring(0, c.MENU_ITEM_IB_SUBSTRING_LENGTH),
+        icon,
+        clickHandler: async (item: MenuItem) => {
+          await this.go({
+            toAddr: item.addr,
+            fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
+          });
+        },
+        addr,
+      }
+      if (logalot) { console.log(`${lc} ${h.pretty(item)}`); }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+    return item;
+  }
+
+  async getRobbotItem(addr: IbGibAddr): Promise<MenuItem> {
+    const lc = `${this.lc}[${this.getRobbotItem.name}]`;
+    let item: MenuItem;
+    try {
+      const resGet = await this.common.ibgibs.get({addr});
+      if (resGet.success && resGet.ibGibs?.length === 1) {
+        const ibGib = resGet.ibGibs![0];
+        if (ibGib?.ib && ibGib.gib && ibGib.data) {
+          const icon = ibGib.data.icon || c.DEFAULT_ROBBOT_ICON;
+          const text = ibGib.data.name || ibGib.data.text || ibGib.ib;
+          item = this.getMenuItem({text, icon, addr});
+        } else {
+          throw new Error(`Invalid ibgib gotten (E: 91c4521f1f734a00a5c94bb26ec8c56f)`);
+        }
+      } else {
+        throw new Error(resGet.errorMsg || `error getting ${addr} (E: 81eea23337e045f0a4887b7e049f36d9)`);
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      item = this.getErroredMenuItem();
+    }
+
+    return item;
+  }
+
+  getSpaceTooltip(spaceType: string, spaceItem: MenuItem): string {
+    return `${spaceType} ${spaceItem.title}`;
+  }
 }

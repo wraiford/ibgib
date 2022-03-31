@@ -25,7 +25,12 @@ export interface Witness<
     witness(arg: TIbGibIn): Promise<TIbGibOut | undefined>;
 }
 
-export abstract class WitnessData_V1 {
+/**
+ * Data that corresponds to all witnesses being implemented in V1.
+ *
+ * This should be expanded only sparingly.
+ */
+export interface WitnessData_V1 {
     /**
      * If true, then this will allow primitive args when validating incoming
      * args.
@@ -34,6 +39,13 @@ export abstract class WitnessData_V1 {
      * set this to truthy. Otherwise, this will flag this as a validation error.
      */
     allowPrimitiveArgs?: boolean;
+}
+
+/**
+ * marker interface atm
+ */
+export interface WitnessRel8ns_V1 extends IbGibRel8ns_V1 {
+
 }
 
 /**
@@ -47,7 +59,7 @@ export interface Witness_V1<
     TRel8nsOut extends IbGibRel8ns_V1,
     TIbGibOut extends IbGib_V1<TDataOut, TRel8nsOut>,
     TData extends WitnessData_V1 = any,
-    TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1,
+    TRel8ns extends WitnessRel8ns_V1 = WitnessRel8ns_V1,
     >
     extends Witness<TIbGibIn, TIbGibOut, TData, TRel8ns> {
 }

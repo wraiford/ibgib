@@ -10,9 +10,9 @@
           <ion-item class="accordion-item" *ngIf="localSpaceName">
             <ion-list class="accordion-item-list">
               <ion-list-header>
-                <ion-label>
+                <ion-label [title]="'local space ' + localSpaceName">
                   <ion-button (click)="handleSpaceClick()">
-                    <ion-icon slot="start" name="earth-outline"></ion-icon>
+                    <ion-icon  title="local space" slot="start" name="earth-outline"></ion-icon>
                     <ion-label>{{ localSpaceName }}</ion-label>
                   </ion-button>
                 </ion-label>
@@ -20,27 +20,14 @@
                 <ion-icon class="accordion-expand-btn" *ngIf="menuOpen === 'spaces'" name="chevron-back-circle-outline" (click)="menuOpen = ''"></ion-icon>
               </ion-list-header>
               <ion-list *ngIf="menuOpen === 'spaces'" slot="content">
-                <!-- <ion-item>
-                  <ion-label>current: </ion-label>
-                  <ion-select
-                    [compareWith]="compareSpaces"
-                    [value]="currentSpace"
-                    okText="Set Space"
-                    (ionChange)="handleSpaceChange($event)"
-                    >
-                    <ion-select-option *ngFor="let item of rootItems" [value]="item">
-                      <ion-icon slot="start" [ios]="item.icon" [md]="item.icon.replace('outline', 'sharp')"></ion-icon>
-                      <ion-label>{{ item.title }}</ion-label>
-                    </ion-select-option>
-                  </ion-select>
-                </ion-item> -->
-                <ion-item
+                <ion-item *ngFor="let spaceItem of spaceItems"
                   lines="none"
-                  *ngFor="let spaceItem of spaceItems"
-                  (click)="spaceItem.clickHandler(spaceItem)"
+                  [title]="getSpaceTooltip('outerspace', spaceItem)"
                   >
-                  <ion-icon slot="start" [name]="spaceItem.icon"></ion-icon>
-                  <ion-label>{{ spaceItem.title }}</ion-label>
+                  <ion-button (click)="spaceItem.clickHandler(spaceItem)">
+                    <ion-icon slot="start" [name]="spaceItem.icon"></ion-icon>
+                    <ion-label>{{ spaceItem.title }}</ion-label>
+                  </ion-button>
                 </ion-item>
               </ion-list>
             </ion-list>
@@ -56,24 +43,45 @@
                     <ion-label>tags</ion-label>
                   </ion-button>
                 </ion-label>
-                <!-- <ion-label (click)="this.menu.toggle('main')"
-                  routerDirection="root" [routerLink]="[tagsUrl]">
-                  tags
-                </ion-label> -->
                 <ion-icon class="accordion-expand-btn" *ngIf="menuOpen !== 'tags'" name="chevron-down-circle-outline" (click)="menuOpen = 'tags'"></ion-icon>
                 <ion-icon class="accordion-expand-btn" *ngIf="menuOpen === 'tags'" name="chevron-back-circle-outline" (click)="menuOpen = ''"></ion-icon>
               </ion-list-header>
               <ion-list *ngIf="menuOpen === 'tags'" slot="content">
-                <ion-item
-                  routerDirection="root"
-                  [routerLink]="[p.url]"
+                <ion-item *ngFor="let tagItem of tagItems"
                   lines="none"
-                  [class.selected]="p.url.includes(addr)"
-                  *ngFor="let p of tagItems; let i = index"
-                  (click)="this.menu.toggle('main')"
+                  [title]="tagItem.title"
                   >
-                  <ion-icon slot="start" [ios]="p.icon" [md]="p.icon.replace('outline', 'sharp')"></ion-icon>
-                  <ion-label>{{ p.title }}</ion-label>
+                  <ion-button (click)="tagItem.clickHandler(tagItem)">
+                    <ion-icon slot="start" [name]="tagItem.icon"></ion-icon>
+                    <ion-label>{{ tagItem.title }}</ion-label>
+                  </ion-button>
+                </ion-item>
+              </ion-list>
+            </ion-list>
+          </ion-item>
+
+          <!-- robbots -->
+          <ion-item class="accordion-item" *ngIf="localSpaceName">
+            <ion-list class="accordion-item-list">
+              <ion-list-header>
+                <ion-label>
+                  <ion-button (click)="handleRobbotsClick()">
+                    <ion-icon  title="robbots" slot="start" name="body-outline"></ion-icon>
+                    <ion-label>Robbots</ion-label>
+                  </ion-button>
+                </ion-label>
+                <ion-icon class="accordion-expand-btn" *ngIf="menuOpen !== 'spaces'" name="chevron-down-circle-outline" (click)="menuOpen = 'spaces'"></ion-icon>
+                <ion-icon class="accordion-expand-btn" *ngIf="menuOpen === 'spaces'" name="chevron-back-circle-outline" (click)="menuOpen = ''"></ion-icon>
+              </ion-list-header>
+              <ion-list *ngIf="menuOpen === 'spaces'" slot="content">
+                <ion-item *ngFor="let spaceItem of spaceItems"
+                  lines="none"
+                  [title]="getSpaceTooltip('outerspace', spaceItem)"
+                  >
+                  <ion-button (click)="spaceItem.clickHandler(spaceItem)">
+                    <ion-icon slot="start" [name]="spaceItem.icon"></ion-icon>
+                    <ion-label>{{ spaceItem.title }}</ion-label>
+                  </ion-button>
                 </ion-item>
               </ion-list>
             </ion-list>
@@ -89,17 +97,12 @@
                     <ion-label>roots</ion-label>
                   </ion-button>
                 </ion-label>
-                <!-- <ion-label (click)="this.menu.toggle('main')"
-                  routerDirection="root" [routerLink]="[rootsUrl]">
-                  roots
-                </ion-label> -->
                 <ion-icon class="accordion-expand-btn" *ngIf="menuOpen !== 'roots'" name="chevron-down-circle-outline" (click)="menuOpen = 'roots'"></ion-icon>
                 <ion-icon class="accordion-expand-btn" *ngIf="menuOpen === 'roots'" name="chevron-back-circle-outline" (click)="menuOpen = ''"></ion-icon>
               </ion-list-header>
               <ion-list *ngIf="menuOpen === 'roots'" slot="content">
                 <ion-item>
                   <ion-label>current: </ion-label>
-                    <!-- [compareWith]="compareRoots" -->
                   <ion-select
                     [compareWith]="compareRoots"
                     [value]="currentRoot"
@@ -112,16 +115,14 @@
                     </ion-select-option>
                   </ion-select>
                 </ion-item>
-                <ion-item
-                  routerDirection="root"
-                  [routerLink]="[p.url]"
+                <ion-item *ngFor="let rootItem of rootItems"
                   lines="none"
-                  [class.selected]="p.url.includes(addr)"
-                  *ngFor="let p of rootItems; let i = index"
-                  (click)="this.menu.toggle('main')"
+                  [title]="rootItem.title"
                   >
-                  <ion-icon slot="start" [name]="p.icon"></ion-icon>
-                  <ion-label>{{ p.title }}</ion-label>
+                  <ion-button (click)="rootItem.clickHandler(rootItem)">
+                    <ion-icon slot="start" [name]="rootItem.icon"></ion-icon>
+                    <ion-label>{{ rootItem.title }}</ion-label>
+                  </ion-button>
                 </ion-item>
               </ion-list>
             </ion-list>
