@@ -9,10 +9,10 @@ import { TransformResult, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 
 import { EncryptionData_V1, OuterSpaceIbGib, SecretIbGib_V1 } from '../types';
-import { CreateSecretModalComponent } from '../create-secret-modal/create-secret-modal.component';
+import { SecretModalFormComponent } from '../modals/secret-modal-form/secret-modal-form.component';
 import * as c from '../constants';
-import { CreateEncryptionModalComponent } from '../create-encryption-modal/create-encryption-modal.component';
-import { CreateOuterspaceModalComponent } from '../create-outerspace-modal/create-outerspace-modal.component';
+import { EncryptionModalFormComponent } from '../modals/encryption-modal-form/encryption-modal-form.component';
+import { OuterspaceModalFormComponent } from '../modals/outerspace-modal-form/outerspace-modal-form.component';
 import { CommonService } from '../../services/common.service';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -113,7 +113,7 @@ export function getFn_promptCreateSecretIbGib(
     return async () => {
         try {
             const modal = await common.modalController.create({
-                component: CreateSecretModalComponent,
+                component: SecretModalFormComponent,
             });
             await modal.present();
             let resModal = await modal.onWillDismiss();
@@ -150,7 +150,7 @@ export function getFn_promptCreateEncryptionIbGib(
     return async () => {
         try {
             const modal = await common.modalController.create({
-                component: CreateEncryptionModalComponent,
+                component: EncryptionModalFormComponent,
             });
             await modal.present();
             let resModal = await modal.onWillDismiss();
@@ -182,7 +182,7 @@ export function getFn_promptCreateOuterSpaceIbGib(
     return async () => {
         try {
             const modal = await common.modalController.create({
-                component: CreateOuterspaceModalComponent,
+                component: OuterspaceModalFormComponent,
             });
             await modal.present();
             let resModal = await modal.onWillDismiss();

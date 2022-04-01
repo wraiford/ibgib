@@ -1,19 +1,19 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
 
-import { CreateEncryptionModalComponent } from './create-encryption-modal.component';
+import { SecretModalFormComponent } from './secret-modal-form.component';
 
-describe('CreateEncryptionModalComponent', () => {
-  let component: CreateEncryptionModalComponent;
-  let fixture: ComponentFixture<CreateEncryptionModalComponent>;
+describe(SecretModalFormComponent.name, () => {
+  let component: SecretModalFormComponent;
+  let fixture: ComponentFixture<SecretModalFormComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ CreateEncryptionModalComponent ],
+      declarations: [ SecretModalFormComponent ],
       imports: [IonicModule.forRoot()]
     }).compileComponents();
 
-    fixture = TestBed.createComponent(CreateEncryptionModalComponent);
+    fixture = TestBed.createComponent(SecretModalFormComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   }));

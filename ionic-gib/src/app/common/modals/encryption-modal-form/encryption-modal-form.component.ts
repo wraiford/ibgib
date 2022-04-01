@@ -3,18 +3,18 @@ import { IonContent, ModalController } from '@ionic/angular';
 
 import { IbGib_V1, Factory_V1 as factory } from 'ts-gib/dist/V1';
 
-import * as c from '../constants';
+import * as c from '../../constants';
 import {
   EncryptionData_V1,
   EncryptionIbGib,
   EncryptionInfo_EncryptGib,
   EncryptionMethod,
   FieldInfo,
-} from '../types';
+} from '../../types';
 import { HashAlgorithm } from 'encrypt-gib';
 import { TransformResult } from 'ts-gib';
-import { getExpirationUTCString, getRegExp } from '../helper';
-import { CreateModalComponentBase } from '../bases/create-modal-component-base';
+import { getExpirationUTCString, getRegExp } from '../../helper';
+import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -24,14 +24,14 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
  * Does NOT save this ibGib in any space(s) at present.
  */
 @Component({
-  selector: 'create-encryption-modal',
-  templateUrl: './create-encryption-modal.component.html',
-  styleUrls: ['./create-encryption-modal.component.scss'],
+  selector: 'encryption-modal-form',
+  templateUrl: './encryption-modal-form.component.html',
+  styleUrls: ['./encryption-modal-form.component.scss'],
 })
-export class CreateEncryptionModalComponent
-  extends CreateModalComponentBase<TransformResult<EncryptionIbGib>> {
+export class EncryptionModalFormComponent
+  extends ModalFormComponentBase<TransformResult<EncryptionIbGib>> {
 
-  protected lc: string = `[${CreateEncryptionModalComponent.name}]`;
+  protected lc: string = `[${EncryptionModalFormComponent.name}]`;
 
   public fields: { [name: string]: FieldInfo } = {
     name: {
@@ -143,7 +143,7 @@ export class CreateEncryptionModalComponent
   }
 
   protected async createImpl(): Promise<TransformResult<EncryptionIbGib>> {
-    const lc = `${this.lc}[${this.handleCreateClick.name}]`;
+    const lc = `${this.lc}[${this.handleSaveClick.name}]`;
     try {
       if (logalot) { console.log(`${lc}`); }
       // this.showHelp = false;
@@ -214,86 +214,5 @@ export class CreateEncryptionModalComponent
       this.hashAlgorithm = item!.detail!.value!;
     }
   }
-
-  // async validateForm(): Promise<string[]> {
-  //   const lc = `${this.lc}[${this.validateForm.name}]`;
-  //   this.validationErrors.splice(0, this.validationErrors.length);
-  //   this.erroredFields.splice(0, this.erroredFields.length);
-  //   const errors: string[] = [];
-  //   const erroredFields: string[] = [];
-
-  //   let fields: FieldInfo[] = Object.values(this.fields);
-  //   for (let i = 0; i < fields.length; i++) {
-  //     const field = fields[i];
-  //     let value = this[field.name];
-  //     if (logalot) { console.log(`${lc} doing ${field.name}`); }
-  //     if (value) {
-  //       if (logalot) {
-  //         if (field.private) {
-  //           console.log(`${lc} value: [field is private]`);
-  //         } else {
-  //           console.log(`${lc} value: ${value}`);
-  //         }
-  //       }
-
-  //       if (typeof value === 'string') {
-  //         if (field.regexp) {
-  //           if (logalot) { console.log(`${lc} ${field.name} is a string. regexp: ${field.regexp}`); }
-  //           if ((value.match(field.regexp) ?? []).length === 0) {
-  //             erroredFields.push(field.name);
-  //             errors.push(`${field.name} must match regexp: ${field.regexp}`);
-  //           }
-  //         }
-  //         if ((<string>value).includes('\n')) {
-  //           erroredFields.push(field.name);
-  //           errors.push(`${field.name} cannot contain new lines.`);
-  //         }
-  //       }
-  //       if (field.fnValid && !field.fnValid(value)) {
-  //         erroredFields.push(field.name);
-  //         errors.push(`${field.name} error: ${field.fnErrorMsg}`);
-  //       }
-  //     } else {
-  //       if (field.required) {
-  //         erroredFields.push(field.name);
-  //         errors.push(`${field.name} required.`);
-  //       }
-  //     }
-  //   }
-
-  //   errors.forEach(e => this.validationErrors.push(e));
-  //   if (this.validationErrors.length > 0) {
-  //     console.error(`${lc} this.validationErrors:\n${this.validationErrors.join('\n')}`);
-  //     // scroll to top hack
-  //     if (document) {
-  //       const list: IonContent = <any>document.getElementById('create-encryption-content');
-  //       if (list) {
-  //         if (logalot) { console.log(`${lc} scrolling`); }
-  //         if (list.scrollToTop) {
-  //           list.scrollToTop();
-  //         } else {
-  //           if (logalot) { console.log(`${lc} list.scrollToTop falsy (I: e8e0823ba81deb38d9a613aebe2a0422)`); }
-  //         }
-  //       }
-  //     }
-  //   }
-  //   return errors;
-  // }
-
-  // scrollToTopToShowValidationErrors(): void {
-  //   const lc = `${this.lc}[${this.scrollToTopToShowValidationErrors.name}]`;
-  //   // scroll to top hack
-  //   if (document) {
-  //     const list: IonContent = <any>document.getElementById('create-encryption-content');
-  //     if (list) {
-  //       if (logalot) { console.log(`${lc} scrolling`); }
-  //       if (list.scrollToTop) {
-  //         list.scrollToTop();
-  //       } else {
-  //         if (logalot) { console.log(`${lc} list.scrollToTop falsy (I: e8e0823ba81deb38d9a613aebe2a0422)`); }
-  //       }
-  //     }
-  //   }
-  // }
 
 }

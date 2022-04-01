@@ -7,18 +7,18 @@ const { Modals } = Plugins;
 import { IbGib_V1, Factory_V1 as factory } from 'ts-gib/dist/V1';
 import * as h from 'ts-gib/dist/helper';
 
-import * as c from '../constants';
+import * as c from '../../constants';
 import {
   OuterSpaceType, SyncSpaceSubtype,
   VALID_OUTER_SPACE_TYPES, VALID_OUTER_SPACE_SUBTYPES, AWSRegion,
   OuterSpaceData, OuterSpaceRel8ns,
-  SecretData_V1, FieldInfo, EncryptionData_V1, OuterSpaceIbGib, SecretIbGib_V1,
-} from '../types';
-import { getFnPromptPassword_AlertController, getRegExp } from '../helper';
-import { CreateModalComponentBase } from '../bases/create-modal-component-base';
+  FieldInfo, EncryptionData_V1, OuterSpaceIbGib, SecretIbGib_V1,
+} from '../../types';
+import { getFnPromptPassword_AlertController, getRegExp } from '../../helper';
+import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 import { IbGibAddr, TransformResult } from 'ts-gib';
 import { CommonService } from 'src/app/services/common.service';
-import { SyncSpaceData_AWSDynamoDB } from '../witnesses/spaces/aws-dynamo-space-v1';
+import { SyncSpaceData_AWSDynamoDB } from '../../witnesses/spaces/aws-dynamo-space-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -56,15 +56,15 @@ const EXAMPLE_SYNC_SPACE_AWSDYNAMODB: SyncSpaceData_AWSDynamoDB = {
  * Does NOT save this ibGib in any space(s) at present.
  */
 @Component({
-  selector: 'create-outerspace-modal',
-  templateUrl: './create-outerspace-modal.component.html',
-  styleUrls: ['./create-outerspace-modal.component.scss'],
+  selector: 'outerspace-modal-form',
+  templateUrl: './outerspace-modal-form.component.html',
+  styleUrls: ['./outerspace-modal-form.component.scss'],
 })
-export class CreateOuterspaceModalComponent
-  extends CreateModalComponentBase<TransformResult<OuterSpaceIbGib>>
+export class OuterspaceModalFormComponent
+  extends ModalFormComponentBase<TransformResult<OuterSpaceIbGib>>
   implements OnInit, OnDestroy, AfterViewInit {
 
-  protected lc: string = `[${CreateOuterspaceModalComponent.name}]`;
+  protected lc: string = `[${OuterspaceModalFormComponent.name}]`;
 
   @Input()
   uuid: string;

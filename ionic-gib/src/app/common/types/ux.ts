@@ -140,6 +140,9 @@ export interface LatestEventInfo {
     latestIbGib?: IbGib_V1<any>;
 }
 
+/**
+ * Used in modal forms.
+ */
 export interface FieldInfo {
   /**
    * Property name
@@ -167,6 +170,7 @@ export interface FieldInfo {
   fnValid?: (value: string) => boolean;
   /**
    * Error message that shows up **when using `fnValid`**.
+   *
    * Other messages show for regexp/required.
    */
   fnErrorMsg?: string;
@@ -183,6 +187,11 @@ export interface FieldInfo {
    * If true, will reveal a private field.
    */
   unmasked?: boolean;
+  /**
+   * If true, then regardless of modal state (adding/editing/viewing), this
+   * field will always be readonly.
+   */
+  readonly?: boolean;
 }
 
 /**

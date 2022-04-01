@@ -20,9 +20,9 @@ import { ChooseIconModalComponent } from '../common/choose-icon-modal/choose-ico
 import { RootListViewComponent } from '../views/root-list-view/root-list-view.component';
 import { RootViewComponent } from '../views/root-view/root-view.component';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
-import { CreateEncryptionModalComponent } from '../common/create-encryption-modal/create-encryption-modal.component';
-import { CreateSecretModalComponent } from '../common/create-secret-modal/create-secret-modal.component';
-import { CreateOuterspaceModalComponent } from '../common/create-outerspace-modal/create-outerspace-modal.component';
+import { EncryptionModalFormComponent } from '../common/modals/encryption-modal-form/encryption-modal-form.component';
+import { SecretModalFormComponent } from '../common/modals/secret-modal-form/secret-modal-form.component';
+import { OuterspaceModalFormComponent } from '../common/modals/outerspace-modal-form/outerspace-modal-form.component';
 
 @NgModule({
   imports: [
@@ -46,9 +46,9 @@ import { CreateOuterspaceModalComponent } from '../common/create-outerspace-moda
     RootListViewComponent,
     RootViewComponent,
     IbgibFullscreenModalComponent,
-    CreateEncryptionModalComponent,
-    CreateSecretModalComponent,
-    CreateOuterspaceModalComponent,
+    EncryptionModalFormComponent,
+    SecretModalFormComponent,
+    OuterspaceModalFormComponent,
   ],
   schemas: [ CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA ],
 })

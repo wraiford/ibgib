@@ -2,17 +2,16 @@ import { ChangeDetectorRef, Component, Input, OnDestroy, OnInit } from '@angular
 import { ModalController } from '@ionic/angular';
 
 import { IbGib_V1, Factory_V1 as factory, IbGibRel8ns_V1 } from 'ts-gib/dist/V1';
-import * as h from 'ts-gib/dist/helper';
 
-import * as c from '../constants';
+import * as c from '../../constants';
 import {
   VALID_SECRET_TYPES,
   FieldInfo,
   SecretType, SecretData_V1, SecretInfo_Password, SecretInfo,
-} from '../types';
+} from '../../types';
 import { TransformResult } from 'ts-gib';
-import { getExpirationUTCString, getRegExp, hash16816 } from '../helper';
-import { CreateModalComponentBase } from '../bases/create-modal-component-base';
+import { getExpirationUTCString, getRegExp, hash16816 } from '../../helper';
+import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -22,18 +21,15 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
  * Does NOT save this ibGib in any space(s) at present.
  */
 @Component({
-  selector: 'create-secret-modal',
-  templateUrl: './create-secret-modal.component.html',
-  styleUrls: ['./create-secret-modal.component.scss'],
+  selector: 'secret-modal-form',
+  templateUrl: './secret-modal-form.component.html',
+  styleUrls: ['./secret-modal-form.component.scss'],
 })
-export class CreateSecretModalComponent
-  extends CreateModalComponentBase<TransformResult<IbGib_V1<SecretData_V1>>>
+export class SecretModalFormComponent
+  extends ModalFormComponentBase<TransformResult<IbGib_V1<SecretData_V1>>>
   implements OnInit, OnDestroy {
 
-  protected lc: string = `[${CreateSecretModalComponent.name}]`;
-
-  // @Input()
-  // item: SyncSpaceInfo;
+  protected lc: string = `[${SecretModalFormComponent.name}]`;
 
   // #region Secret Details
 

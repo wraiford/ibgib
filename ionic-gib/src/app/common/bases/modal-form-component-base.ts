@@ -19,9 +19,9 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
  * Does NOT save this ibGib in any space(s) at present.
  */
 @Injectable()
-export abstract class CreateModalComponentBase<TDataOut> implements OnInit, OnDestroy {
+export abstract class ModalFormComponentBase<TDataOut> implements OnInit, OnDestroy {
 
-  protected lc: string = `[${CreateModalComponentBase .name}]`;
+  protected lc: string = `[${ModalFormComponentBase .name}]`;
 
   fields: { [name: string]: FieldInfo } = {};
 
@@ -60,8 +60,8 @@ export abstract class CreateModalComponentBase<TDataOut> implements OnInit, OnDe
     if (logalot) { console.log(`${lc}`); }
   }
 
-  async handleCreateClick(): Promise<void> {
-    const lc = `${this.lc}[${this.handleCreateClick.name}]`;
+  async handleSaveClick(): Promise<void> {
+    const lc = `${this.lc}[${this.handleSaveClick.name}]`;
     try {
       if (logalot) { console.log(`${lc}`); }
       this.showHelp = false;

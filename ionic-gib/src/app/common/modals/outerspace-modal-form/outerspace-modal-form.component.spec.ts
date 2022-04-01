@@ -1,19 +1,19 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
 
-import { CreateSecretModalComponent } from './create-secret-modal.component';
+import { OuterspaceModalFormComponent } from './outerspace-modal-form.component';
 
-describe('CreateSecretModalComponent', () => {
-  let component: CreateSecretModalComponent;
-  let fixture: ComponentFixture<CreateSecretModalComponent>;
+describe(OuterspaceModalFormComponent.name, () => {
+  let component: OuterspaceModalFormComponent;
+  let fixture: ComponentFixture<OuterspaceModalFormComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ CreateSecretModalComponent ],
+      declarations: [ OuterspaceModalFormComponent ],
       imports: [IonicModule.forRoot()]
     }).compileComponents();
 
-    fixture = TestBed.createComponent(CreateSecretModalComponent);
+    fixture = TestBed.createComponent(OuterspaceModalFormComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   }));
