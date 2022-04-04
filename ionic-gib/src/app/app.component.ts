@@ -15,7 +15,7 @@ import { IbGib_V1 } from 'ts-gib/dist/V1';
 import * as c from './common/constants';
 import { IbgibComponentBase } from './common/bases/ibgib-component-base';
 import { CommonService } from './services/common.service';
-import { RobbotsIbGib_V1, RootData, SpaceId, TagData, } from './common/types';
+import { RobbotData_V1, RobbotIbGib_V1, RootData, SpaceId, TagData_V1 } from './common/types';
 import {
   getFn_promptCreateEncryptionIbGib,
   getFn_promptCreateOuterSpaceIbGib,
@@ -23,7 +23,8 @@ import {
   validateIbGibIntrinsically,
   spaceNameIsValid,
   getFnAlert,
-  getSpaceIb
+  getSpaceIb,
+  createNewTag
 } from './common/helper';
 import { IbGibSpaceAny } from './common/witnesses/spaces/space-base-v1';
 
@@ -344,18 +345,23 @@ export class AppComponent extends IbgibComponentBase
    * having a local index for the other meta ibGibs, which contain
    * information like settings/config.
    */
-  async loadTagsAddrAndGetTagsIbGib(): Promise<IbGib_V1<TagData>> {
+  async loadTagsAddrAndGetTagsIbGib(): Promise<IbGib_V1> {
     const lc = `${this.lc}[${this.loadTagsAddrAndGetTagsIbGib.name}]`;
-    if (logalot) { console.log(`${lc} getting tags addr`) }
-    while (this.common.ibgibs.initializing) {
-      if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 1a41f1e1a28748bc88f913780bd74b4f)`); }
-      await h.delay(100);
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      while (this.common.ibgibs.initializing) {
+        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 1a41f1e1a28748bc88f913780bd74b4f)`); }
+        await h.delay(100);
+      }
+      const tagsIbGib = await this.common.ibgibs.getSpecialIbGib({type: "tags"});
+      this.tagsAddr = h.getIbGibAddr({ibGib: tagsIbGib});
+      return tagsIbGib;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
     }
-    const tagsIbGib = <IbGib_V1<TagData>>(
-      await this.common.ibgibs.getSpecialIbGib({type: "tags"})
-    );
-    this.tagsAddr = h.getIbGibAddr({ibGib: tagsIbGib});
-    return tagsIbGib;
   }
 
   /**
@@ -410,9 +416,7 @@ export class AppComponent extends IbgibComponentBase
     if (logalot) { console.log(`${lc} starting...`); }
     try {
       const tagsIbGib = await this.loadTagsAddrAndGetTagsIbGib();
-      // const tagsIbGib = await this.common.ibgibs.getSpecialIbGib({type: "tags"});
       if (!tagsIbGib) { throw new Error(`tagsIbGib falsy. (E: 8e624b39bd34481a82be6efc521c24dc)`); }
-      // this.tagsAddr = h.getIbGibAddr({ibGib: tagsIbGib});
 
       // subscribe to tags updates
       const tagsTjpIbGib =
@@ -489,7 +493,7 @@ export class AppComponent extends IbgibComponentBase
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
-      let robbotsIbGib = <RobbotsIbGib_V1>(await this.common.ibgibs.getSpecialIbGib({type: 'robbots'}));
+      let robbotsIbGib = <RobbotIbGib_V1>(await this.common.ibgibs.getSpecialIbGib({type: 'robbots'}));
       const robbotsTjpIbGib =
         await this.common.ibgibs.getTjpIbGib({ibGib: robbotsIbGib, naive: true});
       const robbotsTjpAddr = h.getIbGibAddr({ibGib: robbotsTjpIbGib});
@@ -522,6 +526,28 @@ export class AppComponent extends IbgibComponentBase
           }
         })
       ).subscribe();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  /**
+   * RobbotsIbGib is the special ibgib that tracks robbots in the local space.
+   */
+  async loadRobbotsAddrAndGetRobbotsIbGib(): Promise<IbGib_V1> {
+    const lc = `${this.lc}[${this.loadRobbotsAddrAndGetRobbotsIbGib.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+          while (this.common.ibgibs.initializing) {
+            if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 1a41f1e1a28748bc88f913780bd74b4f)`); }
+            await h.delay(100);
+          }
+          const robbotsIbGib = await this.common.ibgibs.getSpecialIbGib({type: "robbots"});
+          this.robbotsAddr = h.getIbGibAddr({ibGib: robbotsIbGib});
+          return robbotsIbGib;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -937,10 +963,10 @@ export class AppComponent extends IbgibComponentBase
       }
 
       // load robbots if needed
-      // if (!this.robbotsAddr) {
-        // if (logalot) { console.log(`${lc} this.robbotsAddr falsy`); }
-        // await this.loadRobbotsAddrAndGetRobbotsIbGib();
-      // }
+      if (!this.robbotsAddr) {
+        if (logalot) { console.log(`${lc} this.robbotsAddr falsy`); }
+        await this.loadRobbotsAddrAndGetRobbotsIbGib();
+      }
 
       // get robbots, but don't initialize
       let robbotsIbGib = await this.common.ibgibs.getSpecialIbGib({type: "robbots"});
@@ -1047,5 +1073,44 @@ export class AppComponent extends IbgibComponentBase
 
   getSpaceTooltip(spaceType: string, spaceItem: MenuItem): string {
     return `${spaceType} ${spaceItem.title}`;
+  }
+
+  @Input()
+  addingTag: boolean;
+
+  async handleAddTag(): Promise<void> {
+    const lc = `${this.lc}[${this.handleAddTag.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (this.addingTag) { throw new Error(`(UNEXPECTED) already adding tag...shouldn't get here (E: 7e3f197b1e8b67af8304242641585e22)`); }
+      this.addingTag = true;
+      await createNewTag(this.common);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      this.addingTag = false;
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  @Input()
+  addingRobbot: boolean;
+
+  async handleAddRobbot(): Promise<void> {
+    const lc = `${this.lc}[${this.handleAddRobbot.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (this.addingRobbot) { throw new Error(`(UNEXPECTED) already adding tag...shouldn't get here (E: 16304ec9c66947768db2298827240e95)`); }
+      this.addingRobbot = true;
+
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      this.addingRobbot = false;
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 }

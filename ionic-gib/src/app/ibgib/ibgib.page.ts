@@ -17,9 +17,9 @@ import { CommonService } from '../services/common.service';
 import { SPECIAL_URLS } from '../common/constants';
 import { LatestEventInfo, PicData, } from '../common/types';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
-import { ensureDirPath, getBlob, getFnAlert, getFnConfirm, getFnPrompt, pathExists, writeFile, } from '../common/helper';
+import { createNewTag, ensureDirPath, getBlob, getFnAlert, getFnConfirm, getFnPrompt, pathExists, writeFile, } from '../common/helper';
 import { concatMap } from 'rxjs/operators';
-import { ChooseIconModalComponent, IconItem } from '../common/choose-icon-modal/choose-icon-modal.component';
+// import { ChooseIconModalComponent, IconItem } from '../common/choose-icon-modal/choose-icon-modal.component';
 import { IbGibSpaceAny } from '../common/witnesses/spaces/space-base-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -729,7 +729,7 @@ export class IbGibPage extends IbgibComponentBase
       } else if (resPrompt.index === 1) {
 
         if (logalot) { console.log(`${lc} create new tag`); }
-        tagIbGib = await this.createNewTag();
+        tagIbGib = await createNewTag(this.common);
         if (!tagIbGib) {
           if (logalot) { console.log(`${lc} aborting creating new tag.`); }
           this.tagging = false;
@@ -786,132 +786,6 @@ export class IbGibPage extends IbgibComponentBase
       this.ref.detectChanges();
     }
 
-  }
-
-  async createNewTag(): Promise<IbGib_V1 | undefined> {
-    const lc = `${this.lc}[${this.createNewTag.name}]`;
-
-    try {
-      if (logalot) { console.log(`${lc} starting...`); }
-
-      const text = await this.chooseTagText();
-      if (!text) { return; }
-      const icon = await this.chooseTagIcon();
-      if (!icon) { return; }
-      const description = await this.chooseTagDescription(text);
-      if (!description) { return; }
-
-      const resNewTag = await this.common.ibgibs.createTagIbGib({text, icon, description});
-
-      return resNewTag.newTagIbGib;
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      return;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
-
-  /**
-   * Returns the text/title of the tag.
-   * @returns
-   */
-  async chooseTagText(): Promise<string | undefined> {
-    const lc = `${this.lc}[${this.chooseTagText.name}]`;
-    let tagText: string;
-    try {
-      for (let i = 0; i < 10; i++) {
-        let resTagText = await Plugins.Modals.prompt({
-          title: 'Tag Text?',
-          message: `What's the tag called?`,
-          cancelButtonTitle: 'Cancel',
-          okButtonTitle: 'Next...',
-        });
-
-        if (resTagText.cancelled || !resTagText.value) {
-          if (logalot) { console.log(`${lc} cancelled? no value?`) }
-          return;
-        }
-
-        if (c.ILLEGAL_TAG_TEXT_CHARS.some(x => resTagText.value.includes(x))) {
-          await Plugins.Modals.alert({
-            title: 'Nope...',
-            message: `Tag Text can't contain spaces or ${c.ILLEGAL_TAG_TEXT_CHARS}`,
-          });
-        } else {
-          tagText = resTagText.value;
-          if (logalot) { console.log(`${lc} tagText: ${tagText}`); }
-          break;
-        }
-      }
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      tagText = undefined;
-    }
-
-    return tagText;
-  }
-
-  async chooseTagIcon(): Promise<string | undefined> {
-    const lc = `${this.lc}[${this.chooseTagIcon.name}]`;
-    try {
-      const modal = await this.common.modalController.create({
-        component: ChooseIconModalComponent,
-      });
-      await modal.present();
-      let resModal = await modal.onWillDismiss();
-      const iconItem: IconItem = resModal.data;
-      if (!iconItem) {
-        if (logalot) { console.log(`${lc} cancelled.`) }
-        return;
-      }
-      if (logalot) { console.log(`${lc} icon: ${iconItem.icon}`); }
-      return iconItem!.icon;
-    } catch (error) {
-      console.error(`${lc} error: ${error.message}`);
-      return undefined;
-    }
-  }
-
-  /**
-   * Returns the description of the tag.
-   * @returns
-   */
-  async chooseTagDescription(tagText: string): Promise<string | undefined> {
-    const lc = `${this.lc}[${this.chooseTagDescription.name}]`;
-    let tagDesc: string;
-    try {
-      for (let i = 0; i < 10; i++) {
-        let resTagDesc = await Plugins.Modals.prompt({
-          title: 'Tag Description?',
-          message: `What's the tag description?`,
-          inputPlaceholder: tagText,
-          cancelButtonTitle: 'Cancel',
-          okButtonTitle: 'Create Tag',
-        });
-
-        if (resTagDesc.cancelled) {
-          if (logalot) { console.log(`${lc} cancelled? no value?`) }
-          return;
-        }
-
-        if (c.ILLEGAL_TAG_DESC_CHARS.some(x => resTagDesc.value.includes(x))) {
-          await Plugins.Modals.alert({
-            title: 'Nope...',
-            message: `Description can't contain ${c.ILLEGAL_TAG_DESC_CHARS}`,
-          });
-        } else {
-          tagDesc = resTagDesc.value || `${tagText} is cool tag.`;
-          if (logalot) { console.log(`${lc} tagText: ${tagDesc}`); }
-          break;
-        }
-      }
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      tagDesc = undefined;
-    }
-
-    return tagDesc;
   }
 
   // #endregion tagging

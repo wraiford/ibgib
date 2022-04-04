@@ -55,6 +55,7 @@ import {
   PutIbGibOpts, PutIbGibResult
 } from '../common/types/legacy';
 import { concatMap, } from 'rxjs/operators';
+import { TagIbGib_V1 } from '../common/types/tag';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -516,7 +517,7 @@ export class IbgibsService {
     icon?: string,
     description?: string,
     space?: IbGibSpaceAny,
-  }): Promise<{newTagIbGib: IbGib_V1, newTagsAddr: string}> {
+  }): Promise<{newTagIbGib: TagIbGib_V1, newTagsAddr: string}> {
     const lc = `${this.lc}[${this.createTagIbGib.name}]`;
     try {
       space = space ?? await this.getLocalUserSpace({});

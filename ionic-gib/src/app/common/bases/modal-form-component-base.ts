@@ -46,6 +46,16 @@ export abstract class ModalFormComponentBase<TDataOut> implements OnInit, OnDest
   @ViewChild('modalIonContent')
   ionContent: IonContent;
 
+  /**
+   * If true, then modal is readonly.
+   *
+   * ## notes
+   *
+   * * I would have preferred just `readonly`, but that's a special word in js/ts.
+   */
+  @Input()
+  isReadonly: boolean;
+
   constructor(
     protected modalController: ModalController,
   ) { }

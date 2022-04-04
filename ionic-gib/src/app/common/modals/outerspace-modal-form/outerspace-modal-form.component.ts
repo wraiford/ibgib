@@ -1,9 +1,10 @@
-import { AfterViewInit, Component, Input, OnDestroy, OnInit } from '@angular/core';
+import {
+  AfterViewInit, Component, Input, OnDestroy, OnInit
+} from '@angular/core';
 import { ModalController } from '@ionic/angular';
 import { AlertController } from '@ionic/angular';
-import { Plugins } from '@capacitor/core';
-const { Modals } = Plugins;
 
+import { IbGibAddr, TransformResult } from 'ts-gib';
 import { IbGib_V1, Factory_V1 as factory } from 'ts-gib/dist/V1';
 import * as h from 'ts-gib/dist/helper';
 
@@ -16,8 +17,7 @@ import {
 } from '../../types';
 import { getFnPromptPassword_AlertController, getRegExp } from '../../helper';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
-import { IbGibAddr, TransformResult } from 'ts-gib';
-import { CommonService } from 'src/app/services/common.service';
+import { CommonService } from '../../../services/common.service';
 import { SyncSpaceData_AWSDynamoDB } from '../../witnesses/spaces/aws-dynamo-space-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;

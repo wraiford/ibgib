@@ -1,0 +1,103 @@
+<ion-header translucent>
+  <ion-toolbar>
+    <ion-title title="Create Robbot Settings...">Create Robbot...</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="handleSaveClick()">Create Robbot</ion-button>
+      <ion-button (click)="handleCancelClick()">Cancel</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content #modalIonContent fullscreen>
+  <ion-item-group>
+    <ion-item-divider>
+      <ion-text color="danger">{{ validationErrors.length > 0 ? 'Errors: ' : ''}}{{ validationErrors.join('\n') }}</ion-text>
+    </ion-item-divider>
+    <ion-item>
+      <ion-text color="primary" position="start">
+        Robbots...
+      </ion-text>
+      <ion-button position="end" (click)="handleShowHelpClick()">
+        <ion-icon name="information-circle-outline"></ion-icon>
+      </ion-button>
+    </ion-item>
+    <ion-item *ngIf="showHelp">
+      <ion-text color="primary">
+        <p>
+          Robbots do robbotic stuff...add more info here...
+        </p>
+      </ion-text>
+    </ion-item>
+  </ion-item-group>
+
+  <!-- Robbot details -->
+  <ion-item-group>
+    <ion-item-divider>
+      <ion-label>Robbot Details: </ion-label>
+    </ion-item-divider>
+
+    <!-- name -->
+    <ion-item [title]="fields.name.description" >
+      <ion-label
+        position="floating">{{ fields.name.label }}: </ion-label>
+      <ion-input [(ngModel)]="name"
+        [placeholder]="fields.name.placeholder"
+        ></ion-input>
+    </ion-item>
+
+    <!-- description -->
+    <ion-item [title]="fields.description.description">
+      <ion-label position="floating">{{fields.description.label}}: </ion-label>
+      <ion-input [(ngModel)]="description"
+        [placeholder]="fields.description.placeholder"
+        ></ion-input>
+    </ion-item>
+
+    <!-- method -->
+    <ion-item>
+      <ion-label>{{fields.method.label}}: </ion-label>
+      <ion-select slot="end" [(ngModel)]="method" (ionChange)="method = $event.detail.value">
+        <!-- FOR SOME REASON, THE BINDING WON'T WORK? -->
+        <!-- maybe related to https://github.com/ionic-team/ionic-framework/issues/19324 -->
+        <!-- <ion-select-option *ngFor="let item of secretTypes" [value]="item">
+          <ion-label>{{item}}</ion-label>
+        </ion-select-option> -->
+        <ion-select-option value='encrypt-gib (weak)'>
+          <ion-label>encrypt-gib (weak)</ion-label>
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    <!-- userSalt -->
+    <ion-item [title]="fields.userSalt.description">
+      <ion-label position="floating">{{fields.userSalt.label}}: </ion-label>
+      <ion-input [(ngModel)]= "userSalt"
+        [placeholder]="fields.userSalt.placeholder"
+        ></ion-input>
+    </ion-item>
+    <!-- initialRecursions -->
+    <ion-item [title]="fields.initialRecursions.description">
+      <ion-label position="floating">{{fields.initialRecursions.label}}: </ion-label>
+      <ion-input [(ngModel)]="initialRecursions"
+        type="number" min="0" max="1000000" step="1000"></ion-input>
+    </ion-item>
+    <!-- recursionsPerHash -->
+    <ion-item [title]="fields.recursionsPerHash.description">
+      <ion-label position="floating">{{fields.recursionsPerHash.label}}: </ion-label>
+      <ion-input [(ngModel)]="recursionsPerHash"
+        type="number" min="0" max="1000" step="1"></ion-input>
+    </ion-item>
+    <!-- Hash Algorithm -->
+    <ion-item [title]="fields.hashAlgorithm.description">
+      <ion-label>{{fields.hashAlgorithm.label}}: </ion-label>
+      <ion-select
+        [value]="hashAlgorithm"
+        okText="Select algorithm"
+        (ionChange)="handleSelectedHashAlgorithmChange($event)"
+        >
+        <ion-select-option value="SHA-256"> <ion-label>SHA-256</ion-label> </ion-select-option>
+        <ion-select-option value="SHA-512"> <ion-label>SHA-512</ion-label> </ion-select-option>
+      </ion-select>
+    </ion-item>
+
+  </ion-item-group>
+</ion-content>

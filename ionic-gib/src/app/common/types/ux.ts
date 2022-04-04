@@ -6,6 +6,7 @@ import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 import { IbGibAddr, IbGib, IbGibWithDataAndRel8ns, IbGibRel8ns } from 'ts-gib';
 import { HashAlgorithm, SaltStrategy, } from 'encrypt-gib';
 import * as c from '../constants';
+import { TagData_V1 } from './tag';
 
 /**
  * Special types used in ux.
@@ -194,14 +195,10 @@ export interface FieldInfo {
   readonly?: boolean;
 }
 
-/**
- * Shape of a tag^gib data.
- */
-export interface TagData {
-    text: string;
-    icon?: string;
-    description?: string;
-}
+// /**
+//  * Implemented tags. refactoring here to point to refactored interface.
+//  */
+// export interface TagData extends TagData_V1 { }
 
 export interface RootData {
     text: string;
@@ -246,4 +243,12 @@ export interface ActionItem {
     handler?: (event: MouseEvent) => Promise<void>;
     filepicked?: (event: any) => Promise<void>;
     busy?: boolean;
+}
+
+/**
+ * Used with tags at the very least.
+ */
+export interface IconItem {
+  title: string;
+  icon: string;
 }

@@ -1,3 +1,4 @@
+import * as h from 'ts-gib/dist/helper';
 import {
     Ib, IbGibAddr, TransformResult, V1,
 } from 'ts-gib';
@@ -7,7 +8,7 @@ import {
     isPrimitive,
     IBGIB_DELIMITER,
 } from 'ts-gib/dist/V1';
-import * as h from 'ts-gib/dist/helper';
+import { getGib, } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 
 import { IbGibSpaceAny, SpaceBase_V1 } from '../witnesses/spaces/space-base-v1';
@@ -22,10 +23,20 @@ import {
     getRootIb,
     getSpecialConfigKey, getSpecialIbGibIb, getTimestampInTicks, isExpired, tagTextToIb,
 } from '../helper';
-import { BootstrapData, BootstrapIbGib, BootstrapRel8ns, IbGibSpaceLockIbGib, IbGibSpaceLockOptions, IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns, LatestEventInfo, RootData, SpaceId, SpaceLockScope, SpecialIbGibType, TagData, TxId, } from '../types';
-import { validateBootstrapIbGib, validateIbGibAddr, validateIbGibIntrinsically } from './validate';
+import {
+    BootstrapData, BootstrapIbGib, BootstrapRel8ns,
+    IbGibSpaceLockIbGib, IbGibSpaceLockOptions,
+    IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns,
+    LatestEventInfo,
+    RootData,
+    SpaceId, SpaceLockScope,
+    SpecialIbGibType,
+    TagData_V1,
+    TxId,
+} from '../types';
+import { validateBootstrapIbGib, validateIbGibAddr, } from './validate';
 import { getTjpAddrs, isTjp_Naive } from './ibgib';
-import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { TagIbGib_V1 } from '../types/tag';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -1557,7 +1568,7 @@ export async function createTags({
 
         // at this point, our tags ibGib has no associated tag ibGibs.
         // add home, favorite tags
-        const initialTagDatas: TagData[] = [
+        const initialTagDatas: TagData_V1[] = [
             { text: 'home', icon: 'home-outline' },
             { text: 'favorite', icon: 'heart-outline' },
         ];
@@ -1590,7 +1601,7 @@ export async function createTagIbGib({
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: LatestEventInfo) => void,
-}): Promise<{newTagIbGib: IbGib_V1, newTagsAddr: string}> {
+}): Promise<{newTagIbGib: TagIbGib_V1, newTagsAddr: string}> {
     const lc = `[${createTagIbGib.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting...`); }
@@ -1610,7 +1621,7 @@ export async function createTagIbGib({
             dna: true,
             nCounter: true,
         });
-        const { newIbGib: newTag } = resNewTag;
+        const newTag = <TagIbGib_V1>resNewTag.newIbGib;
         await persistTransformResult({resTransform: resNewTag, isMeta: true, space});
         await registerNewIbGib({ibGib: newTag, space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
         const newTagsAddr = await rel8TagToTagsIbGib({
