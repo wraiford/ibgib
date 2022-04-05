@@ -138,7 +138,7 @@ export class RobbotModalFormComponent
     super(modalController);
   }
 
-  protected async createImpl(): Promise<TransformResult<RobbotIbGib>> {
+  protected async createImpl(): Promise<TransformResult<RobbotIbGib_V1>> {
     const lc = `${this.lc}[${this.handleSaveClick.name}]`;
     try {
       if (logalot) { console.log(`${lc}`); }
@@ -152,11 +152,11 @@ export class RobbotModalFormComponent
       let resNewIbGib: TransformResult<RobbotIbGib_V1>;
 
       // create the robbot
-      if (this.method === RobbotMethod.encrypt_gib_weak) {
-        resNewIbGib = await this.createRobbot_Scheduler();
-      } else {
-        throw new Error(`unknown robbot method (?): ${this.method}`);
-      }
+      // if (this.method === RobbotMethod.encrypt_gib_weak) {
+      //   resNewIbGib = await this.createRobbot_Scheduler();
+      // } else {
+      //   throw new Error(`unknown robbot method (?): ${this.method}`);
+      // }
 
       if (!resNewIbGib) { throw new Error(`creation failed...`); }
 
@@ -167,48 +167,49 @@ export class RobbotModalFormComponent
     }
   }
 
-  async createRobbot_Scheduler(): Promise<TransformResult<RobbotIbGib>> {
+  async createRobbot_Scheduler(): Promise<TransformResult<RobbotIbGib_V1>> {
     const lc = `${this.lc}[${this.createRobbot_Scheduler.name}]`;
     try {
 
-      let data: RobbotInfo_EncryptGib = {
-        name: this.name,
-        description: this.description,
-        method: this.method,
-        hashAlgorithm: this.hashAlgorithm,
-        initialRecursions: this.initialRecursions,
-        recursionsPerHash: this.recursionsPerHash,
-        salt: this.userSalt,
-        saltStrategy: 'prependPerHash',
-        encryptedDataDelimiter: ',',
-      };
+      throw new Error('not implemented bca807618e7b4959a481a69793881088')
+      // let data: RobbotInfo_EncryptGib = {
+      //   name: this.name,
+      //   description: this.description,
+      //   method: this.method,
+      //   hashAlgorithm: this.hashAlgorithm,
+      //   initialRecursions: this.initialRecursions,
+      //   recursionsPerHash: this.recursionsPerHash,
+      //   salt: this.userSalt,
+      //   saltStrategy: 'prependPerHash',
+      //   encryptedDataDelimiter: ',',
+      // };
 
-      const resCreate = await factory.firstGen({
-        parentIbGib: factory.primitive({ib: 'secret'}),
-        ib: `robbot ${this.method} ${this.name}`,
-        data,
-        dna: false,
-        tjp: { uuid: true, timestamp: true },
-        nCounter: true,
-      });
+      // const resCreate = await factory.firstGen({
+      //   parentIbGib: factory.primitive({ib: 'secret'}),
+      //   ib: `robbot ${this.method} ${this.name}`,
+      //   data,
+      //   dna: false,
+      //   tjp: { uuid: true, timestamp: true },
+      //   nCounter: true,
+      // });
 
-      return <TransformResult<IbGib_V1<RobbotData_V1>>>resCreate;
+      // return <TransformResult<IbGib_V1<RobbotData_V1>>>resCreate;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
     }
   }
 
-  handleMethodChange(item: any): void {
-    if (item?.detail?.value && item!.detail!.value! === RobbotMethod.encrypt_gib_weak) {
-      this.method = item!.detail!.value!;
-    }
-  }
+  // handleMethodChange(item: any): void {
+  //   if (item?.detail?.value && item!.detail!.value! === RobbotMethod.encrypt_gib_weak) {
+  //     this.method = item!.detail!.value!;
+  //   }
+  // }
 
-  handleSelectedHashAlgorithmChange(item: any): void {
-    if (item?.detail?.value && Object.values(HashAlgorithm).includes(item!.detail!.value!)) {
-      this.hashAlgorithm = item!.detail!.value!;
-    }
-  }
+  // handleSelectedHashAlgorithmChange(item: any): void {
+  //   if (item?.detail?.value && Object.values(HashAlgorithm).includes(item!.detail!.value!)) {
+  //     this.hashAlgorithm = item!.detail!.value!;
+  //   }
+  // }
 
 }

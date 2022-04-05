@@ -23,6 +23,7 @@ import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/
 import { EncryptionModalFormComponent } from '../common/modals/encryption-modal-form/encryption-modal-form.component';
 import { SecretModalFormComponent } from '../common/modals/secret-modal-form/secret-modal-form.component';
 import { OuterspaceModalFormComponent } from '../common/modals/outerspace-modal-form/outerspace-modal-form.component';
+import { RobbotModalFormComponent } from '../common/modals/robbot-modal-form/robbot-modal-form.component';
 
 @NgModule({
   imports: [
@@ -49,6 +50,7 @@ import { OuterspaceModalFormComponent } from '../common/modals/outerspace-modal-
     EncryptionModalFormComponent,
     SecretModalFormComponent,
     OuterspaceModalFormComponent,
+    RobbotModalFormComponent,
   ],
   schemas: [ CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA ],
 })

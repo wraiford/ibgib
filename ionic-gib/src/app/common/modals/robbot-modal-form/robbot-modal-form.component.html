@@ -53,41 +53,17 @@
     </ion-item>
 
     <!-- method -->
-    <ion-item>
+    <!-- <ion-item>
       <ion-label>{{fields.method.label}}: </ion-label>
       <ion-select slot="end" [(ngModel)]="method" (ionChange)="method = $event.detail.value">
-        <!-- FOR SOME REASON, THE BINDING WON'T WORK? -->
-        <!-- maybe related to https://github.com/ionic-team/ionic-framework/issues/19324 -->
-        <!-- <ion-select-option *ngFor="let item of secretTypes" [value]="item">
-          <ion-label>{{item}}</ion-label>
-        </ion-select-option> -->
         <ion-select-option value='encrypt-gib (weak)'>
           <ion-label>encrypt-gib (weak)</ion-label>
         </ion-select-option>
       </ion-select>
-    </ion-item>
+    </ion-item> -->
 
-    <!-- userSalt -->
-    <ion-item [title]="fields.userSalt.description">
-      <ion-label position="floating">{{fields.userSalt.label}}: </ion-label>
-      <ion-input [(ngModel)]= "userSalt"
-        [placeholder]="fields.userSalt.placeholder"
-        ></ion-input>
-    </ion-item>
-    <!-- initialRecursions -->
-    <ion-item [title]="fields.initialRecursions.description">
-      <ion-label position="floating">{{fields.initialRecursions.label}}: </ion-label>
-      <ion-input [(ngModel)]="initialRecursions"
-        type="number" min="0" max="1000000" step="1000"></ion-input>
-    </ion-item>
-    <!-- recursionsPerHash -->
-    <ion-item [title]="fields.recursionsPerHash.description">
-      <ion-label position="floating">{{fields.recursionsPerHash.label}}: </ion-label>
-      <ion-input [(ngModel)]="recursionsPerHash"
-        type="number" min="0" max="1000" step="1"></ion-input>
-    </ion-item>
     <!-- Hash Algorithm -->
-    <ion-item [title]="fields.hashAlgorithm.description">
+    <!-- <ion-item [title]="fields.hashAlgorithm.description">
       <ion-label>{{fields.hashAlgorithm.label}}: </ion-label>
       <ion-select
         [value]="hashAlgorithm"
@@ -97,7 +73,7 @@
         <ion-select-option value="SHA-256"> <ion-label>SHA-256</ion-label> </ion-select-option>
         <ion-select-option value="SHA-512"> <ion-label>SHA-512</ion-label> </ion-select-option>
       </ion-select>
-    </ion-item>
+    </ion-item> -->
 
   </ion-item-group>
 </ion-content>
