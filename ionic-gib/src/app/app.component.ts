@@ -24,7 +24,8 @@ import {
   spaceNameIsValid,
   getFnAlert,
   getSpaceIb,
-  createNewTag
+  createNewTag,
+  getFn_promptUpdatePicIbGib
 } from './common/helper';
 import { IbGibSpaceAny } from './common/witnesses/spaces/space-base-v1';
 
@@ -211,6 +212,7 @@ export class AppComponent extends IbgibComponentBase
             fnPromptSecret: getFn_promptCreateSecretIbGib(this.common),
             fnPromptEncryption: getFn_promptCreateEncryptionIbGib(this.common),
             fnPromptOuterSpace: getFn_promptCreateOuterSpaceIbGib(this.common),
+            fnPromptUpdatePic: getFn_promptUpdatePicIbGib(this.common),
           });
 
         } finally {

@@ -15,7 +15,7 @@ import * as c from '../common/constants';
 import { IbgibComponentBase } from '../common/bases/ibgib-component-base';
 import { CommonService } from '../services/common.service';
 import { SPECIAL_URLS } from '../common/constants';
-import { LatestEventInfo, PicData_V1, } from '../common/types';
+import { LatestEventInfo, PicData_V1, PicIbGib_V1, } from '../common/types';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
 import { createNewTag, ensureDirPath, getBlob, getFnAlert, getFnConfirm, getFnPrompt, pathExists, writeFile, } from '../common/helper';
 import { concatMap } from 'rxjs/operators';
@@ -99,6 +99,9 @@ export class IbGibPage extends IbgibComponentBase
 
   @Input()
   downloadingPic: boolean = false;
+
+  @Input()
+  updatingPic: boolean = false;
 
   @Input()
   get autoRefresh(): boolean { return !this.paused; }
@@ -320,16 +323,29 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
-  async handleUpdatePic(): Promise<void> {
-    const lc = `${this.lc}[${this.handleUpdatePic.name}]`;
+  async handleUpdatePicClick(): Promise<void> {
+    const lc = `${this.lc}[${this.handleUpdatePicClick.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
+      if (this.updatingPic) {
+        console.error(`${lc} (UNEXPECTED) already updating pic. this handler should be disabled yes? returning early. (E: 9cbb5388290a4f33bf8f2919aab9fdaa)`);
+        return; // <<<< returns
+      }
+      this.updatingPic = true;
 
+      await this.common.ibgibs.updatePic({
+        picIbGib: <PicIbGib_V1>this.ibGib,
+        space: undefined, // local user space
+      });
+
+      this.updatingPic = false;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
+      this.updatingPic = false;
       throw error;
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
+      setTimeout(() => this.ref.detectChanges());
     }
   }
 

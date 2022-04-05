@@ -27,6 +27,7 @@ import {
   SyncSagaInfo,
   BootstrapIbGib,
   TjpIbGibAddr,
+  PicIbGib_V1,
 } from '../common/types';
 import {
   IonicSpace_V1,
@@ -230,6 +231,7 @@ export class IbgibsService {
   private fnPromptSecret: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>;
   private fnPromptEncryption: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>;
   private fnPromptOuterSpace: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>;
+  private fnPromptUpdatePic: (space: IbGibSpaceAny, picIbGib: PicIbGib_V1) => Promise<PicIbGib_V1 | undefined>;
 
   private _syncing: boolean;
   /**
@@ -277,10 +279,12 @@ export class IbgibsService {
     fnPromptSecret,
     fnPromptEncryption,
     fnPromptOuterSpace,
+    fnPromptUpdatePic,
   }: {
     fnPromptSecret: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>,
     fnPromptEncryption: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>,
     fnPromptOuterSpace: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>,
+    fnPromptUpdatePic: (space: IbGibSpaceAny, picIbGib: PicIbGib_V1) => Promise<PicIbGib_V1 | undefined>,
   }): Promise<void> {
     const lc = `${this.lc}[${this.initialize.name}]`;
     try {
@@ -289,6 +293,7 @@ export class IbgibsService {
       this.fnPromptSecret = fnPromptSecret;
       this.fnPromptEncryption = fnPromptEncryption;
       this.fnPromptOuterSpace = fnPromptOuterSpace;
+      this.fnPromptUpdatePic = fnPromptUpdatePic;
 
       let timerName: string;
       if (logalot) {
@@ -726,76 +731,6 @@ export class IbgibsService {
   }
 
   /**
-   * Gets one of the app's special ibGibs, e.g., TagsIbGib.
-   *
-   * When initializing tags, this will generate some boilerplate tags.
-   * I'm going to be doing roots here also, and who knows what else, but each
-   * one will have its own initialize specifics.
-   *
-   * @param initialize initialize (i.e. create) ONLY IF IbGib not found. Used for initializing app (first run).
-   *
-   * @see {@link createSpecial}
-   * @see {@link createTags}
-   */
-  async getSpecialIbGib({
-    type,
-    initialize,
-    space,
-    lock,
-  }: {
-    type: SpecialIbGibType,
-    initialize?: boolean,
-    space?: IbGibSpaceAny,
-    lock?: boolean,
-  }): Promise<IbGib_V1 | null> {
-    const lc = `${this.lc}[${this.getSpecialIbGib.name}]`;
-    try {
-      space = space ?? await this.getLocalUserSpace({lock});
-      if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: e08e85d8422e479f9d101194fd26cbda)`); }
-
-      while (this.initializing) {
-        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 497d4becb94f4515a2ec389630420d6c)`); }
-        await h.delay(100);
-      }
-
-      return getSpecialIbGib({
-        type,
-        initialize,
-        space,
-        zeroSpace: this.zeroSpace,
-        fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
-        fnBroadcast: (x) => this.fnBroadcast(x),
-        fnGetInitializing: () => { return this._initializing; },
-        fnSetInitializing: (value: boolean) => { this._initializing = value; }
-      });
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      return null;
-    }
-  }
-
-  async getSpecialRel8dIbGibs<TIbGib extends IbGib_V1 = IbGib_V1>({
-    type,
-    rel8nName,
-    space,
-  }: {
-    type: SpecialIbGibType,
-    rel8nName: string,
-    space?: IbGibSpaceAny,
-  }): Promise<TIbGib[]> {
-    const lc = `${this.lc}[${this.getSpecialRel8dIbGibs.name}]`;
-    try {
-      space = space ?? await this.getLocalUserSpace({});
-      if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: 476c7d7c68f34197b740be5df09238a2)`); }
-
-      return getSpecialRel8dIbGibs({ type, rel8nName, space });
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    }
-  }
-
-  /**
    * rel8s given ibgibs to special ibgib.
    * @see {@link rel8ToSpecialIbGib}
    * @returns new special ibgib addr
@@ -858,32 +793,6 @@ export class IbgibsService {
         fnBroadcast: (x) => this.fnBroadcast(x),
       });
 
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    }
-  }
-
-  async getTjpIbGib({
-    ibGib,
-    naive = true,
-    space,
-  }: {
-    ibGib: IbGib_V1<any>,
-    naive?: boolean,
-    space?: IbGibSpaceAny,
-  }): Promise<IbGib_V1<any>> {
-    const lc = `${this.lc}[${this.getTjpIbGib.name}]`;
-
-    try {
-      space = space ?? await this.getLocalUserSpace({});
-      if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: 0ec806bd2c5641c4844a3698c922e1f6)`); }
-      if (!space) {
-        console.warn(`${lc} space falsy and localUserSpace not initialized.`);
-        return ibGib;
-      }
-
-      return getTjpIbGib({ibGib, naive, space});
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -1005,71 +914,7 @@ export class IbgibsService {
     }
   }
 
-  /**
-   * Wrapper for getting the latest addr in the given space.
-   *
-   * ## warnings
-   *
-   * * This was written early and makes many assumptions.
-   * * Meant to work with Ionic space atow.
-   *
-   * @returns latest addr in a given space (or localUserSpace)
-   */
-  async getLatestAddr({
-    ibGib,
-    tjpAddr,
-    tjp,
-    space,
-  }: {
-    ibGib?: IbGib_V1<any>,
-    tjpAddr?: IbGibAddr,
-    tjp?: IbGib_V1<any>,
-    space?: IbGibSpaceAny,
-  }): Promise<IbGibAddr|undefined> {
-    let lc = `${this.lc}[${this.getLatestAddr.name}]`;
-    if (logalot) { console.log(`${lc} starting...`); }
-    try {
-      if (!ibGib && !tjp && !tjpAddr) {
-        throw new Error(`ibGib && tjp && tjpAddr falsy (E: fe725654342c4d80a33219160b5d81d3)`);
-      }
-
-      space = space ?? await this.getLocalUserSpace({});
-      if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: fd01bb85e91f4c54bfe8b35714d48a38)`); }
-
-      const resGetLatest = await getLatestAddrs({
-        ibGibs: ibGib ? [ibGib] : undefined,
-        tjpAddrs: tjpAddr ? [tjpAddr] : undefined,
-        tjps: tjp ? [tjp] : undefined,
-        space,
-      });
-
-      if (!resGetLatest) { throw new Error(`resGetLatest falsy (E: 3851bbe4427ae11771f222234e8c6622)`); }
-      if (!resGetLatest.data) { throw new Error(`invalid resGetLatest: data falsy (E: 134e0f1f65edc69c6951c32e00a4bb22)`); }
-      if (resGetLatest.data.success) {
-        if (resGetLatest.data.addrs?.length === 1) {
-          return resGetLatest.data.addrs[0];
-        } else if (resGetLatest.data.addrsNotFound?.length === 1) {
-          return undefined;
-        } else if (resGetLatest.data.addrsErrored?.length === 1) {
-          debugger;
-          const emsg = resGetLatest.data.errors?.join('|') ?? "[unspecified error(s)] (E: 24f338036aa84ac99e3c39a660207222)";
-          throw new Error(`resGetLatest had error(s): ${emsg}`);
-        } else {
-          debugger;
-          throw new Error(`unknown error, invalid resGetLatest: ${h.pretty(resGetLatest)} (E: 6aa5aa225ebf49b588664370cb8feb22)`);
-        }
-      } else {
-        debugger;
-        const emsg = resGetLatest.data.errors?.join('|') ?? "[unspecified error(s)] (E: dcd6dcd6ec052fd112a4d48f1afa2922)";
-        throw new Error(`resGetLatest had error(s): ${emsg}`);
-      }
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
+  // #region space facade (e.g. get, getLatest___, put, etc.)
 
   /**
    * Convenience function for persisting a transform result, which has
@@ -1278,21 +1123,169 @@ export class IbgibsService {
     }
   }
 
-  // async getSyncSpaces({space}: {space: IbGibSpaceAny}): Promise<IbGibSpaceAny[]> {
-  //   const lc = `${this.lc}[${this.getSyncSpaces.name}]`;
-  //   try {
-  //     if (!space) { throw new Error(`space required. (E: c03f80eca6b045b9a73b0aafa44cdf26)`); }
-  //     let syncSpaces = await this.getSpecialRel8dIbGibs<IbGibSpaceAny>({
-  //       type: "outerspaces",
-  //       rel8nName: c.SYNC_SPACE_REL8N_NAME,
-  //       space
-  //     });
-  //     return syncSpaces;
-  //   } catch (error) {
-  //     console.error(`${lc} ${error.message}`);
-  //     throw error;
-  //   }
-  // }
+  /**
+   * Wrapper for getting the latest addr in the given space.
+   *
+   * ## warnings
+   *
+   * * This was written early and makes many assumptions.
+   * * Meant to work with Ionic space atow.
+   *
+   * @returns latest addr in a given space (or localUserSpace)
+   */
+  async getLatestAddr({
+    ibGib,
+    tjpAddr,
+    tjp,
+    space,
+  }: {
+    ibGib?: IbGib_V1<any>,
+    tjpAddr?: IbGibAddr,
+    tjp?: IbGib_V1<any>,
+    space?: IbGibSpaceAny,
+  }): Promise<IbGibAddr|undefined> {
+    let lc = `${this.lc}[${this.getLatestAddr.name}]`;
+    if (logalot) { console.log(`${lc} starting...`); }
+    try {
+      if (!ibGib && !tjp && !tjpAddr) {
+        throw new Error(`ibGib && tjp && tjpAddr falsy (E: fe725654342c4d80a33219160b5d81d3)`);
+      }
+
+      space = space ?? await this.getLocalUserSpace({});
+      if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: fd01bb85e91f4c54bfe8b35714d48a38)`); }
+
+      const resGetLatest = await getLatestAddrs({
+        ibGibs: ibGib ? [ibGib] : undefined,
+        tjpAddrs: tjpAddr ? [tjpAddr] : undefined,
+        tjps: tjp ? [tjp] : undefined,
+        space,
+      });
+
+      if (!resGetLatest) { throw new Error(`resGetLatest falsy (E: 3851bbe4427ae11771f222234e8c6622)`); }
+      if (!resGetLatest.data) { throw new Error(`invalid resGetLatest: data falsy (E: 134e0f1f65edc69c6951c32e00a4bb22)`); }
+      if (resGetLatest.data.success) {
+        if (resGetLatest.data.addrs?.length === 1) {
+          return resGetLatest.data.addrs[0];
+        } else if (resGetLatest.data.addrsNotFound?.length === 1) {
+          return undefined;
+        } else if (resGetLatest.data.addrsErrored?.length === 1) {
+          debugger;
+          const emsg = resGetLatest.data.errors?.join('|') ?? "[unspecified error(s)] (E: 24f338036aa84ac99e3c39a660207222)";
+          throw new Error(`resGetLatest had error(s): ${emsg}`);
+        } else {
+          debugger;
+          throw new Error(`unknown error, invalid resGetLatest: ${h.pretty(resGetLatest)} (E: 6aa5aa225ebf49b588664370cb8feb22)`);
+        }
+      } else {
+        debugger;
+        const emsg = resGetLatest.data.errors?.join('|') ?? "[unspecified error(s)] (E: dcd6dcd6ec052fd112a4d48f1afa2922)";
+        throw new Error(`resGetLatest had error(s): ${emsg}`);
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async getTjpIbGib({
+    ibGib,
+    naive = true,
+    space,
+  }: {
+    ibGib: IbGib_V1<any>,
+    naive?: boolean,
+    space?: IbGibSpaceAny,
+  }): Promise<IbGib_V1<any>> {
+    const lc = `${this.lc}[${this.getTjpIbGib.name}]`;
+
+    try {
+      space = space ?? await this.getLocalUserSpace({});
+      if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: 0ec806bd2c5641c4844a3698c922e1f6)`); }
+      if (!space) {
+        console.warn(`${lc} space falsy and localUserSpace not initialized.`);
+        return ibGib;
+      }
+
+      return getTjpIbGib({ibGib, naive, space});
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Gets one of the app's special ibGibs, e.g., TagsIbGib.
+   *
+   * When initializing tags, this will generate some boilerplate tags.
+   * I'm going to be doing roots here also, and who knows what else, but each
+   * one will have its own initialize specifics.
+   *
+   * @param initialize initialize (i.e. create) ONLY IF IbGib not found. Used for initializing app (first run).
+   *
+   * @see {@link createSpecial}
+   * @see {@link createTags}
+   */
+  async getSpecialIbGib({
+    type,
+    initialize,
+    space,
+    lock,
+  }: {
+    type: SpecialIbGibType,
+    initialize?: boolean,
+    space?: IbGibSpaceAny,
+    lock?: boolean,
+  }): Promise<IbGib_V1 | null> {
+    const lc = `${this.lc}[${this.getSpecialIbGib.name}]`;
+    try {
+      space = space ?? await this.getLocalUserSpace({lock});
+      if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: e08e85d8422e479f9d101194fd26cbda)`); }
+
+      while (this.initializing) {
+        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 497d4becb94f4515a2ec389630420d6c)`); }
+        await h.delay(100);
+      }
+
+      return getSpecialIbGib({
+        type,
+        initialize,
+        space,
+        zeroSpace: this.zeroSpace,
+        fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
+        fnBroadcast: (x) => this.fnBroadcast(x),
+        fnGetInitializing: () => { return this._initializing; },
+        fnSetInitializing: (value: boolean) => { this._initializing = value; }
+      });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return null;
+    }
+  }
+
+  async getSpecialRel8dIbGibs<TIbGib extends IbGib_V1 = IbGib_V1>({
+    type,
+    rel8nName,
+    space,
+  }: {
+    type: SpecialIbGibType,
+    rel8nName: string,
+    space?: IbGibSpaceAny,
+  }): Promise<TIbGib[]> {
+    const lc = `${this.lc}[${this.getSpecialRel8dIbGibs.name}]`;
+    try {
+      space = space ?? await this.getLocalUserSpace({});
+      if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: 476c7d7c68f34197b740be5df09238a2)`); }
+
+      return getSpecialRel8dIbGibs({ type, rel8nName, space });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
+  }
+
+  // #endregion space facade (e.g. get, getLatest___, put, etc.)
 
   /**
    * Feels klugy.
@@ -1914,6 +1907,8 @@ export class IbgibsService {
       return [];
     }
   }
+
+  // #region syncIbGibs related
 
   async syncIbGibs({
     dependencyGraphIbGibs,
@@ -2690,6 +2685,8 @@ export class IbgibsService {
     }
   }
 
+  // #endregion syncIbGibs related
+
   // #region autosync
 
   async enableAutosync({
@@ -2862,5 +2859,35 @@ export class IbgibsService {
   }
 
   // #endregion autosync
+
+  async updatePic({
+    picIbGib,
+    space,
+  }: {
+    picIbGib: PicIbGib_V1,
+    space?: IbGibSpaceAny,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.updatePic.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      space = space ?? await this.getLocalUserSpace({});
+      if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: c1c0611e158b400daf07e9cb69dd8c8d)`); }
+
+      debugger;
+      let newPicIbGib = await this.fnPromptUpdatePic(space, picIbGib);
+      if (newPicIbGib) {
+        debugger;
+        await this.registerNewIbGib({ ibGib: newPicIbGib, space});
+      } else {
+        debugger;
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 
 }

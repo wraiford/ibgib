@@ -33,6 +33,11 @@
     <ion-buttons slot="end" collapse="true">
       <!-- leaving these in for future testing of download the d*$! pic -->
       <!-- <ion-button *ngIf="item?.type === 'pic' && (ios || android)" class="toolbar-title-btn" -->
+      <ion-button *ngIf="item?.type === 'pic'" class="toolbar-title-btn"
+        [disabled]="syncing || refreshing" (click)="handleUpdatePicClick()">
+        <ion-icon name="camera-reverse-outline"></ion-icon>
+        <ion-spinner *ngIf="updatingPic" name="circles" color="tertiary"></ion-spinner>
+      </ion-button>
       <ion-button *ngIf="item?.type === 'pic' && (ios || android)" class="toolbar-title-btn"
         [disabled]="syncing || refreshing" (click)="handleDownloadPicClick()">
         <ion-icon name="download-outline"></ion-icon>

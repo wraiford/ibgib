@@ -66,8 +66,12 @@ export function getFnConfirm():
             return resConfirm.value;
         }
 }
+
 /**
- * Klugy way to prompt for password.
+ * Prompts the user for a password using an ionic capacitor (atow) alert
+ * controller with an input of type `'password'`.
+ *
+ * @returns either the password or null if cancelled
  */
 export function getFnPromptPassword_AlertController({
     alertController,
@@ -227,12 +231,13 @@ export function getFn_promptCreateOuterSpaceIbGib(
  */
 export function getFn_promptUpdatePicIbGib(
     common: CommonService,
-): (space: IbGibSpaceAny) => Promise<PicIbGib_V1 | undefined> {
+): (space: IbGibSpaceAny, picIbGib: PicIbGib_V1) => Promise<PicIbGib_V1 | undefined> {
     const lc = `[${getFn_promptUpdatePicIbGib.name}]`;
-    return async (space: IbGibSpaceAny) => {
+    return async (space: IbGibSpaceAny, picIbGib: PicIbGib_V1) => {
         try {
             const modal = await common.modalController.create({
                 component: UpdatePicModalFormComponent,
+                componentProps: { picIbGib },
             });
             await modal.present();
             let resModal = await modal.onWillDismiss();
@@ -240,7 +245,7 @@ export function getFn_promptUpdatePicIbGib(
                 const resNewPicIbGib = <TransformResult<PicIbGib_V1>>resModal.data;
                 await common.ibgibs.persistTransformResult({resTransform: resNewPicIbGib, space});
                 const addr = h.getIbGibAddr({ibGib: resNewPicIbGib.newIbGib});
-                if (logalot) { console.log(`${lc} created secret. addr: ${addr}`); }
+                if (logalot) { console.log(`${lc} updated pic. addr: ${addr}`); }
                 return resNewPicIbGib.newIbGib;
             } else {
                 // didn't create one

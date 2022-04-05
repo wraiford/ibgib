@@ -10,7 +10,7 @@
 <ion-content #modalIonContent fullscreen>
   <ion-item-group>
     <ion-item-divider>
-      <ion-text color="danger">{{ validationErrors.length > 0 ? 'Errors: ' : ''}}{{ validationErrors.join('\n') }}</ion-text>
+      <ion-text color="danger">{{ validationErrors.length > 0 ? "Errors: " : ""}}{{ validationErrors.join("\n") }}</ion-text>
     </ion-item-divider>
     <ion-item>
       <ion-text color="primary" position="start">
@@ -35,17 +35,24 @@
       <ion-label>Current Pic: </ion-label>
     </ion-item-divider>
 
-    <ion-item>
-      <pic-view *ngIf='addr'
-        class='pic-item'
-        [addr]='addr'
-        [isTitle]='false'
-        (click)='handleClicked(item)'
+    <ion-item *ngIf="addr">
+      <p>YES addr IS set</p>
+      <!-- <p>pic-view ion-item</p> -->
+      <p *ngIf="!addr">NO addr is NOT set</p>
+      <pic-view *ngIf="addr"
+        class="pic-item"
+        [addr]="addr"
+        [isTitle]="false"
+        (click)="handlePicClicked()"
         [style.border-color]="debugBorderColor"
         [style.border-width]="debugBorderWidth"
         [style.border-style]="debugBorderStyle"
         >
       </pic-view>
+    </ion-item>
+    <ion-item *ngIf="!addr">
+      <!-- <p>pic-view ion-item</p> -->
+      <p *ngIf="!addr">NO addr is NOT set</p>
     </ion-item>
 
     <!-- name -->
@@ -64,29 +71,6 @@
         [placeholder]="fields.description.placeholder"
         ></ion-input>
     </ion-item>
-
-    <!-- method -->
-    <!-- <ion-item>
-      <ion-label>{{fields.method.label}}: </ion-label>
-      <ion-select slot="end" [(ngModel)]="method" (ionChange)="method = $event.detail.value">
-        <ion-select-option value='encrypt-gib (weak)'>
-          <ion-label>encrypt-gib (weak)</ion-label>
-        </ion-select-option>
-      </ion-select>
-    </ion-item> -->
-
-    <!-- Hash Algorithm -->
-    <!-- <ion-item [title]="fields.hashAlgorithm.description">
-      <ion-label>{{fields.hashAlgorithm.label}}: </ion-label>
-      <ion-select
-        [value]="hashAlgorithm"
-        okText="Select algorithm"
-        (ionChange)="handleSelectedHashAlgorithmChange($event)"
-        >
-        <ion-select-option value="SHA-256"> <ion-label>SHA-256</ion-label> </ion-select-option>
-        <ion-select-option value="SHA-512"> <ion-label>SHA-512</ion-label> </ion-select-option>
-      </ion-select>
-    </ion-item> -->
 
   </ion-item-group>
 </ion-content>

@@ -1,8 +1,8 @@
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { IonContent, ModalController } from '@ionic/angular';
 
+import * as h from 'ts-gib/dist/helper';
 import { IbGib_V1, Factory_V1 as factory } from 'ts-gib/dist/V1';
-
 import { HashAlgorithm } from 'encrypt-gib';
 import { IbGibAddr, TransformResult } from 'ts-gib';
 
@@ -11,8 +11,10 @@ import { getExpirationUTCString, getRegExp } from '../../helper';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 import { FieldInfo, IbgibItem } from '../../types/ux';
 import { PicIbGib_V1 } from '../../types';
+import { CommonService } from 'src/app/services/common.service';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
+const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 /**
  * Prompts the user for information gathering and generates a new ibGib.
@@ -34,6 +36,15 @@ export class UpdatePicModalFormComponent
    */
   @Input()
   addr: IbGibAddr;
+
+  _picIbGib: PicIbGib_V1;
+  @Input()
+  get picIbGib(): PicIbGib_V1 {
+    return this._picIbGib;
+  }
+  set picIbGib(ibGib: PicIbGib_V1) {
+    this.initialize({ibGib});
+  }
 
   @Input()
   item: IbgibItem;
@@ -74,26 +85,42 @@ export class UpdatePicModalFormComponent
   @Input()
   showHelp: boolean;
 
+  public debugBorderWidth: string = debugBorder ? "22px" : "0px"
+  public debugBorderColor: string = "#FFDA6B";
+  public debugBorderStyle: string = "solid";
+
   constructor(
     protected modalController: ModalController,
+    protected ref: ChangeDetectorRef,
   ) {
     super(modalController);
 
     this.addNewImageField();
-    this.initialize();
   }
 
-  async initialize(): Promise<void> {
+  async initialize({
+    ibGib,
+  }: {
+    ibGib: PicIbGib_V1,
+  }): Promise<void> {
     const lc = `${this.lc}[${this.initialize.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
+      debugger;
+      if (this.initializing) {
+        console.error(`${lc} (UNEXPECTED) already initializing. (E: 4f5cf5940b9f4f3f827f6f03a8c84ce1)`);
+        return;
+      }
       this.initializing = true;
 
+      this._picIbGib = ibGib;
+      this.addr = ibGib ? h.getIbGibAddr({ibGib}) : undefined;
 
-
+      setTimeout(() => this.ref.detectChanges());
       this.initializing = false;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
+      this.initializing = false;
       throw error;
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
@@ -108,6 +135,7 @@ export class UpdatePicModalFormComponent
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       let fnValid = (_value: string) => {
+        debugger;
         return false; // debug
       };
 
@@ -154,4 +182,16 @@ export class UpdatePicModalFormComponent
     }
   }
 
+  async handlePicClicked(): Promise<void> {
+    const lc = `${this.lc}[${this.handlePicClicked.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 }
