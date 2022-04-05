@@ -9,7 +9,7 @@ import { IbGib_V1, GIB, Factory_V1, ROOT_ADDR } from "ts-gib/dist/V1";
 import { IbGibAddr, Ib, Gib, } from "ts-gib";
 
 import * as c from '../../common/constants';
-import { IbgibItem, PicData, CommentData, LatestEventInfo } from '../types';
+import { IbgibItem, PicData_V1, CommentData, LatestEventInfo } from '../types';
 import { CommonService, NavInfo } from 'src/app/services/common.service';
 import { Capacitor } from '@capacitor/core';
 
@@ -407,7 +407,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
             return;
         }
 
-        const data = <PicData>this.ibGib.data;
+        const data = <PicData_V1>this.ibGib.data;
         if (logalot) { console.log(`${lc} binHash: ${data.binHash}\nbinExt: ${data.ext}`); }
         const addr = this.ibGib.rel8ns!['bin'][0];
         if (logalot) { console.log(`${lc} getting bin addr: ${addr}`); }

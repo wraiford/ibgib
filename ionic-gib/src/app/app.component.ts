@@ -815,9 +815,12 @@ export class AppComponent extends IbgibComponentBase
         await h.delay(100);
       }
 
+      const localUserSpace = await this.common.ibgibs.getLocalUserSpace({});
+
       let encryptedSyncSpaces = await this.common.ibgibs.getAppSyncSpaces({
         unwrapEncrypted: false,
-        createIfNone: false
+        createIfNone: false,
+        space: localUserSpace,
       });
 
       // load individual items (only executes if any syncspaces exist)

@@ -1,27 +1,27 @@
 import { Component, OnInit, ChangeDetectorRef, Input } from '@angular/core';
 import {
-  Plugins, Camera, CameraResultType, Filesystem,
+  Plugins, Camera, CameraResultType,
 } from '@capacitor/core';
 const { Modals } = Plugins;
 
-import { IbGibAddr, IbGibRel8ns, V1 } from 'ts-gib';
+import * as h from 'ts-gib/dist/helper';
+import { IbGibAddr, V1 } from 'ts-gib';
 import { hash, getIbGibAddr, getTimestamp, pretty } from 'ts-gib/dist/helper';
 import { Factory_V1 as factory, IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
-import * as h from 'ts-gib/dist/helper';
 
+import * as c from '../constants';
 import { CommonService } from 'src/app/services/common.service';
 import {
-  ActionItem, PicData, CommentData, SyncSpaceResultIbGib, ActionItemName,
+  ActionItem, CommentData, SyncSpaceResultIbGib, ActionItemName,
 } from '../types';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { IbgibComponentBase } from '../bases/ibgib-component-base';
 import {
-  getBinIb, getCommentIb, getDependencyGraph,
+  getCommentIb, getDependencyGraph,
   getFnAlert, getFnPrompt,
   getFromSpace, validateIbGibAddr,
 } from '../helper';
-import * as c from '../constants';
-import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { createAndAddPicIbGib } from '../helper/pic';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -163,7 +163,7 @@ export class ActionBarComponent extends IbgibComponentBase
       await this.common.ibgibs.persistTransformResult({resTransform: resCommentIbGib});
       const { newIbGib: newComment } = resCommentIbGib;
       const newCommentAddr = getIbGibAddr({ibGib: newComment});
-      await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newComment, linked: true});
+      // await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newComment, linked: true});
       await this.common.ibgibs.registerNewIbGib({ibGib: newComment});
       // need to nav to picture if not in a context, or
       // or if in context need to rel8 to the context.
@@ -205,86 +205,6 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
-  /**
-   * shared pic code between camera and loading image via picking a file.
-   */
-  async doPic({
-    imageBase64,
-    binHash,
-    filename,
-    ext,
-  }: {
-    imageBase64: string,
-    binHash: string,
-    filename?: string,
-    ext?: string,
-  }): Promise<void> {
-    const lc = `${this.lc}[${this.doPic.name}]`;
-
-    if (logalot) { console.log(`${lc} starting...`); }
-    try {
-
-      const binIb = getBinIb({binHash, binExt: ext});
-      const binIbGib: IbGib_V1 = { ib: binIb, data: <any>imageBase64 };
-
-      const binGib = await getGib({ibGib: binIbGib, hasTjp: false});
-      binIbGib.gib = binGib;
-      const binAddr = h.getIbGibAddr({ibGib: binIbGib});
-
-      if (logalot) { console.log(`${lc} saving initial ibgib pic with data = imageBase64...`); }
-      const resSaveBin = await this.common.ibgibs.put({ibGib: binIbGib});
-      if (!resSaveBin.success) { throw new Error(resSaveBin.errorMsg || 'error saving pic'); }
-      if (logalot) { console.log(`${lc} saving initial ibgib pic with data = imageBase64 complete.`); }
-
-      // todo: do thumbnail also
-
-      // NOTE: This is not the same filename that is saved in the bin folder!
-      // This is for when the picture is downloaded outside of the ibGib system
-      // or for display purposes.
-      const timestamp = (new Date).toUTCString();
-      filename = filename || timestamp
-        .replace(':', '-')
-        .replace(':', '-')
-        .replace(',', '')
-        // .replace(new RegExp(/\W/), '') // any remaining-non-word chars
-        ; // temporary eek.
-
-      if (logalot) { console.log(`${lc} binHash: ${binHash}`); }
-      if (logalot) { console.log(`${lc} ext: ${ext}`); }
-      const data: PicData = { binHash, ext, filename, timestamp };
-      const rel8ns: IbGibRel8ns = {
-        // 'pic on': [this.addr], // makes it more difficult to share/sync ibgibs
-        'bin': [binAddr],
-      };
-
-      // create an ibgib with the filename and ext
-      const resPicIbGib = await factory.firstGen({
-        parentIbGib: factory.primitive({ib: 'pic'}),
-        ib: `pic ${binHash}`,
-        data,
-        rel8ns,
-        dna: true,
-        tjp: { uuid: true, timestamp: true },
-        nCounter: true,
-      });
-      await this.common.ibgibs.persistTransformResult({resTransform: resPicIbGib});
-      const { newIbGib: newPic } = resPicIbGib;
-      await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newPic, linked: true});
-      await this.common.ibgibs.registerNewIbGib({ibGib: newPic});
-      // need to nav to picture if not in a context, or
-      // or if in context need to rel8 to the context.
-
-      // rel8 to context and nav
-      await this._rel8ToCurrentContext({
-        ibGibToRel8: newPic,
-        rel8nNames: ['pic'],
-        navigateAfter: true,
-      });
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-    }
-  }
-
   private async _rel8ToCurrentContext({
     ibGibToRel8,
     rel8nNames,
@@ -313,10 +233,10 @@ export class ActionBarComponent extends IbgibComponentBase
           nCounter: true
         });
 
-      // ...persist it and...
+      // ...persist it...
       await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToContext});
 
-      // ...register it.
+      // ...register the context.
       const { newIbGib: newContext } = resRel8ToContext;
       await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
 
@@ -361,7 +281,19 @@ export class ActionBarComponent extends IbgibComponentBase
       const binHash = await hash({s: image.base64String});
       const ext = image.format;
 
-      await this.doPic({imageBase64: image.base64String, binHash, ext});
+      const newPic = await createAndAddPicIbGib({
+        imageBase64: image.base64String,
+        binHash,
+        ext,
+        common: this.common
+      });
+
+      // rel8 to context and nav
+      await this._rel8ToCurrentContext({
+        ibGibToRel8: newPic,
+        rel8nNames: ['pic'],
+        navigateAfter: true,
+      });
     } catch (error) {
       console.error(`${lc} ${error.message}`)
     } finally {
@@ -374,20 +306,6 @@ export class ActionBarComponent extends IbgibComponentBase
 
   async handleHtml5PicButton(event: any): Promise<void> {
     await this.actionAddImage(event, 'camera');
-  }
-
-  getExt(path: string): { filename: string, ext: string } {
-    const pathPieces = path.split('/');
-    const fullFilename = pathPieces[pathPieces.length-1];
-    if (fullFilename.includes('.') && !fullFilename.endsWith('.')) {
-      const lastDotIndex = fullFilename.lastIndexOf('.');
-      return {
-        filename: fullFilename.slice(0, lastDotIndex),
-        ext: fullFilename.slice(lastDotIndex+1),
-      };
-    } else {
-      return {filename: fullFilename, ext: ""}
-    }
   }
 
   async actionAddImage(event: any, actionItemName: ActionItemName): Promise<void> {
@@ -419,8 +337,20 @@ export class ActionBarComponent extends IbgibComponentBase
           const filename = filenamePieces.slice(0, filenamePieces.length-1).join('.');
           const ext = filenamePieces.slice(filenamePieces.length-1)[0];
 
-          await this.doPic({imageBase64, binHash, filename, ext});
+          const newPic = await createAndAddPicIbGib({
+            imageBase64: imageBase64,
+            binHash,
+            filename,
+            ext,
+            common: this.common
+          });
 
+          // rel8 to context and nav
+          await this._rel8ToCurrentContext({
+            ibGibToRel8: newPic,
+            rel8nNames: ['pic'],
+            navigateAfter: true,
+          });
         } catch (error) {
           console.error(`${lc2} ${error.message}`);
           throw error;

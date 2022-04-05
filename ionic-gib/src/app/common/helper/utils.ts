@@ -195,3 +195,17 @@ export function isExpired({
 export function unique<T>(arr: T[]): T[] {
     return Array.from(new Set<T>(arr));
 }
+
+// export function getExt(path: string): { filename: string, ext: string } {
+//     const pathPieces = path.split('/');
+//     const fullFilename = pathPieces[pathPieces.length-1];
+//     if (fullFilename.includes('.') && !fullFilename.endsWith('.')) {
+//         const lastDotIndex = fullFilename.lastIndexOf('.');
+//         return {
+//             filename: fullFilename.slice(0, lastDotIndex),
+//             ext: fullFilename.slice(lastDotIndex+1),
+//         };
+//     } else {
+//         return {filename: fullFilename, ext: ""}
+//     }
+// }

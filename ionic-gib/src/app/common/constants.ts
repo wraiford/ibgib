@@ -195,6 +195,7 @@ export const AUTOSYNC_ALWAYS_REL8N_NAME = 'always';
  * ```
  */
 export const DEFAULT_ROOT_REL8N_NAME = 'x';
+export const BINARY_REL8N_NAME = 'bin';
 
 export const CONSENSUS_ADDR_SYNC_NAIVE_PUT_MERGE = 'sync naive put merge^gib'
 

@@ -1,5 +1,4 @@
 import { Plugins } from '@capacitor/core';
-import { CommonService } from '../../services/common.service';
 const { Modals } = Plugins;
 
 import { IbGib_V1 } from 'ts-gib/dist/V1';
@@ -8,6 +7,7 @@ import { ChooseIconModalComponent } from '../choose-icon-modal/choose-icon-modal
 import * as c from '../constants';
 import { IconItem } from '../types/ux';
 import { TagIbGib_V1 } from '../types/tag';
+import { CommonService } from '../../services/common.service';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

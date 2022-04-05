@@ -1,0 +1,92 @@
+<ion-header translucent>
+  <ion-toolbar>
+    <ion-title title="Update Pic...">Update Pic...</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="handleSaveClick()">Save Updated Pic</ion-button>
+      <ion-button (click)="handleCancelClick()">Cancel</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content #modalIonContent fullscreen>
+  <ion-item-group>
+    <ion-item-divider>
+      <ion-text color="danger">{{ validationErrors.length > 0 ? 'Errors: ' : ''}}{{ validationErrors.join('\n') }}</ion-text>
+    </ion-item-divider>
+    <ion-item>
+      <ion-text color="primary" position="start">
+        Update a pic for before-after timelapse
+      </ion-text>
+      <ion-button position="end" (click)="handleShowHelpClick()">
+        <ion-icon name="information-circle-outline"></ion-icon>
+      </ion-button>
+    </ion-item>
+    <ion-item *ngIf="showHelp">
+      <ion-text color="primary">
+        <p>
+          Updating pics is a cool thing ermm hmm.
+        </p>
+      </ion-text>
+    </ion-item>
+  </ion-item-group>
+
+  <!-- Update details -->
+  <ion-item-group>
+    <ion-item-divider>
+      <ion-label>Current Pic: </ion-label>
+    </ion-item-divider>
+
+    <ion-item>
+      <pic-view *ngIf='addr'
+        class='pic-item'
+        [addr]='addr'
+        [isTitle]='false'
+        (click)='handleClicked(item)'
+        [style.border-color]="debugBorderColor"
+        [style.border-width]="debugBorderWidth"
+        [style.border-style]="debugBorderStyle"
+        >
+      </pic-view>
+    </ion-item>
+
+    <!-- name -->
+    <ion-item [title]="fields.name.description" >
+      <ion-label
+        position="floating">{{ fields.name.label }}: </ion-label>
+      <ion-input [(ngModel)]="name"
+        [placeholder]="fields.name.placeholder"
+        ></ion-input>
+    </ion-item>
+
+    <!-- description -->
+    <ion-item [title]="fields.description.description">
+      <ion-label position="floating">{{fields.description.label}}: </ion-label>
+      <ion-input [(ngModel)]="description"
+        [placeholder]="fields.description.placeholder"
+        ></ion-input>
+    </ion-item>
+
+    <!-- method -->
+    <!-- <ion-item>
+      <ion-label>{{fields.method.label}}: </ion-label>
+      <ion-select slot="end" [(ngModel)]="method" (ionChange)="method = $event.detail.value">
+        <ion-select-option value='encrypt-gib (weak)'>
+          <ion-label>encrypt-gib (weak)</ion-label>
+        </ion-select-option>
+      </ion-select>
+    </ion-item> -->
+
+    <!-- Hash Algorithm -->
+    <!-- <ion-item [title]="fields.hashAlgorithm.description">
+      <ion-label>{{fields.hashAlgorithm.label}}: </ion-label>
+      <ion-select
+        [value]="hashAlgorithm"
+        okText="Select algorithm"
+        (ionChange)="handleSelectedHashAlgorithmChange($event)"
+        >
+        <ion-select-option value="SHA-256"> <ion-label>SHA-256</ion-label> </ion-select-option>
+        <ion-select-option value="SHA-512"> <ion-label>SHA-512</ion-label> </ion-select-option>
+      </ion-select>
+    </ion-item> -->
+
+  </ion-item-group>
+</ion-content>

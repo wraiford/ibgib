@@ -15,7 +15,7 @@ import * as c from '../common/constants';
 import { IbgibComponentBase } from '../common/bases/ibgib-component-base';
 import { CommonService } from '../services/common.service';
 import { SPECIAL_URLS } from '../common/constants';
-import { LatestEventInfo, PicData, } from '../common/types';
+import { LatestEventInfo, PicData_V1, } from '../common/types';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
 import { createNewTag, ensureDirPath, getBlob, getFnAlert, getFnConfirm, getFnPrompt, pathExists, writeFile, } from '../common/helper';
 import { concatMap } from 'rxjs/operators';
@@ -248,7 +248,7 @@ export class IbGibPage extends IbgibComponentBase
       }
 
       this.downloadingPic = true;
-      const picIbGib = <IbGib_V1<PicData>>this.ibGib;
+      const picIbGib = <IbGib_V1<PicData_V1>>this.ibGib;
       const { data } = picIbGib;
       if (!this.item?.picSrc) { throw new Error(`this.item?.picSrc is falsy...pic not loaded or not a pic? (E: e6c361e80cbd0f6221c51cd3f4b4fb22)`); }
       if (!data.binHash) { throw new Error(`invalid pic data. binHash is falsy. (E: f2ac49f8451c2054833069aac44b8222)`); }
@@ -317,6 +317,19 @@ export class IbGibPage extends IbgibComponentBase
       if (logalot) { console.log(`${lc} complete.`); }
       this.downloadingPic = false;
       setTimeout(() => this.ref.detectChanges());
+    }
+  }
+
+  async handleUpdatePic(): Promise<void> {
+    const lc = `${this.lc}[${this.handleUpdatePic.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 

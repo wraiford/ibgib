@@ -209,14 +209,6 @@ export interface RootData {
 export interface LatestData {
 }
 
-export interface PicData {
-    binHash: string;
-    binHashThumb?: string;
-    ext: string;
-    filename: string;
-    timestamp: string;
-}
-
 export interface CommentData {
     text: string;
     textTimestamp?: string;

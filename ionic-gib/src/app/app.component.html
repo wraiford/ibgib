@@ -84,10 +84,10 @@
                     <ion-label>Robbots</ion-label>
                   </ion-button>
                 </ion-label>
-                <ion-icon class="accordion-expand-btn" *ngIf="menuOpen !== 'spaces'" name="chevron-down-circle-outline" (click)="menuOpen = 'spaces'"></ion-icon>
-                <ion-icon class="accordion-expand-btn" *ngIf="menuOpen === 'spaces'" name="chevron-back-circle-outline" (click)="menuOpen = ''"></ion-icon>
+                <ion-icon class="accordion-expand-btn" *ngIf="menuOpen !== 'robbots'" name="chevron-down-circle-outline" (click)="menuOpen = 'robbots'"></ion-icon>
+                <ion-icon class="accordion-expand-btn" *ngIf="menuOpen === 'robbots'" name="chevron-back-circle-outline" (click)="menuOpen = ''"></ion-icon>
               </ion-list-header>
-              <ion-list *ngIf="menuOpen === 'spaces'" slot="content">
+              <ion-list *ngIf="menuOpen === 'robbots'" slot="content">
                 <ion-item *ngFor="let spaceItem of spaceItems"
                   lines="none"
                   [title]="getSpaceTooltip('outerspace', spaceItem)"
