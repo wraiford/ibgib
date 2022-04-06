@@ -1,6 +1,6 @@
 <ion-header translucent>
   <ion-toolbar>
-    <ion-title title="Update Pic...">Update Pic...</ion-title>
+    <ion-title title="Update Pic 📷...">Update Pic 📷...</ion-title>
     <ion-buttons slot="end">
       <ion-button (click)="handleSaveClick()">Save Updated Pic</ion-button>
       <ion-button (click)="handleCancelClick()">Cancel</ion-button>
@@ -14,7 +14,7 @@
     </ion-item-divider>
     <ion-item>
       <ion-text color="primary" position="start">
-        Update a pic for before-after timelapse
+        Update the image for things like timelapses & before/afters pics.
       </ion-text>
       <ion-button position="end" (click)="handleShowHelpClick()">
         <ion-icon name="information-circle-outline"></ion-icon>
@@ -23,7 +23,7 @@
     <ion-item *ngIf="showHelp">
       <ion-text color="primary">
         <p>
-          Updating pics is a cool thing ermm hmm.
+          If doing a timelapse or before/after pic, be sure to try to get the same angle 📷
         </p>
       </ion-text>
     </ion-item>
@@ -36,10 +36,7 @@
     </ion-item-divider>
 
     <ion-item *ngIf="addr">
-      <p>YES addr IS set</p>
-      <!-- <p>pic-view ion-item</p> -->
-      <p *ngIf="!addr">NO addr is NOT set</p>
-      <pic-view *ngIf="addr"
+      <pic-view
         class="pic-item"
         [addr]="addr"
         [isTitle]="false"
@@ -51,8 +48,8 @@
       </pic-view>
     </ion-item>
     <ion-item *ngIf="!addr">
-      <!-- <p>pic-view ion-item</p> -->
-      <p *ngIf="!addr">NO addr is NOT set</p>
+      <p>...</p>
+      <ion-spinner name="circles" color="tertiary"></ion-spinner>
     </ion-item>
 
     <!-- name -->
@@ -64,11 +61,30 @@
         ></ion-input>
     </ion-item>
 
-    <!-- description -->
-    <ion-item [title]="fields.description.description">
-      <ion-label position="floating">{{fields.description.label}}: </ion-label>
-      <ion-input [(ngModel)]="description"
-        [placeholder]="fields.description.placeholder"
+    <!-- extension -->
+    <ion-item [title]="fields.extension.description" >
+      <ion-label
+        position="floating">{{ fields.extension.label }}: </ion-label>
+      <ion-input [(ngModel)]="extension"
+        [placeholder]="fields.extension.placeholder"
+        ></ion-input>
+    </ion-item>
+
+    <!-- binHash -->
+    <ion-item [title]="fields.binHash.description" >
+      <ion-label
+        position="floating">{{ fields.binHash.label }}: </ion-label>
+      <ion-input [(ngModel)]="binHash"
+        [placeholder]="fields.binHash.placeholder"
+        ></ion-input>
+    </ion-item>
+
+    <!-- timestamp -->
+    <ion-item [title]="fields.timestamp.description" >
+      <ion-label
+        position="floating">{{ fields.timestamp.label }}: </ion-label>
+      <ion-input [(ngModel)]="timestamp"
+        [placeholder]="fields.timestamp.placeholder"
         ></ion-input>
     </ion-item>
 

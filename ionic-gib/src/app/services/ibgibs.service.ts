@@ -2874,7 +2874,6 @@ export class IbgibsService {
       space = space ?? await this.getLocalUserSpace({});
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: c1c0611e158b400daf07e9cb69dd8c8d)`); }
 
-      debugger;
       let newPicIbGib = await this.fnPromptUpdatePic(space, picIbGib);
       if (newPicIbGib) {
         debugger;

@@ -1,19 +1,16 @@
-import { ChangeDetectorRef, Component, Input, OnDestroy, OnInit } from '@angular/core';
-import { IonContent, ModalController } from '@ionic/angular';
+import { ChangeDetectorRef, Component, Input, } from '@angular/core';
+import { ModalController } from '@ionic/angular';
 
 import * as h from 'ts-gib/dist/helper';
-import { IbGib_V1, Factory_V1 as factory } from 'ts-gib/dist/V1';
-import { HashAlgorithm } from 'encrypt-gib';
 import { IbGibAddr, TransformResult } from 'ts-gib';
 
 import * as c from '../../constants';
-import { getExpirationUTCString, getRegExp } from '../../helper';
+import { getRegExp } from '../../helper';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 import { FieldInfo, IbgibItem } from '../../types/ux';
 import { PicIbGib_V1 } from '../../types';
-import { CommonService } from 'src/app/services/common.service';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 /**
@@ -52,31 +49,51 @@ export class UpdatePicModalFormComponent
   public fields: { [name: string]: FieldInfo } = {
     name: {
       name: "name",
-      description: "It's the name for the pic. Make it short with only letters, underscores and hyphens.",
+      description: "It's the filename for the pic (excluding the dot + extension). Make it short with only letters, underscores and hyphens.",
       label: "Name",
       placeholder: `e.g. "my_super_picture_name"`,
-      regexp: getRegExp({min: 1, max: 32, chars: '-', noSpaces: true}),
-      // required: true,
+      regexp: getRegExp({min: 1, max: 1024, chars: '-', noSpaces: true}),
+      readonly: true,
     },
-    description: {
-      name: "description",
-      description: `Description/notes for this pic. Only letters, underscores and ${c.SAFE_SPECIAL_CHARS}`,
-      label: "Description",
-      placeholder: `Describe the pic here...`,
-      regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
+    extension: {
+      name: "extension",
+      description: "It's the extension part of the filename (the part that comes after the last dot).",
+      label: "Extension",
+      placeholder: `e.g. "jpg"`,
+      regexp: getRegExp({min: 1, max: 8, chars: '-', noSpaces: true}),
+      readonly: true,
+    },
+    binHash: {
+      name: "binHash",
+      description: "It's the hash of the file of the image data.",
+      label: "Hash",
+      readonly: true,
+    },
+    timestamp: {
+      name: "timestamp",
+      description: "It's the hash of the file of the image data.",
+      label: "Timestamp",
+      readonly: true,
     },
   }
 
   @Input()
+  get cameraUnicode(): string { return '/u1F4F7'; }
+
+  @Input()
   name: string;
   @Input()
-  description: string;
+  extension: string;
+  @Input()
+  binHash: string;
+  @Input()
+  timestamp: string;
 
   @Input()
   initializing: boolean;
 
   @Input()
-  validationErrors: string[] = super.validationErrors
+  validationErrors: string[];
   @Input()
   validationErrorString: string;
   @Input()
@@ -106,7 +123,6 @@ export class UpdatePicModalFormComponent
     const lc = `${this.lc}[${this.initialize.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
-      debugger;
       if (this.initializing) {
         console.error(`${lc} (UNEXPECTED) already initializing. (E: 4f5cf5940b9f4f3f827f6f03a8c84ce1)`);
         return;
@@ -115,6 +131,10 @@ export class UpdatePicModalFormComponent
 
       this._picIbGib = ibGib;
       this.addr = ibGib ? h.getIbGibAddr({ibGib}) : undefined;
+      this.name = ibGib.data.filename;
+      this.extension = ibGib.data.ext;
+      this.binHash = ibGib.data.binHash;
+      this.timestamp = ibGib.data.timestamp;
 
       setTimeout(() => this.ref.detectChanges());
       this.initializing = false;
