@@ -219,11 +219,10 @@ export class OuterspaceModalFormComponent
   // showHelp: boolean;
 
   constructor(
-    protected modalController: ModalController,
     protected common: CommonService,
     protected alertController: AlertController,
   ) {
-    super(modalController);
+    super(common);
   }
 
   ngOnInit() {

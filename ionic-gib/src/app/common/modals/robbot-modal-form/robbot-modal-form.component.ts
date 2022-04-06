@@ -11,6 +11,7 @@ import { getExpirationUTCString, getRegExp } from '../../helper';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 import { FieldInfo } from '../../types/ux';
 import { RobbotData_V1, RobbotIbGib_V1 } from '../../types/robbot';
+import { CommonService } from '../../../services/common.service';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -133,9 +134,9 @@ export class RobbotModalFormComponent
   showHelp: boolean;
 
   constructor(
-    protected modalController: ModalController,
+    protected common: CommonService,
   ) {
-    super(modalController);
+    super(common);
   }
 
   protected async createImpl(): Promise<TransformResult<RobbotIbGib_V1>> {

@@ -15,6 +15,7 @@ import { HashAlgorithm } from 'encrypt-gib';
 import { TransformResult } from 'ts-gib';
 import { getExpirationUTCString, getRegExp } from '../../helper';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
+import { CommonService } from '../../../services/common.service';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -137,9 +138,9 @@ export class EncryptionModalFormComponent
   showHelp: boolean;
 
   constructor(
-    protected modalController: ModalController,
+    protected common: CommonService,
   ) {
-    super(modalController);
+    super(common);
   }
 
   protected async createImpl(): Promise<TransformResult<EncryptionIbGib>> {

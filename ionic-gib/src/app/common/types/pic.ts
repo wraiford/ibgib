@@ -1,10 +1,13 @@
 import { IbGibAddr } from "ts-gib";
 import { IbGibRel8ns_V1, IbGib_V1 } from "ts-gib/dist/V1";
+import { BinIbGib_V1 } from "./bin"; // js-doc reference
 
 import * as c from '../constants';
 
 /**
  * Data for a pic ibGib
+ *
+ * @see {@link BinIbGib_V1}
  */
 export interface PicData_V1 {
     binHash: string;

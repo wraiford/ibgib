@@ -9,6 +9,8 @@ import { getRegExp } from '../../helper';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 import { FieldInfo, IbgibItem } from '../../types/ux';
 import { PicIbGib_V1 } from '../../types';
+import { createAndAddPicIbGibFromInputFilePickedEvent } from '../../helper/pic';
+import { CommonService } from 'src/app/services/common.service';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -106,11 +108,14 @@ export class UpdatePicModalFormComponent
   public debugBorderColor: string = "#FFDA6B";
   public debugBorderStyle: string = "solid";
 
+  @Input()
+  handlingInputFileClick: boolean;
+
   constructor(
-    protected modalController: ModalController,
+    protected common: CommonService,
     protected ref: ChangeDetectorRef,
   ) {
-    super(modalController);
+    super(common);
 
     this.addNewImageField();
   }
@@ -147,6 +152,21 @@ export class UpdatePicModalFormComponent
     }
   }
 
+  async validateNewPicField(): Promise<void> {
+    const lc = `${this.lc}[${this.validateNewPicField.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      if (this.)
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
   /**
    * I need access to `this` object when creating the new image field.
    */
@@ -156,6 +176,9 @@ export class UpdatePicModalFormComponent
       if (logalot) { console.log(`${lc} starting...`); }
       let fnValid = (_value: string) => {
         debugger;
+
+        await this.validateNewPicField();
+
         return false; // debug
       };
 
@@ -214,4 +237,58 @@ export class UpdatePicModalFormComponent
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
+
+  async filepicked(event: any): Promise<void> {
+    const lc = `${this.lc}[${this.filepicked.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (this.handlingInputFileClick) {
+        console.error(`${lc} (UNEXPECTED) already handling inputfile click. This button should be disabled when already picking. (E: d7417182d5534cb1994dc20336b79342)`);
+        return; // <<<< returns
+      }
+      this.handlingInputFileClick = true;
+
+      const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
+
+      const updatedPic = await createAndAddPicIbGibFromInputFilePickedEvent({
+        event,
+        common: this.common,
+        space,
+      });
+
+      await this.loadUpdatedPic({updatedPic});
+
+      this.handlingInputFileClick = false;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      this.handlingInputFileClick = false;
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  @Input()
+  updatedPic: PicIbGib_V1;
+
+  async loadUpdatedPic({
+    updatedPic,
+  }: {
+    updatedPic: PicIbGib_V1,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.loadUpdatedPic.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      this.updatedPic = updatedPic;
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+      setTimeout(() => this.ref.detectChanges());
+    }
+  }
+
 }

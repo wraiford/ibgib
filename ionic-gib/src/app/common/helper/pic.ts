@@ -1,6 +1,7 @@
 import * as h from 'ts-gib/dist/helper';
 import { Factory_V1 as factory, IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
+// import { hash, getIbGibAddr, getTimestamp, pretty } from 'ts-gib/dist/helper';
 
 import * as c from '../constants';
 import { IconItem } from '../types/ux';
@@ -12,83 +13,229 @@ import {
 } from '../helper';
 import { CommonService } from '../../services/common.service';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
+import { BinIbGib_V1 } from '../types/bin';
+import { persistTransformResult, putInSpace } from './space';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
-
+export async function createBinIbGib({
+  base64Data,
+  binHash,
+  ext,
+  skipSave,
+  space,
+}: {
   /**
-   * shared pic code between camera and loading image via picking a file.
+   * base64-encoded binary data
    */
-  export async function createAndAddPicIbGib({
-    imageBase64,
-    binHash,
-    filename,
-    ext,
-    common,
-    space,
-  }: {
-    imageBase64: string,
-    binHash: string,
-    filename?: string,
-    ext?: string,
-    common: CommonService,
-    space?: IbGibSpaceAny,
-  }): Promise<PicIbGib_V1> {
-    const lc = `[${createAndAddPicIbGib.name}]`;
+  base64Data: string,
+  /**
+   * Hash of data
+   */
+  binHash: string,
+  /**
+   * extension of the binary
+   *
+   * this will be included in the ib
+   */
+  ext?: string,
+  /**
+   * If true, will not save the ibgibs created in the given `space`.
 
+   * @see {@link space}
+   */
+  skipSave?: boolean,
+  /**
+   * space to save the ibgib(s) if `skipSave` is falsy.
+   *
+   * @see {@link skipSave}
+   */
+  space?: IbGibSpaceAny,
+}): Promise<BinIbGib_V1> {
+  const lc = `[${createBinIbGib.name}]`;
+  try {
     if (logalot) { console.log(`${lc} starting...`); }
-    try {
-      const binIb = getBinIb({binHash, binExt: ext});
-      const binIbGib: IbGib_V1 = { ib: binIb, data: <any>imageBase64 };
 
-      const binGib = await getGib({ibGib: binIbGib, hasTjp: false});
-      binIbGib.gib = binGib;
-      const binAddr = h.getIbGibAddr({ibGib: binIbGib});
+    if (!binHash) { throw new Error(`binHash required (E: 09da0190a9353089a9ed8a641fe0bc22)`); }
 
-      if (logalot) { console.log(`${lc} saving initial ibgib pic with data = imageBase64...`); }
-      const resSaveBin = await common.ibgibs.put({ibGib: binIbGib, space});
-      if (!resSaveBin.success) { throw new Error(resSaveBin.errorMsg || 'error saving pic'); }
-      if (logalot) { console.log(`${lc} saving initial ibgib pic with data = imageBase64 complete.`); }
+    const binIb = getBinIb({binHash, binExt: ext});
+    const binIbGib: BinIbGib_V1 = { ib: binIb, data: <any>base64Data };
 
-      // todo: do thumbnail also
+    const binGib = await getGib({ibGib: binIbGib, hasTjp: false});
+    binIbGib.gib = binGib;
 
-      // NOTE: This is not the same filename that is saved in the bin folder!
-      // This is for when the picture is downloaded outside of the ibGib system
-      // or for display purposes.
-      const timestamp = (new Date).toUTCString();
-      filename = filename || timestamp
-        .replace(':', '-')
-        .replace(':', '-')
-        .replace(',', '')
-        // .replace(new RegExp(/\W/), '') // any remaining-non-word chars
-        ; // temporary eek.
+    if (!skipSave) {
+      // prepare
+      if (!space) { throw new Error(`space required if skipSave is falsy. (E: b8a5ebbac47d757afce940d2f0af3122)`); }
+      if (logalot) { console.log(`${lc} saving binary ibgib in space... (I: 8235addb1b3e4e638ef568da5f219d29)`); }
 
-      if (logalot) { console.log(`${lc} binHash: ${binHash}`); }
-      if (logalot) { console.log(`${lc} ext: ${ext}`); }
-      const data: PicData_V1 = { binHash, ext, filename, timestamp };
-      const rel8ns: IbGibRel8ns_V1 = {
-        // 'pic on': [addr], // makes it more difficult to share/sync ibgibs
-        [c.BINARY_REL8N_NAME]: [binAddr],
-      };
+      // execute put
+      const resSaveBin = await putInSpace({ibGib: binIbGib, space});
 
-      // create an ibgib with the filename and ext
-      const resPicIbGib = await factory.firstGen({
-        parentIbGib: factory.primitive({ib: 'pic'}),
-        ib: `pic ${binHash}`,
-        data,
-        rel8ns,
-        dna: true,
-        tjp: { uuid: true, timestamp: true },
-        nCounter: true,
-      });
-      await common.ibgibs.persistTransformResult({resTransform: resPicIbGib, space});
-      const newPic = <PicIbGib_V1>resPicIbGib.newIbGib;
-    //   await common.ibgibs.rel8ToCurrentRoot({ibGib: newPic, linked: true, space});
-      await common.ibgibs.registerNewIbGib({ibGib: newPic, space});
+      // if errored, throw
+      if (!resSaveBin.success) { throw new Error(resSaveBin.errorMsg || 'error saving pic (E: cf892bc62ab44ec58534d9881c9c4332)'); }
 
-      return newPic;
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
+      // cleanup
+      if (logalot) { console.log(`${lc} saving binary ibgib in space complete. (I: 4aa8d03088ad477dbee089394b3b9902)`); }
     }
+
+    return binIbGib;
+  } catch (error) {
+    console.error(`${lc} ${error.message}`);
+    throw error;
+  } finally {
+    if (logalot) { console.log(`${lc} complete.`); }
   }
+}
+
+/**
+ * shared pic code between camera and loading image via picking a file.
+ */
+export async function createAndAddPicIbGib({
+  common,
+  imageBase64,
+  binHash,
+  filename,
+  ext,
+  skipSave,
+  space,
+}: {
+  /**
+   * common service that is used in this function.
+   */
+  common: CommonService,
+  imageBase64: string,
+  binHash: string,
+  filename?: string,
+  ext?: string,
+  /**
+   * If true, will not save the ibgibs created in the given `space`.
+   */
+  skipSave?: boolean,
+  /**
+   * If not `skipSave`, all ibgibs created in this function will be stored in
+   * this space.
+   */
+  space?: IbGibSpaceAny,
+}): Promise<PicIbGib_V1> {
+  const lc = `[${createAndAddPicIbGib.name}]`;
+
+  if (logalot) { console.log(`${lc} starting...`); }
+  try {
+    const binIbGib =
+      await createBinIbGib({base64Data: imageBase64, binHash, ext, skipSave, space});
+    const binAddr = h.getIbGibAddr({ibGib: binIbGib});
+
+
+    // todo: do thumbnail also
+
+    // NOTE: This is not the same filename that is saved in the bin folder!
+    // This is for when the picture is downloaded outside of the ibGib system
+    // or for display purposes.
+    const timestamp = (new Date).toUTCString();
+    filename = filename || timestamp
+      .replace(':', '-')
+      .replace(':', '-')
+      .replace(',', '')
+      // .replace(new RegExp(/\W/), '') // any remaining-non-word chars
+      ; // temporary eek.
+
+    if (logalot) { console.log(`${lc} binHash: ${binHash}`); }
+    if (logalot) { console.log(`${lc} ext: ${ext}`); }
+    const data: PicData_V1 = { binHash, ext, filename, timestamp };
+    const rel8ns: IbGibRel8ns_V1 = {
+      // 'pic on': [addr], // makes it more difficult to share/sync ibgibs
+      [c.BINARY_REL8N_NAME]: [binAddr],
+    };
+
+    // create an ibgib with the filename and ext
+    const resPicIbGib = await factory.firstGen({
+      parentIbGib: factory.primitive({ib: 'pic'}),
+      ib: `pic ${binHash}`,
+      data,
+      rel8ns,
+      dna: true,
+      tjp: { uuid: true, timestamp: true },
+      nCounter: true,
+    });
+    if (!skipSave) {
+      if (!space) { throw new Error(`space required if skipSave is falsy (E: 966901041c9e166c0f5ed23114003722)`); }
+      await persistTransformResult({resTransform: resPicIbGib, space});
+    }
+    const newPic = <PicIbGib_V1>resPicIbGib.newIbGib;
+  //   await common.ibgibs.rel8ToCurrentRoot({ibGib: newPic, linked: true, space});
+    await common.ibgibs.registerNewIbGib({ibGib: newPic, space});
+
+    return newPic;
+  } catch (error) {
+    console.error(`${lc} ${error.message}`);
+    throw error;
+  }
+}
+
+export function createAndAddPicIbGibFromInputFilePickedEvent({
+  event,
+  common,
+  space,
+}: {
+  event: any,
+  common: CommonService,
+  space: IbGibSpaceAny,
+}): Promise<PicIbGib_V1> {
+  const lc = `[${createAndAddPicIbGibFromInputFilePickedEvent.name}]`;
+  try {
+    // validate incoming input picker result
+    // thanks https://edupala.com/capacitor-camera-example/
+    const target = event.target as HTMLInputElement;
+    if (!target) { throw new Error(`event.target required (E: a9ade57d4359d3b0bbc75c3fea093a22)`); }
+    if ((target.files ?? []).length === 0) { throw new Error(`target.files is falsy/empty (E: f2932f1012c9e04a5f06a521a381ff22)`); }
+    const file = target.files[0];
+    if (!file) { throw new Error(`file required. (E: 24a8bf4cdf17dcae04b15438bc0a4522)`); }
+    const pattern = /image-*/;
+    if (!file.type.match(pattern)) { throw new Error(`File format not supported (E: dca558def013c1c85c83f0ac088b2122)`); }
+
+    // wrap reader in promise for use with async/await
+    return new Promise<PicIbGib_V1>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (_: any) => {
+        const lc2 = `${lc}[reader.onload]`;
+        try {
+          if (logalot) { console.log(`${lc2} starting... (I: 1e948476ca86b328a12700dc57be0a22)`); }
+          let imageBase64 = reader.result.toString().split('base64,')[1];
+          let binHash = await h.hash({s: imageBase64});
+          const filenameWithExt = file.name;
+          const filenamePieces = filenameWithExt.split('.');
+          const filename = filenamePieces.slice(0, filenamePieces.length-1).join('.');
+          const ext = filenamePieces.slice(filenamePieces.length-1)[0];
+
+          const newPic = await createAndAddPicIbGib({
+            imageBase64: imageBase64,
+            binHash,
+            filename,
+            ext,
+            common,
+            space,
+          });
+          resolve(newPic);
+
+          // rel8 to context and nav
+          // await _rel8ToCurrentContext({
+          //   ibGibToRel8: newPic,
+          //   rel8nNames: ['pic'],
+          //   navigateAfter: true,
+          // });
+        } catch (error) {
+          console.error(`${lc2} ${error.message}`);
+          reject(error);
+        } finally {
+          if (logalot) { console.log(`${lc2} complete. (I: d88dcaeb874c4f049d51d58655dc2b62)`); }
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+  } catch (error) {
+    console.error(`${lc} ${error.message}`);
+    throw error;
+  }
+}

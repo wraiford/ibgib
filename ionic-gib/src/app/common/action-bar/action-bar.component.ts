@@ -21,7 +21,7 @@ import {
   getFnAlert, getFnPrompt,
   getFromSpace, validateIbGibAddr,
 } from '../helper';
-import { createAndAddPicIbGib } from '../helper/pic';
+import { createAndAddPicIbGib, createAndAddPicIbGibFromInputFilePickedEvent } from '../helper/pic';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -257,52 +257,52 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
-  /**
-   * Horrifically large function to add a picture,
-   * create the ibgib, save, etc.
-   *
-   * Must refactor this at a later time though.
-   */
-  async actionAddPic(event: MouseEvent): Promise<void> {
-    const lc = `${this.lc}[${this.actionAddPic.name}]`;
-    let actionItem: ActionItem;
-    try {
-      actionItem = this.items.filter(x => x.name === 'camera')[0];
-      actionItem.busy = true;
+  //  This function is not in use because Camera is very limited. Commenting out
+  //  for now, delete this later after download pic is implemented correctly.
+  // /**
+  //  * This function uses the Capacitor Camera to add a picture, create the ibgib,
+  //  * save, etc.
+  //  */
+  // async actionAddPic(event: MouseEvent): Promise<void> {
+  //   const lc = `${this.lc}[${this.actionAddPic.name}]`;
+  //   let actionItem: ActionItem;
+  //   try {
+  //     actionItem = this.items.filter(x => x.name === 'camera')[0];
+  //     actionItem.busy = true;
 
-      // get the image from the camera
-      const image = await Camera.getPhoto({
-        quality: 90,
-        allowEditing: false,
-        resultType: CameraResultType.Base64,
-      });
-      // save the image bin data
-      // get the hash of the image
-      const binHash = await hash({s: image.base64String});
-      const ext = image.format;
+  //     // get the image from the camera
+  //     const image = await Camera.getPhoto({
+  //       quality: 90,
+  //       allowEditing: false,
+  //       resultType: CameraResultType.Base64,
+  //     });
+  //     // save the image bin data
+  //     // get the hash of the image
+  //     const binHash = await hash({s: image.base64String});
+  //     const ext = image.format;
 
-      const newPic = await createAndAddPicIbGib({
-        imageBase64: image.base64String,
-        binHash,
-        ext,
-        common: this.common
-      });
+  //     const newPic = await createAndAddPicIbGib({
+  //       imageBase64: image.base64String,
+  //       binHash,
+  //       ext,
+  //       common: this.common
+  //     });
 
-      // rel8 to context and nav
-      await this._rel8ToCurrentContext({
-        ibGibToRel8: newPic,
-        rel8nNames: ['pic'],
-        navigateAfter: true,
-      });
-    } catch (error) {
-      console.error(`${lc} ${error.message}`)
-    } finally {
-      if (actionItem) {
-        actionItem.busy = false;
-        this.ref.detectChanges();
-      }
-    }
-  }
+  //     // rel8 to context and nav
+  //     await this._rel8ToCurrentContext({
+  //       ibGibToRel8: newPic,
+  //       rel8nNames: ['pic'],
+  //       navigateAfter: true,
+  //     });
+  //   } catch (error) {
+  //     console.error(`${lc} ${error.message}`)
+  //   } finally {
+  //     if (actionItem) {
+  //       actionItem.busy = false;
+  //       this.ref.detectChanges();
+  //     }
+  //   }
+  // }
 
   async handleHtml5PicButton(event: any): Promise<void> {
     await this.actionAddImage(event, 'camera');
@@ -312,38 +312,46 @@ export class ActionBarComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.actionAddImage.name}]`;
     let actionItem: ActionItem;
     try {
+      if (logalot) { console.log(`${lc} starting... (I: d9ef296eec29433fba5d7fd07e9f4a99)`); }
       actionItem = this.items.filter(x => x.name === actionItemName)[0];
       actionItem.busy = true;
+      const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
 
-      // await Modals.alert({title: 'file', message: `picked a file yo`});
-      // thanks https://edupala.com/capacitor-camera-example/
-      const file = (event.target as HTMLInputElement).files[0];
-      const pattern = /image-*/;
-      const reader = new FileReader();
+      const newPic = await createAndAddPicIbGibFromInputFilePickedEvent({
+        event,
+        common: this.common,
+        space,
+      });
 
-      if (!file.type.match(pattern)) {
-        if (logalot) { console.log('File format not supported'); }
-        return;
-      }
+      // // await Modals.alert({title: 'file', message: `picked a file yo`});
+      // // thanks https://edupala.com/capacitor-camera-example/
+      // const file = (event.target as HTMLInputElement).files[0];
+      // const pattern = /image-*/;
+      // const reader = new FileReader();
 
-      reader.onload = async (_: any) => {
-        const lc2 = `${lc}[reader.onload]`;
-        try {
-          if (logalot) { console.log(`${lc2} starting... (I: 1e948476ca86b328a12700dc57be0a22)`); }
-          let imageBase64 = reader.result.toString().split('base64,')[1];
-          let binHash = await hash({s: imageBase64});
-          const filenameWithExt = file.name;
-          const filenamePieces = filenameWithExt.split('.');
-          const filename = filenamePieces.slice(0, filenamePieces.length-1).join('.');
-          const ext = filenamePieces.slice(filenamePieces.length-1)[0];
+      // if (!file.type.match(pattern)) {
+      //   if (logalot) { console.log('File format not supported'); }
+      //   return;
+      // }
 
-          const newPic = await createAndAddPicIbGib({
-            imageBase64: imageBase64,
-            binHash,
-            filename,
-            ext,
-            common: this.common
-          });
+      // reader.onload = async (_: any) => {
+      //   const lc2 = `${lc}[reader.onload]`;
+      //   try {
+      //     if (logalot) { console.log(`${lc2} starting... (I: 1e948476ca86b328a12700dc57be0a22)`); }
+      //     let imageBase64 = reader.result.toString().split('base64,')[1];
+      //     let binHash = await hash({s: imageBase64});
+      //     const filenameWithExt = file.name;
+      //     const filenamePieces = filenameWithExt.split('.');
+      //     const filename = filenamePieces.slice(0, filenamePieces.length-1).join('.');
+      //     const ext = filenamePieces.slice(filenamePieces.length-1)[0];
+
+      //     const newPic = await createAndAddPicIbGib({
+      //       imageBase64: imageBase64,
+      //       binHash,
+      //       filename,
+      //       ext,
+      //       common: this.common
+      //     });
 
           // rel8 to context and nav
           await this._rel8ToCurrentContext({
@@ -351,24 +359,27 @@ export class ActionBarComponent extends IbgibComponentBase
             rel8nNames: ['pic'],
             navigateAfter: true,
           });
-        } catch (error) {
-          console.error(`${lc2} ${error.message}`);
-          throw error;
-        } finally {
-          if (actionItem) {
-            actionItem.busy = false;
-            this.ref.detectChanges();
-          }
-          if (logalot) { console.log(`${lc2} complete. (I: d88dcaeb874c4f049d51d58655dc2b62)`); }
-        }
-      };
-      reader.readAsDataURL(file);
+      //   } catch (error) {
+      //     console.error(`${lc2} ${error.message}`);
+      //     throw error;
+      //   } finally {
+      //     if (actionItem) {
+      //       actionItem.busy = false;
+      //       this.ref.detectChanges();
+      //     }
+      //     if (logalot) { console.log(`${lc2} complete. (I: d88dcaeb874c4f049d51d58655dc2b62)`); }
+      //   }
+      // };
+      // reader.readAsDataURL(file);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
+      // doesn't rethrow at this level
+    } finally {
       if (actionItem) {
         actionItem.busy = false;
         this.ref.detectChanges();
       }
+      if (logalot) { console.log(`${lc} complete. (I: d88dcaeb874c4f049d51d58655dc2b62)`); }
     }
   }
 

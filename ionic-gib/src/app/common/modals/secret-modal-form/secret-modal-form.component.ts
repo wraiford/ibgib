@@ -12,6 +12,7 @@ import {
 import { TransformResult } from 'ts-gib';
 import { getExpirationUTCString, getRegExp, hash16816 } from '../../helper';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
+import { CommonService } from '../../../services/common.service';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -144,10 +145,9 @@ export class SecretModalFormComponent
   showHelp: boolean;
 
   constructor(
-    protected modalController: ModalController,
-    private ref: ChangeDetectorRef,
+    protected common: CommonService,
   ) {
-    super(modalController);
+    super(common);
   }
 
   ngOnInit() {

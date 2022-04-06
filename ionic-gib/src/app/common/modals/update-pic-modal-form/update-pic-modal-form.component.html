@@ -52,6 +52,33 @@
       <ion-spinner name="circles" color="tertiary"></ion-spinner>
     </ion-item>
 
+    <ion-item-divider>
+      <ion-label>Updated Pic: </ion-label>
+    </ion-item-divider>
+
+    <ion-item *ngIf='updatedIbGibSrc'>
+      <img [src]='updatedIbGibSrc'/>
+    </ion-item>
+    <!-- Pick image from file input -->
+    <ion-item>
+      <ion-button *ngIf='item.type === "inputfile" && (gib !== "gib" || item.allowPrimitive)'
+        color="primary"
+        (click)='inputFile.click()'>
+        <ion-icon *ngFor="let iconName of item?.icons" slot="start" [name]="iconName"></ion-icon>
+        <ion-spinner *ngIf="item.busy" name="circles" color="tertiary"></ion-spinner>
+        <input #inputFile type="file" hidden (change)='item.filepicked($event)'/>
+      </ion-button>
+    </ion-item>
+    <!-- Get image from camera capture -->
+    <ion-item>
+      <ion-button *ngIf='item.type === "inputfile-camera" && (gib !== "gib" || item.allowPrimitive)'
+        color="primary"
+        (click)='inputFileCapture.click()'>
+        <ion-icon *ngFor="let iconName of item?.icons" slot="start" [name]="iconName"></ion-icon>
+        <ion-spinner *ngIf="handlingInputFileClick" name="circles" color="tertiary"></ion-spinner>
+        <input #inputFileCapture type="file" hidden (change)='filepicked($event)' accept="image/*" capture/>
+      </ion-button>
+    </ion-item>
     <!-- name -->
     <ion-item [title]="fields.name.description" >
       <ion-label

@@ -1,14 +1,11 @@
-import { AfterViewInit, Component, Injectable, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { IonContent, ModalController } from '@ionic/angular';
-
-import { IbGib_V1, Factory_V1 as factory } from 'ts-gib/dist/V1';
-import * as h from 'ts-gib/dist/helper';
+import { Injectable, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { IonContent } from '@ionic/angular';
 
 import * as c from '../constants';
 import {
   FieldInfo,
 } from '../types';
-import { getRegExp } from '../helper';
+import { CommonService } from '../../services/common.service';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -57,7 +54,7 @@ export abstract class ModalFormComponentBase<TDataOut> implements OnInit, OnDest
   isReadonly: boolean;
 
   constructor(
-    protected modalController: ModalController,
+    protected common: CommonService,
   ) { }
 
   ngOnInit() {
@@ -82,7 +79,7 @@ export abstract class ModalFormComponentBase<TDataOut> implements OnInit, OnDest
       }
 
       const data = await this.createImpl();
-      await this.modalController.dismiss(data);
+      await this.common.modalController.dismiss(data);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     }
@@ -93,7 +90,7 @@ export abstract class ModalFormComponentBase<TDataOut> implements OnInit, OnDest
   async handleCancelClick(): Promise<void> {
     const lc = `${this.lc}[${this.handleCancelClick.name}]`;
     if (logalot) { console.log(`${lc}`); }
-    await this.modalController.dismiss();
+    await this.common.modalController.dismiss();
   }
 
   async validateForm(): Promise<string[]> {
