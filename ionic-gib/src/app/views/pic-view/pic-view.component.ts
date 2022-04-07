@@ -44,10 +44,17 @@ export class PicViewComponent
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
     if (logalot) { console.log(`${lc} updating...`); }
     try {
+      await this.smallDelayToLoadBalanceUI();
       await super.updateIbGib(addr);
       await this.loadIbGib();
       await this.loadTjp();
       await this.loadItem();
+      if (!this.paused) {
+        this.item.refreshing = true;
+        setTimeout(async () => {
+          await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjp: this.tjp});
+        });
+      }
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);
       this.clearItem();

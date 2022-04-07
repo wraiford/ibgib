@@ -330,6 +330,7 @@ export const DEFAULT_ENCRYPTION_HASH_ALGORITHM = 'SHA-256';
  * When sanitizing input.
  */
 export const ALLISH_SPECIAL_CHARS = `\`~!@#$%^&*()_\\-+=|\\\\\\]}[{"':;?/>.<,`;
+export const FILENAME_SPECIAL_CHARS = ` \`~!@#$%&*()_\\-+=|\\]}[{"';?>.<,`;
 
 /**
  * If this matches, then we will encode the data field in our storage (aws

@@ -14,7 +14,7 @@ import * as c from '../constants';
 import { EncryptionModalFormComponent } from '../modals/encryption-modal-form/encryption-modal-form.component';
 import { OuterspaceModalFormComponent } from '../modals/outerspace-modal-form/outerspace-modal-form.component';
 import { CommonService } from '../../services/common.service';
-import { UpdatePicModalFormComponent } from '../modals/update-pic-modal-form/update-pic-modal-form.component';
+import { UpdatePicModalFormComponent, UpdatePicModalResult } from '../modals/update-pic-modal-form/update-pic-modal-form.component';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -231,22 +231,22 @@ export function getFn_promptCreateOuterSpaceIbGib(
  */
 export function getFn_promptUpdatePicIbGib(
     common: CommonService,
-): (space: IbGibSpaceAny, picIbGib: PicIbGib_V1) => Promise<PicIbGib_V1 | undefined> {
+): (space: IbGibSpaceAny, picIbGib: PicIbGib_V1) => Promise<UpdatePicModalResult | undefined> {
     const lc = `[${getFn_promptUpdatePicIbGib.name}]`;
     return async (space: IbGibSpaceAny, picIbGib: PicIbGib_V1) => {
         try {
             const modal = await common.modalController.create({
                 component: UpdatePicModalFormComponent,
-                componentProps: { picIbGib },
+                componentProps: { picIbGib, space },
             });
             await modal.present();
             let resModal = await modal.onWillDismiss();
             if (resModal.data) {
-                const resNewPicIbGib = <TransformResult<PicIbGib_V1>>resModal.data;
-                await common.ibgibs.persistTransformResult({resTransform: resNewPicIbGib, space});
-                const addr = h.getIbGibAddr({ibGib: resNewPicIbGib.newIbGib});
+                const result = <UpdatePicModalResult>resModal.data;
+                const [resCreatePic, _resCreateBin] = result;
+                const addr = h.getIbGibAddr({ibGib: resCreatePic.newIbGib});
                 if (logalot) { console.log(`${lc} updated pic. addr: ${addr}`); }
-                return resNewPicIbGib.newIbGib;
+                return result;
             } else {
                 // didn't create one
                 console.warn(`${lc} didn't create at this time.`);

@@ -1,19 +1,22 @@
 import { ChangeDetectorRef, Component, Input, } from '@angular/core';
-import { ModalController } from '@ionic/angular';
 
 import * as h from 'ts-gib/dist/helper';
-import { IbGibAddr, TransformResult } from 'ts-gib';
+import { IbGibAddr, TransformResult, V1 } from 'ts-gib';
 
 import * as c from '../../constants';
 import { getRegExp } from '../../helper';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 import { FieldInfo, IbgibItem } from '../../types/ux';
 import { PicIbGib_V1 } from '../../types';
-import { createAndAddPicIbGibFromInputFilePickedEvent } from '../../helper/pic';
-import { CommonService } from 'src/app/services/common.service';
+import { createPicAndBinIbGibsFromInputFilePickedEvent } from '../../helper/pic';
+import { CommonService } from '../../../services/common.service';
+import { BinIbGib_V1 } from '../../types/bin';
+import { IbGibSpaceAny } from '../../witnesses/spaces/space-base-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
+
+export type UpdatePicModalResult = [TransformResult<PicIbGib_V1>, TransformResult<BinIbGib_V1>];
 
 /**
  * Prompts the user for information gathering and generates a new ibGib.
@@ -26,9 +29,12 @@ const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
   styleUrls: ['./update-pic-modal-form.component.scss'],
 })
 export class UpdatePicModalFormComponent
-  extends ModalFormComponentBase<TransformResult<PicIbGib_V1>> {
+  extends ModalFormComponentBase<UpdatePicModalResult> {
 
   protected lc: string = `[${UpdatePicModalFormComponent.name}]`;
+
+  @Input()
+  space: IbGibSpaceAny;
 
   /**
    * Address of the current pic ibgib
@@ -45,8 +51,17 @@ export class UpdatePicModalFormComponent
     this.initialize({ibGib});
   }
 
+  /**
+   * item containing information about the current pic ibgib.
+   */
   @Input()
   item: IbgibItem;
+  /**
+   * Item corresponding to what the updated ibgib would look like (before it is
+   * saved).
+   */
+  @Input()
+  updatedItem: IbgibItem;
 
   public fields: { [name: string]: FieldInfo } = {
     name: {
@@ -54,7 +69,7 @@ export class UpdatePicModalFormComponent
       description: "It's the filename for the pic (excluding the dot + extension). Make it short with only letters, underscores and hyphens.",
       label: "Name",
       placeholder: `e.g. "my_super_picture_name"`,
-      regexp: getRegExp({min: 1, max: 1024, chars: '-', noSpaces: true}),
+      regexp: getRegExp({min: 1, max: 1024, chars: c.FILENAME_SPECIAL_CHARS, noSpaces: false}),
       readonly: true,
     },
     extension: {
@@ -77,6 +92,11 @@ export class UpdatePicModalFormComponent
       label: "Timestamp",
       readonly: true,
     },
+    newImage: {
+      name: "newImage",
+      fnValid: (_value) => { return true; },
+      fnErrorMsg: `Take a pic with the camera or select a new image from a file.`,
+    }
   }
 
   @Input()
@@ -111,13 +131,26 @@ export class UpdatePicModalFormComponent
   @Input()
   handlingInputFileClick: boolean;
 
+  /**
+   * Transform result for the new pic ibgib candidate .
+   *
+   * This is populated when the user picks/captures an image
+   */
+  resCreatePic: TransformResult<PicIbGib_V1>;
+  /**
+   * The actual binary file of the pic.
+   *
+   * This is populated when the user picks/captures an image
+   */
+  resCreateBin: TransformResult<BinIbGib_V1>;
+
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
   ) {
     super(common);
 
-    this.addNewImageField();
+    // this.addNewImageField();
   }
 
   async initialize({
@@ -152,13 +185,18 @@ export class UpdatePicModalFormComponent
     }
   }
 
-  async validateNewPicField(): Promise<void> {
-    const lc = `${this.lc}[${this.validateNewPicField.name}]`;
+  async validateForm(): Promise<string[]> {
+    const lc = `${this.lc}[${this.validateForm.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
-
-      if (this.)
-
+      let validationErrors = await super.validateForm();
+      if (!this.resCreateBin || !this.resCreatePic) {
+        const emsg = `Where's the new image to update? New pic requires a new image!`;
+        validationErrors.push(emsg);
+        this.validationErrors.push(emsg);
+        this.erroredFields.push('newImage');
+      }
+      return validationErrors;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -167,59 +205,82 @@ export class UpdatePicModalFormComponent
     }
   }
 
-  /**
-   * I need access to `this` object when creating the new image field.
-   */
-  addNewImageField(): void {
-    const lc = `${this.lc}[${this.addNewImageField.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting...`); }
-      let fnValid = (_value: string) => {
-        debugger;
-
-        await this.validateNewPicField();
-
-        return false; // debug
-      };
-
-      let fieldNewImage = <FieldInfo>{
-        name: "newImage",
-        description: `The updated image that will replace the current pic's image.`,
-        label: "Updated Image: ",
-        fnValid,
-        fnErrorMsg: `Take a pic with the camera or select a new image from a file.`,
-        required: true,
-      };
-
-      this.fields['newImage'] = fieldNewImage;
-
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
-
-  protected async createImpl(): Promise<TransformResult<PicIbGib_V1>> {
-    const lc = `${this.lc}[${this.handleSaveClick.name}]`;
+  protected async createImpl(): Promise<UpdatePicModalResult> {
+    const lc = `${this.lc}[${this.createImpl.name}]`;
     try {
       if (logalot) { console.log(`${lc}`); }
-      this.showHelp = false;
-      const validationErrors = await this.validateForm();
-      if (validationErrors.length > 0) {
-        console.warn(`${lc} validation failed. Errors:\n${validationErrors.join('\n')}`);
-        return;
+
+      // the new binary ibgib(s) are already created, but the
+      // pic ibgib is as if it's created anew. We need to mutate
+      // the current pic ibgib to use the new binary
+
+      // current code when creating new pic ibgibs
+      // const data: PicData_V1 = { binHash, ext, filename, timestamp };
+      // const rel8ns: IbGibRel8ns_V1 = {
+      //   // 'pic on': [addr], // makes it more difficult to share/sync ibgibs
+      //   [c.BINARY_REL8N_NAME]: [binAddr],
+      // };
+
+      // // create an ibgib with the filename and ext
+      // const resPicIbGib = <TransformResult<PicIbGib_V1>>await factory.firstGen({
+      //   parentIbGib: factory.primitive({ib: 'pic'}),
+      //   ib: `pic ${binHash}`,
+      //   data,
+      //   rel8ns,
+      //   dna: true,
+      //   tjp: { uuid: true, timestamp: true },
+      //   nCounter: true,
+      // });
+
+      /** This was created as if the pic were brand new (not mutated) */
+      const newPicFromScratchIbGib = this.resCreatePic.newIbGib;
+
+      // do the update in two phases: 1) mut8 data & ib, and 2) rel8 new binary
+      const resMut8DataAndIb = <TransformResult<PicIbGib_V1>>await V1.mut8({
+        src: this._picIbGib,
+        mut8Ib: newPicFromScratchIbGib.ib,
+        dataToAddOrPatch: {
+          binHash: newPicFromScratchIbGib.data.binHash,
+          filename: newPicFromScratchIbGib.data.filename,
+          ext: newPicFromScratchIbGib.data.ext,
+          timestamp: newPicFromScratchIbGib.data.timestamp,
+        },
+        dna: true,
+        nCounter: true,
+        noTimestamp: true,
+      });
+
+      const binAddr = h.getIbGibAddr({ibGib: this.resCreateBin.newIbGib});
+      const resRel8Bin = <TransformResult<PicIbGib_V1>>await V1.rel8({
+        src: resMut8DataAndIb.newIbGib,
+        // linkedRel8ns: [c.BINARY_REL8N_NAME],
+        rel8nsToAddByAddr: {
+          [c.BINARY_REL8N_NAME]: [binAddr],
+        },
+        dna: true,
+        nCounter: true,
+        noTimestamp: true,
+      });
+
+      /**
+       * Combined transform result of the two transform results, which probably
+       * should be some kind of helper util.
+       */
+      const resCombined: TransformResult<PicIbGib_V1> = {
+        newIbGib: resRel8Bin.newIbGib,
+        intermediateIbGibs: [
+          resMut8DataAndIb.newIbGib,
+          // atow no intermediateIbGibs...
+          ...(resMut8DataAndIb.intermediateIbGibs ?? []),
+          ...(resRel8Bin.intermediateIbGibs ?? []),
+        ],
+        dnas: [
+          ...resMut8DataAndIb.dnas,
+          ...resRel8Bin.dnas,
+        ],
       }
 
-      let resNewIbGib: TransformResult<PicIbGib_V1>;
-
-      // create the new pic
-
-      if (!resNewIbGib) { throw new Error(`creation failed...`); }
-
-      return resNewIbGib;
-      // await this.modalController.dismiss(resNewIbGib);
+      return [resCombined, this.resCreateBin];
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     }
@@ -229,6 +290,8 @@ export class UpdatePicModalFormComponent
     const lc = `${this.lc}[${this.handlePicClicked.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
+
+      if (logalot) { console.log(`${lc} yes, this is pic...you have clicked it. wtg. (I: 03141e30d828384908dd259cd7518e22)`); }
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -250,13 +313,19 @@ export class UpdatePicModalFormComponent
 
       const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
 
-      const updatedPic = await createAndAddPicIbGibFromInputFilePickedEvent({
-        event,
-        common: this.common,
-        space,
+      // create the pic (and all other dependency ibgibs), but do not save yet.
+      // we will save when the user chooses save update.
+      const [resCreatePic, resCreateBin] = await createPicAndBinIbGibsFromInputFilePickedEvent({
+        event, saveInSpace: false, space,
       });
 
-      await this.loadUpdatedPic({updatedPic});
+
+      // populate our fields for the updated pic candidate
+      this.resCreatePic = resCreatePic;
+      this.resCreateBin = resCreateBin;
+
+      // update our item
+      await this.loadUpdatedItem();
 
       this.handlingInputFileClick = false;
     } catch (error) {
@@ -268,19 +337,34 @@ export class UpdatePicModalFormComponent
     }
   }
 
-  @Input()
-  updatedPic: PicIbGib_V1;
-
-  async loadUpdatedPic({
-    updatedPic,
-  }: {
-    updatedPic: PicIbGib_V1,
-  }): Promise<void> {
-    const lc = `${this.lc}[${this.loadUpdatedPic.name}]`;
+  /**
+   * Builds what the updated ibgib item would be based on the values in
+   * `resCreatePic` and `resCreateBin`.
+   *
+   * @see {@link resCreatePic}
+   * @see {@link resCreateBin}
+   */
+  async loadUpdatedItem(): Promise<void> {
+    const lc = `${this.lc}[${this.loadUpdatedItem.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
-      this.updatedPic = updatedPic;
+      const newPicIbGib = this.resCreatePic.newIbGib;
+      const data = newPicIbGib.data;
+      const binIbGib = this.resCreateBin.newIbGib;
+      this.updatedItem = {
+        addr: h.getIbGibAddr({ibGib: newPicIbGib}),
+        binExt: data.ext,
+        binId: data.binHash,
+        filenameWithExt: `${data.filename || data.binHash}.${data.ext}`,
+        ib: newPicIbGib.ib,
+        gib: newPicIbGib.gib,
+        timestamp: data.timestamp,
+        text: data.filename ?? `pic ${newPicIbGib.gib.slice(0,5)}...`, // no idea why I'm setting this in loadPic
+        ibGib: newPicIbGib,
+        type: 'pic',
+        picSrc: `data:image/jpeg;base64,${binIbGib.data!}`,
+      };
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);

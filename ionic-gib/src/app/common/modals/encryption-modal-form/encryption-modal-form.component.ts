@@ -144,7 +144,7 @@ export class EncryptionModalFormComponent
   }
 
   protected async createImpl(): Promise<TransformResult<EncryptionIbGib>> {
-    const lc = `${this.lc}[${this.handleSaveClick.name}]`;
+    const lc = `${this.lc}[${this.createImpl.name}]`;
     try {
       if (logalot) { console.log(`${lc}`); }
       // this.showHelp = false;

@@ -140,7 +140,7 @@ export class RobbotModalFormComponent
   }
 
   protected async createImpl(): Promise<TransformResult<RobbotIbGib_V1>> {
-    const lc = `${this.lc}[${this.handleSaveClick.name}]`;
+    const lc = `${this.lc}[${this.createImpl.name}]`;
     try {
       if (logalot) { console.log(`${lc}`); }
       // this.showHelp = false;

@@ -21,7 +21,7 @@ import {
   getFnAlert, getFnPrompt,
   getFromSpace, validateIbGibAddr,
 } from '../helper';
-import { createAndAddPicIbGib, createAndAddPicIbGibFromInputFilePickedEvent } from '../helper/pic';
+import { createPicAndBinIbGibs, createPicAndBinIbGibsFromInputFilePickedEvent } from '../helper/pic';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -317,11 +317,13 @@ export class ActionBarComponent extends IbgibComponentBase
       actionItem.busy = true;
       const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
 
-      const newPic = await createAndAddPicIbGibFromInputFilePickedEvent({
+      const [resCreatePic, _resCreateBin] = await createPicAndBinIbGibsFromInputFilePickedEvent({
         event,
-        common: this.common,
+        saveInSpace: true,
         space,
       });
+      const newPic = resCreatePic.newIbGib;
+      await this.common.ibgibs.registerNewIbGib({ibGib: newPic, space});
 
       // // await Modals.alert({title: 'file', message: `picked a file yo`});
       // // thanks https://edupala.com/capacitor-camera-example/

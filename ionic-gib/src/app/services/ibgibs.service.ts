@@ -57,6 +57,8 @@ import {
 } from '../common/types/legacy';
 import { concatMap, } from 'rxjs/operators';
 import { TagIbGib_V1 } from '../common/types/tag';
+import { BinIbGib_V1 } from '../common/types/bin';
+import { UpdatePicModalResult } from '../common/modals/update-pic-modal-form/update-pic-modal-form.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -231,7 +233,7 @@ export class IbgibsService {
   private fnPromptSecret: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>;
   private fnPromptEncryption: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>;
   private fnPromptOuterSpace: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>;
-  private fnPromptUpdatePic: (space: IbGibSpaceAny, picIbGib: PicIbGib_V1) => Promise<PicIbGib_V1 | undefined>;
+  private fnPromptUpdatePic: (space: IbGibSpaceAny, picIbGib: PicIbGib_V1) => Promise<UpdatePicModalResult | undefined>;
 
   private _syncing: boolean;
   /**
@@ -284,7 +286,7 @@ export class IbgibsService {
     fnPromptSecret: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>,
     fnPromptEncryption: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>,
     fnPromptOuterSpace: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>,
-    fnPromptUpdatePic: (space: IbGibSpaceAny, picIbGib: PicIbGib_V1) => Promise<PicIbGib_V1 | undefined>,
+    fnPromptUpdatePic: (space: IbGibSpaceAny, picIbGib: PicIbGib_V1) => Promise<UpdatePicModalResult | undefined>,
   }): Promise<void> {
     const lc = `${this.lc}[${this.initialize.name}]`;
     try {
@@ -2860,26 +2862,47 @@ export class IbgibsService {
 
   // #endregion autosync
 
+  /**
+   * Prompts the user to select a new picture for the given `picIbGib`.
+   *
+   * If the user does select one, this creates the appropriate ibgibs (pic,
+   * binary, dependencies), saves them, registers the new pic (but not the bin)
+   * in the given `space` if specified, else in the current `localUserSpace`.
+   */
   async updatePic({
     picIbGib,
     space,
   }: {
+    /**
+     * picIbGib to update with a new image.
+     */
     picIbGib: PicIbGib_V1,
+    /**
+     * space within which we are working, i.e., where the incoming `picIbGib` is
+     * and where we will save any new ibgibs.
+     */
     space?: IbGibSpaceAny,
   }): Promise<void> {
     const lc = `${this.lc}[${this.updatePic.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
+      if (this.isPrompting) { throw new Error(`(UNEXPECTED) already prompting (E: 284a32506ede7aa51b17fe07b9619722)`); }
 
-      space = space ?? await this.getLocalUserSpace({});
-      if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: c1c0611e158b400daf07e9cb69dd8c8d)`); }
+      space = space ?? await this.getLocalUserSpace({lock: true});
+      if (!space) { throw new Error(`(UNEXPECTED) space falsy and localUserSpace not initialized (E: c1c0611e158b400daf07e9cb69dd8c8d)`); }
 
-      let newPicIbGib = await this.fnPromptUpdatePic(space, picIbGib);
-      if (newPicIbGib) {
-        debugger;
-        await this.registerNewIbGib({ ibGib: newPicIbGib, space});
+      let resUpdatePic = await this.fnPromptUpdatePic(space, picIbGib);
+      if (resUpdatePic) {
+        const [resCreatePic, resCreateBin] = resUpdatePic;
+
+        // save the ibgibs
+        await this.persistTransformResult({resTransform: resCreatePic, space});
+        await this.persistTransformResult({resTransform: resCreateBin, space});
+
+        // register the new pic ibgib (should be the only created ibgib with a timeline)
+        await this.registerNewIbGib({ ibGib: resCreatePic.newIbGib, space});
       } else {
-        debugger;
+        await getFnAlert()({title: 'k', msg: 'update pic cancelled.'});
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);

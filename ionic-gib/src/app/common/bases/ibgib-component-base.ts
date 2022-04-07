@@ -224,7 +224,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
      * Otherwise, angular tends to freeze a bit afaict.
      */
     async smallDelayToLoadBalanceUI(): Promise<void> {
-        await h.delay(Math.ceil(Math.random()*20));
+        await h.delay(Math.ceil(Math.random()*16));
     }
 
     async updateIbGib(addr: IbGibAddr): Promise<void> {
@@ -409,7 +409,8 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
 
         const data = <PicData_V1>this.ibGib.data;
         if (logalot) { console.log(`${lc} binHash: ${data.binHash}\nbinExt: ${data.ext}`); }
-        const addr = this.ibGib.rel8ns!['bin'][0];
+        const binAddrs = this.ibGib.rel8ns[c.BINARY_REL8N_NAME];
+        const addr = binAddrs[binAddrs.length-1];
         if (logalot) { console.log(`${lc} getting bin addr: ${addr}`); }
         const resGet = await this.common.ibgibs.get({addr});
         item.timestamp = data.timestamp;
