@@ -42,6 +42,7 @@ export const BOOTSTRAP_DATA_KNOWN_SPACE_IDS_KEY = `spaceIds`;
  */
 export const SPACE_REL8N_NAME_CONFIG = `config`;
 
+
 /**
  * Ionic-specific folder that represents OS directory.
  *
@@ -196,6 +197,11 @@ export const AUTOSYNC_ALWAYS_REL8N_NAME = 'always';
  */
 export const DEFAULT_ROOT_REL8N_NAME = 'x';
 export const BINARY_REL8N_NAME = 'bin';
+/**
+ * In a Robbot's rel8ns, this is the rel8n name that links to tags that the
+ * Robbot uses for tagging its output.
+ */
+export const ROBBOT_TAG_TJP_ADDRS_REL8N_NAME = 'tagTjpAddrs';
 
 export const CONSENSUS_ADDR_SYNC_NAIVE_PUT_MERGE = 'sync naive put merge^gib'
 

@@ -67,7 +67,7 @@ import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 // #endregion imports
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 // #region AWS related
 
@@ -3758,11 +3758,12 @@ export class AWSDynamoSpace_V1<
             // possible, even if we don't store it in the outerspace (which off
             // the top of my head would be the case).
             if (logalot) { console.warn(`${lc} error happened...checking if should publish error to syncStatus...`)}
-            if (!syncStatus$.complete) {
+            if (!syncStatus$.closed) {
                 if (logalot) { console.warn(`${lc} error happened...YES publish error to syncStatus...`)}
                 syncStatus$.error(emsg);
             } else {
                 if (logalot) { console.warn(`${lc} error happened...NO do NOT publish error to syncStatus...`)}
+                debugger;
             }
             // does not rethrow because this is a spun off promise
         }

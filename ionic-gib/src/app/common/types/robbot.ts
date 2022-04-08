@@ -1,4 +1,7 @@
 import { IbGib_V1 } from "ts-gib/dist/V1";
+
+import * as c from '../constants';
+import { TjpIbGibAddr } from "./ibgib";
 import { WitnessData_V1, WitnessRel8ns_V1 } from "./witness";
 
 export type RobbotTransparency = 'transparent' | 'translucent' | 'opaque';
@@ -24,7 +27,7 @@ export interface RobbotData_V1 extends WitnessData_V1 {
      * transparency doesn't mean you understand where he/she/it is coming from -
      * only that the raw data is available to see.
      */
-    reasoningTransparency: RobbotTransparency;
+    // reasoningTransparency: RobbotTransparency;
 
     /**
      * Transparency of timing of planned ibgibs to be presented to the user in a
@@ -33,12 +36,12 @@ export interface RobbotData_V1 extends WitnessData_V1 {
      * For example, when the robbot is asked to process an ibgib context, it
      * must decide when to add which ibgibs to it's output context.
      */
-    schedulingTransparency: RobbotTransparency;
+    // schedulingTransparency: RobbotTransparency;
 
     /**
      * Minimum amount of time between outputs allowed by the robbot.
      */
-    minSecondsBetweenPosts: number;
+    // minSecondsBetweenPosts: number;
 
     /**
      * Robbots work with scheduling and executing ibgib processing. But
@@ -51,7 +54,7 @@ export interface RobbotData_V1 extends WitnessData_V1 {
      * and max variance is 10, then this may schedule the output at
      * 50 plus or minus up to 5; consequently a range from 45-55.
      */
-    maxTimeVariancePercentage: number;
+    // maxTimeVariancePercentage: number;
 
     /**
      * If true, then this robbot will be started upon app startup, and perhaps
@@ -60,37 +63,40 @@ export interface RobbotData_V1 extends WitnessData_V1 {
      * if false, the robbot will schedule and execute a single "round" only when
      * prompted by a user.
      */
-    active: boolean;
+    // active: boolean;
+    // for now, all robbot output will be passive, i.e., when you ask the robbot
+    // within a context using the bottom action bar.
 
     /**
      * Some ibgibs work at the date (day) level of granularity, while others
      * work down to the time.
      */
-    scheduleGranularity: 'date' | 'time';
+    // scheduleGranularity: 'date' | 'time';
 
     /**
-     * If provided, this will be prepended to any comments made by the robbot.
+     * If provided, this will be prepended to any comments made by the robbot,
+     * as well as the output subcontext if {@link outputMode} is
+     * {@link RobbotOutputMode.subcontext}.
      */
-    commentPrefix?: string;
+    outputPrefix?: string;
 
     /**
-     * If provided, this will be appended to any comments made by the robbot.
+     * If provided, this will be appended to any comments made by the robbot,
+     * as well as the output subcontext if {@link outputMode} is
+     * {@link RobbotOutputMode.subcontext}.
      */
-    commentSuffix?: string;
+    outputSuffix?: string;
 
     /**
      * There are multiple possibilities for where to output:
      *
      * 1. Inside the input context
-     * 2. In a different ibgib
-     * 3. In the robbot's ibgib
-     * 4. Tagged but not "inside" an ibgib.
+     * 2. In a different subcontext ibgib
+     * 3. In the robbot's ibgib (todo later)
+     * 4. Tagged but not "inside" an ibgib (not planned atm).
      *
-     * For each of these options, there is the ability to output ibgibs spread
-     * out directly inside the output target, or to group them within the output
-     * target.
-     *
-     * Also, it is possible to tag all outputs.
+     * Also, it is possible to tag all outputs regardless of where the ibgibs
+     * are placed originally. @see {@link tagOutput}
      *
      * ## thoughts
      *
@@ -98,16 +104,41 @@ export interface RobbotData_V1 extends WitnessData_V1 {
      * a single grouping ibgib within the output context makes the most sense.
      */
     outputMode: RobbotOutputMode;
+
+    /**
+     * If true, rel8s output context depending on {@link outputMode} to the latest
+     * tag(s) whose tjpAddr(s) are given in {@link RobbotRel8ns_V1}
+     * {@link c.ROBBOT_TAG_TJP_ADDRS_REL8N_NAME}.
+     */
+    tagOutput: boolean;
+
 }
 
 
 /**
  * @see {@link RobbotData_V1.outputMode}
  */
-export type RobbotOutputMode = '';
+export type RobbotOutputMode = 'ask' | 'context' | 'subcontext';
+export const RobbotOutputMode = {
+    /**
+     * Ask user when robbot starts.
+     */
+    ask: 'ask' as RobbotOutputMode,
+    /**
+     * spread out within the target context
+     */
+    context: 'context' as RobbotOutputMode,
+    /**
+     * creates a single comment ibgib and outputs within that
+     */
+    subcontext: 'subcontext' as RobbotOutputMode,
+}
 
 export interface RobbotRel8ns_V1 extends WitnessRel8ns_V1 {
-
+    /**
+     * These addresses are
+     */
+    [c.ROBBOT_TAG_TJP_ADDRS_REL8N_NAME]: TjpIbGibAddr[];
 }
 
 /**

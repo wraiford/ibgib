@@ -60,7 +60,7 @@ import { TagIbGib_V1 } from '../common/types/tag';
 import { BinIbGib_V1 } from '../common/types/bin';
 import { UpdatePicModalResult } from '../common/modals/update-pic-modal-form/update-pic-modal-form.component';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 interface TempCacheEntry {
   /**
@@ -1930,7 +1930,7 @@ export class IbgibsService {
     // const sagaInfoMap: { [spaceGib: string]: SyncSagaInfo } = {};
     try {
       if (this.syncing) {
-        if (logalot) { console.warn(`already syncing. (E: dfa3ad58e97f4b18b4e4d7dc252208fb)`); }
+        console.warn(`already syncing. (E: dfa3ad58e97f4b18b4e4d7dc252208fb)`);
         return;
       }
       if (Object.values(this.sagaInfoMap).length > 0) { throw new Error(`this._syncing is false but sagaInfoMap not cleaned up(?). (E: bb69c808877c4931b5481585043c18e7)(UNEXPECTED)`); }
@@ -2046,7 +2046,7 @@ export class IbgibsService {
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       if (sagaInfo.complete) { return; }
-      if (!sagaInfo.syncStatus$.complete) {
+      if (!sagaInfo.syncStatus$.closed) {
         if (error) {
           const emsg =
             typeof(error) === 'string' ?  error : error.message ??
@@ -2061,15 +2061,19 @@ export class IbgibsService {
         .filter(sub => sub && !sub.closed)
         .forEach(sub => { sub.unsubscribe(); });
 
-      if (logalot) { console.log(`${lc} complete.`); }
-    } catch (error) {
-       console.error(`${lc} ${error.message}`);
-       throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} setting sagaInfo.complete to true`); }
+      if (logalot) { console.log(`${lc} setting sagaInfo.complete to true (I: 85c34469cdac404782c2024ad6b6fbd1)`); }
       sagaInfo.complete = true;
-    }
+      this._updateIsSyncing();
 
+      if (logalot) { console.log(`${lc} complete.`); }
+    } catch (err) {
+      console.error(`${lc} ${err.message}`);
+      if (logalot) { console.log(`${lc} setting sagaInfo.complete to true (I: 23de6ef45eaf47a1918038dce3da7d78)`); }
+      sagaInfo.complete = true;
+      throw err;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
   private finalizeAllSyncSagas_NoThrow({
@@ -2089,9 +2093,36 @@ export class IbgibsService {
       console.error(`${lc}(UNEXPECTED) ${error.message}`);
       // caller expects does NOT rethrow!
     } finally {
-      this.sagaInfoMap = {};
-      this._syncing = false;
-      if (logalot) { console.log(`${lc} this._syncing is now false.`); }
+      this._updateIsSyncing();
+    }
+  }
+
+  private _updateIsSyncing(): void {
+    const lc = `${this.lc}[${this._updateIsSyncing.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      const sagaInfoKeys = Object.keys(this.sagaInfoMap || {});
+
+      if (sagaInfoKeys.length === 0) {
+        console.warn(`${lc} (UNEXPECTED) this.sagaInfoMap is already falsy/empty (W: 9bebef60dc8d4aafbccf780ece88ebbd)`);
+        this.sagaInfoMap = {};
+        if (this._syncing) { this._syncing = false; }
+        return; // <<<< returns
+      }
+
+      const sagaInfos = Object.values(this.sagaInfoMap);
+      if (sagaInfos.every(info => info.complete)) {
+        if (logalot) { console.log(`${lc} all sagaInfos are complete. finalizing sync. (I: f6d94deb5509e6b2e5371b9bfc007422)`); }
+        this.sagaInfoMap = {};
+        this._syncing = false;
+        if (logalot) { console.log(`${lc} this._syncing is now false.`); }
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
@@ -2290,6 +2321,7 @@ export class IbgibsService {
               const emsg = `${lc}(sagaId: ${sagaInfo.sagaId}) syncStatus$.error: ${error}`;
               console.error(emsg);
               await getFnAlert()({title: 'couldnt this.syncIbGibs...', msg: emsg});
+              this.finalizeSyncSaga({sagaInfo, error: emsg});
             },
             /*complete*/ () => {
               if (logalot) { console.log(`${lc}(sagaId: ${sagaInfo.sagaId}) syncStatus$.complete.`); }

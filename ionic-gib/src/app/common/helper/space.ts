@@ -424,7 +424,7 @@ export async function getDependencyGraph({
                     resGetThese.ibGibs.forEach(x => ibGibs.push(x));
                 } else if ((resGetThese.ibGibs ?? []).length === 0){
                     // failed
-                    throw new Error(`unable to retrieve dependency ibgibs from space (E: 8413594b6c1b447988781cf3f3e1729d)`);
+                    throw new Error(`unable to retrieve dependency ibgibs from space.\n\nThis is often because downloading failed due to the sync space's server getting temporarily overloaded, OR...it sometimes happens when an ibgib doesn't get fully published to the sync space in the first place.\n\nYou could retry immediately or later, but if the problem persists, then retry from the publishers end (have the publisher sync again). (E: 8413594b6c1b447988781cf3f3e1729d)`);
                 } else {
                     debugger;
                     throw new Error(`retrieved only partial ibGibs from space? (UNEXPECTED) (E: 7135746742504724bb5b9644d463e648)`);

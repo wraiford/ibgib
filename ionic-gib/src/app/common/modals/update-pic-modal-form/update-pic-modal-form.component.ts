@@ -13,7 +13,7 @@ import { CommonService } from '../../../services/common.service';
 import { BinIbGib_V1 } from '../../types/bin';
 import { IbGibSpaceAny } from '../../witnesses/spaces/space-base-v1';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 export type UpdatePicModalResult = [TransformResult<PicIbGib_V1>, TransformResult<BinIbGib_V1>];

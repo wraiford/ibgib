@@ -31,7 +31,7 @@ import { IbGibSpaceAny } from './common/witnesses/spaces/space-base-v1';
 
 // #endregion imports & some init
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 /**
  * Hamburger menu in top left.
