@@ -202,6 +202,7 @@ export const BINARY_REL8N_NAME = 'bin';
  * Robbot uses for tagging its output.
  */
 export const ROBBOT_TAG_TJP_ADDRS_REL8N_NAME = 'tagTjpAddrs';
+export const IBGIB_ROBBOT_NAME_DEFAULT = 'i'
 
 export const CONSENSUS_ADDR_SYNC_NAIVE_PUT_MERGE = 'sync naive put merge^gib'
 

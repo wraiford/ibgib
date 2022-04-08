@@ -36,17 +36,17 @@ export abstract class WitnessBase_V1<
      *
      *
      */
-    protected set trace(value: string[]) {
+    protected set trace(value: boolean) {
         const lc = `${this.lc}[set trace}]`;
-        if (value === (<any>this.data)?.trace) { return; }
+        if (value === (this.data?.trace || false)) { return; }
         if (this.data) {
-            (<any>this.data).trace = value;
+            this.data.trace = value;
             delete this.gib; // gib is invalid now
         } else {
             console.warn(`${lc} data is falsy. Can't set.`);
         }
     }
-    protected get trace(): string[] { return (<any>this.data)?.trace ?? []; }
+    protected get trace(): boolean { return this.data?.trace ?? false; }
 
     /**
      * Optional configuration for `witness` call.
@@ -62,9 +62,9 @@ export abstract class WitnessBase_V1<
      */
     protected set catchAllErrors(value: boolean) {
         const lc = `${this.lc}[set catchAllErrors}]`;
-        if (value === (<any>this.data)?.catchAllErrors) { return; }
+        if (value === this.data?.catchAllErrors) { return; }
         if (this.data) {
-            (<any>this.data).catchAllErrors = value;
+            this.data.catchAllErrors = value;
             delete this.gib;
         } else {
             console.error(`${lc} data is falsy. Can't set value.`);
@@ -72,7 +72,7 @@ export abstract class WitnessBase_V1<
     }
     protected get catchAllErrors(): boolean {
         const lc = `${this.lc}[catchAllErrors]`;
-        const result = (<any>this.data)?.catchAllErrors;
+        const result = this.data?.catchAllErrors || false;
         if (logalot || this.trace) { console.log(`${lc} result: ${result}`)}
         return result;
     }
@@ -202,23 +202,23 @@ export abstract class WitnessBase_V1<
             const validationErrors_this = await this.validateThis();
             if (validationErrors_this?.length > 0) {
                 for (const error of validationErrors_this) { console.error(`${lc} ${error}`); }
-                throw new Error(`validation failed.`);
+                throw new Error(`internal witness validation failed. See \`WitnessBase_V1.validateThis\` (E: 2b5f73cadbfa416ba189346f3c31cd0c)`);
             }
             const validationErrors_arg = await this.validateWitnessArg(arg);
             if (validationErrors_arg?.length > 0) {
                 for (const error of validationErrors_arg) { console.error(`${lc} ${error}`); }
-                throw new Error(`validation failed.`);
+                throw new Error(`arg validation failed. See \`WitnessBase_V1.validateWitnessArg\` (E: 51531a1d928a485e8ffc277145ec44e9)`);
             }
-            if (this.trace && Array.isArray(this.trace) && this.trace.includes(this.witness.name)) {
-                console.log(`${lc} addr: ${getIbGibAddr(arg)}`);
-            }
+            if (logalot || this.trace) { console.log(`${lc} addr: ${getIbGibAddr(arg)}`); }
+            if (logalot) { console.log(`${lc} addr: ${getIbGibAddr(arg)} (I: f4cf13a44c4e4fc3903f14018e616c64)`); }
             return await this.witnessImpl(arg);
         } catch (error) {
-            console.error(`${lc} ${error.message || 'unknown error'}`);
-            if (!this.catchAllErrors && !(<any>arg?.data)?.catchAllErrors) {
+            console.error(`${lc} ${error.message || 'unknown error (E: 3e22bea4c7fb4668bf13d7146b927869)'}`);
+            if (!this.catchAllErrors) {
                 throw error;
+            } else {
+                return; // undefined
             }
-            return; // undefined
         }
     }
     protected abstract witnessImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined>;

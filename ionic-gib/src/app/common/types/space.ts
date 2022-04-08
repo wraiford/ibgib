@@ -19,42 +19,26 @@ export type SpaceId = string;
 export interface IbGibSpaceData extends WitnessData_V1 {
     version?: string;
     /**
-     * Name for the space.
+     * redeclaration for the name of the space, to make it required as opposed
+     * to the base declaration which is optional.
      *
-     * doesn't have to be unique.
+     * does NOT have to be unique.
      */
     name: string;
     /**
-     * Optional description of the space.
-     */
-    description?: string;
-    /**
-     * "Should" be a unique identifier for the space.
-     *
-     * DEBUG Make this optional after compiler stuff DEBUG
+     * Redeclared over {@link WitnessData_V1.uuid} just for code readability,
+     * showing the id to be a {@link SpaceId}, as well making it a required
+     * field.
      */
     uuid: SpaceId;
-    /**
-     * Optional configuration for `witness` call.
-     * If true, then this space will not catch an error in `witnessImpl`
-     * function.
-     *
-     * ## notes
-     *
-     * Descendants of Witness who don't override the base `witness` function
-     * (but rather override `witnessImpl` as expected) don't need to check
-     * for this explicitly, since it is referenced in the base `witness`
-     * function implementation.
-     */
-    catchAllErrors?: boolean;
-    /**
-     * Optional arg for verbose logging.
-     *
-     * Space implementations can check this value directly, or if
-     * they descend from `WitnessBase`, then there is a property
-     * that safely navigates this value.
-     */
-    trace?: boolean;
+    // /**
+    //  * Optional arg for verbose logging.
+    //  *
+    //  * Space implementations can check this value directly, or if
+    //  * they descend from `WitnessBase`, then there is a property
+    //  * that safely navigates this value.
+    //  */
+    // trace?: boolean;
     /**
      * DOESNT WORK ATM - NOT IMPLEMENTED - HOOGLEDY BOOGLEDY
      * If true, any calls to `witness` will have the opt and result

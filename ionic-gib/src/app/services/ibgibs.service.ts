@@ -59,6 +59,7 @@ import { concatMap, } from 'rxjs/operators';
 import { TagIbGib_V1 } from '../common/types/tag';
 import { BinIbGib_V1 } from '../common/types/bin';
 import { UpdatePicModalResult } from '../common/modals/update-pic-modal-form/update-pic-modal-form.component';
+import { RobbotBase_V1 } from '../common/witnesses/robbots/robbot-base-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -1857,6 +1858,69 @@ export class IbgibsService {
     space?: IbGibSpaceAny,
   }): Promise<IbGibSpaceAny[]> {
     const lc = `${this.lc}[${this.getAppSyncSpaces.name}]`;
+    try {
+      space = space ?? await this.getLocalUserSpace({});
+      if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: bf09346708ba4d6e9a1389bd1b66d500)`); }
+
+      // get existing
+      let appSyncSpaces: IbGibSpaceAny[] = await this.getSpecialRel8dIbGibs<IbGibSpaceAny>({
+        type: "outerspaces",
+        rel8nName: c.SYNC_SPACE_REL8N_NAME,
+        space,
+      });
+
+      // create if applicable
+      if (appSyncSpaces.length === 0 && createIfNone) {
+        let created = await this._createOuterspaceEndpointStuff(space);
+        if (created) {
+          appSyncSpaces = await this.getSpecialRel8dIbGibs<IbGibSpaceAny>({
+            type: "outerspaces",
+            rel8nName: c.SYNC_SPACE_REL8N_NAME,
+            space,
+          });
+        }
+      }
+
+      // unwrap if requested
+      let resSpaces: IbGibSpaceAny[] = [];
+      if (unwrapEncrypted) {
+        for (let i = 0; i < appSyncSpaces.length; i++) {
+          let syncSpace = appSyncSpaces[i];
+
+          if (syncSpace.rel8ns.ciphertext) {
+            syncSpace = await this.unwrapEncryptedSyncSpace({
+              encryptedSpace: syncSpace,
+              fnPromptPassword: getFnPromptPassword_AlertController({
+                alertController: this.alertController,
+              }),
+              space,
+            });
+          }
+
+          resSpaces.push(syncSpace);
+        }
+      } else {
+        // still (probably) encrypted
+        resSpaces = appSyncSpaces;
+      }
+
+      return resSpaces;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return [];
+    }
+  }
+
+  async getAppRobbots({
+    unwrapEncrypted,
+    createIfNone,
+    space,
+  }: {
+    unwrapEncrypted: boolean,
+    createIfNone: boolean,
+    space?: IbGibSpaceAny,
+  }): Promise<RobbotBase_V1[]> {
+    const lc = `${this.lc}[${this.getAppRobbots.name}]`;
     try {
       space = space ?? await this.getLocalUserSpace({});
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: bf09346708ba4d6e9a1389bd1b66d500)`); }

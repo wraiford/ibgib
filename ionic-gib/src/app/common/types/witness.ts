@@ -28,10 +28,24 @@ export interface Witness<
 /**
  * Data that corresponds to all witnesses being implemented in V1.
  *
- * This should be expanded only sparingly.
+ * This should be expanded only sparingly, and all properties should be optional.
  */
 export interface WitnessData_V1 {
     /**
+     * @optional string for tracking version control of witness.
+     */
+    version?: string;
+    /**
+     * @optional Name for the witness.
+     */
+    name?: string;
+    /**
+     * @optional description of the witness.
+     */
+    description?: string;
+    /**
+     * @optional
+     *
      * If true, then this will allow primitive args when validating incoming
      * args.
      *
@@ -39,6 +53,43 @@ export interface WitnessData_V1 {
      * set this to truthy. Otherwise, this will flag this as a validation error.
      */
     allowPrimitiveArgs?: boolean;
+    // /**
+    //  * DOESNT WORK ATM - NOT IMPLEMENTED - HOOGLEDY BOOGLEDY
+    //  * If true, any calls to `witness` will have the opt and result
+    //  * ibGibs persisted to the space, regardless of what the actual
+    //  * opt/result is.
+    //  *
+    //  * This is like providing a logging feature for the space itself.
+    //  */
+    // persistOptsAndResultIbGibs?: boolean;
+    /**
+     * @optional
+     *
+     * "Should" be a unique identifier for the witness.
+     */
+    uuid?: string;
+    /**
+     * @optional configuration for `witness` call.
+     *
+     * If true, then this space will not catch an error in `witnessImpl`
+     * function.
+     *
+     * ## notes
+     *
+     * Descendants of Witness who don't override the base `witness` function
+     * (but rather override `witnessImpl` as expected) don't need to check
+     * for this explicitly, since it is referenced in the base `witness`
+     * function implementation.
+     */
+    catchAllErrors?: boolean;
+    /**
+     * @optional arg for verbose logging.
+     *
+     * Space implementations can check this value directly, or if
+     * they descend from `WitnessBase`, then there is a property
+     * that safely navigates this value.
+     */
+    trace?: boolean;
 }
 
 /**
