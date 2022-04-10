@@ -14,6 +14,11 @@ export interface RobbotData_V1 extends WitnessData_V1 {
     name: string;
 
     /**
+     * Redeclared over {@link WitnessData_V1.uuid} making it a required field.
+     */
+    uuid: string;
+
+    /**
      * For simpler robbots (i.e. early implementations), I'm not sure what this
      * will entail. Ideally the function dependency graph is public but right
      * now we're living with witness functionality "off-chain" ("on-chain"
@@ -110,7 +115,7 @@ export interface RobbotData_V1 extends WitnessData_V1 {
      * tag(s) whose tjpAddr(s) are given in {@link RobbotRel8ns_V1}
      * {@link c.ROBBOT_TAG_TJP_ADDRS_REL8N_NAME}.
      */
-    tagOutput: boolean;
+    tagOutput?: boolean;
 
 }
 

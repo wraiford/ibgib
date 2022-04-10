@@ -978,7 +978,9 @@ export class AppComponent extends IbgibComponentBase
 
       // get robbots, but don't initialize
       let robbotsIbGib = await this.common.ibgibs.getSpecialIbGib({type: "robbots"});
-      let robbotAddrs = robbotsIbGib?.rel8ns?.robbot || [];
+      let robbotAddrs = robbotsIbGib?.rel8ns ?
+        robbotsIbGib.rel8ns[c.ROBBOT_REL8N_NAME] ?? [] :
+        [];
 
       // return if we don't have any robbots.
       if (!robbotAddrs || robbotAddrs.length === 0) {

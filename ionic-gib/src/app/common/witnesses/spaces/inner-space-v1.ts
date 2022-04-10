@@ -1,5 +1,6 @@
+import * as h from 'ts-gib/dist/helper';
 import {
-    IbGib_V1, IbGibRel8ns_V1, IbGibData_V1, sha256v1, Factory_V1,
+    IbGib_V1, IbGibRel8ns_V1, IbGibData_V1, sha256v1, Factory_V1, ROOT,
 } from 'ts-gib/dist/V1';
 import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 
@@ -10,7 +11,7 @@ import {
     IbGibSpaceResultData, IbGibSpaceResultRel8ns, IbGibSpaceResultIbGib,
 } from '../../types';
 import { SpaceBase_V1 } from './space-base-v1';
-import { getSpaceIb } from '../../helper';
+import { getSpaceIb, validateIbGibIntrinsically } from '../../helper';
 import { WitnessBase_V1 } from '../witness-base-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -147,15 +148,9 @@ export class InnerSpace_V1<
         try {
             const ibGibs = arg.ibGibs || [];
             const addrsAlreadyHave: IbGibAddr[] = [];
-            for (let i = 0; i < ibGibs?.length; i++) {
-                const ibGib = ibGibs[i];
-                const addr = getIbGibAddr({ibGib});
-                if (!Object.keys(this.ibGibs).includes(addr)) {
-                    this.ibGibs[addr] = ibGib;
-                } else {
-                    addrsAlreadyHave.push(addr);
-                }
-            }
+
+            await this.putIbGibsImpl({ibGibs, addrsAlreadyHave});
+
             if (addrsAlreadyHave.length > 0) {
                 resultData.addrsAlreadyHave = addrsAlreadyHave;
                 resultData.warnings = (resultData.warnings || []).concat([`${lc} already had addr(s).`]);
@@ -169,6 +164,37 @@ export class InnerSpace_V1<
         const result = await this.resulty({resultData});
         return result;
     }
+    protected async putIbGibsImpl({
+        ibGibs,
+        addrsAlreadyHave,
+    }: {
+        ibGibs: TIbGib[],
+        addrsAlreadyHave: IbGibAddr[],
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.putIbGibsImpl.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            if (!ibGibs) { throw new Error(`ibGibs required. (E: cd479b15097d45a5bf0c8ca13c9f3487)`); }
+            if (!addrsAlreadyHave) { throw new Error(`addrsAlreadyHave required. (E: 18b2c8eef27bc267c55755e272367e22)`); }
+
+            for (let i = 0; i < ibGibs?.length; i++) {
+                const ibGib = ibGibs[i];
+                const addr = getIbGibAddr({ibGib});
+                if (!Object.keys(this.ibGibs).includes(addr)) {
+                    this.ibGibs[addr] = ibGib;
+                } else {
+                    addrsAlreadyHave.push(addr);
+                }
+            }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+
+    }
+
     protected async deleteImpl(arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns>):
         Promise<IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns>> {
         const lc = `${this.lc}[${this.delete.name}]`;
@@ -318,6 +344,27 @@ export class InnerSpace_V1<
         arg: IbGibSpaceOptionsIbGib<TIbGib, IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns>,
         result: IbGibSpaceResultIbGib<TIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns>,
     }): Promise<void> {
-        throw new Error('Method not implemented.');
+        const lc = `${this.lc}[${this.persistOptsAndResultIbGibs.name}]`;
+        try {
+            if (logalot || this.data?.trace) { console.log(`${lc} starting...`); }
+            if (logalot || this.data?.trace) {
+                console.log(`${lc} doing arg?.data?.cmd: ${arg?.data?.cmd}, result?.data?.success: ${result?.data?.success}`);
+            }
+            let argValidationErrors = await validateIbGibIntrinsically({ibGib: arg});
+            if (argValidationErrors && argValidationErrors.length > 0) { throw new Error(`invalid arg. cannot persist. (E: 015d38de71a3407f9d77fc4ed3404bf0)`); }
+            let resultValidationErrors = result ?
+                await validateIbGibIntrinsically({ibGib: result}) :
+                null;
+            if (resultValidationErrors && resultValidationErrors.length > 0) { throw new Error(`invalid arg. cannot persist. (E: 015d38de71a3407f9d77fc4ed3404bf0)`); }
+
+            const ibGibs = [arg, result ?? ROOT];
+            await this.putIbGibsImpl({ibGibs: <any[]>ibGibs, addrsAlreadyHave: []});
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            // this is a best effort storage, so we do not rethrow
+            // throw error;
+        } finally {
+            if (logalot || this.data?.trace) { console.log(`${lc} complete.`); }
+        }
     }
 }

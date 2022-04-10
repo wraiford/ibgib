@@ -34,7 +34,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { ReplaySubject } from 'rxjs/internal/ReplaySubject';
 
-import { IbGib_V1, Factory_V1 as factory, FORBIDDEN_ADD_RENAME_REMOVE_REL8N_NAMES, IbGibRel8ns_V1, GIB} from 'ts-gib/dist/V1';
+import { IbGib_V1, Factory_V1 as factory, FORBIDDEN_ADD_RENAME_REMOVE_REL8N_NAMES, IbGibRel8ns_V1, GIB, ROOT} from 'ts-gib/dist/V1';
 import {
     getIbGibAddr, Gib, Ib, IbGibAddr,
     TransformOpts, TransformOpts_Mut8, TransformOpts_Rel8,
@@ -4728,7 +4728,7 @@ export class AWSDynamoSpace_V1<
         if (logalot || this.data?.trace) {
             console.log(`${lc} doing arg?.data?.cmd: ${arg?.data?.cmd}, result?.data?.success: ${result?.data?.success}`);
         }
-        const ibGibs = [arg, result];
+        const ibGibs = [arg, result ?? ROOT];
         const argPersist = await this.argy({
             argData: {
                 cmd: 'put',

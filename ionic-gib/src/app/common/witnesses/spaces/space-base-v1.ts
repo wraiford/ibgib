@@ -1,6 +1,4 @@
-import {
-    IbGib_V1, IbGibRel8ns_V1, IbGibData_V1, sha256v1, Factory_V1,
-} from 'ts-gib/dist/V1';
+import { IbGib_V1 } from 'ts-gib/dist/V1';
 import * as h from 'ts-gib/dist/helper';
 
 import {
@@ -12,12 +10,11 @@ import {
 } from '../../types';
 import { WitnessBase_V1, resulty_, argy_ } from '../witnesses';
 import * as c from '../../constants';
-import { getSpaceResultMetadata, getTimestampInTicks, validateIbGibIntrinsically } from '../../helper';
+import { getSpaceResultMetadata, validateIbGibIntrinsically } from '../../helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 export interface IbGibSpaceAny
-    // extends SpaceBase_V1<any> {
     extends SpaceBase_V1<any,any,any,any,any,any,any> {
 }
 
@@ -77,14 +74,14 @@ export abstract class SpaceBase_V1<
         });
 
         // persist the arg and result if we're configured to do so
-        if (result && this.data.persistOptsAndResultIbGibs) {
-            try {
-                await this.persistOptsAndResultIbGibs({arg, result});
-            } catch (error) {
-                const emsg = `${lc} ${error.message}`;
-                console.error(emsg);
-            }
-        }
+        // if (result && this.data.persistOptsAndResultIbGibs) {
+        //     try {
+        //         await this.persistOptsAndResultIbGibs({arg, result});
+        //     } catch (error) {
+        //         const emsg = `${lc} ${error.message}`;
+        //         console.error(emsg);
+        //     }
+        // }
 
         return result;
     }

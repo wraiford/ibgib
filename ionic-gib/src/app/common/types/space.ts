@@ -17,7 +17,6 @@ export type SpaceId = string;
  * Common data among all ibgib spaces.
  */
 export interface IbGibSpaceData extends WitnessData_V1 {
-    version?: string;
     /**
      * redeclaration for the name of the space, to make it required as opposed
      * to the base declaration which is optional.
@@ -31,23 +30,6 @@ export interface IbGibSpaceData extends WitnessData_V1 {
      * field.
      */
     uuid: SpaceId;
-    // /**
-    //  * Optional arg for verbose logging.
-    //  *
-    //  * Space implementations can check this value directly, or if
-    //  * they descend from `WitnessBase`, then there is a property
-    //  * that safely navigates this value.
-    //  */
-    // trace?: boolean;
-    /**
-     * DOESNT WORK ATM - NOT IMPLEMENTED - HOOGLEDY BOOGLEDY
-     * If true, any calls to `witness` will have the opt and result
-     * ibGibs persisted to the space, regardless of what the actual
-     * opt/result is.
-     *
-     * This is like providing a logging feature for the space itself.
-     */
-    persistOptsAndResultIbGibs?: boolean;
     /**
      * If true, when this space receives a command that includes incoming ibGibs
      * and ibGibAddrs, we will ensure the ibGibs have a 1-to-1 correspondence to

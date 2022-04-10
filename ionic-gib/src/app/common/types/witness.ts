@@ -53,15 +53,19 @@ export interface WitnessData_V1 {
      * set this to truthy. Otherwise, this will flag this as a validation error.
      */
     allowPrimitiveArgs?: boolean;
-    // /**
-    //  * DOESNT WORK ATM - NOT IMPLEMENTED - HOOGLEDY BOOGLEDY
-    //  * If true, any calls to `witness` will have the opt and result
-    //  * ibGibs persisted to the space, regardless of what the actual
-    //  * opt/result is.
-    //  *
-    //  * This is like providing a logging feature for the space itself.
-    //  */
-    // persistOptsAndResultIbGibs?: boolean;
+    /**
+     * If true, any calls to `witness` should have the opt and result ibGibs
+     * persisted, regardless of what the actual opt/result is. This is
+     * ultimately up to the witness itself though.
+     *
+     * This is like providing a persistent logging feature for the witness
+     * itself, as opposed to ephemeral logging via {@link trace}.
+     *
+     * ## implementation
+     *
+     * In the case of V1, WitnessBase_V1<...> has an empty function
+     */
+    persistOptsAndResultIbGibs?: boolean;
     /**
      * @optional
      *

@@ -59,7 +59,7 @@ import { concatMap, } from 'rxjs/operators';
 import { TagIbGib_V1 } from '../common/types/tag';
 import { BinIbGib_V1 } from '../common/types/bin';
 import { UpdatePicModalResult } from '../common/modals/update-pic-modal-form/update-pic-modal-form.component';
-import { RobbotBase_V1 } from '../common/witnesses/robbots/robbot-base-v1';
+import { IbGibRobbotAny, RobbotBase_V1 } from '../common/witnesses/robbots/robbot-base-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -1727,15 +1727,42 @@ export class IbgibsService {
    *
    * @returns true if creation was successfully created, else false.
    */
-  private async _createOuterspaceEndpointStuff(space: IbGibSpaceAny): Promise<boolean> {
-    const lc = `${this.lc}[${this._createOuterspaceEndpointStuff.name}]`;
+  private async _createOuterspaceAndRequiredIbGibs(space: IbGibSpaceAny): Promise<boolean> {
+    const lc = `${this.lc}[${this._createOuterspaceAndRequiredIbGibs.name}]`;
     try {
+      const createdSecret = await this._createSecret({space});
+      if (logalot) { console.log(`${lc} createdSecret: ${createdSecret} (I: 9fc011d8ecb1e10c86c86025be4d5c22)`); }
+      if (!createdSecret) { return false; } // <<<< returns
+
+      const createdEncryption = await this._createEncryption({space});
+      if (logalot) { console.log(`${lc} createdEncryption: ${createdEncryption} (I: 6796bbeb7338471e965cf1806d0dea9c)`); }
+      if (!createdEncryption) { return false; } // <<<< returns
+
+      const createdOuterspace = await this._createOuterspace(space);
+      if (logalot) { console.log(`${lc} createdOuterspace: ${createdOuterspace} (I: 6796bbeb7338471e965cf1806d0dea9c)`); }
+      return createdOuterspace;
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return false;
+    }
+  }
+
+  private async _createSecret({
+    space,
+  }: {
+    space: IbGibSpaceAny,
+  }): Promise<boolean> {
+    const lc = `${this.lc}[${this._createSecret.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      const alert = getFnAlert();
+
       let secretIbGibs: IbGib_V1[] = await this.getSpecialRel8dIbGibs({
         type: "secrets",
         rel8nName: c.SECRET_REL8N_NAME,
         space,
       });
-      const alert = getFnAlert();
       if (secretIbGibs.length === 0) {
         await alert({
           title: 'first create some stuff...',
@@ -1761,6 +1788,24 @@ export class IbgibsService {
           space,
         });
       }
+      return true;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  private async _createEncryption({
+    space,
+  }: {
+    space: IbGibSpaceAny,
+  }): Promise<boolean> {
+    const lc = `${this.lc}[${this._createEncryption.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      const alert = getFnAlert();
 
       let encryptionIbGibs: IbGib_V1[] = await this.getSpecialRel8dIbGibs({
         type: "encryptions",
@@ -1768,7 +1813,7 @@ export class IbgibsService {
         space,
       });
       if (encryptionIbGibs.length === 0) {
-        alert({
+        await alert({
           title: 'next create an encryption...',
           msg: "Now we need to create an encryption setting. If you don't know what this is, just fill in the requirements and leave the others as defaults.",
         });
@@ -1776,7 +1821,7 @@ export class IbgibsService {
       while (encryptionIbGibs.length === 0) {
         let encryptionIbGib = await this.fnPromptEncryption(space);
         if (encryptionIbGib === undefined) {
-          await alert({title: 'cancelled', msg: 'Cancelled.'});
+          await getFnAlert()({title: 'cancelled', msg: 'Cancelled.'});
           return false;
         }
         await this.registerNewIbGib({ ibGib: encryptionIbGib, space });
@@ -1792,18 +1837,17 @@ export class IbgibsService {
           space,
         });
       }
-
-      let createdOuterspaces = await this._createOuterspaces(space);
-      return createdOuterspaces;
-
+      return true;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-      return false;
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
-  private async _createOuterspaces(space: IbGibSpaceAny): Promise<boolean> {
-    const lc = `${this.lc}[${this._createOuterspaces.name}]`;
+  private async _createOuterspace(space: IbGibSpaceAny): Promise<boolean> {
+    const lc = `${this.lc}[${this._createOuterspace.name}]`;
     try {
       const alert = getFnAlert();
       let outerspaceIbGibs: IbGib_V1[] = await this.getSpecialRel8dIbGibs({
@@ -1828,7 +1872,7 @@ export class IbgibsService {
           space,
         });
         await alert({
-          title: 'create another space...',
+          title: 'Good job',
           msg: `Great! Now we can use this space to synchronize & import ibgibs.`,
         });
         outerspaceIbGibs = await this.getSpecialRel8dIbGibs({
@@ -1844,7 +1888,8 @@ export class IbgibsService {
         return false;
       }
     } catch (error) {
-
+      console.log(`${lc} ${error.message}`);
+      throw error;
     }
   }
 
@@ -1863,16 +1908,17 @@ export class IbgibsService {
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: bf09346708ba4d6e9a1389bd1b66d500)`); }
 
       // get existing
-      let appSyncSpaces: IbGibSpaceAny[] = await this.getSpecialRel8dIbGibs<IbGibSpaceAny>({
-        type: "outerspaces",
-        rel8nName: c.SYNC_SPACE_REL8N_NAME,
-        space,
-      });
+      let appSyncSpaces: IbGibSpaceAny[] =
+        await this.getSpecialRel8dIbGibs<IbGibSpaceAny>({
+          type: "outerspaces",
+          rel8nName: c.SYNC_SPACE_REL8N_NAME,
+          space,
+        });
 
       // create if applicable
       if (appSyncSpaces.length === 0 && createIfNone) {
-        let created = await this._createOuterspaceEndpointStuff(space);
-        if (created) {
+        const createdReqs = await this._createOuterspaceAndRequiredIbGibs(space);
+        if (createdReqs) {
           appSyncSpaces = await this.getSpecialRel8dIbGibs<IbGibSpaceAny>({
             type: "outerspaces",
             rel8nName: c.SYNC_SPACE_REL8N_NAME,
@@ -1912,11 +1958,9 @@ export class IbgibsService {
   }
 
   async getAppRobbots({
-    unwrapEncrypted,
     createIfNone,
     space,
   }: {
-    unwrapEncrypted: boolean,
     createIfNone: boolean,
     space?: IbGibSpaceAny,
   }): Promise<RobbotBase_V1[]> {
@@ -1926,48 +1970,26 @@ export class IbgibsService {
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: bf09346708ba4d6e9a1389bd1b66d500)`); }
 
       // get existing
-      let appSyncSpaces: IbGibSpaceAny[] = await this.getSpecialRel8dIbGibs<IbGibSpaceAny>({
-        type: "outerspaces",
-        rel8nName: c.SYNC_SPACE_REL8N_NAME,
-        space,
-      });
+      let appRobbots: IbGibRobbotAny[] =
+        await this.getSpecialRel8dIbGibs<IbGibRobbotAny>({
+          type: "robbots",
+          rel8nName: c.ROBBOT_REL8N_NAME,
+          space,
+        });
 
       // create if applicable
-      if (appSyncSpaces.length === 0 && createIfNone) {
-        let created = await this._createOuterspaceEndpointStuff(space);
+      if (appRobbots.length === 0 && createIfNone) {
+        let created = await this._createOuterspaceAndRequiredIbGibs(space);
         if (created) {
-          appSyncSpaces = await this.getSpecialRel8dIbGibs<IbGibSpaceAny>({
-            type: "outerspaces",
-            rel8nName: c.SYNC_SPACE_REL8N_NAME,
+          appRobbots = await this.getSpecialRel8dIbGibs<IbGibRobbotAny>({
+            type: "robbots",
+            rel8nName: c.ROBBOT_REL8N_NAME,
             space,
           });
         }
       }
 
-      // unwrap if requested
-      let resSpaces: IbGibSpaceAny[] = [];
-      if (unwrapEncrypted) {
-        for (let i = 0; i < appSyncSpaces.length; i++) {
-          let syncSpace = appSyncSpaces[i];
-
-          if (syncSpace.rel8ns.ciphertext) {
-            syncSpace = await this.unwrapEncryptedSyncSpace({
-              encryptedSpace: syncSpace,
-              fnPromptPassword: getFnPromptPassword_AlertController({
-                alertController: this.alertController,
-              }),
-              space,
-            });
-          }
-
-          resSpaces.push(syncSpace);
-        }
-      } else {
-        // still (probably) encrypted
-        resSpaces = appSyncSpaces;
-      }
-
-      return resSpaces;
+      return appRobbots;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       return [];
@@ -2127,7 +2149,7 @@ export class IbgibsService {
 
       if (logalot) { console.log(`${lc} setting sagaInfo.complete to true (I: 85c34469cdac404782c2024ad6b6fbd1)`); }
       sagaInfo.complete = true;
-      this._updateIsSyncing();
+      this._updateSagaInfoMapAndIsSyncingFlag();
 
       if (logalot) { console.log(`${lc} complete.`); }
     } catch (err) {
@@ -2157,19 +2179,18 @@ export class IbgibsService {
       console.error(`${lc}(UNEXPECTED) ${error.message}`);
       // caller expects does NOT rethrow!
     } finally {
-      this._updateIsSyncing();
+      this._updateSagaInfoMapAndIsSyncingFlag();
     }
   }
 
-  private _updateIsSyncing(): void {
-    const lc = `${this.lc}[${this._updateIsSyncing.name}]`;
+  private _updateSagaInfoMapAndIsSyncingFlag(): void {
+    const lc = `${this.lc}[${this._updateSagaInfoMapAndIsSyncingFlag.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
       const sagaInfoKeys = Object.keys(this.sagaInfoMap || {});
 
       if (sagaInfoKeys.length === 0) {
-        console.warn(`${lc} (UNEXPECTED) this.sagaInfoMap is already falsy/empty (W: 9bebef60dc8d4aafbccf780ece88ebbd)`);
         this.sagaInfoMap = {};
         if (this._syncing) { this._syncing = false; }
         return; // <<<< returns

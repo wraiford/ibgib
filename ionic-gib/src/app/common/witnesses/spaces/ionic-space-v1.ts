@@ -4,7 +4,7 @@ import {
 const { Filesystem } = Plugins;
 
 import * as h from 'ts-gib/dist/helper';
-import { IbGib_V1, IbGibRel8ns_V1, GIB, } from 'ts-gib/dist/V1';
+import { IbGib_V1, IbGibRel8ns_V1, GIB, ROOT, } from 'ts-gib/dist/V1';
 import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 
 import * as c from '../../constants';
@@ -770,7 +770,7 @@ export class IonicSpace_V1<
         if (logalot || this.data?.trace) {
             console.log(`${lc} doing arg?.data?.cmd: ${arg?.data?.cmd}, result?.data?.success: ${result?.data?.success}`);
         }
-        const ibGibs = [arg, result];
+        const ibGibs = [arg, result ?? ROOT];
         let argPersist = await argy_<IonicSpaceOptionsData, IonicSpaceOptionsRel8ns, IonicSpaceOptionsIbGib>({
             argData: {
                 cmd: 'put',

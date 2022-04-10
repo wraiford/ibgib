@@ -25,6 +25,11 @@ export const ZERO_SPACE_ID = 'zero';
 export const IBGIB_SPACE_NAME_DEFAULT = 'default_space';
 
 /**
+ *
+ */
+export const DEFAULT_UUID = undefined;
+
+/**
  * See {@link BootstrapIbGib}
  */
 export const BOOTSTRAP_IBGIB_ADDR = `bootstrap^${GIB}`;
@@ -202,7 +207,16 @@ export const BINARY_REL8N_NAME = 'bin';
  * Robbot uses for tagging its output.
  */
 export const ROBBOT_TAG_TJP_ADDRS_REL8N_NAME = 'tagTjpAddrs';
-export const IBGIB_ROBBOT_NAME_DEFAULT = 'i'
+/**
+ * A spaces ibGib uses this rel8n name for related sync spaces, used
+ * in replicating ibgib spaces.
+ */
+export const ROBBOT_REL8N_NAME = 'robbot';
+
+/**
+ * wah wah wah...
+ */
+export const IBGIB_ROBBOT_NAME_DEFAULT = 'i';
 
 export const CONSENSUS_ADDR_SYNC_NAIVE_PUT_MERGE = 'sync naive put merge^gib'
 

@@ -1,6 +1,6 @@
 import { getIbGibAddr, IbGib, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
-import { IbGib_V1, IbGibRel8ns_V1, Factory_V1 as factory, sha256v1, } from 'ts-gib/dist/V1';
+import { IbGib_V1, IbGibRel8ns_V1, Factory_V1 as factory, sha256v1, ROOT, } from 'ts-gib/dist/V1';
 
 import { WitnessData_V1, Witness_V1, } from '../types';
 import * as c from '../constants';
@@ -211,7 +211,15 @@ export abstract class WitnessBase_V1<
             }
             if (logalot || this.trace) { console.log(`${lc} addr: ${getIbGibAddr(arg)}`); }
             if (logalot) { console.log(`${lc} addr: ${getIbGibAddr(arg)} (I: f4cf13a44c4e4fc3903f14018e616c64)`); }
-            return await this.witnessImpl(arg);
+            const result = await this.witnessImpl(arg);
+
+            // persist the arg and result if we're configured to do so it is up
+            // to the implementation whether or not to throw on this.
+            if (this.data?.persistOptsAndResultIbGibs) {
+                await this.persistOptsAndResultIbGibs({arg, result});
+            }
+
+            return result;
         } catch (error) {
             console.error(`${lc} ${error.message || 'unknown error (E: 3e22bea4c7fb4668bf13d7146b927869)'}`);
             if (!this.catchAllErrors) {
@@ -276,6 +284,23 @@ export abstract class WitnessBase_V1<
             throw error;
         }
         return errors;
+    }
+
+    /**
+     * Empty implementation in this base class.
+     *
+     * @see {@link WitnessData_V1.persistOptsAndResultIbGibs}
+     */
+    protected persistOptsAndResultIbGibs({
+        arg,
+        result
+    }: {
+        arg: TOptionsIbGib,
+        result: TResultIbGib
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.persistOptsAndResultIbGibs.name}]`;
+        console.warn(`${lc} not implemented in this base class. Override this in descendent class. (W: 087514e851704322a4ec8069a73ce944)`);
+        return Promise.resolve();
     }
 
 }
