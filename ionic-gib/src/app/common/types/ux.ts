@@ -209,12 +209,6 @@ export interface RootData {
 export interface LatestData {
 }
 
-export interface CommentData {
-    text: string;
-    textTimestamp?: string;
-    timestamp?: string;
-}
-
 export type ActionItemName =
     'comment' | 'camera' | 'file' | 'tag' | 'import' | 'info';
 export const ActionItemName = {

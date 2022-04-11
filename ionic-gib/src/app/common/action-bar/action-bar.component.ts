@@ -1,27 +1,25 @@
 import { Component, OnInit, ChangeDetectorRef, Input } from '@angular/core';
-import {
-  Plugins, Camera, CameraResultType,
-} from '@capacitor/core';
+import { Plugins, } from '@capacitor/core';
 const { Modals } = Plugins;
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr, V1 } from 'ts-gib';
-import { hash, getIbGibAddr, getTimestamp, pretty } from 'ts-gib/dist/helper';
 import { Factory_V1 as factory, IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 
 import * as c from '../constants';
 import { CommonService } from 'src/app/services/common.service';
 import {
-  ActionItem, CommentData, SyncSpaceResultIbGib, ActionItemName,
+  ActionItem, SyncSpaceResultIbGib, ActionItemName,
 } from '../types';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { IbgibComponentBase } from '../bases/ibgib-component-base';
 import {
-  getCommentIb, getDependencyGraph,
+  getDependencyGraph,
   getFnAlert, getFnPrompt,
   getFromSpace, validateIbGibAddr,
 } from '../helper';
 import { createPicAndBinIbGibs, createPicAndBinIbGibsFromInputFilePickedEvent } from '../helper/pic';
+import { createCommentIbGib } from '../helper/comment';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -136,33 +134,41 @@ export class ActionBarComponent extends IbgibComponentBase
         message: 'add text',
         inputPlaceholder: 'text here',
       });
-      if (resComment.cancelled || !resComment.value) { return; }
+      if (resComment.cancelled || !resComment.value) { return; } // <<<< returns
       const text = resComment.value.trim();
       if (logalot) { console.log(`${lc} text: ${text}`); }
       if (text === '') {
         await alert({title: 'no comment text entered', msg: 'Comment cannot contain only whitespace. Cancelling...'});
         return;
       }
-      const data: CommentData = { text, textTimestamp: getTimestamp() };
 
-      // create an ibgib with the filename and ext
-      const opts:any = {
-        parentIbGib: factory.primitive({ib: 'comment'}),
-        ib: getCommentIb(text),
-        data,
-        dna: true,
-        tjp: { uuid: true, timestamp: true },
-        nCounter: true,
-      };
 
-      // this makes it more difficult to share/sync ibgibs...
-      // if (this.addr) { opts.rel8ns = { 'comment on': [this.addr] }; }
+      // const data: CommentData_V1 = { text, textTimestamp: getTimestamp() };
 
-      if (logalot) { console.log(`${lc} opts: ${pretty(opts)}`); }
-      const resCommentIbGib = await factory.firstGen(opts);
-      await this.common.ibgibs.persistTransformResult({resTransform: resCommentIbGib});
+      // // create an ibgib with the filename and ext
+      // const opts:any = {
+      //   parentIbGib: factory.primitive({ib: 'comment'}),
+      //   ib: getCommentIb(text),
+      //   data,
+      //   dna: true,
+      //   tjp: { uuid: true, timestamp: true },
+      //   nCounter: true,
+      // };
+
+      // // this makes it more difficult to share/sync ibgibs...
+      // // if (this.addr) { opts.rel8ns = { 'comment on': [this.addr] }; }
+
+      // if (logalot) { console.log(`${lc} opts: ${pretty(opts)}`); }
+      // const resCommentIbGib = await factory.firstGen(opts);
+      // await this.common.ibgibs.persistTransformResult({resTransform: resCommentIbGib});
+      const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
+      const resCommentIbGib = await createCommentIbGib({
+        text,
+        saveInSpace: true,
+        space,
+      });
       const { newIbGib: newComment } = resCommentIbGib;
-      const newCommentAddr = getIbGibAddr({ibGib: newComment});
+      const newCommentAddr = h.getIbGibAddr({ibGib: newComment});
       // await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newComment, linked: true});
       await this.common.ibgibs.registerNewIbGib({ibGib: newComment});
       // need to nav to picture if not in a context, or
@@ -185,10 +191,10 @@ export class ActionBarComponent extends IbgibComponentBase
         // nav to either the pic we just added, or the new context "in time"
         // to which the pic was added.
         navToAddr = this.isMeta ?
-          getIbGibAddr({ibGib: newComment}) :
-          getIbGibAddr({ibGib: newContext});
+          h.getIbGibAddr({ibGib: newComment}) :
+          h.getIbGibAddr({ibGib: newContext});
       } else {
-        navToAddr = getIbGibAddr({ibGib: newComment});
+        navToAddr = h.getIbGibAddr({ibGib: newComment});
       }
       // await this.go({
       //   toAddr: navToAddr,
@@ -244,8 +250,8 @@ export class ActionBarComponent extends IbgibComponentBase
       // just created via the rel8 transform
       if (navigateAfter) {
         const navToAddr = this.isMeta ?
-          getIbGibAddr({ibGib: ibGibToRel8}) :
-          getIbGibAddr({ibGib: newContext});
+          h.getIbGibAddr({ibGib: ibGibToRel8}) :
+          h.getIbGibAddr({ibGib: newContext});
         await this.go({
           toAddr: navToAddr,
           fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),

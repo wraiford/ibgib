@@ -232,29 +232,6 @@ export function tagTextToIb(tagText: string): string {
     return `tag ${tagText}`;
 }
 
-export function getCommentIb(commentText: string): string {
-    const lc = `[${getCommentIb.name}]`;
-    try {
-        if (!commentText) { throw new Error(`commentText required. (E: 22fdfd0aa0524a18b63a9405b312c99e)`); }
-        let saferText = commentText.replace(/\W/g, '');
-        let ibCommentText: string;
-        if (saferText.length > c.DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH) {
-            ibCommentText =
-                saferText.substring(0, c.DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH);
-        } else if (saferText.length > 0) {
-            ibCommentText = saferText;
-        } else {
-            // comment text only has characters/nonalphanumerics.
-            ibCommentText = c.COMMENT_ONLY_HAS_NON_ALPHANUMERICS;
-        }
-
-        return `comment ${ibCommentText}`;
-    } catch (error) {
-        console.error(`${lc} ${error.message}`);
-        throw error;
-    }
-}
-
 /**
  * Living: has tjp and dna.
  * Stones: does not have Dna, maybe has tjp.

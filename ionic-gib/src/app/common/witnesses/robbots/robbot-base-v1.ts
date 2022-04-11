@@ -18,6 +18,8 @@ import {
     getTimestampInTicks,
     validateIbGibIntrinsically
 } from '../../helper';
+import { PicIbGib_V1, CommentIbGib_V1 } from '../../types';
+import { isPic, isComment } from '../../helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -115,68 +117,104 @@ export abstract class RobbotBase_V1<
      * as well as the internal state of this robbot. so whatever this robbot's
      * function is, it should be good to go.
      */
-    // protected async witnessImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
-    //     const lc = `${this.lc}[${this.witnessImpl.name}]`;
-    //     if (logalot) { console.log(`${lc}`); }
-
-    //     throw new Error('not implemented');
-        // do the thing
-        // let result = await this.routeAndDoCommand({
-        //     cmd: arg.data!.cmd,
-        //     cmdModifiers: arg.data!.cmdModifiers ?? [],
-        //     arg,
-        // });
-
-
-        // return result;
-    // }
-
+    protected witnessImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
+        const lc = `${this.lc}[${this.witnessImpl.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            return this.routeAndDoArg({arg});
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
 
     /**
-     * builds an arg ibGib.
+     * Base routing executes different if incoming is a pic, comment or neither
+     * (default).
      *
-     * wrapper convenience to avoid long generic calls.
+     * Override this function to create more advanced custom routing.
      */
-    // async argy({
-    //     argData,
-    //     ibMetadata,
-    //     noTimestamp,
-    //     ibGibs,
-    // }: {
-    //     argData: TOptionsData,
-    //     ibMetadata?: string,
-    //     noTimestamp?: boolean,
-    //     ibGibs?: IbGib_V1[],
-    // }): Promise<TOptionsIbGib> {
-    //     const arg = await argy_<TOptionsData, TOptionsRel8ns, TOptionsIbGib>({
-    //         argData,
-    //         ibMetadata,
-    //         noTimestamp
-    //     });
+    protected async routeAndDoArg({
+        arg,
+    }: {
+        arg: TOptionsIbGib,
+    }): Promise<TResultIbGib | undefined> {
+        const lc = `${this.lc}[${this.routeAndDoArg.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            if (isPic({ibGib: arg})) {
+                return this.doPic({ibGib: <PicIbGib_V1><any>arg}); // any cast b/c bad/too advanced TS inference
+            } else if (isComment({ibGib: arg})) {
+                return this.doComment({ibGib: <CommentIbGib_V1><any>arg}); // any cast b/c bad/too advanced TS inference
+            } else {
+                return this.doDefault({ibGib: arg});
+            }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
 
-    //     if (ibGibs) { arg.ibGibs = ibGibs; }
+    doPic({
+        ibGib,
+    }: {
+        ibGib: PicIbGib_V1,
+    }): Promise<TResultIbGib | undefined> {
+        const lc = `${this.lc}[${this.doPic.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            throw new Error(`not implemented in base class (E: 16ba889931644d42ad9e476757dd0617)`);
+            // return this.doPicImpl({ibGib: ibGib});
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+    // abstract doPicImpl({ ibGib }: { ibGib: PicIbGib_V1 }): Promise<TResultIbGib | undefined>;
 
-    //     return arg;
-    // }
+    doComment({
+        ibGib,
+    }: {
+        ibGib: CommentIbGib_V1,
+    }): Promise<TResultIbGib | undefined> {
+        const lc = `${this.lc}[${this.doComment.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
 
-    /**
-     * builds a result ibGib.
-     *
-     * wrapper convenience to avoid long generic calls.
-     */
-    // async resulty({
-    //     resultData,
-    //     ibGibs,
-    // }: {
-    //     resultData: TResultData,
-    //     ibGibs?: TIbGib[],
-    // }): Promise<TResultIbGib> {
-    //     const result = await resulty_<TResultData, TResultIbGib>({
-    //         ibMetadata: getRobbotResultMetadata({space: this}),
-    //         resultData,
-    //     });
-    //     if (ibGibs) { result.ibGibs = ibGibs; }
-    //     return result;
-    // }
+            throw new Error(`not implemented in base class (E: 0486a7864729456d993a1afe246faea4)`);
+            // return this.doCommentImpl({ibGib: ibGib});
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+    // abstract doCommentImpl({ ibGib }: { ibGib: CommentIbGib_V1 }): Promise<TResultIbGib | undefined>;
+
+    doDefault({
+        ibGib,
+    }: {
+        ibGib: TOptionsIbGib,
+    }): Promise<TResultIbGib | undefined> {
+        const lc = `${this.lc}[${this.doDefault.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            throw new Error(`not implemented in base class (E: 5038662186617aaf1f0cc698fd1f9622)`);
+            // return this.doDefaultImpl({ibGib});
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+    // abstract doDefaultImpl({ ibGib }: { ibGib: TOptionsIbGib }): Promise<TResultIbGib | undefined>;
 
 }

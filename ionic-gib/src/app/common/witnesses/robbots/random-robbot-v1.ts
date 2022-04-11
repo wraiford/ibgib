@@ -5,7 +5,7 @@ import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 import * as c from '../../constants';
 import { RobbotBase_V1 } from './robbot-base-v1';
 import { argy_, } from '../witnesses';
-import { RobbotData_V1, RobbotRel8ns_V1 } from '../../types';
+import { CommentIbGib_V1, PicIbGib_V1, RobbotData_V1, RobbotRel8ns_V1 } from '../../types';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -86,6 +86,8 @@ export class RandomRobbot_V1 extends RobbotBase_V1 {
         try {
             if (logalot) { console.log(`${lc} starting...`); }
             throw new Error(`not impl (E: 80872f4b7c1c79afa665113ea06cce22)`);
+            // need to add handling space/robbot in the base class
+
 
         } catch (error) {
             console.error(`${lc} ${error.message}`);

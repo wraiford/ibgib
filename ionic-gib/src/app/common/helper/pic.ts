@@ -7,9 +7,7 @@ import * as c from '../constants';
 import { IconItem } from '../types/ux';
 import { PicData_V1, PicIbGib_V1 } from '../types/pic';
 import {
-  getBinIb, getCommentIb, getDependencyGraph,
-  getFnAlert, getFnPrompt,
-  getFromSpace, validateIbGibAddr,
+  getBinIb,
 } from '../helper';
 import { CommonService } from '../../services/common.service';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
@@ -241,5 +239,50 @@ export function createPicAndBinIbGibsFromInputFilePickedEvent({
   } catch (error) {
     console.error(`${lc} ${error.message}`);
     throw error;
+  }
+}
+
+export function isPic({
+  ibGib,
+}: {
+  ibGib: IbGib_V1,
+}): boolean {
+  const lc = `[${isPic.name}]`;
+  try {
+    if (logalot) { console.log(`${lc} starting...`); }
+
+    if (!ibGib) { throw new Error(`ibGib required (E: 1237b2d4602a3d526f6b159cb6ad0922)`); }
+
+    const {ib, data, rel8ns} = ibGib;
+
+    // try rel8ns first
+    if (!rel8ns) {
+      if (logalot) { console.log(`${lc} rel8ns falsy, not a pic (I: 563a3e779b85b070550581e652e0ca22)`); }
+      return false;
+    }
+
+    // descends from pic^gib
+    const ancestors = rel8ns.ancestor || [];
+    if (ancestors && ancestors.includes('pic^gib')) {
+      return true;
+    }
+
+    // has binary qualities and ib contains 'pic'
+    if (!data) {
+      if (logalot) { console.log(`${lc} data falsy, not a pic (I: 6c05c03cdfca4085aef8f2a19df91690)`); }
+      return false;
+    }
+    if (data.binHash && data.ext && data.filename && ib?.includes('pic')) {
+      if (logalot) { console.log(`${lc} has binHash, ext, filename and ib has pic (I: f754b6b023d5379ee770038617edc722)`); }
+      return true;
+    }
+
+    if (logalot) { console.log(`${lc} reached end, doesn't have pic qualities. not a pic. (I: 298c5e9a2916445df1cdd22a96f57522)`); }
+    return false;
+  } catch (error) {
+    console.error(`${lc} ${error.message}`);
+    throw error;
+  } finally {
+    if (logalot) { console.log(`${lc} complete.`); }
   }
 }

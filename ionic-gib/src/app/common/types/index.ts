@@ -1,6 +1,7 @@
 export * from './ux';
 export * from './tag';
 export * from './pic';
+export * from './comment';
 export * from './witness';
 export * from './space';
 export * from './outer-space';

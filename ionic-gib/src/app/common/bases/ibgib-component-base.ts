@@ -9,7 +9,7 @@ import { IbGib_V1, GIB, Factory_V1, ROOT_ADDR } from "ts-gib/dist/V1";
 import { IbGibAddr, Ib, Gib, } from "ts-gib";
 
 import * as c from '../../common/constants';
-import { IbgibItem, PicData_V1, CommentData, LatestEventInfo } from '../types';
+import { IbgibItem, PicData_V1, CommentData_V1, LatestEventInfo } from '../types';
 import { CommonService, NavInfo } from 'src/app/services/common.service';
 import { Capacitor } from '@capacitor/core';
 
@@ -442,7 +442,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     if (!this.isComment) { return; }
     if (!this.ibGib?.data?.text) { return; }
 
-    const data = <CommentData>this.ibGib.data;
+    const data = <CommentData_V1>this.ibGib.data;
     item.text = data.text;
     item.timestamp = data.textTimestamp || data.timestamp;
   }
