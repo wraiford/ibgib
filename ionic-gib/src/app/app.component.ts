@@ -28,6 +28,7 @@ import {
   getFn_promptUpdatePicIbGib
 } from './common/helper';
 import { IbGibSpaceAny } from './common/witnesses/spaces/space-base-v1';
+import { createNewRobbot } from './common/helper/robbot';
 
 // #endregion imports & some init
 
@@ -1115,6 +1116,9 @@ export class AppComponent extends IbgibComponentBase
       if (this.addingRobbot) { throw new Error(`(UNEXPECTED) already adding tag...shouldn't get here (E: 16304ec9c66947768db2298827240e95)`); }
       this.addingRobbot = true;
 
+      const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
+
+      await createNewRobbot({common: this.common, space});
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);

@@ -7,3 +7,4 @@ export * from './utils';
 export * from './validate';
 export * from './ionic';
 export * from './tag';
+export * from './robbot';

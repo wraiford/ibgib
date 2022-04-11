@@ -141,3 +141,29 @@ export async function resulty_<TResultData, TResultIbGib extends IbGib_V1<TResul
         throw error;
     }
 }
+
+/**
+ * If valid, returns null.
+ */
+export function validateWitnessClassname({
+    classname,
+}: {
+    classname: string,
+}): string | null {
+    const lc = `[${validateWitnessClassname.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting...`); }
+        if (!classname) { throw new Error(`classname required (E: b1c7b455d58fdd8d77acd15bdf017722)`); }
+
+        if (!classname.match(c.CLASSNAME_REGEXP)) {
+            return `classname (${classname}) must match regex ${c.CLASSNAME_REGEXP}`;
+        }
+
+        return null;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}

@@ -1,11 +1,10 @@
 import * as h from 'ts-gib/dist/helper';
-import { IbGib_V1, IbGibRel8ns_V1, GIB, ROOT, } from 'ts-gib/dist/V1';
-import { getIbGibAddr, IbGibAddr } from 'ts-gib';
+import { IbGib_V1, ROOT, } from 'ts-gib/dist/V1';
 
 import * as c from '../../constants';
 import { RobbotBase_V1 } from './robbot-base-v1';
-import { argy_, } from '../witnesses';
-import { CommentIbGib_V1, PicIbGib_V1, RobbotData_V1, RobbotRel8ns_V1 } from '../../types';
+import { RobbotData_V1, RobbotRel8ns_V1 } from '../../types';
+import { getFnAlert } from '../../helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -31,7 +30,6 @@ const DEFAULT_RANDOM_ROBBOT_DATA_V1: RandomRobbotData_V1 = {
     name: DEFAULT_NAME_RANDOM_ROBBOT,
     description: DEFAULT_DESCRIPTION_RANDOM_ROBBOT,
 
-    outputMode: 'ask',
     tagOutput: false,
 
     persistOptsAndResultIbGibs: false,
@@ -44,7 +42,9 @@ export interface RandomRobbotRel8ns_V1 extends RobbotRel8ns_V1 {
 
 }
 
-
+/**
+ *
+ */
 export class RandomRobbot_V1 extends RobbotBase_V1 {
 
     /**
@@ -81,14 +81,15 @@ export class RandomRobbot_V1 extends RobbotBase_V1 {
         }
     }
 
-    protected witnessImpl(arg: IbGib_V1): Promise<IbGib_V1> {
+    protected async witnessImpl(arg: IbGib_V1): Promise<IbGib_V1> {
         const lc = `${this.lc}[${this.witnessImpl.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            throw new Error(`not impl (E: 80872f4b7c1c79afa665113ea06cce22)`);
+
+            await getFnAlert()({title: 'yo', msg: h.pretty(arg)});
             // need to add handling space/robbot in the base class
 
-
+            return ROOT;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -97,4 +98,25 @@ export class RandomRobbot_V1 extends RobbotBase_V1 {
         }
     }
 
+    protected async validateThis(): Promise<string[]> {
+        const lc = `${this.lc}[${this.validateThis.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            const errors = [
+                ...await super.validateThis(),
+            ];
+            const { data } = this;
+            if (data) {
+                // data.outputMode
+            // } else {
+            //     errors.push(`data required`); // checked in super validation
+            }
+            return errors;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
 }

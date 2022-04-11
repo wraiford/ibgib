@@ -14,6 +14,11 @@ import { getGib, } from 'ts-gib/dist/V1/transforms/transform-helper';
 import * as c from '../constants';
 import { getTimestampInTicks } from './utils';
 import { IbGibRobbotAny } from '../witnesses/robbots/robbot-base-v1';
+import { CommonService } from '../../services/common.service';
+import { RobbotData_V1, RobbotIbGib_V1, RobbotOutputMode, VALID_ROBBOT_OUTPUT_MODES } from '../types/robbot';
+import { getFn_promptRobbotIbGib } from './prompt-functions';
+import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
+import { validateWitnessClassname } from '../witnesses/witness-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -22,23 +27,104 @@ export function getRobbotResultMetadata({robbot}: {robbot: IbGibRobbotAny}): str
     return `${robbot.ib} ${getTimestampInTicks()}`;
 }
 
+/**
+ * Robbot.data.name regexp
+ */
+export const ROBBOT_NAME_REGEXP = /^[a-zA-Z0-9_\-.]{1,255}$/;
+export const PREFIX_SUFFIX_REGEXP = /^[a-zA-Z0-9_\-.]{1,64}$/;
+
+export function validateCommonRobbotData({
+    robbotData,
+}: {
+    robbotData: RobbotData_V1,
+}): string[] {
+    const lc = `[${validateCommonRobbotData.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting...`); }
+        if (!robbotData) { throw new Error(`robbotData required (E: 1ac78ffae5354b67acb64a34cfe23c2f)`); }
+        const errors: string[] = [];
+        const { name, uuid, outputMode, outputPrefix, outputSuffix, tagOutput, classname } = robbotData;
+
+        if (name) {
+            if (!name.match(ROBBOT_NAME_REGEXP)) {
+                errors.push(`name must match regexp: ${ROBBOT_NAME_REGEXP}`);
+            }
+        } else {
+            errors.push(`name required.`);
+        }
+
+        if (uuid) {
+            if (!uuid.match(c.UUID_REGEXP)) {
+                errors.push(`uuid must match regexp: ${c.UUID_REGEXP}`);
+            }
+        } else {
+            errors.push(`uuid required.`);
+        }
+
+        if (outputMode) {
+            if (!VALID_ROBBOT_OUTPUT_MODES.includes(outputMode)) {
+                errors.push(`invalid outputMode (${outputMode}). Must be a value from ${VALID_ROBBOT_OUTPUT_MODES}`);
+            }
+        }
+
+        if (outputPrefix) {
+            if (!outputPrefix.match(PREFIX_SUFFIX_REGEXP)) {
+                errors.push(`outputPrefix must match regexp: ${PREFIX_SUFFIX_REGEXP}`);
+            }
+        }
+
+        if (outputSuffix) {
+            if (!outputSuffix.match(PREFIX_SUFFIX_REGEXP)) {
+                errors.push(`outputSuffix must match regexp: ${PREFIX_SUFFIX_REGEXP}`);
+            }
+        }
+
+        if (tagOutput !== undefined) {
+            const tagOutputType = typeof tagOutput;
+            if (tagOutputType !== 'boolean') {
+                errors.push(`invalid tagOutputType (${tagOutputType}). should be boolean if set.`);
+            }
+        }
+
+        if (classname) {
+            if (!classname.match(ROBBOT_NAME_REGEXP)) {
+                errors.push(`classname must match regexp: ${ROBBOT_NAME_REGEXP}`);
+            }
+        }
+
+        return errors;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
 export function getRobbotIb({
-    robbot,
+    robbotData,
     classname,
 }: {
-    robbot: IbGibRobbotAny,
-    classname: string,
+    robbotData: RobbotData_V1,
+    classname?: string,
 }): Ib {
     const lc = `[${getRobbotIb.name}]`;
     try {
-        if (!robbot) { throw new Error(`robbot required (E: 00404e478cae40258136472e00652cd1)`); }
-        if (!classname) { throw new Error(`classname required (E: e0519f89df8a468c8743cb932f436bfe)`); }
-        if (classname.includes(' ')) { throw new Error(`invalid classname. cannot contain spaces (E: 20fddb54342743a383c33c87a1db9343)`); }
-        const name = robbot.data?.name || c.IBGIB_ROBBOT_NAME_DEFAULT;
-        if (name.includes(' ')) { throw new Error(`invalid robbot name. cannot contain spaces (E: 173cf478ab7a4359902fd564be838cf7)`); }
-        const id = robbot.data?.uuid || undefined;
-        if (id.includes(' ')) { throw new Error(`invalid robbot id. cannot contain spaces (E: 19ac5c32113243378c1b81f0ea38ca58)`); }
-        return `witness robbot ${classname} ${name} ${id}`;
+        const validationErrors = validateCommonRobbotData({robbotData});
+        if (validationErrors.length > 0) { throw new Error(`invalid robbotData: ${validationErrors} (E: 390316b7c4fb0bd104ddc4e6c2e12922)`); }
+        if (classname) {
+            if (robbotData.classname && robbotData.classname !== classname) { throw new Error(`classname does not match robbotData.classname (E: e21dbc830856fbcee1d3ab260b0c5922)`); }
+        } else {
+            classname = robbotData.classname;
+            if (!classname) { throw new Error(`classname required (E: e0519f89df8a468c8743cb932f436bfe)`); }
+        }
+
+        // ad hoc validation here. should centralize witness classname validation
+        let classnameValidationError = validateWitnessClassname({classname});
+        if (classnameValidationError) { throw new Error(`invalid classname. ${classnameValidationError} (E: 20fddb54342743a383c33c87a1db9343)`); }
+
+        const { name, uuid } = robbotData;
+        return `witness robbot ${classname} ${name} ${uuid}`;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -76,5 +162,36 @@ export function getInfoFromRobbotIb({
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
+    }
+}
+
+export async function createNewRobbot({
+    common,
+    space,
+}: {
+    common: CommonService,
+    space: IbGibSpaceAny,
+}): Promise<RobbotIbGib_V1 | undefined> {
+    const lc = `[${createNewRobbot.name}]`;
+
+    try {
+        if (logalot) { console.log(`${lc} starting...`); }
+
+        space = space ?? await common.ibgibs.getLocalUserSpace({lock: true});
+
+        let newRobbotIbGib: RobbotIbGib_V1;
+
+        // prompt user to create the ibgib, passing in null because we're
+        // creating not editing.
+        let modalResult = await getFn_promptRobbotIbGib(common)(space, /**ibGib*/ null);
+
+
+
+        return newRobbotIbGib;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        return;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
     }
 }

@@ -16,7 +16,8 @@ import * as c from '../../constants';
 import {
     // getRobbotResultMetadata,
     getTimestampInTicks,
-    validateIbGibIntrinsically
+    validateIbGibIntrinsically,
+    validateCommonRobbotData
 } from '../../helper';
 import { PicIbGib_V1, CommentIbGib_V1 } from '../../types';
 import { isPic, isComment } from '../../helper';
@@ -217,4 +218,29 @@ export abstract class RobbotBase_V1<
     }
     // abstract doDefaultImpl({ ibGib }: { ibGib: TOptionsIbGib }): Promise<TResultIbGib | undefined>;
 
+
+    /**
+     * validates against common robbot qualities.
+     *
+     * Override this with a call to `super.validateThis` for custom validation
+     * for descending robbot classes.
+     *
+     * @returns validation errors common to all robbots, if any errors exist.
+     */
+    protected async validateThis(): Promise<string[]> {
+        const lc = `${this.lc}[${this.validateThis.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            const errors = [
+                ...await super.validateThis(),
+                ...validateCommonRobbotData({robbotData: this.data}),
+            ];
+            return errors;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
 }

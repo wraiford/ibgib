@@ -28,6 +28,13 @@ export const IBGIB_SPACE_NAME_DEFAULT = 'default_space';
  *
  */
 export const DEFAULT_UUID = undefined;
+export const UUID_REGEXP = /^[a-zA-Z0-9_\-.]{1,256}$/;
+/**
+ * regular expression for a classname.
+ *
+ * Used in witnesses atm.
+ */
+export const CLASSNAME_REGEXP = /^[a-zA-Z0-9_]{1,255}$/;
 
 /**
  * See {@link BootstrapIbGib}
@@ -341,7 +348,6 @@ export const MAX_ENCRYPTION_PASSWORD_LENGTH = 9999999;
 export const DEFAULT_ENCRYPTION_SALT_STRATEGY: SaltStrategy = SaltStrategy.appendPerHash;
 export const DEFAULT_ENCRYPTION_RECURSIONS_PER_HASH = 10;
 export const DEFAULT_ENCRYPTION_HASH_ALGORITHM = 'SHA-256';
-
 
 /**
  * List of common special chars for english.

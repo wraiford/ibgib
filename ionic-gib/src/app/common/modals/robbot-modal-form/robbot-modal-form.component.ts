@@ -15,6 +15,10 @@ import { CommonService } from '../../../services/common.service';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
+export interface RobbotModalResult {
+
+}
+
 /**
  * Prompts the user for information gathering and generates a new ibGib.
  *
@@ -133,6 +137,14 @@ export class RobbotModalFormComponent
   @Input()
   showHelp: boolean;
 
+  /**
+   * If we are editing an ibGib, this will be populated and {@link createImpl}
+   * will mutate it. Otherwise, this will be falsy, and {@link createImpl} will
+   * create a new one.
+   */
+  @Input()
+  ibGib: RobbotIbGib_V1;
+
   constructor(
     protected common: CommonService,
   ) {
@@ -149,17 +161,15 @@ export class RobbotModalFormComponent
       //   console.warn(`${lc} validation failed. Errors:\n${validationErrors.join('\n')}`);
       //   return;
       // }
+      debugger;
 
       let resNewIbGib: TransformResult<RobbotIbGib_V1>;
 
       // create the robbot
-      // if (this.method === RobbotMethod.encrypt_gib_weak) {
-      //   resNewIbGib = await this.createRobbot_Scheduler();
-      // } else {
-      //   throw new Error(`unknown robbot method (?): ${this.method}`);
-      // }
+      // ...how should I be doing the creating for various types of robbots?
+      // some kind of ioc?
 
-      if (!resNewIbGib) { throw new Error(`creation failed...`); }
+      if (!resNewIbGib) { throw new Error(`creation failed... (E: ddc73faeb9d74eeca5f415d4b9e3f425)`); }
 
       return resNewIbGib;
       // await this.modalController.dismiss(resNewIbGib);

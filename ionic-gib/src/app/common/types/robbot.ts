@@ -108,7 +108,7 @@ export interface RobbotData_V1 extends WitnessData_V1 {
      * Since the driving use case is to create drills, it would seem that inside
      * a single grouping ibgib within the output context makes the most sense.
      */
-    outputMode: RobbotOutputMode;
+    outputMode?: RobbotOutputMode;
 
     /**
      * If true, rel8s output context depending on {@link outputMode} to the latest
@@ -123,12 +123,8 @@ export interface RobbotData_V1 extends WitnessData_V1 {
 /**
  * @see {@link RobbotData_V1.outputMode}
  */
-export type RobbotOutputMode = 'ask' | 'context' | 'subcontext';
+export type RobbotOutputMode = 'context' | 'subcontext';
 export const RobbotOutputMode = {
-    /**
-     * Ask user when robbot starts.
-     */
-    ask: 'ask' as RobbotOutputMode,
     /**
      * spread out within the target context
      */
@@ -138,6 +134,7 @@ export const RobbotOutputMode = {
      */
     subcontext: 'subcontext' as RobbotOutputMode,
 }
+export const VALID_ROBBOT_OUTPUT_MODES = Object.values(RobbotOutputMode);
 
 export interface RobbotRel8ns_V1 extends WitnessRel8ns_V1 {
     /**

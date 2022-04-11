@@ -142,31 +142,13 @@ export class ActionBarComponent extends IbgibComponentBase
         return;
       }
 
-
-      // const data: CommentData_V1 = { text, textTimestamp: getTimestamp() };
-
-      // // create an ibgib with the filename and ext
-      // const opts:any = {
-      //   parentIbGib: factory.primitive({ib: 'comment'}),
-      //   ib: getCommentIb(text),
-      //   data,
-      //   dna: true,
-      //   tjp: { uuid: true, timestamp: true },
-      //   nCounter: true,
-      // };
-
-      // // this makes it more difficult to share/sync ibgibs...
-      // // if (this.addr) { opts.rel8ns = { 'comment on': [this.addr] }; }
-
-      // if (logalot) { console.log(`${lc} opts: ${pretty(opts)}`); }
-      // const resCommentIbGib = await factory.firstGen(opts);
-      // await this.common.ibgibs.persistTransformResult({resTransform: resCommentIbGib});
       const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
       const resCommentIbGib = await createCommentIbGib({
         text,
         saveInSpace: true,
         space,
       });
+
       const { newIbGib: newComment } = resCommentIbGib;
       const newCommentAddr = h.getIbGibAddr({ibGib: newComment});
       // await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newComment, linked: true});

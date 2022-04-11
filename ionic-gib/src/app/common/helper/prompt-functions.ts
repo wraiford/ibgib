@@ -8,7 +8,7 @@ import {
 import { TransformResult, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 
-import { EncryptionData_V1, OuterSpaceIbGib, PicIbGib_V1, SecretIbGib_V1 } from '../types';
+import { EncryptionData_V1, OuterSpaceIbGib, PicIbGib_V1, RobbotIbGib_V1, SecretIbGib_V1 } from '../types';
 import { SecretModalFormComponent } from '../modals/secret-modal-form/secret-modal-form.component';
 import * as c from '../constants';
 import { EncryptionModalFormComponent } from '../modals/encryption-modal-form/encryption-modal-form.component';
@@ -16,6 +16,7 @@ import { OuterspaceModalFormComponent } from '../modals/outerspace-modal-form/ou
 import { CommonService } from '../../services/common.service';
 import { UpdatePicModalFormComponent, UpdatePicModalResult } from '../modals/update-pic-modal-form/update-pic-modal-form.component';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
+import { RobbotModalFormComponent, RobbotModalResult } from '../modals/robbot-modal-form/robbot-modal-form.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -246,6 +247,42 @@ export function getFn_promptUpdatePicIbGib(
                 const [resCreatePic, _resCreateBin] = result;
                 const addr = h.getIbGibAddr({ibGib: resCreatePic.newIbGib});
                 if (logalot) { console.log(`${lc} updated pic. addr: ${addr}`); }
+                return result;
+            } else {
+                // didn't create one
+                console.warn(`${lc} didn't create at this time.`);
+                return undefined;
+            }
+        } catch (error) {
+            console.error(`${lc} error: ${error.message}`);
+            return undefined;
+        }
+    }
+}
+
+/**
+ * Creates a function with a single `space` arg. This fn when called shows a
+ * modal to mutate a pic ibgib. If the user chooses to save, then the modal will
+ * perform the mutation, save the transform result in the given `space`, and
+ * return the new pic ibgib.
+ */
+export function getFn_promptRobbotIbGib(
+    common: CommonService,
+): (space: IbGibSpaceAny, ibGib: RobbotIbGib_V1) => Promise<RobbotModalResult | undefined> {
+    const lc = `[${getFn_promptRobbotIbGib.name}]`;
+    return async (space: IbGibSpaceAny, ibGib: RobbotIbGib_V1) => {
+        try {
+            const modal = await common.modalController.create({
+                component: RobbotModalFormComponent,
+                componentProps: { ibGib, space },
+            });
+            await modal.present();
+            let resModal = await modal.onWillDismiss();
+            if (resModal.data) {
+                const result = <RobbotModalResult>resModal.data;
+                // const [resCreatePic, _resCreateBin] = result;
+                // const addr = h.getIbGibAddr({ibGib: resCreatePic.newIbGib});
+                // if (logalot) { console.log(`${lc} updated pic. addr: ${addr}`); }
                 return result;
             } else {
                 // didn't create one

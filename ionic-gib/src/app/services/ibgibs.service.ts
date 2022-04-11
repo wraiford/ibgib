@@ -28,6 +28,8 @@ import {
   BootstrapIbGib,
   TjpIbGibAddr,
   PicIbGib_V1,
+  RobbotData_V1,
+  RobbotIbGib_V1,
 } from '../common/types';
 import {
   IonicSpace_V1,
@@ -37,7 +39,8 @@ import * as c from '../common/constants';
 import { IbGibSpaceAny } from '../common/witnesses/spaces/space-base-v1';
 import { AWSDynamoSpace_V1 } from '../common/witnesses/spaces/aws-dynamo-space-v1';
 import {
-  createSpecial, createTagIbGib, deleteFromSpace, getFromSpace, getFnAlert,
+  createSpecial, createTagIbGibAndSundry, createRobbotIbGib,
+  deleteFromSpace, getFromSpace, getFnAlert,
   getFnPrompt, getFnPromptPassword_AlertController,
   getDependencyGraph, getSpecialIbGib, getSpecialRel8dIbGibs, getTjpIbGib,
   groupBy, hasTjp, isSameSpace, persistTransformResult, putInSpace,
@@ -531,7 +534,7 @@ export class IbgibsService {
       space = space ?? await this.getLocalUserSpace({});
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized (E: 18f846b645124210a2ff1611641a8daf)`); }
 
-      return createTagIbGib({
+      return createTagIbGibAndSundry({
         text,
         icon,
         description,
@@ -1954,6 +1957,31 @@ export class IbgibsService {
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       return [];
+    }
+  }
+
+  async createRobbotIbGib({
+    robbotData,
+    space,
+  }: {
+    robbotData: RobbotData_V1,
+    space?: IbGibSpaceAny,
+  }): Promise<{newRobbotIbGib: RobbotIbGib_V1, newRobbotsAddr: string}> {
+    const lc = `${this.lc}[${this.createRobbotIbGib.name}]`;
+    try {
+      space = space ?? await this.getLocalUserSpace({});
+      if (!space) { throw new Error(`space falsy and localUserSpace not initialized (E: 33ea7f4633484afa984225d037478ac4)`); }
+
+      return createRobbotIbGib({
+        robbotData,
+        space,
+        zeroSpace: this.zeroSpace,
+        fnBroadcast: (x) => this.fnBroadcast(x),
+        fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
+      });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
     }
   }
 

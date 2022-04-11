@@ -40,6 +40,10 @@ export interface WitnessData_V1 {
      */
     name?: string;
     /**
+     * @optional classname of the witness.
+     */
+    classname?: string;
+    /**
      * @optional description of the witness.
      */
     description?: string;
