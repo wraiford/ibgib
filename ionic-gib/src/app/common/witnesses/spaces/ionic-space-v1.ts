@@ -9,7 +9,7 @@ import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 
 import * as c from '../../constants';
 import { SpaceBase_V1 } from './space-base-v1';
-import { argy_, } from '../witnesses';
+import { argy_, } from '../witness-helper';
 import {
     IbGibSpaceData,
     IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib,

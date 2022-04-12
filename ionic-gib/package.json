@@ -1,6 +1,6 @@
 {
   "name": "ionicgib",
-  "version": "0.1.53",
+  "version": "0.1.59",
   "author": "William Raiford",
   "repository": {
     "url": "https://github.com/wraiford/ibgib",
@@ -84,6 +84,7 @@
     "@ionic/angular-server": "^6.0.1",
     "@ionic/pwa-elements": "^1.5.2",
     "@schematics/angular": "^13.3.0",
+    "circular-dependency-plugin": "^5.2.2",
     "encrypt-gib": "0.1.2",
     "rxjs": "~6.5.1",
     "ts-gib": "^0.3.15",

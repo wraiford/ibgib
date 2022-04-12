@@ -8,7 +8,8 @@ import {
     IbGibSpaceData, IbGibSpaceRel8ns,
     IbGibSpaceOptionsCmd, IbGibSpaceOptionsCmdModifier,
 } from '../../types';
-import { WitnessBase_V1, resulty_, argy_ } from '../witnesses';
+import { resulty_, argy_ } from '../witness-helper';
+import { WitnessBase_V1, } from '../witness-base-v1';
 import * as c from '../../constants';
 import { getSpaceResultMetadata, validateIbGibIntrinsically } from '../../helper';
 

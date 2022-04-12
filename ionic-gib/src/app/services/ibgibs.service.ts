@@ -39,7 +39,7 @@ import * as c from '../common/constants';
 import { IbGibSpaceAny } from '../common/witnesses/spaces/space-base-v1';
 import { AWSDynamoSpace_V1 } from '../common/witnesses/spaces/aws-dynamo-space-v1';
 import {
-  createSpecial, createTagIbGibAndSundry, createRobbotIbGib,
+  createTagIbGibAndSundry, createRobbotIbGib,
   deleteFromSpace, getFromSpace, getFnAlert,
   getFnPrompt, getFnPromptPassword_AlertController,
   getDependencyGraph, getSpecialIbGib, getSpecialRel8dIbGibs, getTjpIbGib,
@@ -60,9 +60,9 @@ import {
 } from '../common/types/legacy';
 import { concatMap, } from 'rxjs/operators';
 import { TagIbGib_V1 } from '../common/types/tag';
-import { BinIbGib_V1 } from '../common/types/bin';
 import { UpdatePicModalResult } from '../common/modals/update-pic-modal-form/update-pic-modal-form.component';
-import { IbGibRobbotAny, RobbotBase_V1 } from '../common/witnesses/robbots/robbot-base-v1';
+
+import { IbGibRobbotAny } from '../common/witnesses/robbots/robbot-base-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -1991,7 +1991,7 @@ export class IbgibsService {
   }: {
     createIfNone: boolean,
     space?: IbGibSpaceAny,
-  }): Promise<RobbotBase_V1[]> {
+  }): Promise<any[]> {
     const lc = `${this.lc}[${this.getAppRobbots.name}]`;
     try {
       space = space ?? await this.getLocalUserSpace({});

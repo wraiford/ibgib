@@ -1,32 +1,19 @@
 import {
-    IbGib_V1, IbGibRel8ns_V1, IbGibData_V1, sha256v1, Factory_V1,
+    IbGib_V1, IbGibRel8ns_V1,
 } from 'ts-gib/dist/V1';
-import * as h from 'ts-gib/dist/helper';
 
 import {
-    // IbGibRobbot,
-    // IbGibRobbotOptionsData, IbGibRobbotOptionsRel8ns, IbGibRobbotOptionsIbGib,
-    // IbGibRobbotResultData, IbGibRobbotResultRel8ns, IbGibRobbotResultIbGib,
-    // IbGibRobbotData, IbGibRobbotRel8ns,
-    // IbGibRobbotOptionsCmd, IbGibRobbotOptionsCmdModifier,
     RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1,
 } from '../../types/robbot';
-import { WitnessBase_V1, resulty_, argy_ } from '../witnesses';
 import * as c from '../../constants';
 import {
-    // getRobbotResultMetadata,
-    getTimestampInTicks,
-    validateIbGibIntrinsically,
     validateCommonRobbotData
 } from '../../helper';
 import { PicIbGib_V1, CommentIbGib_V1 } from '../../types';
 import { isPic, isComment } from '../../helper';
+import { WitnessBase_V1, } from '../witness-base-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
-
-export interface IbGibRobbotAny
-    extends RobbotBase_V1<any,any,any,any,any,any,any,any> {
-}
 
 /**
  * ## distinguishing characteristics of robbots
@@ -87,16 +74,17 @@ export abstract class RobbotBase_V1<
         TData extends RobbotData_V1 = RobbotData_V1,
         TRel8ns extends RobbotRel8ns_V1 = RobbotRel8ns_V1,
     >
-    extends WitnessBase_V1<
-        TOptionsData, TOptionsRel8ns, TOptionsIbGib,
-        TResultData, TResultRel8ns, TResultIbGib,
-        TData, TRel8ns>
+//     extends WitnessBase_V1<
+//         TOptionsData, TOptionsRel8ns, TOptionsIbGib,
+//         TResultData, TResultRel8ns, TResultIbGib,
+//         TData, TRel8ns>
     implements RobbotIbGib_V1 {
 
     /**
      * Log context for convenience with logging. (Ignore if you don't want to use this.)
      */
-    protected lc: string = `${super.lc}[${RobbotBase_V1.name}]`;
+    // protected lc: string = `${super.lc}[${RobbotBase_V1.name}]`;
+    protected lc: string = `[${RobbotBase_V1.name}]`;
 
     // getRobbotIb(classname: string): string {
     //     const lc = `${this.lc}[${this.getRobbotIb.name}]`;
@@ -110,8 +98,13 @@ export abstract class RobbotBase_V1<
     // }
 
     constructor(initialData?: TData, initialRel8ns?: TRel8ns) {
-        super(initialData, initialRel8ns);
+        // super(initialData, initialRel8ns);
     }
+
+    data?: RobbotData_V1;
+    rel8ns?: RobbotRel8ns_V1;
+    ib: string;
+    gib?: string;
 
     /**
      * At this point in time, the arg has already been intrinsically validated,
@@ -218,7 +211,6 @@ export abstract class RobbotBase_V1<
     }
     // abstract doDefaultImpl({ ibGib }: { ibGib: TOptionsIbGib }): Promise<TResultIbGib | undefined>;
 
-
     /**
      * validates against common robbot qualities.
      *
@@ -232,7 +224,7 @@ export abstract class RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting...`); }
             const errors = [
-                ...await super.validateThis(),
+                // ...await super.validateThis(),
                 ...validateCommonRobbotData({robbotData: this.data}),
             ];
             return errors;
@@ -243,4 +235,9 @@ export abstract class RobbotBase_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
+
+}
+
+export interface IbGibRobbotAny
+    extends RobbotBase_V1<any,any,any,any,any,any,any,any> {
 }

@@ -2,6 +2,11 @@
  * @module outer-space
  * Outer spaces are spaces connecting local inner spaces.
  * ATOW there is just sync spaces, but definitely just the beginning.
+ *
+ * ## on future implementations, CRDT-like behavior
+ *
+ * I just realized that when merging, I can actually create a meta transform
+ * ibgib to maintain the order of transforms.
  */
 
 import { ReplaySubject } from 'rxjs/internal/ReplaySubject';
@@ -122,6 +127,7 @@ export type OuterSpaceSubtype = SyncSpaceSubtype;
 
 export type SyncSpaceSubtype = 'aws-dynamodb';
 export const SyncSpaceSubtype = {
+
     aws_dynamodb: 'aws-dynamodb' as SyncSpaceSubtype,
 }
 export const VALID_OUTER_SPACE_SUBTYPES = Object.values(SyncSpaceSubtype).concat();

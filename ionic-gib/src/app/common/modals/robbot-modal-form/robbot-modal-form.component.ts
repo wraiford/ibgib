@@ -1,17 +1,20 @@
 import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { IonContent, ModalController } from '@ionic/angular';
 
-import { IbGib_V1, Factory_V1 as factory } from 'ts-gib/dist/V1';
+import * as h from 'ts-gib/dist/helper';
+import { IbGib_V1, Factory_V1 as factory, Rel8n } from 'ts-gib/dist/V1';
 
 import { HashAlgorithm } from 'encrypt-gib';
 import { TransformResult } from 'ts-gib';
 
 import * as c from '../../constants';
-import { getExpirationUTCString, getRegExp } from '../../helper';
+import { getExpirationUTCString, getRegExp, getRobbotIb } from '../../helper';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
-import { FieldInfo } from '../../types/ux';
+import { FieldInfo } from '../../types/form';
 import { RobbotData_V1, RobbotIbGib_V1 } from '../../types/robbot';
 import { CommonService } from '../../../services/common.service';
+import { RandomRobbotData_V1, RandomRobbotRel8ns_V1, RandomRobbot_V1 } from '../../witnesses/robbots/random-robbot-v1';
+import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -37,73 +40,25 @@ export class RobbotModalFormComponent
   public fields: { [name: string]: FieldInfo } = {
     name: {
       name: "name",
-      description: "It's a name for the secret. Make it short with only letters, underscores and hyphens.",
-      label: "Name (public)",
-      placeholder: `e.g. "my_enc-hyphensOK_32charMax"`,
-      regexp: getRegExp({min: 1, max: 32, chars: '-', noSpaces: true}),
+      description: "A robbot's name. Doesn't have to be unique, no spaces, up to 32 alphanumerics/underscores in length.",
+      label: "Name",
+      placeholder: `e.g. "bob_the_cool_robbot"`,
+      regexp: getRegExp({min: 1, max: 32, noSpaces: true}),
       required: true,
     },
     description: {
       name: "description",
       description: `Description/notes for this robbot. Only letters, underscores and ${c.SAFE_SPECIAL_CHARS}`,
-      label: "Description (public)",
+      label: "Description",
       placeholder: `Describe these robbot settings here...`,
       regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
     },
-    // method: {
-    //   name: "method",
-    //   description: `All we got right now is '${RobbotMethod.encrypt_gib_weak}.'`,
-    //   label: "Method (public)",
-    //   fnValid: (value: string) => { return value === RobbotMethod.encrypt_gib_weak; },
-    //   fnErrorMsg: `Must be '${RobbotMethod.encrypt_gib_weak}'`,
-    //   required: true,
-    // },
-
-    // userSalt: {
-    //   name: "userSalt",
-    //   label: "Salt (public)",
-    //   description: "Helps robbot. The longer and more random of salt, the better.",
-    //   placeholder: "type in many many **random** characters (lots and lots)",
-    //   regexp: getRegExp({
-    //     min: c.MIN_ENCRYPTION_SALT_LENGTH,
-    //     max: c.MAX_ENCRYPTION_SALT_LENGTH,
-    //     chars: c.ALLISH_SPECIAL_CHARS
-    //   }),
-    //   required: true,
-    // },
-    // initialRecursions: {
-    //   name: "initialRecursions",
-    //   label: "Initial Recursions (public)",
-    //   description: "Number of initial recursions when encrypting/decrypting. Large number creates a one-time linear-ish cost.",
-    //   fnValid: (value) => {
-    //     if (!value || typeof value !== 'number') { return false; }
-    //     const n = <number>value;
-    //     return n >= c.MIN_ENCRYPTION_INITIAL_RECURSIONS && n <= c.MAX_ENCRYPTION_INITIAL_RECURSIONS && Number.isSafeInteger(n);
-    //   },
-    //   fnErrorMsg: `Initial recursions must be a whole number at least ${c.MIN_ENCRYPTION_INITIAL_RECURSIONS} and at most ${c.MAX_ENCRYPTION_INITIAL_RECURSIONS}`,
-    //   required: true,
-    // },
-    // recursionsPerHash: {
-    //   name: "recursionsPerHash",
-    //   label: "Recursions Per Hash Round (public)",
-    //   description: "Number of recursions per hash when encrypting/decrypting. Huge cost as this gets bigger, since this happens for every single character of data.",
-    //   fnValid: (value) => {
-    //     if (!value || typeof value !== 'number') { return false; }
-    //     const n = <number>value;
-    //     return n >= c.MIN_ENCRYPTION_RECURSIONS_PER_HASH && n <= c.MAX_ENCRYPTION_INITIAL_RECURSIONS && Number.isSafeInteger(n);
-    //   },
-    //   fnErrorMsg: `Recursions per hash must be a whole number at least ${c.MIN_ENCRYPTION_RECURSIONS_PER_HASH} and at most ${c.MAX_ENCRYPTION_RECURSIONS_PER_HASH}, though really you probably want just a couple at most depending on the size of your data.`,
-    //   required: true,
-    // },
-    // hashAlgorithm: {
-    //   name: "hashAlgorithm",
-    //   label: "Hash Algorithm",
-    //   description: "Hash that the robbot uses internally.",
-    //   fnValid: (value: string) => {
-    //     return Object.values(HashAlgorithm).includes(<any>value);
-    //   },
-    //   fnErrorMsg: `Must be one of: ${Object.values(HashAlgorithm).join(', ')}`,
-    //   required: true,
+    // id: {
+    //   name: "id",
+    //   description: `auto-generated id for this robbot`,
+    //   label: "Id",
+    //   placeholder: `Describe these robbot settings here...`,
+    //   regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
     // },
 
   }
@@ -112,20 +67,11 @@ export class RobbotModalFormComponent
   name: string;
   @Input()
   description: string;
+  // @Input()
+  // id: string;
+  @Input()
+  classname: string;
 
-  // @Input()
-  // method: RobbotMethod = RobbotMethod.encrypt_gib_weak;
-
-  // @Input()
-  // userSalt: string;
-  // @Input()
-  // initialRecursions: number = c.DEFAULT_ENCRYPTION_INITIAL_RECURSIONS;
-  // @Input()
-  // recursionsPerHash: number = c.DEFAULT_ENCRYPTION_RECURSIONS_PER_HASH;
-  // @Input()
-  // hashAlgorithm: HashAlgorithm = 'SHA-256';
-  // @Input()
-  // expirationUTC: string = getExpirationUTCString({years: 1});
 
   @Input()
   validationErrors: string[] = super.validationErrors
@@ -149,6 +95,23 @@ export class RobbotModalFormComponent
     protected common: CommonService,
   ) {
     super(common);
+    const lc = `${this.lc}[ctor]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      // spin off auto-generated id (done now when creating ibgib via tjp uuid)
+      // if (logalot) { console.log(`${lc} spinning off initializing id (I: 8bebe8f77154c39cd55d92d509849d22)`); }
+      // h.getUUID().then(uuid => {
+      //   this.id = uuid;
+      //   if (logalot) { console.log(`${lc} id set. this.id = ${this.id} (I: e67d18ce32679a629839c80b50cc1f22)`); }
+      // });
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
   protected async createImpl(): Promise<TransformResult<RobbotIbGib_V1>> {
@@ -178,11 +141,37 @@ export class RobbotModalFormComponent
     }
   }
 
-  async createRobbot_Scheduler(): Promise<TransformResult<RobbotIbGib_V1>> {
-    const lc = `${this.lc}[${this.createRobbot_Scheduler.name}]`;
+  async createRobbot_Random(): Promise<TransformResult<RobbotIbGib_V1>> {
+    const lc = `${this.lc}[${this.createRobbot_Random.name}]`;
     try {
 
-      throw new Error('not implemented bca807618e7b4959a481a69793881088')
+      debugger;
+
+      let robbotData: RandomRobbotData_V1 = {
+        name: this.name,
+        uuid: 'some uuid',
+        // uuid: this.id,
+      };
+
+      const ib = getRobbotIb({robbotData, classname: this.classname});
+
+      const resRobbot = <TransformResult<RobbotIbGib_V1>>await factory.firstGen({
+        ib,
+        parentIbGib: factory.primitive({ib: `robbot ${this.classname}`}),
+        data: robbotData,
+        dna: true,
+        linkedRel8ns: [Rel8n.ancestor, Rel8n.past],
+        nCounter: true,
+        tjp: { uuid: true, timestamp: true },
+      });
+      const robbotDto = resRobbot.newIbGib;
+
+      let robbotIbGib = new RandomRobbot_V1(null, null);
+      // robbotIbGib.loadDto(robbotDto);
+
+      resRobbot.newIbGib = robbotIbGib;
+      return resRobbot;
+
       // let data: RobbotInfo_EncryptGib = {
       //   name: this.name,
       //   description: this.description,

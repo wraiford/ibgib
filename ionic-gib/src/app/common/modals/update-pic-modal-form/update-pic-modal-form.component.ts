@@ -6,11 +6,12 @@ import { IbGibAddr, TransformResult, V1 } from 'ts-gib';
 import * as c from '../../constants';
 import { getRegExp } from '../../helper';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
-import { FieldInfo, IbgibItem } from '../../types/ux';
-import { PicIbGib_V1 } from '../../types';
+import { IbgibItem } from '../../types/ux';
+import { FieldInfo, } from '../../types/form';
+import { PicIbGib_V1 } from '../../types/pic';
+import { BinIbGib_V1 } from '../../types/bin';
 import { createPicAndBinIbGibsFromInputFilePickedEvent } from '../../helper/pic';
 import { CommonService } from '../../../services/common.service';
-import { BinIbGib_V1 } from '../../types/bin';
 import { IbGibSpaceAny } from '../../witnesses/spaces/space-base-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;

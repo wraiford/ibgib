@@ -141,60 +141,6 @@ export interface LatestEventInfo {
     latestIbGib?: IbGib_V1<any>;
 }
 
-/**
- * Used in modal forms.
- */
-export interface FieldInfo {
-  /**
-   * Property name
-   */
-  name: string;
-  /**
-   * Label for the property on a form
-   */
-  label?: string;
-  /**
-   * Optional description for the property. Can bind title/hover/tooltip to this.
-   */
-  description?: string;
-  /**
-   * Placeholder when entering the field's data.
-   */
-  placeholder?: string;
-  /**
-   * Validation regular expression
-   */
-  regexp?: RegExp;
-  /**
-   * Only required if wanting to do validation beyond regexp/required.
-   */
-  fnValid?: (value: string) => boolean;
-  /**
-   * Error message that shows up **when using `fnValid`**.
-   *
-   * Other messages show for regexp/required.
-   */
-  fnErrorMsg?: string;
-  /**
-   * If the field is required.
-   */
-  required?: boolean;
-  /**
-   * If true, will not log field and will use type='password', unless the field
-   * is {@link unmasked}.
-   */
-  private?: boolean;
-  /**
-   * If true, will reveal a private field.
-   */
-  unmasked?: boolean;
-  /**
-   * If true, then regardless of modal state (adding/editing/viewing), this
-   * field will always be readonly.
-   */
-  readonly?: boolean;
-}
-
 // /**
 //  * Implemented tags. refactoring here to point to refactored interface.
 //  */

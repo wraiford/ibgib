@@ -5,7 +5,6 @@ import * as c from '../constants';
 import { Witness, WitnessData_V1 } from './witness';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { TjpIbGibAddr } from './ibgib';
-import { getLocalSpace } from '../helper/space'; // jsdoc link
 
 /**
  * Marker type to show intent that it should be the spaceId, i.e.
@@ -162,11 +161,9 @@ export interface IbGibSpaceOptionsData {
      */
     force?: boolean;
     /**
-     * {@see WitnessBase_V1.trace}
      */
     catchAllErrors?: boolean;
     /**
-     * {@see WitnessBase_V1.trace}
      */
     trace?: boolean;
 }

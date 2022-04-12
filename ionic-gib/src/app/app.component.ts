@@ -1118,6 +1118,7 @@ export class AppComponent extends IbgibComponentBase
 
       const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
 
+      debugger;
       await createNewRobbot({common: this.common, space});
 
     } catch (error) {

@@ -6,6 +6,7 @@ import { IonicModule } from '@ionic/angular';
 
 import { IbGibPageRoutingModule } from './ibgib-routing.module';
 
+
 import { IbGibPage } from './ibgib.page';
 import { ChatViewComponent } from '../views/chat-view/chat-view.component';
 import { ListViewComponent } from '../views/list-view/list-view.component';

@@ -1,12 +1,11 @@
-import { getIbGibAddr, IbGib, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
-import { IbGib_V1, IbGibRel8ns_V1, Factory_V1 as factory, sha256v1, ROOT, } from 'ts-gib/dist/V1';
+import { getIbGibAddr } from 'ts-gib';
+import { IbGib_V1, IbGibRel8ns_V1, sha256v1, } from 'ts-gib/dist/V1';
+import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
-import { WitnessData_V1, Witness_V1, } from '../types';
 import * as c from '../constants';
-import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { WitnessData_V1, Witness_V1, } from '../types/witness';
 import { validateGib, validateIb, validateIbGibIntrinsically } from '../helper';
-import { argy_ } from './witness-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
