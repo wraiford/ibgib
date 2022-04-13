@@ -8,7 +8,7 @@ import {
 import { TransformResult, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 
-import { EncryptionData_V1, OuterSpaceIbGib, PicIbGib_V1, RobbotIbGib_V1, SecretIbGib_V1 } from '../types';
+// import { EncryptionData_V1, OuterSpaceIbGib, PicIbGib_V1, RobbotIbGib_V1, SecretIbGib_V1 } from '../types'; // refactoring to not use types/index
 import { SecretModalFormComponent } from '../modals/secret-modal-form/secret-modal-form.component';
 import * as c from '../constants';
 import { EncryptionModalFormComponent } from '../modals/encryption-modal-form/encryption-modal-form.component';
@@ -17,6 +17,10 @@ import { CommonService } from '../../services/common.service';
 import { UpdatePicModalFormComponent, UpdatePicModalResult } from '../modals/update-pic-modal-form/update-pic-modal-form.component';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { RobbotModalFormComponent, RobbotModalResult } from '../modals/robbot-modal-form/robbot-modal-form.component';
+import { SecretIbGib_V1, EncryptionData_V1 } from '../types/encryption';
+import { OuterSpaceIbGib } from '../types/outer-space';
+import { PicIbGib_V1 } from '../types/pic';
+import { RobbotIbGib_V1 } from '../types/robbot';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

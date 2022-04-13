@@ -9,9 +9,12 @@ import { IbGib_V1, GIB, Factory_V1, ROOT_ADDR } from "ts-gib/dist/V1";
 import { IbGibAddr, Ib, Gib, } from "ts-gib";
 
 import * as c from '../../common/constants';
-import { IbgibItem, PicData_V1, CommentData_V1, LatestEventInfo } from '../types';
+// import { IbgibItem, PicData_V1, CommentData_V1, LatestEventInfo } from '../types'; // refactoring to not use types/index
 import { CommonService, NavInfo } from 'src/app/services/common.service';
 import { Capacitor } from '@capacitor/core';
+import { CommentData_V1 } from '../types/comment';
+import { PicData_V1 } from '../types/pic';
+import { IbgibItem, LatestEventInfo } from '../types/ux';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;

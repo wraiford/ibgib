@@ -4,22 +4,19 @@ const { Modals } = Plugins;
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr, V1 } from 'ts-gib';
-import { Factory_V1 as factory, IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
+import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 
 import * as c from '../constants';
 import { CommonService } from 'src/app/services/common.service';
-import {
-  ActionItem, SyncSpaceResultIbGib, ActionItemName,
-} from '../types';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { IbgibComponentBase } from '../bases/ibgib-component-base';
-import {
-  getDependencyGraph,
-  getFnAlert, getFnPrompt,
-  getFromSpace, validateIbGibAddr,
-} from '../helper';
-import { createPicAndBinIbGibs, createPicAndBinIbGibsFromInputFilePickedEvent } from '../helper/pic';
+import { SyncSpaceResultIbGib } from '../types/outer-space';
+import { ActionItem, ActionItemName } from '../types/ux';
+import { createPicAndBinIbGibsFromInputFilePickedEvent } from '../helper/pic';
 import { createCommentIbGib } from '../helper/comment';
+import { getFnAlert, getFnPrompt } from '../helper/prompt-functions';
+import { getFromSpace, getDependencyGraph } from '../helper/space';
+import { validateIbGibAddr } from '../helper/validate';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;

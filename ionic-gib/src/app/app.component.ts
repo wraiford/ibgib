@@ -15,21 +15,17 @@ import { IbGib_V1 } from 'ts-gib/dist/V1';
 import * as c from './common/constants';
 import { IbgibComponentBase } from './common/bases/ibgib-component-base';
 import { CommonService } from './services/common.service';
-import { RobbotData_V1, RobbotIbGib_V1, RootData, SpaceId, TagData_V1 } from './common/types';
-// import { RootData, SpaceId, TagData_V1 } from './common/types';
-import {
-  getFn_promptCreateEncryptionIbGib,
-  getFn_promptCreateOuterSpaceIbGib,
-  getFn_promptCreateSecretIbGib,
-  validateIbGibIntrinsically,
-  spaceNameIsValid,
-  getFnAlert,
-  getSpaceIb,
-  createNewTag,
-  getFn_promptUpdatePicIbGib
-} from './common/helper';
 import { IbGibSpaceAny } from './common/witnesses/spaces/space-base-v1';
 import { createNewRobbot } from './common/helper/robbot';
+import { RobbotIbGib_V1 } from './common/types/robbot';
+import { RootData } from './common/types/ux';
+import { SpaceId } from './common/types/space';
+import {
+  getFn_promptCreateSecretIbGib, getFn_promptCreateEncryptionIbGib,
+  getFn_promptCreateOuterSpaceIbGib, getFn_promptUpdatePicIbGib, getFnAlert
+} from './common/helper/prompt-functions';
+import { createNewTag } from './common/helper/tag';
+import { validateIbGibIntrinsically, spaceNameIsValid } from './common/helper/validate';
 
 // #endregion imports & some init
 
@@ -500,7 +496,6 @@ export class AppComponent extends IbgibComponentBase
       if (logalot) { console.log(`${lc} starting...`); }
 
       let robbotsIbGib = <RobbotIbGib_V1>(await this.common.ibgibs.getSpecialIbGib({type: 'robbots'}));
-      // let robbotsIbGib = <any>(await this.common.ibgibs.getSpecialIbGib({type: 'robbots'}));
       const robbotsTjpIbGib =
         await this.common.ibgibs.getTjpIbGib({ibGib: robbotsIbGib, naive: true});
       const robbotsTjpAddr = h.getIbGibAddr({ibGib: robbotsTjpIbGib});

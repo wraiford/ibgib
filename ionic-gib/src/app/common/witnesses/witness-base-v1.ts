@@ -5,7 +5,7 @@ import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 import * as c from '../constants';
 import { WitnessData_V1, Witness_V1, } from '../types/witness';
-import { validateGib, validateIb, validateIbGibIntrinsically } from '../helper';
+import { validateGib, validateIb, validateIbGibIntrinsically } from '../helper/validate';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

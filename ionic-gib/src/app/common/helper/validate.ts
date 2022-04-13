@@ -11,7 +11,7 @@ import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import * as c from '../constants';
 
 import {hasTjp} from './ibgib';
-import { BootstrapData, BootstrapRel8ns } from '../types';
+import { BootstrapData, BootstrapRel8ns } from '../types/space';
 
 // const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 

@@ -4,7 +4,6 @@ import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr, TransformResult, V1 } from 'ts-gib';
 
 import * as c from '../../constants';
-import { getRegExp } from '../../helper';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 import { IbgibItem } from '../../types/ux';
 import { FieldInfo, } from '../../types/form';
@@ -13,6 +12,7 @@ import { BinIbGib_V1 } from '../../types/bin';
 import { createPicAndBinIbGibsFromInputFilePickedEvent } from '../../helper/pic';
 import { CommonService } from '../../../services/common.service';
 import { IbGibSpaceAny } from '../../witnesses/spaces/space-base-v1';
+import { getRegExp } from '../../helper/utils';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;

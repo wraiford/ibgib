@@ -1,17 +1,17 @@
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 import * as h from 'ts-gib/dist/helper';
 
-import {
-    IbGibSpace,
-    IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib,
-    IbGibSpaceResultData, IbGibSpaceResultRel8ns, IbGibSpaceResultIbGib,
-    IbGibSpaceData, IbGibSpaceRel8ns,
-    IbGibSpaceOptionsCmd, IbGibSpaceOptionsCmdModifier,
-} from '../../types';
-import { resulty_, argy_ } from '../witness-helper';
-import { WitnessBase_V1, } from '../witness-base-v1';
 import * as c from '../../constants';
-import { getSpaceResultMetadata, validateIbGibIntrinsically } from '../../helper';
+import { WitnessBase_V1, } from '../witness-base-v1';
+import {
+    IbGibSpace, IbGibSpaceData, IbGibSpaceOptionsCmd,
+    IbGibSpaceOptionsCmdModifier, IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib,
+    IbGibSpaceOptionsRel8ns, IbGibSpaceRel8ns, IbGibSpaceResultData,
+    IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns
+} from '../../types/space';
+import { getSpaceResultMetadata } from '../../helper/space';
+import { validateIbGibIntrinsically } from '../../helper/validate';
+import { argy_, resulty_ } from '../witness-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

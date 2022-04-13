@@ -4,18 +4,13 @@ import { IonContent, ModalController } from '@ionic/angular';
 import { IbGib_V1, Factory_V1 as factory } from 'ts-gib/dist/V1';
 
 import * as c from '../../constants';
-import {
-  EncryptionData_V1,
-  EncryptionIbGib,
-  EncryptionInfo_EncryptGib,
-  EncryptionMethod,
-  FieldInfo,
-} from '../../types';
 import { HashAlgorithm } from 'encrypt-gib';
 import { TransformResult } from 'ts-gib';
-import { getExpirationUTCString, getRegExp } from '../../helper';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 import { CommonService } from '../../../services/common.service';
+import { EncryptionIbGib, EncryptionMethod, EncryptionData_V1, EncryptionInfo_EncryptGib } from '../../types/encryption';
+import { FieldInfo } from '../../types/form';
+import { getExpirationUTCString, getRegExp } from '../../helper/utils';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

@@ -16,42 +16,12 @@ import { getGib, getGibInfo, isPrimitive } from 'ts-gib/dist/V1/transforms/trans
 import { encrypt, decrypt, } from 'encrypt-gib';
 
 import {
-  RootData,
-  SpecialIbGibType,
-  LatestEventInfo,
-  SecretData_V1, SecretInfo_Password, SecretIbGib_V1,
-  EncryptionInfo_EncryptGib, EncryptionData_V1,
-  CiphertextData, CiphertextRel8ns, CiphertextIbGib_V1,
-  SyncSpaceResultIbGib, StatusCode, SyncStatusIbGib,
-  ParticipantInfo, SyncSpaceOptionsIbGib, SyncSpaceOptionsData,
-  SyncSagaInfo,
-  BootstrapIbGib,
-  TjpIbGibAddr,
-  PicIbGib_V1,
-  RobbotData_V1,
-  RobbotIbGib_V1,
-} from '../common/types';
-import {
   IonicSpace_V1,
   IonicSpaceData_V1
 } from '../common/witnesses/spaces/ionic-space-v1';
 import * as c from '../common/constants';
 import { IbGibSpaceAny } from '../common/witnesses/spaces/space-base-v1';
 import { AWSDynamoSpace_V1 } from '../common/witnesses/spaces/aws-dynamo-space-v1';
-import {
-  createTagIbGibAndSundry, createRobbotIbGib,
-  deleteFromSpace, getFromSpace, getFnAlert,
-  getFnPrompt, getFnPromptPassword_AlertController,
-  getDependencyGraph, getSpecialIbGib, getSpecialRel8dIbGibs, getTjpIbGib,
-  groupBy, hasTjp, isSameSpace, persistTransformResult, putInSpace,
-  registerNewIbGib, rel8ToCurrentRoot, rel8ToSpecialIbGib, setConfigAddr,
-  setCurrentRoot, spaceNameIsValid, getConfigAddr,
-  getValidatedBootstrapIbGib, getLocalSpace, execInSpaceWithLocking,
-  updateBootstrapIbGib,
-  getSpaceArgMetadata,
-  getLatestAddrs,
-  getTimelinesGroupedByTjp,
-} from '../common/helper';
 import { AppSpaceData, AppSpaceRel8ns } from '../common/types/app';
 import {
   DeleteIbGibOpts, DeleteIbGibResult,
@@ -63,6 +33,29 @@ import { TagIbGib_V1 } from '../common/types/tag';
 import { UpdatePicModalResult } from '../common/modals/update-pic-modal-form/update-pic-modal-form.component';
 
 import { IbGibRobbotAny } from '../common/witnesses/robbots/robbot-base-v1';
+import { PicIbGib_V1 } from '../common/types/pic';
+import { ParticipantInfo, StatusCode, SyncSagaInfo, SyncSpaceOptionsData, SyncSpaceOptionsIbGib, SyncSpaceResultIbGib, SyncStatusIbGib } from '../common/types/outer-space';
+import { TjpIbGibAddr } from '../common/types/ibgib';
+import { BootstrapIbGib } from '../common/types/space';
+import { LatestEventInfo, RootData, SpecialIbGibType } from '../common/types/ux';
+import {
+  CiphertextData, CiphertextIbGib_V1, CiphertextRel8ns,
+  EncryptionData_V1, EncryptionInfo_EncryptGib,
+  SecretData_V1, SecretIbGib_V1, SecretInfo_Password
+} from '../common/types/encryption';
+import { RobbotData_V1, RobbotIbGib_V1 } from '../common/types/robbot';
+import { hasTjp, getTimelinesGroupedByTjp } from '../common/helper/ibgib';
+import { getFnPrompt, getFnAlert, getFnPromptPassword_AlertController } from '../common/helper/prompt-functions';
+import {
+  getValidatedBootstrapIbGib, getLocalSpace, execInSpaceWithLocking,
+  updateBootstrapIbGib, getSpaceArgMetadata, createTagIbGibAndSundry,
+  getConfigAddr, setConfigAddr, setCurrentRoot, rel8ToCurrentRoot,
+  rel8ToSpecialIbGib, registerNewIbGib, persistTransformResult, getFromSpace,
+  putInSpace, deleteFromSpace, getDependencyGraph, getLatestAddrs, getTjpIbGib,
+  getSpecialIbGib, getSpecialRel8dIbGibs, createRobbotIbGib
+} from '../common/helper/space';
+import { spaceNameIsValid } from '../common/helper/validate';
+import { groupBy } from '../common/helper/utils';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

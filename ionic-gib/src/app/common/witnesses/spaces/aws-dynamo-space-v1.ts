@@ -44,26 +44,25 @@ import {
 import * as h from 'ts-gib/dist/helper';
 
 import { SpaceBase_V1 } from './space-base-v1';
-import {
-    SyncSpaceData, SyncSpaceRel8ns,
-    SyncSpaceOptionsData, SyncSpaceOptionsRel8ns, SyncSpaceOptionsIbGib,
-    SyncSpaceResultData, SyncSpaceResultRel8ns, SyncSpaceResultIbGib,
-    IbGibSpaceOptionsCmd, SyncSpaceOptionsCmdModifier,
-    AWSRegion,
-    getStatusIb, StatusCode,
-    SyncStatusData, SyncStatusIbGib,
-    ParticipantInfo,
-    SyncSagaInfo,
-} from '../../types';
+// import {
+//     SyncSpaceData, SyncSpaceRel8ns,
+//     SyncSpaceOptionsData, SyncSpaceOptionsRel8ns, SyncSpaceOptionsIbGib,
+//     SyncSpaceResultData, SyncSpaceResultRel8ns, SyncSpaceResultIbGib,
+//     IbGibSpaceOptionsCmd, SyncSpaceOptionsCmdModifier,
+//     AWSRegion,
+//     getStatusIb, StatusCode,
+//     SyncStatusData, SyncStatusIbGib,
+//     ParticipantInfo,
+//     SyncSagaInfo,
+// } from '../../types';
 import * as c from '../../constants';
-import {
-    getDependencyGraph, groupBy, isBinary,
-    mergeMapsOrArrays_Naive,
-    splitPerTjpAndOrDna,
-    throwIfDuplicates,
-    validateIbGibIntrinsically,
-} from '../../helper';
 import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { AWSRegion, SyncSpaceData, SyncSpaceRel8ns, SyncSpaceOptionsData, SyncSpaceOptionsRel8ns, SyncSpaceOptionsIbGib, SyncSpaceResultData, SyncSpaceResultRel8ns, SyncSpaceResultIbGib, SyncSpaceOptionsCmdModifier, SyncSagaInfo, SyncStatusIbGib, StatusCode, getStatusIb, SyncStatusData, ParticipantInfo } from '../../types/outer-space';
+import { IbGibSpaceOptionsCmd } from '../../types/space';
+import { groupBy } from '../../helper/utils';
+import { isBinary, mergeMapsOrArrays_Naive, splitPerTjpAndOrDna } from '../../helper/ibgib';
+import { getDependencyGraph, throwIfDuplicates } from '../../helper/space';
+import { validateIbGibIntrinsically } from '../../helper/validate';
 
 // #endregion imports
 

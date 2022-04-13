@@ -5,14 +5,14 @@ import {
 import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 
 import * as c from '../../constants';
-import {
-    IbGibSpaceData,
-    IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns, IbGibSpaceOptionsIbGib,
-    IbGibSpaceResultData, IbGibSpaceResultRel8ns, IbGibSpaceResultIbGib,
-} from '../../types';
 import { SpaceBase_V1 } from './space-base-v1';
-import { getSpaceIb, validateIbGibIntrinsically } from '../../helper';
-import { WitnessBase_V1 } from '../witness-base-v1';
+import {
+    IbGibSpaceData, IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns,
+    IbGibSpaceOptionsIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns,
+    IbGibSpaceResultIbGib
+} from '../../types/space';
+import { getSpaceIb } from '../../helper/space';
+import { validateIbGibIntrinsically } from '../../helper/validate';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

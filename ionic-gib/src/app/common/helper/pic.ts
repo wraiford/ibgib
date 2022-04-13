@@ -4,16 +4,12 @@ import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 // import { hash, getIbGibAddr, getTimestamp, pretty } from 'ts-gib/dist/helper';
 
 import * as c from '../constants';
-import { IconItem } from '../types/ux';
 import { PicData_V1, PicIbGib_V1 } from '../types/pic';
-import {
-  getBinIb,
-} from '../helper';
-import { CommonService } from '../../services/common.service';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { BinIbGib_V1 } from '../types/bin';
 import { persistTransformResult, putInSpace } from './space';
 import { TransformResult } from 'ts-gib';
+import { getBinIb } from './ibgib';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

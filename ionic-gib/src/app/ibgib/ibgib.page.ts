@@ -15,12 +15,14 @@ import * as c from '../common/constants';
 import { IbgibComponentBase } from '../common/bases/ibgib-component-base';
 import { CommonService } from '../services/common.service';
 import { SPECIAL_URLS } from '../common/constants';
-import { LatestEventInfo, PicData_V1, PicIbGib_V1, } from '../common/types';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
-import { createNewTag, ensureDirPath, getBlob, getFnAlert, getFnConfirm, getFnPrompt, pathExists, writeFile, } from '../common/helper';
 import { concatMap } from 'rxjs/operators';
-// import { ChooseIconModalComponent, IconItem } from '../common/choose-icon-modal/choose-icon-modal.component';
 import { IbGibSpaceAny } from '../common/witnesses/spaces/space-base-v1';
+import { PicData_V1, PicIbGib_V1 } from '../common/types/pic';
+import { LatestEventInfo } from '../common/types/ux';
+import { ensureDirPath, pathExists, writeFile } from '../common/helper/ionic';
+import { getFnAlert, getFnPrompt, getFnConfirm } from '../common/helper/prompt-functions';
+import { createNewTag } from '../common/helper/tag';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;

@@ -8,13 +8,13 @@ import { HashAlgorithm } from 'encrypt-gib';
 import { TransformResult } from 'ts-gib';
 
 import * as c from '../../constants';
-import { getExpirationUTCString, getRegExp, getRobbotIb } from '../../helper';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 import { FieldInfo } from '../../types/form';
-import { RobbotData_V1, RobbotIbGib_V1 } from '../../types/robbot';
+import { RobbotIbGib_V1 } from '../../types/robbot';
 import { CommonService } from '../../../services/common.service';
-import { RandomRobbotData_V1, RandomRobbotRel8ns_V1, RandomRobbot_V1 } from '../../witnesses/robbots/random-robbot-v1';
-import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { RandomRobbotData_V1, RandomRobbot_V1 } from '../../witnesses/robbots/random-robbot-v1';
+import { getRobbotIb } from '../../helper/robbot';
+import { getRegExp } from '../../helper/utils';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

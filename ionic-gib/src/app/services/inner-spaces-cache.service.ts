@@ -4,7 +4,8 @@ import { IbGibAddr } from 'ts-gib';
 import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 
 import * as c from '../common/constants';
-import { SpaceId } from '../common/types';
+import { SpaceId } from '../common/types/space';
+// import { SpaceId } from '../common/types'; // refactoring to not use types/index
 import { InnerSpace_V1 } from '../common/witnesses/spaces/inner-space-v1';
 
 

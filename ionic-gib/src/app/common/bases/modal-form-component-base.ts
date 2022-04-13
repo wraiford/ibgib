@@ -2,10 +2,8 @@ import { Injectable, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { IonContent } from '@ionic/angular';
 
 import * as c from '../constants';
-import {
-  FieldInfo,
-} from '../types';
 import { CommonService } from '../../services/common.service';
+import { FieldInfo } from '../types/form';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

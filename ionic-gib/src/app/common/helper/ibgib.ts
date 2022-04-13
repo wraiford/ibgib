@@ -9,11 +9,11 @@ import { Ib, IbGibAddr, HashAlgorithm } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import * as cTsGib from 'ts-gib/dist/V1/constants';
 
-import { SpecialIbGibType } from '../types';
 import * as c from '../constants';
 import { validateIb } from './validate';
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { groupBy } from './utils';
+import { SpecialIbGibType } from '../types/ux';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

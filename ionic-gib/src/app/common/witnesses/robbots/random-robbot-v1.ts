@@ -3,8 +3,9 @@ import { IbGib_V1, ROOT, } from 'ts-gib/dist/V1';
 
 import * as c from '../../constants';
 import { RobbotBase_V1 } from './robbot-base-v1';
-import { RobbotData_V1, RobbotRel8ns_V1 } from '../../types';
-import { getFnAlert } from '../../helper';
+// import { getFnAlert } from '../../helper'; // refactoring to not use index
+import { RobbotData_V1, RobbotRel8ns_V1 } from '../../types/robbot';
+import { getFnAlert } from '../../helper/prompt-functions';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

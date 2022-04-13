@@ -6,12 +6,12 @@ import {
     RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1,
 } from '../../types/robbot';
 import * as c from '../../constants';
-import {
-    validateCommonRobbotData
-} from '../../helper';
-import { PicIbGib_V1, CommentIbGib_V1 } from '../../types';
-import { isPic, isComment } from '../../helper';
 import { WitnessBase_V1, } from '../witness-base-v1';
+import { CommentIbGib_V1 } from '../../types/comment';
+import { PicIbGib_V1 } from '../../types/pic';
+import { isComment } from '../../helper/comment';
+import { isPic } from '../../helper/pic';
+import { validateCommonRobbotData } from '../../helper/robbot';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

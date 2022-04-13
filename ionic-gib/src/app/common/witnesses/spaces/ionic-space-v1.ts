@@ -9,17 +9,15 @@ import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 
 import * as c from '../../constants';
 import { SpaceBase_V1 } from './space-base-v1';
-import { argy_, } from '../witness-helper';
 import {
-    IbGibSpaceData,
-    IbGibSpaceOptionsData, IbGibSpaceOptionsIbGib,
-    IbGibSpaceOptionsRel8ns,
-    IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns,
-} from '../../types';
-import {
-    getBinHashAndExt, getSpaceIb, getTjpIbGib,
-    isBinary, tryRead, getSpecialIbGib,
-} from '../../helper';
+    IbGibSpaceData, IbGibSpaceOptionsData, IbGibSpaceOptionsRel8ns,
+    IbGibSpaceOptionsIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns,
+    IbGibSpaceResultIbGib
+} from '../../types/space';
+import { isBinary, getBinHashAndExt } from '../../helper/ibgib';
+import { tryRead } from '../../helper/ionic';
+import { getSpaceIb, getTjpIbGib, getSpecialIbGib } from '../../helper/space';
+import { argy_ } from '../witness-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

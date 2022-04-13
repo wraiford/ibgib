@@ -7,7 +7,8 @@ import * as h from 'ts-gib/dist/helper';
 import * as c from '../../common/constants';
 import { IbgibListComponentBase } from 'src/app/common/bases/ibgib-list-component-base';
 import { CommonService } from 'src/app/services/common.service';
-import { IbgibItem } from 'src/app/common/types';
+import { IbgibItem } from '../../common/types/ux';
+
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

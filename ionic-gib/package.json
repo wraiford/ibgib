@@ -1,6 +1,6 @@
 {
   "name": "ionicgib",
-  "version": "0.1.86",
+  "version": "0.1.89",
   "author": "William Raiford",
   "repository": {
     "url": "https://github.com/wraiford/ibgib",
@@ -113,8 +113,7 @@
     "protractor": "~7.0.0",
     "ts-node": "~8.3.0",
     "tslint": "~6.1.0",
-    "typescript": "4.4",
-    "circular-dependency-plugin": "^5.2.2"
+    "typescript": "4.4"
   },
   "description": "An Ionic project"
 }

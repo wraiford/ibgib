@@ -18,28 +18,14 @@ import {
     PutIbGibOpts, PutIbGibResult,
     DeleteIbGibOpts, DeleteIbGibResult,
 } from '../types/legacy';
-import {
-    getExpirationUTCString,
-    getRootIb,
-    getSpecialConfigKey, getSpecialIbGibIb, getTimestampInTicks, isExpired, tagTextToIb,
-} from '../helper';
-import {
-    BootstrapData, BootstrapIbGib, BootstrapRel8ns,
-    IbGibSpaceLockIbGib, IbGibSpaceLockOptions,
-    IbGibSpaceResultData, IbGibSpaceResultIbGib, IbGibSpaceResultRel8ns,
-    LatestEventInfo,
-    RobbotData_V1,
-    RobbotIbGib_V1,
-    RootData,
-    SpaceId, SpaceLockScope,
-    SpecialIbGibType,
-    TagData_V1,
-    TxId,
-} from '../types';
 import { validateBootstrapIbGib, validateIbGibAddr, } from './validate';
-import { getTjpAddrs, isTjp_Naive } from './ibgib';
-import { TagIbGib_V1 } from '../types/tag';
+import { getRootIb, getSpecialConfigKey, getSpecialIbGibIb, getTjpAddrs, isTjp_Naive, tagTextToIb } from './ibgib';
+import { TagData_V1, TagIbGib_V1 } from '../types/tag';
 import { getRobbotIb } from './robbot';
+import { LatestEventInfo, RootData, SpecialIbGibType } from '../types/ux';
+import { RobbotData_V1, RobbotIbGib_V1 } from '../types/robbot';
+import { SpaceLockScope, IbGibSpaceLockIbGib, BootstrapIbGib, SpaceId, IbGibSpaceLockOptions, BootstrapData, BootstrapRel8ns, TxId, IbGibSpaceResultIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns } from '../types/space';
+import { isExpired, getExpirationUTCString, getTimestampInTicks } from './utils';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

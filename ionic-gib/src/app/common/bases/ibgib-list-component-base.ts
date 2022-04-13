@@ -1,7 +1,7 @@
 import { OnInit, OnDestroy, Input, ChangeDetectorRef } from '@angular/core';
 import { IbGibAddr } from "ts-gib";
 import { Injectable } from "@angular/core";
-import { IbgibItem } from '../types';
+import { IbgibItem } from '../types/ux';
 import { IbgibComponentBase } from './ibgib-component-base';
 import { CommonService } from 'src/app/services/common.service';
 import * as c from '../constants';
