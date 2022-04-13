@@ -170,11 +170,10 @@ export async function createNewRobbot({
 
         let newRobbotIbGib: RobbotIbGib_V1;
 
+        debugger;
         // prompt user to create the ibgib, passing in null because we're
         // creating not editing.
         let modalResult = await getFn_promptRobbotIbGib(common)(space, /**ibGib*/ null);
-
-
 
 
 
