@@ -8,49 +8,5 @@
   </ion-toolbar>
 </ion-header>
 <ion-content #modalIonContent fullscreen>
-  <ion-item-group>
-    <ion-item-divider>
-      <ion-text color="danger">{{ validationErrors.length > 0 ? 'Errors: ' : ''}}{{ validationErrors.join('\n') }}</ion-text>
-    </ion-item-divider>
-    <ion-item>
-      <ion-text color="primary" position="start">
-        Robbots...
-      </ion-text>
-      <ion-button position="end" (click)="handleShowHelpClick()">
-        <ion-icon name="information-circle-outline"></ion-icon>
-      </ion-button>
-    </ion-item>
-    <ion-item *ngIf="showHelp">
-      <ion-text color="primary">
-        <p>
-          Robbots do robbotic stuff...add more info here...
-        </p>
-      </ion-text>
-    </ion-item>
-  </ion-item-group>
-
-  <!-- Robbot details -->
-  <ion-item-group>
-    <ion-item-divider>
-      <ion-label>Robbot Details: </ion-label>
-    </ion-item-divider>
-
-    <!-- name -->
-    <ion-item [title]="fields.name.description" >
-      <ion-label
-        position="floating">{{ fields.name.label }}: </ion-label>
-      <ion-input [(ngModel)]="name"
-        [placeholder]="fields.name.placeholder"
-        ></ion-input>
-    </ion-item>
-
-    <!-- description -->
-    <ion-item [title]="fields.description.description">
-      <ion-label position="floating">{{fields.description.label}}: </ion-label>
-      <ion-input [(ngModel)]="description"
-        [placeholder]="fields.description.placeholder"
-        ></ion-input>
-    </ion-item>
-
-  </ion-item-group>
+  <app-dynamic-form></app-dynamic-form>
 </ion-content>
