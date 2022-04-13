@@ -134,6 +134,16 @@ just let me know.
 
 * we added `--generate-entitlement-der` in order to deploy to actual ios device.
 
+# extending webpack config
+
+I've currently got what looks to be a circular dependency problem and have
+installed the `ngx-build-plus` package to extend the webpack config. This can be
+found in `webpack.partial.js`.
+
+As a sidenote, I tried the `circular-dependency-plugin` but it didn't detect the
+circularity (or any for that matter). Might be a problem with
+ionic/angular-specific blindness.
+
 # notes
 
 [^1]: A DLT technology, but not coming from the blockchain/Bitcoin paradigm; rather it has been a separate evolutionary path to address issues of massively parallel execution more akin to Event Sourcing (if anything) with content address hashes being Gödelian number addresses across infinite address spaces.

@@ -241,3 +241,4 @@ export abstract class RobbotBase_V1<
 export interface IbGibRobbotAny
     extends RobbotBase_V1<any,any,any,any,any,any,any,any> {
 }
+

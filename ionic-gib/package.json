@@ -1,6 +1,6 @@
 {
   "name": "ionicgib",
-  "version": "0.1.63",
+  "version": "0.1.86",
   "author": "William Raiford",
   "repository": {
     "url": "https://github.com/wraiford/ibgib",
@@ -14,7 +14,7 @@
   "scripts": {
     "man:start": "echo 'starts a web server for local development at https://localhost:4200'",
     "prestart": "npm version patch",
-    "start": "ng serve --ssl",
+    "start": "ng serve --ssl --extra-webpack-config webpack.partial.js",
     "poststart": "npm run man:start",
     "prestart:android": "npm version patch",
     "start:android": "ionic capacitor run android",
@@ -22,7 +22,7 @@
     "start:ios": "ionic capacitor run ios",
     "man:build": "echo 'builds project with aot flag and outputs to www folder. use this with extension development in combination with \"npm run ff\".'",
     "prebuild": "npm version patch",
-    "build": "ng build --aot --output-path www",
+    "build": "ng build --aot --output-path www --extra-webpack-config webpack.partial.js",
     "postbuild": "npm run man:build",
     "build:ff": "npm run build",
     "build:chrome": "npm run build",
@@ -84,8 +84,8 @@
     "@ionic/angular-server": "^6.0.1",
     "@ionic/pwa-elements": "^1.5.2",
     "@schematics/angular": "^13.3.0",
-    "circular-dependency-plugin": "^5.2.2",
     "encrypt-gib": "0.1.2",
+    "ngx-build-plus": "^13.0.1",
     "rxjs": "~6.5.1",
     "ts-gib": "^0.3.15",
     "tslib": "^2.0.0",
@@ -113,7 +113,8 @@
     "protractor": "~7.0.0",
     "ts-node": "~8.3.0",
     "tslint": "~6.1.0",
-    "typescript": "4.4"
+    "typescript": "4.4",
+    "circular-dependency-plugin": "^5.2.2"
   },
   "description": "An Ionic project"
 }

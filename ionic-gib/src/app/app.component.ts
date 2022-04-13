@@ -15,8 +15,8 @@ import { IbGib_V1 } from 'ts-gib/dist/V1';
 import * as c from './common/constants';
 import { IbgibComponentBase } from './common/bases/ibgib-component-base';
 import { CommonService } from './services/common.service';
-// import { RobbotData_V1, RobbotIbGib_V1, RootData, SpaceId, TagData_V1 } from './common/types';
-import { RootData, SpaceId, TagData_V1 } from './common/types';
+import { RobbotData_V1, RobbotIbGib_V1, RootData, SpaceId, TagData_V1 } from './common/types';
+// import { RootData, SpaceId, TagData_V1 } from './common/types';
 import {
   getFn_promptCreateEncryptionIbGib,
   getFn_promptCreateOuterSpaceIbGib,
@@ -29,7 +29,7 @@ import {
   getFn_promptUpdatePicIbGib
 } from './common/helper';
 import { IbGibSpaceAny } from './common/witnesses/spaces/space-base-v1';
-// import { createNewRobbot } from './common/helper/robbot';
+import { createNewRobbot } from './common/helper/robbot';
 
 // #endregion imports & some init
 
@@ -61,6 +61,8 @@ interface MenuItem {
 export class AppComponent extends IbgibComponentBase
   implements OnInit, OnDestroy {
   protected lc: string = `[${AppComponent.name}]`;
+
+
 
   @Input()
   tagItems: MenuItem[] = [];
@@ -497,8 +499,8 @@ export class AppComponent extends IbgibComponentBase
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
-      // let robbotsIbGib = <RobbotIbGib_V1>(await this.common.ibgibs.getSpecialIbGib({type: 'robbots'}));
-      let robbotsIbGib = <any>(await this.common.ibgibs.getSpecialIbGib({type: 'robbots'}));
+      let robbotsIbGib = <RobbotIbGib_V1>(await this.common.ibgibs.getSpecialIbGib({type: 'robbots'}));
+      // let robbotsIbGib = <any>(await this.common.ibgibs.getSpecialIbGib({type: 'robbots'}));
       const robbotsTjpIbGib =
         await this.common.ibgibs.getTjpIbGib({ibGib: robbotsIbGib, naive: true});
       const robbotsTjpAddr = h.getIbGibAddr({ibGib: robbotsTjpIbGib});
@@ -1121,7 +1123,7 @@ export class AppComponent extends IbgibComponentBase
       const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
 
       debugger;
-      // await createNewRobbot({common: this.common, space});
+      await createNewRobbot({common: this.common, space});
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
