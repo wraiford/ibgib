@@ -9,7 +9,7 @@ import { TransformResult } from 'ts-gib';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 import { CommonService } from '../../../services/common.service';
 import { EncryptionIbGib, EncryptionMethod, EncryptionData_V1, EncryptionInfo_EncryptGib } from '../../types/encryption';
-import { FieldInfo } from '../../types/form';
+import { FieldInfo } from '../../types/dynamic-form';
 import { getExpirationUTCString, getRegExp } from '../../helper/utils';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;

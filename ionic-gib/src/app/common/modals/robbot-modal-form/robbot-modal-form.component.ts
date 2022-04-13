@@ -9,7 +9,7 @@ import { TransformResult } from 'ts-gib';
 
 import * as c from '../../constants';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
-import { FieldInfo } from '../../types/form';
+import { FieldInfo } from '../../types/dynamic-form';
 import { RobbotIbGib_V1 } from '../../types/robbot';
 import { CommonService } from '../../../services/common.service';
 import { RandomRobbotData_V1, RandomRobbot_V1 } from '../../witnesses/robbots/random-robbot-v1';

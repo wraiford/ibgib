@@ -3,7 +3,7 @@ import { IonContent } from '@ionic/angular';
 
 import * as c from '../constants';
 import { CommonService } from '../../services/common.service';
-import { FieldInfo } from '../types/form';
+import { FieldInfo } from '../types/dynamic-form';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

@@ -8,7 +8,7 @@ import { TransformResult } from 'ts-gib';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 import { CommonService } from '../../../services/common.service';
 import { SecretData_V1, SecretType, VALID_SECRET_TYPES, SecretInfo_Password } from '../../types/encryption';
-import { FieldInfo } from '../../types/form';
+import { FieldInfo } from '../../types/dynamic-form';
 import { hash16816 } from '../../helper/ibgib';
 import { getExpirationUTCString, getRegExp } from '../../helper/utils';
 
