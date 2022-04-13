@@ -1,15 +1,4 @@
-import * as h from 'ts-gib/dist/helper';
-import {
-    Ib, IbGibAddr, TransformResult, V1,
-} from 'ts-gib';
-import {
-    GIB, IbGib_V1, Rel8n,
-    Factory_V1 as factory,
-    isPrimitive,
-    IBGIB_DELIMITER,
-} from 'ts-gib/dist/V1';
-import { getGib, } from 'ts-gib/dist/V1/transforms/transform-helper';
-
+import { Ib, } from 'ts-gib';
 
 import * as c from '../constants';
 import { getTimestampInTicks } from './utils';
@@ -18,7 +7,7 @@ import { CommonService } from '../../services/common.service';
 import { RobbotData_V1, RobbotIbGib_V1, RobbotOutputMode, VALID_ROBBOT_OUTPUT_MODES } from '../types/robbot';
 import { getFn_promptRobbotIbGib } from './prompt-functions';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
-import { validateWitnessClassname } from '../witnesses/witness-helper';
+// import { validateWitnessClassname } from '../witnesses/witness-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -120,8 +109,8 @@ export function getRobbotIb({
         }
 
         // ad hoc validation here. should centralize witness classname validation
-        let classnameValidationError = validateWitnessClassname({classname});
-        if (classnameValidationError) { throw new Error(`invalid classname. ${classnameValidationError} (E: 20fddb54342743a383c33c87a1db9343)`); }
+        // let classnameValidationError = validateWitnessClassname({classname});
+        // if (classnameValidationError) { throw new Error(`invalid classname. ${classnameValidationError} (E: 20fddb54342743a383c33c87a1db9343)`); }
 
         const { name, uuid } = robbotData;
         return `witness robbot ${classname} ${name} ${uuid}`;

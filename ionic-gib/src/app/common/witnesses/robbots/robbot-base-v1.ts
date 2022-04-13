@@ -74,17 +74,17 @@ export abstract class RobbotBase_V1<
         TData extends RobbotData_V1 = RobbotData_V1,
         TRel8ns extends RobbotRel8ns_V1 = RobbotRel8ns_V1,
     >
-//     extends WitnessBase_V1<
-//         TOptionsData, TOptionsRel8ns, TOptionsIbGib,
-//         TResultData, TResultRel8ns, TResultIbGib,
-//         TData, TRel8ns>
+    extends WitnessBase_V1<
+        TOptionsData, TOptionsRel8ns, TOptionsIbGib,
+        TResultData, TResultRel8ns, TResultIbGib,
+        TData, TRel8ns>
     implements RobbotIbGib_V1 {
 
     /**
      * Log context for convenience with logging. (Ignore if you don't want to use this.)
      */
-    // protected lc: string = `${super.lc}[${RobbotBase_V1.name}]`;
-    protected lc: string = `[${RobbotBase_V1.name}]`;
+    protected lc: string = `${super.lc}[${RobbotBase_V1.name}]`;
+    // protected lc: string = `[${RobbotBase_V1.name}]`;
 
     // getRobbotIb(classname: string): string {
     //     const lc = `${this.lc}[${this.getRobbotIb.name}]`;
@@ -98,13 +98,13 @@ export abstract class RobbotBase_V1<
     // }
 
     constructor(initialData?: TData, initialRel8ns?: TRel8ns) {
-        // super(initialData, initialRel8ns);
+        super(initialData, initialRel8ns);
     }
 
-    data?: RobbotData_V1;
-    rel8ns?: RobbotRel8ns_V1;
-    ib: string;
-    gib?: string;
+    // data?: RobbotData_V1;
+    // rel8ns?: RobbotRel8ns_V1;
+    // ib: string;
+    // gib?: string;
 
     /**
      * At this point in time, the arg has already been intrinsically validated,
