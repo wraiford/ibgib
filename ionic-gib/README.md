@@ -130,6 +130,14 @@ While working on the project alone, I keep different editor colors for
 differentiating among vscode windows. I'm open to changing this if it offends,
 just let me know.
 
+# android
+
+* when asked for fingerprint, you can find the current fingerprint via cli:
+  * ```
+    adb pubkey ~/.android/adbkey | awk '{print $1}' \
+    | openssl base64 -A -a -d | openssl md5 -c | tr a-z A-Z
+    ```
+
 # ios
 
 * we added `--generate-entitlement-der` in order to deploy to actual ios device.

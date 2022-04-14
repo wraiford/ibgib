@@ -1,15 +1,32 @@
 <p>
   dynamic-form works!
 </p>
+<p>items.length: {{items?.length}}</p>
+<pre>{{items | json}}</pre>
+
+<p>formItems.length: {{formItems?.length ?? 'undefined'}}</p>
 
 <div *ngIf="updating">
   <ion-spinner  name="circles" color="primary"></ion-spinner>
   <span>i believe...</span>
 </div>
 
-<div *ngFor="let item of rootFormArray?.controls; let i=index">
+<div *ngIf="rootFormGroup?.controls"
+  [style.border-color]="debugBorderColor"
+  [style.border-width]="debugBorderWidth"
+  [style.border-style]="debugBorderStyle"
+  >
+  <form [formGroup]="rootFormGroup">
 
-  <ion-label>{{i}}: {{item?.name}}</ion-label>
 
-  <input id="{{item.name}}" type="text" [formControlName]="i">
+    <div *ngFor="let entry of formItems?.controls; let i=index">
+
+      <!-- <ion-label >i: {{i}}</ion-label> -->
+      <!-- <pre>entry.key: {{entry.key | json}}</pre> -->
+      <!-- <pre>entry.value: {{entry.value | json}}</pre> -->
+      <ion-label for="item-{{ i }}" position="floating">i: {{i}}</ion-label>
+      <input id="item-{{ i }}" type="text" [formControlName]="i">
+    </div>
+  </form>
+
 </div>

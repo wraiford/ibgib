@@ -6,7 +6,7 @@ import * as h from 'ts-gib/dist/helper';
 import * as c from '../dynamic-form-constants';
 // import { CommonService } from '../../services/common.service';
 import { FormItemInfo } from '../../ibgib-forms/types/form-items';
-import { FormArray, FormBuilder, FormControl } from '@angular/forms';
+import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup } from '@angular/forms';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -24,10 +24,15 @@ export class DynamicFormBase implements OnInit, OnDestroy {
   // @Input()
   // busy: boolean;
 
+  // @Input()
   /**
    * Root form array for the dynamic form.
    */
-  rootFormArray: FormArray = this.fb.array([]);
+  rootFormArray: FormArray;
+
+  // rootFormArray: FormArray = this.fb.array([]);
+  // @Input()
+  rootFormGroup: FormGroup;
 
   _items: FormItemInfo[] = [];
   @Input()
@@ -214,6 +219,14 @@ export class DynamicFormBase implements OnInit, OnDestroy {
     this.showHelp = !this.showHelp;
   }
 
+  /**
+   * don't think this indirection is needed, but trying to follow directions on
+   * https://angular.io/guide/reactive-forms#dynamic-forms
+   */
+  get formItems() {
+    return this.rootFormGroup?.get('itemControls') as FormArray;
+  }
+
   async updateForm(): Promise<void> {
     const lc = `${this.lc}[${this.updateForm.name}]`;
     try {
@@ -224,22 +237,57 @@ export class DynamicFormBase implements OnInit, OnDestroy {
       }
       this.updating = true;
 
-      for (let i = 0; i < this.items.length; i++) {
-        const item = this.items[i];
-        if (item.children?.length > 0) {
-          // item is a container of other items
+      const getControl = (item: FormItemInfo) => {
+        let control: AbstractControl;
+        if (item.children) {
+          control = this.fb.array([ ...item.children.map(x => getControl(x)) ]);
         } else {
-          // item itself is the data
-          debugger;
-          let control = this.fb.control(item.name, {
-          });
-          this.rootFormArray.controls.push(control);
+          control = this.fb.control('default value yo');
         }
+
+        // (<any>control).item = item;
+        return control;
       }
+
+      const getControls = () => {
+        let rootArray = this.fb.array([]);
+        for (let i = 0; i < this._items.length; i++) {
+          const item = this._items[i];
+          const control = getControl(item);
+          if (item.children) {
+            throw new Error(`not impl (E: 505be7ec1284ec23e3049b58c6880822)`);
+            let formArray = <FormArray>control;
+          } else {
+            rootArray.push(control);
+          }
+        }
+        console.log(`rootArray.length: ${rootArray.length}`);
+        // this.fb.array([ ...this._items.map(item => getControl(item)) ])
+        return rootArray;
+      };
+
+      this.rootFormGroup = this.fb.group({
+        'itemControls': getControls()
+      });
+
+      // debugger;
+
+      // for (let i = 0; i < this.items.length; i++) {
+      //   const item = this.items[i];
+      //   if (item.children?.length > 0) {
+      //     // item is a container of other items
+      //   } else {
+      //     // item itself is the data
+      //     // debugger;
+      //     let control = this.fb.control(item.name);
+      //     control.setValue('wakka');
+      //     this.rootFormArray.controls.push(control);
+      //   }
+      // }
 
       console.log(`this.items: ${this.items}`)
 
-      await h.delay(2000); // debug
+      // await h.delay(2000); // debug
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);

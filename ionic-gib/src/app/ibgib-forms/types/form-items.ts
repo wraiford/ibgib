@@ -37,6 +37,10 @@ export interface FormItemInfo {
    */
   regexp?: RegExp;
   /**
+   * regexp.source
+   */
+  regexpSource?: string;
+  /**
    * Only required if wanting to do validation beyond regexp/required.
    */
   fnValid?: (value: string) => boolean;

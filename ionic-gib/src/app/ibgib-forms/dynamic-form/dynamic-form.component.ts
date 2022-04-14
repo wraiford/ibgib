@@ -9,7 +9,7 @@ import { FormItemInfo } from '../types/form-items';
 
 console.log(`ibgib reminder: dynamic forms module doesn't use global logalot/debugBorder from constants file...(delete this reminder at some point when refactor common module and constants)`);
 const logalot = c.GLOBAL_LOG_A_LOT || false;
-const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
+const debugBorder = c.GLOBAL_DEBUG_BORDER || false || true;
 
 @Component({
   selector: 'ib-dynamic-form',
@@ -24,6 +24,10 @@ export class DynamicFormComponent
 
   // @Input()
   // fields: FormItemInfo[];
+
+  public debugBorderWidth: string = debugBorder ? "5px" : "0px"
+  public debugBorderColor: string = "#83BACB";
+  public debugBorderStyle: string = "solid";
 
   constructor(
     protected fb: FormBuilder

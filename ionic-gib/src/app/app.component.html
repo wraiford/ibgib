@@ -75,7 +75,7 @@
           </ion-item>
 
           <!-- robbots -->
-          <ion-item class="accordion-item" *ngIf="localSpaceName">
+          <ion-item class="accordion-item">
             <ion-list class="accordion-item-list">
               <ion-list-header>
                 <ion-label>
@@ -88,13 +88,13 @@
                 <ion-icon class="accordion-expand-btn" *ngIf="menuOpen === 'robbots'" name="chevron-back-circle-outline" (click)="menuOpen = ''"></ion-icon>
               </ion-list-header>
               <ion-list *ngIf="menuOpen === 'robbots'" slot="content">
-                <ion-item *ngFor="let spaceItem of spaceItems"
+                <ion-item *ngFor="let robbotItem of robbotItems"
                   lines="none"
-                  [title]="getSpaceTooltip('outerspace', spaceItem)"
+                  [title]="getrobbotTooltip('robbot', robbotItem)"
                   >
-                  <ion-button (click)="spaceItem.clickHandler(spaceItem)">
-                    <ion-icon slot="start" [name]="spaceItem.icon"></ion-icon>
-                    <ion-label>{{ spaceItem.title }}</ion-label>
+                  <ion-button (click)="robbotItem.clickHandler(robbotItem)">
+                    <ion-icon slot="start" [name]="robbotItem.icon"></ion-icon>
+                    <ion-label>{{ robbotItem.title }}</ion-label>
                   </ion-button>
                 </ion-item>
                 <ion-item *ngIf='robbotsAddr'
