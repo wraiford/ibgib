@@ -8,5 +8,9 @@
   </ion-toolbar>
 </ion-header>
 <ion-content #modalIonContent fullscreen>
-  <app-dynamic-form></app-dynamic-form>
+  <ib-dynamic-form
+    [items]="formItems"
+    (validated)="handleValidated($event)"
+    (cancel)="handleCancel()">
+  </ib-dynamic-form>
 </ion-content>

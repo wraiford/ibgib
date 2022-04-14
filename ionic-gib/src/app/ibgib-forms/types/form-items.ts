@@ -1,11 +1,21 @@
 /**
- * Types used in UX operations/bindings in various views.
+ * @module
+ *
+ * Types used in bindings for forms/dynamic forms.
+ *
+ * ## transitioning development
+ *
+ * I am transitioning from a ad hoc field behavior with angular templated forms
+ * to a slightly more powerful dynamic form fields that leverages angular's
+ * reactive forms. So many of the later properties of {@link FormItemInfo} are
+ * optional for backwards compatibility. These may become required in the
+ * future, once I have dynamic forms more fleshed out.
  */
 
 /**
  * Used in modal forms.
  */
-export interface FieldInfo {
+export interface FormItemInfo {
   /**
    * Property name
    */
@@ -55,20 +65,47 @@ export interface FieldInfo {
    */
   readonly?: boolean;
   /**
-   * @see {@link FieldDataType}
+   * If truthy and non-zero, then this is a composite item which contains
+   * other items.
+   *
+   * Basically with angular, this translates to either a `FormGroup` or
+   * `FormArray`.
    */
-  dataType?: FieldDataType;
+  children?: FormItemInfo[];
+  /**
+   * @see {@link FormItemDataType}
+   *
+   * Only should be set if {@link children} is falsy.
+   */
+  dataType?: FormItemDataType;
   /**
    * Options to populate a select drop-down list (valid value list). I believe
    * this can also be populated after the field info has been created but
    * before/while the select list is shown to the user.
-   *
-   * For fields that have auto-generated UI.
    */
   selectOptions?: string[];
+  /**
+   * If given, should be the min of the field for validation.
+   *
+   * If the dataType is some kind of text, then this refers to the length of string.
+   * If the dataType is some kind of number, then this refers to the value of the number.
+   *
+   * @optional
+   */
+  // min?: number;
+  /**
+   * If given, should be the max of the field for validation.
+   *
+   * If the dataType is some kind of text, then this refers to the length of string.
+   * If the dataType is some kind of number, then this refers to the value of the number.
+   *
+   * @optional
+   */
+  // max?: number;
 }
 
-export type FieldDataType =
+/** @see {@link FormItemDataType} */
+export type FormItemDataType =
     'short_text' | 'long_text' | 'select_single' | 'select_multi' | 'bool';
 /**
  * Type of the data, to drive what kind of control will be used for data.
@@ -82,15 +119,15 @@ export type FieldDataType =
  * {@link select}
  * {@link bool}
  */
-export const FieldDataType = {
+export const FormItemDataType = {
   /**
    * @example name
    */
-  short_text: 'short_text' as FieldDataType,
+  short_text: 'short_text' as FormItemDataType,
   /**
    * @example description
    */
-  long_text: 'long_text' as FieldDataType,
+  long_text: 'long_text' as FormItemDataType,
   /**
    * select a single string from a list.
    *
@@ -98,26 +135,18 @@ export const FieldDataType = {
    *
    * @see {@link select_multi}
    */
-  select_single: 'select_single' as FieldDataType,
+  select_single: 'select_single' as FormItemDataType,
   /**
    * Same as {@link select_single}, but with multiple options selectable.
    */
-  select_multi: 'select_multi' as FieldDataType,
+  select_multi: 'select_multi' as FormItemDataType,
   /**
    * Boolean true/false or on/off, etc.
    */
-  bool: 'bool' as FieldDataType,
+  bool: 'bool' as FormItemDataType,
 }
+
 /**
- * syntactic sugar for `Object.values(FieldDataType)`
+ * syntactic sugar for `Object.values(FormItemDataType)`
  */
-export const FIELDDATATYPE_VALID_VALUES = Object.values(FieldDataType);
-
-export interface FormFields {
-    groups: FieldGroup[];
-}
-
-export interface FieldGroup {
-    name: string;
-    fields: FieldInfo[];
-}
+export const FORM_ITEM_DATA_TYPES = Object.values(FormItemDataType);

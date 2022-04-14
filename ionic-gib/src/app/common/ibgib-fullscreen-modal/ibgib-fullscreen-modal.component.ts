@@ -11,7 +11,7 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
-  selector: 'app-ibgib-fullscreen-modal',
+  selector: 'ib-ibgib-fullscreen-modal',
   templateUrl: './ibgib-fullscreen-modal.component.html',
   styleUrls: ['./ibgib-fullscreen-modal.component.scss'],
 })

@@ -6,7 +6,7 @@ import { IbGibAddr, TransformResult, V1 } from 'ts-gib';
 import * as c from '../../constants';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 import { IbgibItem } from '../../types/ux';
-import { FieldInfo, } from '../../types/dynamic-form';
+import { FormItemInfo } from '../../../ibgib-forms/types/form-items';
 import { PicIbGib_V1 } from '../../types/pic';
 import { BinIbGib_V1 } from '../../types/bin';
 import { createPicAndBinIbGibsFromInputFilePickedEvent } from '../../helper/pic';
@@ -64,7 +64,7 @@ export class UpdatePicModalFormComponent
   @Input()
   updatedItem: IbgibItem;
 
-  public fields: { [name: string]: FieldInfo } = {
+  public fields: { [name: string]: FormItemInfo } = {
     name: {
       name: "name",
       description: "It's the filename for the pic (excluding the dot + extension). Make it short with only letters, underscores and hyphens.",

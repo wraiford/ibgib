@@ -9,7 +9,7 @@ import { TransformResult } from 'ts-gib';
 
 import * as c from '../../constants';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
-import { FieldInfo } from '../../types/dynamic-form';
+import { FormItemInfo } from '../../../ibgib-forms/types/form-items';
 import { RobbotIbGib_V1 } from '../../types/robbot';
 import { CommonService } from '../../../services/common.service';
 import { RandomRobbotData_V1, RandomRobbot_V1 } from '../../witnesses/robbots/random-robbot-v1';
@@ -37,7 +37,7 @@ export class RobbotModalFormComponent
 
   protected lc: string = `[${RobbotModalFormComponent.name}]`;
 
-  public fields: { [name: string]: FieldInfo } = {
+  fields: { [name: string]: FormItemInfo } = {
     name: {
       name: "name",
       description: "A robbot's name. Doesn't have to be unique, no spaces, up to 32 alphanumerics/underscores in length.",
@@ -62,6 +62,27 @@ export class RobbotModalFormComponent
     // },
 
   }
+
+  @Input()
+  formItems: FormItemInfo[] = [
+    {
+      name: "name",
+      description: "A robbot's name. Doesn't have to be unique, no spaces, up to 32 alphanumerics/underscores in length.",
+      label: "Name",
+      placeholder: `e.g. "bob_the_cool_robbot"`,
+      regexp: getRegExp({min: 1, max: 32, noSpaces: true}),
+      required: true,
+      dataType: 'short_text',
+    },
+    {
+      name: "description",
+      description: `Description/notes for this robbot. Only letters, underscores and ${c.SAFE_SPECIAL_CHARS}`,
+      label: "Description",
+      placeholder: `Describe these robbot settings here...`,
+      regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
+      dataType: 'long_text',
+    },
+  ];
 
   @Input()
   name: string;
@@ -212,4 +233,33 @@ export class RobbotModalFormComponent
   //   }
   // }
 
+  async handleValidated({
+    validatedItems,
+  }: {
+    validatedItems: FormItemInfo[],
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.handleValidated.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      debugger;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleCancel(): Promise<void> {
+    const lc = `${this.lc}[${this.handleCancel.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      debugger;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 }

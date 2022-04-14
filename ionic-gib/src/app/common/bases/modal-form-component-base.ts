@@ -3,7 +3,7 @@ import { IonContent } from '@ionic/angular';
 
 import * as c from '../constants';
 import { CommonService } from '../../services/common.service';
-import { FieldInfo } from '../types/dynamic-form';
+import { FormItemInfo } from '../../ibgib-forms/types/form-items';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -18,7 +18,7 @@ export abstract class ModalFormComponentBase<TDataOut> implements OnInit, OnDest
 
   protected lc: string = `[${ModalFormComponentBase .name}]`;
 
-  fields: { [name: string]: FieldInfo } = {};
+  fields: { [name: string]: FormItemInfo } = {};
 
   @Input()
   validationErrors: string[] = [];
@@ -98,7 +98,7 @@ export abstract class ModalFormComponentBase<TDataOut> implements OnInit, OnDest
     const errors: string[] = [];
     const erroredFields: string[] = [];
 
-    let fields: FieldInfo[] = Object.values(this.fields);
+    let fields: FormItemInfo[] = Object.values(this.fields);
     for (let i = 0; i < fields.length; i++) {
       const field = fields[i];
       let value = this[field.name];

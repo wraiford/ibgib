@@ -9,7 +9,7 @@ import { TransformResult } from 'ts-gib';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 import { CommonService } from '../../../services/common.service';
 import { EncryptionIbGib, EncryptionMethod, EncryptionData_V1, EncryptionInfo_EncryptGib } from '../../types/encryption';
-import { FieldInfo } from '../../types/dynamic-form';
+import { FormItemInfo } from '../../../ibgib-forms/types/form-items';
 import { getExpirationUTCString, getRegExp } from '../../helper/utils';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -29,7 +29,7 @@ export class EncryptionModalFormComponent
 
   protected lc: string = `[${EncryptionModalFormComponent.name}]`;
 
-  public fields: { [name: string]: FieldInfo } = {
+  public fields: { [name: string]: FormItemInfo } = {
     name: {
       name: "name",
       description: "It's a name for the secret. Make it short with only letters, underscores and hyphens.",

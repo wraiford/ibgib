@@ -50,7 +50,7 @@ interface MenuItem {
 }
 
 @Component({
-  selector: 'app-root',
+  selector: 'ib-app-root',
   templateUrl: 'app.component.html',
   styleUrls: ['app.component.scss']
 })
@@ -173,6 +173,14 @@ export class AppComponent extends IbgibComponentBase
     setTimeout(() => { console.timeEnd(c.GLOBAL_TIMER_NAME); }, 10000);
 
     this.initializeApp();
+
+    setTimeout(() => {
+      this.handleAddRobbot();
+      console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
+      console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
+      console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
+      console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
+    }, 2000);
 
     if (logalot) { console.log(`${lc}[end]${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
   }

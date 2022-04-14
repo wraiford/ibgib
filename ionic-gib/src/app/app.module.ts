@@ -12,6 +12,7 @@ import { AppRoutingModule } from './app-routing.module';
 // import { NgIbgibNavService } from './services/ng-ibgib-nav.service';
 import { IonicIbgibNavService } from './services/ionic-ibgib-nav.service';
 import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule } from '@angular/forms';
 
 @NgModule({
     declarations: [
@@ -21,6 +22,7 @@ import { CommonModule } from '@angular/common';
         HttpClientModule,
         BrowserModule,
         CommonModule,
+        ReactiveFormsModule,
         IonicModule.forRoot(),
         AppRoutingModule
     ],

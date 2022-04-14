@@ -26,7 +26,7 @@ import { SecretModalFormComponent } from '../common/modals/secret-modal-form/sec
 import { OuterspaceModalFormComponent } from '../common/modals/outerspace-modal-form/outerspace-modal-form.component';
 import { RobbotModalFormComponent } from '../common/modals/robbot-modal-form/robbot-modal-form.component';
 import { UpdatePicModalFormComponent } from '../common/modals/update-pic-modal-form/update-pic-modal-form.component';
-import { DynamicFormComponent } from '../common/dynamic-form/dynamic-form.component';
+import { IbgibFormsModule } from '../ibgib-forms/ibgib-forms.module';
 
 @NgModule({
   imports: [
@@ -34,6 +34,7 @@ import { DynamicFormComponent } from '../common/dynamic-form/dynamic-form.compon
     FormsModule,
     ReactiveFormsModule,
     IonicModule,
+    IbgibFormsModule,
     IbGibPageRoutingModule,
   ],
   declarations: [
@@ -56,7 +57,10 @@ import { DynamicFormComponent } from '../common/dynamic-form/dynamic-form.compon
     OuterspaceModalFormComponent,
     RobbotModalFormComponent,
     UpdatePicModalFormComponent,
-    DynamicFormComponent,
+  ],
+  exports: [
+    FormsModule,
+    ReactiveFormsModule,
   ],
   schemas: [ CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA ],
 })

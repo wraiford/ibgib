@@ -1,0 +1,15 @@
+<p>
+  dynamic-form works!
+</p>
+
+<div *ngIf="updating">
+  <ion-spinner  name="circles" color="primary"></ion-spinner>
+  <span>i believe...</span>
+</div>
+
+<div *ngFor="let item of rootFormArray?.controls; let i=index">
+
+  <ion-label>{{i}}: {{item?.name}}</ion-label>
+
+  <input id="{{item.name}}" type="text" [formControlName]="i">
+</div>

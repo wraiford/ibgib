@@ -13,7 +13,7 @@ import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 import { CommonService } from '../../../services/common.service';
 import { SyncSpaceData_AWSDynamoDB } from '../../witnesses/spaces/aws-dynamo-space-v1';
 import { EncryptionData_V1, SecretIbGib_V1 } from '../../types/encryption';
-import { FieldInfo } from '../../types/dynamic-form';
+import { FormItemInfo } from '../../../ibgib-forms/types/form-items';
 import { OuterSpaceIbGib, OuterSpaceType, SyncSpaceSubtype, AWSRegion, VALID_OUTER_SPACE_TYPES, VALID_OUTER_SPACE_SUBTYPES, OuterSpaceData, OuterSpaceRel8ns } from '../../types/outer-space';
 import { getFnPromptPassword_AlertController } from '../../helper/prompt-functions';
 import { getRegExp } from '../../helper/utils';
@@ -112,7 +112,7 @@ export class OuterspaceModalFormComponent
   @Input()
   consensusAddr: IbGibAddr = c.CONSENSUS_ADDR_SYNC_NAIVE_PUT_MERGE;
 
-  fields: { [name: string]: FieldInfo } = {
+  fields: { [name: string]: FormItemInfo } = {
     name: {
       name: "name",
       description: "Short name of the space, with only letters, underscores and hyphens.",
