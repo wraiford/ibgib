@@ -73,7 +73,8 @@ export class RobbotModalFormComponent
       regexp: getRegExp({min: 1, max: 32, noSpaces: true}),
       regexpSource: getRegExp({min: 1, max: 32, noSpaces: true}).source,
       required: true,
-      dataType: 'short_text',
+      dataType: 'text',
+      value: 'my robbot name',
     },
     {
       name: "description",
@@ -82,7 +83,8 @@ export class RobbotModalFormComponent
       placeholder: `Describe these robbot settings here...`,
       regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
       regexpSource: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}).source,
-      dataType: 'long_text',
+      dataType: 'textarea',
+      value: 'my robbot description is great',
     },
   ];
 

@@ -21,6 +21,10 @@ export interface FormItemInfo {
    */
   name: string;
   /**
+   *
+   */
+  value?: string | number | boolean;
+  /**
    * Label for the property on a form
    */
   label?: string;
@@ -110,7 +114,7 @@ export interface FormItemInfo {
 
 /** @see {@link FormItemDataType} */
 export type FormItemDataType =
-    'short_text' | 'long_text' | 'select_single' | 'select_multi' | 'bool';
+    'text' | 'textarea' | 'checkbox' | 'select_multi' | 'toggle';
 /**
  * Type of the data, to drive what kind of control will be used for data.
  *
@@ -118,20 +122,20 @@ export type FormItemDataType =
  *
  * For fields that have auto-generated UI.
  *
- * {@link short_text}
- * {@link long_text}
+ * {@link text}
+ * {@link textarea}
  * {@link select}
- * {@link bool}
+ * {@link toggle}
  */
 export const FormItemDataType = {
   /**
    * @example name
    */
-  short_text: 'short_text' as FormItemDataType,
+  text: 'text' as FormItemDataType,
   /**
    * @example description
    */
-  long_text: 'long_text' as FormItemDataType,
+  textarea: 'textarea' as FormItemDataType,
   /**
    * select a single string from a list.
    *
@@ -139,15 +143,15 @@ export const FormItemDataType = {
    *
    * @see {@link select_multi}
    */
-  select_single: 'select_single' as FormItemDataType,
+  checkbox: 'checkbox' as FormItemDataType,
   /**
-   * Same as {@link select_single}, but with multiple options selectable.
+   * Same as {@link checkbox}, but with multiple options selectable.
    */
   select_multi: 'select_multi' as FormItemDataType,
   /**
    * Boolean true/false or on/off, etc.
    */
-  bool: 'bool' as FormItemDataType,
+  toggle: 'toggle' as FormItemDataType,
 }
 
 /**

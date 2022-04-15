@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { DynamicFormComponent } from './dynamic-form/dynamic-form.component';
+import { IonicModule } from '@ionic/angular';
 
 @NgModule({
   declarations: [
@@ -12,6 +13,7 @@ import { DynamicFormComponent } from './dynamic-form/dynamic-form.component';
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
+    IonicModule,
   ],
   exports: [
     FormsModule,

@@ -174,13 +174,6 @@ export class AppComponent extends IbgibComponentBase
 
     this.initializeApp();
 
-    setTimeout(() => {
-      this.handleAddRobbot();
-      console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
-      console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
-      console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
-      console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
-    }, 2000);
 
     if (logalot) { console.log(`${lc}[end]${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
   }
@@ -253,6 +246,13 @@ export class AppComponent extends IbgibComponentBase
           this.initializing = false;
           await this.updateIbGib(addr);
         }
+          setTimeout(() => {
+            this.handleAddRobbot();
+            console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
+            console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
+            console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
+            console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
+          }, 1000);
 
         // navToAddr = this.tagsAddr;
         this.common.platform.backButton.subscribeWithPriority(10, async () => {

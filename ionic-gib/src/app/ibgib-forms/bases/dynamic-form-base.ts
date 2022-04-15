@@ -12,6 +12,11 @@ const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 /**
  * Abstract base class for dynamic forms that contains common plumbing.
+ *
+ * ## thanks
+ *
+ * https://eliteionic.com/tutorials/creating-dynamic-angular-forms-with-json/
+ *
  */
 @Injectable()
 export class DynamicFormBase implements OnInit, OnDestroy {
@@ -21,16 +26,6 @@ export class DynamicFormBase implements OnInit, OnDestroy {
   @Input()
   updating: boolean;
 
-  // @Input()
-  // busy: boolean;
-
-  // @Input()
-  /**
-   * Root form array for the dynamic form.
-   */
-  rootFormArray: FormArray;
-
-  // rootFormArray: FormArray = this.fb.array([]);
   // @Input()
   rootFormGroup: FormGroup;
 
@@ -49,7 +44,16 @@ export class DynamicFormBase implements OnInit, OnDestroy {
       if (this._items.length === 0) {
         if (newItems?.length > 0) {
           this._items = newItems;
-          this.updateForm(); // spins off
+          // this.updateForm(); // spins off
+
+          // console.warn('DEBUG INTERVAL, REMOVE')
+          // console.warn('DEBUG INTERVAL, REMOVE')
+          // console.warn('DEBUG INTERVAL, REMOVE')
+          // // testing binding
+          // setInterval(() => {
+          //   this.updateForm(); // spins off
+          //   this._items.forEach(item => item.value += 'x')
+          // }, 5000);
         } else {
           if (logalot) { console.log(`${lc} tried to set empty items (I: 18cb6a7839225ed886678022bf4b7122)`); }
         }
@@ -219,14 +223,6 @@ export class DynamicFormBase implements OnInit, OnDestroy {
     this.showHelp = !this.showHelp;
   }
 
-  /**
-   * don't think this indirection is needed, but trying to follow directions on
-   * https://angular.io/guide/reactive-forms#dynamic-forms
-   */
-  get formItems() {
-    return this.rootFormGroup?.get('itemControls') as FormArray;
-  }
-
   async updateForm(): Promise<void> {
     const lc = `${this.lc}[${this.updateForm.name}]`;
     try {
@@ -237,11 +233,14 @@ export class DynamicFormBase implements OnInit, OnDestroy {
       }
       this.updating = true;
 
+      // await h.delay(2000);
+
       const getControl = (item: FormItemInfo) => {
         let control: AbstractControl;
         if (item.children) {
           control = this.fb.array([ ...item.children.map(x => getControl(x)) ]);
         } else {
+          if (logalot) { console.log(`${lc} adding standard control (I: aafdaadf4b4e0e659bd6a53d52924622)`); }
           control = this.fb.control('default value yo');
         }
 
@@ -249,45 +248,41 @@ export class DynamicFormBase implements OnInit, OnDestroy {
         return control;
       }
 
-      const getControls = () => {
-        let rootArray = this.fb.array([]);
-        for (let i = 0; i < this._items.length; i++) {
-          const item = this._items[i];
-          const control = getControl(item);
-          if (item.children) {
-            throw new Error(`not impl (E: 505be7ec1284ec23e3049b58c6880822)`);
-            let formArray = <FormArray>control;
-          } else {
-            rootArray.push(control);
-          }
-        }
-        console.log(`rootArray.length: ${rootArray.length}`);
-        // this.fb.array([ ...this._items.map(item => getControl(item)) ])
-        return rootArray;
-      };
 
-      this.rootFormGroup = this.fb.group({
-        'itemControls': getControls()
-      });
 
-      // debugger;
-
-      // for (let i = 0; i < this.items.length; i++) {
-      //   const item = this.items[i];
-      //   if (item.children?.length > 0) {
-      //     // item is a container of other items
-      //   } else {
-      //     // item itself is the data
-      //     // debugger;
-      //     let control = this.fb.control(item.name);
-      //     control.setValue('wakka');
-      //     this.rootFormArray.controls.push(control);
+      // const getControls = () => {
+      //   let rootArray = this.fb.array([]);
+      //   for (let i = 0; i < this._items.length; i++) {
+      //     const item = this._items[i];
+      //     const control = getControl(item);
+      //     if (item.children) {
+      //       throw new Error(`not impl (E: 505be7ec1284ec23e3049b58c6880822)`);
+      //       let formArray = <FormArray>control;
+      //     } else {
+      //       rootArray.push(control);
+      //     }
       //   }
-      // }
+      //   console.log(`rootArray.length: ${rootArray.length}`);
+      //   // this.fb.array([ ...this._items.map(item => getControl(item)) ])
+      //   return rootArray;
+      // };
+
+      // this.rootFormGroup = this.fb.group({
+      //   'itemControls': getControls()
+      // });
+      this.rootFormGroup = this.fb.group({});
+      for (let i = 0; i < this._items.length; i++) {
+        const item = this._items[i];
+        const control = getControl(item);
+        if (item.children) {
+          throw new Error(`not impl (E: 505be7ec1284ec23e3049b58c6880822)`);
+          let formArray = <FormArray>control;
+        } else {
+          this.rootFormGroup.addControl(item.name, this.fb.control(''));
+        }
+      }
 
       console.log(`this.items: ${this.items}`)
-
-      // await h.delay(2000); // debug
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -298,17 +293,23 @@ export class DynamicFormBase implements OnInit, OnDestroy {
     }
   }
 
-
-
-  addControl({
-    parent,
-    item,
-  }: {
-    parent: FormArray,
-    item: FormItemInfo,
-  }): Promise<void> {
-    //  parent.push()
-    throw new Error('not impl')
+  async handleSubmit(): Promise<void> {
+    console.log('submitted');
   }
 
+
+  async handleTextChanged(text: string, item: FormItemInfo): Promise<void> {
+    const lc = `${this.lc}[${this.handleTextChanged.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      // debugger;
+      console.log(`${lc} text: ${text}`);
+      item.value = text;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 }

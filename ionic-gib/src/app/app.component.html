@@ -90,8 +90,8 @@
               <ion-list *ngIf="menuOpen === 'robbots'" slot="content">
                 <ion-item *ngFor="let robbotItem of robbotItems"
                   lines="none"
-                  [title]="getrobbotTooltip('robbot', robbotItem)"
                   >
+                  <!-- [title]="getrobbotTooltip('robbot', robbotItem)" -->
                   <ion-button (click)="robbotItem.clickHandler(robbotItem)">
                     <ion-icon slot="start" [name]="robbotItem.icon"></ion-icon>
                     <ion-label>{{ robbotItem.title }}</ion-label>
