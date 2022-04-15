@@ -29,7 +29,7 @@ import { validateIbGibIntrinsically, spaceNameIsValid } from './common/helper/va
 
 // #endregion imports & some init
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 /**
  * Hamburger menu in top left.
@@ -153,6 +153,8 @@ export class AppComponent extends IbgibComponentBase
 
   @Input()
   initializing: boolean;
+  // @Input()
+  // get svcInitializing(): boolean { return this.common.ibgibs.initializing; }
 
   @Input()
   menuOpen: string = 'tags';

@@ -11,7 +11,7 @@ import * as cTsGib from 'ts-gib/dist/V1/constants';
 
 import * as c from '../constants';
 import { validateIb } from './validate';
-import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { groupBy } from './utils';
 import { SpecialIbGibType } from '../types/ux';
 
@@ -105,10 +105,14 @@ export async function constantIbGib<TData extends IbGibData_V1 = any , TRel8ns e
         if (constantIbGib?.rel8ns?.identity) { delete constantIbGib.rel8ns.identity; }
 
         // recalculate the gib hash
-        constantIbGib.gib = await sha256v1({
-            ib: constantIbGib.ib,
-            data: constantIbGib.data,
-            rel8ns: constantIbGib.rel8ns,
+        // constantIbGib.gib = await sha256v1({
+        constantIbGib.gib = await getGib({
+            ibGib: {
+                ib: constantIbGib.ib,
+                data: constantIbGib.data,
+                rel8ns: constantIbGib.rel8ns,
+            },
+            hasTjp: false,
         });
 
         return constantIbGib;

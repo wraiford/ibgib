@@ -12,6 +12,7 @@ import { PicIbGib_V1 } from '../../types/pic';
 import { isComment } from '../../helper/comment';
 import { isPic } from '../../helper/pic';
 import { validateCommonRobbotData } from '../../helper/robbot';
+import { FormItemInfo } from 'src/app/ibgib-forms/types/form-items';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -236,9 +237,9 @@ export abstract class RobbotBase_V1<
         }
     }
 
+
 }
 
 export interface IbGibRobbotAny
     extends RobbotBase_V1<any,any,any,any,any,any,any,any> {
 }
-

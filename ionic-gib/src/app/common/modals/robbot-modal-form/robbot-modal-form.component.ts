@@ -86,6 +86,16 @@ export class RobbotModalFormComponent
       dataType: 'textarea',
       value: 'my robbot description is great',
     },
+    {
+      name: "type",
+      description: `Description/notes for this robbot. Only letters, underscores and ${c.SAFE_SPECIAL_CHARS}`,
+      label: "Description",
+      placeholder: `Describe these robbot settings here...`,
+      regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
+      regexpSource: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}).source,
+      dataType: 'textarea',
+      value: 'my robbot description is great',
+    },
   ];
 
   @Input()

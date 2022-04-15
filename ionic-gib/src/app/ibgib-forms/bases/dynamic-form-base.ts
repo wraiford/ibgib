@@ -1,12 +1,17 @@
-import { EventEmitter, Injectable, Input, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
+import {
+  EventEmitter, Injectable, Input, OnDestroy, OnInit, Output, ViewChild
+} from '@angular/core';
 import { IonContent } from '@ionic/angular';
+import {
+  AbstractControl, AsyncValidatorFn, FormArray, FormBuilder, FormControl,
+  FormGroup, ValidatorFn, Validators
+} from '@angular/forms';
 
 import * as h from 'ts-gib/dist/helper';
 
 import * as c from '../dynamic-form-constants';
 // import { CommonService } from '../../services/common.service';
 import { FormItemInfo } from '../../ibgib-forms/types/form-items';
-import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup } from '@angular/forms';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -248,37 +253,19 @@ export class DynamicFormBase implements OnInit, OnDestroy {
         return control;
       }
 
-
-
-      // const getControls = () => {
-      //   let rootArray = this.fb.array([]);
-      //   for (let i = 0; i < this._items.length; i++) {
-      //     const item = this._items[i];
-      //     const control = getControl(item);
-      //     if (item.children) {
-      //       throw new Error(`not impl (E: 505be7ec1284ec23e3049b58c6880822)`);
-      //       let formArray = <FormArray>control;
-      //     } else {
-      //       rootArray.push(control);
-      //     }
-      //   }
-      //   console.log(`rootArray.length: ${rootArray.length}`);
-      //   // this.fb.array([ ...this._items.map(item => getControl(item)) ])
-      //   return rootArray;
-      // };
-
-      // this.rootFormGroup = this.fb.group({
-      //   'itemControls': getControls()
-      // });
+      // start with an empty form group...
       this.rootFormGroup = this.fb.group({});
+
+      // add entries for each form item info
       for (let i = 0; i < this._items.length; i++) {
         const item = this._items[i];
         const control = getControl(item);
+        const validators = await this.getValidators({item});
         if (item.children) {
           throw new Error(`not impl (E: 505be7ec1284ec23e3049b58c6880822)`);
           let formArray = <FormArray>control;
         } else {
-          this.rootFormGroup.addControl(item.name, this.fb.control(''));
+          this.rootFormGroup.addControl(item.name, this.fb.control('', validators));
         }
       }
 
@@ -289,6 +276,27 @@ export class DynamicFormBase implements OnInit, OnDestroy {
       throw error;
     } finally {
       this.updating = false;
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async getValidators({
+    item,
+  }: {
+    item: FormItemInfo,
+  }): Promise<(ValidatorFn | AsyncValidatorFn)[]> {
+    const lc = `${this.lc}[${this.getValidators.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      const validators: (ValidatorFn | AsyncValidatorFn)[] = [];
+
+      if (item.required) { validators.push(Validators.required); }
+
+      return validators;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }

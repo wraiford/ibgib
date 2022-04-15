@@ -9,7 +9,7 @@ export type RobbotTransparency = 'transparent' | 'translucent' | 'opaque';
 export interface RobbotData_V1 extends WitnessData_V1 {
 
     /**
-     * Robbie was only the first Robbot.
+     * Name of a Robbot instance...after all, Robbie was only the first Robbot.
      */
     name: string;
 

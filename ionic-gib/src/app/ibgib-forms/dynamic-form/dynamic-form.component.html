@@ -11,8 +11,7 @@
 
   <form [formGroup]="rootFormGroup" (ngSubmit)="handleSubmit()">
     <ion-item *ngFor="let item of items">
-      <!-- <ion-label position="floating">{{item.label}}</ion-label> -->
-      <ion-label position="stacked"><strong>{{item.label}}: </strong></ion-label>
+      <ion-label position="floating"><strong>{{item.label}}: </strong></ion-label>
       <ion-input *ngIf="['text'].includes(item.dataType)"
         [placeholder]="item?.placeholder"
         [value]="item.value"
@@ -26,7 +25,11 @@
         (ionChange)="handleTextChanged($event.target.value, item)"
         debounce="1000" spellcheck="true" autoGrow="true"
       ></ion-textarea>
+      <ib-sub-form *ngIf="item.children?.length > 0"
+        >
+      </ib-sub-form>
     </ion-item>
+    <ion-button type="submit" expand="full"></ion-button>
   </form>
 
 </div>

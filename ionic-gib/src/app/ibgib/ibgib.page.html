@@ -116,12 +116,7 @@
 
 <ion-content [fullscreen]="false">
 
-  <!-- <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">{{ addr }}</ion-title>
-    </ion-toolbar>
-  </ion-header> -->
-
+  <ion-text *ngIf="statusText" color="primary">{{statusText}}</ion-text>
   <div *ngIf="!item?.ibGib || refreshing" class="loading-div">
     <!-- <p>loading...</p> -->
     <div class="spacer-50"></div>

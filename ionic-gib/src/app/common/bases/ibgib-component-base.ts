@@ -9,7 +9,6 @@ import { IbGib_V1, GIB, Factory_V1, ROOT_ADDR } from "ts-gib/dist/V1";
 import { IbGibAddr, Ib, Gib, } from "ts-gib";
 
 import * as c from '../../common/constants';
-// import { IbgibItem, PicData_V1, CommentData_V1, LatestEventInfo } from '../types'; // refactoring to not use types/index
 import { CommonService, NavInfo } from 'src/app/services/common.service';
 import { Capacitor } from '@capacitor/core';
 import { CommentData_V1 } from '../types/comment';
@@ -55,13 +54,17 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         } else {
             if (logalot) { console.log(`${lc} updating ibgib ${value}`); }
             this._updatingIbGib = true;
+            const statusId = this.addStatusText({text: 'updating...'});
+            setTimeout(() => this.ref.detectChanges());
             this.updateIbGib(value).finally(() => {
+                this.removeStatusText({statusId: statusId})
                 this._updatingIbGib = false;
                 setTimeout(() => { this.ref.detectChanges(); }, 500)
                 if (logalot) { console.log(`${lc}[end]${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
             });
         }
     }
+
     @Input()
     item: TItem;
     @Input()
@@ -172,6 +175,23 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     get android(): boolean { return this.platform === 'android'; }
     @Input()
     get web(): boolean { return this.platform === 'web'; }
+
+    /**
+     * When the component is busy or similar, this can reflect the status.
+     *
+     * Each message is stored by an id, so we don't have reference counting
+     * or other mechanism.
+     *
+     * @see {@link addStatusText}
+     * @see {@link removeStatusText}
+     * @see {@link updateStatusText}
+     */
+    @Input()
+    statusText: string = '';
+    /**
+     * @see {@link statusText}
+     */
+    protected _statusTexts: { [msgId: string]: string } = {};
 
     constructor(
         protected common: CommonService,
@@ -389,104 +409,187 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         }
     }
 
-  async loadPic(item?: TItem): Promise<void> {
-    const lc = `${this.lc}[${this.loadPic.name}]`;
-    if (!this.isPic) { return; }
-    if (logalot) { console.log(`${lc} starting...`); }
-    try {
+    async loadPic(item?: TItem): Promise<void> {
+        const lc = `${this.lc}[${this.loadPic.name}]`;
+        if (!this.isPic) { return; }
+        if (logalot) { console.log(`${lc} starting...`); }
+        try {
+            item = item || this.item;
+            // item = this.item;
+
+            if (!this.ibGib?.data?.binHash) {
+                if (logalot) { console.log(`${lc} no data.binHash`); }
+                return;
+            }
+            if (!this.ibGib!.data!.ext) {
+                if (logalot) { console.log(`${lc} no data.ext`); }
+                return;
+            }
+            if (!this.ibGib.rel8ns || this.ibGib.rel8ns['bin'].length === 0) {
+                if (logalot) { console.log(`${lc} no rel8ns.bin`); }
+                return;
+            }
+
+            const data = <PicData_V1>this.ibGib.data;
+            if (logalot) { console.log(`${lc} binHash: ${data.binHash}\nbinExt: ${data.ext}`); }
+            const binAddrs = this.ibGib.rel8ns[c.BINARY_REL8N_NAME];
+            const addr = binAddrs[binAddrs.length-1];
+            if (logalot) { console.log(`${lc} getting bin addr: ${addr}`); }
+            const resGet = await this.common.ibgibs.get({addr});
+            item.timestamp = data.timestamp;
+            if (logalot) { console.log(`${lc} initial item.picSrc.length: ${item?.picSrc?.length}`); }
+
+            item.filenameWithExt = `${data.filename || data.binHash}.${data.ext}`;
+
+            const delayRefDetectChangesMs = 2000; // hack
+            if (resGet.success && resGet.ibGibs?.length === 1 && resGet.ibGibs[0]!.data) {
+                item.picSrc = `data:image/jpeg;base64,${resGet.ibGibs![0].data!}`;
+                if (logalot) { console.log(`${lc} loaded item.picSrc.length: ${item?.picSrc?.length}`); }
+                setTimeout(() => { this.ref.detectChanges(); }, delayRefDetectChangesMs);
+                if (logalot) { console.log(`${lc} ref.detectChanges in ${delayRefDetectChangesMs.toString()}`); }
+            } else {
+                console.error(`${lc} Couldn't get pic. ${resGet.errorMsg}`);
+            }
+            item.text = data.filename ?? `pic ${this.gib.slice(0,5)}...`;
+            if (logalot) { console.log(`${lc} loaded.`); }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`) }
+        }
+    }
+
+    async loadComment(item?: TItem): Promise<void> {
+        const lc = `${this.lc}[${this.loadComment.name}]`;
         item = item || this.item;
-        // item = this.item;
+        if (!this.isComment) { return; }
+        if (!this.ibGib?.data?.text) { return; }
 
-        if (!this.ibGib?.data?.binHash) {
-            if (logalot) { console.log(`${lc} no data.binHash`); }
-            return;
-        }
-        if (!this.ibGib!.data!.ext) {
-            if (logalot) { console.log(`${lc} no data.ext`); }
-            return;
-        }
-        if (!this.ibGib.rel8ns || this.ibGib.rel8ns['bin'].length === 0) {
-            if (logalot) { console.log(`${lc} no rel8ns.bin`); }
-            return;
-        }
-
-        const data = <PicData_V1>this.ibGib.data;
-        if (logalot) { console.log(`${lc} binHash: ${data.binHash}\nbinExt: ${data.ext}`); }
-        const binAddrs = this.ibGib.rel8ns[c.BINARY_REL8N_NAME];
-        const addr = binAddrs[binAddrs.length-1];
-        if (logalot) { console.log(`${lc} getting bin addr: ${addr}`); }
-        const resGet = await this.common.ibgibs.get({addr});
-        item.timestamp = data.timestamp;
-        if (logalot) { console.log(`${lc} initial item.picSrc.length: ${item?.picSrc?.length}`); }
-
-        item.filenameWithExt = `${data.filename || data.binHash}.${data.ext}`;
-
-        const delayRefDetectChangesMs = 2000; // hack
-        if (resGet.success && resGet.ibGibs?.length === 1 && resGet.ibGibs[0]!.data) {
-            item.picSrc = `data:image/jpeg;base64,${resGet.ibGibs![0].data!}`;
-            if (logalot) { console.log(`${lc} loaded item.picSrc.length: ${item?.picSrc?.length}`); }
-            setTimeout(() => { this.ref.detectChanges(); }, delayRefDetectChangesMs);
-            if (logalot) { console.log(`${lc} ref.detectChanges in ${delayRefDetectChangesMs.toString()}`); }
-        } else {
-            console.error(`${lc} Couldn't get pic. ${resGet.errorMsg}`);
-        }
-        item.text = data.filename ?? `pic ${this.gib.slice(0,5)}...`;
-        if (logalot) { console.log(`${lc} loaded.`); }
-    } catch (error) {
-        console.error(`${lc} ${error.message}`);
-    } finally {
-        if (logalot) { console.log(`${lc} complete.`) }
+        const data = <CommentData_V1>this.ibGib.data;
+        item.text = data.text;
+        item.timestamp = data.textTimestamp || data.timestamp;
     }
-  }
 
-  async loadComment(item?: TItem): Promise<void> {
-    const lc = `${this.lc}[${this.loadComment.name}]`;
-    item = item || this.item;
-    if (!this.isComment) { return; }
-    if (!this.ibGib?.data?.text) { return; }
-
-    const data = <CommentData_V1>this.ibGib.data;
-    item.text = data.text;
-    item.timestamp = data.textTimestamp || data.timestamp;
-  }
-
-  /**
-   * Default handler for dealing with updates to ibGibs (i.e. new frames in their timelines).
-   *
-   * NOTE: ATOW this will be SPUN OFF, it will not be awaited.
-   *
-   * @param info event info for the new latest ibGib
-   */
-  async handleIbGib_NewLatest(info: LatestEventInfo): Promise<void> {
-    const lc = `${this.lc}[${this.handleIbGib_NewLatest.name}]`;
-    try {
-        if (logalot) { console.log(`${lc} starting...`)}
-        if (!this.tjp) { await this.loadTjp(); }
-        if (!this.tjp) {
-            if (logalot) { console.log(`${lc} no tjp, so returning early.`); }
-            return;
+    /**
+     * Default handler for dealing with updates to ibGibs (i.e. new frames in their timelines).
+     *
+     * NOTE: ATOW this will be SPUN OFF, it will not be awaited.
+     *
+     * @param info event info for the new latest ibGib
+     */
+    async handleIbGib_NewLatest(info: LatestEventInfo): Promise<void> {
+        const lc = `${this.lc}[${this.handleIbGib_NewLatest.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`)}
+            if (!this.tjp) { await this.loadTjp(); }
+            if (!this.tjp) {
+                if (logalot) { console.log(`${lc} no tjp, so returning early.`); }
+                return;
+            }
+            if (this.tjpAddr !== info.tjpAddr) {
+                if (logalot) { console.log(`${lc} tjpAddr isn't us, so returning early.`); }
+                return;
+            }
+            if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)}`); }
+            if (this.paused) {
+                if (logalot) { console.log(`${lc} this.paused truthy, so returning early.`); }
+                return;
+            }
+            if (this.errored) {
+                if (logalot) { console.log(`${lc} this.errored truthy, so returning early.`); }
+                return;
+            }
+            if (logalot) { console.log(`${lc} setting this.addr (${this.addr}) to info.latestAddr (${info.latestAddr}).`); }
+            this.addr = info.latestAddr; // results in `updateIbGib` call
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            this.errored = true;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`)}
         }
-        if (this.tjpAddr !== info.tjpAddr) {
-            if (logalot) { console.log(`${lc} tjpAddr isn't us, so returning early.`); }
-            return;
-        }
-        if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)}`); }
-        if (this.paused) {
-            if (logalot) { console.log(`${lc} this.paused truthy, so returning early.`); }
-            return;
-        }
-        if (this.errored) {
-            if (logalot) { console.log(`${lc} this.errored truthy, so returning early.`); }
-            return;
-        }
-        if (logalot) { console.log(`${lc} setting this.addr (${this.addr}) to info.latestAddr (${info.latestAddr}).`); }
-        this.addr = info.latestAddr; // results in `updateIbGib` call
-    } catch (error) {
-        console.error(`${lc} ${error.message}`);
-        this.errored = true;
-    } finally {
-        if (logalot) { console.log(`${lc} complete.`)}
     }
-  }
 
+    // #region status text
+
+    /**
+     * Adds an entry for the status text and returns the id to that.
+
+     * Updates {@link statusText}
+
+     * @returns id for status text
+     */
+    protected addStatusText({
+        text,
+    }: {
+        text: string,
+    }): string {
+        const lc = `${this.lc}[${this.addStatusText.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            const updateId = this.common.ibgibs.getUUIDSync();
+            this._statusTexts[updateId] = text;
+            return updateId;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            this.updateStatusText();
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+    /**
+     * Removes the status entry for the given id.
+     *
+     * Updates {@link statusText}
+     */
+    protected removeStatusText({
+        statusId,
+    }: {
+        statusId: string,
+    }): void {
+        const lc = `${this.lc}[${this.removeStatusText.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            if (this._statusTexts[statusId]) {
+                delete this._statusTexts[statusId];
+            } else {
+                console.warn(`${lc} tried to remove a non-existent textId (W: ab6ce2aed6984625a0df85e97d53b41d)`);
+            }
+            setTimeout(() => this.ref.detectChanges());
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            this.updateStatusText();
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    /**
+     * Updates {@link statusText}
+     */
+    protected updateStatusText(): void {
+        const lc = `${this.lc}[${this.updateStatusText.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            let statusText: string;
+            let statusTextIds = Object.keys(this._statusTexts);
+            if (statusTextIds.length > 0) {
+                let raw = Object.values(this._statusTexts).join('; ');
+                statusText = `i believe we are...${raw}`;
+            } else {
+                statusText = undefined;
+            }
+            if (this.statusText !== statusText) {
+                this.statusText = statusText;
+                setTimeout(() => this.ref.detectChanges());
+            }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            // throw error; // no rethrow
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+    // #endregion status text
 }

@@ -146,11 +146,13 @@ export class IbGibPage extends IbgibComponentBase
   async updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
     if (logalot) { console.log(`${lc} updating...`); }
+    let statusId: string;
     try {
       while (this.common.ibgibs.initializing) {
         if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 936911af9f942cbdde7de4bf65fef822)`); }
         await h.delay(100);
       }
+      statusId = this.addStatusText({text: 'updating ibgib...'})
       this.stopPollLatest_Local();
       this.stopPollLatest_Store();
       await super.updateIbGib(addr);
@@ -179,6 +181,7 @@ export class IbGibPage extends IbgibComponentBase
       console.error(`${lc} error: ${error.message}`);
       this.clearItem();
     } finally {
+      this.removeStatusText({statusId});
       this.ref.detectChanges();
       if (logalot) { console.log(`${lc} updated.`); }
     }

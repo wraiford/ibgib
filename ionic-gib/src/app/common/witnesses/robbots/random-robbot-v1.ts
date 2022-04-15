@@ -6,6 +6,8 @@ import { RobbotBase_V1 } from './robbot-base-v1';
 // import { getFnAlert } from '../../helper'; // refactoring to not use index
 import { RobbotData_V1, RobbotRel8ns_V1 } from '../../types/robbot';
 import { getFnAlert } from '../../helper/prompt-functions';
+import { FormItemInfo } from 'src/app/ibgib-forms/types/form-items';
+import { DynamicFormFactoryBase } from 'src/app/ibgib-forms/bases/dynamic-form-factory-base';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -120,4 +122,59 @@ export class RandomRobbot_V1 extends RobbotBase_V1 {
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
+}
+
+/**
+ * The idea is that any witness can be injected via this factory provider.
+ *
+ * So when you create a witness that you want to be able to instantiate via
+ * just metadata, you also provide an accompanying factory that knows
+ * how to map from a
+ *   * witness -> form data (to generate dynamic forms)
+ *   * form data -> witness (to instantiate witness from data)
+ *
+ */
+export class RandomRobbot_V1_Factory
+    extends DynamicFormFactoryBase<RandomRobbot_V1> {
+
+    getInjectionName(): string { return RandomRobbot_V1.name; }
+
+    getFormInfos({ model }: { model: RandomRobbot_V1; }): Promise<FormItemInfo[]> {
+        throw new Error('Method not implemented.');
+    }
+
+    async loadFromFormInfos({ formInfos }: { formInfos: FormItemInfo[]; }): Promise<RandomRobbot_V1> {
+        let robbot = new RandomRobbot_V1(null, null);
+        return robbot;
+    }
+
+    // protected lc: string = `[${WitnessBase_V1_Factory.name}]`;
+
+    // abstract getFormInfos({witness}: {witness: TWitness}): Promise<FormItemInfo[]>;
+    // {
+    //     const lc = `${this.lc}[${this.getFormInfos.name}]`;
+    //     try {
+    //         if (logalot) { console.log(`${lc} starting...`); }
+    //         return [];
+    //     } catch (error) {
+    //         console.error(`${lc} ${error.message}`);
+    //         throw error;
+    //     } finally {
+    //         if (logalot) { console.log(`${lc} complete.`); }
+    //     }
+    // }
+
+    // abstract loadFromFormInfos({formInfos}: {formInfos: FormItemInfo[]}): Promise<TWitness>
+    // {
+    //     const lc = `${this.lc}[${this.loadFromFormInfos.name}]`;
+    //     try {
+    //         if (logalot) { console.log(`${lc} starting...`); }
+    //         throw new Error()
+    //     } catch (error) {
+    //         console.error(`${lc} ${error.message}`);
+    //         throw error;
+    //     } finally {
+    //         if (logalot) { console.log(`${lc} complete.`); }
+    //     }
+    // }
 }

@@ -265,6 +265,49 @@ export class IbgibsService {
    */
   private isPrompting: boolean;
 
+  // #region sync uuids
+  /**
+   * h.getUUID is async. there are many times we want a throwaway id
+   * synchronously. So we'll prepopulate them here.
+   */
+  private _precalculatedIds: string[] = [];
+  public getUUIDSync(): string {
+    const lc = `${this.lc}[${this.getUUIDSync.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      const id = this._precalculatedIds.pop();
+      if (this._precalculatedIds.length < 100) {
+        this.precalculateSomeUUIDsPlease(); // spins off
+        // only a race condition if we're consuming sync ids
+        // in a tight loop...
+      }
+      return id;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+  async precalculateSomeUUIDsPlease(): Promise<void> {
+    const lc = `${this.lc}[${this.precalculateSomeUUIDsPlease.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      const ids: string[] = [];
+      for (let i = 0; i < 500; i++) {
+        const id = await h.getUUID();
+        ids.push(id);
+      }
+      this._precalculatedIds = ids;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+  // #endregion sync uuids
+
   constructor(
     public modalController: ModalController,
     public alertController: AlertController,
@@ -327,6 +370,9 @@ export class IbgibsService {
       await this.loadAutoSyncs();
 
       await this.getSpecialIbGib({type: "robbots", initialize: true});
+      if (logalot) { console.timeLog(timerName); }
+
+      await this.precalculateSomeUUIDsPlease();
       if (logalot) { console.timeLog(timerName); }
 
       if (logalot) {
