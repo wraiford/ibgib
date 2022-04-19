@@ -98,23 +98,35 @@ export interface FormItemInfo {
    * If the dataType is some kind of text, then this refers to the length of string.
    * If the dataType is some kind of number, then this refers to the value of the number.
    *
+   * ## notes
+   * * there can be the regex also that looks at this value
+   *
    * @optional
    */
-  // min?: number;
+  min?: number;
   /**
    * If given, should be the max of the field for validation.
    *
    * If the dataType is some kind of text, then this refers to the length of string.
    * If the dataType is some kind of number, then this refers to the value of the number.
    *
+   * ## notes
+   * * there can be the regex also that looks at this value
+   *
    * @optional
    */
-  // max?: number;
+  max?: number;
+  /**
+   * If true, checkbox can select multiple items.
+   *
+   * If not a checkbox, then not sure what's up.
+   */
+  multiple?: boolean;
 }
 
-/** @see {@link FormItemDataType} */
+// /** @see {@link FormItemDataType} */
 export type FormItemDataType =
-    'text' | 'textarea' | 'checkbox' | 'select_multi' | 'toggle';
+    'text' | 'textarea' | 'checkbox' | 'toggle' | 'number';
 /**
  * Type of the data, to drive what kind of control will be used for data.
  *
@@ -122,10 +134,13 @@ export type FormItemDataType =
  *
  * For fields that have auto-generated UI.
  *
- * {@link text}
- * {@link textarea}
- * {@link select}
- * {@link toggle}
+ * ATOW Pretty much mirroring html5 input types.
+ *
+ * @see {@link FormItemDataType.text}
+ * @see {@link textarea}
+ * @see {@link checkbox}
+ * @see {@link toggle}
+ * @see {@link number}
  */
 export const FormItemDataType = {
   /**
@@ -137,24 +152,34 @@ export const FormItemDataType = {
    */
   textarea: 'textarea' as FormItemDataType,
   /**
-   * select a single string from a list.
+   * select string(s) from a list.
    *
    * @example States e.g. TX, TN, NY, etc.
    *
-   * @see {@link select_multi}
+   * @see {@link FormItemInfo.multiple}
    */
   checkbox: 'checkbox' as FormItemDataType,
-  /**
-   * Same as {@link checkbox}, but with multiple options selectable.
-   */
-  select_multi: 'select_multi' as FormItemDataType,
   /**
    * Boolean true/false or on/off, etc.
    */
   toggle: 'toggle' as FormItemDataType,
+  /**
+   * Number value
+   */
+  number: 'number' as FormItemDataType,
 }
 
 /**
  * syntactic sugar for `Object.values(FormItemDataType)`
  */
 export const FORM_ITEM_DATA_TYPES = Object.values(FormItemDataType);
+
+/**
+ * A form is basically an array of form items.
+ */
+export interface DynamicForm extends FormItemInfo {
+  /**
+   * redeclared here to require children.
+   */
+  children: FormItemInfo[];
+}

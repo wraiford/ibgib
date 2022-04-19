@@ -17,6 +17,21 @@ export const GLOBAL_TIMER_NAME = '[ib^gib timer]';
 export const GLOBAL_DEBUG_BORDER = false;
 
 /**
+ * When expressing ibgib data paths, this will be used as the delimiter
+ * to indicate a sub-object.
+ *
+ * # notes
+ *
+ * This should be used with the understanding that having overly-complex data
+ * maps is an indication that the ibgib may possibly be better designed as
+ * multiple ibgibs linked via their rel8ns.
+ *
+ * That said, I think it will be common for grouping settings, especially
+ * mapping from external sources (API, SDK, etc.).
+ */
+export const DEFAULT_DATA_PATH_DELIMITER = '/';
+
+/**
  * Zero space is a default space that uses default values that should be
  * reproducible and not break or something...it's all in flux really.
  */

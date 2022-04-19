@@ -6,7 +6,8 @@ import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import * as c from '../constants';
 import { WitnessData_V1, Witness_V1, } from '../types/witness';
 import { validateGib, validateIb, validateIbGibIntrinsically } from '../helper/validate';
-import { FormItemInfo } from 'src/app/ibgib-forms/types/form-items';
+import { FormItemInfo } from '../../ibgib-forms/types/form-items';
+import { DynamicFormFactoryBase } from '../../ibgib-forms/bases/dynamic-form-factory-base';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

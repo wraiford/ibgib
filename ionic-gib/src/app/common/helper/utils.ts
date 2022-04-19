@@ -1,3 +1,5 @@
+import * as c from '../constants';
+
 export function groupBy<TItem>({
     items,
     keyFn,
@@ -209,3 +211,60 @@ export function unique<T>(arr: T[]): T[] {
 //         return {filename: fullFilename, ext: ""}
 //     }
 // }
+
+export function patchObject({
+    obj,
+    value,
+    path,
+    pathDelimiter,
+    logalot,
+}: {
+    obj: Object,
+    value: any,
+    path: string,
+    pathDelimiter?: string,
+    logalot?: boolean,
+}): void {
+    const lc = `[${patchObject.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting...`); }
+        if (!obj) { throw new Error(`obj required (E: 6a9dd32a361476e80b1bf7b91ec50522)`); }
+        if (typeof obj !== 'object') { throw new Error(`obj must be type 'object' (E: 66fdc289b32c06492bd95f5d266e6a22)`); }
+        if (!path) { throw new Error(`path required (at the very least should be the key in the root obj.) (E: fc779e7794ead8a0b44e5f2e776b0e22)`); }
+
+        /** atow defaults to a forward slash, but could be a dot or who knows */
+        pathDelimiter = pathDelimiter || c.DEFAULT_DATA_PATH_DELIMITER;
+
+        /**
+         * the target starts off at the object level itself, but we will
+         * traverse the given path, updating the targetObj as we go.
+         */
+        let targetObj = obj;
+        const pathPieces = path.split(pathDelimiter).filter(x => !!x);
+
+        /** the last one is the key into the final targetObj with value */
+        const key = pathPieces.pop();
+
+        // ensure each intermediate path exists and is an object
+        pathPieces.forEach(piece => {
+            let currentValue = targetObj[piece];
+            if (currentValue) {
+                if (typeof currentValue !== 'object') {throw new Error(`invalid path into object. Each step along the path must be typeof === 'object', but typeof targetObj["${piece}"] === ${typeof currentValue}. (value: ${currentValue})  (E: 38cf29c5f624a40b4b56502c2ec39d22)`); }
+            } else {
+                // if not exist, create it
+                targetObj[piece] = {};
+            }
+
+            // update targetObj ref
+            targetObj = targetObj[piece];
+        });
+
+        // reached target depth, so finally set the value
+        targetObj[key] = value;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}

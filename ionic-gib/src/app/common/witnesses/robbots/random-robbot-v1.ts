@@ -6,8 +6,8 @@ import { RobbotBase_V1 } from './robbot-base-v1';
 // import { getFnAlert } from '../../helper'; // refactoring to not use index
 import { RobbotData_V1, RobbotRel8ns_V1 } from '../../types/robbot';
 import { getFnAlert } from '../../helper/prompt-functions';
-import { FormItemInfo } from 'src/app/ibgib-forms/types/form-items';
-import { DynamicFormFactoryBase } from 'src/app/ibgib-forms/bases/dynamic-form-factory-base';
+import { FormItemInfo, DynamicForm } from '../../../ibgib-forms/types/form-items';
+import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -49,6 +49,7 @@ export interface RandomRobbotRel8ns_V1 extends RobbotRel8ns_V1 {
  *
  */
 export class RandomRobbot_V1 extends RobbotBase_V1 {
+    protected lc: string = `${super.lc}[${RandomRobbot_V1.name}]`;
 
     /**
      *
@@ -136,45 +137,62 @@ export class RandomRobbot_V1 extends RobbotBase_V1 {
  */
 export class RandomRobbot_V1_Factory
     extends DynamicFormFactoryBase<RandomRobbot_V1> {
+    protected lc: string = `[${RandomRobbot_V1_Factory.name}]`;
 
     getInjectionName(): string { return RandomRobbot_V1.name; }
 
-    getFormInfos({ model }: { model: RandomRobbot_V1; }): Promise<FormItemInfo[]> {
+    witnessToForm({ witness }: { witness: RandomRobbot_V1; }): Promise<DynamicForm> {
         throw new Error('Method not implemented.');
     }
 
-    async loadFromFormInfos({ formInfos }: { formInfos: FormItemInfo[]; }): Promise<RandomRobbot_V1> {
+    async formToWitness({ form }: { form: DynamicForm; }): Promise<RandomRobbot_V1> {
         let robbot = new RandomRobbot_V1(null, null);
+
+        // assign properties from form to robbot
+        for (let i = 0; i < form.children.length; i++) {
+            const formItem = form.children[i];
+            let path: string = '';
+            if (!formItem.children) {
+                // it's a property
+                await this.setDataProperty({data: robbot.data, contextPath: path, formItem});
+            } else if (formItem.children.length > 0) {
+
+            } else {
+                throw new Error(`invalid formItem. children is truthy but with a length of 0. children should either be falsy or have at least one child. (E: 4e9043ab822ef7ee7ed83c4d68629822)`);
+            }
+
+            robbot.data[formItem.name]
+        }
+
         return robbot;
     }
 
-    // protected lc: string = `[${WitnessBase_V1_Factory.name}]`;
+    async setDataProperty({
+        data,
+        contextPath,
+        formItem,
+        pathDelimiter,
+    }: {
+        data: any,
+        contextPath: string,
+        formItem: FormItemInfo;
+        pathDelimiter?: string,
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.setDataProperty.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            if (contextPath) {
+                // we're updating somewhere within the data object.
 
-    // abstract getFormInfos({witness}: {witness: TWitness}): Promise<FormItemInfo[]>;
-    // {
-    //     const lc = `${this.lc}[${this.getFormInfos.name}]`;
-    //     try {
-    //         if (logalot) { console.log(`${lc} starting...`); }
-    //         return [];
-    //     } catch (error) {
-    //         console.error(`${lc} ${error.message}`);
-    //         throw error;
-    //     } finally {
-    //         if (logalot) { console.log(`${lc} complete.`); }
-    //     }
-    // }
+            } else {
+                // directly on the data object.
+            }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
 
-    // abstract loadFromFormInfos({formInfos}: {formInfos: FormItemInfo[]}): Promise<TWitness>
-    // {
-    //     const lc = `${this.lc}[${this.loadFromFormInfos.name}]`;
-    //     try {
-    //         if (logalot) { console.log(`${lc} starting...`); }
-    //         throw new Error()
-    //     } catch (error) {
-    //         console.error(`${lc} ${error.message}`);
-    //         throw error;
-    //     } finally {
-    //         if (logalot) { console.log(`${lc} complete.`); }
-    //     }
-    // }
 }
