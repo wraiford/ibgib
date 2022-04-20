@@ -223,7 +223,7 @@ export function patchObject({
     value: any,
     path: string,
     pathDelimiter?: string,
-    logalot?: boolean,
+    logalot?: number | boolean,
 }): void {
     const lc = `[${patchObject.name}]`;
     try {

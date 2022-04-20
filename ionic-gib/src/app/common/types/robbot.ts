@@ -110,12 +110,12 @@ export interface RobbotData_V1 extends WitnessData_V1 {
      */
     outputMode?: RobbotOutputMode;
 
-    /**
-     * If true, rel8s output context depending on {@link outputMode} to the latest
-     * tag(s) whose tjpAddr(s) are given in {@link RobbotRel8ns_V1}
-     * {@link c.ROBBOT_TAG_TJP_ADDRS_REL8N_NAME}.
-     */
-    tagOutput?: boolean;
+    // /**
+    //  * If true, rel8s output context depending on {@link outputMode} to the latest
+    //  * tag(s) whose tjpAddr(s) are given in {@link RobbotRel8ns_V1}
+    //  * {@link c.ROBBOT_TAG_TJP_ADDRS_REL8N_NAME}.
+    //  */
+    // tagOutput?: boolean;
 
 }
 
