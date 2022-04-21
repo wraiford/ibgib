@@ -1,6 +1,7 @@
 import { IbGib_V1 } from "ts-gib/dist/V1";
 
 import * as c from '../constants';
+import { getRegExp } from "../helper/utils";
 import { WitnessFormBuilder } from "../helper/witness";
 import { TjpIbGibAddr } from "./ibgib";
 import { WitnessData_V1, WitnessRel8ns_V1 } from "./witness";
@@ -163,13 +164,18 @@ export interface RobbotIbGib_V1
 
 export class RobbotFormBuilder extends WitnessFormBuilder {
 
+    constructor() {
+        super();
+        this.what = 'robbot';
+    }
+
     outputMode({
         of,
         required,
     }: {
         of: string,
         required?: boolean,
-    }): WitnessFormBuilder {
+    }): RobbotFormBuilder {
         this.items.push({
           // witness.data.outputMode
           name: "outputMode",
@@ -187,4 +193,47 @@ export class RobbotFormBuilder extends WitnessFormBuilder {
         });
         return this;
     }
+
+    outputPrefix({
+        of,
+        required,
+    }: {
+        of: string,
+        required?: boolean,
+    }): RobbotFormBuilder {
+        this.items.push({
+            // witness.data.outputPrefix
+            name: "outputPrefix",
+            description: `Technical setting that sets a prefix for all text output of the robbot.`,
+            label: "Output Prefix",
+            regexp: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}),
+            regexpSource: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}).source,
+            dataType: 'textarea',
+            value: of,
+            required,
+        });
+        return this;
+    }
+
+    outputSuffix({
+        of,
+        required,
+    }: {
+        of: string,
+        required?: boolean,
+    }): RobbotFormBuilder {
+        this.items.push({
+            // witness.data.outputSuffix
+            name: "outputSuffix",
+            description: `Technical setting that sets a suffix for all text output of the ${this.what}. (like a signature)`,
+            label: "Output Suffix",
+            regexp: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}),
+            regexpSource: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}).source,
+            dataType: 'textarea',
+            value: of,
+            required,
+        });
+        return this;
+    }
+
 }

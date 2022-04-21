@@ -10,38 +10,19 @@ import { FormItemInfo, DynamicForm } from '../../../ibgib-forms/types/form-items
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
 import { getRegExp, patchObject } from '../../helper/utils';
 import { WitnessFormBuilder } from '../../helper/witness';
+import { Injectable } from '@angular/core';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 export const DEFAULT_UUID_RANDOM_ROBBOT = undefined;
 export const DEFAULT_NAME_RANDOM_ROBBOT = 'Randie';
-export const DEFAULT_DESCRIPTION_RANDOM_ROBBOT = 'Randie';
+export const DEFAULT_DESCRIPTION_RANDOM_ROBBOT = 'Randie spouts out a random ibgib that he is aware of.';
 
 
 export interface RandomRobbotData_V1 extends RobbotData_V1 {
 
 }
 
-/**
- * Used in bootstrapping.
- *
- * If you change this, please bumpt the version
- *
- * (but of course won't be the end of the world when this doesn't happen).
- */
-const DEFAULT_RANDOM_ROBBOT_DATA_V1: RandomRobbotData_V1 = {
-    version: '5',
-    uuid: DEFAULT_UUID_RANDOM_ROBBOT,
-    name: DEFAULT_NAME_RANDOM_ROBBOT,
-    description: DEFAULT_DESCRIPTION_RANDOM_ROBBOT,
-
-    // tagOutput: false,
-
-    persistOptsAndResultIbGibs: false,
-    allowPrimitiveArgs: true,
-    catchAllErrors: true,
-    trace: false,
-}
 
 export interface RandomRobbotRel8ns_V1 extends RobbotRel8ns_V1 {
 
@@ -78,8 +59,6 @@ export class RandomRobbot_V1 extends RobbotBase_V1 {
         try {
             if (logalot) { console.log(`${lc} starting...`); }
             if (!this.data) { this.data = h.clone(DEFAULT_RANDOM_ROBBOT_DATA_V1); }
-
-            // this.ib = getSpaceIb({space: this, classname: IonicSpace_V1.name});
         } catch (error) {
             console.error(`${lc} ${error.message}`);
         } finally {
@@ -128,14 +107,33 @@ export class RandomRobbot_V1 extends RobbotBase_V1 {
 }
 
 /**
- * The idea is that any witness can be injected via this factory provider.
+ * Default data values for a random robbot.
  *
- * So when you create a witness that you want to be able to instantiate via
- * just metadata, you also provide an accompanying factory that knows
- * how to map from a
- *   * witness -> form data (to generate dynamic forms)
- *   * form data -> witness (to instantiate witness from data)
+ * If you change this, please bump the version
+ *
+ * (but of course won't be the end of the world when this doesn't happen).
  */
+const DEFAULT_RANDOM_ROBBOT_DATA_V1: RandomRobbotData_V1 = {
+    version: '1',
+    uuid: DEFAULT_UUID_RANDOM_ROBBOT,
+    name: DEFAULT_NAME_RANDOM_ROBBOT,
+    description: DEFAULT_DESCRIPTION_RANDOM_ROBBOT,
+    classname: RandomRobbot_V1.name,
+
+    // tagOutput: false,
+
+    persistOptsAndResultIbGibs: false,
+    allowPrimitiveArgs: true,
+    catchAllErrors: true,
+    trace: false,
+}
+
+/**
+ * factory for random robbot.
+ *
+ * @see {@link DynamicFormFactoryBase}
+ */
+@Injectable({providedIn: 'root'})
 export class RandomRobbot_V1_Factory
     extends DynamicFormFactoryBase<RandomRobbot_V1> {
     protected lc: string = `[${RandomRobbot_V1_Factory.name}]`;
@@ -147,18 +145,22 @@ export class RandomRobbot_V1_Factory
         try {
             if (logalot) { console.log(`${lc} starting...`); }
             let {data} = witness;
-            let children = RobbotFormBuilder.forA({what: 'robbot'}).with()
-                .name({
-                    of: data.name,
-                    required: true,
-                })
+            // We do the RobbotFormBuilder specific functions first, because of
+            // type inference in TS
+            let form = new RobbotFormBuilder()
+                .with<RobbotFormBuilder>()
+                .outputMode({of: data.outputMode})
+                .outputPrefix({of: data.outputPrefix})
+                .outputSuffix({of: data.outputSuffix})
+                .and<WitnessFormBuilder>()
+                .name({of: data.name, required: true})
                 .description({of: data.description})
-                .classname({of: RandomRobbot_V1.name})
-                .outputChildren();
-            let form: DynamicForm = {
-                name: 'form',
-                children,
-            };
+                .classname({of: data.classname})
+                .commonWitnessFields({data})
+                .outputForm({
+                    formName: 'form',
+                    label: 'Random Robbot',
+                });
             return Promise.resolve(form);
         } catch (error) {
             console.error(`${lc} ${error.message}`);

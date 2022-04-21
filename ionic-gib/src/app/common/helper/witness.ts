@@ -1,6 +1,7 @@
 import * as c from '../constants';
 import { DynamicForm, FormItemInfo } from "../../ibgib-forms/types/form-items";
 import { getRegExp } from "./utils";
+import { WitnessData_V1 } from '../types/witness';
 
 /**
  * Fluent-style builder helper class.
@@ -16,7 +17,7 @@ export class WitnessFormBuilder {
     /**
      * Start fluent calls with this.
      */
-    static forA({
+    forA({
         what,
     }: {
         /**
@@ -28,9 +29,8 @@ export class WitnessFormBuilder {
          */
         what: string,
     }): WitnessFormBuilder {
-        const builder = new WitnessFormBuilder();
-        builder.what = what || 'thingy';
-        return builder;
+        this.what = what || 'thingy';
+        return this;
     }
 
     /**
@@ -41,11 +41,12 @@ export class WitnessFormBuilder {
      *
      * @returns this
      */
-    with(): WitnessFormBuilder { return this; }
+    with<T extends WitnessFormBuilder>(): T { return <T><any>this; }
+    and<T extends WitnessFormBuilder>(): T { return <T><any>this; }
 
     name({
         of: value,
-        required,
+        required = true,
     }: {
         of: string,
         required?: boolean,
@@ -113,7 +114,7 @@ export class WitnessFormBuilder {
         of,
         required = true,
     }: {
-        of: string,
+        of: boolean,
         required?: boolean,
     }): WitnessFormBuilder {
         this.items.push({
@@ -123,7 +124,7 @@ export class WitnessFormBuilder {
             label: "Allow Primitive Args",
             required: true,
             dataType: 'toggle',
-            value: of ?? false,
+            value: of ?? true,
             readonly: true,
         });
         return this;
@@ -133,7 +134,7 @@ export class WitnessFormBuilder {
         of,
         required = true,
     }: {
-        of: string,
+        of: boolean,
         required?: boolean,
     }): WitnessFormBuilder {
         this.items.push({
@@ -143,122 +144,130 @@ export class WitnessFormBuilder {
             label: "Catch All Errors",
             required: true,
             dataType: 'toggle',
-            value: of ?? false,
+            value: of ?? true,
             readonly: true,
         });
         return this;
     }
 
 
-    foo({
+    persistOptsAndResultIbGibs({
+        of,
+        required,
+    }: {
+        of: boolean,
+        required?: boolean,
+    }): WitnessFormBuilder {
+        this.items.push({
+            // witness.data.persistOptsAndResultIbGibs
+            name: "persistOptsAndResultIbGibs",
+            description: `Technical setting on if the ${this.what} maintains an audit trail of all of its inputs/outputs.`,
+            label: "Persist Opts and Result IbGibs",
+            dataType: 'toggle',
+            value: of ?? false,
+            readonly: true,
+            required,
+        });
+        return this;
+    }
+
+    trace({
+        of,
+        required,
+    }: {
+        of: boolean,
+        required?: boolean,
+    }): WitnessFormBuilder {
+        this.items.push({
+            // witness.data.trace
+            name: "trace",
+            description: `Technical setting on if the ${this.what}'s activity should be traced (logged to the console).`,
+            label: "Trace",
+            dataType: 'toggle',
+            value: of ?? false,
+            readonly: true,
+            required,
+        });
+        return this;
+    }
+
+    uuid({
+        of,
+        label,
+        required,
+    }: {
+        of: string,
+        label?: string,
+        required?: boolean,
+    }): WitnessFormBuilder {
+        this.items.push({
+            // witness.data.uuid
+            name: "uuid",
+            description: `Unique(ish) id of the ${this.what}.`,
+            label: label ?? "ID",
+            dataType: 'text',
+            value: of,
+            readonly: true,
+            required,
+        });
+        return this;
+    }
+
+    version({
         of,
         required,
     }: {
         of: string,
         required?: boolean,
     }): WitnessFormBuilder {
-        this.items.push(
-
-        );
+        this.items.push({
+            // witness.data.version
+            name: "version",
+            description: `Technical setting indicating the version of the ${this.what}.`,
+            label: "Version",
+            dataType: 'text',
+            value: of,
+            readonly: true,
+            required,
+        });
         return this;
     }
 
-    foo({
-        of,
-        required,
+    /**
+     * Includes common witness fields.
+     *
+     * All common fields default to `true`, so set any you want to skip to
+     * `false`.
+     *
+     * @returns `this` for fluent builder
+     */
+    commonWitnessFields({
+        data,
+        allowPrimitiveArgs = true,
+        catchAllErrors = true,
+        persistOptsAndResultIbGibs = true,
+        trace = true,
+        version = true,
     }: {
-        of: string,
-        required?: boolean,
+        data: WitnessData_V1,
+        allowPrimitiveArgs?: boolean,
+        catchAllErrors?: boolean,
+        persistOptsAndResultIbGibs?: boolean,
+        trace?: boolean,
+        version?: boolean,
     }): WitnessFormBuilder {
-        this.items.push(
-
-        );
+        if (allowPrimitiveArgs) { this.allowPrimitiveArgs({of: data.allowPrimitiveArgs}); }
+        if (catchAllErrors) { this.catchAllErrors({of: data.catchAllErrors}); }
+        if (persistOptsAndResultIbGibs) { this.persistOptsAndResultIbGibs({of: data.persistOptsAndResultIbGibs}); }
+        if (trace) { this.trace({of: data.trace}); }
+        if (version) { this.version({of: data.version}); }
         return this;
     }
-
-    foo({
-        of,
-        required,
-    }: {
-        of: string,
-        required?: boolean,
-    }): WitnessFormBuilder {
-        this.items.push(
-
-        );
-        return this;
-    }
-
-    // [
-    //   ,
-    //   {
-    //       // witness.data.outputPrefix
-    //       name: "outputPrefix",
-    //       description: `Technical setting that sets a prefix for all text output of the robbot.`,
-    //       label: "Output Prefix",
-    //       regexp: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}),
-    //       regexpSource: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}).source,
-    //       dataType: 'textarea',
-    //       value: data.outputPrefix,
-    //   },
-    //   {
-    //       // witness.data.outputSuffix
-    //       name: "outputSuffix",
-    //       description: `Technical setting that sets a suffix for all text output of the robbot. (like a signature)`,
-    //       label: "Output Suffix",
-    //       regexp: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}),
-    //       regexpSource: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}).source,
-    //       dataType: 'textarea',
-    //       value: data.outputSuffix,
-    //   },
-    //   {
-    //       // witness.data.persistOptsAndResultIbGibs
-    //       name: "persistOptsAndResultIbGibs",
-    //       description: "Technical setting on if the robbot maintains an audit trail of all of its inputs/outputs.",
-    //       label: "Persist Opts and Result IbGibs",
-    //       dataType: 'toggle',
-    //       value: data.persistOptsAndResultIbGibs ?? false,
-    //       readonly: true,
-    //   },
-    //   {
-    //       // witness.data.trace
-    //       name: "trace",
-    //       description: "Technical setting on if the robbot's activity should be traced (logged to the console).",
-    //       label: "Trace",
-    //       dataType: 'toggle',
-    //       value: data.trace ?? false,
-    //       readonly: true,
-    //   },
-    //   {
-    //       // witness.data.uuid
-    //       name: "uuid",
-    //       description: "Unique(ish) id of the robbot.",
-    //       label: "UUID",
-    //       dataType: 'text',
-    //       value: data.uuid,
-    //       readonly: true,
-    //   },
-    //   {
-    //       // witness.data.version
-    //       name: "version",
-    //       description: "Technical setting indicating the version of the robbot.",
-    //       label: "Version",
-    //       dataType: 'text',
-    //       value: data.version,
-    //       readonly: true,
-    //   },
-    // ]
-
-
-
-
-
 
     /**
      * To pass in a completely customized item info.
      *
-     *
-     * @returns this for fluent builder
+     * @returns `this` for fluent builder
      */
     customItem(item: FormItemInfo): WitnessFormBuilder {
         this.items.push(item);

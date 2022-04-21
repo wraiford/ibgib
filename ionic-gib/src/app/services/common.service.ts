@@ -1,5 +1,5 @@
 import { ModalController, Platform, } from '@ionic/angular';
-import { Injectable, Inject } from '@angular/core';
+import { Injectable, Inject, } from '@angular/core';
 
 import { IbgibsService } from './ibgibs.service';
 import { Gib, IbGibAddr } from 'ts-gib';
@@ -67,9 +67,7 @@ export interface IbgibNav {
  * Some things do not go here that is specific to the descendant class,
  * e.g., ChangeDetectorRef.
  */
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({providedIn: 'root'})
 export class CommonService {
 
   constructor(

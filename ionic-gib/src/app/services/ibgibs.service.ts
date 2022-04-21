@@ -146,9 +146,7 @@ interface TempCacheEntry {
  * perspective, the latest is mapped. But really, apps can't view slices of ibGib graphs in all sorts
  * of interesting ways and still be productive & beneficial to the ecosystem as a whole.
  */
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({providedIn: 'root'})
 export class IbgibsService {
 
   // we won't get an object back, only a DTO ibGib essentially
