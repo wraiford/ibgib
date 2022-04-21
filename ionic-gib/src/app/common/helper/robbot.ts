@@ -32,7 +32,8 @@ export function validateCommonRobbotData({
         if (logalot) { console.log(`${lc} starting...`); }
         if (!robbotData) { throw new Error(`robbotData required (E: 1ac78ffae5354b67acb64a34cfe23c2f)`); }
         const errors: string[] = [];
-        const { name, uuid, outputMode, outputPrefix, outputSuffix, tagOutput, classname } = robbotData;
+        const { name, uuid, outputMode, outputPrefix, outputSuffix, classname } =
+            robbotData;
 
         if (name) {
             if (!name.match(ROBBOT_NAME_REGEXP)) {
@@ -68,12 +69,12 @@ export function validateCommonRobbotData({
             }
         }
 
-        if (tagOutput !== undefined) {
-            const tagOutputType = typeof tagOutput;
-            if (tagOutputType !== 'boolean') {
-                errors.push(`invalid tagOutputType (${tagOutputType}). should be boolean if set.`);
-            }
-        }
+        // if (tagOutput !== undefined) {
+        //     const tagOutputType = typeof tagOutput;
+        //     if (tagOutputType !== 'boolean') {
+        //         errors.push(`invalid tagOutputType (${tagOutputType}). should be boolean if set.`);
+        //     }
+        // }
 
         if (classname) {
             if (!classname.match(ROBBOT_NAME_REGEXP)) {

@@ -1,6 +1,7 @@
 import { IbGib_V1 } from "ts-gib/dist/V1";
 
 import * as c from '../constants';
+import { WitnessFormBuilder } from "../helper/witness";
 import { TjpIbGibAddr } from "./ibgib";
 import { WitnessData_V1, WitnessRel8ns_V1 } from "./witness";
 
@@ -158,4 +159,32 @@ export interface RobbotRel8ns_V1 extends WitnessRel8ns_V1 {
 export interface RobbotIbGib_V1
     extends IbGib_V1<RobbotData_V1, RobbotRel8ns_V1> {
 
+}
+
+export class RobbotFormBuilder extends WitnessFormBuilder {
+
+    outputMode({
+        of,
+        required,
+    }: {
+        of: string,
+        required?: boolean,
+    }): WitnessFormBuilder {
+        this.items.push({
+          // witness.data.outputMode
+          name: "outputMode",
+          description: `Technical setting which proscribes how the robbot outputs its beliefs.`,
+          label: "Output Mode",
+          regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
+          regexpSource: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}).source,
+          dataType: 'checkbox',
+          selectOptions: [
+              RobbotOutputMode.context,
+              RobbotOutputMode.subcontext,
+          ],
+          value: of,
+          required,
+        });
+        return this;
+    }
 }

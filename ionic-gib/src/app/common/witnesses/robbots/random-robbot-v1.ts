@@ -4,11 +4,12 @@ import { IbGib_V1, ROOT, } from 'ts-gib/dist/V1';
 import * as c from '../../constants';
 import { RobbotBase_V1 } from './robbot-base-v1';
 // import { getFnAlert } from '../../helper'; // refactoring to not use index
-import { RobbotData_V1, RobbotOutputMode, RobbotRel8ns_V1 } from '../../types/robbot';
+import { RobbotData_V1, RobbotFormBuilder, RobbotOutputMode, RobbotRel8ns_V1 } from '../../types/robbot';
 import { getFnAlert } from '../../helper/prompt-functions';
 import { FormItemInfo, DynamicForm } from '../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
 import { getRegExp, patchObject } from '../../helper/utils';
+import { WitnessFormBuilder } from '../../helper/witness';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -34,7 +35,7 @@ const DEFAULT_RANDOM_ROBBOT_DATA_V1: RandomRobbotData_V1 = {
     name: DEFAULT_NAME_RANDOM_ROBBOT,
     description: DEFAULT_DESCRIPTION_RANDOM_ROBBOT,
 
-    tagOutput: false,
+    // tagOutput: false,
 
     persistOptsAndResultIbGibs: false,
     allowPrimitiveArgs: true,
@@ -146,135 +147,17 @@ export class RandomRobbot_V1_Factory
         try {
             if (logalot) { console.log(`${lc} starting...`); }
             let {data} = witness;
+            let children = RobbotFormBuilder.forA({what: 'robbot'}).with()
+                .name({
+                    of: data.name,
+                    required: true,
+                })
+                .description({of: data.description})
+                .classname({of: RandomRobbot_V1.name})
+                .outputChildren();
             let form: DynamicForm = {
                 name: 'form',
-                children: [
-                    {
-                        // witness.data.allowPrimitiveArgs
-                        name: "allowPrimitiveArgs",
-                        description: "Technical setting on if the robbot accepts primitive incoming ibgibs",
-                        label: "Allow Primitive Args",
-                        required: true,
-                        dataType: 'toggle',
-                        value: data.allowPrimitiveArgs ?? false,
-                        readonly: true,
-                    },
-                    {
-                        // witness.data.catchAllErrors
-                        name: "catchAllErrors",
-                        description: "Technical setting on what the robbot does when it encounters an internal error.",
-                        label: "Catch All Errors",
-                        required: true,
-                        dataType: 'toggle',
-                        value: data.catchAllErrors ?? false,
-                        readonly: true,
-                    },
-                    {
-                        // witness.data.classname
-                        name: "classname",
-                        description: "This is the robbot's class in computer code.",
-                        label: "Classname",
-                        regexp: getRegExp({min: 1, max: 128, noSpaces: true}),
-                        regexpSource: getRegExp({min: 1, max: 128, noSpaces: true}).source,
-                        required: true,
-                        dataType: 'text',
-                        value: RandomRobbot_V1.name,
-                        readonly: true,
-                    },
-                    {
-                        // witness.data.name
-                        name: "name",
-                        description: "A robbot's name. Doesn't have to be unique, no spaces, up to 32 alphanumerics/underscores in length.",
-                        label: "Name",
-                        placeholder: `e.g. "bob_the_cool_robbot"`,
-                        regexp: getRegExp({min: 1, max: 32, noSpaces: true}),
-                        regexpSource: getRegExp({min: 1, max: 32, noSpaces: true}).source,
-                        required: true,
-                        dataType: 'text',
-                        value: data.name,
-                    },
-                    {
-                        // witness.data.description
-                        name: "description",
-                        description: `Description/notes for this robbot. Only letters, underscores and ${c.SAFE_SPECIAL_CHARS}`,
-                        label: "Description",
-                        placeholder: `Describe these robbot settings here...`,
-                        regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
-                        regexpSource: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}).source,
-                        dataType: 'textarea',
-                        value: data.description,
-                    },
-                    {
-                        // witness.data.outputMode
-                        name: "outputMode",
-                        description: `Technical setting which proscribes how the robbot outputs its beliefs.`,
-                        label: "Output Mode",
-                        regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
-                        regexpSource: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}).source,
-                        dataType: 'checkbox',
-                        selectOptions: [
-                            RobbotOutputMode.context,
-                            RobbotOutputMode.subcontext,
-                        ],
-                        value: data.outputMode,
-                    },
-                    {
-                        // witness.data.outputPrefix
-                        name: "outputPrefix",
-                        description: `Technical setting that sets a prefix for all text output of the robbot.`,
-                        label: "Output Prefix",
-                        regexp: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}),
-                        regexpSource: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}).source,
-                        dataType: 'textarea',
-                        value: data.outputPrefix,
-                    },
-                    {
-                        // witness.data.outputSuffix
-                        name: "outputSuffix",
-                        description: `Technical setting that sets a suffix for all text output of the robbot. (like a signature)`,
-                        label: "Output Suffix",
-                        regexp: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}),
-                        regexpSource: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}).source,
-                        dataType: 'textarea',
-                        value: data.outputSuffix,
-                    },
-                    {
-                        // witness.data.persistOptsAndResultIbGibs
-                        name: "persistOptsAndResultIbGibs",
-                        description: "Technical setting on if the robbot maintains an audit trail of all of its inputs/outputs.",
-                        label: "Persist Opts and Result IbGibs",
-                        dataType: 'toggle',
-                        value: data.persistOptsAndResultIbGibs ?? false,
-                        readonly: true,
-                    },
-                    {
-                        // witness.data.trace
-                        name: "trace",
-                        description: "Technical setting on if the robbot's activity should be traced (logged to the console).",
-                        label: "Trace",
-                        dataType: 'toggle',
-                        value: data.trace ?? false,
-                        readonly: true,
-                    },
-                    {
-                        // witness.data.uuid
-                        name: "uuid",
-                        description: "Unique(ish) id of the robbot.",
-                        label: "UUID",
-                        dataType: 'text',
-                        value: data.uuid,
-                        readonly: true,
-                    },
-                    {
-                        // witness.data.version
-                        name: "version",
-                        description: "Technical setting indicating the version of the robbot.",
-                        label: "Version",
-                        dataType: 'text',
-                        value: data.version,
-                        readonly: true,
-                    },
-                ],
+                children,
             };
             return Promise.resolve(form);
         } catch (error) {
