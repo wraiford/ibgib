@@ -139,10 +139,7 @@ export const RobbotOutputMode = {
 export const VALID_ROBBOT_OUTPUT_MODES = Object.values(RobbotOutputMode);
 
 export interface RobbotRel8ns_V1 extends WitnessRel8ns_V1 {
-    /**
-     * These addresses are
-     */
-    [c.ROBBOT_TAG_TJP_ADDRS_REL8N_NAME]: TjpIbGibAddr[];
+    [c.ROBBOT_TAG_TJP_ADDRS_REL8N_NAME]?: TjpIbGibAddr[];
 }
 
 /**

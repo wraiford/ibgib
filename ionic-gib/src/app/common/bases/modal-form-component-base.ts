@@ -7,6 +7,7 @@ import { FormItemInfo } from '../../ibgib-forms/types/form-items';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
+export type ModalContext = 'create' | 'edit';
 
 /**
  * Prompts the user for information gathering and generates a new ibGib.
@@ -17,6 +18,8 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
 export abstract class ModalFormComponentBase<TDataOut> implements OnInit, OnDestroy {
 
   protected lc: string = `[${ModalFormComponentBase .name}]`;
+
+  protected modalContext: ModalContext = 'create';
 
   fields: { [name: string]: FormItemInfo } = {};
 

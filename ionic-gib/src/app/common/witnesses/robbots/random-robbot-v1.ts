@@ -1,16 +1,19 @@
+import { Injectable } from '@angular/core';
+
 import * as h from 'ts-gib/dist/helper';
-import { IbGib_V1, ROOT, } from 'ts-gib/dist/V1';
+import { IbGib_V1, ROOT, Factory_V1 as factory, Rel8n } from 'ts-gib/dist/V1';
 
 import * as c from '../../constants';
 import { RobbotBase_V1 } from './robbot-base-v1';
 // import { getFnAlert } from '../../helper'; // refactoring to not use index
-import { RobbotData_V1, RobbotFormBuilder, RobbotOutputMode, RobbotRel8ns_V1 } from '../../types/robbot';
+import { RobbotData_V1, RobbotFormBuilder, RobbotIbGib_V1, RobbotOutputMode, RobbotRel8ns_V1 } from '../../types/robbot';
 import { getFnAlert } from '../../helper/prompt-functions';
 import { FormItemInfo, DynamicForm } from '../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
 import { getRegExp, patchObject } from '../../helper/utils';
 import { WitnessFormBuilder } from '../../helper/witness';
-import { Injectable } from '@angular/core';
+import { getRobbotIb } from '../../helper/robbot';
+import { TransformResult } from 'ts-gib';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -59,6 +62,7 @@ export class RandomRobbot_V1 extends RobbotBase_V1 {
         try {
             if (logalot) { console.log(`${lc} starting...`); }
             if (!this.data) { this.data = h.clone(DEFAULT_RANDOM_ROBBOT_DATA_V1); }
+            if (!this.rel8ns) { this.rel8ns = h.clone(DEFAULT_RANDOM_ROBBOT_REL8NS_V1); }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
         } finally {
@@ -127,6 +131,9 @@ const DEFAULT_RANDOM_ROBBOT_DATA_V1: RandomRobbotData_V1 = {
     catchAllErrors: true,
     trace: false,
 }
+const DEFAULT_RANDOM_ROBBOT_REL8NS_V1: RandomRobbotRel8ns_V1 = {
+    ancestor: ['robbot^gib'],
+}
 
 /**
  * factory for random robbot.
@@ -136,9 +143,45 @@ const DEFAULT_RANDOM_ROBBOT_DATA_V1: RandomRobbotData_V1 = {
 @Injectable({providedIn: 'root'})
 export class RandomRobbot_V1_Factory
     extends DynamicFormFactoryBase<RandomRobbot_V1> {
+
     protected lc: string = `[${RandomRobbot_V1_Factory.name}]`;
 
     getInjectionName(): string { return RandomRobbot_V1.name; }
+
+    async newUp(): Promise<TransformResult<RandomRobbot_V1>> {
+        const lc = `${this.lc}[${this.newUp.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            let robbotData: RandomRobbotData_V1 = h.clone(DEFAULT_RANDOM_ROBBOT_DATA_V1);
+            let {classname} = robbotData;
+
+            const ib = getRobbotIb({robbotData, classname});
+
+            const resRobbot = <TransformResult<RobbotIbGib_V1>>await factory.firstGen({
+                ib,
+                parentIbGib: factory.primitive({ib: `robbot ${classname}`}),
+                data: robbotData,
+                dna: true,
+                linkedRel8ns: [Rel8n.ancestor, Rel8n.past],
+                nCounter: true,
+                tjp: { uuid: true, timestamp: true },
+            });
+
+            // replace the newIbGib which is just ib,gib,data,rel8ns with loaded
+            // witness class
+            const robbotDto = resRobbot.newIbGib;
+            let robbotIbGib = new RandomRobbot_V1(null, null);
+            robbotIbGib.loadDto(robbotDto);
+            resRobbot.newIbGib = robbotIbGib;
+
+            return <TransformResult<RandomRobbot_V1>>resRobbot;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
 
     witnessToForm({ witness }: { witness: RandomRobbot_V1; }): Promise<DynamicForm> {
         const lc = `${this.lc}[${this.witnessToForm.name}]`;

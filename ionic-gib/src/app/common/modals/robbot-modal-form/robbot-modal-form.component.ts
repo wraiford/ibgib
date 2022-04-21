@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { IonContent, ModalController } from '@ionic/angular';
 
 import * as h from 'ts-gib/dist/helper';
@@ -12,9 +12,12 @@ import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 import { FormItemInfo } from '../../../ibgib-forms/types/form-items';
 import { RobbotIbGib_V1 } from '../../types/robbot';
 import { CommonService } from '../../../services/common.service';
-import { RandomRobbotData_V1, RandomRobbot_V1 } from '../../witnesses/robbots/random-robbot-v1';
+import { RandomRobbotData_V1, RandomRobbot_V1, RandomRobbot_V1_Factory } from '../../witnesses/robbots/random-robbot-v1';
 import { getRobbotIb } from '../../helper/robbot';
 import { getRegExp } from '../../helper/utils';
+import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
+import { IbGibRobbotAny, RobbotBase_V1 } from '../../witnesses/robbots/robbot-base-v1';
+import { DynamicFormComponent } from 'src/app/ibgib-forms/dynamic-form/dynamic-form.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -33,7 +36,8 @@ export interface RobbotModalResult {
   styleUrls: ['./robbot-modal-form.component.scss'],
 })
 export class RobbotModalFormComponent
-  extends ModalFormComponentBase<TransformResult<RobbotIbGib_V1>> {
+  extends ModalFormComponentBase<TransformResult<RobbotIbGib_V1>>
+  implements AfterViewInit{
 
   protected lc: string = `[${RobbotModalFormComponent.name}]`;
 
@@ -64,39 +68,27 @@ export class RobbotModalFormComponent
   }
 
   @Input()
-  formItems: FormItemInfo[] = [
-    {
-      name: "name",
-      description: "A robbot's name. Doesn't have to be unique, no spaces, up to 32 alphanumerics/underscores in length.",
-      label: "Name",
-      placeholder: `e.g. "bob_the_cool_robbot"`,
-      regexp: getRegExp({min: 1, max: 32, noSpaces: true}),
-      regexpSource: getRegExp({min: 1, max: 32, noSpaces: true}).source,
-      required: true,
-      dataType: 'text',
-      value: 'my robbot name',
-    },
-    {
-      name: "description",
-      description: `Description/notes for this robbot. Only letters, underscores and ${c.SAFE_SPECIAL_CHARS}`,
-      label: "Description",
-      placeholder: `Describe these robbot settings here...`,
-      regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
-      regexpSource: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}).source,
-      dataType: 'textarea',
-      value: 'my robbot description is great',
-    },
-    {
+  robbotProviderNames: string[] = [];
+
+  selectTypeItem: FormItemInfo = {
       name: "type",
-      description: `Description/notes for this robbot. Only letters, underscores and ${c.SAFE_SPECIAL_CHARS}`,
-      label: "Description",
-      placeholder: `Describe these robbot settings here...`,
+      description: `Type of robbot`,
+      label: "Type",
       regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
       regexpSource: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}).source,
-      dataType: 'textarea',
-      value: 'my robbot description is great',
-    },
-  ];
+      dataType: 'checkbox',
+      multiple: false,
+    };
+
+  robbotFormItems: FormItemInfo[] = [];
+
+  @Input()
+  formItems: FormItemInfo[] = [
+    this.selectTypeItem,
+  ]
+
+  @Input()
+  subformItems: FormItemInfo[];
 
   @Input()
   name: string;
@@ -126,13 +118,63 @@ export class RobbotModalFormComponent
   @Input()
   ibGib: RobbotIbGib_V1;
 
+  @Input()
+  initializing: boolean;
+
+  @ViewChild('dynamicForm')
+  dynamicForm: DynamicFormComponent;
+
   constructor(
     protected common: CommonService,
+    protected ref: ChangeDetectorRef,
+    private randomRobbotFactory: RandomRobbot_V1_Factory,
   ) {
     super(common);
     const lc = `${this.lc}[ctor]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
+
+      // spin off initialize (can't await in ctor)
+      // this.initialize();
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+  async ngAfterViewInit(): Promise<void> {
+    const lc = `${this.lc}[${this.ngAfterViewInit.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      await this.initialize();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  robbotFactories: DynamicFormFactoryBase<IbGibRobbotAny>[];
+
+  /**
+   * Initializes to default space values.
+   */
+  protected async initialize(): Promise<void> {
+    const lc = `${this.lc}[${this.initialize.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      this.initializing = true;
+
+      this.robbotFactories = [
+        this.randomRobbotFactory,
+      ];
+
+      this.selectTypeItem.selectOptions = [
+        ...this.robbotFactories.map(factory => factory.getInjectionName()),
+      ];
 
       // spin off auto-generated id (done now when creating ibgib via tjp uuid)
       // if (logalot) { console.log(`${lc} spinning off initializing id (I: 8bebe8f77154c39cd55d92d509849d22)`); }
@@ -140,11 +182,10 @@ export class RobbotModalFormComponent
       //   this.id = uuid;
       //   if (logalot) { console.log(`${lc} id set. this.id = ${this.id} (I: e67d18ce32679a629839c80b50cc1f22)`); }
       // });
-
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-      throw error;
     } finally {
+      this.initializing = true;
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
@@ -173,65 +214,6 @@ export class RobbotModalFormComponent
       // await this.modalController.dismiss(resNewIbGib);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-    }
-  }
-
-  async createRobbot_Random(): Promise<TransformResult<RobbotIbGib_V1>> {
-    const lc = `${this.lc}[${this.createRobbot_Random.name}]`;
-    try {
-
-      debugger;
-
-      let robbotData: RandomRobbotData_V1 = {
-        name: this.name,
-        uuid: 'some uuid',
-        // uuid: this.id,
-      };
-
-      const ib = getRobbotIb({robbotData, classname: this.classname});
-
-      const resRobbot = <TransformResult<RobbotIbGib_V1>>await factory.firstGen({
-        ib,
-        parentIbGib: factory.primitive({ib: `robbot ${this.classname}`}),
-        data: robbotData,
-        dna: true,
-        linkedRel8ns: [Rel8n.ancestor, Rel8n.past],
-        nCounter: true,
-        tjp: { uuid: true, timestamp: true },
-      });
-      const robbotDto = resRobbot.newIbGib;
-
-      let robbotIbGib = new RandomRobbot_V1(null, null);
-      // robbotIbGib.loadDto(robbotDto);
-
-      resRobbot.newIbGib = robbotIbGib;
-      return resRobbot;
-
-      // let data: RobbotInfo_EncryptGib = {
-      //   name: this.name,
-      //   description: this.description,
-      //   method: this.method,
-      //   hashAlgorithm: this.hashAlgorithm,
-      //   initialRecursions: this.initialRecursions,
-      //   recursionsPerHash: this.recursionsPerHash,
-      //   salt: this.userSalt,
-      //   saltStrategy: 'prependPerHash',
-      //   encryptedDataDelimiter: ',',
-      // };
-
-      // const resCreate = await factory.firstGen({
-      //   parentIbGib: factory.primitive({ib: 'secret'}),
-      //   ib: `robbot ${this.method} ${this.name}`,
-      //   data,
-      //   dna: false,
-      //   tjp: { uuid: true, timestamp: true },
-      //   nCounter: true,
-      // });
-
-      // return <TransformResult<IbGib_V1<RobbotData_V1>>>resCreate;
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
     }
   }
 
@@ -269,6 +251,26 @@ export class RobbotModalFormComponent
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       debugger;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleItemSelected(item: FormItemInfo): Promise<void> {
+    const lc = `${this.lc}[${this.handleItemSelected.name}]`;
+    try {
+      debugger;
+      if (logalot) { console.log(`${lc} starting...`); }
+      let factories =
+        this.robbotFactories.filter(x => x.getInjectionName() === item.value)
+      let factory = factories[0];
+      let resRobbot = await factory.newUp();
+      let subform = await factory.witnessToForm({witness: resRobbot.newIbGib});
+      this.subformItems = subform.children;
+      setTimeout(() => this.ref.detectChanges());
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

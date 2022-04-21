@@ -8,9 +8,22 @@
   </ion-toolbar>
 </ion-header>
 <ion-content #modalIonContent fullscreen>
-  <ib-dynamic-form
+  <ib-dynamic-form #dynamicForm
     [items]="formItems"
     (validated)="handleValidated($event)"
-    (cancel)="handleCancel()">
+    (cancel)="handleCancel()"
+    (itemSelect)="handleItemSelected($event)">
+  </ib-dynamic-form>
+  <ion-text
+    *ngIf="subformItems?.length > 0">
+    should show sub form yo
+  </ion-text>
+  <ib-dynamic-form #subForm
+    *ngIf="subformItems?.length > 0"
+    [items]="subformItems"
+    (validated)="handleValidatedSubform($event)"
+    (cancel)="handleCancel()"
+    (submit)="handleSubformSubmit()"
+    >
   </ib-dynamic-form>
 </ion-content>

@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, Input, OnInit } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { FormBuilder, FormArray, } from '@angular/forms';
 
 import * as h from 'ts-gib/dist/helper';
@@ -16,8 +16,7 @@ const debugBorder = c.GLOBAL_DEBUG_BORDER || false || true;
   templateUrl: './dynamic-form.component.html',
   styleUrls: ['./dynamic-form.component.scss'],
 })
-export class DynamicFormComponent
-  extends DynamicFormBase
+export class DynamicFormComponent extends DynamicFormBase
   implements AfterViewInit {
 
   protected lc: string = `[${DynamicFormComponent.name}]`;
@@ -48,4 +47,29 @@ export class DynamicFormComponent
     }
   }
 
+  @Output()
+  itemSelect: EventEmitter<FormItemInfo> = new EventEmitter<FormItemInfo>();
+
+  async handleSelectChange(e: any, item: FormItemInfo): Promise<void> {
+    const lc = `${this.lc}[${this.handleSelectChange.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} started...`)};
+      if (!e.detail?.value) { throw new Error(`e.detail.value (item selected) falsy (E: 97fe80e7ae2948b69de3f350584d57d3)`) }
+      let value: any = e.detail.value;
+      item.value = value;
+      debugger;
+      this.itemSelect.emit(item);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  compareStrings(a: string, b: string): boolean {
+    // const lc = `${this.lc}[compareMenuItems]`; // this is not defined when compareRoots is used
+    const lc = `[compareStrings]`;
+    if (logalot) { console.log(`${lc}`); }
+    return a && b ? a.toLowerCase() === b.toLowerCase() : a === b;
+  }
 }

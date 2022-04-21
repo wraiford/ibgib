@@ -3,7 +3,7 @@
   <span>i believe...</span>
 </div>
 
-<div *ngIf="!updating && rootFormGroup?.controls"
+<div *ngIf="!updating && items"
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"
   [style.border-style]="debugBorderStyle"
@@ -11,28 +11,46 @@
 
   <form [formGroup]="rootFormGroup" (ngSubmit)="handleSubmit()">
     <ion-item *ngFor="let item of items">
-      <ion-label position="floating"><strong>{{item.label}}: </strong></ion-label>
+      <ion-label position="stacked"><strong>{{item.label}}: </strong></ion-label>
       <ion-input *ngIf="['text'].includes(item.dataType)"
         [placeholder]="item?.placeholder"
         [value]="item.value"
         [type]="item.dataType"
         (ionChange)="handleTextChanged($event.target.value, item)"
+        [readonly]="item.readonly"
         debounce="1000"
       ></ion-input>
       <ion-textarea *ngIf="['textarea'].includes(item.dataType)"
         [placeholder]="item?.placeholder"
         [value]="item.value"
         (ionChange)="handleTextChanged($event.target.value, item)"
+        [readonly]="item.readonly"
         debounce="1000" spellcheck="true" autoGrow="true"
       ></ion-textarea>
-      <ib-sub-form *ngIf="item.children?.length > 0"
+        <!-- (ionChange)="handleSelectChange($event.target.value, item)" -->
+      <ion-select
+        *ngIf="['checkbox'].includes(item.dataType)"
+        okText="Select"
+        (ionChange)="handleSelectChange($event, item)"
+        [compareWith]="compareStrings"
+        [readonly]="item.readonly"
         >
-      </ib-sub-form>
+        <ion-select-option *ngFor="let option of item.selectOptions"
+          [value]="option">
+          <ion-label>{{ option }}</ion-label>
+        </ion-select-option>
+      </ion-select>
+      <ion-toggle
+        *ngIf="['toggle'].includes(item.dataType)"
+        [value]="item.value"
+        [disabled]="!!item.readonly"
+        >
+      </ion-toggle>
     </ion-item>
-    <ion-button type="submit" expand="full"></ion-button>
+    <ion-button type="submit" expand="full">Submit</ion-button>
   </form>
 
 </div>
 
-<pre>{{items | json}}</pre>
+<!-- <pre>{{items | json}}</pre> -->
 

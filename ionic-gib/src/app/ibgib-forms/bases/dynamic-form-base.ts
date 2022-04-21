@@ -31,7 +31,7 @@ export class DynamicFormBase implements OnInit, OnDestroy {
   @Input()
   updating: boolean;
 
-  // @Input()
+  @Input()
   rootFormGroup: FormGroup;
 
   _items: FormItemInfo[] = [];
