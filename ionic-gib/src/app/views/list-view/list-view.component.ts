@@ -39,6 +39,9 @@ export class ListViewComponent
   @Output()
   clicked: EventEmitter<IbgibItem> = new EventEmitter();
 
+  // @Output()
+  // scrolled: EventEmitter<void> = new EventEmitter();
+
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,

@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, Input } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, Input, ViewChild, AfterViewInit } from '@angular/core';
 import { Plugins, } from '@capacitor/core';
 const { Modals } = Plugins;
 
@@ -17,6 +17,7 @@ import { createCommentIbGib } from '../helper/comment';
 import { getFnAlert, getFnPrompt } from '../helper/prompt-functions';
 import { getFromSpace, getDependencyGraph } from '../helper/space';
 import { validateIbGibAddr } from '../helper/validate';
+import { IonInput, IonTextarea } from '@ionic/angular';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -28,7 +29,7 @@ const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
   styleUrls: ['./action-bar.component.scss'],
 })
 export class ActionBarComponent extends IbgibComponentBase
-  implements OnInit {
+  implements OnInit, AfterViewInit {
 
   protected lc = `[${ActionBarComponent.name}]`;
 
@@ -73,12 +74,42 @@ export class ActionBarComponent extends IbgibComponentBase
       type: 'button',
       text: 'add from space',
       icons: ['sparkles-outline', 'download-outline'],
-      handler: async (event) => await this.addImport(event),
+      handler: async (event) => await this.actionAddImport(event),
     },
   ];
 
   @Input()
   items: ActionItem[] = this.DEFAULT_ACTIONS.concat();
+
+  /**
+   * Action detail, e.g., textarea for making a comment.
+   *
+   * So when you click the comment button, it shows the action detail
+   * and sets the mode to 'comment'.
+   */
+  @Input()
+  actionDetailMode: ActionItemName = 'comment';
+  /**
+   * @see {@link actionDetailMode}
+   */
+  @Input()
+  actionDetailVisible: boolean = true;
+  /**
+   * Text bound do comment text detail.
+   */
+  @Input()
+  actionDetailCommentText: string;
+  /**
+   * Text bound do import ibgib addr detail.
+   */
+  @Input()
+  actionDetailImportText: string;
+
+  @ViewChild('textareaComment')
+  textareaComment: IonTextarea;
+
+  @ViewChild('inputImport')
+  inputImport: IonInput;
 
   public debugBorderWidth: string = debugBorder ? "22px" : "0px"
   public debugBorderColor: string = "#FFAABB";
@@ -93,6 +124,12 @@ export class ActionBarComponent extends IbgibComponentBase
 
   ngOnInit() {
     if (logalot) { console.log(`${this.lc} addr: ${this.addr}`); }
+  }
+
+  ngAfterViewInit() {
+    if (this.textareaComment) {
+      setTimeout(() => this.textareaComment.setFocus());
+    }
   }
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
@@ -115,16 +152,10 @@ export class ActionBarComponent extends IbgibComponentBase
     this.items = this.DEFAULT_ACTIONS.concat(); // dev only
   }
 
-  async actionAddComment(event: MouseEvent): Promise<void> {
-    const lc = `${this.lc}[${this.actionAddComment.name}]`;
-    let actionItem: ActionItem;
+  async promptForCommentText(): Promise<string> {
+    const lc = `${this.lc}[${this.promptForCommentText.name}]`;
     try {
-      actionItem = this.items.filter(x => x.name === 'comment')[0];
-      actionItem.busy = true;
-
       if (logalot) { console.log(`${lc} starting...`); }
-
-      const alert = getFnAlert();
 
       const resComment = await Modals.prompt({
         title: 'comment',
@@ -135,9 +166,65 @@ export class ActionBarComponent extends IbgibComponentBase
       const text = resComment.value.trim();
       if (logalot) { console.log(`${lc} text: ${text}`); }
       if (text === '') {
-        await alert({title: 'no comment text entered', msg: 'Comment cannot contain only whitespace. Cancelling...'});
         return;
+      } else {
+        return text;
       }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async actionAddComment(_event: MouseEvent): Promise<void> {
+    const lc = `${this.lc}[${this.actionAddComment.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      if (!this.actionDetailVisible) {
+        this.actionDetailMode = 'comment';
+        this.actionDetailVisible = true;
+        setTimeout(() => this.textareaComment.setFocus());
+      } else if (this.actionDetailMode !== 'comment') {
+        this.actionDetailMode = 'comment';
+        // this.ref.detectChanges();
+        // while (!this.textareaComment) { await h.delay(100); }
+        setTimeout(() => this.textareaComment.setFocus());
+      } else if (this.actionDetailMode === 'comment') {
+        this.actionDetailVisible = false;
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async addComment(): Promise<void> {
+    const lc = `${this.lc}[${this.addComment.name}]`;
+    let actionItem: ActionItem;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      // debugger;
+
+      // they've clicked the comment button and there is text in the comment
+      // text area.
+
+      actionItem = this.items.filter(x => x.name === 'comment')[0];
+      actionItem.busy = true;
+
+      // const alert = getFnAlert();
+      // let text = await this.promptForCommentText();
+      // if (!text) {
+      //   await alert({title: 'no comment text entered', msg: 'Comment cannot contain only whitespace. Cancelling...'});
+      //   return;
+      // }
+
+      const text = this.actionDetailCommentText; // already trimmed
 
       const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
       const resCommentIbGib = await createCommentIbGib({
@@ -167,22 +254,22 @@ export class ActionBarComponent extends IbgibComponentBase
         const { newIbGib: newContext } = resRel8ToContext;
         await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
 
-        // nav to either the pic we just added, or the new context "in time"
-        // to which the pic was added.
+        // nav to either the ibgib we just added, or the new context "in time"
+        // to which the ibgib was added.
         navToAddr = this.isMeta ?
           h.getIbGibAddr({ibGib: newComment}) :
           h.getIbGibAddr({ibGib: newContext});
       } else {
         navToAddr = h.getIbGibAddr({ibGib: newComment});
       }
-      // await this.go({
-      //   toAddr: navToAddr,
-      //   fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
-      // });
 
     } catch (error) {
       console.error(`${lc} ${error.message}`)
     } finally {
+      this.actionDetailCommentText = '';
+      setTimeout(() => this.textareaComment.setFocus());
+      setTimeout(() => this.textareaComment.setFocus());
+      setTimeout(() => this.textareaComment.setFocus());
       if (actionItem) {
         actionItem.busy = false;
         this.ref.detectChanges();
@@ -370,6 +457,52 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
+  async actionAddImport(_event: MouseEvent): Promise<void> {
+    const lc = `${this.lc}[${this.actionAddImport.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      if (!this.actionDetailVisible) {
+        this.actionDetailMode = 'import';
+        this.actionDetailVisible = true;
+        setTimeout(() => this.inputImport.setFocus());
+      } else if (this.actionDetailMode !== 'import') {
+        this.actionDetailMode = 'import';
+        // this.ref.detectChanges();
+        // while (!this.inputImport) { await h.delay(100); }
+        setTimeout(() => this.inputImport.setFocus());
+      } else if (this.actionDetailMode === 'import') {
+        this.actionDetailVisible = false;
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+  async promptForImportAddr(): Promise<IbGibAddr> {
+    const lc = `${this.lc}[${this.promptForImportAddr.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      const fnPrompt = getFnPrompt();
+
+      // prompt for the ib^gib addr that we want to import and validate result
+      const resAddr = (await fnPrompt({
+        title: 'ibgib address',
+        msg: 'enter the ibgib address that you would like to import.',
+      }))?.trim();
+      // if (!resAddr) { return; } // returns
+      return resAddr;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
   /**
    * Import an ibgib from either the local space or our sync spaces to our
    * current context ibgib.
@@ -385,17 +518,15 @@ export class ActionBarComponent extends IbgibComponentBase
       if (!this.addr) { throw new Error(`There isn't a current ibGib addr loaded...?`); }
 
       const fnAlert = getFnAlert();
-      const fnPrompt = getFnPrompt();
 
       if (logalot) { console.log(`${lc} prompting for address to import.`); }
 
-      // prompt for the ib^gib addr that we want to import and validate result
-      const resAddr = (await fnPrompt({
-        title: 'ibgib address',
-        msg: 'enter the ibgib address that you would like to import.',
-      }))?.trim();
-      if (!resAddr) { return; } // returns
-      const addr = resAddr;
+      // const addr = resAddr;
+      // const addr = await this.promptForImportAddr();
+      // if (!addr) { return; } // <<<< returns
+
+      const addr = this.actionDetailImportText;
+
       const validationErrors = validateIbGibAddr({addr});
       if ((validationErrors ?? []).length > 0) { throw new Error(`Invalid address: ${validationErrors.join('\n')} (E: 343823cb6ab04e6e9a8f7e6de1cd12c8)`); }
 
@@ -511,6 +642,62 @@ export class ActionBarComponent extends IbgibComponentBase
     } finally {
       actionItem.busy = false;
       this.ref.detectChanges();
+    }
+  }
+
+  async handleCommentDetailChange(event: any): Promise<void> {
+    const lc = `${this.lc}[${this.handleCommentDetailChange.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (!event?.target?.textContent) {
+        throw new Error(`event?.target?.textContent falsy (E: 39a1e8879a06a8d77a20da1a0e544c22)`);
+      }
+      const text: string = event.target.textContent || '';
+      this.actionDetailCommentText = text.trim();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+  async handleImportDetailChange(event: any): Promise<void> {
+    const lc = `${this.lc}[${this.handleCommentDetailChange.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (!event?.detail?.value) {
+        throw new Error(`event?.detail?.value falsy (E: a12a6fcf0ac1a9d09b45cdcd05d32622)`);
+      }
+      const text: string = event.detail.value || '';
+      this.actionDetailImportText = text.trim();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleCommentDetailInput(event: KeyboardEvent): Promise<void> {
+    if (!this.actionDetailVisible) { this.actionDetailVisible = true; }
+    if ((!event.shiftKey) &&
+      event.key === 'Enter' &&
+      this.actionDetailCommentText
+    ) {
+      event.stopPropagation(); // doesn't work
+      event.stopImmediatePropagation(); // doesn't work
+      await this.addComment();
+    }
+  }
+
+  focusDetail(): void {
+    if (this.actionDetailMode === 'comment') {
+      setTimeout(() => this.textareaComment.setFocus());
+    } else if (this.actionDetailMode === 'import') {
+      setTimeout(() => this.inputImport.setFocus());
+    }
+    if (!this.actionDetailVisible) {
+      this.actionDetailVisible = true;
     }
   }
 

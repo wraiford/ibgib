@@ -161,15 +161,16 @@
 
     <tag-list *ngIf='isTags' [addr]='addr' [ibGib_Context]='ibGib'></tag-list>
     <root-list *ngIf='isRoots' [addr]='addr' [ibGib_Context]='ibGib'></root-list>
-    <chat-view *ngIf='!(isTags || isRoots)' [addr]='addr' [ibGib_Context]='ibGib'></chat-view>
+    <chat-view *ngIf='!(isTags || isRoots)' [addr]='addr' [ibGib_Context]='ibGib'
+      (scroll)="scrollSubject.next($event)"></chat-view>
 
   </div>
 
 </ion-content>
 
-<ion-footer>
-  <action-bar
-    [style.height]="actionBarHeightPerPlatform"
+<ion-footer collapse="fade">
+    <!-- [style.height]="actionBarHeightPerPlatform" -->
+  <action-bar #actionBar
     [addr]='addr' [ibGib_Context]='ibGib'>
   </action-bar>
 </ion-footer>

@@ -51,10 +51,10 @@ pre {
   flex-direction: row;
 }
 
-action-bar, ion-footer {
-  display: flex;
-  flex-direction: row;
-  // height: 55px !important;
+ion-footer {
+  // height: 300px;
+  // display: flex;
+  // flex-direction: row;
 }
 
 .toolbar-title-btn {

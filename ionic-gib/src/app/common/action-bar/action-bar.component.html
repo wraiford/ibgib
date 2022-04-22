@@ -1,27 +1,65 @@
-<div *ngFor='let item of items'>
-    <!-- shape="round" -->
-  <ion-button *ngIf='item.type === "button" && (gib !== "gib" || item.allowPrimitive)'
-    color="primary"
-    [disabled]="item.busy"
-    (click)='item.handler($event)'>
-    <ion-icon *ngFor="let iconName of item?.icons" slot="start" [name]="iconName"></ion-icon>
-    <ion-spinner *ngIf="item.busy" name="circles" color="tertiary"></ion-spinner>
-  </ion-button>
+<!-- action buttons -->
+<div class="action-buttons">
+  <div *ngFor='let item of items'>
+      <!-- shape="round" -->
+    <ion-button *ngIf='item.type === "button" && (gib !== "gib" || item.allowPrimitive)'
+      color="primary"
+      [disabled]="item.busy"
+      (click)='item.handler($event)'>
+      <ion-icon *ngFor="let iconName of item?.icons" slot="start" [name]="iconName"></ion-icon>
+      <ion-spinner *ngIf="item.busy" name="circles" color="tertiary"></ion-spinner>
+    </ion-button>
 
-  <ion-button *ngIf='item.type === "inputfile" && (gib !== "gib" || item.allowPrimitive)'
-    color="primary"
-    (click)='inputFile.click()'>
-    <ion-icon *ngFor="let iconName of item?.icons" slot="start" [name]="iconName"></ion-icon>
-    <ion-spinner *ngIf="item.busy" name="circles" color="tertiary"></ion-spinner>
-    <input #inputFile type="file" hidden (change)='item.filepicked($event)'/>
-  </ion-button>
+    <ion-button *ngIf='item.type === "inputfile" && (gib !== "gib" || item.allowPrimitive)'
+      color="primary"
+      (click)='inputFile.click()'>
+      <ion-icon *ngFor="let iconName of item?.icons" slot="start" [name]="iconName"></ion-icon>
+      <ion-spinner *ngIf="item.busy" name="circles" color="tertiary"></ion-spinner>
+      <input #inputFile type="file" hidden (change)='item.filepicked($event)'/>
+    </ion-button>
 
-  <ion-button *ngIf='item.type === "inputfile-camera" && (gib !== "gib" || item.allowPrimitive)'
-    color="primary"
-    (click)='inputFileCapture.click()'>
-    <ion-icon *ngFor="let iconName of item?.icons" slot="start" [name]="iconName"></ion-icon>
-    <ion-spinner *ngIf="item.busy" name="circles" color="tertiary"></ion-spinner>
-    <input #inputFileCapture type="file" hidden (change)='item.filepicked($event)' accept="image/*" capture/>
-  </ion-button>
+    <ion-button *ngIf='item.type === "inputfile-camera" && (gib !== "gib" || item.allowPrimitive)'
+      color="primary"
+      (click)='inputFileCapture.click()'>
+      <ion-icon *ngFor="let iconName of item?.icons" slot="start" [name]="iconName"></ion-icon>
+      <ion-spinner *ngIf="item.busy" name="circles" color="tertiary"></ion-spinner>
+      <input #inputFileCapture type="file" hidden (change)='item.filepicked($event)' accept="image/*" capture/>
+    </ion-button>
 
+  </div>
+</div>
+<!-- action detail -->
+<div *ngIf="actionDetailVisible"
+  class="action-detail"
+  >
+  <div *ngIf="actionDetailMode === 'comment'"
+      class="comment-detail"
+    >
+    <ion-textarea #textareaComment id="textareaCommentId"
+      (ionChange)="handleCommentDetailChange($event)"
+      (keypress)="handleCommentDetailInput($event)"
+      autocomplete="true"
+      spellcheck="true"
+      debounce="100"
+      >
+    </ion-textarea>
+    <ion-button id="sendBtn" color="transparent" (click)="addComment()">
+      <ion-icon name="chatbox-outline"></ion-icon>
+      <ion-icon name="arrow-forward-outline"></ion-icon>
+    </ion-button>
+  </div>
+  <div *ngIf="actionDetailMode === 'import'"
+      class="import-detail"
+    >
+    <ion-input #inputImport id="inputImportId"
+      (ionChange)="handleImportDetailChange($event)"
+      debounce="100"
+      >
+    </ion-input>
+    <ion-button id="sendBtn" color="transparent" (click)="addImport()">
+      <ion-icon name="sparkles-outline"></ion-icon>
+      <ion-icon name="download-outline"></ion-icon>
+      <ion-icon name="arrow-forward-outline"></ion-icon>
+    </ion-button>
+  </div>
 </div>

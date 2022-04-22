@@ -1,1 +1,4 @@
-<list-view id='theList' [addr]='addr' (clicked)='itemClicked($event)'></list-view>
+<list-view id='theList' [addr]='addr'
+  (clicked)='itemClicked($event)'
+  (scroll)='handleScroll($event)'
+  ></list-view>

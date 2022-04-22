@@ -1,10 +1,15 @@
 :host {
     overflow-x: scroll;
-    overflow-y: hidden;
-    width: 100%
+    // overflow-y: hidden;
+    // height: 100%;
+    height: auto;
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
 }
 
-input {
+#inputFile, #inputFileCapture {
     height: 0px;
     width: 0px;
     margin: 0px;
@@ -17,4 +22,44 @@ ion-icon {
 
 ion-button {
   border-radius: 5px;
+}
+
+.action-buttons {
+    height: 100%;
+    width: 99%;
+    display: flex;
+    flex-direction: row;
+}
+
+.action-detail {
+    height: 100%;
+    width: 99%;
+    // height: 150px;
+
+}
+
+.comment-detail, .import-detail {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    // color: var(--ion-color-primary);
+    // border-style: solid;
+    // border-width: 2px;
+    border-color: var(--ion-color-primary);
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 5px;
+}
+
+#textareaCommentId, #inputImportId {
+    margin: 3px;
+}
+
+#sendBtn {
+    color: var(--ion-color-primary);
+    border-color: var(--ion-color-primary);
+    border-radius: 5px;
+    border-width: 1px;
+    border-style: solid;
 }

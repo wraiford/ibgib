@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Input, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, ChangeDetectorRef, Output, EventEmitter } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 
 import * as h from 'ts-gib/dist/helper';
@@ -9,6 +9,7 @@ import * as c from '../../common/constants';
 import { CommonService } from 'src/app/services/common.service';
 import { IbgibItem } from '../../common/types/ux';
 import { IbgibListComponentBase } from 'src/app/common/bases/ibgib-list-component-base';
+import { ScrollBaseCustomEvent } from '@ionic/angular';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -33,6 +34,9 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
   @Input()
   get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
   set ibGib_Context(value: IbGib_V1 ) { super.ibGib_Context = value; }
+
+  @Output()
+  scroll: EventEmitter<ScrollBaseCustomEvent> = new EventEmitter();
 
   constructor(
     protected common: CommonService,
@@ -88,5 +92,9 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
       toAddr: item.addr,
       fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
     });
+  }
+
+  handleScroll(event: any): void {
+    this.scroll.emit(event);
   }
 }

@@ -4,7 +4,8 @@
   [style.border-style]="debugBorderStyle"
   >
   <ion-card-header>
-    <ion-card-content class="comment-text">{{ item?.text }}
+    <ion-card-content class="comment-text">
+      <pre>{{ item?.text }}</pre>
       <!-- [class.is-title]='isTitle'>{{ item?.text }} -->
       <!-- <p *ngIf='!isTitle' class='comment-timestamp'>{{ item?.timestamp }}</p> -->
     </ion-card-content>
@@ -13,7 +14,7 @@
 </ion-card>
 <div *ngIf='ibGib && isTitle' [title]="item?.text || item?.ib || '[html title binding error!]'"
   >
-  <p class="is-title">{{ item?.text }}</p>
+  <pre [style.maxHeight]="'100px'" class="is-title">{{ item?.text }}</pre>
 </div>
 <!-- <img *ngIf='ibGib' src='data:///DOCUMENTS/ibgib/bin/02a50cc8592578690e51adb7b633220dae599a7e096eb78783cf3752a48be9c1.png'/> -->
 <p *ngIf='!ibGib'>Loading...</p>

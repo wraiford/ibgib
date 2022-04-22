@@ -1,8 +1,8 @@
 import {
   Component, OnInit, OnDestroy,
-  ChangeDetectorRef, ChangeDetectionStrategy, Input} from '@angular/core';
+  ChangeDetectorRef, ChangeDetectionStrategy, Input, ViewChild} from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { Subscription, interval, Observable } from 'rxjs';
+import { Subscription, interval, Observable, Subject, fromEvent } from 'rxjs';
 import { ActionSheetOptionStyle, Capacitor, FilesystemDirectory, FilesystemEncoding, Plugins } from '@capacitor/core';
 const { Modals, Clipboard, Filesystem } = Plugins;
 
@@ -16,13 +16,14 @@ import { IbgibComponentBase } from '../common/bases/ibgib-component-base';
 import { CommonService } from '../services/common.service';
 import { SPECIAL_URLS } from '../common/constants';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
-import { concatMap } from 'rxjs/operators';
+import { concatMap, debounceTime } from 'rxjs/operators';
 import { IbGibSpaceAny } from '../common/witnesses/spaces/space-base-v1';
 import { PicData_V1, PicIbGib_V1 } from '../common/types/pic';
 import { LatestEventInfo } from '../common/types/ux';
 import { ensureDirPath, pathExists, writeFile } from '../common/helper/ionic';
 import { getFnAlert, getFnPrompt, getFnConfirm } from '../common/helper/prompt-functions';
 import { createNewTag } from '../common/helper/tag';
+import { ActionBarComponent } from '../common/action-bar/action-bar.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -109,8 +110,11 @@ export class IbGibPage extends IbgibComponentBase
   get autoRefresh(): boolean { return !this.paused; }
   set autoRefresh(value: boolean) { this.paused = value; }
 
-  @Input()
-  actionBarHeightPerPlatform: string = '55px !important';
+  // @Input()
+  // actionBarHeightPerPlatform: string = '55px !important';
+
+  @ViewChild('actionBar')
+  actionBar: ActionBarComponent;
 
   constructor(
     protected common: CommonService,
@@ -118,16 +122,18 @@ export class IbGibPage extends IbgibComponentBase
     private activatedRoute: ActivatedRoute,
   ) {
     super(common, ref);
+
   }
 
   async ngOnInit() {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
     if (logalot) { console.log(`${lc} called.`) }
     try {
+      this.initScroll();
       this.subscribeParamMap();
-      if (this.common.platform.is('mobileweb')) {
-        this.actionBarHeightPerPlatform = '110px !important';
-      }
+      // if (this.common.platform.is('mobileweb')) {
+      //   this.actionBarHeightPerPlatform = '110px !important';
+      // }
       super.ngOnInit();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -140,6 +146,7 @@ export class IbGibPage extends IbgibComponentBase
     this.stopPollLatest_Local();
     this.stopPollLatest_Store();
     this.unsubscribeParamMap();
+    this.destroyScroll();
     super.ngOnDestroy();
   }
 
@@ -176,6 +183,8 @@ export class IbGibPage extends IbgibComponentBase
         });
       }
       document.title = this.item?.text ?? this.ibGib?.data?.text ?? this.gib;
+
+      this.actionBar.focusDetail();
 
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);
@@ -1091,6 +1100,35 @@ export class IbGibPage extends IbgibComponentBase
   }
 
   // #endregion Polling
+
+  // #region scrolling
+
+  private scrollSubject: Subject<any> = new Subject<any>();
+  private scroll$: Observable<any> = this.scrollSubject.asObservable();
+  private _subScroll: Subscription;
+
+  handleScroll(event: any): void {
+    if (this.actionBar.actionDetailVisible) {
+      this.actionBar.actionDetailVisible = false;
+    }
+  }
+
+  private initScroll(): void {
+    this._subScroll = this.scroll$.pipe(
+      debounceTime(20),
+    ).subscribe((event) => {
+      this.handleScroll(event);
+    });
+  }
+
+  private destroyScroll(): void {
+    if (this._subScroll) {
+      this._subScroll.unsubscribe();
+      delete this._subScroll;
+    }
+  }
+
+  // #endregion scrolling
 
 }
 
