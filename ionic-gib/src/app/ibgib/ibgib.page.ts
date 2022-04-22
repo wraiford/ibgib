@@ -184,8 +184,9 @@ export class IbGibPage extends IbgibComponentBase
       }
       document.title = this.item?.text ?? this.ibGib?.data?.text ?? this.gib;
 
-      this.actionBar.focusDetail();
-
+      if (this.platform === 'web' && this.ibGib && this.gib !== 'gib') {
+        this.actionBar.focusDetail();
+      }
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);
       this.clearItem();

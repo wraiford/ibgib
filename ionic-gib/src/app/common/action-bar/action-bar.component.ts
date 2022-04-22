@@ -93,7 +93,7 @@ export class ActionBarComponent extends IbgibComponentBase
    * @see {@link actionDetailMode}
    */
   @Input()
-  actionDetailVisible: boolean = true;
+  actionDetailVisible: boolean;
   /**
    * Text bound do comment text detail.
    */
@@ -127,9 +127,7 @@ export class ActionBarComponent extends IbgibComponentBase
   }
 
   ngAfterViewInit() {
-    if (this.textareaComment) {
-      setTimeout(() => this.textareaComment.setFocus());
-    }
+    this.focusDetail();
   }
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
@@ -186,12 +184,14 @@ export class ActionBarComponent extends IbgibComponentBase
       if (!this.actionDetailVisible) {
         this.actionDetailMode = 'comment';
         this.actionDetailVisible = true;
-        setTimeout(() => this.textareaComment.setFocus());
+        this.focusDetail();
+        // setTimeout(() => this.textareaComment.setFocus());
       } else if (this.actionDetailMode !== 'comment') {
         this.actionDetailMode = 'comment';
         // this.ref.detectChanges();
         // while (!this.textareaComment) { await h.delay(100); }
-        setTimeout(() => this.textareaComment.setFocus());
+        this.focusDetail();
+        // setTimeout(() => this.textareaComment.setFocus());
       } else if (this.actionDetailMode === 'comment') {
         this.actionDetailVisible = false;
       }
@@ -267,9 +267,7 @@ export class ActionBarComponent extends IbgibComponentBase
       console.error(`${lc} ${error.message}`)
     } finally {
       this.actionDetailCommentText = '';
-      setTimeout(() => this.textareaComment.setFocus());
-      setTimeout(() => this.textareaComment.setFocus());
-      setTimeout(() => this.textareaComment.setFocus());
+      this.focusDetail();
       if (actionItem) {
         actionItem.busy = false;
         this.ref.detectChanges();
@@ -465,12 +463,14 @@ export class ActionBarComponent extends IbgibComponentBase
       if (!this.actionDetailVisible) {
         this.actionDetailMode = 'import';
         this.actionDetailVisible = true;
-        setTimeout(() => this.inputImport.setFocus());
+        this.focusDetail();
+        // setTimeout(() => this.inputImport.setFocus());
       } else if (this.actionDetailMode !== 'import') {
         this.actionDetailMode = 'import';
         // this.ref.detectChanges();
         // while (!this.inputImport) { await h.delay(100); }
-        setTimeout(() => this.inputImport.setFocus());
+        this.focusDetail();
+        // setTimeout(() => this.inputImport.setFocus());
       } else if (this.actionDetailMode === 'import') {
         this.actionDetailVisible = false;
       }
@@ -681,6 +681,7 @@ export class ActionBarComponent extends IbgibComponentBase
   async handleCommentDetailInput(event: KeyboardEvent): Promise<void> {
     if (!this.actionDetailVisible) { this.actionDetailVisible = true; }
     if ((!event.shiftKey) &&
+      this.platform === 'web' &&
       event.key === 'Enter' &&
       this.actionDetailCommentText
     ) {
@@ -691,6 +692,12 @@ export class ActionBarComponent extends IbgibComponentBase
   }
 
   focusDetail(): void {
+    // this is only convenient if on the web browser proper.
+    if (this.platform !== 'web') { return; }
+    // if (!this.ibGib || this.gib === 'gib') {
+    //   this.actionDetailVisible = false;
+    //   return;
+    // }
     if (this.actionDetailMode === 'comment') {
       setTimeout(() => this.textareaComment.setFocus());
     } else if (this.actionDetailMode === 'import') {
