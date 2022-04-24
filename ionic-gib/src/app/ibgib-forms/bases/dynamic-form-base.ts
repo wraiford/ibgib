@@ -39,6 +39,7 @@ export class DynamicFormBase implements OnInit, OnDestroy {
   get items(): FormItemInfo[] {
     const lc = `${this.lc}[get items]`;
     if (logalot) { console.log(`${lc} returning items (${h.pretty(this._items)}) (I: 243b674d8659b9adaed0fb2905fd3c22)`); }
+    // debugger;
     return this._items;
   }
   set items(newItems: FormItemInfo[]) {

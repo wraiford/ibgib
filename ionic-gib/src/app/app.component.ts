@@ -29,7 +29,7 @@ import { validateIbGibIntrinsically, spaceNameIsValid } from './common/helper/va
 
 // #endregion imports & some init
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 /**
  * Hamburger menu in top left.

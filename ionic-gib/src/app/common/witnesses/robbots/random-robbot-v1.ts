@@ -153,6 +153,7 @@ export class RandomRobbot_V1_Factory
         try {
             if (logalot) { console.log(`${lc} starting...`); }
             let robbotData: RandomRobbotData_V1 = h.clone(DEFAULT_RANDOM_ROBBOT_DATA_V1);
+            robbotData.uuid = await h.getUUID();
             let {classname} = robbotData;
 
             const ib = getRobbotIb({robbotData, classname});
@@ -164,7 +165,7 @@ export class RandomRobbot_V1_Factory
                 dna: true,
                 linkedRel8ns: [Rel8n.ancestor, Rel8n.past],
                 nCounter: true,
-                tjp: { uuid: true, timestamp: true },
+                tjp: { timestamp: true },
             });
 
             // replace the newIbGib which is just ib,gib,data,rel8ns with loaded

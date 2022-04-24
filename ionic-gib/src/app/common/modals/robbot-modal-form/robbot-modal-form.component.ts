@@ -200,7 +200,7 @@ export class RobbotModalFormComponent
       //   console.warn(`${lc} validation failed. Errors:\n${validationErrors.join('\n')}`);
       //   return;
       // }
-      debugger;
+      // debugger;
 
       let resNewIbGib: TransformResult<RobbotIbGib_V1>;
 
@@ -262,7 +262,7 @@ export class RobbotModalFormComponent
   async handleItemSelected(item: FormItemInfo): Promise<void> {
     const lc = `${this.lc}[${this.handleItemSelected.name}]`;
     try {
-      debugger;
+      // debugger;
       if (logalot) { console.log(`${lc} starting...`); }
       let factories =
         this.robbotFactories.filter(x => x.getInjectionName() === item.value)
@@ -278,4 +278,13 @@ export class RobbotModalFormComponent
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
+
+  handleSubformSubmit(): void {
+    debugger;
+  }
+
+  handleValidatedSubform(event: any): void {
+    debugger;
+  }
+
 }

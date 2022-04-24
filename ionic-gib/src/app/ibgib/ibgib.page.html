@@ -152,17 +152,21 @@
     </div>
   </div>
     <!-- [ngStyle]="{'border-color': '[debugBorderColor]','border-width':'155px','border-stroke':'solid'}" -->
-  <div id="container"
-    *ngIf="item?.ibGib"
+  <div id="container" *ngIf="item?.ibGib"
     [style.border-color]="debugBorderColor"
     [style.border-width]="debugBorderWidth"
     [style.border-style]="debugBorderStyle"
     >
 
-    <tag-list *ngIf='isTags' [addr]='addr' [ibGib_Context]='ibGib'></tag-list>
+    <tag-list *ngIf='isTags' [addr]='addr' [ibGib_Context]='ibGib'
+      (scroll)="scrollSubject.next($event)"
+      >
+    </tag-list>
     <root-list *ngIf='isRoots' [addr]='addr' [ibGib_Context]='ibGib'></root-list>
     <chat-view *ngIf='!(isTags || isRoots)' [addr]='addr' [ibGib_Context]='ibGib'
-      (scroll)="scrollSubject.next($event)"></chat-view>
+      (scroll)="scrollSubject.next($event)"
+      >
+    </chat-view>
 
   </div>
 

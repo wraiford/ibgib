@@ -24,8 +24,9 @@ import { ensureDirPath, pathExists, writeFile } from '../common/helper/ionic';
 import { getFnAlert, getFnPrompt, getFnConfirm } from '../common/helper/prompt-functions';
 import { createNewTag } from '../common/helper/tag';
 import { ActionBarComponent } from '../common/action-bar/action-bar.component';
+import { ChatViewComponent } from '../views/chat-view/chat-view.component';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
@@ -115,6 +116,9 @@ export class IbGibPage extends IbgibComponentBase
 
   @ViewChild('actionBar')
   actionBar: ActionBarComponent;
+
+  @ViewChild('chatView')
+  chatView: ChatViewComponent;
 
   constructor(
     protected common: CommonService,
@@ -688,6 +692,49 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
+  // #region scrolling
+
+  prevScrollTop: number = 0;
+
+  scrollSubject: Subject<any> = new Subject<any>();
+  scroll$: Observable<any> = this.scrollSubject.asObservable();
+  private _subScroll: Subscription;
+
+  handleScroll(event: MouseEvent): void {
+    const lc = `${this.lc}[${this.handleScroll.name}]`;
+    // hide the action detail when scrolling, but only if it was a genuine
+    // scroll. We want to ignore hiding on tiny little movements, which
+    // especially happen on touch screens.
+    let targetScrolltop = <number>((<any>event?.target)?.scrollTop ?? -1);
+    if (logalot) { console.log(`${lc} targetScrolltop: ${targetScrolltop} (I: 70dfd9882bb2493da37222869c429415)`); }
+    if (this.actionBar.actionDetailVisible && targetScrolltop > -1) {
+      const delta = Math.abs(targetScrolltop - this.prevScrollTop);
+      if (logalot) { console.log(`${lc} delta: ${delta} (I: de2ac480085f8a404b6e01a2ad614822)`); }
+      const MIN_DELTA = 50;
+      if (delta > MIN_DELTA) {
+        this.actionBar.actionDetailVisible = false;
+        setTimeout(() => this.ref.detectChanges());
+      }
+    }
+    this.prevScrollTop = targetScrolltop;
+  }
+
+  private initScroll(): void {
+    this._subScroll = this.scroll$.pipe(
+      debounceTime(20),
+    ).subscribe((event) => {
+      this.handleScroll(event);
+    });
+  }
+
+  private destroyScroll(): void {
+    if (this._subScroll) {
+      this._subScroll.unsubscribe();
+      delete this._subScroll;
+    }
+  }
+
+  // #endregion scrolling
   async showFullscreenModal(): Promise<void> {
     const lc = `${this.lc}[${this.showFullscreenModal.name}]`;
     try {
@@ -1102,34 +1149,6 @@ export class IbGibPage extends IbgibComponentBase
 
   // #endregion Polling
 
-  // #region scrolling
-
-  private scrollSubject: Subject<any> = new Subject<any>();
-  private scroll$: Observable<any> = this.scrollSubject.asObservable();
-  private _subScroll: Subscription;
-
-  handleScroll(event: any): void {
-    if (this.actionBar.actionDetailVisible) {
-      this.actionBar.actionDetailVisible = false;
-    }
-  }
-
-  private initScroll(): void {
-    this._subScroll = this.scroll$.pipe(
-      debounceTime(20),
-    ).subscribe((event) => {
-      this.handleScroll(event);
-    });
-  }
-
-  private destroyScroll(): void {
-    if (this._subScroll) {
-      this._subScroll.unsubscribe();
-      delete this._subScroll;
-    }
-  }
-
-  // #endregion scrolling
 
 }
 

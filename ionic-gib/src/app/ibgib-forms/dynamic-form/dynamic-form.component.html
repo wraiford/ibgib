@@ -27,13 +27,12 @@
         [readonly]="item.readonly"
         debounce="1000" spellcheck="true" autoGrow="true"
       ></ion-textarea>
-        <!-- (ionChange)="handleSelectChange($event.target.value, item)" -->
       <ion-select
         *ngIf="['checkbox'].includes(item.dataType)"
         okText="Select"
         (ionChange)="handleSelectChange($event, item)"
         [compareWith]="compareStrings"
-        [readonly]="item.readonly"
+        [disabled]="item.readonly"
         >
         <ion-select-option *ngFor="let option of item.selectOptions"
           [value]="option">
@@ -42,7 +41,7 @@
       </ion-select>
       <ion-toggle
         *ngIf="['toggle'].includes(item.dataType)"
-        [value]="item.value"
+        [checked]="item.value"
         [disabled]="!!item.readonly"
         >
       </ion-toggle>
@@ -51,6 +50,3 @@
   </form>
 
 </div>
-
-<!-- <pre>{{items | json}}</pre> -->
-

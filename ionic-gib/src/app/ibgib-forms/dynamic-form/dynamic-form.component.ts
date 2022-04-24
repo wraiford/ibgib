@@ -24,6 +24,9 @@ export class DynamicFormComponent extends DynamicFormBase
   // @Input()
   // fields: FormItemInfo[];
 
+  @Output()
+  itemSelect: EventEmitter<FormItemInfo> = new EventEmitter<FormItemInfo>();
+
   public debugBorderWidth: string = debugBorder ? "5px" : "0px"
   public debugBorderColor: string = "#83BACB";
   public debugBorderStyle: string = "solid";
@@ -47,9 +50,6 @@ export class DynamicFormComponent extends DynamicFormBase
     }
   }
 
-  @Output()
-  itemSelect: EventEmitter<FormItemInfo> = new EventEmitter<FormItemInfo>();
-
   async handleSelectChange(e: any, item: FormItemInfo): Promise<void> {
     const lc = `${this.lc}[${this.handleSelectChange.name}]`;
     try {
@@ -57,7 +57,6 @@ export class DynamicFormComponent extends DynamicFormBase
       if (!e.detail?.value) { throw new Error(`e.detail.value (item selected) falsy (E: 97fe80e7ae2948b69de3f350584d57d3)`) }
       let value: any = e.detail.value;
       item.value = value;
-      debugger;
       this.itemSelect.emit(item);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -72,4 +71,5 @@ export class DynamicFormComponent extends DynamicFormBase
     if (logalot) { console.log(`${lc}`); }
     return a && b ? a.toLowerCase() === b.toLowerCase() : a === b;
   }
+
 }

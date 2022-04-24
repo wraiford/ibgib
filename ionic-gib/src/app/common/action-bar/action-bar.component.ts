@@ -184,13 +184,13 @@ export class ActionBarComponent extends IbgibComponentBase
       if (!this.actionDetailVisible) {
         this.actionDetailMode = 'comment';
         this.actionDetailVisible = true;
-        this.focusDetail();
+        this.focusDetail({force: true});
         // setTimeout(() => this.textareaComment.setFocus());
       } else if (this.actionDetailMode !== 'comment') {
         this.actionDetailMode = 'comment';
         // this.ref.detectChanges();
         // while (!this.textareaComment) { await h.delay(100); }
-        this.focusDetail();
+        this.focusDetail({force: true});
         // setTimeout(() => this.textareaComment.setFocus());
       } else if (this.actionDetailMode === 'comment') {
         this.actionDetailVisible = false;
@@ -463,13 +463,13 @@ export class ActionBarComponent extends IbgibComponentBase
       if (!this.actionDetailVisible) {
         this.actionDetailMode = 'import';
         this.actionDetailVisible = true;
-        this.focusDetail();
+        this.focusDetail({force: true});
         // setTimeout(() => this.inputImport.setFocus());
       } else if (this.actionDetailMode !== 'import') {
         this.actionDetailMode = 'import';
         // this.ref.detectChanges();
         // while (!this.inputImport) { await h.delay(100); }
-        this.focusDetail();
+        this.focusDetail({force: true});
         // setTimeout(() => this.inputImport.setFocus());
       } else if (this.actionDetailMode === 'import') {
         this.actionDetailVisible = false;
@@ -507,7 +507,7 @@ export class ActionBarComponent extends IbgibComponentBase
    * Import an ibgib from either the local space or our sync spaces to our
    * current context ibgib.
    */
-  async addImport(_: MouseEvent): Promise<void> {
+  async addImport(): Promise<void> {
     const lc = `${this.lc}[${this.addImport.name}]`;
     let actionItem: ActionItem;
     try {
@@ -691,13 +691,24 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
-  focusDetail(): void {
-    // this is only convenient if on the web browser proper.
-    if (this.platform !== 'web') { return; }
-    // if (!this.ibGib || this.gib === 'gib') {
-    //   this.actionDetailVisible = false;
-    //   return;
-    // }
+  /**
+   * Focuses the action bar detail, deciding if it's
+   * comment/import or whatever.
+   */
+  focusDetail({
+    force
+  }: {
+    /**
+     * I'm adding this because when the user presses the button, you want to set
+     * the focus even if on mobile. But if it's auto-focusing because of, e.g.,
+     * the page refreshing automatically, then it's annoying on the mobile
+     * because the keyboard pops up.
+     */
+    force?: boolean,
+  } = {}): void {
+    // this is usually only convenient if on the web browser proper.
+    if (this.platform !== 'web' && !force) { return; }
+
     if (this.actionDetailMode === 'comment') {
       setTimeout(() => this.textareaComment.setFocus());
     } else if (this.actionDetailMode === 'import') {

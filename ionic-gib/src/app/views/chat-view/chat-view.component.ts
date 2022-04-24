@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Input, ChangeDetectorRef, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, Input, ChangeDetectorRef, Output, EventEmitter } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 
 import * as h from 'ts-gib/dist/helper';
@@ -23,7 +23,7 @@ interface ChatItem extends IbgibItem {
   styleUrls: ['./chat-view.component.scss'],
 })
 export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
-  implements OnInit, OnDestroy {
+  implements OnInit {
 
   protected lc: string = `[${ChatViewComponent.name}]`;
 
@@ -83,8 +83,6 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
     }
 
   }
-
-  ngOnDestroy() {}
 
   async itemClicked(item: IbgibItem): Promise<void> {
     if (logalot) { console.log(`item: ${h.pretty(item)}`); }
