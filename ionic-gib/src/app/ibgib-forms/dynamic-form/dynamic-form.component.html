@@ -13,6 +13,7 @@
     <ion-item *ngFor="let item of items">
       <ion-label position="stacked"><strong>{{item.label}}: </strong></ion-label>
       <ion-input *ngIf="['text'].includes(item.dataType)"
+        [formControlName]="item.name"
         [placeholder]="item?.placeholder"
         [value]="item.value"
         [type]="item.dataType"
@@ -21,14 +22,15 @@
         debounce="1000"
       ></ion-input>
       <ion-textarea *ngIf="['textarea'].includes(item.dataType)"
+        [formControlName]="item.name"
         [placeholder]="item?.placeholder"
         [value]="item.value"
         (ionChange)="handleTextChanged($event.target.value, item)"
         [readonly]="item.readonly"
         debounce="1000" spellcheck="true" autoGrow="true"
       ></ion-textarea>
-      <ion-select
-        *ngIf="['checkbox'].includes(item.dataType)"
+      <ion-select *ngIf="['checkbox'].includes(item.dataType)"
+        [formControlName]="item.name"
         okText="Select"
         (ionChange)="handleSelectChange($event, item)"
         [compareWith]="compareStrings"
@@ -39,14 +41,17 @@
           <ion-label>{{ option }}</ion-label>
         </ion-select-option>
       </ion-select>
-      <ion-toggle
-        *ngIf="['toggle'].includes(item.dataType)"
+      <ion-toggle *ngIf="['toggle'].includes(item.dataType)"
+        [formControlName]="item.name"
         [checked]="item.value"
         [disabled]="!!item.readonly"
         >
       </ion-toggle>
+      <div></div>
 
       <ib-dynamic-form *ngIf="item.children?.length > 0"
+        [parentFormGroup]="rootFormGroup"
+        [formControlName]="item.name"
         [showSubmit]="false"
         [items]="item.children"
         (validated)="handleValidatedSubform($event)"

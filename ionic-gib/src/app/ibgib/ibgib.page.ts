@@ -26,7 +26,7 @@ import { createNewTag } from '../common/helper/tag';
 import { ActionBarComponent } from '../common/action-bar/action-bar.component';
 import { ChatViewComponent } from '../views/chat-view/chat-view.component';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({

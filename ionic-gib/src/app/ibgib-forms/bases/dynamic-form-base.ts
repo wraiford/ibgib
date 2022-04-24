@@ -34,6 +34,9 @@ export class DynamicFormBase implements OnInit, OnDestroy {
   @Input()
   rootFormGroup: FormGroup;
 
+  @Input()
+  parentFormGroup: FormGroup;
+
   _items: FormItemInfo[] = [];
   @Input()
   get items(): FormItemInfo[] {
@@ -50,16 +53,7 @@ export class DynamicFormBase implements OnInit, OnDestroy {
       if (this._items.length === 0) {
         if (newItems?.length > 0) {
           this._items = newItems;
-          // this.updateForm(); // spins off
-
-          // console.warn('DEBUG INTERVAL, REMOVE')
-          // console.warn('DEBUG INTERVAL, REMOVE')
-          // console.warn('DEBUG INTERVAL, REMOVE')
-          // // testing binding
-          // setInterval(() => {
-          //   this.updateForm(); // spins off
-          //   this._items.forEach(item => item.value += 'x')
-          // }, 5000);
+          this.updateForm(); // spins off
         } else {
           if (logalot) { console.log(`${lc} tried to set empty items (I: 18cb6a7839225ed886678022bf4b7122)`); }
         }
@@ -262,6 +256,7 @@ export class DynamicFormBase implements OnInit, OnDestroy {
       }
 
       // start with an empty form group...
+      debugger;
       this.rootFormGroup = this.fb.group({});
 
       // add entries for each form item info
@@ -298,23 +293,29 @@ export class DynamicFormBase implements OnInit, OnDestroy {
       if (logalot) { console.log(`${lc} starting...`); }
       const validators: (ValidatorFn | AsyncValidatorFn)[] = [];
 
-      if (item.required) { validators.push(Validators.required); }
-      if (item.min || item.min === 0) { validators.push(Validators.min(item.min)); }
-      if (item.max || item.max === 0) { validators.push(Validators.max(item.max)); }
+      if (item.children?.length > 0) {
+        // it's a subform
+      } else {
+        // it's a leaf node concrete control
 
-      if (item.fnValid) {
-        // const fnValid_Angular: (control: AbstractControl) => {[key: string]: boolean} | null =
-        const fnValid_Angular: ValidatorFn = (control) => {
-          let itemIsValid = item.fnValid(<string|number>control.value);
-          if (itemIsValid) {
-            return null;
-          } else {
-            // invalid
-            return {[item.name+'_error']: true};
-          }
-          return null; // just for starters...
-        };
-        validators.push(fnValid_Angular);
+        if (item.required) { validators.push(Validators.required); }
+        if (item.dataType === 'number') {
+          if (item.min || item.min === 0) { validators.push(Validators.min(item.min)); }
+          if (item.max || item.max === 0) { validators.push(Validators.max(item.max)); }
+        }
+
+        if (item.regexp) { validators.push(Validators.pattern(item.regexp)); }
+
+        if (item.fnValid) {
+          // convert the fnValid to an Angular ValidatorFn
+          const fnValid_Angular: ValidatorFn = (control) => {
+            return item.fnValid(<string|number>control.value) ?
+              null :
+              {[item.name]: true};
+          };
+          validators.push(fnValid_Angular);
+        }
+
       }
 
       return validators;
@@ -328,6 +329,7 @@ export class DynamicFormBase implements OnInit, OnDestroy {
 
   async handleSubmit(): Promise<void> {
     console.log('submitted');
+    debugger;
   }
 
 
