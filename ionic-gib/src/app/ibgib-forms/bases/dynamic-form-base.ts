@@ -116,6 +116,13 @@ export class DynamicFormBase implements OnInit, OnDestroy {
   @Output()
   cancel: EventEmitter<void> = new EventEmitter<void>();
 
+
+  /**
+   * If true, will show the submit button.
+   */
+  @Input()
+  showSubmit: boolean = true;
+
   constructor(
     protected fb: FormBuilder,
   ) {
@@ -292,6 +299,23 @@ export class DynamicFormBase implements OnInit, OnDestroy {
       const validators: (ValidatorFn | AsyncValidatorFn)[] = [];
 
       if (item.required) { validators.push(Validators.required); }
+      if (item.min || item.min === 0) { validators.push(Validators.min(item.min)); }
+      if (item.max || item.max === 0) { validators.push(Validators.max(item.max)); }
+
+      if (item.fnValid) {
+        // const fnValid_Angular: (control: AbstractControl) => {[key: string]: boolean} | null =
+        const fnValid_Angular: ValidatorFn = (control) => {
+          let itemIsValid = item.fnValid(<string|number>control.value);
+          if (itemIsValid) {
+            return null;
+          } else {
+            // invalid
+            return {[item.name+'_error']: true};
+          }
+          return null; // just for starters...
+        };
+        validators.push(fnValid_Angular);
+      }
 
       return validators;
     } catch (error) {

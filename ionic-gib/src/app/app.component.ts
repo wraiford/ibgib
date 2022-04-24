@@ -26,6 +26,7 @@ import {
 } from './common/helper/prompt-functions';
 import { createNewTag } from './common/helper/tag';
 import { validateIbGibIntrinsically, spaceNameIsValid } from './common/helper/validate';
+import { environment } from '../environments/environment';
 
 // #endregion imports & some init
 
@@ -170,6 +171,8 @@ export class AppComponent extends IbgibComponentBase
     super(common, ref);
     const lc = `${this.lc}[ctor]`;
 
+    console.log(`${lc} appVersion: ${environment.appVersion}`);
+
     console.time(c.GLOBAL_TIMER_NAME);
     // interstitial calls throughout code as desired
     setTimeout(() => { console.timeEnd(c.GLOBAL_TIMER_NAME); }, 10000);
@@ -248,13 +251,13 @@ export class AppComponent extends IbgibComponentBase
           this.initializing = false;
           await this.updateIbGib(addr);
         }
-          // setTimeout(() => {
-          //   this.handleAddRobbot();
-          //   console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
-          //   console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
-          //   console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
-          //   console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
-          // }, 1000);
+          setTimeout(() => {
+            this.handleAddRobbot();
+            console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
+            console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
+            console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
+            console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
+          }, 1000);
 
         // navToAddr = this.tagsAddr;
         this.common.platform.backButton.subscribeWithPriority(10, async () => {

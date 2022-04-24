@@ -47,7 +47,7 @@ export interface FormItemInfo {
   /**
    * Only required if wanting to do validation beyond regexp/required.
    */
-  fnValid?: (value: string) => boolean;
+  fnValid?: (value: string | number) => boolean;
   /**
    * Error message that shows up **when using `fnValid`**.
    *

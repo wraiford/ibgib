@@ -45,8 +45,16 @@
         [disabled]="!!item.readonly"
         >
       </ion-toggle>
+
+      <ib-dynamic-form *ngIf="item.children?.length > 0"
+        [showSubmit]="false"
+        [items]="item.children"
+        (validated)="handleValidatedSubform($event)"
+        (cancel)="handleCancel()"
+        >
+      </ib-dynamic-form>
     </ion-item>
-    <ion-button type="submit" expand="full">Submit</ion-button>
+    <ion-button *ngIf="showSubmit" type="submit" expand="full">Submit</ion-button>
   </form>
 
 </div>
