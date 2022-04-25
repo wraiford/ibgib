@@ -9,7 +9,7 @@ import { FormItemInfo } from '../types/form-items';
 
 console.log(`ibgib reminder: dynamic forms module doesn't use global logalot/debugBorder from constants file...(delete this reminder at some point when refactor common module and constants)`);
 const logalot = c.GLOBAL_LOG_A_LOT || false;
-const debugBorder = c.GLOBAL_DEBUG_BORDER || false || true;
+const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
   selector: 'ib-dynamic-form',

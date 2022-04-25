@@ -42,12 +42,24 @@ export interface FormItemInfo {
   placeholder?: string;
   /**
    * Validation regular expression
+   *
+   * If you change this on a field, you should always change
+   * the {@link regexpErrorMsg} !
+
+   * @see {@link regexpErrorMsg}
    */
   regexp?: RegExp;
   /**
+   * If provided, this tries to give guidance on regexp failures.
+   *
+   * NOTE this can always get out of sync with the regexp!
+   * @see {@link regexp}
+   */
+  regexpErrorMsg?: string;
+  /**
    * regexp.source
    */
-  regexpSource?: string;
+  // regexpSource?: string;
   /**
    * Only required if wanting to do validation beyond regexp/required.
    */
@@ -132,6 +144,15 @@ export interface FormItemInfo {
    * not sure about using this...hmm
    */
   control?: any;
+  /**
+   * If control is set, then this should be a randomly generated uuid
+   * that can be uniquely associated to the control.
+   */
+  uuid?: string;
+  /**
+   * If true, then the control is errored and contains error information.
+   */
+  errored?: boolean;
 }
 
 // /** @see {@link FormItemDataType} */

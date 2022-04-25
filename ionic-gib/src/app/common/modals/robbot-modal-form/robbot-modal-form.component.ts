@@ -41,31 +41,7 @@ export class RobbotModalFormComponent
 
   protected lc: string = `[${RobbotModalFormComponent.name}]`;
 
-  fields: { [name: string]: FormItemInfo } = {
-    name: {
-      name: "name",
-      description: "A robbot's name. Doesn't have to be unique, no spaces, up to 32 alphanumerics/underscores in length.",
-      label: "Name",
-      placeholder: `e.g. "bob_the_cool_robbot"`,
-      regexp: getRegExp({min: 1, max: 32, noSpaces: true}),
-      required: true,
-    },
-    description: {
-      name: "description",
-      description: `Description/notes for this robbot. Only letters, underscores and ${c.SAFE_SPECIAL_CHARS}`,
-      label: "Description",
-      placeholder: `Describe these robbot settings here...`,
-      regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
-    },
-    // id: {
-    //   name: "id",
-    //   description: `auto-generated id for this robbot`,
-    //   label: "Id",
-    //   placeholder: `Describe these robbot settings here...`,
-    //   regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
-    // },
-
-  }
+  fields: { [name: string]: FormItemInfo } = { }
 
   @Input()
   robbotProviderNames: string[] = [];
@@ -75,7 +51,6 @@ export class RobbotModalFormComponent
       description: `Type of robbot`,
       label: "Type",
       regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
-      regexpSource: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}).source,
       dataType: 'checkbox',
       multiple: false,
     };
@@ -134,14 +109,14 @@ export class RobbotModalFormComponent
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
-      setTimeout(() => {
-        console.warn('setting default value to random robbot!!!')
-        console.warn('setting default value to random robbot!!!')
-        console.warn('setting default value to random robbot!!!')
-        console.warn('setting default value to random robbot!!!')
-        this.handleItemSelected(this.subformItems[0]);
+      // setTimeout(() => {
+        // console.warn('setting default value to random robbot!!!')
+        // console.warn('setting default value to random robbot!!!')
+        // console.warn('setting default value to random robbot!!!')
+        // console.warn('setting default value to random robbot!!!')
+        // this.handleItemSelected(this.subformItems[0]);
         // this.selectTypeItem.defaultValue = 'RandomRobbot_V1'; //debug only!
-      }, 1000);
+      // }, 1000);
       // spin off initialize (can't await in ctor)
       // this.initialize();
 
@@ -270,7 +245,6 @@ export class RobbotModalFormComponent
   async handleItemSelected(item: FormItemInfo): Promise<void> {
     const lc = `${this.lc}[${this.handleItemSelected.name}]`;
     try {
-      debugger;
       if (logalot) { console.log(`${lc} starting...`); }
       let factories =
         this.robbotFactories.filter(x => x.getInjectionName() === item.value)

@@ -40,7 +40,7 @@ export class EncryptionModalFormComponent
     },
     description: {
       name: "description",
-      description: `Description/notes for this encryption. Only letters, underscores and ${c.SAFE_SPECIAL_CHARS}`,
+      description: `Description/notes for this encryption.`,
       label: "Description (public)",
       placeholder: `Describe these encryption settings here...`,
       regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),

@@ -10,10 +10,11 @@ import { RobbotData_V1, RobbotFormBuilder, RobbotIbGib_V1, RobbotOutputMode, Rob
 import { getFnAlert } from '../../helper/prompt-functions';
 import { FormItemInfo, DynamicForm } from '../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
-import { getRegExp, patchObject } from '../../helper/utils';
+import { getRegExp, patchObject, getIdPool } from '../../helper/utils';
 import { WitnessFormBuilder } from '../../helper/witness';
 import { getRobbotIb } from '../../helper/robbot';
 import { TransformResult } from 'ts-gib';
+
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -35,11 +36,8 @@ export interface RandomRobbotRel8ns_V1 extends RobbotRel8ns_V1 {
  *
  */
 export class RandomRobbot_V1 extends RobbotBase_V1 {
-    protected lc: string = `${super.lc}[${RandomRobbot_V1.name}]`;
+    protected lc: string = `[${RandomRobbot_V1.name}]`;
 
-    /**
-     *
-     */
     constructor(initialData?: RobbotData_V1, initialRel8ns?: RobbotRel8ns_V1) {
         super(initialData, initialRel8ns);
         const lc = `${this.lc}[ctor]`;
@@ -174,6 +172,7 @@ export class RandomRobbot_V1_Factory
             let robbotIbGib = new RandomRobbot_V1(null, null);
             robbotIbGib.loadDto(robbotDto);
             resRobbot.newIbGib = robbotIbGib;
+            if (logalot) { console.log(`${lc} robbotDto: ${h.pretty(robbotDto)} (I: af9d16de46d6e6d75b2a21312d72d922)`); }
 
             return <TransformResult<RandomRobbot_V1>>resRobbot;
         } catch (error) {
@@ -184,15 +183,18 @@ export class RandomRobbot_V1_Factory
         }
     }
 
-    witnessToForm({ witness }: { witness: RandomRobbot_V1; }): Promise<DynamicForm> {
+    async witnessToForm({ witness }: { witness: RandomRobbot_V1; }): Promise<DynamicForm> {
         const lc = `${this.lc}[${this.witnessToForm.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
             let {data} = witness;
             // We do the RobbotFormBuilder specific functions first, because of
+            if (logalot) { console.log(`${lc} data: ${h.pretty(data)} (I: d4dc7619a4da932badbd7738bb4ebd22)`); }
+            const idPool = await getIdPool({n: 100});
             // type inference in TS
             let form = new RobbotFormBuilder()
-                .with<RobbotFormBuilder>()
+                .forA({what: 'robbot'})
+                .with<RobbotFormBuilder>({idPool})
                 .outputMode({of: data.outputMode})
                 .outputPrefix({of: data.outputPrefix})
                 .outputSuffix({of: data.outputSuffix})

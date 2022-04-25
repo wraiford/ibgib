@@ -9,11 +9,12 @@
   [style.border-style]="debugBorderStyle"
   >
 
-  <form [formGroup]="rootFormGroup" (ngSubmit)="handleSubmit()">
-    <ion-item *ngFor="let item of items">
-      <ion-label position="stacked"><strong>{{item.label}}: </strong></ion-label>
+  <form [formGroup]="rootFormGroup" (ngSubmit)="handleSubmit()"
+    >
+    <ion-item *ngFor="let item of items" [title]="item.description">
+      <ion-label position="stacked"><strong>{{item.required ? '*' : ''}}{{item.label}}: </strong></ion-label>
       <ion-input *ngIf="['text'].includes(item.dataType)"
-        [formControlName]="item.name"
+        [formControlName]="item.uuid"
         [placeholder]="item?.placeholder"
         [value]="item.value"
         [type]="item.dataType"
@@ -22,15 +23,15 @@
         debounce="1000"
       ></ion-input>
       <ion-textarea *ngIf="['textarea'].includes(item.dataType)"
-        [formControlName]="item.name"
+        [formControlName]="item.uuid"
         [placeholder]="item?.placeholder"
         [value]="item.value"
         (ionChange)="handleTextChanged($event.target.value, item)"
         [readonly]="item.readonly"
-        debounce="1000" spellcheck="true" autoGrow="true"
+        debounce="1000"
       ></ion-textarea>
       <ion-select *ngIf="['checkbox'].includes(item.dataType)"
-        [formControlName]="item.name"
+        [formControlName]="item.uuid"
         okText="Select"
         (ionChange)="handleSelectChange($event, item)"
         [compareWith]="compareStrings"
@@ -42,26 +43,29 @@
         </ion-select-option>
       </ion-select>
       <ion-toggle *ngIf="['toggle'].includes(item.dataType)"
-        [formControlName]="item.name"
+        [formControlName]="item.uuid"
         [checked]="item.value"
         [disabled]="!!item.readonly"
         >
       </ion-toggle>
       <!-- <ion-text *ngIf="showError(item)" color="danger">{{getError(item)}}</ion-text> -->
-      <ib-dynamic-form *ngIf="item.children?.length > 0"
+      <!-- <ion-text *ngIf="showError(item)" color="danger">wakka</ion-text> -->
+      <!-- <ib-dynamic-form *ngIf="item.children?.length > 0"
         [parentFormGroup]="rootFormGroup"
-        [formControlName]="item.name"
+        [formControlName]="item.uuid"
         [showSubmit]="false"
         [items]="item.children"
         (validated)="handleValidatedSubform($event)"
         (cancel)="handleCancel()"
         >
-      </ib-dynamic-form>
+      </ib-dynamic-form> -->
+      <ion-note *ngIf="item.errored && !getControl(item).pristine" slot="error">{{getError(item)}}</ion-note>
+      <!-- <ion-note slot="helper">{{item.description}}</ion-note> -->
     </ion-item>
-    <div *ngIf="hasErrors">
+    <!-- <div *ngIf="hasErrors"> -->
       <!-- <ion-text color="danger">there are errors</ion-text> -->
-      <ion-text color="danger">{{controlValidationErrors}}</ion-text>
-    </div>
+      <!-- <ion-text color="danger">{{controlValidationErrors}}</ion-text> -->
+    <!-- </div> -->
 
     <ion-button *ngIf="showSubmit" type="submit" expand="full">Submit</ion-button>
   </form>

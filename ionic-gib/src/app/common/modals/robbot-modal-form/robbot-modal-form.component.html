@@ -12,12 +12,10 @@
     [items]="formItems"
     (validated)="handleValidated($event)"
     (cancel)="handleCancel()"
-    (itemSelect)="handleItemSelected($event)">
+    (itemSelect)="handleItemSelected($event)"
+    [showSubmit]="false"
+    >
   </ib-dynamic-form>
-  <!-- <ion-text
-    *ngIf="subformItems?.length > 0">
-    should show sub form yo
-  </ion-text> -->
   <ib-dynamic-form #subForm
     *ngIf="subformItems?.length > 0"
     [items]="subformItems"

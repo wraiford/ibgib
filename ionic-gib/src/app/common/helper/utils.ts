@@ -1,4 +1,8 @@
+import * as h from 'ts-gib/dist/helper';
+
 import * as c from '../constants';
+
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 export function groupBy<TItem>({
     items,
@@ -261,6 +265,28 @@ export function patchObject({
 
         // reached target depth, so finally set the value
         targetObj[key] = value;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+export async function getIdPool({
+    n,
+}: {
+    n: number,
+}): Promise<string[]> {
+    const lc = `[${getIdPool.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting...`); }
+        let result: string[] = [];
+        for (let i = 0; i < n; i++) {
+            const id = await h.getUUID();
+            result.push(id.substring(0,16));
+        }
+        return result;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

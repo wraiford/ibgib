@@ -160,6 +160,7 @@ export interface RobbotIbGib_V1
 }
 
 export class RobbotFormBuilder extends WitnessFormBuilder {
+    protected lc: string = `${super.lc}[${RobbotFormBuilder.name}]`;
 
     constructor() {
         super();
@@ -173,20 +174,21 @@ export class RobbotFormBuilder extends WitnessFormBuilder {
         of: string,
         required?: boolean,
     }): RobbotFormBuilder {
-        this.items.push({
-          // witness.data.outputMode
-          name: "outputMode",
-          description: `Technical setting which proscribes how the robbot outputs its beliefs.`,
-          label: "Output Mode",
-          regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
-          regexpSource: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}).source,
-          dataType: 'checkbox',
-          selectOptions: [
-              RobbotOutputMode.context,
-              RobbotOutputMode.subcontext,
-          ],
-          value: of,
-          required,
+        this.addItem({
+            // witness.data.outputMode
+            name: "outputMode",
+            description: `Technical setting which proscribes how the robbot outputs its beliefs.`,
+            label: "Output Mode",
+            regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
+            regexpErrorMsg: `0 to 155 alphanumerics or chars: ${c.SAFE_SPECIAL_CHARS}`,
+            // regexpSource: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}).source,
+            dataType: 'checkbox',
+            selectOptions: [
+                RobbotOutputMode.context,
+                RobbotOutputMode.subcontext,
+            ],
+            value: of,
+            required,
         });
         return this;
     }
@@ -198,13 +200,14 @@ export class RobbotFormBuilder extends WitnessFormBuilder {
         of: string,
         required?: boolean,
     }): RobbotFormBuilder {
-        this.items.push({
+        this.addItem({
             // witness.data.outputPrefix
             name: "outputPrefix",
             description: `Technical setting that sets a prefix for all text output of the robbot.`,
             label: "Output Prefix",
             regexp: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}),
-            regexpSource: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}).source,
+            regexpErrorMsg: `0 to 256 alphanumerics or chars: ${c.SAFE_SPECIAL_CHARS}`,
+            // regexpSource: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}).source,
             dataType: 'textarea',
             value: of,
             required,
@@ -219,13 +222,14 @@ export class RobbotFormBuilder extends WitnessFormBuilder {
         of: string,
         required?: boolean,
     }): RobbotFormBuilder {
-        this.items.push({
+        this.addItem({
             // witness.data.outputSuffix
             name: "outputSuffix",
             description: `Technical setting that sets a suffix for all text output of the ${this.what}. (like a signature)`,
             label: "Output Suffix",
             regexp: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}),
-            regexpSource: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}).source,
+            regexpErrorMsg: `0 to 256 alphanumerics or chars: ${c.SAFE_SPECIAL_CHARS}`,
+            // regexpSource: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}).source,
             dataType: 'textarea',
             value: of,
             required,

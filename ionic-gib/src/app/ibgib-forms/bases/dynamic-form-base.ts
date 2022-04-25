@@ -12,6 +12,7 @@ import * as h from 'ts-gib/dist/helper';
 import * as c from '../dynamic-form-constants';
 // import { CommonService } from '../../services/common.service';
 import { FormItemInfo } from '../../ibgib-forms/types/form-items';
+import { Subscription } from 'rxjs';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -42,7 +43,6 @@ export class DynamicFormBase implements OnInit, OnDestroy {
   get items(): FormItemInfo[] {
     const lc = `${this.lc}[get items]`;
     if (logalot) { console.log(`${lc} returning items (${h.pretty(this._items)}) (I: 243b674d8659b9adaed0fb2905fd3c22)`); }
-    // debugger;
     return this._items;
   }
   set items(newItems: FormItemInfo[]) {
@@ -103,7 +103,6 @@ export class DynamicFormBase implements OnInit, OnDestroy {
     controlNames.forEach(controlName => {
       const control = controlMap[controlName];
       if (control.errors) {
-        if ((<any>control).item) { debugger; }
         const errorNames = Object.keys(control.errors);
         validationErrorStrings.push(`${controlName}: ${errorNames.join(', ')}`);
       }
@@ -115,16 +114,12 @@ export class DynamicFormBase implements OnInit, OnDestroy {
     //   return !!errorMap;
     // }).map(control => {
     //   if (!control.errors) {
-    //     debugger;
     //   }
 
     //   const item: FormItemInfo = (<any>control).item;
-    //     debugger;
     //   if (item) {
-    //     debugger;
     //   }
     //   if (item?.fnErrorMsg) {
-    //     debugger;
     //     return item.fnErrorMsg + '\n' + Object.keys(control.errors).join('\n');
     //   } else {
     //     return control. Object.keys(control.errors).join('\n');
@@ -190,6 +185,10 @@ export class DynamicFormBase implements OnInit, OnDestroy {
   ngOnDestroy() {
     const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
     if (logalot) { console.log(`${lc}`); }
+    Object.values(this.validationSubscriptions).forEach(sub => {
+      if (sub) { sub.unsubscribe(); }
+    });
+    this.validationSubscriptions = {};
   }
 
   async handleSaveClick(): Promise<void> {
@@ -289,6 +288,8 @@ export class DynamicFormBase implements OnInit, OnDestroy {
     this.showHelp = !this.showHelp;
   }
 
+  validationSubscriptions: {[key: string]: Subscription} = { }
+
   async updateForm(): Promise<void> {
     const lc = `${this.lc}[${this.updateForm.name}]`;
     try {
@@ -298,11 +299,17 @@ export class DynamicFormBase implements OnInit, OnDestroy {
         return;
       }
       this.updating = true;
+      const randomIds: string[] = [];
+      for (let i = 0; i < 1000; i++) {
+        const id = await h.getUUID();
+        randomIds.push(id.substring(0, 16));
+      }
 
       // await h.delay(2000);
 
-      const getControl = (item: FormItemInfo, validators: (ValidatorFn | AsyncValidatorFn)[]) => {
+      const newControl = async (item: FormItemInfo, validators: (ValidatorFn | AsyncValidatorFn)[]) => {
         let control: AbstractControl;
+        item.uuid = randomIds.pop();
         if (item.children) {
           throw new Error(`control with children not implemented yet (E: e502388413bcf4c74926b186d9265c22)`);
           // control = this.fb.array([
@@ -310,28 +317,38 @@ export class DynamicFormBase implements OnInit, OnDestroy {
           // ]);
         } else {
           if (logalot) { console.log(`${lc} adding standard control (I: aafdaadf4b4e0e659bd6a53d52924622)`); }
-          control = this.fb.control(item.defaultValue ?? '', validators);
+          control = this.fb.control(item.value ?? item.defaultValue ?? '', validators);
         }
 
-        // (<any>control).item = item;
+        this.validationSubscriptions[item.uuid] =
+          control.statusChanges.subscribe(status => {
+            if (logalot) { console.log(`${lc} item (${item.name}, ${item.uuid}) validation changed. ${status} (I: a4737572c8244242fa2a44eb18c96222)`); }
+            if (status === 'INVALID') {
+              item.errored = true;
+            } else if (item.errored) {
+              delete item.errored;
+            }
+          });
+
+        // item.control = control;
+
         return control;
       }
 
       // start with an empty form group...
-      // debugger;
       this.rootFormGroup = this.fb.group({});
 
       // add entries for each form item info
       for (let i = 0; i < this._items.length; i++) {
         const item = this._items[i];
         const validators = await this.getValidators({item});
-        const control = getControl(item, validators);
+        const control = await newControl(item, validators);
         if (item.children) {
           throw new Error(`not impl (E: 505be7ec1284ec23e3049b58c6880822)`);
           let formArray = <FormArray>control;
         } else {
           // this.rootFormGroup.addControl(item.name, this.fb.control('', validators));
-          this.rootFormGroup.addControl(item.name, control);
+          this.rootFormGroup.addControl(item.uuid, control);
         }
       }
 
@@ -374,7 +391,7 @@ export class DynamicFormBase implements OnInit, OnDestroy {
           const fnValid_Angular: ValidatorFn = (control) => {
             return item.fnValid(<string|number>control.value) ?
               null :
-              {[item.name]: true};
+              {[item.uuid]: true};
           };
           validators.push(fnValid_Angular);
         }
@@ -392,7 +409,6 @@ export class DynamicFormBase implements OnInit, OnDestroy {
 
   async handleSubmit(): Promise<void> {
     console.log('submitted');
-    debugger;
   }
 
 
@@ -400,7 +416,6 @@ export class DynamicFormBase implements OnInit, OnDestroy {
     const lc = `${this.lc}[${this.handleTextChanged.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
-      // debugger;
       console.log(`${lc} text: ${text}`);
       item.value = text;
     } catch (error) {
@@ -440,30 +455,60 @@ export class DynamicFormBase implements OnInit, OnDestroy {
     }
   }
 
+  getControl(item: FormItemInfo): AbstractControl {
+    const lc = `${this.lc}[${this.getControl.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (!item) { return undefined; }
+      if (!item.uuid) { throw new Error(`(UNEXPECTED) item.uuid required (E: 5f1a9fd7febf421fa579ec62992b9aee)`); }
+
+      // get the control based on the uuid
+      const controlNames = Object.keys(this.rootFormGroup.controls);
+      const controlMaybe = controlNames
+          .filter(controlName => controlName === item.uuid)
+          .map(controlName => this.rootFormGroup.controls[controlName]);
+
+      if (controlMaybe.length === 0) { throw new Error(`(UNEXPECTED) no control found for item (${item.name}, ${item.uuid}) (E: 1eb112f17981a08e09c928eed929a922)`); }
+
+      return controlMaybe[0];
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
   /**
    * Combines if we are showing errors (e.g. if form submitted vs. pristine) and
    * if the item has an error.
    */
-  getError({
-    item,
-  }: {
-    item: FormItemInfo,
-  }): string {
+  getError(item: FormItemInfo): string {
     const lc = `${this.lc}[${this.getError.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       if (!item) { return ''; }
-      if (item.control) {
-        let control = <AbstractControl>item.control;
-        if (control.errors) {
-          if ((<any>control).item) { debugger; }
-          const errorNames = Object.keys(control.errors);
-          return `${item.name}: ${errorNames.join(', ')}`;
-        }
-      } else {
-        throw new Error(`(UNEXPECTED) item.control assumed (E: 4e22c5b7ed7ff4d354aeb156bf42f122)`);
+      if (!item.errored) { return ''; }
+      if (!item.uuid) { throw new Error(`item.uuid required (E: c29a3ad78c2916663e755217ee6c4122)`); }
+
+      const control = this.getControl(item);
+      if (control.errors) {
+        const errorNames = Object.keys(control.errors);
+        const errorStrings = errorNames.map(errorName => {
+          if (errorName === 'required') {
+            return `${item.name} is required.`
+          } else if (errorName === 'pattern') {
+            return item.regexpErrorMsg ?
+              `${item.name} ${item.regexpErrorMsg} (pattern: /${item.regexp?.source}/)` :
+              `${item.name} must match the pattern /${item.regexp?.source}/`;
+          } else {
+            return errorName;
+          }
+        });
+        return `${errorStrings.join('\n')}`;
       }
     } catch (error) {
+      debugger;
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
