@@ -25,6 +25,10 @@ export interface FormItemInfo {
    */
   value?: string | number | boolean;
   /**
+   * If set, the value will default to this.
+   */
+  defaultValue?: string | number | boolean;
+  /**
    * Label for the property on a form
    */
   label?: string;
@@ -122,6 +126,12 @@ export interface FormItemInfo {
    * If not a checkbox, then not sure what's up.
    */
   multiple?: boolean;
+  /**
+   * Reference to associated control...
+   *
+   * not sure about using this...hmm
+   */
+  control?: any;
 }
 
 // /** @see {@link FormItemDataType} */

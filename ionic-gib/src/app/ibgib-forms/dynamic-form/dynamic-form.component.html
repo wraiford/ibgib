@@ -47,8 +47,7 @@
         [disabled]="!!item.readonly"
         >
       </ion-toggle>
-      <div></div>
-
+      <!-- <ion-text *ngIf="showError(item)" color="danger">{{getError(item)}}</ion-text> -->
       <ib-dynamic-form *ngIf="item.children?.length > 0"
         [parentFormGroup]="rootFormGroup"
         [formControlName]="item.name"
@@ -59,6 +58,11 @@
         >
       </ib-dynamic-form>
     </ion-item>
+    <div *ngIf="hasErrors">
+      <!-- <ion-text color="danger">there are errors</ion-text> -->
+      <ion-text color="danger">{{controlValidationErrors}}</ion-text>
+    </div>
+
     <ion-button *ngIf="showSubmit" type="submit" expand="full">Submit</ion-button>
   </form>
 

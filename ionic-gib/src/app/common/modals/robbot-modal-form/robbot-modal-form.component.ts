@@ -134,6 +134,14 @@ export class RobbotModalFormComponent
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
+      setTimeout(() => {
+        console.warn('setting default value to random robbot!!!')
+        console.warn('setting default value to random robbot!!!')
+        console.warn('setting default value to random robbot!!!')
+        console.warn('setting default value to random robbot!!!')
+        this.handleItemSelected(this.subformItems[0]);
+        // this.selectTypeItem.defaultValue = 'RandomRobbot_V1'; //debug only!
+      }, 1000);
       // spin off initialize (can't await in ctor)
       // this.initialize();
 
@@ -262,7 +270,7 @@ export class RobbotModalFormComponent
   async handleItemSelected(item: FormItemInfo): Promise<void> {
     const lc = `${this.lc}[${this.handleItemSelected.name}]`;
     try {
-      // debugger;
+      debugger;
       if (logalot) { console.log(`${lc} starting...`); }
       let factories =
         this.robbotFactories.filter(x => x.getInjectionName() === item.value)
