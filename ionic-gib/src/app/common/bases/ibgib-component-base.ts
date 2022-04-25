@@ -271,6 +271,41 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     }
 
     /**
+     * Updates this component because a newer ibgib has been found.
+     *
+     * Default implementation merely updates this.addr with the latestAddr,
+     * which triggers a call to `updateIbGib`. Override this for custom updating
+     * specific only to updateibGib notifications.
+     *
+     * This should only be triggered once a genuinely new ibgib on the timeline
+     * tjp occurs, so checking for different addrs should be unnecessary.
+     */
+    async updateIbGib_PerLatestEventNotification({
+        latestAddr,
+        latestIbGib,
+        tjpAddr,
+    }: LatestEventInfo): Promise<void> {
+        const lc = `${this.lc}[${this.updateIbGib_PerLatestEventNotification.name}]`;
+        try {
+            if (logalot || true) { console.log(`${lc} starting...`); }
+
+            // cheap double-check assertion
+            if (latestAddr === this.addr) {
+                console.warn(`${lc} (UNEXPECTED) this function is expected to fire only when latest is already checked to be different, but latestAddr (${latestAddr}) === this.addr (${this.addr}) (W: a23c8187caef4308b1d9f85b3aa8bedc)`);
+                return;
+            }
+
+            this.addr = latestAddr; // results in `updateIbGib` call
+
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    /**
      * Loads the ibGib's full record, using the files service.
      *
      * This is not required for all components!
@@ -481,26 +516,68 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         const lc = `${this.lc}[${this.handleIbGib_NewLatest.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`)}
-            if (!this.tjp) { await this.loadTjp(); }
-            if (!this.tjp) {
-                if (logalot) { console.log(`${lc} no tjp, so returning early.`); }
+
+            if (!this.ibGib) {
+                if (logalot) { console.log(`${lc} this.ibGib is falsy, returning early. (I: b75c97830164f4b08c658717a3b20122)`); }
                 return;
             }
-            if (this.tjpAddr !== info.tjpAddr) {
-                if (logalot) { console.log(`${lc} tjpAddr isn't us, so returning early.`); }
+
+            // check if different addr first because moderate likelihood and cheap to check
+            if (this.addr && this.addr === info.latestAddr) {
+                if (logalot) { console.log(`${lc} already latest, so returning early. (I: c3331d8298dfc1d5e8bce69ecc645e22)`); }
                 return;
             }
-            if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)}`); }
+
+            // check paused & errored early because less likely, but extremely cheap to check
             if (this.paused) {
-                if (logalot) { console.log(`${lc} this.paused truthy, so returning early.`); }
+                if (logalot) { console.log(`${lc} this.paused truthy, so returning early. (I: 4d4b4bd3f01a4c7fadb6eab9d5cb7e50)`); }
                 return;
             }
             if (this.errored) {
-                if (logalot) { console.log(`${lc} this.errored truthy, so returning early.`); }
+                if (logalot) { console.log(`${lc} this.errored truthy, so returning early. (I: 8aa06ebb7fec43f78cb710088c8ecbc7)`); }
                 return;
             }
-            if (logalot) { console.log(`${lc} setting this.addr (${this.addr}) to info.latestAddr (${info.latestAddr}).`); }
-            this.addr = info.latestAddr; // results in `updateIbGib` call
+
+            // if we don't have a timeline, then we won't update no matter what.
+            // odds are that if we care about timelines, tjp is already loaded
+            if (!this.tjp || !this.tjpAddr) { await this.loadTjp(); }
+            if (!this.tjp) {
+                if (logalot) { console.log(`${lc} no tjp, so returning early. (I: 342575ac8de44c258965355dbd92a515)`); }
+                return;
+            }
+
+            // if it's not for this ibgib's timeline, then dont update
+            if (this.tjpAddr !== info.tjpAddr) {
+                if (logalot) { console.log(`${lc} tjpAddr isn't us, so returning early. (I: c30f4da018224fb08df77adc98495a25)`); }
+                return;
+            }
+
+            // if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)} (I: c0483014944c43cdac5f8d296bb56e05)`); }
+            if (logalot) { console.log(`${lc} setting this.addr (${this.addr}) to info.latestAddr (${info.latestAddr}). (I: 74f2ce5803064578a5f4166ad045c1bf)`); }
+
+            // check manually comparing data
+            if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\nlatest info: ${JSON.stringify(info, null, 2)}`); }
+            let info_latestIbGib = info.latestIbGib;
+            if (!info_latestIbGib) {
+                let resGet = await this.common.ibgibs.get({addr: info.latestAddr});
+                if (resGet.success && resGet.ibGibs?.length === 1) {
+                    info_latestIbGib = resGet.ibGibs[0];
+                    info.latestIbGib = info_latestIbGib;
+                } else {
+                    console.error(`${lc} could not get latest ibgib that was published. (E: 85599b5cca4a4bba93578a3156c98b50)`);
+                    return; // returns
+                }
+            }
+
+            const isNewer = (info_latestIbGib.data?.n ?? -1) > (this.ibGib.data?.n ?? -1);
+            if (isNewer) {
+                await this.updateIbGib_PerLatestEventNotification(info);
+            } else {
+                console.warn(`${lc} ignoring "latest" info because it's not newer. We're going to register this.ibGib the new latest as a fix for recent test data. (W: c88d135984c39a2aaefd48620d913b22)`);
+                if (logalot) { console.log(`${lc} current: ${h.pretty(this.ibGib)}, "latest": ${h.pretty(info_latestIbGib)} (I: c89622ffc6ca1be7f668940c26fb5b22)`); }
+                // the following call is idempotent, so okay here in base class.
+                await this.common.ibgibs.registerNewIbGib({ibGib: this.ibGib});
+            }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             this.errored = true;

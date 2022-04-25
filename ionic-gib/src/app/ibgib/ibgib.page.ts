@@ -639,47 +639,94 @@ export class IbGibPage extends IbgibComponentBase
   async handleIbGib_NewLatest(info: LatestEventInfo): Promise<void> {
     const lc = `${this.lc}[${this.handleIbGib_NewLatest.name}]`;
     try {
-      if (!this.tjp || !this.tjpAddr) { await this.loadTjp(); }
-      if (!this.tjpAddr) {
-        if (logalot) { console.log(`${lc} no tjp, so ignoring latest. (I: 298b2557007a7f310436f4c7c3716722)`); }
-        return; // <<<< returns
-      }
-      if (this.tjpAddr !== info.tjpAddr) { return; }
+      await super.handleIbGib_NewLatest(info);
+      // leaving this in for awhile. I've restructured and this code is in base class.
+      // moving other updating code to updateIbGib_PerLatestEventNotification function
+      // if (!this.tjp || !this.tjpAddr) { await this.loadTjp(); }
+      // if (!this.tjpAddr) {
+      //   if (logalot) { console.log(`${lc} no tjp, so ignoring latest. (I: 298b2557007a7f310436f4c7c3716722)`); }
+      //   return; // <<<< returns
+      // }
+      // if (this.tjpAddr !== info.tjpAddr) { return; }
 
-      let info_latestIbGib = info.latestIbGib;
-      if (!info_latestIbGib) {
-        let resGet = await this.common.ibgibs.get({addr: info.latestAddr});
-        if (resGet.success && resGet.ibGibs?.length === 1) {
-          info_latestIbGib = resGet.ibGibs[0];
-        } else {
-          console.error(`${lc} could not get latest ibgib that was published. (E: 85599b5cca4a4bba93578a3156c98b50)`);
-          return; // returns
-        }
-      }
 
-      if (!this.ibGib) { return; }
+      // if (!this.ibGib) { return; }
 
-      if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)}`); }
-      const isNewer = (info_latestIbGib.data?.n ?? -1) > (this.ibGib.data?.n ?? -1);
-      if (isNewer) {
-          // for now, we'll just navigate to the latest addr
-          await this.go({
-            toAddr: info.latestAddr,
-            fromAddr: this.addr,
-          });
-        // }
-      } else {
-        console.warn(`${lc} ignoring "latest" info because it's not newer. We're going to register this.ibGib the new latest as a fix for recent test data. (W: c88d135984c39a2aaefd48620d913b22)`);
-        await this.common.ibgibs.registerNewIbGib({ibGib: this.ibGib});
-      }
+      // if (this.addr === info.latestAddr) {
+      //   if (logalot) { console.log(`${lc} latest is the same. returning early. (I: 5aa4a956d59cb0358f2ea1d79dba8322)`); }
+      //   return; // returns
+      // }
+
+      // // check manually comparing data
+      // if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\nlatest info: ${JSON.stringify(info, null, 2)}`); }
+      // let info_latestIbGib = info.latestIbGib;
+      // if (!info_latestIbGib) {
+      //   let resGet = await this.common.ibgibs.get({addr: info.latestAddr});
+      //   if (resGet.success && resGet.ibGibs?.length === 1) {
+      //     info_latestIbGib = resGet.ibGibs[0];
+      //   } else {
+      //     console.error(`${lc} could not get latest ibgib that was published. (E: 85599b5cca4a4bba93578a3156c98b50)`);
+      //     return; // returns
+      //   }
+      // }
+      // const isNewer = (info_latestIbGib.data?.n ?? -1) > (this.ibGib.data?.n ?? -1);
+      // if (isNewer) {
+      //     // for now, we'll just navigate to the latest addr
+      //     await this.go({
+      //       toAddr: info.latestAddr,
+      //       fromAddr: this.addr,
+      //     });
+      //   // }
+      // } else {
+      //   console.warn(`${lc} ignoring "latest" info because it's not newer. We're going to register this.ibGib the new latest as a fix for recent test data. (W: c88d135984c39a2aaefd48620d913b22)`);
+      //   if (logalot) { console.log(`${lc} current: ${h.pretty(this.ibGib)}, "latest": ${h.pretty(info_latestIbGib)} (I: c89622ffc6ca1be7f668940c26fb5b22)`); }
+      //   await this.common.ibgibs.registerNewIbGib({ibGib: this.ibGib});
+      // }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     } finally {
       // at this point, we're guaranteed to be the latest in this component's tjp/timeline
-      if (this.item) {
+      if (this.item?.refreshing) {
         this.item.refreshing = false;
         setTimeout(() => { this.ref.detectChanges(); })
       }
+    }
+  }
+
+  async updateIbGib_PerLatestEventNotification({
+    latestAddr,
+    latestIbGib,
+    tjpAddr,
+  }: LatestEventInfo): Promise<void> {
+    const lc = `${this.lc}[${this.updateIbGib_PerLatestEventNotification.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      // for now, we'll just navigate to the latest addr
+      await this.go({
+        toAddr: latestAddr,
+        fromAddr: this.addr,
+      });
+
+      if (!this.ibGib) {
+        console.warn(`${lc} this.ibGib is assumed truthy, but is falsy. (W: 8c25259e67a244419f0787a60cd4fa55)`);
+        return;
+      }
+
+      // I'm putting the following code in on an experimental basis, so wrapping
+      // in a non-executing block...
+      if (false) {
+        // diff the new ibgib with the current one. If it's less than some small
+        // threshold number of updates away, then update piecemeal. If it's over
+        // that threshold, then update by navigation.
+        const currentN = this.ibGib
+      }
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
