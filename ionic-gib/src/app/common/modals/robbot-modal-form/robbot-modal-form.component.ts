@@ -1,4 +1,7 @@
-import { AfterViewInit, ChangeDetectorRef, Component, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import {
+  AfterViewInit, ChangeDetectorRef, Component, Input,
+  OnDestroy, OnInit, ViewChild,
+} from '@angular/core';
 import { IonContent, ModalController } from '@ionic/angular';
 
 import * as h from 'ts-gib/dist/helper';
@@ -8,16 +11,19 @@ import { HashAlgorithm } from 'encrypt-gib';
 import { TransformResult } from 'ts-gib';
 
 import * as c from '../../constants';
-import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 import { FormItemInfo } from '../../../ibgib-forms/types/form-items';
 import { RobbotIbGib_V1 } from '../../types/robbot';
 import { CommonService } from '../../../services/common.service';
-import { RandomRobbotData_V1, RandomRobbot_V1, RandomRobbot_V1_Factory } from '../../witnesses/robbots/random-robbot-v1';
+import {
+  RandomRobbotData_V1, RandomRobbot_V1,
+  RandomRobbot_V1_Factory,
+} from '../../witnesses/robbots/random-robbot-v1';
 import { getRobbotIb } from '../../helper/robbot';
 import { getRegExp } from '../../helper/utils';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
 import { IbGibRobbotAny, RobbotBase_V1 } from '../../witnesses/robbots/robbot-base-v1';
 import { DynamicFormComponent } from 'src/app/ibgib-forms/dynamic-form/dynamic-form.component';
+import { DynamicModalFormComponentBase } from '../../bases/dynamic-modal-form-component-base';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -36,7 +42,7 @@ export interface RobbotModalResult {
   styleUrls: ['./robbot-modal-form.component.scss'],
 })
 export class RobbotModalFormComponent
-  extends ModalFormComponentBase<TransformResult<RobbotIbGib_V1>>
+  extends DynamicModalFormComponentBase<TransformResult<RobbotIbGib_V1>>
   implements AfterViewInit{
 
   protected lc: string = `[${RobbotModalFormComponent.name}]`;
@@ -53,37 +59,8 @@ export class RobbotModalFormComponent
       regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
       dataType: 'checkbox',
       multiple: false,
+      required: true,
     };
-
-  robbotFormItems: FormItemInfo[] = [];
-
-  @Input()
-  formItems: FormItemInfo[] = [
-    this.selectTypeItem,
-  ]
-
-  @Input()
-  subformItems: FormItemInfo[];
-
-  @Input()
-  name: string;
-  @Input()
-  description: string;
-  // @Input()
-  // id: string;
-  @Input()
-  classname: string;
-
-
-  @Input()
-  validationErrors: string[] = super.validationErrors
-  @Input()
-  validationErrorString: string;
-  @Input()
-  erroredFields: string[] = [];
-
-  @Input()
-  showHelp: boolean;
 
   /**
    * If we are editing an ibGib, this will be populated and {@link createImpl}
@@ -93,11 +70,7 @@ export class RobbotModalFormComponent
   @Input()
   ibGib: RobbotIbGib_V1;
 
-  @Input()
-  initializing: boolean;
-
-  @ViewChild('dynamicForm')
-  dynamicForm: DynamicFormComponent;
+  robbotFactories: DynamicFormFactoryBase<IbGibRobbotAny>[];
 
   constructor(
     protected common: CommonService,
@@ -109,13 +82,16 @@ export class RobbotModalFormComponent
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
+      this.metaformItems = [
+        this.selectTypeItem,
+      ];
       // setTimeout(() => {
-        // console.warn('setting default value to random robbot!!!')
-        // console.warn('setting default value to random robbot!!!')
-        // console.warn('setting default value to random robbot!!!')
-        // console.warn('setting default value to random robbot!!!')
-        // this.handleItemSelected(this.subformItems[0]);
-        // this.selectTypeItem.defaultValue = 'RandomRobbot_V1'; //debug only!
+      //   console.warn('setting default value to random robbot!!!')
+      //   console.warn('setting default value to random robbot!!!')
+      //   console.warn('setting default value to random robbot!!!')
+      //   console.warn('setting default value to random robbot!!!')
+      //   this.handleItemSelected(this.subformItems[0]);
+      //   this.selectTypeItem.defaultValue = 'RandomRobbot_V1'; //debug only!
       // }, 1000);
       // spin off initialize (can't await in ctor)
       // this.initialize();
@@ -127,29 +103,14 @@ export class RobbotModalFormComponent
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
-  async ngAfterViewInit(): Promise<void> {
-    const lc = `${this.lc}[${this.ngAfterViewInit.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting...`); }
-      await this.initialize();
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
-
-  robbotFactories: DynamicFormFactoryBase<IbGibRobbotAny>[];
 
   /**
    * Initializes to default space values.
    */
-  protected async initialize(): Promise<void> {
+  protected async initializeImpl(): Promise<void> {
     const lc = `${this.lc}[${this.initialize.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
-      this.initializing = true;
 
       this.robbotFactories = [
         this.randomRobbotFactory,
@@ -159,16 +120,10 @@ export class RobbotModalFormComponent
         ...this.robbotFactories.map(factory => factory.getInjectionName()),
       ];
 
-      // spin off auto-generated id (done now when creating ibgib via tjp uuid)
-      // if (logalot) { console.log(`${lc} spinning off initializing id (I: 8bebe8f77154c39cd55d92d509849d22)`); }
-      // h.getUUID().then(uuid => {
-      //   this.id = uuid;
-      //   if (logalot) { console.log(`${lc} id set. this.id = ${this.id} (I: e67d18ce32679a629839c80b50cc1f22)`); }
-      // });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
+      throw error;
     } finally {
-      this.initializing = true;
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
@@ -177,13 +132,6 @@ export class RobbotModalFormComponent
     const lc = `${this.lc}[${this.createImpl.name}]`;
     try {
       if (logalot) { console.log(`${lc}`); }
-      // this.showHelp = false;
-      // const validationErrors = await this.validateForm();
-      // if (validationErrors.length > 0) {
-      //   console.warn(`${lc} validation failed. Errors:\n${validationErrors.join('\n')}`);
-      //   return;
-      // }
-      // debugger;
 
       let resNewIbGib: TransformResult<RobbotIbGib_V1>;
 
@@ -200,48 +148,6 @@ export class RobbotModalFormComponent
     }
   }
 
-  // handleMethodChange(item: any): void {
-  //   if (item?.detail?.value && item!.detail!.value! === RobbotMethod.encrypt_gib_weak) {
-  //     this.method = item!.detail!.value!;
-  //   }
-  // }
-
-  // handleSelectedHashAlgorithmChange(item: any): void {
-  //   if (item?.detail?.value && Object.values(HashAlgorithm).includes(item!.detail!.value!)) {
-  //     this.hashAlgorithm = item!.detail!.value!;
-  //   }
-  // }
-
-  async handleValidated({
-    validatedItems,
-  }: {
-    validatedItems: FormItemInfo[],
-  }): Promise<void> {
-    const lc = `${this.lc}[${this.handleValidated.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting...`); }
-      debugger;
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
-
-  async handleCancel(): Promise<void> {
-    const lc = `${this.lc}[${this.handleCancel.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting...`); }
-      debugger;
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
-
   async handleItemSelected(item: FormItemInfo): Promise<void> {
     const lc = `${this.lc}[${this.handleItemSelected.name}]`;
     try {
@@ -251,7 +157,7 @@ export class RobbotModalFormComponent
       let factory = factories[0];
       let resRobbot = await factory.newUp();
       let subform = await factory.witnessToForm({witness: resRobbot.newIbGib});
-      this.subformItems = subform.children;
+      this.formItems = subform.children;
       setTimeout(() => this.ref.detectChanges());
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -259,10 +165,6 @@ export class RobbotModalFormComponent
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
     }
-  }
-
-  handleSubformSubmit(): void {
-    debugger;
   }
 
   handleValidatedSubform(event: any): void {

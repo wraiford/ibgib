@@ -6,13 +6,16 @@ import { IbGib_V1, ROOT, Factory_V1 as factory, Rel8n } from 'ts-gib/dist/V1';
 import * as c from '../../constants';
 import { RobbotBase_V1 } from './robbot-base-v1';
 // import { getFnAlert } from '../../helper'; // refactoring to not use index
-import { RobbotData_V1, RobbotFormBuilder, RobbotIbGib_V1, RobbotOutputMode, RobbotRel8ns_V1 } from '../../types/robbot';
+import {
+    RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1,
+    // RobbotOutputMode,
+} from '../../types/robbot';
 import { getFnAlert } from '../../helper/prompt-functions';
 import { FormItemInfo, DynamicForm } from '../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
 import { getRegExp, patchObject, getIdPool } from '../../helper/utils';
 import { WitnessFormBuilder } from '../../helper/witness';
-import { getRobbotIb } from '../../helper/robbot';
+import { getRobbotIb, RobbotFormBuilder } from '../../helper/robbot';
 import { TransformResult } from 'ts-gib';
 
 
@@ -20,7 +23,8 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 export const DEFAULT_UUID_RANDOM_ROBBOT = undefined;
 export const DEFAULT_NAME_RANDOM_ROBBOT = 'Randie';
-export const DEFAULT_DESCRIPTION_RANDOM_ROBBOT = 'Randie spouts out a random ibgib that he is aware of.';
+export const DEFAULT_DESCRIPTION_RANDOM_ROBBOT =
+    `Randie chooses a random ibgib from those he's seen and says it.`;
 
 
 export interface RandomRobbotData_V1 extends RobbotData_V1 {
@@ -123,6 +127,8 @@ const DEFAULT_RANDOM_ROBBOT_DATA_V1: RandomRobbotData_V1 = {
     classname: RandomRobbot_V1.name,
 
     // tagOutput: false,
+    outputPrefix: '👀: ',
+    outputSuffix: '-🤖',
 
     persistOptsAndResultIbGibs: false,
     allowPrimitiveArgs: true,
@@ -191,16 +197,16 @@ export class RandomRobbot_V1_Factory
             // We do the RobbotFormBuilder specific functions first, because of
             if (logalot) { console.log(`${lc} data: ${h.pretty(data)} (I: d4dc7619a4da932badbd7738bb4ebd22)`); }
             const idPool = await getIdPool({n: 100});
-            // type inference in TS
+            // type inference in TS! eesh...
             let form = new RobbotFormBuilder()
-                .forA({what: 'robbot'})
-                .with<RobbotFormBuilder>({idPool})
-                .outputMode({of: data.outputMode})
-                .outputPrefix({of: data.outputPrefix})
-                .outputSuffix({of: data.outputSuffix})
-                .and<WitnessFormBuilder>()
+                .with({idPool})
                 .name({of: data.name, required: true})
                 .description({of: data.description})
+                .and<RobbotFormBuilder>()
+                .outputPrefix({of: data.outputPrefix})
+                .outputSuffix({of: data.outputSuffix})
+                // .outputMode({of: data.outputMode})
+                .and<WitnessFormBuilder>()
                 .classname({of: data.classname})
                 .commonWitnessFields({data})
                 .outputForm({

@@ -6,11 +6,11 @@ import { IbGib_V1, Factory_V1 as factory } from 'ts-gib/dist/V1';
 import * as c from '../../constants';
 import { HashAlgorithm } from 'encrypt-gib';
 import { TransformResult } from 'ts-gib';
-import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 import { CommonService } from '../../../services/common.service';
 import { EncryptionIbGib, EncryptionMethod, EncryptionData_V1, EncryptionInfo_EncryptGib } from '../../types/encryption';
 import { FormItemInfo } from '../../../ibgib-forms/types/form-items';
 import { getExpirationUTCString, getRegExp } from '../../helper/utils';
+import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

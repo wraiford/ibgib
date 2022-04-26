@@ -110,7 +110,7 @@ export interface RobbotData_V1 extends WitnessData_V1 {
      * Since the driving use case is to create drills, it would seem that inside
      * a single grouping ibgib within the output context makes the most sense.
      */
-    outputMode?: RobbotOutputMode;
+    // outputMode?: RobbotOutputMode;
 
     // /**
     //  * If true, rel8s output context depending on {@link outputMode} to the latest
@@ -122,21 +122,21 @@ export interface RobbotData_V1 extends WitnessData_V1 {
 }
 
 
-/**
- * @see {@link RobbotData_V1.outputMode}
- */
-export type RobbotOutputMode = 'context' | 'subcontext';
-export const RobbotOutputMode = {
-    /**
-     * spread out within the target context
-     */
-    context: 'context' as RobbotOutputMode,
-    /**
-     * creates a single comment ibgib and outputs within that
-     */
-    subcontext: 'subcontext' as RobbotOutputMode,
-}
-export const VALID_ROBBOT_OUTPUT_MODES = Object.values(RobbotOutputMode);
+// /**
+//  * @see {@link RobbotData_V1.outputMode}
+//  */
+// export type RobbotOutputMode = 'context' | 'subcontext' | 'ask';
+// export const RobbotOutputMode = {
+//     /**
+//      * spread out within the target context
+//      */
+//     context: 'context' as RobbotOutputMode,
+//     /**
+//      * creates a single comment ibgib and outputs within that
+//      */
+//     subcontext: 'subcontext' as RobbotOutputMode,
+// }
+// export const VALID_ROBBOT_OUTPUT_MODES = Object.values(RobbotOutputMode);
 
 export interface RobbotRel8ns_V1 extends WitnessRel8ns_V1 {
     [c.ROBBOT_TAG_TJP_ADDRS_REL8N_NAME]?: TjpIbGibAddr[];
@@ -156,85 +156,5 @@ export interface RobbotRel8ns_V1 extends WitnessRel8ns_V1 {
  */
 export interface RobbotIbGib_V1
     extends IbGib_V1<RobbotData_V1, RobbotRel8ns_V1> {
-
-}
-
-export class RobbotFormBuilder extends WitnessFormBuilder {
-    protected lc: string = `${super.lc}[${RobbotFormBuilder.name}]`;
-
-    constructor() {
-        super();
-        this.what = 'robbot';
-    }
-
-    outputMode({
-        of,
-        required,
-    }: {
-        of: string,
-        required?: boolean,
-    }): RobbotFormBuilder {
-        this.addItem({
-            // witness.data.outputMode
-            name: "outputMode",
-            description: `Technical setting which proscribes how the robbot outputs its beliefs.`,
-            label: "Output Mode",
-            regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
-            regexpErrorMsg: `0 to 155 alphanumerics or chars: ${c.SAFE_SPECIAL_CHARS}`,
-            // regexpSource: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}).source,
-            dataType: 'checkbox',
-            selectOptions: [
-                RobbotOutputMode.context,
-                RobbotOutputMode.subcontext,
-            ],
-            value: of,
-            required,
-        });
-        return this;
-    }
-
-    outputPrefix({
-        of,
-        required,
-    }: {
-        of: string,
-        required?: boolean,
-    }): RobbotFormBuilder {
-        this.addItem({
-            // witness.data.outputPrefix
-            name: "outputPrefix",
-            description: `Technical setting that sets a prefix for all text output of the robbot.`,
-            label: "Output Prefix",
-            regexp: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}),
-            regexpErrorMsg: `0 to 256 alphanumerics or chars: ${c.SAFE_SPECIAL_CHARS}`,
-            // regexpSource: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}).source,
-            dataType: 'textarea',
-            value: of,
-            required,
-        });
-        return this;
-    }
-
-    outputSuffix({
-        of,
-        required,
-    }: {
-        of: string,
-        required?: boolean,
-    }): RobbotFormBuilder {
-        this.addItem({
-            // witness.data.outputSuffix
-            name: "outputSuffix",
-            description: `Technical setting that sets a suffix for all text output of the ${this.what}. (like a signature)`,
-            label: "Output Suffix",
-            regexp: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}),
-            regexpErrorMsg: `0 to 256 alphanumerics or chars: ${c.SAFE_SPECIAL_CHARS}`,
-            // regexpSource: getRegExp({min: 0, max: 256, chars: c.SAFE_SPECIAL_CHARS}).source,
-            dataType: 'textarea',
-            value: of,
-            required,
-        });
-        return this;
-    }
 
 }

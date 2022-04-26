@@ -1514,3 +1514,15 @@ export const IONICONS = [
   'wine',
   'woman',
 ];
+
+// #region other robbot related
+
+/**
+ * Robbot.data.name regexp
+ */
+export const ROBBOT_NAME_REGEXP = /^[a-zA-Z0-9_\-.]{1,255}$/;
+export const ROBBOT_PREFIX_SUFFIX_REGEXP = /^[a-zA-Z0-9_\-.\s👀🤖:;&]{1,64}$/;
+export const ROBBOT_PREFIX_SUFFIX_REGEXP_DESC =
+    `0 to 64 alphanumerics, spaces, select special characters and emojis.`;
+
+// #endregion other robbot related

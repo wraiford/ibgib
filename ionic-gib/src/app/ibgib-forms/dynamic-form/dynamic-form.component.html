@@ -30,26 +30,24 @@
         [readonly]="item.readonly"
         debounce="1000"
       ></ion-textarea>
+        <!-- [disabled]="item.readonly" -->
       <ion-select *ngIf="['checkbox'].includes(item.dataType)"
         [formControlName]="item.uuid"
         okText="Select"
         (ionChange)="handleSelectChange($event, item)"
         [compareWith]="compareStrings"
-        [disabled]="item.readonly"
         >
         <ion-select-option *ngFor="let option of item.selectOptions"
           [value]="option">
           <ion-label>{{ option }}</ion-label>
         </ion-select-option>
       </ion-select>
+        <!-- [disabled]="!!item.readonly" -->
       <ion-toggle *ngIf="['toggle'].includes(item.dataType)"
         [formControlName]="item.uuid"
         [checked]="item.value"
-        [disabled]="!!item.readonly"
         >
       </ion-toggle>
-      <!-- <ion-text *ngIf="showError(item)" color="danger">{{getError(item)}}</ion-text> -->
-      <!-- <ion-text *ngIf="showError(item)" color="danger">wakka</ion-text> -->
       <!-- <ib-dynamic-form *ngIf="item.children?.length > 0"
         [parentFormGroup]="rootFormGroup"
         [formControlName]="item.uuid"
@@ -59,8 +57,11 @@
         (cancel)="handleCancel()"
         >
       </ib-dynamic-form> -->
-      <ion-note *ngIf="item.errored && !getControl(item).pristine" slot="error">{{getError(item)}}</ion-note>
-      <!-- <ion-note slot="helper">{{item.description}}</ion-note> -->
+      <ion-note *ngIf="item.errored && !getControl(item).pristine"
+        slot="error">{{item.label}}: {{getError(item)}}</ion-note>
+      <ion-note *ngIf="showHelp" slot="helper" color="primary">
+        {{item.label}}{{item.required ? ' (required)': ''}}: {{item.description}}
+      </ion-note>
     </ion-item>
     <!-- <div *ngIf="hasErrors"> -->
       <!-- <ion-text color="danger">there are errors</ion-text> -->

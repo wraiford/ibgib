@@ -9,7 +9,6 @@ import { IbGib_V1, Factory_V1 as factory } from 'ts-gib/dist/V1';
 import * as h from 'ts-gib/dist/helper';
 
 import * as c from '../../constants';
-import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 import { CommonService } from '../../../services/common.service';
 import { SyncSpaceData_AWSDynamoDB } from '../../witnesses/spaces/aws-dynamo-space-v1';
 import { EncryptionData_V1, SecretIbGib_V1 } from '../../types/encryption';
@@ -17,6 +16,7 @@ import { FormItemInfo } from '../../../ibgib-forms/types/form-items';
 import { OuterSpaceIbGib, OuterSpaceType, SyncSpaceSubtype, AWSRegion, VALID_OUTER_SPACE_TYPES, VALID_OUTER_SPACE_SUBTYPES, OuterSpaceData, OuterSpaceRel8ns } from '../../types/outer-space';
 import { getFnPromptPassword_AlertController } from '../../helper/prompt-functions';
 import { getRegExp } from '../../helper/utils';
+import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

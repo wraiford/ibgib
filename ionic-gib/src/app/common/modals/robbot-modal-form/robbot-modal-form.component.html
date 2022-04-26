@@ -1,27 +1,28 @@
 <ion-header translucent>
   <ion-toolbar>
-    <ion-title title="Create Robbot Settings...">Create Robbot...</ion-title>
+    <ion-title color="primary" title="Create Robbot Settings...">Create Robbot...</ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="handleSaveClick()">Create Robbot</ion-button>
-      <ion-button (click)="handleCancelClick()">Cancel</ion-button>
+      <ion-button color="primary" (click)="handleShowHelpClick()">
+        <ion-icon name="help-circle-outline"></ion-icon>
+      </ion-button>
+      <ion-button color="danger" (click)="handleCancelClick()">Cancel</ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 <ion-content #modalIonContent fullscreen>
-  <ib-dynamic-form #dynamicForm
-    [items]="formItems"
-    (validated)="handleValidated($event)"
-    (cancel)="handleCancel()"
+  <!-- metaform is a hack until we get real composite pattern forms -->
+  <ib-dynamic-form #metaform *ngIf="metaformItems?.length > 0"
+    [items]="metaformItems"
     (itemSelect)="handleItemSelected($event)"
     [showSubmit]="false"
+    [showHelp]="showHelp"
     >
   </ib-dynamic-form>
-  <ib-dynamic-form #subForm
-    *ngIf="subformItems?.length > 0"
-    [items]="subformItems"
-    (validated)="handleValidatedSubform($event)"
-    (cancel)="handleCancel()"
-    (submit)="handleSubformSubmit()"
+  <!-- form that corresponds to the robbot we will create/edit -->
+  <ib-dynamic-form #form *ngIf="formItems?.length > 0"
+    [items]="formItems"
+    (submit)="handleSubmit()"
+    [showHelp]="showHelp"
     >
   </ib-dynamic-form>
 </ion-content>

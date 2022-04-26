@@ -90,13 +90,13 @@ export class WitnessFormBuilder {
     }
     and<T extends WitnessFormBuilder>(): T { return <T><any>this; }
 
-    name({
+    name<T extends WitnessFormBuilder>({
         of: value,
         required = true,
     }: {
         of: string,
         required?: boolean,
-    }): WitnessFormBuilder {
+    }): T {
         this.addItem({
             // witness.data.name
             name: "name",
@@ -104,13 +104,12 @@ export class WitnessFormBuilder {
             label: "Name",
             placeholder: `e.g. "bob_the_cool"`,
             regexp: getRegExp({min: 1, max: 32, noSpaces: true}),
-            // regexpSource: getRegExp({min: 1, max: 32, noSpaces: true}).source,
             regexpErrorMsg: '1 to 32 characters, no spaces, underscores allowed.',
             required,
             dataType: 'text',
             value,
         });
-        return this;
+        return <T><any>this;
     }
 
     description({
@@ -154,6 +153,7 @@ export class WitnessFormBuilder {
             // regexpSource: getRegExp({min: 1, max: 128, noSpaces: true}).source,
             dataType: 'text',
             value: of,
+            readonly: true,
             required,
         });
         return this;
@@ -198,7 +198,6 @@ export class WitnessFormBuilder {
         });
         return this;
     }
-
 
     persistOptsAndResultIbGibs({
         of,
@@ -256,6 +255,8 @@ export class WitnessFormBuilder {
             label: label ?? "ID",
             dataType: 'text',
             value: of,
+            regexp: c.UUID_REGEXP,
+            regexpErrorMsg: '1 to 256 alphanumerics, underscores, dots, hyphens allowed.',
             readonly: true,
             required,
         });

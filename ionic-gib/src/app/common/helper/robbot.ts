@@ -1,12 +1,16 @@
 import { Ib, } from 'ts-gib';
 
 import * as c from '../constants';
-import { getTimestampInTicks } from './utils';
+import { getRegExp, getTimestampInTicks } from './utils';
 import { IbGibRobbotAny } from '../witnesses/robbots/robbot-base-v1';
 import { CommonService } from '../../services/common.service';
-import { RobbotData_V1, RobbotIbGib_V1, RobbotOutputMode, VALID_ROBBOT_OUTPUT_MODES } from '../types/robbot';
+import {
+    RobbotData_V1, RobbotIbGib_V1,
+    // RobbotOutputMode, VALID_ROBBOT_OUTPUT_MODES
+} from '../types/robbot';
 import { getFn_promptRobbotIbGib } from './prompt-functions';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
+import { WitnessFormBuilder } from './witness';
 // import { validateWitnessClassname } from '../witnesses/witness-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -16,11 +20,6 @@ export function getRobbotResultMetadata({robbot}: {robbot: IbGibRobbotAny}): str
     return `${robbot.ib} ${getTimestampInTicks()}`;
 }
 
-/**
- * Robbot.data.name regexp
- */
-export const ROBBOT_NAME_REGEXP = /^[a-zA-Z0-9_\-.]{1,255}$/;
-export const PREFIX_SUFFIX_REGEXP = /^[a-zA-Z0-9_\-.]{1,64}$/;
 
 export function validateCommonRobbotData({
     robbotData,
@@ -32,12 +31,16 @@ export function validateCommonRobbotData({
         if (logalot) { console.log(`${lc} starting...`); }
         if (!robbotData) { throw new Error(`robbotData required (E: 1ac78ffae5354b67acb64a34cfe23c2f)`); }
         const errors: string[] = [];
-        const { name, uuid, outputMode, outputPrefix, outputSuffix, classname } =
+        const {
+            name, uuid, classname,
+            outputPrefix, outputSuffix,
+            // outputMode,
+        } =
             robbotData;
 
         if (name) {
-            if (!name.match(ROBBOT_NAME_REGEXP)) {
-                errors.push(`name must match regexp: ${ROBBOT_NAME_REGEXP}`);
+            if (!name.match(c.ROBBOT_NAME_REGEXP)) {
+                errors.push(`name must match regexp: ${c.ROBBOT_NAME_REGEXP}`);
             }
         } else {
             errors.push(`name required.`);
@@ -51,23 +54,23 @@ export function validateCommonRobbotData({
             errors.push(`uuid required.`);
         }
 
-        if (outputMode) {
-            if (!VALID_ROBBOT_OUTPUT_MODES.includes(outputMode)) {
-                errors.push(`invalid outputMode (${outputMode}). Must be a value from ${VALID_ROBBOT_OUTPUT_MODES}`);
-            }
-        }
-
         if (outputPrefix) {
-            if (!outputPrefix.match(PREFIX_SUFFIX_REGEXP)) {
-                errors.push(`outputPrefix must match regexp: ${PREFIX_SUFFIX_REGEXP}`);
+            if (!outputPrefix.match(c.ROBBOT_PREFIX_SUFFIX_REGEXP)) {
+                errors.push(`outputPrefix must match regexp: ${c.ROBBOT_PREFIX_SUFFIX_REGEXP}`);
             }
         }
 
         if (outputSuffix) {
-            if (!outputSuffix.match(PREFIX_SUFFIX_REGEXP)) {
-                errors.push(`outputSuffix must match regexp: ${PREFIX_SUFFIX_REGEXP}`);
+            if (!outputSuffix.match(c.ROBBOT_PREFIX_SUFFIX_REGEXP)) {
+                errors.push(`outputSuffix must match regexp: ${c.ROBBOT_PREFIX_SUFFIX_REGEXP}`);
             }
         }
+
+        // if (outputMode) {
+        //     if (!VALID_ROBBOT_OUTPUT_MODES.includes(outputMode)) {
+        //         errors.push(`invalid outputMode (${outputMode}). Must be a value from ${VALID_ROBBOT_OUTPUT_MODES}`);
+        //     }
+        // }
 
         // if (tagOutput !== undefined) {
         //     const tagOutputType = typeof tagOutput;
@@ -77,8 +80,8 @@ export function validateCommonRobbotData({
         // }
 
         if (classname) {
-            if (!classname.match(ROBBOT_NAME_REGEXP)) {
-                errors.push(`classname must match regexp: ${ROBBOT_NAME_REGEXP}`);
+            if (!classname.match(c.ROBBOT_NAME_REGEXP)) {
+                errors.push(`classname must match regexp: ${c.ROBBOT_NAME_REGEXP}`);
             }
         }
 
@@ -184,4 +187,89 @@ export async function createNewRobbot({
     } finally {
         if (logalot) { console.log(`${lc} complete.`); }
     }
+}
+
+export class RobbotFormBuilder extends WitnessFormBuilder {
+    protected lc: string = `${super.lc}[${RobbotFormBuilder.name}]`;
+
+    constructor() {
+        super();
+        this.what = 'robbot';
+    }
+
+    // name<RobbotFormBuilder>({ of, required, }: { of: string; required?: boolean; }): RobbotFormBuilder {
+    //     return <RobbotFormBuilder><any>super.name({of, required});
+    // }
+    // description<RobbotFormBuilder>({ of, required, }: { of: string; required?: boolean; }): RobbotFormBuilder {
+    //     return <RobbotFormBuilder><any>super.description({of, required});
+    // }
+
+    // outputMode({
+    //     of,
+    //     required,
+    // }: {
+    //     of: string,
+    //     required?: boolean,
+    // }): RobbotFormBuilder {
+    //     this.addItem({
+    //         // witness.data.outputMode
+    //         name: "outputMode",
+    //         description: `Technical setting which proscribes how the robbot outputs its beliefs.`,
+    //         label: "Output Mode",
+    //         regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
+    //         regexpErrorMsg: `0 to 155 alphanumerics or chars: ${c.SAFE_SPECIAL_CHARS}`,
+    //         // regexpSource: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}).source,
+    //         dataType: 'checkbox',
+    //         selectOptions: [
+    //             RobbotOutputMode.context,
+    //             RobbotOutputMode.subcontext,
+    //         ],
+    //         value: of,
+    //         required,
+    //     });
+    //     return this;
+    // }
+
+    outputPrefix({
+        of,
+        required,
+    }: {
+        of: string,
+        required?: boolean,
+    }): RobbotFormBuilder {
+        this.addItem({
+            // witness.data.outputPrefix
+            name: "outputPrefix",
+            description: `Technical setting that sets a prefix for all text output of the robbot.`,
+            label: "Output Prefix",
+            regexp: c.ROBBOT_PREFIX_SUFFIX_REGEXP,
+            regexpErrorMsg: c.ROBBOT_PREFIX_SUFFIX_REGEXP_DESC,
+            dataType: 'textarea',
+            value: of,
+            required,
+        });
+        return this;
+    }
+
+    outputSuffix({
+        of,
+        required,
+    }: {
+        of: string,
+        required?: boolean,
+    }): RobbotFormBuilder {
+        this.addItem({
+            // witness.data.outputSuffix
+            name: "outputSuffix",
+            description: `Technical setting that sets a suffix for all text output of the ${this.what}. (like a signature)`,
+            label: "Output Suffix",
+            regexp: c.ROBBOT_PREFIX_SUFFIX_REGEXP,
+            regexpErrorMsg: c.ROBBOT_PREFIX_SUFFIX_REGEXP_DESC,
+            dataType: 'textarea',
+            value: of,
+            required,
+        });
+        return this;
+    }
+
 }
