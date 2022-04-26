@@ -1,7 +1,8 @@
 {
     "search.exclude": {
         "**/www": true,
-        "**/node_modules": true
+        "**/node_modules": true,
+        ".angular/cache/**": true
     },
     "files.trimTrailingWhitespace": true,
     "peacock.color": "#42b883",
