@@ -1,5 +1,5 @@
 ion-menu ion-content {
-  --background: var(--ion-item-background, var(--ion-background-color, #fff));
+  // --background: var(--ion-item-background, var(--ion-background-color, #fff));
 }
 
 ion-menu.md ion-content {
@@ -22,9 +22,9 @@ ion-menu.md ion-note {
   padding-left: 10px;
 }
 
-ion-menu.md ion-list#meta-list {
-  border-bottom: 1px solid var(--ion-color-step-150, #d7d8da);
-}
+// ion-menu.md ion-list#meta-list {
+//   border-bottom: 1px solid var(--ion-color-step-150, #d7d8da);
+// }
 
 ion-list-header {
   cursor: pointer;
@@ -37,15 +37,15 @@ ion-menu.md ion-list#meta-list ion-list-header {
   min-height: 20px;
 }
 
-ion-menu.md ion-list#tags-list ion-list-header {
-  font-size: 16px;
+// ion-menu.md ion-list#tags-list ion-list-header {
+//   font-size: 16px;
 
-  margin-bottom: 18px;
+//   margin-bottom: 18px;
 
-  color: #757575;
+//   color: #757575;
 
-  min-height: 26px;
-}
+//   min-height: 26px;
+// }
 
 ion-menu.md ion-item {
   --padding-start: 10px;
@@ -53,21 +53,21 @@ ion-menu.md ion-item {
   border-radius: 4px;
 }
 
-ion-menu.md ion-item.selected {
-  --background: rgba(var(--ion-color-primary-rgb), 0.14);
-}
+// ion-menu.md ion-item.selected {
+//   --background: rgba(var(--ion-color-primary-rgb), 0.14);
+// }
 
-ion-menu.md ion-item.selected ion-icon {
-  color: var(--ion-color-primary);
-}
+// ion-menu.md ion-item.selected ion-icon {
+//   color: var(--ion-color-primary);
+// }
 
-ion-menu.md ion-item ion-icon {
-  color: #616e7e;
-}
+// ion-menu.md ion-item ion-icon {
+//   color: #616e7e;
+// }
 
-ion-menu.md ion-item ion-label {
-  font-weight: 500;
-}
+// ion-menu.md ion-item ion-label {
+//   font-weight: 500;
+// }
 
 ion-menu.ios ion-content {
   --padding-bottom: 20px;
@@ -77,10 +77,10 @@ ion-menu.ios ion-list {
   // padding: 20px 0 0 0;
 }
 
-ion-menu.ios ion-note {
-  line-height: 24px;
-  margin-bottom: 20px;
-}
+// ion-menu.ios ion-note {
+//   line-height: 24px;
+//   margin-bottom: 20px;
+// }
 
 ion-menu.ios ion-item {
   --padding-start: 16px;
@@ -202,6 +202,7 @@ ion-accordion.accordion-expanded ion-item[slot="header"] {
   border-width: 1px;
   border-color: var(--ion-color-primary);
   border-style: solid;
+  font-weight: bold;
 }
 ion-accordion.accordion-expanded ion-item[slot="header"] ion-label ion-icon {
   color: var(--ion-color-primary) !important;
@@ -213,6 +214,11 @@ ion-accordion ion-item[slot="header"] ion-label ion-text {
 ion-accordion ion-list ion-item ion-button {
   width: calc(100% - 8px);
   margin: 0px !important;
+  font-family: 'Courier New', Courier, monospace !important;
+}
+ion-accordion ion-list ion-item ion-button button {
+  color: purple !important;
+  font-family: 'Courier New', Courier, monospace !important;
 }
 
 .header {

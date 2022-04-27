@@ -77,7 +77,7 @@ export class RobbotModalFormComponent
     protected ref: ChangeDetectorRef,
     private randomRobbotFactory: RandomRobbot_V1_Factory,
   ) {
-    super(common);
+    super(common, ref);
     const lc = `${this.lc}[ctor]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }

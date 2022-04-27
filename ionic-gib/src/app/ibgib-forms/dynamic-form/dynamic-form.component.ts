@@ -31,6 +31,7 @@ export class DynamicFormComponent
   @Input()
   parentFormGroup: FormGroup;
 
+  allItems_Flat_ById: { [uuid: string]: FormItemInfo };
   _items: FormItemInfo[] = [];
   @Input()
   get items(): FormItemInfo[] {
@@ -85,38 +86,21 @@ export class DynamicFormComponent
     });
   }
 
+  // @Input()
+  // validationErrors: string[] = [];
   @Input()
-  validationErrors: string[] = [];
-  @Input()
-  get controlValidationErrors(): string {
+  get validationErrors(): string[] {
     const validationErrorStrings = [];
     const controlMap = this.rootFormGroup?.controls ?? {};
     const controlNames = Object.keys(controlMap);
-    controlNames.forEach(controlName => {
-      const control = controlMap[controlName];
+    controlNames.forEach(controlNameIsItemId => {
+      const control = controlMap[controlNameIsItemId];
       if (control.errors) {
-        const errorNames = Object.keys(control.errors);
-        validationErrorStrings.push(`${controlName}: ${errorNames.join(', ')}`);
+        const item = this.allItems_Flat_ById[controlNameIsItemId];
+        validationErrorStrings.push(`${item.label}: ${this.getError(item)}`);
       }
     });
-    // const controls = Object.values(controlMap);
-    return validationErrorStrings.join('\n');
-    // return controls.filter(control => {
-    //   const errorMap = control.errors;
-    //   return !!errorMap;
-    // }).map(control => {
-    //   if (!control.errors) {
-    //   }
-
-    //   const item: FormItemInfo = (<any>control).item;
-    //   if (item) {
-    //   }
-    //   if (item?.fnErrorMsg) {
-    //     return item.fnErrorMsg + '\n' + Object.keys(control.errors).join('\n');
-    //   } else {
-    //     return control. Object.keys(control.errors).join('\n');
-    //   }
-    // });
+    return validationErrorStrings;
   }
   @Input()
   validationErrorString: string;
@@ -164,7 +148,7 @@ export class DynamicFormComponent
   showSubmit: boolean = true;
 
   @Output()
-  submit: EventEmitter<DynamicFormComponent> = new EventEmitter<DynamicFormComponent>();
+  submitYo: EventEmitter<DynamicFormComponent> = new EventEmitter<DynamicFormComponent>();
 
 
   /**
@@ -173,6 +157,13 @@ export class DynamicFormComponent
    */
   @Output()
   itemSelect: EventEmitter<FormItemInfo> = new EventEmitter<FormItemInfo>();
+
+  /**
+   * If true, will show an error summary of validation errors near submit button
+   * in addition to the inline errors already shown by each control.
+   */
+  @Input()
+  showErrorSummary: boolean;
 
 
   public debugBorderWidth: string = debugBorder ? "5px" : "0px"
@@ -246,87 +237,87 @@ export class DynamicFormComponent
     return a && b ? a?.toLowerCase() === b?.toLowerCase() : a === b;
   }
 
-  async handleSaveClick(): Promise<void> {
-    const lc = `${this.lc}[${this.handleSaveClick.name}]`;
-    try {
-      if (logalot) { console.log(`${lc}`); }
-      this.showHelp = false;
-      const validationErrors = await this.validateForm();
-      if (validationErrors.length > 0) {
-        console.warn(`${lc} validation failed. Errors:\n${validationErrors.join('\n')}`);
-        return;
-      }
+  // async handleSaveClick(): Promise<void> {
+  //   const lc = `${this.lc}[${this.handleSaveClick.name}]`;
+  //   try {
+  //     if (logalot) { console.log(`${lc}`); }
+  //     this.showHelp = false;
+  //     const validationErrors = await this.validateForm();
+  //     if (validationErrors.length > 0) {
+  //       console.warn(`${lc} validation failed. Errors:\n${validationErrors.join('\n')}`);
+  //       return;
+  //     }
 
-      // const outputData = await this.createImpl();
-      // await this.common.modalController.dismiss(data);
+  //     // const outputData = await this.createImpl();
+  //     // await this.common.modalController.dismiss(data);
 
-      this.validated.emit(this.items);
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-    }
-  }
+  //     this.validated.emit(this.items);
+  //   } catch (error) {
+  //     console.error(`${lc} ${error.message}`);
+  //   }
+  // }
 
-  async handleCancelClick(): Promise<void> {
-    const lc = `${this.lc}[${this.handleCancelClick.name}]`;
-    if (logalot) { console.log(`${lc}`); }
-    this.cancel.emit();
-  }
+  // async handleCancelClick(): Promise<void> {
+  //   const lc = `${this.lc}[${this.handleCancelClick.name}]`;
+  //   if (logalot) { console.log(`${lc}`); }
+  //   this.cancel.emit();
+  // }
 
-  async validateForm(): Promise<string[]> {
-    const lc = `${this.lc}[${this.validateForm.name}]`;
-    this.validationErrors.splice(0, this.validationErrors.length);
-    this.erroredFields.splice(0, this.erroredFields.length);
-    const errors: string[] = [];
-    const erroredFields: string[] = [];
+  // async validateForm(): Promise<string[]> {
+  //   const lc = `${this.lc}[${this.validateForm.name}]`;
+  //   this.validationErrors.splice(0, this.validationErrors.length);
+  //   this.erroredFields.splice(0, this.erroredFields.length);
+  //   const errors: string[] = [];
+  //   const erroredFields: string[] = [];
 
-    let itemInfos: FormItemInfo[] = Object.values(this.items);
-    for (let i = 0; i < itemInfos.length; i++) {
-      const itemInfo = itemInfos[i];
-      let value = this[itemInfo.name];
-      if (logalot) { console.log(`${lc} doing ${itemInfo.name}`); }
-      if (value) {
-        if (logalot) {
-          if (itemInfo.private) {
-            console.log(`${lc} value: [field is private]`);
-          } else {
-            console.log(`${lc} value: ${value}`);
-          }
-        }
+  //   let itemInfos: FormItemInfo[] = Object.values(this.items);
+  //   for (let i = 0; i < itemInfos.length; i++) {
+  //     const itemInfo = itemInfos[i];
+  //     let value = this[itemInfo.name];
+  //     if (logalot) { console.log(`${lc} doing ${itemInfo.name}`); }
+  //     if (value) {
+  //       if (logalot) {
+  //         if (itemInfo.private) {
+  //           console.log(`${lc} value: [field is private]`);
+  //         } else {
+  //           console.log(`${lc} value: ${value}`);
+  //         }
+  //       }
 
-        if (typeof value === 'string') {
-          if (itemInfo.regexp) {
-            if (logalot) { console.log(`${lc} ${itemInfo.name} is a string. regexp: ${itemInfo.regexp}`); }
-            if ((value.match(itemInfo.regexp) ?? []).length === 0) {
-              erroredFields.push(itemInfo.name);
-              errors.push(`${itemInfo.name} must match regexp: ${itemInfo.regexp}`);
-            }
-          }
-          if ((<string>value).includes('\n')) {
-            erroredFields.push(itemInfo.name);
-            errors.push(`${itemInfo.name} cannot contain new lines.`);
-          }
-        }
-        if (itemInfo.fnValid && !itemInfo.fnValid(value)) {
-          erroredFields.push(itemInfo.name);
-          errors.push(`${itemInfo.name} error: ${itemInfo.fnErrorMsg}`);
-        }
-      } else {
-        if (itemInfo.required) {
-          erroredFields.push(itemInfo.name);
-          errors.push(`${itemInfo.name} required.`);
-        }
-      }
-    }
+  //       if (typeof value === 'string') {
+  //         if (itemInfo.regexp) {
+  //           if (logalot) { console.log(`${lc} ${itemInfo.name} is a string. regexp: ${itemInfo.regexp}`); }
+  //           if ((value.match(itemInfo.regexp) ?? []).length === 0) {
+  //             erroredFields.push(itemInfo.name);
+  //             errors.push(`${itemInfo.name} must match regexp: ${itemInfo.regexp}`);
+  //           }
+  //         }
+  //         if ((<string>value).includes('\n')) {
+  //           erroredFields.push(itemInfo.name);
+  //           errors.push(`${itemInfo.name} cannot contain new lines.`);
+  //         }
+  //       }
+  //       if (itemInfo.fnValid && !itemInfo.fnValid(value)) {
+  //         erroredFields.push(itemInfo.name);
+  //         errors.push(`${itemInfo.name} error: ${itemInfo.fnErrorMsg}`);
+  //       }
+  //     } else {
+  //       if (itemInfo.required) {
+  //         erroredFields.push(itemInfo.name);
+  //         errors.push(`${itemInfo.name} required.`);
+  //       }
+  //     }
+  //   }
 
-    errors.forEach(e => this.validationErrors.push(e));
-    if (this.validationErrors.length > 0) {
-      console.error(`${lc} this.validationErrors:\n${this.validationErrors.join('\n')}`);
-      this.scrollToTopToShowValidationErrors();
-    }
-    erroredFields.forEach(e => this.erroredFields.push(e));
+  //   errors.forEach(e => this.validationErrors.push(e));
+  //   if (this.validationErrors.length > 0) {
+  //     console.error(`${lc} this.validationErrors:\n${this.validationErrors.join('\n')}`);
+  //     this.scrollToTopToShowValidationErrors();
+  //   }
+  //   erroredFields.forEach(e => this.erroredFields.push(e));
 
-    return errors;
-  }
+  //   return errors;
+  // }
 
   scrollToTopToShowValidationErrors(): void {
     const lc = `${this.lc}[${this.scrollToTopToShowValidationErrors.name}]`;
@@ -362,10 +353,17 @@ export class DynamicFormComponent
       }
 
       // await h.delay(2000);
+      this.allItems_Flat_ById = {};
 
       const newControl = async (item: FormItemInfo, validators: (ValidatorFn | AsyncValidatorFn)[]) => {
         let control: AbstractControl;
-        item.uuid = randomIds.pop();
+        item.uuid = item.uuid || randomIds.pop();
+        const addItemById = (x: FormItemInfo) => {
+          this.allItems_Flat_ById[x.uuid] = x;
+          // call recursively for any children
+          if (x.children) { x.children.forEach(child => addItemById(child)); }
+        }
+        this._items.forEach(x => addItemById(x));
         if (item.children) {
           throw new Error(`control with children not implemented yet (E: e502388413bcf4c74926b186d9265c22)`);
           // control = this.fb.array([
@@ -409,7 +407,6 @@ export class DynamicFormComponent
           throw new Error(`not impl (E: 505be7ec1284ec23e3049b58c6880822)`);
           let formArray = <FormArray>control;
         } else {
-          // this.rootFormGroup.addControl(item.name, this.fb.control('', validators));
           this.rootFormGroup.addControl(item.uuid, control);
         }
       }
@@ -471,6 +468,7 @@ export class DynamicFormComponent
 
   async handleSubmit(): Promise<void> {
     console.log('submitted');
+    this.submitYo.emit(this);
   }
 
 
@@ -530,7 +528,10 @@ export class DynamicFormComponent
           .filter(controlName => controlName === item.uuid)
           .map(controlName => this.rootFormGroup.controls[controlName]);
 
-      if (controlMaybe.length === 0) { throw new Error(`(UNEXPECTED) no control found for item (${item.name}, ${item.uuid}) (E: 1eb112f17981a08e09c928eed929a922)`); }
+      if (controlMaybe.length === 0) {
+        debugger;
+        throw new Error(`(UNEXPECTED) no control found for item (${item.name}, ${item.uuid}) (E: 1eb112f17981a08e09c928eed929a922)`);
+      }
 
       return controlMaybe[0];
     } catch (error) {

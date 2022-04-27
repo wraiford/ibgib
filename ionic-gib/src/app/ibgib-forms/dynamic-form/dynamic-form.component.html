@@ -63,10 +63,14 @@
         {{item.label}}{{item.required ? ' (required)': ''}}: {{item.description}}
       </ion-note>
     </ion-item>
-    <!-- <div *ngIf="hasErrors"> -->
-      <!-- <ion-text color="danger">there are errors</ion-text> -->
-      <!-- <ion-text color="danger">{{controlValidationErrors}}</ion-text> -->
-    <!-- </div> -->
+    <div class="error-summary" *ngIf="hasErrors && showErrorSummary">
+      <ion-text color="danger">hmm...not a huge deal, buut...</ion-text>
+      <br>
+      <div *ngFor="let error of validationErrors" >
+        <ion-note slot="error" color="danger">{{error}}</ion-note>
+        <br>
+      </div>
+    </div>
 
     <ion-button *ngIf="showSubmit" type="submit" expand="full">Submit</ion-button>
   </form>

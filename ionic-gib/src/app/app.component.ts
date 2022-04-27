@@ -252,13 +252,13 @@ export class AppComponent extends IbgibComponentBase
           await this.updateIbGib(addr);
         }
 
-        // setTimeout(() => {
-        //   this.handleAddRobbot();
-        //   console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
-        //   console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
-        //   console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
-        //   console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
-        // }, 1000);
+        setTimeout(() => {
+          this.handleAddRobbot();
+          console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
+          console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
+          console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
+          console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
+        }, 1000);
 
         // navToAddr = this.tagsAddr;
         this.common.platform.backButton.subscribeWithPriority(10, async () => {

@@ -21,7 +21,7 @@
   <!-- form that corresponds to the robbot we will create/edit -->
   <ib-dynamic-form #form *ngIf="formItems?.length > 0"
     [items]="formItems"
-    (submit)="handleSubmit()"
+    (submitYo)="handleSubmitYo($event)"
     [showHelp]="showHelp"
     >
   </ib-dynamic-form>

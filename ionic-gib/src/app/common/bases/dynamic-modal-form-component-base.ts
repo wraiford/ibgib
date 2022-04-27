@@ -1,4 +1,4 @@
-import { AfterViewInit, Injectable, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Injectable, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { IonContent } from '@ionic/angular';
 
 import * as c from '../constants';
@@ -71,6 +71,7 @@ export abstract class DynamicModalFormComponentBase<TDataOut>
 
   constructor(
     protected common: CommonService,
+    protected ref: ChangeDetectorRef,
   ) { }
 
   ngOnInit() {
@@ -116,22 +117,27 @@ export abstract class DynamicModalFormComponentBase<TDataOut>
   }
   protected abstract initializeImpl(): Promise<void>;
 
-  async handleSubmit(): Promise<void> {
-    const lc = `${this.lc}[${this.handleSubmit.name}]`;
+  async handleSubmitYo(form: DynamicFormComponent): Promise<void> {
+    const lc = `${this.lc}[${this.handleSubmitYo.name}]`;
     try {
       if (logalot) { console.log(`${lc}`); }
       this.showHelp = false;
+      debugger;
+
       if (this.form.hasErrors) {
-        debugger;
+        this.form.showErrorSummary = true;
+        setTimeout(() => this.ref.detectChanges());
         console.warn(`${lc} Cannot submit form, as there are validation errors. ${this.form.validationErrorString} (I: 0d4bba36dde74552a93b94bc2c300fec)`);
         return;
+      } else {
+        this.form.showErrorSummary = false;
       }
 
-        debugger;
+
       // no validation errors, so create the thing.
 
-      // const data = await this.createImpl();
-      // await this.common.modalController.dismiss(data);
+      const data = await this.createImpl();
+      await this.common.modalController.dismiss(data);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     }

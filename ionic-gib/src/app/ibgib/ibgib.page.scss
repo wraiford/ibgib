@@ -124,15 +124,8 @@ ion-badge {
   border-radius: 50%;
 }
 
-
 .active-btn {
   // can't convert css to scss variable here...i'm a terrible ui person
   $color: #213b23;
   background-color: rgba(red($color), green($color), blue($color), 1.0);
 }
-
-
-
-
-
-
