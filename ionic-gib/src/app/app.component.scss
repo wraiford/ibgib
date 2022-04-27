@@ -170,3 +170,55 @@ ion-item.selected {
 .list-md {
   padding-bottom: 2px !important;
 }
+
+
+
+
+ion-accordion {
+  margin: 0 auto;
+  border-color:rgba(var(--ion-color-primary-rgb), 0.14);
+  border-radius: 5px;
+  border-width: 1px;
+  border-style: solid;
+}
+
+ion-accordion.accordion-expanding,
+ion-accordion.accordion-expanded {
+  width: calc(100% - 8px);
+  margin: 16px auto;
+}
+
+
+ion-accordion.accordion-expanding ion-item[slot="header"] {
+  // color: var(--ion-color-tertiary);
+  border-radius: 5px;
+  border-width: 1px;
+  border-color: var(--ion-color-primary);
+  border-style: solid;
+}
+ion-accordion.accordion-expanded ion-item[slot="header"] {
+  color: var(--ion-color-primary) !important;
+  border-radius: 5px;
+  border-width: 1px;
+  border-color: var(--ion-color-primary);
+  border-style: solid;
+}
+ion-accordion.accordion-expanded ion-item[slot="header"] ion-label ion-icon {
+  color: var(--ion-color-primary) !important;
+}
+ion-accordion ion-item[slot="header"] ion-label ion-text {
+  margin-left: 10px;
+}
+
+ion-accordion ion-list ion-item ion-button {
+  width: calc(100% - 8px);
+  margin: 0px !important;
+}
+
+.header {
+  font-size: 18px;
+  font-weight: 600;
+
+  min-height: 20px;
+  font-family: 'Courier New', Courier, monospace;
+}

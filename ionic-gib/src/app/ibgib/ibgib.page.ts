@@ -25,6 +25,7 @@ import { getFnAlert, getFnPrompt, getFnConfirm } from '../common/helper/prompt-f
 import { createNewTag } from '../common/helper/tag';
 import { ActionBarComponent } from '../common/action-bar/action-bar.component';
 import { ChatViewComponent } from '../views/chat-view/chat-view.component';
+import { IonAccordionGroup } from '@ionic/angular';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -1195,6 +1196,18 @@ export class IbGibPage extends IbgibComponentBase
   }
 
   // #endregion Polling
+
+  // #region test accordion
+  @ViewChild(IonAccordionGroup, { static: true }) accordionGroup: IonAccordionGroup;
+
+  logAccordionValue() {
+    console.log(this.accordionGroup.value);
+  }
+
+  closeAccordion() {
+    this.accordionGroup.value = undefined;
+  }
+  // #endregion test accordion
 
 
 }

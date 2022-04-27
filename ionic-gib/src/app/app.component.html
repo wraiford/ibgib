@@ -4,168 +4,150 @@
     <!-- menu -->
     <ion-menu menuId="main" contentId="main-content" type="overlay">
       <ion-content>
-        <ion-list id="meta-list">
+        <!-- Getting and setting the state of the accordion group -->
+
+        <!-- main menu accordion group -->
+        <ion-accordion-group value="tags">
 
           <!-- spaces -->
-          <ion-item class="accordion-item" *ngIf="localSpaceName">
-            <ion-list class="accordion-item-list">
-              <ion-list-header>
-                <ion-label [title]="'local space ' + localSpaceName">
-                  <ion-button (click)="handleSpaceClick()">
-                    <ion-icon  title="local space" slot="start" name="earth-outline"></ion-icon>
-                    <ion-label>{{ localSpaceName }}</ion-label>
-                  </ion-button>
-                </ion-label>
-                <ion-icon class="accordion-expand-btn" *ngIf="menuOpen !== 'spaces'" name="chevron-down-circle-outline" (click)="menuOpen = 'spaces'"></ion-icon>
-                <ion-icon class="accordion-expand-btn" *ngIf="menuOpen === 'spaces'" name="chevron-back-circle-outline" (click)="menuOpen = ''"></ion-icon>
-              </ion-list-header>
-              <ion-list *ngIf="menuOpen === 'spaces'" slot="content">
-                <ion-item *ngFor="let spaceItem of spaceItems"
-                  lines="none"
-                  [title]="getSpaceTooltip('outerspace', spaceItem)"
-                  >
-                  <ion-button (click)="spaceItem.clickHandler(spaceItem)">
-                    <ion-icon slot="start" [name]="spaceItem.icon"></ion-icon>
-                    <ion-label>{{ spaceItem.title }}</ion-label>
-                  </ion-button>
-                </ion-item>
-              </ion-list>
+          <ion-accordion value="spaces">
+            <ion-item slot="header" [title]="'local space ' + localSpaceName">
+              <ion-label class="header" expand="block">
+                <!-- <ion-button (click)="handleSpaceClick()"> -->
+                  <ion-icon slot="start" name="earth-outline" title="local space"
+                    ></ion-icon>
+                  <ion-text>{{ localSpaceName ?? 'where are we...' }}</ion-text>
+                <!-- </ion-button> -->
+              </ion-label>
+            </ion-item>
+            <ion-list slot="content" class="accordion-item-list">
+              <ion-item *ngFor="let spaceItem of spaceItems"
+                class="accordion-item"
+                lines="none"
+                [title]="getSpaceTooltip('outerspace', spaceItem)"
+                >
+                <ion-button (click)="spaceItem.clickHandler(spaceItem)">
+                  <ion-icon slot="start" [name]="spaceItem.icon"></ion-icon>
+                  <ion-label>{{ spaceItem.title }}</ion-label>
+                </ion-button>
+              </ion-item>
             </ion-list>
-          </ion-item>
+          </ion-accordion>
 
           <!-- tags -->
-          <ion-item class="accordion-item">
-            <ion-list class="accordion-item-list">
-              <ion-list-header>
-                <ion-label>
-                  <ion-button (click)="handleTagsClick()">
-                    <ion-icon slot="start" name="pricetags-outline"></ion-icon>
-                    <ion-label>tags</ion-label>
-                  </ion-button>
-                </ion-label>
-                <ion-icon class="accordion-expand-btn" *ngIf="menuOpen !== 'tags'" name="chevron-down-circle-outline" (click)="menuOpen = 'tags'"></ion-icon>
-                <ion-icon class="accordion-expand-btn" *ngIf="menuOpen === 'tags'" name="chevron-back-circle-outline" (click)="menuOpen = ''"></ion-icon>
-              </ion-list-header>
-              <ion-list *ngIf="menuOpen === 'tags'" slot="content">
-                <ion-item *ngFor="let tagItem of tagItems"
-                  lines="none" [title]="tagItem.title"
-                  >
-                  <ion-button (click)="tagItem.clickHandler(tagItem)">
-                    <ion-icon slot="start" [name]="tagItem.icon"></ion-icon>
-                    <ion-label>{{ tagItem.title }}</ion-label>
-                  </ion-button>
-                </ion-item>
-                <ion-item *ngIf='tagsAddr'
-                  lines="none" title="add tag"
-                  >
-                  <ion-button [disabled]="refreshing || addingTag || !ibGib"
-                    color="secondary"
-                    (click)="handleAddTag()">
-                    <ion-spinner *ngIf="refreshing || addingTag || !ibGib" name="circles" color="primary"></ion-spinner>
-                    <ion-icon slot="start" name="add-outline" color="primary"></ion-icon>
-                    <ion-label>add tag</ion-label>
-                  </ion-button>
-                </ion-item>
-                <ion-item *ngIf="!ibGib">
-                  <ion-label color="primary">i believe...</ion-label>
-                  <ion-spinner name="circles" color="tertiary"></ion-spinner>
-                </ion-item>
-              </ion-list>
+          <ion-accordion value="tags">
+            <ion-item slot="header" title="tags are like bookmarks, bookmarks are like tags...">
+              <ion-label class="header" expand="block">
+                <!-- <ion-button (click)="handleTagsClick()"> -->
+                  <ion-icon slot="start" name="pricetags-outline"></ion-icon>
+                  <ion-text>tags</ion-text>
+                <!-- </ion-button> -->
+              </ion-label>
+            </ion-item>
+            <ion-list slot="content" class="accordion-item-list">
+              <ion-item *ngFor="let tagItem of tagItems"
+                lines="none" [title]="tagItem.title"
+                >
+                <ion-button (click)="tagItem.clickHandler(tagItem)">
+                  <ion-icon slot="start" [name]="tagItem.icon"></ion-icon>
+                  <ion-label>{{ tagItem.title }}</ion-label>
+                </ion-button>
+              </ion-item>
+              <ion-item *ngIf='tagsAddr' lines="none" title="add tag">
+                <ion-button [disabled]="refreshing || addingTag || !ibGib"
+                  color="secondary"
+                  (click)="handleAddTag()">
+                  <ion-spinner *ngIf="refreshing || addingTag || !ibGib" name="circles" color="primary"></ion-spinner>
+                  <ion-icon slot="start" name="add-outline" color="primary"></ion-icon>
+                  <ion-label>add tag</ion-label>
+                </ion-button>
+              </ion-item>
+              <ion-item *ngIf="!ibGib">
+                <ion-label color="primary">i believe...</ion-label>
+                <ion-spinner name="circles" color="tertiary"></ion-spinner>
+              </ion-item>
             </ion-list>
-          </ion-item>
+          </ion-accordion>
 
           <!-- robbots -->
-          <ion-item class="accordion-item">
-            <ion-list class="accordion-item-list">
-              <ion-list-header>
-                <ion-label>
-                  <ion-button (click)="handleRobbotsClick()">
-                    <ion-icon  title="robbots" slot="start" name="body-outline"></ion-icon>
-                    <ion-label>Robbots</ion-label>
-                  </ion-button>
-                </ion-label>
-                <ion-icon class="accordion-expand-btn" *ngIf="menuOpen !== 'robbots'" name="chevron-down-circle-outline" (click)="menuOpen = 'robbots'"></ion-icon>
-                <ion-icon class="accordion-expand-btn" *ngIf="menuOpen === 'robbots'" name="chevron-back-circle-outline" (click)="menuOpen = ''"></ion-icon>
-              </ion-list-header>
-              <ion-list *ngIf="menuOpen === 'robbots'" slot="content">
-                <ion-item *ngFor="let robbotItem of robbotItems"
-                  lines="none"
-                  >
-                  <!-- [title]="getrobbotTooltip('robbot', robbotItem)" -->
-                  <ion-button (click)="robbotItem.clickHandler(robbotItem)">
-                    <ion-icon slot="start" [name]="robbotItem.icon"></ion-icon>
-                    <ion-label>{{ robbotItem.title }}</ion-label>
-                  </ion-button>
-                </ion-item>
-                <ion-item *ngIf='robbotsAddr'
-                  lines="none" title="add robbot"
-                  >
-                  <ion-button [disabled]="refreshing || addingRobbot || !ibGib"
-                    color="secondary"
-                    (click)="handleAddRobbot()">
-                    <ion-spinner *ngIf="refreshing || addingRobbot || !ibGib" name="circles" color="primary"></ion-spinner>
-                    <ion-icon slot="start" name="add-outline" color="primary"></ion-icon>
-                    <ion-label>add robbot</ion-label>
-                  </ion-button>
-                </ion-item>
-                <ion-item *ngIf="!ibGib">
-                  <ion-label color="primary">i believe...</ion-label>
-                  <ion-spinner name="circles" color="tertiary"></ion-spinner>
-                </ion-item>
-              </ion-list>
+          <ion-accordion value="robbots">
+            <ion-item slot="header" title="our helpers...">
+              <ion-label class="header" expand="block">
+                <!-- <ion-button (click)="handleRobbotsClick()"> -->
+                  <ion-icon title="robbots" slot="start" name="body-outline"></ion-icon>
+                  <ion-text>robbots</ion-text>
+                <!-- </ion-button> -->
+              </ion-label>
+            </ion-item>
+            <ion-list slot="content" class="accordion-item-list">
+              <ion-item *ngFor="let robbotItem of robbotItems"
+                lines="none"
+                >
+                <!-- [title]="getrobbotTooltip('robbot', robbotItem)" -->
+                <ion-button (click)="robbotItem.clickHandler(robbotItem)">
+                  <ion-icon slot="start" [name]="robbotItem.icon"></ion-icon>
+                  <ion-label>{{ robbotItem.title }}</ion-label>
+                </ion-button>
+              </ion-item>
+              <ion-item *ngIf='robbotsAddr'
+                lines="none" title="add robbot"
+                >
+                <ion-button [disabled]="refreshing || addingRobbot || !ibGib"
+                  color="secondary"
+                  (click)="handleAddRobbot()">
+                  <ion-spinner *ngIf="refreshing || addingRobbot || !ibGib" name="circles" color="primary"></ion-spinner>
+                  <ion-icon slot="start" name="add-outline" color="primary"></ion-icon>
+                  <ion-label>add robbot</ion-label>
+                </ion-button>
+              </ion-item>
+              <ion-item *ngIf="!ibGib">
+                <ion-label color="primary">i believe...</ion-label>
+                <ion-spinner name="circles" color="tertiary"></ion-spinner>
+              </ion-item>
             </ion-list>
-          </ion-item>
+          </ion-accordion>
 
           <!-- roots -->
-          <ion-item class="accordion-item">
-            <ion-list class="accordion-item-list">
-              <ion-list-header>
-                <ion-label>
-                  <ion-button (click)="handleRootsClick()">
-                    <ion-icon slot="start" name="analytics-outline"></ion-icon>
-                    <ion-label>roots</ion-label>
-                  </ion-button>
-                </ion-label>
-                <ion-icon class="accordion-expand-btn" *ngIf="menuOpen !== 'roots'" name="chevron-down-circle-outline" (click)="menuOpen = 'roots'"></ion-icon>
-                <ion-icon class="accordion-expand-btn" *ngIf="menuOpen === 'roots'" name="chevron-back-circle-outline" (click)="menuOpen = ''"></ion-icon>
-              </ion-list-header>
-              <ion-list *ngIf="menuOpen === 'roots'" slot="content">
-                <ion-item>
-                  <ion-label>current: </ion-label>
-                  <ion-select
-                    [compareWith]="compareMenuItems"
-                    [value]="currentRoot"
-                    okText="Set Root"
-                    (ionChange)="handleRootChange($event)"
-                    >
-                    <ion-select-option *ngFor="let item of rootItems" [value]="item">
-                      <ion-icon slot="start" [ios]="item.icon" [md]="item.icon.replace('outline', 'sharp')"></ion-icon>
-                      <ion-label>{{ item.title }}</ion-label>
-                    </ion-select-option>
-                  </ion-select>
-                </ion-item>
-                <ion-item *ngFor="let rootItem of rootItems"
-                  lines="none"
-                  [title]="rootItem.title"
+          <ion-accordion value="roots">
+            <ion-item slot="header" title="everything starts at the roots...">
+              <ion-label class="header" expand="block">
+                <ion-icon slot="start" name="analytics-outline"></ion-icon>
+                <ion-text>roots {{currentRoot ? '('+currentRoot?.title+')' : ''}}</ion-text>
+                <!-- <ion-text>roots</ion-text> -->
+              </ion-label>
+            </ion-item>
+            <ion-list slot="content" class="accordion-item-list">
+              <ion-item>
+                <ion-label>current: </ion-label>
+                <ion-select
+                  [compareWith]="compareMenuItems"
+                  [value]="currentRoot"
+                  okText="Set Root"
+                  (ionChange)="handleRootChange($event)"
                   >
-                  <ion-button (click)="rootItem.clickHandler(rootItem)">
-                    <ion-icon slot="start" [name]="rootItem.icon"></ion-icon>
-                    <ion-label>{{ rootItem.title }}</ion-label>
-                  </ion-button>
-                </ion-item>
-              </ion-list>
-            </ion-list>
-          </ion-item>
+                  <ion-select-option *ngFor="let item of rootItems" [value]="item">
+                    <ion-icon slot="start" [ios]="item.icon" [md]="item.icon.replace('outline', 'sharp')"></ion-icon>
+                    <ion-label>{{ item.title }}</ion-label>
+                  </ion-select-option>
+                </ion-select>
+              </ion-item>
+              <ion-item *ngFor="let rootItem of rootItems"
+                lines="none"
+                [title]="rootItem.title"
+                >
+                <ion-button (click)="rootItem.clickHandler(rootItem)">
+                  <ion-icon slot="start" [name]="rootItem.icon"></ion-icon>
+                  <ion-label>{{ rootItem.title }}</ion-label>
+                </ion-button>
+              </ion-item>
 
-        </ion-list>
+            </ion-list>
+          </ion-accordion>
+
+        </ion-accordion-group>
 
       </ion-content>
     </ion-menu>
-
-    <!-- <div *ngIf="initializing">
-      <p>...initializing hmm...</p>
-      <ion-spinner name="circles" color="primary"></ion-spinner>
-    </div> -->
 
     <!-- main content -->
     <ion-router-outlet id="main-content"></ion-router-outlet>
