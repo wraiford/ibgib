@@ -11,7 +11,8 @@
 
   <form [formGroup]="rootFormGroup" (ngSubmit)="handleSubmit()"
     >
-    <ion-item *ngFor="let item of items" [title]="item.description">
+    <ion-item *ngFor="let item of items"
+      [title]="item.description">
       <ion-label position="stacked"><strong>{{item.required ? '*' : ''}}{{item.label}}: </strong></ion-label>
       <ion-input *ngIf="['text'].includes(item.dataType)"
         [formControlName]="item.uuid"

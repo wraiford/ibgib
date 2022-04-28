@@ -117,8 +117,8 @@ export abstract class DynamicModalFormComponentBase<TDataOut>
   }
   protected abstract initializeImpl(): Promise<void>;
 
-  async handleSubmitYo(form: DynamicFormComponent): Promise<void> {
-    const lc = `${this.lc}[${this.handleSubmitYo.name}]`;
+  async handleSubmit(form: DynamicFormComponent): Promise<void> {
+    const lc = `${this.lc}[${this.handleSubmit.name}]`;
     try {
       if (logalot) { console.log(`${lc}`); }
       this.showHelp = false;

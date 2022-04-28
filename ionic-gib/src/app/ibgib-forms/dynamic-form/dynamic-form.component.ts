@@ -148,7 +148,7 @@ export class DynamicFormComponent
   showSubmit: boolean = true;
 
   @Output()
-  submitYo: EventEmitter<DynamicFormComponent> = new EventEmitter<DynamicFormComponent>();
+  submit: EventEmitter<DynamicFormComponent> = new EventEmitter<DynamicFormComponent>();
 
 
   /**
@@ -236,88 +236,6 @@ export class DynamicFormComponent
     // }
     return a && b ? a?.toLowerCase() === b?.toLowerCase() : a === b;
   }
-
-  // async handleSaveClick(): Promise<void> {
-  //   const lc = `${this.lc}[${this.handleSaveClick.name}]`;
-  //   try {
-  //     if (logalot) { console.log(`${lc}`); }
-  //     this.showHelp = false;
-  //     const validationErrors = await this.validateForm();
-  //     if (validationErrors.length > 0) {
-  //       console.warn(`${lc} validation failed. Errors:\n${validationErrors.join('\n')}`);
-  //       return;
-  //     }
-
-  //     // const outputData = await this.createImpl();
-  //     // await this.common.modalController.dismiss(data);
-
-  //     this.validated.emit(this.items);
-  //   } catch (error) {
-  //     console.error(`${lc} ${error.message}`);
-  //   }
-  // }
-
-  // async handleCancelClick(): Promise<void> {
-  //   const lc = `${this.lc}[${this.handleCancelClick.name}]`;
-  //   if (logalot) { console.log(`${lc}`); }
-  //   this.cancel.emit();
-  // }
-
-  // async validateForm(): Promise<string[]> {
-  //   const lc = `${this.lc}[${this.validateForm.name}]`;
-  //   this.validationErrors.splice(0, this.validationErrors.length);
-  //   this.erroredFields.splice(0, this.erroredFields.length);
-  //   const errors: string[] = [];
-  //   const erroredFields: string[] = [];
-
-  //   let itemInfos: FormItemInfo[] = Object.values(this.items);
-  //   for (let i = 0; i < itemInfos.length; i++) {
-  //     const itemInfo = itemInfos[i];
-  //     let value = this[itemInfo.name];
-  //     if (logalot) { console.log(`${lc} doing ${itemInfo.name}`); }
-  //     if (value) {
-  //       if (logalot) {
-  //         if (itemInfo.private) {
-  //           console.log(`${lc} value: [field is private]`);
-  //         } else {
-  //           console.log(`${lc} value: ${value}`);
-  //         }
-  //       }
-
-  //       if (typeof value === 'string') {
-  //         if (itemInfo.regexp) {
-  //           if (logalot) { console.log(`${lc} ${itemInfo.name} is a string. regexp: ${itemInfo.regexp}`); }
-  //           if ((value.match(itemInfo.regexp) ?? []).length === 0) {
-  //             erroredFields.push(itemInfo.name);
-  //             errors.push(`${itemInfo.name} must match regexp: ${itemInfo.regexp}`);
-  //           }
-  //         }
-  //         if ((<string>value).includes('\n')) {
-  //           erroredFields.push(itemInfo.name);
-  //           errors.push(`${itemInfo.name} cannot contain new lines.`);
-  //         }
-  //       }
-  //       if (itemInfo.fnValid && !itemInfo.fnValid(value)) {
-  //         erroredFields.push(itemInfo.name);
-  //         errors.push(`${itemInfo.name} error: ${itemInfo.fnErrorMsg}`);
-  //       }
-  //     } else {
-  //       if (itemInfo.required) {
-  //         erroredFields.push(itemInfo.name);
-  //         errors.push(`${itemInfo.name} required.`);
-  //       }
-  //     }
-  //   }
-
-  //   errors.forEach(e => this.validationErrors.push(e));
-  //   if (this.validationErrors.length > 0) {
-  //     console.error(`${lc} this.validationErrors:\n${this.validationErrors.join('\n')}`);
-  //     this.scrollToTopToShowValidationErrors();
-  //   }
-  //   erroredFields.forEach(e => this.erroredFields.push(e));
-
-  //   return errors;
-  // }
 
   scrollToTopToShowValidationErrors(): void {
     const lc = `${this.lc}[${this.scrollToTopToShowValidationErrors.name}]`;
@@ -468,7 +386,7 @@ export class DynamicFormComponent
 
   async handleSubmit(): Promise<void> {
     console.log('submitted');
-    this.submitYo.emit(this);
+    // this.submit.emit(this);
   }
 
 
