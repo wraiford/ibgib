@@ -117,8 +117,8 @@ export abstract class DynamicModalFormComponentBase<TDataOut>
   }
   protected abstract initializeImpl(): Promise<void>;
 
-  async handleSubmit(form: DynamicFormComponent): Promise<void> {
-    const lc = `${this.lc}[${this.handleSubmit.name}]`;
+  async handleSubmit_DynamicModal(form: DynamicFormComponent): Promise<void> {
+    const lc = `${this.lc}[${this.handleSubmit_DynamicModal.name}]`;
     try {
       if (logalot) { console.log(`${lc}`); }
       this.showHelp = false;
@@ -132,7 +132,6 @@ export abstract class DynamicModalFormComponentBase<TDataOut>
       } else {
         this.form.showErrorSummary = false;
       }
-
 
       // no validation errors, so create the thing.
 

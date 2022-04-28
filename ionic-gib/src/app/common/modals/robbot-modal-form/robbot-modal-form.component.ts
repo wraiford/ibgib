@@ -12,7 +12,7 @@ import { TransformResult } from 'ts-gib';
 
 import * as c from '../../constants';
 import { FormItemInfo } from '../../../ibgib-forms/types/form-items';
-import { RobbotIbGib_V1 } from '../../types/robbot';
+import { RobbotData_V1, RobbotIbGib_V1, RobbotRel8ns_V1 } from '../../types/robbot';
 import { CommonService } from '../../../services/common.service';
 import {
   RandomRobbotData_V1, RandomRobbot_V1,
@@ -63,6 +63,11 @@ export class RobbotModalFormComponent
     };
 
   /**
+   * The item that is currently selected in the metaform. (hack)
+   */
+  selectedItem: FormItemInfo;
+
+  /**
    * If we are editing an ibGib, this will be populated and {@link createImpl}
    * will mutate it. Otherwise, this will be falsy, and {@link createImpl} will
    * create a new one.
@@ -70,7 +75,7 @@ export class RobbotModalFormComponent
   @Input()
   ibGib: RobbotIbGib_V1;
 
-  robbotFactories: DynamicFormFactoryBase<IbGibRobbotAny>[];
+  robbotFactories: DynamicFormFactoryBase<RobbotData_V1, RobbotRel8ns_V1, IbGibRobbotAny>[];
 
   constructor(
     protected common: CommonService,
@@ -136,8 +141,9 @@ export class RobbotModalFormComponent
       let resNewIbGib: TransformResult<RobbotIbGib_V1>;
 
       // create the robbot
-      // ...how should I be doing the creating for various types of robbots?
-      // some kind of ioc?
+      const factory = this.getFactory({item: this.selectedItem});
+
+      resNewIbGib = await factory.formToWitness({form: this.form});
 
       if (!resNewIbGib) { throw new Error(`creation failed... (E: ddc73faeb9d74eeca5f415d4b9e3f425)`); }
 
@@ -152,11 +158,18 @@ export class RobbotModalFormComponent
     const lc = `${this.lc}[${this.handleItemSelected.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
-      let factories =
-        this.robbotFactories.filter(x => x.getInjectionName() === item.value)
-      let factory = factories[0];
-      let resRobbot = await factory.newUp();
-      let subform = await factory.witnessToForm({witness: resRobbot.newIbGib});
+      this.selectedItem = item;
+
+      // get the coresponding factory to...
+      const factory = this.getFactory({item});
+
+      // ...new up a blank
+      const resRobbot = await factory.newUp({});
+
+      // convert the blank to the form
+      const subform = await factory.witnessToForm({witness: resRobbot.newIbGib});
+
+      // update the ux
       this.formItems = subform.children;
       setTimeout(() => this.ref.detectChanges());
     } catch (error) {
@@ -167,6 +180,28 @@ export class RobbotModalFormComponent
     }
   }
 
+  getFactory({
+    item,
+  }: {
+    item: FormItemInfo,
+  }): DynamicFormFactoryBase<RobbotData_V1, RobbotRel8ns_V1, IbGibRobbotAny> {
+    const lc = `${this.lc}[${this.getFactory.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      let factories =
+        this.robbotFactories.filter(x => x.getInjectionName() === item.value)
+
+      if (factories.length !== 1) { throw new Error(`(UNEXPECTED) factory not found? (E: 0e9a21e7e9456e946eded8ea76715222)`); }
+
+      return factories[0];
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 
   handleValidatedSubform(event: any): void {
     debugger;

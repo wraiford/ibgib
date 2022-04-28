@@ -135,9 +135,7 @@ const DEFAULT_RANDOM_ROBBOT_DATA_V1: RandomRobbotData_V1 = {
     catchAllErrors: true,
     trace: false,
 }
-const DEFAULT_RANDOM_ROBBOT_REL8NS_V1: RandomRobbotRel8ns_V1 = {
-    ancestor: ['robbot^gib'],
-}
+const DEFAULT_RANDOM_ROBBOT_REL8NS_V1: RandomRobbotRel8ns_V1 = undefined;
 
 /**
  * factory for random robbot.
@@ -146,26 +144,34 @@ const DEFAULT_RANDOM_ROBBOT_REL8NS_V1: RandomRobbotRel8ns_V1 = {
  */
 @Injectable({providedIn: 'root'})
 export class RandomRobbot_V1_Factory
-    extends DynamicFormFactoryBase<RandomRobbot_V1> {
+    extends DynamicFormFactoryBase<RandomRobbotData_V1, RandomRobbotRel8ns_V1, RandomRobbot_V1> {
 
     protected lc: string = `[${RandomRobbot_V1_Factory.name}]`;
 
     getInjectionName(): string { return RandomRobbot_V1.name; }
 
-    async newUp(): Promise<TransformResult<RandomRobbot_V1>> {
+    async newUp({
+        data,
+        rel8ns,
+    }: {
+        data?: RandomRobbotData_V1,
+        rel8ns?: RandomRobbotRel8ns_V1,
+    }): Promise<TransformResult<RandomRobbot_V1>> {
         const lc = `${this.lc}[${this.newUp.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            let robbotData: RandomRobbotData_V1 = h.clone(DEFAULT_RANDOM_ROBBOT_DATA_V1);
-            robbotData.uuid = await h.getUUID();
-            let {classname} = robbotData;
+            data = data ?? h.clone(DEFAULT_RANDOM_ROBBOT_DATA_V1);
+            rel8ns = rel8ns ?? DEFAULT_RANDOM_ROBBOT_REL8NS_V1 ? h.clone(DEFAULT_RANDOM_ROBBOT_REL8NS_V1) : undefined;
+            data.uuid = data.uuid ?? await h.getUUID();
+            let {classname} = data;
 
-            const ib = getRobbotIb({robbotData, classname});
+            const ib = getRobbotIb({robbotData: data, classname});
 
             const resRobbot = <TransformResult<RobbotIbGib_V1>>await factory.firstGen({
                 ib,
                 parentIbGib: factory.primitive({ib: `robbot ${classname}`}),
-                data: robbotData,
+                data: data,
+                rel8ns,
                 dna: true,
                 linkedRel8ns: [Rel8n.ancestor, Rel8n.past],
                 nCounter: true,
@@ -222,12 +228,12 @@ export class RandomRobbot_V1_Factory
         }
     }
 
-    async formToWitness({ form }: { form: DynamicForm; }): Promise<RandomRobbot_V1> {
-        let robbot = new RandomRobbot_V1(null, null);
-        let data: any = {};
+    async formToWitness({ form }: { form: DynamicForm; }): Promise<TransformResult<RandomRobbot_V1>> {
+        // let robbot = new RandomRobbot_V1(null, null);
+        let data: RobbotData_V1 = h.clone(DEFAULT_RANDOM_ROBBOT_DATA_V1);
         this.patchDataFromItems({data, items: form.children, pathDelimiter: c.DEFAULT_DATA_PATH_DELIMITER});
-        robbot.data = data;
-        return robbot;
+        let resRobbot = await this.newUp({data});
+        return resRobbot;
     }
 
 }

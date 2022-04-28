@@ -3,7 +3,7 @@ import { DynamicForm, FormItemInfo } from "../types/form-items";
 import * as c from '../dynamic-form-constants';
 import { patchObject } from "../../common/helper/utils";
 import { TransformResult } from "ts-gib/dist/types";
-import { IbGib_V1 } from "ts-gib/dist/V1";
+import { IbGibRel8ns_V1, IbGib_V1 } from "ts-gib/dist/V1";
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -16,7 +16,7 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
  *   * witness(model) -> form data (to generate dynamic forms)
  *   * form data -> witness (to instantiate witness from data)
  */
-export abstract class DynamicFormFactoryBase<TWitness extends IbGib_V1> {
+export abstract class DynamicFormFactoryBase<TWitnessData, TWitnessRel8ns extends IbGibRel8ns_V1, TWitness extends IbGib_V1<TWitnessData, TWitnessRel8ns>> {
     protected lc: string = `[${DynamicFormFactoryBase.name}]`;
     /**
      * override this with the name that will be used with the injection token.
@@ -30,8 +30,8 @@ export abstract class DynamicFormFactoryBase<TWitness extends IbGib_V1> {
      * override this with specific behavior that will reify an instance based on
      * the given {@link form}.
      */
-    abstract formToWitness({form}: {form: DynamicForm}): Promise<TWitness>;
-    abstract newUp(): Promise<TransformResult<TWitness>>;
+    abstract formToWitness({form}: {form: DynamicForm}): Promise<TransformResult<TWitness>>;
+    abstract newUp({data, rel8ns}: {data?: TWitnessData, rel8ns?: TWitnessRel8ns}): Promise<TransformResult<TWitness>>;
 
     /**
      * iterates through the given {@link items}.

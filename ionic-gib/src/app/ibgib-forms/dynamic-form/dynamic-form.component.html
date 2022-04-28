@@ -3,15 +3,15 @@
   <span>i believe...</span>
 </div>
 
-<div *ngIf="!updating && items"
+<div *ngIf="!updating && children"
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"
   [style.border-style]="debugBorderStyle"
   >
 
-  <form [formGroup]="rootFormGroup" (ngSubmit)="handleSubmit()"
+  <form [formGroup]="rootFormGroup" (ngSubmit)="handleSubmit_DynamicForm()"
     >
-    <ion-item *ngFor="let item of items"
+    <ion-item *ngFor="let item of children"
       class="input-item" fill="outline"
       [title]="item.description">
       <ion-label position="stacked"><strong>{{item.required ? '*' : ''}}{{item.label}}: </strong></ion-label>
@@ -54,7 +54,7 @@
         [parentFormGroup]="rootFormGroup"
         [formControlName]="item.uuid"
         [showSubmit]="false"
-        [items]="item.children"
+        [children]="item.children"
         (validated)="handleValidatedSubform($event)"
         (cancel)="handleCancel()"
         >

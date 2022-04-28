@@ -7,7 +7,7 @@ import * as h from 'ts-gib/dist/helper';
 // import { DynamicFormBase } from '../bases/dynamic-form-base';
 
 import * as c from '../dynamic-form-constants';
-import { FormItemInfo } from '../types/form-items';
+import { DynamicForm, FormItemDataType, FormItemInfo } from '../types/form-items';
 
 console.log(`ibgib reminder: dynamic forms module doesn't use global logalot/debugBorder from constants file...(delete this reminder at some point when refactor common module and constants)`);
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -20,7 +20,7 @@ const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 })
 export class DynamicFormComponent
   // extends DynamicFormBase
-  implements OnDestroy, AfterViewInit {
+  implements DynamicForm, OnDestroy, AfterViewInit {
   protected lc: string = `[${DynamicFormComponent.name}]`;
   @Input()
   updating: boolean;
@@ -34,12 +34,12 @@ export class DynamicFormComponent
   allItems_Flat_ById: { [uuid: string]: FormItemInfo };
   _items: FormItemInfo[] = [];
   @Input()
-  get items(): FormItemInfo[] {
+  get children(): FormItemInfo[] {
     const lc = `${this.lc}[get items]`;
     if (logalot) { console.log(`${lc} returning items (${h.pretty(this._items)}) (I: 243b674d8659b9adaed0fb2905fd3c22)`); }
     return this._items;
   }
-  set items(newItems: FormItemInfo[]) {
+  set children(newItems: FormItemInfo[]) {
     const lc = `${this.lc}[set items]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
@@ -147,12 +147,8 @@ export class DynamicFormComponent
   @Input()
   showSubmit: boolean = true;
 
-  @Input()
-  fillItems: 'outline' | 'solid' | undefined = 'outline';
-
   @Output()
-  submit: EventEmitter<DynamicFormComponent> = new EventEmitter<DynamicFormComponent>();
-
+  dynamicSubmit: EventEmitter<DynamicFormComponent> = new EventEmitter<DynamicFormComponent>();
 
   /**
    * Hack that exposes children controls' item select events.  I doubt that I
@@ -179,6 +175,27 @@ export class DynamicFormComponent
   ) {
     // super(fb);
   }
+
+  name: string;
+  label?: string;
+  description?: string;
+  placeholder?: string;
+  regexp?: RegExp;
+  regexpErrorMsg?: string;
+  fnValid?: (value: string | number) => boolean;
+  fnErrorMsg?: string;
+  required?: boolean;
+  private?: boolean;
+  unmasked?: boolean;
+  readonly?: boolean;
+  dataType?: FormItemDataType;
+  selectOptions?: string[];
+  min?: number;
+  max?: number;
+  multiple?: boolean;
+  control?: any;
+  uuid?: string;
+  errored?: boolean;
 
   async ngAfterViewInit(): Promise<void> {
     const lc = `${this.lc}[${this.ngAfterViewInit.name}]`;
@@ -332,7 +349,7 @@ export class DynamicFormComponent
         }
       }
 
-      if (logalot) { console.log(`this.items: ${h.pretty(this.items)} (I: 30b7fc4146a757d5658af49f56f06322)`); }
+      if (logalot) { console.log(`this.items: ${h.pretty(this.children)} (I: 30b7fc4146a757d5658af49f56f06322)`); }
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -387,9 +404,18 @@ export class DynamicFormComponent
     }
   }
 
-  async handleSubmit(): Promise<void> {
-    console.log('submitted');
-    // this.submit.emit(this);
+  async handleSubmit_DynamicForm(): Promise<void> {
+    const lc = `${this.lc}[${this.handleSubmit_DynamicForm.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      debugger;
+      this.dynamicSubmit.emit(this);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
 
