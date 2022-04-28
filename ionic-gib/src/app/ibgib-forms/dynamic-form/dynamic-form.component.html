@@ -12,6 +12,7 @@
   <form [formGroup]="rootFormGroup" (ngSubmit)="handleSubmit()"
     >
     <ion-item *ngFor="let item of items"
+      class="input-item" fill="outline"
       [title]="item.description">
       <ion-label position="stacked"><strong>{{item.required ? '*' : ''}}{{item.label}}: </strong></ion-label>
       <ion-input *ngIf="['text'].includes(item.dataType)"
@@ -73,7 +74,7 @@
       </div>
     </div>
 
-    <ion-button *ngIf="showSubmit" type="submit" expand="full">Submit</ion-button>
+    <ion-button *ngIf="showSubmit" type="submit" expand="block">Submit</ion-button>
   </form>
 
 </div>

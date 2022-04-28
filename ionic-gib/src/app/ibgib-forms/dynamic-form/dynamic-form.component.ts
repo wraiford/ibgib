@@ -147,6 +147,9 @@ export class DynamicFormComponent
   @Input()
   showSubmit: boolean = true;
 
+  @Input()
+  fillItems: 'outline' | 'solid' | undefined = 'outline';
+
   @Output()
   submit: EventEmitter<DynamicFormComponent> = new EventEmitter<DynamicFormComponent>();
 

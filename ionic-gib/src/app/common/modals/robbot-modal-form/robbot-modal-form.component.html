@@ -16,6 +16,7 @@
     (itemSelect)="handleItemSelected($event)"
     [showSubmit]="false"
     [showHelp]="showHelp"
+    [fillItems]="outline"
     >
   </ib-dynamic-form>
   <!-- form that corresponds to the robbot we will create/edit -->
@@ -23,6 +24,7 @@
     [items]="formItems"
     (submit)="handleSubmit($event)"
     [showHelp]="showHelp"
+    [fillItems]="outline"
     >
   </ib-dynamic-form>
 </ion-content>

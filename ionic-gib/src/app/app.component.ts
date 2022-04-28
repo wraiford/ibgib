@@ -258,7 +258,7 @@ export class AppComponent extends IbgibComponentBase
         //   console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
         //   console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
         //   console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
-        // }, 5000);
+        // }, 3000);
 
         // navToAddr = this.tagsAddr;
         this.common.platform.backButton.subscribeWithPriority(10, async () => {
@@ -1126,14 +1126,15 @@ export class AppComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.handleAddRobbot.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
+      await this.menu.close();
       if (this.addingRobbot) { throw new Error(`(UNEXPECTED) already adding tag...shouldn't get here (E: 16304ec9c66947768db2298827240e95)`); }
       this.addingRobbot = true;
 
       const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
 
-      // await createNewRobbot({common: this.common, space});
-      let fn = getFn_promptCreateSecretIbGib(this.common);
-      await fn(space);
+      await createNewRobbot({common: this.common, space});
+      // let fn = getFn_promptCreateSecretIbGib(this.common);
+      // await fn(space);
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
