@@ -130,7 +130,7 @@ export abstract class ModalFormComponentBase<TDataOut> implements OnInit, OnDest
         }
         if (field.fnValid && !field.fnValid(value)) {
           erroredFields.push(field.name);
-          errors.push(`${field.name} error: ${field.fnErrorMsg}`);
+          errors.push(`${field.name} error: ${field.defaultErrorMsg}`);
         }
       } else {
         if (field.required) {

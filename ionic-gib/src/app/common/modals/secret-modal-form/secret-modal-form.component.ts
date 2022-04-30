@@ -103,7 +103,7 @@ export class SecretModalFormComponent
         const isInFuture = valueAsDate.getTime() - (new Date()).getTime() > 0;
         return isValidDateString && isInFuture;
       },
-      fnErrorMsg: `Invalid date/time value. (?) Should be a valid UTC string and in the future.`,
+      defaultErrorMsg: `Invalid date/time value. (?) Should be a valid UTC string and in the future.`,
       required: true,
     },
     userPassword: {
@@ -116,7 +116,7 @@ export class SecretModalFormComponent
         max: c.MAX_ENCRYPTION_PASSWORD_LENGTH,
         chars: c.ALLISH_SPECIAL_CHARS
       }),
-      fnErrorMsg: `Password must only contain letters, numbers and ${c.ALLISH_SPECIAL_CHARS}. Min: ${c.MIN_ENCRYPTION_PASSWORD_LENGTH}. Max: ${c.MAX_ENCRYPTION_PASSWORD_LENGTH}`,
+      defaultErrorMsg: `Password must only contain letters, numbers and ${c.ALLISH_SPECIAL_CHARS}. Min: ${c.MIN_ENCRYPTION_PASSWORD_LENGTH}. Max: ${c.MAX_ENCRYPTION_PASSWORD_LENGTH}`,
       required: true,
       private: true,
     },
@@ -133,7 +133,7 @@ export class SecretModalFormComponent
       description: "Optional hint for your use as you see fit",
       placeholder: "Optional...",
       regexp: getRegExp({min: 1, max: 50, chars: c.SAFE_SPECIAL_CHARS}),
-      fnErrorMsg: `Optional hint must contain letters, numbers and ${c.SAFE_SPECIAL_CHARS}`,
+      defaultErrorMsg: `Optional hint must contain letters, numbers and ${c.SAFE_SPECIAL_CHARS}`,
       private: true,
     },
 

@@ -92,7 +92,6 @@ export abstract class DynamicModalFormComponentBase<TDataOut>
     }
   }
 
-
   ngOnDestroy() {
     const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
     if (logalot) { console.log(`${lc}`); }
@@ -122,12 +121,11 @@ export abstract class DynamicModalFormComponentBase<TDataOut>
     try {
       if (logalot) { console.log(`${lc}`); }
       this.showHelp = false;
-      debugger;
 
       if (this.form.hasErrors) {
         this.form.showErrorSummary = true;
         setTimeout(() => this.ref.detectChanges());
-        console.warn(`${lc} Cannot submit form, as there are validation errors. ${this.form.validationErrorString} (I: 0d4bba36dde74552a93b94bc2c300fec)`);
+        console.warn(`${lc} Cannot submit form, as there are validation errors. ${this.form.validationErrors.join('|')} (I: 0d4bba36dde74552a93b94bc2c300fec)`);
         return;
       } else {
         this.form.showErrorSummary = false;
@@ -149,62 +147,6 @@ export abstract class DynamicModalFormComponentBase<TDataOut>
     if (logalot) { console.log(`${lc}`); }
     await this.common.modalController.dismiss();
   }
-
-  // async validateForm(): Promise<string[]> {
-  //   const lc = `${this.lc}[${this.validateForm.name}]`;
-  //   this.validationErrors.splice(0, this.validationErrors.length);
-  //   this.erroredFields.splice(0, this.erroredFields.length);
-  //   const errors: string[] = [];
-  //   const erroredFields: string[] = [];
-
-  //   let fields: FormItemInfo[] = Object.values(this.fields);
-  //   for (let i = 0; i < fields.length; i++) {
-  //     const field = fields[i];
-  //     let value = this[field.name];
-  //     if (logalot) { console.log(`${lc} doing ${field.name}`); }
-  //     if (value) {
-  //       if (logalot) {
-  //         if (field.private) {
-  //           console.log(`${lc} value: [field is private]`);
-  //         } else {
-  //           console.log(`${lc} value: ${value}`);
-  //         }
-  //       }
-
-  //       if (typeof value === 'string') {
-  //         if (field.regexp) {
-  //           if (logalot) { console.log(`${lc} ${field.name} is a string. regexp: ${field.regexp}`); }
-  //           if ((value.match(field.regexp) ?? []).length === 0) {
-  //             erroredFields.push(field.name);
-  //             errors.push(`${field.name} must match regexp: ${field.regexp}`);
-  //           }
-  //         }
-  //         if ((<string>value).includes('\n')) {
-  //           erroredFields.push(field.name);
-  //           errors.push(`${field.name} cannot contain new lines.`);
-  //         }
-  //       }
-  //       if (field.fnValid && !field.fnValid(value)) {
-  //         erroredFields.push(field.name);
-  //         errors.push(`${field.name} error: ${field.fnErrorMsg}`);
-  //       }
-  //     } else {
-  //       if (field.required) {
-  //         erroredFields.push(field.name);
-  //         errors.push(`${field.name} required.`);
-  //       }
-  //     }
-  //   }
-
-  //   errors.forEach(e => this.validationErrors.push(e));
-  //   if (this.validationErrors.length > 0) {
-  //     console.error(`${lc} this.validationErrors:\n${this.validationErrors.join('\n')}`);
-  //     this.scrollToTopToShowValidationErrors();
-  //   }
-  //   erroredFields.forEach(e => this.erroredFields.push(e));
-
-  //   return errors;
-  // }
 
   scrollToTopToShowValidationErrors(): void {
     const lc = `${this.lc}[${this.scrollToTopToShowValidationErrors.name}]`;

@@ -326,7 +326,7 @@ export class WitnessFormBuilder {
     }
 
 
-    outputChildren(): FormItemInfo[] {
+    outputItems(): FormItemInfo[] {
         return this.items;
     }
 
@@ -341,7 +341,7 @@ export class WitnessFormBuilder {
             name: formName,
             description: this.description ?? `This is a form for a ${this.what}`,
             label: label ?? this.what,
-            children: this.items,
+            items: this.items,
         };
     }
 }

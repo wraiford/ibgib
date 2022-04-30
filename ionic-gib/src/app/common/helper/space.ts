@@ -1265,7 +1265,6 @@ export async function rel8ToSpecialIbGib({
             throw new Error(`either ibGibsToRel8 or ibGibsToUnRel8 required. (E: 5add49c8e46a54e2c6b057c22646a822)`);
         }
 
-
         const addrsToRel8 = ibGibsToRel8?.map(ibGib => h.getIbGibAddr({ibGib}));
         const addrsToUnRel8 = ibGibsToUnRel8?.map(ibGib => h.getIbGibAddr({ibGib}));
 

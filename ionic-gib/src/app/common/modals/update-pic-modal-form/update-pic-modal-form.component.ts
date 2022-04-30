@@ -96,7 +96,7 @@ export class UpdatePicModalFormComponent
     newImage: {
       name: "newImage",
       fnValid: (_value) => { return true; },
-      fnErrorMsg: `Take a pic with the camera or select a new image from a file.`,
+      defaultErrorMsg: `Take a pic with the camera or select a new image from a file.`,
     }
   }
 

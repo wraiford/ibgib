@@ -36,12 +36,12 @@ export abstract class DynamicFormFactoryBase<TWitnessData, TWitnessRel8ns extend
     /**
      * iterates through the given {@link items}.
      *
-     * If the item has children, it is considered a grouping (i.e. FormGroup or
-     * FormArray) and this function is called recursively with the
+     * If the item has child items, it is considered a grouping (i.e. FormGroup
+     * or FormArray) and this function is called recursively with the
      * {@link contextPath} adjusted per the {@link pathDelimiter} and
      * `item.name`.
      *
-     * If the item does not have children, it's considered to be a setting at
+     * If the item does not have child items, it's considered to be a setting at
      * the current path level and it's value is assigned per its `item.name` as
      * the key.
      */
@@ -91,7 +91,7 @@ export abstract class DynamicFormFactoryBase<TWitnessData, TWitnessRel8ns extend
                 const path = contextPath ?
                     contextPath + pathDelimiter + item.name :
                     item.name;
-                if (!item.children) {
+                if (!item.items) {
                     // it's a property (FormControl, not FormGroup/Array)
                     patchObject({
                         obj: data,
@@ -100,16 +100,16 @@ export abstract class DynamicFormFactoryBase<TWitnessData, TWitnessRel8ns extend
                         logalot,
                         pathDelimiter,
                     });
-                } else if (item.children.length > 0) {
+                } else if (item.items.length > 0) {
                     // it's a group, so call this function recursively
                     this.patchDataFromItems({
                         data,
                         contextPath: path,
-                        items: item.children,
+                        items: item.items,
                         pathDelimiter,
                     });
                 } else {
-                    throw new Error(`invalid item. children is truthy but with a length of 0. children should either be falsy or have at least one child. (E: ee2765e0b920477f919fcb09e9d951b4)`);
+                    throw new Error(`invalid item. items is truthy but with a length of 0. items should either be falsy or have at least one child. (E: ee2765e0b920477f919fcb09e9d951b4)`);
                 }
             }
         } catch (error) {

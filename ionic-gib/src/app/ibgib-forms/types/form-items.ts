@@ -65,11 +65,15 @@ export interface FormItemInfo {
    */
   fnValid?: (value: string | number) => boolean;
   /**
-   * Error message that shows up **when using `fnValid`**.
+   * Default error message, often used with {@see fnValid}.
    *
-   * Other messages show for regexp/required.
+   * @see {@link regexpErrorMsg}
+   *
+   * ## in the future, this may be changed to a
+   * `string | {[error: string]: string}` which would be a better
+   * solution probably.
    */
-  fnErrorMsg?: string;
+  defaultErrorMsg?: string;
   /**
    * If the field is required.
    */
@@ -95,11 +99,11 @@ export interface FormItemInfo {
    * Basically with angular, this translates to either a `FormGroup` or
    * `FormArray`.
    */
-  children?: FormItemInfo[];
+  items?: FormItemInfo[];
   /**
    * @see {@link FormItemDataType}
    *
-   * Only should be set if {@link children} is falsy.
+   * Only should be set if {@link items} is falsy.
    */
   dataType?: FormItemDataType;
   /**
@@ -139,12 +143,6 @@ export interface FormItemInfo {
    */
   multiple?: boolean;
   /**
-   * Reference to associated control...
-   *
-   * not sure about using this...hmm
-   */
-  control?: any;
-  /**
    * If control is set, then this should be a randomly generated uuid
    * that can be uniquely associated to the control.
    */
@@ -157,7 +155,7 @@ export interface FormItemInfo {
 
 // /** @see {@link FormItemDataType} */
 export type FormItemDataType =
-    'text' | 'textarea' | 'checkbox' | 'toggle' | 'number';
+    'text' | 'textarea' | 'checkbox' | 'toggle' | 'number' | 'form';
 /**
  * Type of the data, to drive what kind of control will be used for data.
  *
@@ -198,6 +196,10 @@ export const FormItemDataType = {
    * Number value
    */
   number: 'number' as FormItemDataType,
+  /**
+   * The item is a collection of other items.
+   */
+  form: 'form' as FormItemDataType,
 }
 
 /**
@@ -210,7 +212,7 @@ export const FORM_ITEM_DATA_TYPES = Object.values(FormItemDataType);
  */
 export interface DynamicForm extends FormItemInfo {
   /**
-   * redeclared here to require children.
+   * redeclared here to require children items.
    */
-  children: FormItemInfo[];
+  items: FormItemInfo[];
 }

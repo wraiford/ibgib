@@ -22,24 +22,63 @@ export class DynamicFormComponent
   // extends DynamicFormBase
   implements DynamicForm, OnDestroy, AfterViewInit {
   protected lc: string = `[${DynamicFormComponent.name}]`;
+
+  // #region DynamicForm (itself a FormItemInfo) properties
+
+  @Input()
+  name: string = 'Form';
+  @Input()
+  uuid: string;
+  @Input()
+  label: string = this.name;
+  @Input()
+  description: string;
+  @Input()
+  placeholder: string;
+  @Input()
+  defaultErrorMsg: string;
+  @Input()
+  required?: boolean;
+  @Input()
+  private?: boolean;
+  @Input()
+  readonly?: boolean;
+  @Input()
+  get dataType(): 'form' { return 'form'; }
+
+  // #endregion DynamicForm (itself a FormItemInfo) properties
+
+  /**
+   * This flag is used when the {@link items} property is set and the form is
+   * calling {@link updateForm}.
+   */
   @Input()
   updating: boolean;
 
-  @Input()
+  /**
+   * This is created during {@link updateForm} function, i.e., it's driven by
+   * the child {@link items} property.
+   */
   rootFormGroup: FormGroup;
 
+  /**
+   * Not used yet...
+   *
+   * going to be used possibly when implementing items that are forms themselves
+   * with child items to drive subforms.
+   */
   @Input()
   parentFormGroup: FormGroup;
 
   allItems_Flat_ById: { [uuid: string]: FormItemInfo };
   _items: FormItemInfo[] = [];
   @Input()
-  get children(): FormItemInfo[] {
+  get items(): FormItemInfo[] {
     const lc = `${this.lc}[get items]`;
     if (logalot) { console.log(`${lc} returning items (${h.pretty(this._items)}) (I: 243b674d8659b9adaed0fb2905fd3c22)`); }
     return this._items;
   }
-  set children(newItems: FormItemInfo[]) {
+  set items(newItems: FormItemInfo[]) {
     const lc = `${this.lc}[set items]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
@@ -86,8 +125,6 @@ export class DynamicFormComponent
     });
   }
 
-  // @Input()
-  // validationErrors: string[] = [];
   @Input()
   get validationErrors(): string[] {
     const validationErrorStrings = [];
@@ -102,60 +139,18 @@ export class DynamicFormComponent
     });
     return validationErrorStrings;
   }
-  @Input()
-  validationErrorString: string;
-  @Input()
-  erroredFields: string[] = [];
 
+  /**
+   * If true, form displays help hints for fields.
+   */
   @Input()
   showHelp: boolean = true;
-
-  /**
-   * Put '#modalIonContent' in your ion-content section to scroll to top
-   * when there are validation errors.
-   *
-   * Or, you can override implementation of `scrollToTopToShowValidationErrors`.
-   *
-   * @example <ion-content #modalIonContent fullscreen>
-   */
-  @ViewChild('modalIonContent')
-  ionContent: IonContent;
-
-  /**
-   * If true, then modal is readonly.
-   *
-   * ## notes
-   *
-   * * I would have preferred just `readonly`, but that's a special word in js/ts.
-   */
-  @Input()
-  isReadonly: boolean;
-
-  /**
-   * Event emitter for the dynamic form's output value.
-   */
-  @Output()
-  validated: EventEmitter<FormItemInfo[]> = new EventEmitter<FormItemInfo[]>();
-
-  @Output()
-  cancel: EventEmitter<void> = new EventEmitter<void>();
-
 
   /**
    * If true, will show the submit button.
    */
   @Input()
   showSubmit: boolean = true;
-
-  @Output()
-  dynamicSubmit: EventEmitter<DynamicFormComponent> = new EventEmitter<DynamicFormComponent>();
-
-  /**
-   * Hack that exposes children controls' item select events.  I doubt that I
-   * should do this but I'm just trying to get something going right now.
-   */
-  @Output()
-  itemSelect: EventEmitter<FormItemInfo> = new EventEmitter<FormItemInfo>();
 
   /**
    * If true, will show an error summary of validation errors near submit button
@@ -164,6 +159,26 @@ export class DynamicFormComponent
   @Input()
   showErrorSummary: boolean;
 
+  /**
+   * Fires when the submit button is pressed in the form.  This will fire
+   * regardless of if the form is validated or not.
+   *
+   * ## notes
+   *
+   * This is equivalent to the submit event on a regular HTML form. But the word
+   * `submit` is a reserved word and cannot be used.
+   *
+   * @see {@link HTMLFormElement.submit}
+   */
+  @Output()
+  dynamicSubmit: EventEmitter<DynamicFormComponent> = new EventEmitter<DynamicFormComponent>();
+
+  /**
+   * Hack that exposes children item controls' item select events.  I doubt that I
+   * should do this but I'm just trying to get something going right now.
+   */
+  @Output()
+  itemSelect: EventEmitter<FormItemInfo> = new EventEmitter<FormItemInfo>();
 
   public debugBorderWidth: string = debugBorder ? "5px" : "0px"
   public debugBorderColor: string = "#83BACB";
@@ -175,27 +190,6 @@ export class DynamicFormComponent
   ) {
     // super(fb);
   }
-
-  name: string;
-  label?: string;
-  description?: string;
-  placeholder?: string;
-  regexp?: RegExp;
-  regexpErrorMsg?: string;
-  fnValid?: (value: string | number) => boolean;
-  fnErrorMsg?: string;
-  required?: boolean;
-  private?: boolean;
-  unmasked?: boolean;
-  readonly?: boolean;
-  dataType?: FormItemDataType;
-  selectOptions?: string[];
-  min?: number;
-  max?: number;
-  multiple?: boolean;
-  control?: any;
-  uuid?: string;
-  errored?: boolean;
 
   async ngAfterViewInit(): Promise<void> {
     const lc = `${this.lc}[${this.ngAfterViewInit.name}]`;
@@ -257,17 +251,6 @@ export class DynamicFormComponent
     return a && b ? a?.toLowerCase() === b?.toLowerCase() : a === b;
   }
 
-  scrollToTopToShowValidationErrors(): void {
-    const lc = `${this.lc}[${this.scrollToTopToShowValidationErrors.name}]`;
-    if (logalot) { console.warn(`${lc} implement in modal implementing class to scroll to top to show validation errors. (W: f8e7ee5168f2c567a60c81be16ec2422)`); }
-    if (this.ionContent?.scrollToTop) {
-      if (logalot) { console.log(`${lc} this.ionContent?.scrollToTop truthy (I: 6e33d8936f92499a927da0c795b2a2e2)`); }
-      this.ionContent.scrollToTop();
-    } else {
-      if (logalot) { console.log(`${lc} this.ionContent?.scrollToTop falsy (I: 540e42dee9f44ed98460f83f2a98b367)`); }
-    }
-  }
-
   handleShowHelpClick(): void {
     this.showHelp = !this.showHelp;
     setTimeout(() => this.ref)
@@ -299,13 +282,13 @@ export class DynamicFormComponent
         const addItemById = (x: FormItemInfo) => {
           this.allItems_Flat_ById[x.uuid] = x;
           // call recursively for any children
-          if (x.children) { x.children.forEach(child => addItemById(child)); }
+          if (x.items) { x.items.forEach(child => addItemById(child)); }
         }
         this._items.forEach(x => addItemById(x));
-        if (item.children) {
-          throw new Error(`control with children not implemented yet (E: e502388413bcf4c74926b186d9265c22)`);
+        if (item.items) {
+          throw new Error(`control with children items not implemented yet (E: e502388413bcf4c74926b186d9265c22)`);
           // control = this.fb.array([
-          //   ...item.children.map(x => getControl(x))
+          //   ...item.items.map(x => getControl(x))
           // ]);
         } else {
           if (logalot) { console.log(`${lc} adding standard control (I: aafdaadf4b4e0e659bd6a53d52924622)`); }
@@ -341,7 +324,7 @@ export class DynamicFormComponent
         const item = this._items[i];
         const validators = await this.getValidators({item});
         const control = await newControl(item, validators);
-        if (item.children) {
+        if (item.items) {
           throw new Error(`not impl (E: 505be7ec1284ec23e3049b58c6880822)`);
           let formArray = <FormArray>control;
         } else {
@@ -349,7 +332,7 @@ export class DynamicFormComponent
         }
       }
 
-      if (logalot) { console.log(`this.items: ${h.pretty(this.children)} (I: 30b7fc4146a757d5658af49f56f06322)`); }
+      if (logalot) { console.log(`this.items: ${h.pretty(this.items)} (I: 30b7fc4146a757d5658af49f56f06322)`); }
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -370,7 +353,7 @@ export class DynamicFormComponent
       if (logalot) { console.log(`${lc} starting...`); }
       const validators: (ValidatorFn | AsyncValidatorFn)[] = [];
 
-      if (item.children?.length > 0) {
+      if (item.items?.length > 0) {
         // it's a subform
       } else {
         // it's a leaf node concrete control
@@ -408,7 +391,6 @@ export class DynamicFormComponent
     const lc = `${this.lc}[${this.handleSubmit_DynamicForm.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
-      debugger;
       this.dynamicSubmit.emit(this);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -446,13 +428,15 @@ export class DynamicFormComponent
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       if (!item) { return false; }
-      if (item.control) {
-        let control = <AbstractControl>item.control;
+      const control = this.getControl(item)
+      if (control) {
         if (control.errors) {
           return true;
+        } else {
+          return false;
         }
       } else {
-        throw new Error(`(UNEXPECTED) item.control assumed (E: 4e22c5b7ed7ff4d354aeb156bf42f122)`);
+        throw new Error(`(UNEXPECTED) could not find control for item (E: 4e22c5b7ed7ff4d354aeb156bf42f122)`);
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -476,7 +460,6 @@ export class DynamicFormComponent
           .map(controlName => this.rootFormGroup.controls[controlName]);
 
       if (controlMaybe.length === 0) {
-        debugger;
         throw new Error(`(UNEXPECTED) no control found for item (${item.name}, ${item.uuid}) (E: 1eb112f17981a08e09c928eed929a922)`);
       }
 
@@ -511,6 +494,8 @@ export class DynamicFormComponent
             return item.regexpErrorMsg ?
               `${item.regexpErrorMsg} Pattern: /${item.regexp?.source}/` :
               `Must match the pattern /${item.regexp?.source}/`;
+          } else if (item.defaultErrorMsg) {
+            return `${errorName}: ${item.defaultErrorMsg}`;
           } else {
             return errorName;
           }

@@ -1,3 +1,4 @@
+import * as h from 'ts-gib/dist/helper';
 import { Ib, } from 'ts-gib';
 
 import * as c from '../constants';
@@ -11,6 +12,9 @@ import {
 import { getFn_promptRobbotIbGib } from './prompt-functions';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { WitnessFormBuilder } from './witness';
+import { validateIbGibIntrinsically } from './validate';
+import { persistTransformResult, registerNewIbGib, rel8ToSpecialIbGib } from './space';
+import { IbGib_V1 } from 'ts-gib/dist/V1';
 // import { validateWitnessClassname } from '../witnesses/witness-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -176,10 +180,39 @@ export async function createNewRobbot({
 
         // prompt user to create the ibgib, passing in null because we're
         // creating not editing.
-        let modalResult = await getFn_promptRobbotIbGib(common)(space, /**ibGib*/ null);
+        let resRobbot = await getFn_promptRobbotIbGib(common)(space, /**ibGib*/ null);
+        const newRobbot = <IbGibRobbotAny>resRobbot.newIbGib;
+        debugger;
+        let allIbGibs: IbGib_V1[] = [];
+        allIbGibs.push(newRobbot);
+        resRobbot.intermediateIbGibs?.forEach(x => allIbGibs.push(x));
+        resRobbot.dnas?.forEach(x => allIbGibs.push(x));
+        for (let i = 0; i < allIbGibs.length; i++) {
+            const ibGib = allIbGibs[i];
+            const validationErrors = await validateIbGibIntrinsically({ibGib});
+            if ((validationErrors ?? []).length > 0) { throw new Error(`(unexpected) invalid robbot ibgib created. validationErrors: ${validationErrors}. robbot: ${h.pretty(newRobbot.toDto())} (E: a683268621cd6dd3dd60310b164c4d22)`); }
+        }
+        debugger;
 
+        await persistTransformResult({resTransform: resRobbot, isMeta: true, space});
+        const { zeroSpace, fnBroadcast, fnUpdateBootstrap } = common.ibgibs;
+        await registerNewIbGib({
+            ibGib: newRobbot,
+            space,
+            zeroSpace,
+            fnBroadcast: (x) => fnBroadcast(x),
+            fnUpdateBootstrap: (x) => fnUpdateBootstrap(x),
+        });
 
-
+        await rel8ToSpecialIbGib({
+            type: "robbots",
+            rel8nName: c.ROBBOT_REL8N_NAME,
+            ibGibsToRel8: [newRobbot],
+            space,
+            zeroSpace,
+            fnUpdateBootstrap,
+            fnBroadcast,
+        });
         return newRobbotIbGib;
     } catch (error) {
         console.error(`${lc} ${error.message}`);

@@ -18,18 +18,14 @@ import {
   RandomRobbotData_V1, RandomRobbot_V1,
   RandomRobbot_V1_Factory,
 } from '../../witnesses/robbots/random-robbot-v1';
-import { getRobbotIb } from '../../helper/robbot';
 import { getRegExp } from '../../helper/utils';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
 import { IbGibRobbotAny, RobbotBase_V1 } from '../../witnesses/robbots/robbot-base-v1';
-import { DynamicFormComponent } from 'src/app/ibgib-forms/dynamic-form/dynamic-form.component';
 import { DynamicModalFormComponentBase } from '../../bases/dynamic-modal-form-component-base';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
-export interface RobbotModalResult {
-
-}
+export type RobbotModalResult = TransformResult<RobbotIbGib_V1>;
 
 /**
  * Prompts the user for information gathering and generates a new ibGib.
@@ -42,7 +38,7 @@ export interface RobbotModalResult {
   styleUrls: ['./robbot-modal-form.component.scss'],
 })
 export class RobbotModalFormComponent
-  extends DynamicModalFormComponentBase<TransformResult<RobbotIbGib_V1>>
+  extends DynamicModalFormComponentBase<RobbotModalResult>
   implements AfterViewInit{
 
   protected lc: string = `[${RobbotModalFormComponent.name}]`;
@@ -138,17 +134,17 @@ export class RobbotModalFormComponent
     try {
       if (logalot) { console.log(`${lc}`); }
 
-      let resNewIbGib: TransformResult<RobbotIbGib_V1>;
-
-      // create the robbot
+      // get the relevant factory
       const factory = this.getFactory({item: this.selectedItem});
 
-      resNewIbGib = await factory.formToWitness({form: this.form});
+      // convert the form to a new robbot witness
+      const resNewIbGib = await factory.formToWitness({form: this.form});
 
+      // check...
       if (!resNewIbGib) { throw new Error(`creation failed... (E: ddc73faeb9d74eeca5f415d4b9e3f425)`); }
 
+      // all good.
       return resNewIbGib;
-      // await this.modalController.dismiss(resNewIbGib);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     }
@@ -170,7 +166,7 @@ export class RobbotModalFormComponent
       const subform = await factory.witnessToForm({witness: resRobbot.newIbGib});
 
       // update the ux
-      this.formItems = subform.children;
+      this.formItems = subform.items;
       setTimeout(() => this.ref.detectChanges());
     } catch (error) {
       console.error(`${lc} ${error.message}`);

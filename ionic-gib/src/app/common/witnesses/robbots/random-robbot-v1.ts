@@ -213,6 +213,7 @@ export class RandomRobbot_V1_Factory
                 .outputSuffix({of: data.outputSuffix})
                 // .outputMode({of: data.outputMode})
                 .and<WitnessFormBuilder>()
+                .uuid({of: data.uuid, required: true})
                 .classname({of: data.classname})
                 .commonWitnessFields({data})
                 .outputForm({
@@ -231,7 +232,7 @@ export class RandomRobbot_V1_Factory
     async formToWitness({ form }: { form: DynamicForm; }): Promise<TransformResult<RandomRobbot_V1>> {
         // let robbot = new RandomRobbot_V1(null, null);
         let data: RobbotData_V1 = h.clone(DEFAULT_RANDOM_ROBBOT_DATA_V1);
-        this.patchDataFromItems({data, items: form.children, pathDelimiter: c.DEFAULT_DATA_PATH_DELIMITER});
+        this.patchDataFromItems({data, items: form.items, pathDelimiter: c.DEFAULT_DATA_PATH_DELIMITER});
         let resRobbot = await this.newUp({data});
         return resRobbot;
     }

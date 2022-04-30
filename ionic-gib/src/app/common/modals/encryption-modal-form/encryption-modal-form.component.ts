@@ -50,7 +50,7 @@ export class EncryptionModalFormComponent
       description: `All we got right now is '${EncryptionMethod.encrypt_gib_weak}.'`,
       label: "Method (public)",
       fnValid: (value: string) => { return value === EncryptionMethod.encrypt_gib_weak; },
-      fnErrorMsg: `Must be '${EncryptionMethod.encrypt_gib_weak}'`,
+      defaultErrorMsg: `Must be '${EncryptionMethod.encrypt_gib_weak}'`,
       required: true,
     },
 
@@ -75,7 +75,7 @@ export class EncryptionModalFormComponent
         const n = <number>value;
         return n >= c.MIN_ENCRYPTION_INITIAL_RECURSIONS && n <= c.MAX_ENCRYPTION_INITIAL_RECURSIONS && Number.isSafeInteger(n);
       },
-      fnErrorMsg: `Initial recursions must be a whole number at least ${c.MIN_ENCRYPTION_INITIAL_RECURSIONS} and at most ${c.MAX_ENCRYPTION_INITIAL_RECURSIONS}`,
+      defaultErrorMsg: `Initial recursions must be a whole number at least ${c.MIN_ENCRYPTION_INITIAL_RECURSIONS} and at most ${c.MAX_ENCRYPTION_INITIAL_RECURSIONS}`,
       required: true,
     },
     recursionsPerHash: {
@@ -87,7 +87,7 @@ export class EncryptionModalFormComponent
         const n = <number>value;
         return n >= c.MIN_ENCRYPTION_RECURSIONS_PER_HASH && n <= c.MAX_ENCRYPTION_INITIAL_RECURSIONS && Number.isSafeInteger(n);
       },
-      fnErrorMsg: `Recursions per hash must be a whole number at least ${c.MIN_ENCRYPTION_RECURSIONS_PER_HASH} and at most ${c.MAX_ENCRYPTION_RECURSIONS_PER_HASH}, though really you probably want just a couple at most depending on the size of your data.`,
+      defaultErrorMsg: `Recursions per hash must be a whole number at least ${c.MIN_ENCRYPTION_RECURSIONS_PER_HASH} and at most ${c.MAX_ENCRYPTION_RECURSIONS_PER_HASH}, though really you probably want just a couple at most depending on the size of your data.`,
       required: true,
     },
     hashAlgorithm: {
@@ -97,7 +97,7 @@ export class EncryptionModalFormComponent
       fnValid: (value: string) => {
         return Object.values(HashAlgorithm).includes(<any>value);
       },
-      fnErrorMsg: `Must be one of: ${Object.values(HashAlgorithm).join(', ')}`,
+      defaultErrorMsg: `Must be one of: ${Object.values(HashAlgorithm).join(', ')}`,
       required: true,
     },
 

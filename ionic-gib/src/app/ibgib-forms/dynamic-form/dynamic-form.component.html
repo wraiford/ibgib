@@ -3,7 +3,7 @@
   <span>i believe...</span>
 </div>
 
-<div *ngIf="!updating && children"
+<div *ngIf="!updating && items"
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"
   [style.border-style]="debugBorderStyle"
@@ -11,7 +11,7 @@
 
   <form [formGroup]="rootFormGroup" (ngSubmit)="handleSubmit_DynamicForm()"
     >
-    <ion-item *ngFor="let item of children"
+    <ion-item *ngFor="let item of items"
       class="input-item" fill="outline"
       [title]="item.description">
       <ion-label position="stacked"><strong>{{item.required ? '*' : ''}}{{item.label}}: </strong></ion-label>
@@ -50,13 +50,11 @@
         [checked]="item.value"
         >
       </ion-toggle>
-      <!-- <ib-dynamic-form *ngIf="item.children?.length > 0"
+      <!-- <ib-dynamic-form *ngIf="item.dataType === 'form'"
         [parentFormGroup]="rootFormGroup"
         [formControlName]="item.uuid"
         [showSubmit]="false"
-        [children]="item.children"
-        (validated)="handleValidatedSubform($event)"
-        (cancel)="handleCancel()"
+        [items]="item.items"
         >
       </ib-dynamic-form> -->
       <ion-note *ngIf="item.errored && !getControl(item).pristine"

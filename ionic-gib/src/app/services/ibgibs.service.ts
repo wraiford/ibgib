@@ -211,7 +211,7 @@ export class IbgibsService {
   }
 
   // private _zeroSpace: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> | undefined;
-  private get zeroSpace(): IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> {
+  get zeroSpace(): IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> {
     const zeroSpace = new IonicSpace_V1(/*initialData*/ null, /*initialRel8ns*/ null);
     zeroSpace.gib = 'gib';
     return zeroSpace;
@@ -631,12 +631,12 @@ export class IbgibsService {
     }
   }
 
-  private fnUpdateBootstrap = async (newSpace: IbGibSpaceAny) => {
+  fnUpdateBootstrap = async (newSpace: IbGibSpaceAny) => {
     const space = await this.getLocalUserSpace({});
     await updateBootstrapIbGib({space: newSpace, zeroSpace: this.zeroSpace});
   }
 
-  private fnBroadcast = (info: LatestEventInfo) => {
+  fnBroadcast = (info: LatestEventInfo) => {
     // this._latestSubj.next({tjpAddr, latestAddr: ibGibAddr, latestIbGib: ibGib});
     this._latestSubj.next(info);
   }
