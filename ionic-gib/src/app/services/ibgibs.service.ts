@@ -56,6 +56,8 @@ import {
 } from '../common/helper/space';
 import { spaceNameIsValid } from '../common/helper/validate';
 import { groupBy } from '../common/helper/utils';
+import { RobbotModalResult } from '../common/modals/robbot-modal-form/robbot-modal-form.component';
+import { createNewRobbot } from '../common/helper/robbot';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -229,6 +231,7 @@ export class IbgibsService {
   private fnPromptEncryption: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>;
   private fnPromptOuterSpace: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>;
   private fnPromptUpdatePic: (space: IbGibSpaceAny, picIbGib: PicIbGib_V1) => Promise<UpdatePicModalResult | undefined>;
+  fnPromptRobbot: (space: IbGibSpaceAny, ibGib: RobbotIbGib_V1) => Promise<RobbotModalResult | undefined>;
 
   private _syncing: boolean;
   /**
@@ -320,11 +323,13 @@ export class IbgibsService {
     fnPromptEncryption,
     fnPromptOuterSpace,
     fnPromptUpdatePic,
+    fnPromptRobbot,
   }: {
     fnPromptSecret: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>,
     fnPromptEncryption: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>,
     fnPromptOuterSpace: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>,
     fnPromptUpdatePic: (space: IbGibSpaceAny, picIbGib: PicIbGib_V1) => Promise<UpdatePicModalResult | undefined>,
+    fnPromptRobbot: (space: IbGibSpaceAny, ibGib: RobbotIbGib_V1) => Promise<RobbotModalResult | undefined>,
   }): Promise<void> {
     const lc = `${this.lc}[${this.initialize.name}]`;
     try {
@@ -334,6 +339,7 @@ export class IbgibsService {
       this.fnPromptEncryption = fnPromptEncryption;
       this.fnPromptOuterSpace = fnPromptOuterSpace;
       this.fnPromptUpdatePic = fnPromptUpdatePic;
+      this.fnPromptRobbot = fnPromptRobbot;
 
       let timerName: string;
       if (logalot) {
@@ -2028,7 +2034,7 @@ export class IbgibsService {
   }: {
     createIfNone: boolean,
     space?: IbGibSpaceAny,
-  }): Promise<any[]> {
+  }): Promise<IbGibRobbotAny[]> {
     const lc = `${this.lc}[${this.getAppRobbots.name}]`;
     try {
       space = space ?? await this.getLocalUserSpace({});
@@ -2044,8 +2050,8 @@ export class IbgibsService {
 
       // create if applicable
       if (appRobbots.length === 0 && createIfNone) {
-        let created = await this._createOuterspaceAndRequiredIbGibs(space);
-        if (created) {
+        let robbot = await createNewRobbot({ibgibs: this, space});
+        if (robbot) {
           appRobbots = await this.getSpecialRel8dIbGibs<IbGibRobbotAny>({
             type: "robbots",
             rel8nName: c.ROBBOT_REL8N_NAME,

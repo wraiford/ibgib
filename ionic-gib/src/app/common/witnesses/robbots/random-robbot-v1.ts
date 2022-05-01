@@ -64,7 +64,9 @@ export class RandomRobbot_V1 extends RobbotBase_V1 {
         try {
             if (logalot) { console.log(`${lc} starting...`); }
             if (!this.data) { this.data = h.clone(DEFAULT_RANDOM_ROBBOT_DATA_V1); }
-            if (!this.rel8ns) { this.rel8ns = h.clone(DEFAULT_RANDOM_ROBBOT_REL8NS_V1); }
+            if (!this.rel8ns && DEFAULT_RANDOM_ROBBOT_REL8NS_V1) {
+                this.rel8ns = h.clone(DEFAULT_RANDOM_ROBBOT_REL8NS_V1);
+            }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
         } finally {

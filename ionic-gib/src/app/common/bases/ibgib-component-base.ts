@@ -669,4 +669,21 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         }
     }
     // #endregion status text
+
+    /**
+     * used in ion-select for strings...
+     */
+    compareStrings(a: string, b: string): boolean {
+        // const lc = `${this.lc}[compareMenuItems]`; // this is not defined when compareRoots is used
+        const lc = `[compareStrings]`;
+        if (logalot) { console.log(`${lc}`); }
+        // reactive form controls when passing in {value: x} without something else
+        // has the curious case that b is "" but toLowerCase is not a function.
+        // if (typeof a !== 'string') { return false; }
+        // if (typeof b !== 'string') { return false; }
+        // if (!a.toLowerCase || !b.toLowerCase) {
+        //   return false;
+        // }
+        return a && b ? a?.toLowerCase() === b?.toLowerCase() : a === b;
+    }
 }

@@ -25,7 +25,7 @@ import { getFnAlert, getFnPrompt, getFnConfirm } from '../common/helper/prompt-f
 import { createNewTag } from '../common/helper/tag';
 import { ActionBarComponent } from '../common/action-bar/action-bar.component';
 import { ChatViewComponent } from '../views/chat-view/chat-view.component';
-import { IonAccordionGroup } from '@ionic/angular';
+import { IonAccordionGroup, IonRouterOutlet } from '@ionic/angular';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -112,6 +112,9 @@ export class IbGibPage extends IbgibComponentBase
   get autoRefresh(): boolean { return !this.paused; }
   set autoRefresh(value: boolean) { this.paused = value; }
 
+  @Input()
+  isModalOpen_Robbot: boolean;
+
   // @Input()
   // actionBarHeightPerPlatform: string = '55px !important';
 
@@ -125,6 +128,7 @@ export class IbGibPage extends IbgibComponentBase
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
     private activatedRoute: ActivatedRoute,
+    public routerOutlet: IonRouterOutlet,
   ) {
     super(common, ref);
 
@@ -134,6 +138,10 @@ export class IbGibPage extends IbgibComponentBase
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
     if (logalot) { console.log(`${lc} called.`) }
     try {
+      while (this.common.ibgibs.initializing) {
+        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: a44efa21a33b41f4b27732d38a65530f)`); }
+        await h.delay(100);
+      }
       this.initScroll();
       this.subscribeParamMap();
       // if (this.common.platform.is('mobileweb')) {
@@ -387,6 +395,25 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
+
+  async initRobbots(): Promise<void> {
+    const lc = `${this.lc}[${this.initRobbots.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  @Input()
+  robbotNames: string[] = [];
+
+  @Input()
+  defaultRobbotName: string;
+
   /**
    * Bring this ibgib to the attention of an Abot.
    */
@@ -395,13 +422,22 @@ export class IbGibPage extends IbgibComponentBase
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
-      //
+      const robbots = await this.common.ibgibs.getAppRobbots({createIfNone: true});
+      if (robbots.length > 0) {
+        this.robbotNames = robbots.map(r => r.data.name);
+        this.defaultRobbotName = robbots[0].data.name;
+        this.isModalOpen_Robbot = !this.isModalOpen_Robbot;
+        setTimeout(() => this.ref.detectChanges());
+      }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
     }
+  }
+  async handleRobbotSelectChange(event: any): Promise<void> {
+    this.isModalOpen_Robbot = false;
   }
 
   async handleSpaceClick(): Promise<void> {

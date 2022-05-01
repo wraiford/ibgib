@@ -15,6 +15,7 @@ import { WitnessFormBuilder } from './witness';
 import { validateIbGibIntrinsically } from './validate';
 import { persistTransformResult, registerNewIbGib, rel8ToSpecialIbGib } from './space';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
+import { IbgibsService } from '../../services/ibgibs.service';
 // import { validateWitnessClassname } from '../witnesses/witness-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -162,27 +163,57 @@ export function getInfoFromRobbotIb({
     }
 }
 
+
+/**
+ * Prompts the user a form to build the robbot.
+ *
+ * Once prompted, the robbot is:
+ * 1. validated
+ * 2. persisted in the given {@link space}
+ * 3. registered with the space
+ * 4. related to the space's special robbots index
+ * 5. new robbot is returned
+ *
+ * @returns newly created robbot ibgib (witness)
+ */
 export async function createNewRobbot({
     common,
+    ibgibs,
     space,
 }: {
-    common: CommonService,
+    /**
+     * Either {@link common} or {@link ibgibs} is required
+     * @hack
+     */
+    common?: CommonService,
+    /**
+     * Either {@link common} or {@link ibgibs} is required
+     * @hack
+     */
+    ibgibs?: IbgibsService,
+    /**
+     * space within which to create the robbot. if not provided, the
+     * defaults to the local user space via {@link common} or {@link ibgibs}.
+     */
     space: IbGibSpaceAny,
-}): Promise<RobbotIbGib_V1 | undefined> {
+}): Promise<IbGibRobbotAny | undefined> {
     const lc = `[${createNewRobbot.name}]`;
-
     try {
         if (logalot) { console.log(`${lc} starting...`); }
 
-        space = space ?? await common.ibgibs.getLocalUserSpace({lock: true});
+        if (!common && !ibgibs) { throw new Error(`(UNEXPECTED) either common or ibgibs service required. (E: 4be5d20dc81fcdabb8d7d4cd47458522)`); }
+        ibgibs = ibgibs ?? common.ibgibs;
 
-        let newRobbotIbGib: RobbotIbGib_V1;
+        space = space ?? await ibgibs.getLocalUserSpace({lock: true});
 
         // prompt user to create the ibgib, passing in null because we're
         // creating not editing.
-        let resRobbot = await getFn_promptRobbotIbGib(common)(space, /**ibGib*/ null);
+        let resRobbot = common ?
+            await getFn_promptRobbotIbGib(common)(space, /**ibGib*/ null) :
+            await ibgibs.fnPromptRobbot(space, /*ibGib because creating*/null);
+
         const newRobbot = <IbGibRobbotAny>resRobbot.newIbGib;
-        debugger;
+
         let allIbGibs: IbGib_V1[] = [];
         allIbGibs.push(newRobbot);
         resRobbot.intermediateIbGibs?.forEach(x => allIbGibs.push(x));
@@ -192,10 +223,9 @@ export async function createNewRobbot({
             const validationErrors = await validateIbGibIntrinsically({ibGib});
             if ((validationErrors ?? []).length > 0) { throw new Error(`(unexpected) invalid robbot ibgib created. validationErrors: ${validationErrors}. robbot: ${h.pretty(newRobbot.toDto())} (E: a683268621cd6dd3dd60310b164c4d22)`); }
         }
-        debugger;
 
         await persistTransformResult({resTransform: resRobbot, isMeta: true, space});
-        const { zeroSpace, fnBroadcast, fnUpdateBootstrap } = common.ibgibs;
+        const { zeroSpace, fnBroadcast, fnUpdateBootstrap } = ibgibs;
         await registerNewIbGib({
             ibGib: newRobbot,
             space,
@@ -213,7 +243,7 @@ export async function createNewRobbot({
             fnUpdateBootstrap,
             fnBroadcast,
         });
-        return newRobbotIbGib;
+        return newRobbot;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         return;

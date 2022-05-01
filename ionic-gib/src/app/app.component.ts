@@ -22,7 +22,7 @@ import { RootData } from './common/types/ux';
 import { SpaceId } from './common/types/space';
 import {
   getFn_promptCreateSecretIbGib, getFn_promptCreateEncryptionIbGib,
-  getFn_promptCreateOuterSpaceIbGib, getFn_promptUpdatePicIbGib, getFnAlert
+  getFn_promptCreateOuterSpaceIbGib, getFn_promptUpdatePicIbGib, getFnAlert, getFn_promptRobbotIbGib
 } from './common/helper/prompt-functions';
 import { createNewTag } from './common/helper/tag';
 import { validateIbGibIntrinsically, spaceNameIsValid } from './common/helper/validate';
@@ -219,6 +219,7 @@ export class AppComponent extends IbgibComponentBase
             fnPromptEncryption: getFn_promptCreateEncryptionIbGib(this.common),
             fnPromptOuterSpace: getFn_promptCreateOuterSpaceIbGib(this.common),
             fnPromptUpdatePic: getFn_promptUpdatePicIbGib(this.common),
+            fnPromptRobbot: getFn_promptRobbotIbGib(this.common),
           });
 
         } finally {
@@ -1133,9 +1134,6 @@ export class AppComponent extends IbgibComponentBase
       const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
 
       await createNewRobbot({common: this.common, space});
-      // let fn = getFn_promptCreateSecretIbGib(this.common);
-      // await fn(space);
-
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
