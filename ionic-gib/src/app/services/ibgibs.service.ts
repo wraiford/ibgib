@@ -58,6 +58,7 @@ import { spaceNameIsValid } from '../common/helper/validate';
 import { groupBy } from '../common/helper/utils';
 import { RobbotModalResult } from '../common/modals/robbot-modal-form/robbot-modal-form.component';
 import { createNewRobbot } from '../common/helper/robbot';
+import { SimpleIbgibCacheService } from './simple-ibgib-cache.service';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -201,6 +202,7 @@ export class IbgibsService {
           fnDtoToSpace: (spaceDto: IbGib_V1<AppSpaceData, AppSpaceRel8ns>) => {
             return Promise.resolve(IonicSpace_V1.createFromDto(spaceDto));
           },
+          localSpaceCacheSvc: this.cacheSvc,
         });
 
       return localSpace;
@@ -312,6 +314,7 @@ export class IbgibsService {
   constructor(
     public modalController: ModalController,
     public alertController: AlertController,
+    private cacheSvc: SimpleIbgibCacheService,
   ) {
     const lc = `${this.lc}[ctor]`;
     if (logalot) { console.log(`${lc} doodle `); }

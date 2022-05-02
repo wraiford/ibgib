@@ -38,11 +38,12 @@ export class SimpleIbgibCacheService implements IbGibCacheService {
     }
   }
 
-  get({addr}: { addr: IbGibAddr }): Promise<IbGib_V1> {
+  get({addr}: { addr: IbGibAddr }): Promise<IbGib_V1 | undefined> {
     const lc = `${this.lc}[${this.get.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
-      return Promise.resolve(this.ibGibs[addr]);
+      const cached = this.ibGibs[addr];
+      return Promise.resolve(cached);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

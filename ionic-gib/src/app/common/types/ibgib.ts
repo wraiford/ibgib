@@ -12,8 +12,7 @@ import { IbGib_V1, IB } from "ts-gib/dist/V1";
 export declare type TjpIbGibAddr = IbGibAddr;
 
 export interface IbGibCacheService {
-
   has({addr}: { addr: IbGibAddr }): Promise<boolean>;
   put({addr, ibGib}: { addr: IbGibAddr, ibGib: IbGib_V1 }): Promise<void>;
-  get({addr}: { addr: IbGibAddr }): Promise<IbGib_V1>;
+  get({addr}: { addr: IbGibAddr }): Promise<IbGib_V1 | undefined>;
 }

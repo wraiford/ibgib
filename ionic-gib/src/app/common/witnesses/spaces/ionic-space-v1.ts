@@ -4,7 +4,7 @@ import {
 const { Filesystem } = Plugins;
 
 import * as h from 'ts-gib/dist/helper';
-import { IbGib_V1, IbGibRel8ns_V1, GIB, ROOT, } from 'ts-gib/dist/V1';
+import { IbGib_V1, IbGibRel8ns_V1, GIB, ROOT, isPrimitive, } from 'ts-gib/dist/V1';
 import { getIbGibAddr, IbGibAddr } from 'ts-gib';
 
 import * as c from '../../constants';
@@ -314,15 +314,40 @@ export class IonicSpace_V1<
         }
     }
 
-    private hasInCache({addr}: {addr: IbGibAddr}): boolean {
-        return Object.keys(this.ibGibs).includes(addr);
+    private hasInCache({addr}: {addr: IbGibAddr}): Promise<boolean> {
+        if (isPrimitive({gib: h.getIbAndGib({ibGibAddr: addr}).gib})) {
+            // primitives never cached
+            return Promise.resolve(false);
+        } else if (Object.keys(this.ibGibs).includes(addr)) {
+            debugger;
+            // has in local instance cache
+            return Promise.resolve(true);
+        } else if (this.cacheSvc) {
+            // not local so delegate to cache svc
+            return this.cacheSvc.has({addr});
+        } else {
+            // no external cache svc and not in local instance cache
+            return Promise.resolve(false);
+        }
     }
     private async putInCache({addr, ibGib}: { addr: IbGibAddr, ibGib: IbGib_V1 }): Promise<void> {
-        const lc = `${this.lc}[${this.put.name}]`;
+        const lc = `${this.lc}[${this.putInCache.name}][${addr}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
             if (!ibGib) { throw new Error(`ibGib required (E: 993e26fe40894bab9feccac3938f37df)`); }
+
+            if (isPrimitive({ibGib})) {
+                if (logalot) { console.log(`${lc} skipping caching primitive (I: a04dfb691582a4db8a0bfecfefe5e622)`); }
+                return;
+            } else {
+                if (logalot) { console.log(`${lc} caching addr (I: b996a306f256ee5f39db1e2f5d515c22)`); }
+            }
+
+            // instance cache
             this.ibGibs[addr] = ibGib;
+
+            // cache svc
+            if (this.cacheSvc) { await this.cacheSvc.put({addr, ibGib}); }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -330,12 +355,18 @@ export class IonicSpace_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
-
-    private getFromCache({addr}: { addr: IbGibAddr }): Promise<IbGib_V1> {
+    private async getFromCache({addr}: { addr: IbGibAddr }): Promise<IbGib_V1 | undefined> {
         const lc = `${this.lc}[${this.getFromCache.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            return Promise.resolve(this.ibGibs[addr]);
+            let cached = this.ibGibs[addr];
+            if (!cached && this.cacheSvc) {
+                cached = await this.cacheSvc.get({addr});
+            }
+            // if (cached && addr.includes('lkj')) {
+            //     debugger;
+            // }
+            return cached;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -375,18 +406,21 @@ export class IonicSpace_V1<
             if (logalot) { console.log(`${lc} getting non-bin ibgibs. ibGibAddrsNonBin: ${ibGibAddrsNonBin}`); }
             for (let i = 0; i < ibGibAddrsNonBin.length; i++) {
                 const addr = ibGibAddrsNonBin[i];
-                if (!arg.data.force && this.hasInCache({addr})) {
+                if (!arg.data.force && await this.hasInCache({addr})) {
                     if (logalot) { console.log(`${lc} YES found in naive cache. (I: 0b23f394fd944c2a96df3543dd0a59c5)`); }
-                    // console.log(`${lc} found in naive cache.  ${addr} TESTING REMOVE THIS YO (I: 55344e9fa3984bc9bf3f7a8aa3b4cbf5)`);
+                    // console.log(`${lc} YES found in naive cache.  ${addr} TESTING REMOVE THIS YO (I: 55344e9fa3984bc9bf3f7a8aa3b4cbf5)`);
+                    // console.log(`${lc} YES found in naive cache. TESTING REMOVE THIS YO (I: 55344e9fa3984bc9bf3f7a8aa3b4cbf5)`);
                     const cached = await this.getFromCache({addr});
                     if (!cached) { throw new Error(`(UNEXPECTED) we had in cache but failed to retrieve? (E: 4af334f7a90cb22ffa3b549d0db19a22)`); }
                     resultIbGibs.push(cached);
                 } else {
                     // not found in memory, so look in files
-                    console.log(`${lc} ${addr} NOT found in naive cache. Expensive(r) loading of file... TESTING REMOVE THIS YO (I: 7983e6afb9bf440a83b90de64c487be3)`);
+                    if (!isPrimitive({gib: h.getIbAndGib({ibGibAddr: addr}).gib}) && this.cacheSvc) {
+                        if (logalot) { console.log(`${lc} NOT found in naive cache. Expensive(r) loading of file... TESTING REMOVE THIS YO (I: 7983e6afb9bf440a83b90de64c487be3)`); }
+                    }
                     const getResult = await this.getFile({addr, isMeta, isDna, });
                     if (getResult?.success && getResult.ibGib) {
-                        console.log(`${lc} ${addr} PUTTING IN in naive cache. Expensive(r) loading of file... TESTING REMOVE THIS YO (I: fe0612406c334aa88bcc51bb35150de3)`);
+                        if (logalot) { console.log(`${lc} ${addr} PUTTING IN in naive cache. Expensive(r) loading of file... TESTING REMOVE THIS YO (I: fe0612406c334aa88bcc51bb35150de3)`); }
                         await this.putInCache({addr, ibGib: getResult.ibGib})
                         resultIbGibs.push(getResult.ibGib!);
                     } else {
