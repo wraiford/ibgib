@@ -314,6 +314,50 @@ export class IonicSpace_V1<
         }
     }
 
+    private hasInCache({addr}: {addr: IbGibAddr}): boolean {
+        return Object.keys(this.ibGibs).includes(addr);
+    }
+    private async putInCache({addr, ibGib}: { addr: IbGibAddr, ibGib: IbGib_V1 }): Promise<void> {
+        const lc = `${this.lc}[${this.put.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            if (!ibGib) { throw new Error(`ibGib required (E: 993e26fe40894bab9feccac3938f37df)`); }
+            this.ibGibs[addr] = ibGib;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    private getFromCache({addr}: { addr: IbGibAddr }): Promise<IbGib_V1> {
+        const lc = `${this.lc}[${this.getFromCache.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            return Promise.resolve(this.ibGibs[addr]);
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    private deleteFromCache({addr}: { addr: IbGibAddr }): Promise<void> {
+        const lc = `${this.lc}[${this.getFromCache.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            delete this.ibGibs[addr];
+            return Promise.resolve();
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
     protected async getImpl(arg: IonicSpaceOptionsIbGib):
         Promise<IonicSpaceResultIbGib> {
         const lc = `${this.lc}[${this.getImpl.name}]`;
@@ -331,14 +375,19 @@ export class IonicSpace_V1<
             if (logalot) { console.log(`${lc} getting non-bin ibgibs. ibGibAddrsNonBin: ${ibGibAddrsNonBin}`); }
             for (let i = 0; i < ibGibAddrsNonBin.length; i++) {
                 const addr = ibGibAddrsNonBin[i];
-                if (!arg.data.force && Object.keys(this.ibGibs).includes(addr)) {
-                    if (logalot) { console.log(`${lc} found in naive cache.`); }
-                    resultIbGibs.push(this.ibGibs[addr]);
+                if (!arg.data.force && this.hasInCache({addr})) {
+                    if (logalot) { console.log(`${lc} YES found in naive cache. (I: 0b23f394fd944c2a96df3543dd0a59c5)`); }
+                    // console.log(`${lc} found in naive cache.  ${addr} TESTING REMOVE THIS YO (I: 55344e9fa3984bc9bf3f7a8aa3b4cbf5)`);
+                    const cached = await this.getFromCache({addr});
+                    if (!cached) { throw new Error(`(UNEXPECTED) we had in cache but failed to retrieve? (E: 4af334f7a90cb22ffa3b549d0db19a22)`); }
+                    resultIbGibs.push(cached);
                 } else {
                     // not found in memory, so look in files
+                    console.log(`${lc} ${addr} NOT found in naive cache. Expensive(r) loading of file... TESTING REMOVE THIS YO (I: 7983e6afb9bf440a83b90de64c487be3)`);
                     const getResult = await this.getFile({addr, isMeta, isDna, });
                     if (getResult?.success && getResult.ibGib) {
-                        this.ibGibs[addr] = getResult.ibGib!;
+                        console.log(`${lc} ${addr} PUTTING IN in naive cache. Expensive(r) loading of file... TESTING REMOVE THIS YO (I: fe0612406c334aa88bcc51bb35150de3)`);
+                        await this.putInCache({addr, ibGib: getResult.ibGib})
                         resultIbGibs.push(getResult.ibGib!);
                     } else {
                         // not found in memory or in files
@@ -450,7 +499,7 @@ export class IonicSpace_V1<
                         if (putResult.success) {
                             if (!isDna) {
                                 // naive cache will cause "memory leak" eventually
-                                this.ibGibs[addr] = ibGib;
+                                await this.putInCache({addr, ibGib});
                             }
                         } else {
                             errors.push(putResult.errorMsg || `${lc} error putting ${addr}`);
@@ -466,7 +515,7 @@ export class IonicSpace_V1<
                     if (logalot) { console.log(`${lc} does NOT already exist...`); }
                     const putResult = await this.putFile({ibGib, isMeta, isDna, });
                     if (putResult.success) {
-                        if (!isDna) { this.ibGibs[addr] = ibGib; } // cache
+                        if (!isDna) { await this.putInCache({addr, ibGib}); }
                     } else {
                         errors.push(putResult.errorMsg || `${lc} error putting ${addr}`);
                         addrsErrored.push(addr);
@@ -506,15 +555,15 @@ export class IonicSpace_V1<
             const ibGibAddrs = arg.data!.ibGibAddrs || [];
 
             // delete cached entries first
-            const cachedAddrs = Object.entries(this.ibGibs)
-                .filter(([x,y]) => ibGibAddrs.includes(x))
-                .map(([x,y]) => x);
-            cachedAddrs.forEach(addr => { delete this.ibGibs[addr]; });
-
+            // const cachedAddrs = Object.entries(this.ibGibs)
+            //     .filter(([x,y]) => ibGibAddrs.includes(x))
+            //     .map(([x,y]) => x);
+            // cachedAddrs.forEach(addr => { delete this.ibGibs[addr]; });
 
             // iterate through ibGibs, but this may be an empty array if we're doing binData.
             for (let i = 0; i < ibGibAddrs.length; i++) {
                 const addr = ibGibAddrs[i];
+                await this.deleteFromCache({addr});
                 const deleteResult = await this.deleteFile({addr, isMeta, isDna, });
                 if (deleteResult?.success) {
                     addrsDeleted.push(addr);
@@ -550,17 +599,6 @@ export class IonicSpace_V1<
         Promise<IonicSpaceResultIbGib> {
         const lc = `${this.lc}[${this.getAddrsImpl.name}]`;
         throw new Error(`${lc} not implemented. (E: 74dd50ce4b564559bc44d6c08d446cb3)`);
-        const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
-        try {
-            resultData.addrs = Object.keys(this.ibGibs).concat();
-            resultData.success = true;
-        } catch (error) {
-            console.error(`${lc} error: ${error.message}`);
-            resultData.errors = [error.message];
-            resultData.success = false;
-        }
-        const result = await this.resulty({resultData});
-        return result;
     }
 
     /**
@@ -583,22 +621,23 @@ export class IonicSpace_V1<
         const lc = `${this.lc}[${this.canGetImpl.name}]`;
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
-            const { ibGibAddrs } = arg.data!;
-            let notFoundIbGibAddrs: IbGibAddr[] = undefined;
-            for (let i = 0; i < ibGibAddrs.length; i++) {
-                const addr = ibGibAddrs[i];
-                if (!Object.keys(this.ibGibs).includes(addr)) {
-                    if (!notFoundIbGibAddrs) { notFoundIbGibAddrs = []; }
-                    notFoundIbGibAddrs.push(addr);
-                }
-            }
-            resultData.success = true;
-            if (notFoundIbGibAddrs && notFoundIbGibAddrs.length > 0) {
-                resultData.addrsNotFound = notFoundIbGibAddrs;
-                resultData.can = false;
-            } else {
-                resultData.can = true;
-            }
+            throw new Error(`not implemented (E: 2a45977c584c6bbbc4f164c16106bd22)`);
+            // const { ibGibAddrs } = arg.data!;
+            // let notFoundIbGibAddrs: IbGibAddr[] = undefined;
+            // for (let i = 0; i < ibGibAddrs.length; i++) {
+            //     const addr = ibGibAddrs[i];
+            //     if (!Object.keys(this.ibGibs).includes(addr)) {
+            //         if (!notFoundIbGibAddrs) { notFoundIbGibAddrs = []; }
+            //         notFoundIbGibAddrs.push(addr);
+            //     }
+            // }
+            // resultData.success = true;
+            // if (notFoundIbGibAddrs && notFoundIbGibAddrs.length > 0) {
+            //     resultData.addrsNotFound = notFoundIbGibAddrs;
+            //     resultData.can = false;
+            // } else {
+            //     resultData.can = true;
+            // }
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];
@@ -611,21 +650,22 @@ export class IonicSpace_V1<
         const lc = `${this.lc}[${this.canPutImpl.name}]`;
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         try {
-            const ibGibs = arg.ibGibs || [];
-            const addrsAlreadyHave: IbGibAddr[] = [];
-            for (let i = 0; i < ibGibs?.length; i++) {
-                const ibGib = ibGibs[i];
-                const addr = getIbGibAddr({ibGib});
-                if (Object.keys(this.ibGibs).includes(addr)) {
-                    addrsAlreadyHave.push(addr);
-                }
-            }
-            resultData.success = true;
-            if (addrsAlreadyHave.length > 0) {
-                resultData.addrsAlreadyHave = addrsAlreadyHave;
-                resultData.warnings = (resultData.warnings || []).concat([`${lc} already have addr(s).`]);
-            }
-            resultData.can = ibGibs.length > addrsAlreadyHave.length;
+            throw new Error(`not implemented (E: 25a005d496efc69faefdec155ffb4a22)`);
+            // const ibGibs = arg.ibGibs || [];
+            // const addrsAlreadyHave: IbGibAddr[] = [];
+            // for (let i = 0; i < ibGibs?.length; i++) {
+            //     const ibGib = ibGibs[i];
+            //     const addr = getIbGibAddr({ibGib});
+            //     if (Object.keys(this.ibGibs).includes(addr)) {
+            //         addrsAlreadyHave.push(addr);
+            //     }
+            // }
+            // resultData.success = true;
+            // if (addrsAlreadyHave.length > 0) {
+            //     resultData.addrsAlreadyHave = addrsAlreadyHave;
+            //     resultData.warnings = (resultData.warnings || []).concat([`${lc} already have addr(s).`]);
+            // }
+            // resultData.can = ibGibs.length > addrsAlreadyHave.length;
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];

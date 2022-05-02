@@ -26,6 +26,8 @@ import { LatestEventInfo, RootData, SpecialIbGibType } from '../types/ux';
 import { RobbotData_V1, RobbotIbGib_V1 } from '../types/robbot';
 import { SpaceLockScope, IbGibSpaceLockIbGib, BootstrapIbGib, SpaceId, IbGibSpaceLockOptions, BootstrapData, BootstrapRel8ns, TxId, IbGibSpaceResultIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns } from '../types/space';
 import { isExpired, getExpirationUTCString, getTimestampInTicks } from './utils';
+import { SimpleIbgibCacheService } from 'src/app/services/simple-ibgib-cache.service';
+import { IbGibCacheService } from '../types/ibgib';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -2415,6 +2417,7 @@ export async function getLocalSpace<TSpace extends IbGibSpaceAny>({
     lock,
     callerInstanceId,
     fnDtoToSpace,
+    localSpaceCacheSvc,
 }: {
     /**
      * A zero space is a space that is built with default settings that
@@ -2466,6 +2469,10 @@ export async function getLocalSpace<TSpace extends IbGibSpaceAny>({
      * need a function that hydrates a witness class with that data.
      */
     fnDtoToSpace: (spaceDto: IbGib_V1) => Promise<TSpace>,
+    /**
+     * Optional caching service
+     */
+    localSpaceCacheSvc?: IbGibCacheService,
 }): Promise<TSpace> {
     const lc = `[${getLocalSpace.name}]`;
     try {
@@ -2509,6 +2516,7 @@ export async function getLocalSpace<TSpace extends IbGibSpaceAny>({
             if (resLocalSpace?.data?.success && resLocalSpace.ibGibs?.length === 1) {
                 const localSpaceDto = <TSpace>resLocalSpace.ibGibs[0];
                 const localSpace = await fnDtoToSpace(localSpaceDto);
+                if (localSpaceCacheSvc) { localSpace.cacheSvc = localSpaceCacheSvc; }
                 return localSpace;
             } else {
                 throw new Error(`Could not get local space addr (${localSpaceAddr}) specified in bootstrap space (${h.getIbGibAddr({ibGib: bootstrapIbGib})}). (E: 6d6b45e7eae4472697ddc971438e4922)`);

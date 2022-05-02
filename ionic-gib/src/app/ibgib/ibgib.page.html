@@ -158,20 +158,7 @@
     [style.border-style]="debugBorderStyle"
     >
 
-    <ion-item *ngIf="isModalOpen_Robbot">
-      <ion-label position="stacked">Robbot: </ion-label>
-      <ion-select
-        [compareWith]="compareStrings"
-        value="A"
-        okText="Select Robbot"
-        (ionChange)="handleRobbotSelectChange($event)"
-        >
-        <ion-select-option *ngFor="let name of robbotNames" [value]="defaultRobbotName">
-          <ion-icon slot="start"></ion-icon>
-          <ion-label>{{ name }}</ion-label>
-        </ion-select-option>
-      </ion-select>
-    </ion-item>
+    <ib-robbot-bar *ngIf="robbotBarIsVisible" [addr]='addr'></ib-robbot-bar>
 
     <tag-list *ngIf='isTags' [addr]='addr' [ibGib_Context]='ibGib'
       (scroll)="scrollSubject.next($event)"

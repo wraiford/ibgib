@@ -12,6 +12,7 @@ import {
 import { getSpaceResultMetadata } from '../../helper/space';
 import { validateIbGibIntrinsically } from '../../helper/validate';
 import { argy_, resulty_ } from '../witness-helper';
+import { IbGibCacheService } from '../../types/ibgib';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -42,6 +43,11 @@ export abstract class SpaceBase_V1<
      * Log context for convenience with logging. (Ignore if you don't want to use this.)
      */
     protected lc: string = `${super.lc}[${SpaceBase_V1.name}]`;
+
+    /**
+     * Optional cache service. hmm...
+     */
+    cacheSvc: IbGibCacheService | undefined;
 
     // getSpaceIb(classname: string): string {
     //     const lc = `${this.lc}[${this.getSpaceIb.name}]`;

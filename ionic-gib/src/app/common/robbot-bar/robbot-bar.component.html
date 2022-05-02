@@ -1,0 +1,19 @@
+<div
+  [style.border-color]="debugBorderColor"
+  [style.border-width]="debugBorderWidth"
+  [style.border-style]="debugBorderStyle"
+>
+  <ion-label position="stacked">Robbot: </ion-label>
+  <ion-select
+    [compareWith]="compareStrings"
+    value="A"
+    okText="Select Robbot"
+    (ionChange)="handleRobbotSelectChange($event)"
+    >
+    <ion-select-option *ngFor="let name of robbotNames" [value]="defaultRobbotName">
+      <ion-icon slot="start"></ion-icon>
+      <ion-label>{{ name }}</ion-label>
+    </ion-select-option>
+  </ion-select>
+
+</div>

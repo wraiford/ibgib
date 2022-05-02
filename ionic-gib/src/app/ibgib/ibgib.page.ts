@@ -113,7 +113,7 @@ export class IbGibPage extends IbgibComponentBase
   set autoRefresh(value: boolean) { this.paused = value; }
 
   @Input()
-  isModalOpen_Robbot: boolean;
+  robbotBarIsVisible: boolean;
 
   // @Input()
   // actionBarHeightPerPlatform: string = '55px !important';
@@ -408,12 +408,6 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
-  @Input()
-  robbotNames: string[] = [];
-
-  @Input()
-  defaultRobbotName: string;
-
   /**
    * Bring this ibgib to the attention of an Abot.
    */
@@ -422,13 +416,13 @@ export class IbGibPage extends IbgibComponentBase
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
-      const robbots = await this.common.ibgibs.getAppRobbots({createIfNone: true});
-      if (robbots.length > 0) {
-        this.robbotNames = robbots.map(r => r.data.name);
-        this.defaultRobbotName = robbots[0].data.name;
-        this.isModalOpen_Robbot = !this.isModalOpen_Robbot;
+      // const robbots = await this.common.ibgibs.getAppRobbots({createIfNone: true});
+      // if (robbots.length > 0) {
+        // this.robbotNames = robbots.map(r => r.data.name);
+        // this.defaultRobbotName = robbots[0].data.name;
+        this.robbotBarIsVisible = !this.robbotBarIsVisible;
         setTimeout(() => this.ref.detectChanges());
-      }
+      // }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -437,7 +431,7 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
   async handleRobbotSelectChange(event: any): Promise<void> {
-    this.isModalOpen_Robbot = false;
+    this.robbotBarIsVisible = false;
   }
 
   async handleSpaceClick(): Promise<void> {
