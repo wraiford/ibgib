@@ -1,5 +1,7 @@
-<ion-header translucent="true" collapse="fade">
-  <ion-toolbar>
+<ion-header translucent="true">
+
+  <!-- top title bar with menu & title ibgib -->
+  <ion-toolbar id="top-title-bar">
     <ion-buttons slot="start">
       <ion-menu-button slot="icon-only"></ion-menu-button>
       <ion-button *ngIf="showBackChevronBtn"
@@ -29,6 +31,8 @@
       {{ title }}
     </ion-title>
   </ion-toolbar>
+
+  <!-- ibgib context buttons -->
   <ion-toolbar color="background">
     <ion-buttons slot="end" collapse="true">
       <!-- leaving these in for future testing of download the d*$! pic -->
@@ -44,21 +48,11 @@
         <ion-icon name="image-outline"></ion-icon>
         <ion-spinner *ngIf="downloadingPic" name="circles" color="tertiary"></ion-spinner>
       </ion-button>
-      <!-- <a *ngIf="item?.type === 'pic' && android" [href]="item.picSrc" download="testing.jpg">
-        <ion-button [disabled]="syncing || refreshing" class="toolbar-title-btn">
-          <ion-icon name="download-outline"></ion-icon>
-          <ion-icon name="download-outline"></ion-icon>
-          <ion-icon name="download-outline"></ion-icon>
-          <ion-icon name="image-outline"></ion-icon>
-        </ion-button>
-      </a> -->
       <a *ngIf="item?.type === 'pic' && web" [href]="item.picSrc"
         [download]="'Downloads/' + (item?.filenameWithExt || 'item.binHash.png')">
         <ion-button [disabled]="syncing || refreshing" class="toolbar-title-btn">
-          <!-- (click)="handleDownloadPicClick()"> -->
           <ion-icon name="download-outline"></ion-icon>
           <ion-icon name="image-outline"></ion-icon>
-          <!-- <ion-spinner *ngIf="downloadingPic" name="circles" color="tertiary"></ion-spinner> -->
         </ion-button>
       </a>
       <ion-button *ngIf="ibGib"

@@ -430,9 +430,6 @@ export class IbGibPage extends IbgibComponentBase
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
-  async handleRobbotSelectChange(event: any): Promise<void> {
-    this.robbotBarIsVisible = false;
-  }
 
   async handleSpaceClick(): Promise<void> {
     if (!this.autosync) {
@@ -964,6 +961,7 @@ export class IbGibPage extends IbgibComponentBase
     try {
       // let info = JSON.stringify(this.ibGib_Context, null, 2);
       // let addr = getIbGibAddr({ibGib: this.ibGib_Context});
+      debugger;
       let info = JSON.stringify(this.ibGib, null, 2);
       let addr = getIbGibAddr({ibGib: this.ibGib});
       await Modals.alert({title: addr, message: info});

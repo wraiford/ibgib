@@ -2037,7 +2037,7 @@ export class IbgibsService {
   }: {
     createIfNone: boolean,
     space?: IbGibSpaceAny,
-  }): Promise<IbGibRobbotAny[]> {
+  }): Promise<RobbotIbGib_V1[]> {
     const lc = `${this.lc}[${this.getAppRobbots.name}]`;
     try {
       space = space ?? await this.getLocalUserSpace({});

@@ -116,6 +116,7 @@ export abstract class RobbotBase_V1<
         const lc = `${this.lc}[${this.witnessImpl.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
+            debugger;
             return this.routeAndDoArg({arg});
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -139,6 +140,7 @@ export abstract class RobbotBase_V1<
         const lc = `${this.lc}[${this.routeAndDoArg.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
+            debugger;
             if (isPic({ibGib: arg})) {
                 return this.doPic({ibGib: <PicIbGib_V1><any>arg}); // any cast b/c bad/too advanced TS inference
             } else if (isComment({ibGib: arg})) {

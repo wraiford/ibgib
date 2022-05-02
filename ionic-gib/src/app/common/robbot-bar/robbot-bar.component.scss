@@ -1,0 +1,28 @@
+ion-button, #robbot-name {
+  color: var(--ion-color-primary);
+  border-color: var(--ion-color-primary);
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 5px;
+}
+
+ion-button:hover, ion-menu-button:hover, #robbot-name:hover {
+  border-width: 2px;
+  background-color:rgba(var(--ion-color-primary-rgb), 0.14);
+}
+
+ion-buttons {
+    justify-content: stretch;
+    align-items: stretch;
+}
+
+#robbot-name {
+    display: flex;
+    flex-direction: column;
+}
+
+// ion-toolbar {
+//     width: 100%;
+//     display: flex;
+//     flex-direction: column;
+// }

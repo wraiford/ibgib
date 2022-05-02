@@ -166,6 +166,7 @@ export class RandomRobbot_V1_Factory
     }): Promise<TransformResult<RandomRobbot_V1>> {
         const lc = `${this.lc}[${this.newUp.name}]`;
         try {
+            debugger;
             if (logalot) { console.log(`${lc} starting...`); }
             data = data ?? h.clone(DEFAULT_RANDOM_ROBBOT_DATA_V1);
             rel8ns = rel8ns ?? DEFAULT_RANDOM_ROBBOT_REL8NS_V1 ? h.clone(DEFAULT_RANDOM_ROBBOT_REL8NS_V1) : undefined;

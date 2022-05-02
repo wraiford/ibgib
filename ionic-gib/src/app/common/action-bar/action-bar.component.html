@@ -43,7 +43,7 @@
       debounce="100"
       >
     </ion-textarea>
-    <ion-button id="sendBtn" color="transparent" (click)="addComment()">
+    <ion-button id="sendBtn" (click)="addComment()" color="primary">
       <ion-icon name="chatbox-outline"></ion-icon>
       <ion-icon name="arrow-forward-outline"></ion-icon>
     </ion-button>
@@ -56,7 +56,9 @@
       debounce="100"
       >
     </ion-input>
-    <ion-button id="sendBtn" color="transparent" (click)="addImport()">
+    <ion-button id="sendBtn" color="primary"
+      (click)="addImport()"
+      >
       <ion-icon name="sparkles-outline"></ion-icon>
       <ion-icon name="download-outline"></ion-icon>
       <ion-icon name="arrow-forward-outline"></ion-icon>

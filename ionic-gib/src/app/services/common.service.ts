@@ -1,8 +1,10 @@
 import { ModalController, Platform, } from '@ionic/angular';
 import { Injectable, Inject, } from '@angular/core';
 
-import { IbgibsService } from './ibgibs.service';
 import { Gib, IbGibAddr } from 'ts-gib';
+
+import { IbgibsService } from './ibgibs.service';
+import { WitnessFactoriesService } from './witness-factories.service';
 
 export interface NavInfo {
   /** The ibgib address we're going to.  */
@@ -76,6 +78,9 @@ export class CommonService {
     public modalController: ModalController,
     @Inject('IbgibNav') public nav: IbgibNav,
     public platform: Platform,
-  ) { }
+    public factories: WitnessFactoriesService,
+  ) {
+
+  }
 
 }

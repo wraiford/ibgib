@@ -319,7 +319,6 @@ export class IonicSpace_V1<
             // primitives never cached
             return Promise.resolve(false);
         } else if (Object.keys(this.ibGibs).includes(addr)) {
-            debugger;
             // has in local instance cache
             return Promise.resolve(true);
         } else if (this.cacheSvc) {
@@ -363,9 +362,6 @@ export class IonicSpace_V1<
             if (!cached && this.cacheSvc) {
                 cached = await this.cacheSvc.get({addr});
             }
-            // if (cached && addr.includes('lkj')) {
-            //     debugger;
-            // }
             return cached;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -739,7 +735,6 @@ export class IonicSpace_V1<
                         latestAddrs.add(latestAddr);
                         resultData.latestAddrsMap[addr] = latestAddr;
                     } else {
-                        debugger; // til tested
                         console.warn(`expecting latestAddr to either be assigned or throw. Adding addr (${addr}) to addrsErrored. (W: 35c3712b1a1e579ccf28c389eb2ecc22)`);
                         addrsErrored.add(addr);
                     }
@@ -747,10 +742,8 @@ export class IonicSpace_V1<
                     addrsNotFound.add(addr);
                     resultData.latestAddrsMap[addr] = null;
                 } else if (getResult.errorMsg) {
-                    debugger;
                     addrsErrored.add(addr);
                 } else {
-                    debugger;
                     throw new Error(`unknown (invalid) getResult: ${h.pretty(getResult)} (E: 2674ad5d30294be29a3d3fdcf54ef6d9)`);
                 }
             }

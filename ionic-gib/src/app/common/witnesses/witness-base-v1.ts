@@ -1,10 +1,10 @@
 import * as h from 'ts-gib/dist/helper';
-import { getIbGibAddr } from 'ts-gib';
+import { getIbGibAddr, IbGibRel8ns } from 'ts-gib';
 import { IbGib_V1, IbGibRel8ns_V1, sha256v1, } from 'ts-gib/dist/V1';
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 import * as c from '../constants';
-import { WitnessData_V1, Witness_V1, } from '../types/witness';
+import { WitnessData_V1, WitnessRel8ns_V1, Witness_V1, } from '../types/witness';
 import { validateGib, validateIb, validateIbGibIntrinsically } from '../helper/validate';
 import { FormItemInfo } from '../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../ibgib-forms/bases/dynamic-form-factory-base';
@@ -305,3 +305,5 @@ export abstract class WitnessBase_V1<
     }
 
 }
+
+export type WitnessAny = WitnessBase_V1<any, IbGibRel8ns_V1, IbGib_V1, any, IbGibRel8ns, IbGib_V1, WitnessData_V1, WitnessRel8ns_V1>;

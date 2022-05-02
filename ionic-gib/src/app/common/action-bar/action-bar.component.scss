@@ -57,9 +57,18 @@ ion-button {
 }
 
 #sendBtn {
-    color: var(--ion-color-primary);
+    // color: var(--ion-color-secondary);
     border-color: var(--ion-color-primary);
     border-radius: 5px;
     border-width: 1px;
     border-style: solid;
+}
+
+ion-button:hover, ion-menu-button:hover {
+  border-width: 2px !important;
+//   color:rgba(var(--ion-color-primary-rgb), 0.14) !important;
+  color: var(--ion-color-secondary);
+  border-color: var(--ion-color-secondary) !important;
+//   border-color:rgba(var(--ion-color-primary-rgb), 0.84) !important;
+  border-style: solid;
 }

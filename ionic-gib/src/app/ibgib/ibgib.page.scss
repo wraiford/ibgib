@@ -3,6 +3,10 @@
   scrollbar-color: var(--ion-color-primary) transparent;
 }
 
+#top-title-bar {
+  cursor: zoom-in;
+}
+
 ion-menu-button, ion-button, .back-btn, ion-title {
   color: var(--ion-color-primary);
 }
@@ -11,6 +15,10 @@ ion-button, ion-menu-button {
   border-width: 1px;
   border-style: solid;
   border-radius: 5px;
+}
+
+ion-button:hover, ion-menu-button:hover {
+  border-width: 2px;
 }
 
 #container {
@@ -128,4 +136,9 @@ ion-badge {
   // can't convert css to scss variable here...i'm a terrible ui person
   $color: #213b23;
   background-color: rgba(red($color), green($color), blue($color), 1.0);
+}
+
+ion-button:hover, ion-menu-button:hover, #robbot-name:hover {
+  border-width: 2px;
+  background-color:rgba(var(--ion-color-primary-rgb), 0.14);
 }
