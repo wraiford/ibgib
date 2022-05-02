@@ -4,6 +4,8 @@ import * as c from '../dynamic-form-constants';
 import { patchObject } from "../../common/helper/utils";
 import { TransformResult } from "ts-gib/dist/types";
 import { IbGibRel8ns_V1, IbGib_V1 } from "ts-gib/dist/V1";
+import { WitnessFactoryBase } from "../../common/witnesses/witness-factory-base";
+import { Witness } from "../../common/types/witness";
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -16,12 +18,13 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
  *   * witness(model) -> form data (to generate dynamic forms)
  *   * form data -> witness (to instantiate witness from data)
  */
-export abstract class DynamicFormFactoryBase<TWitnessData, TWitnessRel8ns extends IbGibRel8ns_V1, TWitness extends IbGib_V1<TWitnessData, TWitnessRel8ns>> {
+export abstract class DynamicFormFactoryBase<
+    TWitnessData,
+    TWitnessRel8ns extends IbGibRel8ns_V1,
+    TWitness extends Witness<IbGib_V1, IbGib_V1, TWitnessData, TWitnessRel8ns>
+    >
+    extends WitnessFactoryBase<TWitnessData, TWitnessRel8ns, TWitness>{
     protected lc: string = `[${DynamicFormFactoryBase.name}]`;
-    /**
-     * override this with the name that will be used with the injection token.
-     */
-    abstract getInjectionName(): string;
     /**
      * override this with something that maps from the ibgib/model to the form infos.
      */
@@ -31,7 +34,6 @@ export abstract class DynamicFormFactoryBase<TWitnessData, TWitnessRel8ns extend
      * the given {@link form}.
      */
     abstract formToWitness({form}: {form: DynamicForm}): Promise<TransformResult<TWitness>>;
-    abstract newUp({data, rel8ns}: {data?: TWitnessData, rel8ns?: TWitnessRel8ns}): Promise<TransformResult<TWitness>>;
 
     /**
      * iterates through the given {@link items}.
@@ -45,7 +47,7 @@ export abstract class DynamicFormFactoryBase<TWitnessData, TWitnessRel8ns extend
      * the current path level and it's value is assigned per its `item.name` as
      * the key.
      */
-    patchDataFromItems({
+    protected patchDataFromItems({
         data,
         contextPath,
         items,

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 
 import * as h from 'ts-gib/dist/helper';
-import { IbGib_V1, ROOT, Factory_V1 as factory, Rel8n } from 'ts-gib/dist/V1';
+import { IbGib_V1, ROOT, Factory_V1 as factory, Rel8n, IbGibRel8ns_V1 } from 'ts-gib/dist/V1';
 
 import * as c from '../../constants';
 import { RobbotBase_V1 } from './robbot-base-v1';
@@ -39,10 +39,15 @@ export interface RandomRobbotRel8ns_V1 extends RobbotRel8ns_V1 {
 /**
  *
  */
-export class RandomRobbot_V1 extends RobbotBase_V1 {
+export class RandomRobbot_V1 extends RobbotBase_V1<
+        any, IbGibRel8ns_V1, IbGib_V1<any, IbGibRel8ns_V1>,
+        any, IbGibRel8ns_V1, IbGib_V1<any, IbGibRel8ns_V1>,
+        RandomRobbotData_V1,
+        RandomRobbotRel8ns_V1
+    > {
     protected lc: string = `[${RandomRobbot_V1.name}]`;
 
-    constructor(initialData?: RobbotData_V1, initialRel8ns?: RobbotRel8ns_V1) {
+    constructor(initialData?: RandomRobbotData_V1, initialRel8ns?: RandomRobbotRel8ns_V1) {
         super(initialData, initialRel8ns);
         const lc = `${this.lc}[ctor]`;
         try {
@@ -150,7 +155,7 @@ export class RandomRobbot_V1_Factory
 
     protected lc: string = `[${RandomRobbot_V1_Factory.name}]`;
 
-    getInjectionName(): string { return RandomRobbot_V1.name; }
+    getName(): string { return RandomRobbot_V1.name; }
 
     async newUp({
         data,

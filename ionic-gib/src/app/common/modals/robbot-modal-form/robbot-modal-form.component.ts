@@ -22,10 +22,12 @@ import { getRegExp } from '../../helper/utils';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
 import { IbGibRobbotAny, RobbotBase_V1 } from '../../witnesses/robbots/robbot-base-v1';
 import { DynamicModalFormComponentBase } from '../../bases/dynamic-modal-form-component-base';
+import { WitnessFactoriesService } from '../../../services/witness-factories.service';
+import { WitnessFactoryAny } from '../../witnesses/witness-factory-base';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
-export type RobbotModalResult = TransformResult<RobbotIbGib_V1>;
+export type RobbotModalResult = TransformResult<IbGibRobbotAny>;
 
 /**
  * Prompts the user for information gathering and generates a new ibGib.
@@ -71,12 +73,12 @@ export class RobbotModalFormComponent
   @Input()
   ibGib: RobbotIbGib_V1;
 
-  robbotFactories: DynamicFormFactoryBase<RobbotData_V1, RobbotRel8ns_V1, IbGibRobbotAny>[];
+  robbotFactories: DynamicFormFactoryBase<any, RobbotRel8ns_V1, IbGibRobbotAny>[];
 
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
-    private randomRobbotFactory: RandomRobbot_V1_Factory,
+    private factories: WitnessFactoriesService,
   ) {
     super(common, ref);
     const lc = `${this.lc}[ctor]`;
@@ -114,11 +116,21 @@ export class RobbotModalFormComponent
       if (logalot) { console.log(`${lc} starting...`); }
 
       this.robbotFactories = [
-        this.randomRobbotFactory,
-      ];
+        // add our list of robbot classnames here,
+        RandomRobbot_V1.name,
+      ].map(name => {
+        return this.factories.getFactory<
+          RobbotData_V1,
+          RobbotRel8ns_V1,
+          IbGibRobbotAny,
+          DynamicFormFactoryBase<RobbotData_V1, RobbotRel8ns_V1, IbGibRobbotAny>
+        >({
+          name
+        });
+      });
 
       this.selectTypeItem.selectOptions = [
-        ...this.robbotFactories.map(factory => factory.getInjectionName()),
+        ...this.robbotFactories.map(factory => factory.getName()),
       ];
 
     } catch (error) {
@@ -129,7 +141,7 @@ export class RobbotModalFormComponent
     }
   }
 
-  protected async createImpl(): Promise<TransformResult<RobbotIbGib_V1>> {
+  protected async createImpl(): Promise<RobbotModalResult> {
     const lc = `${this.lc}[${this.createImpl.name}]`;
     try {
       if (logalot) { console.log(`${lc}`); }
@@ -186,7 +198,7 @@ export class RobbotModalFormComponent
       if (logalot) { console.log(`${lc} starting...`); }
 
       let factories =
-        this.robbotFactories.filter(x => x.getInjectionName() === item.value)
+        this.robbotFactories.filter(x => x.getName() === item.value)
 
       if (factories.length !== 1) { throw new Error(`(UNEXPECTED) factory not found? (E: 0e9a21e7e9456e946eded8ea76715222)`); }
 
