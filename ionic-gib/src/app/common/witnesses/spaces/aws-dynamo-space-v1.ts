@@ -928,41 +928,6 @@ export class AWSDynamoSpace_V1<
             if (!this.data.longPollingIntervalMs && this.data.longPollingIntervalMs !== 0) {
                 this.data.longPollingIntervalMs = c.DEFAULT_LOCAL_SPACE_POLLING_INTERVAL_MS;
             }
-
-            // let resPrompt = await Plugins.Modals.prompt({title: 'hi', message: 'yo enter the thing'});
-
-            // let result = await encrypt({
-            //     dataToEncrypt: JSON.stringify(tempCredentials),
-            //     initialRecursions: 50000,
-            //     salt: tempsalt,
-            //     secret: resPrompt.value,
-            //     confirm: true,
-            //     hashAlgorithm: 'SHA-256',
-            //     saltStrategy: 'appendPerHash',
-            //     recursionsPerHash: 2,
-            // });
-
-            // console.log(`${lc} result.encryptedData:\n`);
-            // console.log(`${lc} ${result.encryptedData}`);
-            // let {
-            //     encryptedData, initialRecursions, salt, hashAlgorithm,
-            //     saltStrategy, recursionsPerHash,
-            // } = tempCredentialsEncrypted;
-            // let result = await decrypt({
-            //     encryptedData,
-            //     initialRecursions,
-            //     salt,
-            //     secret: resPrompt.value,
-            //     hashAlgorithm,
-            //     saltStrategy,
-            //     recursionsPerHash,
-            // });
-            // let credentials = JSON.parse(result.decryptedData);
-            // this.data.tableName = credentials.tableName;
-            // this.data.accessKeyId = credentials.accessKeyId;
-            // this.data.secretAccessKey = credentials.secretAccessKey;
-
-            // console.log(`result.errors: ${result.errors}`);
         } catch (error) {
             console.error(`${lc} ${error.message}`);
         }

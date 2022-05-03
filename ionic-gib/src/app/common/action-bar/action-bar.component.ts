@@ -590,7 +590,7 @@ export class ActionBarComponent extends IbgibComponentBase
           }
         } else {
           debugger;
-          throw new Error(`resGet.success falsy, but get should not be throwing... addr: (${addr}) in space (${spaceAddr}). (UNEXPECTED) (E: b200973da68343b58bddb48c2274a6e1)`);
+          throw new Error(`resGet.success falsy, but get should not be throwing... addr: (${addr}) in space (${spaceAddr}). (E: b200973da68343b58bddb48c2274a6e1)(UNEXPECTED)`);
         }
       }
 

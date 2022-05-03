@@ -51,7 +51,10 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
  *
  * @param param0
  */
-export async function constantIbGib<TData extends IbGibData_V1 = any , TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1>({
+export async function constantIbGib<
+    TData extends IbGibData_V1 = any,
+    TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
+>({
     parentPrimitiveIb,
     ib,
     ibRegExpPattern,

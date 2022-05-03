@@ -760,6 +760,7 @@ export class IbGibPage extends IbgibComponentBase
 
   async handleTitleClick(): Promise<void> {
     if (this.item?.type === 'comment') {
+      debugger; // debugging weird showing alert on robbot look
       await Modals.alert({
         title: 'Context',
         message: this.item?.text,
@@ -964,6 +965,7 @@ export class IbGibPage extends IbgibComponentBase
       debugger;
       let info = JSON.stringify(this.ibGib, null, 2);
       let addr = getIbGibAddr({ibGib: this.ibGib});
+      debugger;
       await Modals.alert({title: addr, message: info});
       console.log(info);
     } catch (error) {

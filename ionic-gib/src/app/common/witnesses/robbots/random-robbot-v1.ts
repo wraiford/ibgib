@@ -17,6 +17,7 @@ import { getRegExp, patchObject, getIdPool } from '../../helper/utils';
 import { WitnessFormBuilder } from '../../helper/witness';
 import { getRobbotIb, RobbotFormBuilder } from '../../helper/robbot';
 import { TransformResult } from 'ts-gib';
+import { constantIbGib } from '../../helper/ibgib';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -82,6 +83,7 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
     protected async witnessImpl(arg: IbGib_V1): Promise<IbGib_V1> {
         const lc = `${this.lc}[${this.witnessImpl.name}]`;
         try {
+            debugger;
             if (logalot) { console.log(`${lc} starting...`); }
 
             await getFnAlert()({title: 'yo', msg: h.pretty(arg)});
@@ -116,6 +118,10 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
         } finally {
             if (logalot) { console.log(`${lc} complete.`); }
         }
+    }
+
+    public foo(): void {
+        console.log(`${this.lc} foo`);
     }
 }
 
@@ -166,7 +172,6 @@ export class RandomRobbot_V1_Factory
     }): Promise<TransformResult<RandomRobbot_V1>> {
         const lc = `${this.lc}[${this.newUp.name}]`;
         try {
-            debugger;
             if (logalot) { console.log(`${lc} starting...`); }
             data = data ?? h.clone(DEFAULT_RANDOM_ROBBOT_DATA_V1);
             rel8ns = rel8ns ?? DEFAULT_RANDOM_ROBBOT_REL8NS_V1 ? h.clone(DEFAULT_RANDOM_ROBBOT_REL8NS_V1) : undefined;

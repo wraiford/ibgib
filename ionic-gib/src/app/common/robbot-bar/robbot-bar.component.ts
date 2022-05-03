@@ -67,7 +67,7 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
-      this.robbots = await this.common.ibgibs.getAppRobbots({createIfNone: true}) ?? [];
+      this.robbots = await this.common.ibgibs.getAppRobbots({createIfNone: false}) ?? [];
       if (this.robbots?.length > 0) {
         this.robbotNames = this.robbots.map(r => r.data.name);
         this.selectedRobbotName = this.robbots[0].data.name;

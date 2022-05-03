@@ -278,6 +278,21 @@ export const MENU_ITEM_IB_SUBSTRING_LENGTH = 15;
 export const DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH = 10;
 
 /**
+ * Used in ErrorIbGib_V1.ib
+ */
+export const DEFAULT_ERROR_MSG_IB_SUBSTRING_LENGTH = 20;
+/**
+ * regexp for an error ibgib's (ErrorIbGib_V1) ib property.
+ */
+export const ERROR_IB_REGEXP = /^error (\w+) ([a-fA-F\d]{32}|undefined)$/;
+/**
+ * capture groups for expected (in various places). will return `null` if
+ * does not have an id section like `(E: abcdef32chars)`.
+ */
+export const ERROR_MSG_WITH_ID_CAPTURE_GROUPS_REGEXP = /^(\[.+\])?\s?(\(UNEXPECTED\)|\(unexpected\))?(.+)(\([EIWeiw]: [a-fA-F\d]{32}\))(\(UNEXPECTED\)|\(unexpected\))?$/;
+export const ERROR_MSG_LOCATION_ONLY_REGEXP = /^(\[.+\]).+$/;
+
+/**
  * If a comment has only alphanumerics, this is used in the ib.
  */
 export const COMMENT_ONLY_HAS_NON_ALPHANUMERICS = '_non-alphanumerics_';
