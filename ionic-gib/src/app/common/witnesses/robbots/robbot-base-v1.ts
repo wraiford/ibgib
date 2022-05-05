@@ -1,6 +1,7 @@
 import {
-    IbGib_V1, IbGibRel8ns_V1,
+    IbGib_V1, IbGibRel8ns_V1, rel8,
 } from 'ts-gib/dist/V1';
+import { TransformResult } from 'ts-gib';
 
 import {
     RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1,
@@ -14,6 +15,7 @@ import { isPic } from '../../helper/pic';
 import { validateCommonRobbotData } from '../../helper/robbot';
 import { FormItemInfo } from 'src/app/ibgib-forms/types/form-items';
 import { argy_, resulty_ } from '../witness-helper';
+import { IbGibSpaceAny } from '../spaces/space-base-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -157,7 +159,7 @@ export abstract class RobbotBase_V1<
         }
     }
 
-    doPic({
+    protected doPic({
         ibGib,
     }: {
         ibGib: PicIbGib_V1,
@@ -176,7 +178,7 @@ export abstract class RobbotBase_V1<
     }
     // abstract doPicImpl({ ibGib }: { ibGib: PicIbGib_V1 }): Promise<TResultIbGib | undefined>;
 
-    doComment({
+    protected doComment({
         ibGib,
     }: {
         ibGib: CommentIbGib_V1,
@@ -196,7 +198,7 @@ export abstract class RobbotBase_V1<
     }
     // abstract doCommentImpl({ ibGib }: { ibGib: CommentIbGib_V1 }): Promise<TResultIbGib | undefined>;
 
-    doDefault({
+    protected doDefault({
         ibGib,
     }: {
         ibGib: TOptionsIbGib,
@@ -213,6 +215,50 @@ export abstract class RobbotBase_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
+
+    /**
+     * Performs the raw {@link rel8} transform to the given `ibGib`.
+     *
+     *
+     * @param param0
+     */
+    protected async rel8To({
+        ibGib,
+        rel8nName,
+        space,
+    }: {
+        ibGib: IbGib_V1,
+        /**
+         * If given, will use this as the rel8n name when performing the `rel8`
+         * transform.
+         *
+         * If not given, will use the `robbot.data`'s {@link RobbotData_V1.defaultRel8nName} value.
+         */
+        rel8nName?: string,
+        /**
+         * If given (which atow is most likely the case), then the {@link TransformResult} will
+         * be persisted in this `space`.
+         */
+        space?: IbGibSpaceAny,
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.rel8To.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            // perform the raw ibgib rel8 transform
+            // if space is given, perform the persistence
+            // register the new ibgib with the ibgibs service
+              // (in the future, need to revisit the ibgibs service to the idea of locality/ies).
+            // update this witness' ibGib properties (ib, gib, data, rel8ns).
+            // update derivative properties
+
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
     // abstract doDefaultImpl({ ibGib }: { ibGib: TOptionsIbGib }): Promise<TResultIbGib | undefined>;
 
     /**
@@ -240,13 +286,12 @@ export abstract class RobbotBase_V1<
         }
     }
 
-
     /**
      * builds an arg ibGib.
      *
      * wrapper convenience to avoid long generic calls.
      */
-    async argy({
+    protected async argy({
         argData,
         ibMetadata,
         noTimestamp,
@@ -277,7 +322,7 @@ export abstract class RobbotBase_V1<
      *
      * wrapper convenience to avoid long generic calls.
      */
-    async resulty({
+    protected async resulty({
         resultData,
         // ibGibs,
     }: {

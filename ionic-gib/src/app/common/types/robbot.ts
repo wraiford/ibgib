@@ -119,6 +119,14 @@ export interface RobbotData_V1 extends WitnessData_V1 {
     //  */
     // tagOutput?: boolean;
 
+
+    /**
+     * When relating to an ibGib, this is the default rel8n name.
+     *
+     * @see `RobbotBase_V1.rel8To`
+     */
+    defaultRel8nName?: string;
+
 }
 
 
