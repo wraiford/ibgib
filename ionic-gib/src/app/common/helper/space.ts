@@ -827,7 +827,7 @@ export async function setConfigAddr({
         // in `linkedRel8ns` which will keep only the most recent
         const rel8nsToAddByAddr = { [key]: [addr] };
         const resNewSpace = await V1.rel8({
-            src: space.toDto(),
+            src: space.toIbGibDto(),
             dna: false,
             linkedRel8ns: ["past", "ancestor", key], // we only want the most recent key address
             rel8nsToAddByAddr,
@@ -852,7 +852,7 @@ export async function setConfigAddr({
 
         // ...must update the original space reference any time we change it.
         // messy atm...
-        space.loadDto(newSpace);
+        space.loadIbGibDto(newSpace);
 
         // ...now update so the proper space (config) loads on next app start
         if (fnUpdateBootstrap) {

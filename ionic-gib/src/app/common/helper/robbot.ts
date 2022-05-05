@@ -225,7 +225,7 @@ export async function createNewRobbot({
         for (let i = 0; i < allIbGibs.length; i++) {
             const ibGib = allIbGibs[i];
             const validationErrors = await validateIbGibIntrinsically({ibGib});
-            if ((validationErrors ?? []).length > 0) { throw new Error(`(unexpected) invalid robbot ibgib created. validationErrors: ${validationErrors}. robbot: ${h.pretty(newRobbot.toDto())} (E: a683268621cd6dd3dd60310b164c4d22)`); }
+            if ((validationErrors ?? []).length > 0) { throw new Error(`(unexpected) invalid robbot ibgib created. validationErrors: ${validationErrors}. robbot: ${h.pretty(newRobbot.toIbGibDto())} (E: a683268621cd6dd3dd60310b164c4d22)`); }
         }
 
         await persistTransformResult({resTransform: resRobbot, isMeta: true, space});

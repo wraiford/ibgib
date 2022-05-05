@@ -139,7 +139,7 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       const name: string = robbotIbGib.data.classname;
       const factory = this.common.factories.getFactory({name});
       const robbot = <WitnessAny>(await factory.newUp({})).newIbGib;
-      robbot.loadDto(robbotIbGib);
+      robbot.loadIbGibDto(robbotIbGib);
       await robbot.witness(this.ibGib);
     } catch (error) {
       console.error(`${lc} ${error.message}`);

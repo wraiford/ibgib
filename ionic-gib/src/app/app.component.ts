@@ -787,7 +787,7 @@ export class AppComponent extends IbgibComponentBase
       this.menu.close();
       const localUserSpace = await this.common.ibgibs.getLocalUserSpace({lock: true});
       await this.go({
-        toAddr: h.getIbGibAddr({ibGib: localUserSpace.toDto()}),
+        toAddr: h.getIbGibAddr({ibGib: localUserSpace.toIbGibDto()}),
         fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
       });
     } catch (error) {
@@ -863,7 +863,7 @@ export class AppComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.getSpaceItem_syncSpace.name}]`;
     let item: MenuItem;
     try {
-      const ibGib = space.toDto ? space.toDto() : space;
+      const ibGib = space.toIbGibDto ? space.toIbGibDto() : space;
       if (logalot) { console.log(`${lc} ibGib: ${h.pretty(ibGib)} (I: c24a7fc94df7b5403bc221e98083ee22)`); }
       let validateIbGibErrors = await validateIbGibIntrinsically({ibGib});
       if (validateIbGibErrors?.length > 0) { throw new Error(`invalid ibGib intrinsically. errors: ${validateIbGibErrors} (E: d482f5e1ff2db1bb91312128797be922)`); }

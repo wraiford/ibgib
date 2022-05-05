@@ -874,7 +874,7 @@ export class AWSDynamoSpace_V1<
             TRel8ns extends SyncSpaceRel8ns_AWSDynamoDB = SyncSpaceRel8ns_AWSDynamoDB
         >(dto: IbGib_V1<TData, TRel8ns>): AWSDynamoSpace_V1<TData, TRel8ns> {
         const space = new AWSDynamoSpace_V1<TData, TRel8ns>(null, null);
-        space.loadDto(dto);
+        space.loadIbGibDto(dto);
         return space;
     }
 

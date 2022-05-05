@@ -264,7 +264,7 @@ export class IonicSpace_V1<
         const lc = `[${IonicSpace_V1.name}][${this.createFromDto.name}]`;
         if (logalot) { console.log(`${lc}`); }
         const space = new IonicSpace_V1<TData, TRel8ns>(null, null);
-        space.loadDto(dto);
+        space.loadIbGibDto(dto);
         return space;
     }
 

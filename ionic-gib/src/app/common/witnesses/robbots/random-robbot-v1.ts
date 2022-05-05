@@ -41,10 +41,12 @@ export interface RandomRobbotRel8ns_V1 extends RobbotRel8ns_V1 {
  *
  */
 export class RandomRobbot_V1 extends RobbotBase_V1<
+        // in
         any, IbGibRel8ns_V1, IbGib_V1<any, IbGibRel8ns_V1>,
+        // out
         any, IbGibRel8ns_V1, IbGib_V1<any, IbGibRel8ns_V1>,
-        RandomRobbotData_V1,
-        RandomRobbotRel8ns_V1
+        // this
+        RandomRobbotData_V1, RandomRobbotRel8ns_V1
     > {
     protected lc: string = `[${RandomRobbot_V1.name}]`;
 
@@ -195,7 +197,7 @@ export class RandomRobbot_V1_Factory
             // witness class
             const robbotDto = resRobbot.newIbGib;
             let robbotIbGib = new RandomRobbot_V1(null, null);
-            robbotIbGib.loadDto(robbotDto);
+            robbotIbGib.loadIbGibDto(robbotDto);
             resRobbot.newIbGib = robbotIbGib;
             if (logalot) { console.log(`${lc} robbotDto: ${h.pretty(robbotDto)} (I: af9d16de46d6e6d75b2a21312d72d922)`); }
 

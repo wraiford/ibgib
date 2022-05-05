@@ -13,6 +13,7 @@ import { isComment } from '../../helper/comment';
 import { isPic } from '../../helper/pic';
 import { validateCommonRobbotData } from '../../helper/robbot';
 import { FormItemInfo } from 'src/app/ibgib-forms/types/form-items';
+import { argy_, resulty_ } from '../witness-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -239,6 +240,57 @@ export abstract class RobbotBase_V1<
         }
     }
 
+
+    /**
+     * builds an arg ibGib.
+     *
+     * wrapper convenience to avoid long generic calls.
+     */
+    async argy({
+        argData,
+        ibMetadata,
+        noTimestamp,
+        // ibGibs,
+    }: {
+        argData: TOptionsData,
+        ibMetadata?: string,
+        noTimestamp?: boolean,
+        // ibGibs?: TIbGib[],
+    }): Promise<TOptionsIbGib> {
+        const arg = await argy_<TOptionsData, TOptionsRel8ns, TOptionsIbGib>({
+            argData,
+            ibMetadata,
+            noTimestamp
+        });
+
+        // if (ibGibs) { arg.ibGibs = ibGibs; }
+
+        return arg;
+    }
+
+    /**
+     * builds a result ibGib, if indeed a result ibgib is required.
+     *
+     * This is only useful in robbots that have more structured inputs/outputs.
+     * For those that simply accept any ibgib incoming and return a
+     * primitive like ib^gib or whatever, then this is unnecessary.
+     *
+     * wrapper convenience to avoid long generic calls.
+     */
+    async resulty({
+        resultData,
+        // ibGibs,
+    }: {
+        resultData: TResultData,
+        // ibGibs?: TIbGib[],
+    }): Promise<TResultIbGib> {
+        const result = await resulty_<TResultData, TResultIbGib>({
+            // ibMetadata: getRobbotResultMetadata({space: this}),
+            resultData,
+        });
+        // if (ibGibs) { result.ibGibs = ibGibs; }
+        return result;
+    }
 
 }
 

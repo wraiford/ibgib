@@ -6,8 +6,6 @@ import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import * as c from '../constants';
 import { WitnessData_V1, WitnessRel8ns_V1, Witness_V1, } from '../types/witness';
 import { validateGib, validateIb, validateIbGibIntrinsically } from '../helper/validate';
-import { FormItemInfo } from '../../ibgib-forms/types/form-items';
-import { DynamicFormFactoryBase } from '../../ibgib-forms/bases/dynamic-form-factory-base';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -34,11 +32,9 @@ export abstract class WitnessBase_V1<
 
     /**
      * Optional arg for verbose logging.
-     *
-     *
      */
     protected set trace(value: boolean) {
-        const lc = `${this.lc}[set trace}]`;
+        const lc = `${this.lc}[set trace]`;
         if (value === (this.data?.trace || false)) { return; }
         if (this.data) {
             this.data.trace = value;
@@ -62,7 +58,7 @@ export abstract class WitnessBase_V1<
      * function implementation.
      */
     protected set catchAllErrors(value: boolean) {
-        const lc = `${this.lc}[set catchAllErrors}]`;
+        const lc = `${this.lc}[set catchAllErrors]`;
         if (value === this.data?.catchAllErrors) { return; }
         if (this.data) {
             this.data.catchAllErrors = value;
@@ -140,10 +136,10 @@ export abstract class WitnessBase_V1<
      *
      * @returns dto ibgib object with just clones of this.ib/gib/data/rel8ns props.
      *
-     * @see {loadDto}
+     * @see {loadIbGibDto}
      */
-    toDto(): IbGib_V1<TData, TRel8ns> {
-        const lc = `${this.lc}[${this.toDto.name}]`;
+    toIbGibDto(): IbGib_V1<TData, TRel8ns> {
+        const lc = `${this.lc}[${this.toIbGibDto.name}]`;
         if (!this.ib) { console.warn(`${lc} this.ib is falsy. (W: 60162e3ab42941e9a68cd6adc8d23387)`); }
         if (!this.gib) { debugger; console.warn(`${lc} this.gib is falsy. (W: 61dc535639dc410d874635013fce5b8a)`); }
 
@@ -156,14 +152,14 @@ export abstract class WitnessBase_V1<
     }
 
     /**
-     * Rehydrates this witness class with the ibgib information from the dto.
+     * (Re)hydrates this witness class with the ibgib information from the dto.
      *
      * @param dto ib, gib, data & rel8ns to load for this witness ibgib instance.
      *
-     * @see {toDto}
+     * @see {toIbGibDto}
      */
-    loadDto(dto: IbGib_V1<TData, TRel8ns>): void {
-        const lc = `${this.lc}[${this.loadDto.name}]`;
+    loadIbGibDto(dto: IbGib_V1<TData, TRel8ns>): void {
+        const lc = `${this.lc}[${this.loadIbGibDto.name}]`;
         if (!dto.ib) { console.warn(`${lc} dto.ib is falsy.`); }
         if (!dto.gib) { console.warn(`${lc} dto.gib is falsy.`); }
 
@@ -199,7 +195,7 @@ export abstract class WitnessBase_V1<
     async witness(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
         const lc = `${this.lc}[${this.witness.name}]`;
         try {
-            if (!this.gib) { this.gib = await sha256v1(this.toDto()); }
+            if (!this.gib) { this.gib = await sha256v1(this.toIbGibDto()); }
             const validationErrors_this = await this.validateThis();
             if (validationErrors_this?.length > 0) {
                 for (const error of validationErrors_this) { console.error(`${lc} ${error}`); }
