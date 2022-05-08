@@ -588,25 +588,3 @@ export async function isTjp_Naive({
         throw error;
     }
 }
-
-/**
- * Similar to ROOT, this is a special primitive ibgib.
- *
- * ## driving use case
- *
- * I'm making this to act as a control signal like an escape character, or more
- * specifically, like the backslash of an escape character that uses
- * backslashes.
- *
- * Or if you like, you can think of this as acting like a
- * shift/ctrl/alt/cmd/meta key with a keystroke.
- */
-export const META: IbGib_V1 = { ib: 'meta', gib: GIB };
-
-export function metaIbGib({
-    ibMetadata,
-}: {
-
-}): IbGib_V1 {
-
-}

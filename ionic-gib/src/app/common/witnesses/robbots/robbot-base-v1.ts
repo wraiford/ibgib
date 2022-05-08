@@ -1,21 +1,20 @@
 import {
-    IbGib_V1, IbGibRel8ns_V1, rel8,
+    IbGib_V1, IbGibRel8ns_V1,
 } from 'ts-gib/dist/V1';
-import { TransformResult } from 'ts-gib';
 
+import * as c from '../../constants';
 import {
     RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1,
 } from '../../types/robbot';
-import * as c from '../../constants';
 import { WitnessBase_V1, } from '../witness-base-v1';
 import { CommentIbGib_V1 } from '../../types/comment';
 import { PicIbGib_V1 } from '../../types/pic';
 import { isComment } from '../../helper/comment';
 import { isPic } from '../../helper/pic';
 import { validateCommonRobbotData } from '../../helper/robbot';
-import { FormItemInfo } from 'src/app/ibgib-forms/types/form-items';
 import { argy_, resulty_ } from '../witness-helper';
 import { IbGibSpaceAny } from '../spaces/space-base-v1';
+import { IbgibsService } from '../../../services/ibgibs.service';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -225,6 +224,7 @@ export abstract class RobbotBase_V1<
     protected async rel8To({
         ibGib,
         rel8nName,
+        ibgibsSvc,
         space,
     }: {
         ibGib: IbGib_V1,
@@ -236,6 +236,10 @@ export abstract class RobbotBase_V1<
          */
         rel8nName?: string,
         /**
+         * If provided, will register the newly created ibgib.
+         */
+        ibgibsSvc?: IbgibsService,
+        /**
          * If given (which atow is most likely the case), then the {@link TransformResult} will
          * be persisted in this `space`.
          */
@@ -246,10 +250,10 @@ export abstract class RobbotBase_V1<
             if (logalot) { console.log(`${lc} starting...`); }
             // perform the raw ibgib rel8 transform
             // if space is given, perform the persistence
-            // register the new ibgib with the ibgibs service
+            // if ibgibs svc is given, register the new ibgib
               // (in the future, need to revisit the ibgibs service to the idea of locality/ies).
-            // update this witness' ibGib properties (ib, gib, data, rel8ns).
-            // update derivative properties
+            // update this witness' primary ibGib properties (ib, gib, data, rel8ns).
+            // update secondary/derivative properties
 
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -258,8 +262,6 @@ export abstract class RobbotBase_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
-
-    // abstract doDefaultImpl({ ibGib }: { ibGib: TOptionsIbGib }): Promise<TResultIbGib | undefined>;
 
     /**
      * validates against common robbot qualities.

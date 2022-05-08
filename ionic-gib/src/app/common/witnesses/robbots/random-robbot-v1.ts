@@ -122,9 +122,6 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    public foo(): void {
-        console.log(`${this.lc} foo`);
-    }
 }
 
 /**
