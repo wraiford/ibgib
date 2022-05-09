@@ -88,6 +88,15 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
             debugger;
             if (logalot) { console.log(`${lc} starting...`); }
 
+            // leaving off here May 9
+            // if we are witnessing a raw ibgib, then that is equivalent to
+            // saying "look at this ibgib", i.e. rel8To this ibgib.  if we pass
+            // in a special meta/control ibgib, then this robbot will join the
+            // conversation in that context.  perhaps I need to change this to
+            // two special ibgib arg wrappers similar to space args for "look"
+            // and "join" functions.
+            await this.rel8To({ ibGib: arg });
+
             await getFnAlert()({title: 'yo', msg: h.pretty(arg)});
             // need to add handling space/robbot in the base class
 
@@ -137,6 +146,7 @@ const DEFAULT_RANDOM_ROBBOT_DATA_V1: RandomRobbotData_V1 = {
     name: DEFAULT_NAME_RANDOM_ROBBOT,
     description: DEFAULT_DESCRIPTION_RANDOM_ROBBOT,
     classname: RandomRobbot_V1.name,
+    defaultRel8nName: c.DEFAULT_ROBBOT_TARGET_REL8N_NAME,
 
     // tagOutput: false,
     outputPrefix: '👀: ',

@@ -1,3 +1,5 @@
+import * as h from 'ts-gib/dist/helper';
+import { V1 } from 'ts-gib';
 import {
     IbGib_V1, IbGibRel8ns_V1,
 } from 'ts-gib/dist/V1';
@@ -15,6 +17,8 @@ import { validateCommonRobbotData } from '../../helper/robbot';
 import { argy_, resulty_ } from '../witness-helper';
 import { IbGibSpaceAny } from '../spaces/space-base-v1';
 import { IbgibsService } from '../../../services/ibgibs.service';
+import { validateIbGibIntrinsically } from '../../helper/validate';
+import { persistTransformResult } from '../../helper/space';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -100,14 +104,15 @@ export abstract class RobbotBase_V1<
     //     return `witness space ${classname} ${name} ${id}`;
     // }
 
+    /**
+     * Reference to the local ibgibs service, which is one way at getting at the
+     * local user space.
+     */
+    ibgibsSvc: IbgibsService;
+
     constructor(initialData?: TData, initialRel8ns?: TRel8ns) {
         super(initialData, initialRel8ns);
     }
-
-    // data?: RobbotData_V1;
-    // rel8ns?: RobbotRel8ns_V1;
-    // ib: string;
-    // gib?: string;
 
     /**
      * At this point in time, the arg has already been intrinsically validated,
@@ -133,6 +138,11 @@ export abstract class RobbotBase_V1<
      * (default).
      *
      * Override this function to create more advanced custom routing.
+     *
+     * ## notes
+     *
+     * I'm not overly thrilled with this, but it's a watered down version of
+     * what I've implemented in the space witness hierarchy.
      */
     protected async routeAndDoArg({
         arg,
@@ -175,7 +185,6 @@ export abstract class RobbotBase_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
-    // abstract doPicImpl({ ibGib }: { ibGib: PicIbGib_V1 }): Promise<TResultIbGib | undefined>;
 
     protected doComment({
         ibGib,
@@ -195,7 +204,6 @@ export abstract class RobbotBase_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
-    // abstract doCommentImpl({ ibGib }: { ibGib: CommentIbGib_V1 }): Promise<TResultIbGib | undefined>;
 
     protected doDefault({
         ibGib,
@@ -216,10 +224,22 @@ export abstract class RobbotBase_V1<
     }
 
     /**
-     * Performs the raw {@link rel8} transform to the given `ibGib`.
+     * By default, this...
      *
+     * * performs the raw {@link rel8} transform to the given `ibGib`.
+     * * persists the new ibgib's transform result in the given space.
+     * * registers the newer version of this robbot ibgib with the ibgibs svc.
      *
-     * @param param0
+     * @see {@link ibGib}
+     * @see {@link rel8nName}
+     * @see {@link ibgibsSvc}
+     * @see {@link space}
+     *
+     * ## notes
+     *
+     * * If there is no given `space`, then we will use the `ibgibsSvc` to get
+     *   the local user space. If none, then we skip persistence.
+     * * If there is no `ibgibsSvc`, we won't register the new ibgibs locally.
      */
     protected async rel8To({
         ibGib,
@@ -227,6 +247,9 @@ export abstract class RobbotBase_V1<
         ibgibsSvc,
         space,
     }: {
+        /**
+         * The ibgib to which we are relating.
+         */
         ibGib: IbGib_V1,
         /**
          * If given, will use this as the rel8n name when performing the `rel8`
@@ -248,13 +271,64 @@ export abstract class RobbotBase_V1<
         const lc = `${this.lc}[${this.rel8To.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
+
+            // #region initialize, validate args and this
+            rel8nName = rel8nName || this.data?.defaultRel8nName;
+
+            if (!ibGib) { throw new Error(`ibGib required (E: 2fd13de0f025b170885bede4d7a50922)`); }
+            if (!rel8nName) { throw new Error(`rel8nName required either as an arg or in this.data.defaultRel8nName (E: 43ab8ae63694a2a82cd8a70ed6b6b522)`); }
+
+            const thisValidationErrors = await this.validateThis();
+            if (thisValidationErrors?.length > 0) { throw new Error(`this is an invalid ibGib. thisValidationErrors: ${thisValidationErrors.join('|')} (E: 8f08716866cd13bf254222ee9e6a6722)`); }
+
+            if (!ibgibsSvc) {
+                if (this.ibgibsSvc) {
+                    if (logalot) { console.log(`${lc} ibgibsSvc arg falsy, but we have a reference on this object, which we will use. (I: ee0d39a47ee8aee8ffd797721fea4322)`); }
+                    ibgibsSvc = this.ibgibsSvc;
+                }
+            }
+
+            if (!space) {
+                if (ibgibsSvc) {
+                    if (logalot) { console.log(`${lc} space arg falsy, but ibgibsSvc truthy, so we'll use ibgibsSvc's local user space for persistence. (I: 37a4b4c1406556cb23831671755b0d22)`); }
+                    space = await ibgibsSvc.getLocalUserSpace({lock: true});
+                }
+            }
+
+            // #endregion initialize, validate args and this
+
             // perform the raw ibgib rel8 transform
+            const addr = h.getIbGibAddr({ibGib});
+            const resNewRobbot = await V1.rel8({
+                src: this.toIbGibDto(),
+                rel8nsToAddByAddr: { [rel8nName]: [addr] },
+                linkedRel8ns: ["past", "ancestor"], // we only want the most recent key address
+                dna: true,
+                nCounter: true,
+            });
+            const newRobbotIbGib = <IbGib_V1<TData,TRel8ns>>resNewRobbot.newIbGib;
+            const newRobbotValidationErrors =
+                await validateIbGibIntrinsically({ibGib: newRobbotIbGib});
+            if (newRobbotValidationErrors?.length > 0) { throw new Error(`new robbot would have validation errors. aborting. newRobbotValidationErrors: ${newRobbotValidationErrors.join('|')} (E: eb816a27156c246c121ef55e37d59322)`); }
+
             // if space is given, perform the persistence
+            if (space) {
+                await persistTransformResult({resTransform: resNewRobbot, space});
+            } else {
+                if (logalot) { console.log(`${lc} space falsy, skipping persistence (I: 90aa3553e92ad1d02bce61f83648ea22)`); }
+            }
+
             // if ibgibs svc is given, register the new ibgib
               // (in the future, need to revisit the ibgibs service to the idea of locality/ies).
-            // update this witness' primary ibGib properties (ib, gib, data, rel8ns).
-            // update secondary/derivative properties
+            if (ibgibsSvc) {
+                await ibgibsSvc.registerNewIbGib({ibGib: newRobbotIbGib, space});
+            } else {
+                if (logalot) { console.log(`${lc} ibgibsSvc falsy so skipping registerNewIbGib for new robbot (I: eda4f68fffaf2435eba25cd39d4f2922)`); }
+            }
 
+            // update this witness' primary ibGib properties (ib, gib, data, rel8ns).
+            //   override `loadIbGibDto` to update secondary/derivative properties
+            this.loadIbGibDto(newRobbotIbGib);
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;

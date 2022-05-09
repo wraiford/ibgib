@@ -295,7 +295,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
                 return;
             }
 
-            this.addr = latestAddr; // results in `updateIbGib` call
+            this.addr = latestAddr; // triggers `updateIbGib` call
 
         } catch (error) {
             console.error(`${lc} ${error.message}`);

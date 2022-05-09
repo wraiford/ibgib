@@ -234,6 +234,11 @@ export const ROBBOT_TAG_TJP_ADDRS_REL8N_NAME = 'tagTjpAddrs';
  * in replicating ibgib spaces.
  */
 export const ROBBOT_REL8N_NAME = 'robbot';
+/**
+ * When a robbot witnesses an ibgib, it will "remember" the ibgib
+ * by relating the target ibgib to itself via this rel8nName.
+ */
+export const DEFAULT_ROBBOT_TARGET_REL8N_NAME = 'x';
 
 /**
  * wah wah wah...
