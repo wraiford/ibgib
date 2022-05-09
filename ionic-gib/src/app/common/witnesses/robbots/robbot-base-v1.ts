@@ -6,7 +6,7 @@ import {
 
 import * as c from '../../constants';
 import {
-    RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1,
+    RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1, RobbotOptionsData,
 } from '../../types/robbot';
 import { WitnessBase_V1, } from '../witness-base-v1';
 import { CommentIbGib_V1 } from '../../types/comment';

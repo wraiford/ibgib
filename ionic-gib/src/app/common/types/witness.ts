@@ -1,5 +1,5 @@
 import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
-import { IbGib, IbGibWithDataAndRel8ns, IbGibRel8ns } from 'ts-gib';
+import { IbGib, IbGibWithDataAndRel8ns, IbGibRel8ns, IbGibAddr } from 'ts-gib';
 
 /**
  * A witness is a lot like an ibGib analog for a function.
@@ -121,4 +121,128 @@ export interface Witness_V1<
     TRel8ns extends WitnessRel8ns_V1 = WitnessRel8ns_V1,
     >
     extends Witness<TIbGibIn, TIbGibOut, TData, TRel8ns> {
+}
+
+
+/**
+ * Base information for cmd with optional modifiers to interact with a witness.
+ *
+ * Note that it is not necessary for a witness to listen to these types of
+ * ibgibs, this is just convenient plumbing for those who wish to listen to
+ * command-style ibgibs.
+ */
+export interface WitnessCmdOptionsData<TCmds, TCmdModifiers> {
+    /**
+     * Not really in use atm, but will use in the future.
+     */
+    version?: string;
+    /**
+     * The `cmd` property is the name of the command, analogous to a function
+     * name.
+     */
+    cmd: TCmds | string;
+    /**
+     * Optional modifier flag(s) to the command.
+     *
+     * ## notes
+     *
+     * An implementing class can always use/extend these or extend the interface
+     * of the options data.
+     */
+    cmdModifiers?: (TCmdModifiers | string)[];
+    /**
+     * Addrs of ibgibs to get/delete
+     */
+    ibGibAddrs?: IbGibAddr[];
+}
+
+export interface WitnessCmdOptionsRel8ns extends IbGibRel8ns_V1 {
+}
+
+export interface WitnessCmdOptionsIbGib<
+    TIbGib extends IbGib,
+    TCmds, TCmdModifiers,
+    TOptsData extends WitnessCmdOptionsData<TCmds,TCmdModifiers>,
+    TOptsRel8ns extends WitnessCmdOptionsRel8ns,
+    > extends IbGibWithDataAndRel8ns<TOptsData, TOptsRel8ns> {
+    /**
+     * When putting ibGibs, we don't want to persist the entire graph in the
+     * data object. So these ibGibs live on the ibGib arg object itself.
+     *
+     * If only ibGibs are passed in, and not their corresponding ibGibAddrs in
+     * the `TOptsData`, then you can't confirm cryptographically if the ibGibs
+     * are legit.  But if you include their corresponding ibGibAddrs in that
+     * data, then the space can confirm that the ibGibs have not been altered
+     * from the expected cryptographic audit trail.
+     *
+     * This doesn't mean that the ibGibs are kosher completely, but at least
+     * there is internal agreement and an audit trail.
+     *
+     * ## example
+     *
+     * For an example, check out sync space saga
+     */
+    ibGibs?: TIbGib[];
+}
+
+
+export interface WitnessResultData {
+    /**
+     * The address of the options ibGib that corresponds this space result.
+     *
+     * So if you called `space.witness(opts)` which produced this result, this is
+     * `getIbGibAddr({ibGib: opts})`.
+     *
+     * Perhaps I should have this as a rel8n on the actual result ibGib instead of here
+     * in the data.
+     */
+    optsAddr: IbGibAddr;
+    /**
+     * true if the operation executed successfully.
+     *
+     * If this is a `canGet` or `canPut` `cmd`, this does NOT indicate if you
+     * can or can't. For that, see the `can` property of this interface.
+     */
+    success?: boolean;
+    /**
+     * Any error messages go here. If this is populated, then the `success`
+     * *should* be false (but obvious the interface can't guarantee implementation).
+     */
+    errors?: string[];
+    /**
+     * Any warnings that don't cause this operation to explicitly fail, i.e. `errors`
+     * is falsy/empty.
+     */
+    warnings?: string[];
+    /**
+     * If getting address(es), they will be here.
+     */
+    addrs?: IbGibAddr[];
+    /**
+     * Addresses for ibGibs which had errors.
+     */
+    addrsErrored?: IbGibAddr[];
+}
+
+export interface WitnessResultRel8ns extends IbGibRel8ns_V1 { }
+
+/**
+ * Optional witness result ibgib interface.
+ *
+ * You do NOT have to use this class when returning results for witness ibgibs.
+ * This is provided as convenience plumbing for when you do want a standard-ish
+ * special result ibgib.
+ */
+export interface WitnessResultIbGib<
+    TIbGib extends IbGib,
+    TResultData extends WitnessResultData,
+    TResultRel8ns extends WitnessResultRel8ns
+    >
+    extends IbGibWithDataAndRel8ns<TResultData, TResultRel8ns> {
+
+    /**
+     * When expecting ibGibs back, we don't want to persist the graph. So this property of
+     * ibGibs lives on the ibGib result object, but not in the `data` property.
+     */
+    ibGibs?: TIbGib[];
 }

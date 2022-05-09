@@ -1,10 +1,13 @@
 import { IbGib_V1 } from "ts-gib/dist/V1";
 
 import * as c from '../constants';
-import { getRegExp } from "../helper/utils";
-import { WitnessFormBuilder } from "../helper/witness";
 import { TjpIbGibAddr } from "./ibgib";
-import { WitnessData_V1, WitnessRel8ns_V1 } from "./witness";
+import {
+    WitnessData_V1, WitnessRel8ns_V1,
+    WitnessCmdOptionsData, WitnessCmdOptionsRel8ns, WitnessCmdOptionsIbGib,
+    WitnessResultData, WitnessResultRel8ns, WitnessResultIbGib,
+} from "./witness";
+
 
 export type RobbotTransparency = 'transparent' | 'translucent' | 'opaque';
 
@@ -162,7 +165,117 @@ export interface RobbotRel8ns_V1 extends WitnessRel8ns_V1 {
  * 2. Robbots themselves live "on-chain" alongside the data with which they
  *    interact.
  */
-export interface RobbotIbGib_V1
-    extends IbGib_V1<RobbotData_V1, RobbotRel8ns_V1> {
+export interface RobbotIbGib_V1 extends IbGib_V1<RobbotData_V1, RobbotRel8ns_V1> {
+}
 
+
+
+/**
+ * Cmds for interacting with ibgib spaces.
+ *
+ * Not all of these will be implemented for every space.
+ *
+ * ## todo
+ *
+ * change these commands to better structure, e.g., verb/do/mod, can/get/addrs
+ * */
+export type RobbotOptionsCmd =
+    'ib' | 'gib' | 'ibgib';
+/** Cmds for interacting with ibgib spaces.  */
+export const RobbotOptionsCmd = {
+    /**
+     * it's more like a grunt that is intepreted by context from the robbot.
+     *
+     * my initial use of this will be to add an ibgib to a robbot's
+     * awareness. (input)
+     */
+    ib: 'ib' as RobbotOptionsCmd,
+    /**
+     * it's more like a grunt that is intepreted by context from the robbot.
+     *
+     * my initial use of this will be to indicate to a robbot to add to a
+     * conversation. (output)
+     */
+    gib: 'gib' as RobbotOptionsCmd,
+    /**
+     * third placeholder command.
+     *
+     * I imagine this will be like "what's up", but who knows.
+     */
+    ibgib: 'ibgib' as RobbotOptionsCmd,
+}
+
+/**
+ * Flags to affect the command's interpretation.
+ */
+export type RobbotOptionsCmdModifier =
+    'ib' | 'gib' | 'ibgib';
+/**
+ * Flags to affect the command's interpretation.
+ */
+export const RobbotOptionsCmdModifier = {
+    /**
+     * hmm...
+     */
+    ib: 'ib' as RobbotOptionsCmdModifier,
+    /**
+     * hmm...
+     */
+    gib: 'gib' as RobbotOptionsCmdModifier,
+    /**
+     * hmm...
+     */
+    ibgib: 'ibgib' as RobbotOptionsCmdModifier,
+}
+
+/** Information for interacting with spaces. */
+export interface RobbotOptionsData
+    extends WitnessCmdOptionsData<RobbotOptionsCmd, RobbotOptionsCmdModifier> {
+}
+
+export interface RobbotOptionsRel8ns extends WitnessCmdOptionsRel8ns {
+}
+
+/**
+ * Shape of options ibgib if used for a robbot.
+ *
+ * I'm not sure what to do with this atm, so I'm just stubbing out...
+ */
+export interface RobbotOptionsIbGib<
+    TIbGib extends IbGib_V1 = IbGib_V1,
+    TOptsData extends RobbotOptionsData = RobbotOptionsData,
+    TOptsRel8ns extends RobbotOptionsRel8ns = RobbotOptionsRel8ns,
+    > extends WitnessCmdOptionsIbGib<TIbGib, RobbotOptionsCmd, RobbotOptionsCmdModifier, TOptsData, TOptsRel8ns> {
+}
+
+/**
+ * Optional shape of result data to robbot interactions.
+ *
+ * This is in addition of course to {@link WitnessResultData}.
+ *
+ * ## notes
+ *
+ * * I'm not sure what to do with this atm, so I'm just stubbing out...
+ */
+export interface RobbotResultData extends WitnessResultData {
+}
+
+/**
+ * Marker interface rel8ns atm...
+ *
+ * I'm not sure what to do with this atm, so I'm just stubbing out...
+ */
+export interface RobbotResultRel8ns extends WitnessResultRel8ns { }
+
+/**
+ * Shape of result ibgib if used for a robbot.
+ *
+ * I'm not sure what to do with this atm, so I'm just stubbing out...
+ */
+export interface RobbotResultIbGib<
+    TIbGib extends IbGib_V1,
+    TResultData extends RobbotResultData,
+    TResultRel8ns extends RobbotResultRel8ns
+    >
+    extends WitnessResultIbGib<TIbGib, TResultData, TResultRel8ns> {
 }

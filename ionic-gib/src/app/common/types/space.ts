@@ -2,7 +2,7 @@ import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 import { IbGibAddr, IbGib, IbGibWithDataAndRel8ns, IbGibRel8ns } from 'ts-gib';
 
 import * as c from '../constants';
-import { Witness, WitnessData_V1 } from './witness';
+import { Witness, WitnessCmdOptionsData, WitnessCmdOptionsIbGib, WitnessCmdOptionsRel8ns, WitnessData_V1, WitnessResultData, WitnessResultIbGib, WitnessResultRel8ns } from './witness';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { TjpIbGibAddr } from './ibgib';
 
@@ -130,29 +130,8 @@ export const IbGibSpaceOptionsCmdModifier = {
 }
 
 /** Information for interacting with spaces. */
-export interface IbGibSpaceOptionsData {
-    /**
-     * Not really in use atm, but will use in the future.
-     */
-    version?: string;
-    /**
-     * Spaces use the command pattern. The `cmd` property is the name of the
-     * command, analogous to a function name.
-     */
-    cmd: IbGibSpaceOptionsCmd | string;
-    /**
-     * Optional modifier flag(s) to the command.
-     *
-     * ## notes
-     *
-     * An implementing class can always use/extend these or extend the interface
-     * of the options data.
-     */
-    cmdModifiers?: (IbGibSpaceOptionsCmdModifier | string)[];
-    /**
-     * Addrs of ibgibs to get/delete
-     */
-    ibGibAddrs?: IbGibAddr[];
+export interface IbGibSpaceOptionsData
+    extends WitnessCmdOptionsData<IbGibSpaceOptionsCmd, IbGibSpaceOptionsCmdModifier> {
     /**
      * If putting, this will force replacing the file.
      *
@@ -168,7 +147,7 @@ export interface IbGibSpaceOptionsData {
     trace?: boolean;
 }
 
-export interface IbGibSpaceOptionsRel8ns extends IbGibRel8ns_V1 {
+export interface IbGibSpaceOptionsRel8ns extends WitnessCmdOptionsRel8ns {
 }
 
 export interface IbGibSpaceOptionsIbGib<
@@ -176,67 +155,20 @@ export interface IbGibSpaceOptionsIbGib<
     TOptsData extends IbGibSpaceOptionsData = IbGibSpaceOptionsData,
     // TOptsRel8ns extends IbGibSpaceOptionsRel8ns = IbGibSpaceOptionsRel8ns
     TOptsRel8ns extends IbGibSpaceOptionsRel8ns = IbGibSpaceOptionsRel8ns,
-    > extends IbGibWithDataAndRel8ns<TOptsData, TOptsRel8ns> {
-    /**
-     * When putting ibGibs, we don't want to persist the entire graph in the
-     * data object. So these ibGibs live on the ibGib arg object itself.
-     *
-     * If only ibGibs are passed in, and not their corresponding ibGibAddrs in
-     * the `TOptsData`, then you can't confirm cryptographically if the ibGibs
-     * are legit.  But if you include their corresponding ibGibAddrs in that
-     * data, then the space can confirm that the ibGibs have not been altered
-     * from the expected cryptographic audit trail.
-     *
-     * This doesn't mean that the ibGibs are kosher completely, but at least
-     * there is internal agreement and an audit trail.
-     *
-     * ## example
-     *
-     * For an example, check out sync space saga
-     */
-    ibGibs?: TIbGib[];
+    > extends WitnessCmdOptionsIbGib<TIbGib, IbGibSpaceOptionsCmd, IbGibSpaceOptionsCmdModifier, TOptsData, TOptsRel8ns> {
 }
 
 /**
  * Shape of result data common to all (most) space interactions.
+ *
+ * This is in addition of course to {@link WitnessResultData}.
  */
-export interface IbGibSpaceResultData {
-    /**
-     * The address of the options ibGib that corresponds this space result.
-     *
-     * So if you called `space.witness(opts)` which produced this result, this is
-     * `getIbGibAddr({ibGib: opts})`.
-     *
-     * Perhaps I should have this as a rel8n on the actual result ibGib instead of here
-     * in the data.
-     */
-    optsAddr: IbGibAddr;
-    /**
-     * true if the operation executed successfully.
-     *
-     * If this is a `canGet` or `canPut` `cmd`, this does NOT indicate if you
-     * can or can't. For that, see the `can` property of this interface.
-     */
-    success?: boolean;
+export interface IbGibSpaceResultData extends WitnessResultData {
     /**
      * If the `cmd` is `canGet` or `canPut`, this holds the result that indicates
      * if you can or can't.
      */
     can?: boolean;
-    /**
-     * Any error messages go here. If this is populated, then the `success`
-     * *should* be false (but obvious the interface can't guarantee implementation).
-     */
-    errors?: string[];
-    /**
-     * Any warnings that don't cause this operation to explicitly fail, i.e. `errors`
-     * is falsy/empty.
-     */
-    warnings?: string[];
-    /**
-     * If getting address(es), they will be here.
-     */
-    addrs?: IbGibAddr[];
     /**
      * Addresses not found in a get.
      */
@@ -245,10 +177,6 @@ export interface IbGibSpaceResultData {
      * Addresses that are already in the space when requesting `put` or `canPut`.
      */
     addrsAlreadyHave?: IbGibAddr[];
-    /**
-     * Addresses for ibGibs which had errors.
-     */
-    addrsErrored?: IbGibAddr[];
     /**
      * Result map used when
      *
@@ -287,20 +215,14 @@ export interface IbGibSpaceResultData {
     watchTjpUpdateMap?: { [tjpAddr: string]: IbGibAddr; }
 }
 
-export interface IbGibSpaceResultRel8ns extends IbGibRel8ns_V1 { }
+export interface IbGibSpaceResultRel8ns extends WitnessResultRel8ns { }
 
 export interface IbGibSpaceResultIbGib<
     TIbGib extends IbGib,
     TResultData extends IbGibSpaceResultData,
     TResultRel8ns extends IbGibSpaceResultRel8ns
     >
-    extends IbGibWithDataAndRel8ns<TResultData, TResultRel8ns> {
-
-    /**
-     * When getting ibGibs, we don't want to persist the entire graph in the
-     * data object. So these ibGibs live on the result ibGib object itself.
-     */
-    ibGibs?: TIbGib[];
+    extends WitnessResultIbGib<TIbGib, TResultData, TResultRel8ns> {
 }
 
 /**
@@ -385,7 +307,7 @@ export interface IbGibSpaceLockData {
 }
 
 /**
- * Options for the funciton that locks a space.
+ * Options for the function that locks a space.
 
  * {@link IbGibSpaceLockData}
  * {@link IbGibSpaceLockIbGib}
