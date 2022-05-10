@@ -2,7 +2,7 @@ import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 import { IbGibAddr, IbGib, IbGibWithDataAndRel8ns, IbGibRel8ns } from 'ts-gib';
 
 import * as c from '../constants';
-import { Witness, WitnessCmdOptionsData, WitnessCmdOptionsIbGib, WitnessCmdOptionsRel8ns, WitnessData_V1, WitnessResultData, WitnessResultIbGib, WitnessResultRel8ns } from './witness';
+import { Witness, WitnessCmdData, WitnessCmdIbGib, WitnessCmdRel8ns, WitnessData_V1, WitnessResultData, WitnessResultIbGib, WitnessResultRel8ns } from './witness';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { TjpIbGibAddr } from './ibgib';
 
@@ -131,7 +131,7 @@ export const IbGibSpaceOptionsCmdModifier = {
 
 /** Information for interacting with spaces. */
 export interface IbGibSpaceOptionsData
-    extends WitnessCmdOptionsData<IbGibSpaceOptionsCmd, IbGibSpaceOptionsCmdModifier> {
+    extends WitnessCmdData<IbGibSpaceOptionsCmd, IbGibSpaceOptionsCmdModifier> {
     /**
      * If putting, this will force replacing the file.
      *
@@ -147,7 +147,7 @@ export interface IbGibSpaceOptionsData
     trace?: boolean;
 }
 
-export interface IbGibSpaceOptionsRel8ns extends WitnessCmdOptionsRel8ns {
+export interface IbGibSpaceOptionsRel8ns extends WitnessCmdRel8ns {
 }
 
 export interface IbGibSpaceOptionsIbGib<
@@ -155,7 +155,7 @@ export interface IbGibSpaceOptionsIbGib<
     TOptsData extends IbGibSpaceOptionsData = IbGibSpaceOptionsData,
     // TOptsRel8ns extends IbGibSpaceOptionsRel8ns = IbGibSpaceOptionsRel8ns
     TOptsRel8ns extends IbGibSpaceOptionsRel8ns = IbGibSpaceOptionsRel8ns,
-    > extends WitnessCmdOptionsIbGib<TIbGib, IbGibSpaceOptionsCmd, IbGibSpaceOptionsCmdModifier, TOptsData, TOptsRel8ns> {
+    > extends WitnessCmdIbGib<TIbGib, IbGibSpaceOptionsCmd, IbGibSpaceOptionsCmdModifier, TOptsData, TOptsRel8ns> {
 }
 
 /**

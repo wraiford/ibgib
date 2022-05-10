@@ -1,13 +1,13 @@
 import { Injectable } from '@angular/core';
 
 import * as h from 'ts-gib/dist/helper';
-import { IbGib_V1, ROOT, Factory_V1 as factory, Rel8n, IbGibRel8ns_V1 } from 'ts-gib/dist/V1';
+import { IbGib_V1, ROOT, Factory_V1 as factory, Rel8n, IbGibRel8ns_V1, IbGibData_V1 } from 'ts-gib/dist/V1';
 
 import * as c from '../../constants';
 import { RobbotBase_V1 } from './robbot-base-v1';
 // import { getFnAlert } from '../../helper'; // refactoring to not use index
 import {
-    RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1,
+    RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1, RobbotCmdData, RobbotCmdIbGib, RobbotCmdRel8ns, RobbotCmd,
     // RobbotOutputMode,
 } from '../../types/robbot';
 import { getFnAlert } from '../../helper/prompt-functions';
@@ -107,6 +107,77 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
         } finally {
             if (logalot) { console.log(`${lc} complete.`); }
         }
+    }
+
+
+    protected async doDefault({
+        ibGib,
+    }: {
+        ibGib: IbGib_V1,
+    }): Promise<IbGib_V1> {
+        const lc = `${this.lc}[${this.doDefault.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+
+    }
+
+    protected async doCmdIb({
+        arg,
+    }: {
+        arg: IbGib_V1,
+    }): Promise<IbGib_V1> {
+        const lc = `${this.lc}[${this.doCmdIb.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            return ROOT;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+
+    }
+    protected async doCmdGib({
+        arg,
+    }: {
+        arg: IbGib_V1,
+    }): Promise<IbGib_V1> {
+        const lc = `${this.lc}[${this.doCmdGib.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            return ROOT;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+
+    }
+    protected async doCmdIbgib({
+        arg,
+    }: {
+        arg: IbGib_V1,
+    }): Promise<IbGib_V1> {
+        const lc = `${this.lc}[${this.doCmdIbgib.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            return ROOT;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+
     }
 
     protected async validateThis(): Promise<string[]> {

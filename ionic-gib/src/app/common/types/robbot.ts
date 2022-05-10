@@ -4,7 +4,7 @@ import * as c from '../constants';
 import { TjpIbGibAddr } from "./ibgib";
 import {
     WitnessData_V1, WitnessRel8ns_V1,
-    WitnessCmdOptionsData, WitnessCmdOptionsRel8ns, WitnessCmdOptionsIbGib,
+    WitnessCmdData, WitnessCmdRel8ns, WitnessCmdIbGib,
     WitnessResultData, WitnessResultRel8ns, WitnessResultIbGib,
 } from "./witness";
 
@@ -179,61 +179,61 @@ export interface RobbotIbGib_V1 extends IbGib_V1<RobbotData_V1, RobbotRel8ns_V1>
  *
  * change these commands to better structure, e.g., verb/do/mod, can/get/addrs
  * */
-export type RobbotOptionsCmd =
+export type RobbotCmd =
     'ib' | 'gib' | 'ibgib';
 /** Cmds for interacting with ibgib spaces.  */
-export const RobbotOptionsCmd = {
+export const RobbotCmd = {
     /**
      * it's more like a grunt that is intepreted by context from the robbot.
      *
      * my initial use of this will be to add an ibgib to a robbot's
      * awareness. (input)
      */
-    ib: 'ib' as RobbotOptionsCmd,
+    ib: 'ib' as RobbotCmd,
     /**
      * it's more like a grunt that is intepreted by context from the robbot.
      *
      * my initial use of this will be to indicate to a robbot to add to a
      * conversation. (output)
      */
-    gib: 'gib' as RobbotOptionsCmd,
+    gib: 'gib' as RobbotCmd,
     /**
      * third placeholder command.
      *
      * I imagine this will be like "what's up", but who knows.
      */
-    ibgib: 'ibgib' as RobbotOptionsCmd,
+    ibgib: 'ibgib' as RobbotCmd,
 }
 
 /**
  * Flags to affect the command's interpretation.
  */
-export type RobbotOptionsCmdModifier =
+export type RobbotCmdModifier =
     'ib' | 'gib' | 'ibgib';
 /**
  * Flags to affect the command's interpretation.
  */
-export const RobbotOptionsCmdModifier = {
+export const RobbotCmdModifier = {
     /**
      * hmm...
      */
-    ib: 'ib' as RobbotOptionsCmdModifier,
+    ib: 'ib' as RobbotCmdModifier,
     /**
      * hmm...
      */
-    gib: 'gib' as RobbotOptionsCmdModifier,
+    gib: 'gib' as RobbotCmdModifier,
     /**
      * hmm...
      */
-    ibgib: 'ibgib' as RobbotOptionsCmdModifier,
+    ibgib: 'ibgib' as RobbotCmdModifier,
 }
 
 /** Information for interacting with spaces. */
-export interface RobbotOptionsData
-    extends WitnessCmdOptionsData<RobbotOptionsCmd, RobbotOptionsCmdModifier> {
+export interface RobbotCmdData
+    extends WitnessCmdData<RobbotCmd, RobbotCmdModifier> {
 }
 
-export interface RobbotOptionsRel8ns extends WitnessCmdOptionsRel8ns {
+export interface RobbotCmdRel8ns extends WitnessCmdRel8ns {
 }
 
 /**
@@ -241,11 +241,11 @@ export interface RobbotOptionsRel8ns extends WitnessCmdOptionsRel8ns {
  *
  * I'm not sure what to do with this atm, so I'm just stubbing out...
  */
-export interface RobbotOptionsIbGib<
+export interface RobbotCmdIbGib<
     TIbGib extends IbGib_V1 = IbGib_V1,
-    TOptsData extends RobbotOptionsData = RobbotOptionsData,
-    TOptsRel8ns extends RobbotOptionsRel8ns = RobbotOptionsRel8ns,
-    > extends WitnessCmdOptionsIbGib<TIbGib, RobbotOptionsCmd, RobbotOptionsCmdModifier, TOptsData, TOptsRel8ns> {
+    TCmdData extends RobbotCmdData = RobbotCmdData,
+    TCmdRel8ns extends RobbotCmdRel8ns = RobbotCmdRel8ns,
+    > extends WitnessCmdIbGib<TIbGib, RobbotCmd, RobbotCmdModifier, TCmdData, TCmdRel8ns> {
 }
 
 /**

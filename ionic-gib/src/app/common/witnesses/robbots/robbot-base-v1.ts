@@ -1,12 +1,14 @@
 import * as h from 'ts-gib/dist/helper';
 import { V1 } from 'ts-gib';
 import {
-    IbGib_V1, IbGibRel8ns_V1,
+    IbGib_V1, IbGibRel8ns_V1, ROOT,
 } from 'ts-gib/dist/V1';
 
 import * as c from '../../constants';
 import {
-    RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1, RobbotOptionsData,
+    RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1,
+    RobbotCmd,
+    RobbotCmdData, RobbotCmdRel8ns, RobbotCmdIbGib,
 } from '../../types/robbot';
 import { WitnessBase_V1, } from '../witness-base-v1';
 import { CommentIbGib_V1 } from '../../types/comment';
@@ -14,7 +16,7 @@ import { PicIbGib_V1 } from '../../types/pic';
 import { isComment } from '../../helper/comment';
 import { isPic } from '../../helper/pic';
 import { validateCommonRobbotData } from '../../helper/robbot';
-import { argy_, resulty_ } from '../witness-helper';
+import { argy_, isArg, resulty_ } from '../witness-helper';
 import { IbGibSpaceAny } from '../spaces/space-base-v1';
 import { IbgibsService } from '../../../services/ibgibs.service';
 import { validateIbGibIntrinsically } from '../../helper/validate';
@@ -118,6 +120,9 @@ export abstract class RobbotBase_V1<
      * At this point in time, the arg has already been intrinsically validated,
      * as well as the internal state of this robbot. so whatever this robbot's
      * function is, it should be good to go.
+     *
+     * In the base class, this just returns {@link routeAndDoArg}. If you don't
+     * want to route, then override this.
      */
     protected witnessImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
         const lc = `${this.lc}[${this.witnessImpl.name}]`;
@@ -134,8 +139,9 @@ export abstract class RobbotBase_V1<
     }
 
     /**
-     * Base routing executes different if incoming is a pic, comment or neither
-     * (default).
+     * Base routing executes different if incoming is a cmd options arg, i.e.,
+     * if the `data.cmd` is truthy (atow). If {@link isArg} is true, then routes
+     * to {@link doCmdArg}; else routes to {@link doDefault}.
      *
      * Override this function to create more advanced custom routing.
      *
@@ -143,6 +149,10 @@ export abstract class RobbotBase_V1<
      *
      * I'm not overly thrilled with this, but it's a watered down version of
      * what I've implemented in the space witness hierarchy.
+     *
+     * @see {@link isArg}
+     * @see {@link doCmdArg}
+     * @see {@link doDefault}.
      */
     protected async routeAndDoArg({
         arg,
@@ -152,13 +162,12 @@ export abstract class RobbotBase_V1<
         const lc = `${this.lc}[${this.routeAndDoArg.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            debugger;
-            if (isPic({ibGib: arg})) {
-                return this.doPic({ibGib: <PicIbGib_V1><any>arg}); // any cast b/c bad/too advanced TS inference
-            } else if (isComment({ibGib: arg})) {
-                return this.doComment({ibGib: <CommentIbGib_V1><any>arg}); // any cast b/c bad/too advanced TS inference
-            } else {
-                return this.doDefault({ibGib: arg});
+            if (isArg({ibGib: arg})) {
+                if ((<any>arg.data).cmd) {
+                    return this.doCmdArg({arg: <RobbotCmdIbGib<IbGib_V1, RobbotCmdData, RobbotCmdRel8ns>>arg});
+                } else {
+                    return this.doDefault({ibGib: arg});
+                }
             }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -168,6 +177,97 @@ export abstract class RobbotBase_V1<
         }
     }
 
+    // #region do cmd args
+
+    /**
+     * By default, this routes to {@link doCmdIb}, {@link doCmdGib} & {@link doCmdIbgib}.
+     * Override this and route to other commands before calling this with `super.doCmdArg`
+     * (if you still want to use this function.)
+     *
+     * You can also override the routing
+     */
+    protected doCmdArg({
+        arg,
+    }: {
+        arg: RobbotCmdIbGib<IbGib_V1, RobbotCmdData, RobbotCmdRel8ns>,
+    }): Promise<TResultIbGib> {
+        const lc = `${this.lc}[${this.doCmdArg.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            if (!arg.data?.cmd) { throw new Error(`invalid cmd arg. arg.data.cmd required. (E: aec4dd5bd967fbf36f9c4fad22210222)`); }
+            if (arg.data.cmd === RobbotCmd.ib) {
+                return this.doCmdIb({arg: arg});
+            } else if (arg.data.cmd === RobbotCmd.gib) {
+                return this.doCmdGib({arg: arg});
+            } else if (arg.data.cmd === RobbotCmd.ibgib) {
+                return this.doCmdIbgib({arg: arg});
+            } else {
+                throw new Error(`unknown arg.data.cmd: ${arg.data.cmd} (E: 721fa6a5166327134f9504c1caa3e422)`);
+            }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    protected doCmdIb({
+        arg,
+    }: {
+        arg: IbGib_V1,
+    }): Promise<TResultIbGib> {
+        const lc = `${this.lc}[${this.doCmdIb.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            throw new Error(`not implemented in base class (E: 7298662a2b8f67611d16a8af0e499422)`);
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+    protected doCmdGib({
+        arg,
+    }: {
+        arg: IbGib_V1,
+    }): Promise<TResultIbGib> {
+        const lc = `${this.lc}[${this.doCmdGib.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            throw new Error(`not implemented in base class (E: b6bf2c788c734051956481be7283d006)`);
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+    protected doCmdIbgib({
+        arg,
+    }: {
+        arg: IbGib_V1,
+    }): Promise<TResultIbGib> {
+        const lc = `${this.lc}[${this.doCmdIbgib.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            throw new Error(`not implemented in base class (E: 4fee11f05315467abd036cd8555d27db)`);
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    // #endregion do cmd args
+
+    // #region other stubbed do functions (doPic, doComment, doDefault)
+
+    /**
+     * Stubbed in base class for convenience. Doesn't have to be implemented.
+     */
     protected doPic({
         ibGib,
     }: {
@@ -177,7 +277,6 @@ export abstract class RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting...`); }
             throw new Error(`not implemented in base class (E: 16ba889931644d42ad9e476757dd0617)`);
-            // return this.doPicImpl({ibGib: ibGib});
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -186,6 +285,9 @@ export abstract class RobbotBase_V1<
         }
     }
 
+    /**
+     * Stubbed in base class for convenience. Doesn't have to be implemented.
+     */
     protected doComment({
         ibGib,
     }: {
@@ -196,7 +298,6 @@ export abstract class RobbotBase_V1<
             if (logalot) { console.log(`${lc} starting...`); }
 
             throw new Error(`not implemented in base class (E: 0486a7864729456d993a1afe246faea4)`);
-            // return this.doCommentImpl({ibGib: ibGib});
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -205,6 +306,9 @@ export abstract class RobbotBase_V1<
         }
     }
 
+    /**
+     * Stubbed in base class for convenience. Doesn't have to be implemented.
+     */
     protected doDefault({
         ibGib,
     }: {
@@ -222,6 +326,8 @@ export abstract class RobbotBase_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
+
+    // #endregion other stubbed do functions (doPic, doComment, doDefault)
 
     /**
      * By default, this...
@@ -367,7 +473,7 @@ export abstract class RobbotBase_V1<
      *
      * wrapper convenience to avoid long generic calls.
      */
-    protected async argy({
+    protected async argy<TCmdOptionsData extends RobbotCmdData = RobbotCmdData, TCmdOptionsRel8ns extends RobbotCmdRel8ns = RobbotCmdRel8ns, TCmdOptionsIbGib extends RobbotCmdIbGib<IbGib_V1, TCmdOptionsData, RobbotCmdRel8ns> = RobbotCmdIbGib<IbGib_V1, TCmdOptionsData, TCmdOptionsRel8ns>>({
         argData,
         ibMetadata,
         noTimestamp,
@@ -378,7 +484,7 @@ export abstract class RobbotBase_V1<
         noTimestamp?: boolean,
         // ibGibs?: TIbGib[],
     }): Promise<TOptionsIbGib> {
-        const arg = await argy_<TOptionsData, TOptionsRel8ns, TOptionsIbGib>({
+        const arg = await argy_<TCmdOptionsData, TCmdOptionsRel8ns, TCmdOptionsIbGib>({
             argData,
             ibMetadata,
             noTimestamp

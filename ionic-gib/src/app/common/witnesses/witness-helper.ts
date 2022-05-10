@@ -1,3 +1,4 @@
+import { Ib } from 'ts-gib/dist/types';
 import {
     IbGib_V1, IbGibRel8ns_V1, Factory_V1 as factory, sha256v1,
 } from 'ts-gib/dist/V1';
@@ -26,6 +27,48 @@ export function getArgIb(ibMetadata: string): string {
 }
 
 /**
+ * helper function that checks if an incoming `ib` or `ibGib.ib` indicates that
+ * it is an arg ibGib used with witnesses.
+ *
+ * ## notes
+ * * atow, this basically just checks to see if it starts with
+ *   `c.WITNESS_ARG_METADATA_STRING` (`witness_arg`).
+ *
+ * @throws if neither `ib` nor `ibGib` are provided.
+ *
+ * @returns true if the ib/ibGib.ib indicates an arg ibgib, else false
+ *
+ * @see {@link argy_}
+ */
+export function isArg({
+    ib,
+    ibGib,
+}: {
+    ib?: Ib,
+    ibGib?: IbGib_V1,
+}): boolean {
+    const lc = `[${isArg.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting...`); }
+
+        if (!ib) {
+            if (ibGib) {
+                ib = ibGib.ib;
+            } else {
+                throw new Error(`either ib or ibGib required (E: c052a9d76df867626f9ba17141cdce22)`);
+            }
+        }
+
+        return ib.startsWith(c.WITNESS_ARG_METADATA_STRING);
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+/**
  * Builds the ib for the witness result ibgib.
  *
  * @returns ib that we'll use when creating a witness result.
@@ -44,6 +87,47 @@ export function getResultIb(ibMetadata: string): string {
     }
 }
 
+/**
+ * helper function that checks if an incoming `ib` or `ibGib.ib` indicates that
+ * it is a result ibGib used with witnesses.
+ *
+ * ## notes
+ * * atow, this basically just checks to see if it starts with
+ *   `c.WITNESS_ARG_METADATA_STRING` (`witness_arg`).
+ *
+ * @throws if neither `ib` nor `ibGib` are provided.
+ *
+ * @returns true if the ib/ibGib.ib indicates a result ibgib, else false
+ *
+ * @see {@link resulty_}
+ */
+export function isResult({
+    ib,
+    ibGib,
+}: {
+    ib?: Ib,
+    ibGib?: IbGib_V1,
+}): boolean {
+    const lc = `[${isResult.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting...`); }
+
+        if (!ib) {
+            if (ibGib) {
+                ib = ibGib.ib;
+            } else {
+                throw new Error(`either ib or ibGib required (E: 7d32a54825764d8ea72a8a38cac14224)`);
+            }
+        }
+
+        return ib.startsWith(c.WITNESS_RESULT_METADATA_STRING);
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
 /**
  * This builds the arg ibGib for a witness function.
  *

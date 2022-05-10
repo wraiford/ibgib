@@ -131,7 +131,7 @@ export interface Witness_V1<
  * ibgibs, this is just convenient plumbing for those who wish to listen to
  * command-style ibgibs.
  */
-export interface WitnessCmdOptionsData<TCmds, TCmdModifiers> {
+export interface WitnessCmdData<TCmds, TCmdModifiers> {
     /**
      * Not really in use atm, but will use in the future.
      */
@@ -156,15 +156,15 @@ export interface WitnessCmdOptionsData<TCmds, TCmdModifiers> {
     ibGibAddrs?: IbGibAddr[];
 }
 
-export interface WitnessCmdOptionsRel8ns extends IbGibRel8ns_V1 {
+export interface WitnessCmdRel8ns extends IbGibRel8ns_V1 {
 }
 
-export interface WitnessCmdOptionsIbGib<
+export interface WitnessCmdIbGib<
     TIbGib extends IbGib,
     TCmds, TCmdModifiers,
-    TOptsData extends WitnessCmdOptionsData<TCmds,TCmdModifiers>,
-    TOptsRel8ns extends WitnessCmdOptionsRel8ns,
-    > extends IbGibWithDataAndRel8ns<TOptsData, TOptsRel8ns> {
+    TCmdData extends WitnessCmdData<TCmds,TCmdModifiers>,
+    TCmdRel8ns extends WitnessCmdRel8ns,
+    > extends IbGib_V1<TCmdData, TCmdRel8ns> {
     /**
      * When putting ibGibs, we don't want to persist the entire graph in the
      * data object. So these ibGibs live on the ibGib arg object itself.
