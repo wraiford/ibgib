@@ -82,32 +82,32 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    protected async witnessImpl(arg: IbGib_V1): Promise<IbGib_V1> {
-        const lc = `${this.lc}[${this.witnessImpl.name}]`;
-        try {
-            debugger;
-            if (logalot) { console.log(`${lc} starting...`); }
+    // protected async witnessImpl(arg: IbGib_V1): Promise<IbGib_V1> {
+    //     const lc = `${this.lc}[${this.witnessImpl.name}]`;
+    //     try {
+    //         debugger;
+    //         if (logalot) { console.log(`${lc} starting...`); }
 
-            // leaving off here May 9
-            // if we are witnessing a raw ibgib, then that is equivalent to
-            // saying "look at this ibgib", i.e. rel8To this ibgib.  if we pass
-            // in a special meta/control ibgib, then this robbot will join the
-            // conversation in that context.  perhaps I need to change this to
-            // two special ibgib arg wrappers similar to space args for "look"
-            // and "join" functions.
-            await this.rel8To({ ibGib: arg });
+    //         // leaving off here May 9
+    //         // if we are witnessing a raw ibgib, then that is equivalent to
+    //         // saying "look at this ibgib", i.e. rel8To this ibgib.  if we pass
+    //         // in a special meta/control ibgib, then this robbot will join the
+    //         // conversation in that context.  perhaps I need to change this to
+    //         // two special ibgib arg wrappers similar to space args for "look"
+    //         // and "join" functions.
+    //         await this.rel8To({ ibGib: arg });
 
-            await getFnAlert()({title: 'yo', msg: h.pretty(arg)});
-            // need to add handling space/robbot in the base class
+    //         await getFnAlert()({title: 'yo', msg: h.pretty(arg)});
+    //         // need to add handling space/robbot in the base class
 
-            return ROOT;
-        } catch (error) {
-            console.error(`${lc} ${error.message}`);
-            throw error;
-        } finally {
-            if (logalot) { console.log(`${lc} complete.`); }
-        }
-    }
+    //         return ROOT;
+    //     } catch (error) {
+    //         console.error(`${lc} ${error.message}`);
+    //         throw error;
+    //     } finally {
+    //         if (logalot) { console.log(`${lc} complete.`); }
+    //     }
+    // }
 
 
     protected async doDefault({
@@ -118,24 +118,8 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[${this.doDefault.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-
-        } catch (error) {
-            console.error(`${lc} ${error.message}`);
-            throw error;
-        } finally {
-            if (logalot) { console.log(`${lc} complete.`); }
-        }
-
-    }
-
-    protected async doCmdIb({
-        arg,
-    }: {
-        arg: IbGib_V1,
-    }): Promise<IbGib_V1> {
-        const lc = `${this.lc}[${this.doCmdIb.name}]`;
-        try {
-            if (logalot) { console.log(`${lc} starting...`); }
+            debugger;
+            await this.rel8To({ibGibs: [ibGib]});
             return ROOT;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -143,12 +127,37 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
         } finally {
             if (logalot) { console.log(`${lc} complete.`); }
         }
-
     }
+
+    /**
+     * In this robbot, the ib command looks at given ibGib(s) and remembers
+     * it/them (i.e. the robbot rel8s the ibgibs to itself).
+     *
+     * @returns ROOT if successful, else throws
+     */
+    protected async doCmdIb({
+        arg,
+    }: {
+        arg: RobbotCmdIbGib<IbGib_V1, RobbotCmdData, RobbotCmdRel8ns>,
+    }): Promise<IbGib_V1> {
+        const lc = `${this.lc}[${this.doCmdIb.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            debugger;
+            await this.rel8To({ibGibs: arg.ibGibs});
+            return ROOT;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
     protected async doCmdGib({
         arg,
     }: {
-        arg: IbGib_V1,
+        arg: RobbotCmdIbGib<IbGib_V1, RobbotCmdData, RobbotCmdRel8ns>,
     }): Promise<IbGib_V1> {
         const lc = `${this.lc}[${this.doCmdGib.name}]`;
         try {
@@ -165,7 +174,7 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
     protected async doCmdIbgib({
         arg,
     }: {
-        arg: IbGib_V1,
+        arg: RobbotCmdIbGib<IbGib_V1, RobbotCmdData, RobbotCmdRel8ns>,
     }): Promise<IbGib_V1> {
         const lc = `${this.lc}[${this.doCmdIbgib.name}]`;
         try {
@@ -275,7 +284,7 @@ export class RandomRobbot_V1_Factory
             // witness class
             const robbotDto = resRobbot.newIbGib;
             let robbotIbGib = new RandomRobbot_V1(null, null);
-            robbotIbGib.loadIbGibDto(robbotDto);
+            await robbotIbGib.loadIbGibDto(robbotDto);
             resRobbot.newIbGib = robbotIbGib;
             if (logalot) { console.log(`${lc} robbotDto: ${h.pretty(robbotDto)} (I: af9d16de46d6e6d75b2a21312d72d922)`); }
 

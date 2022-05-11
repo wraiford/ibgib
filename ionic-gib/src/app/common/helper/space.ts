@@ -852,7 +852,7 @@ export async function setConfigAddr({
 
         // ...must update the original space reference any time we change it.
         // messy atm...
-        space.loadIbGibDto(newSpace);
+        await space.loadIbGibDto(newSpace);
 
         // ...now update so the proper space (config) loads on next app start
         if (fnUpdateBootstrap) {

@@ -1,5 +1,6 @@
 import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 import { IbGib, IbGibWithDataAndRel8ns, IbGibRel8ns, IbGibAddr } from 'ts-gib';
+import { ErrorIbGib_V1 } from './error';
 
 /**
  * A witness is a lot like an ibGib analog for a function.
@@ -116,7 +117,7 @@ export interface Witness_V1<
     TIbGibIn extends IbGib_V1<TDataIn, TRel8nsIn>,
     TDataOut extends any,
     TRel8nsOut extends IbGibRel8ns_V1,
-    TIbGibOut extends IbGib_V1<TDataOut, TRel8nsOut>,
+    TIbGibOut extends IbGib_V1<TDataOut, TRel8nsOut> | ErrorIbGib_V1,
     TData extends WitnessData_V1 = any,
     TRel8ns extends WitnessRel8ns_V1 = WitnessRel8ns_V1,
     >

@@ -6,6 +6,8 @@ import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import * as c from '../constants';
 import { WitnessData_V1, WitnessRel8ns_V1, Witness_V1, } from '../types/witness';
 import { validateGib, validateIb, validateIbGibIntrinsically } from '../helper/validate';
+import { ErrorIbGib_V1 } from '../types/error';
+import { errorIbGib } from '../helper/error';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -15,7 +17,7 @@ export abstract class WitnessBase_V1<
     TOptionsIbGib extends IbGib_V1<TOptionsData, TOptionsRel8ns>,
     TResultData extends any,
     TResultRel8ns extends IbGibRel8ns_V1,
-    TResultIbGib extends IbGib_V1<TResultData, TResultRel8ns>,
+    TResultIbGib extends IbGib_V1<TResultData, TResultRel8ns> | ErrorIbGib_V1,
     TData extends WitnessData_V1 = any,
     TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
     >
@@ -154,23 +156,38 @@ export abstract class WitnessBase_V1<
     /**
      * (Re)hydrates this witness class with the ibgib information from the dto.
      *
+     * ## notes
+     *
+     * * You can extend this function for witness-specific behavior when loading.
+     *
      * @param dto ib, gib, data & rel8ns to load for this witness ibgib instance.
      *
      * @see {toIbGibDto}
      */
-    loadIbGibDto(dto: IbGib_V1<TData, TRel8ns>): void {
+    loadIbGibDto(dto: IbGib_V1<TData, TRel8ns>): Promise<void> {
         const lc = `${this.lc}[${this.loadIbGibDto.name}]`;
-        if (!dto.ib) { console.warn(`${lc} dto.ib is falsy.`); }
-        if (!dto.gib) { console.warn(`${lc} dto.gib is falsy.`); }
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
 
-        this.ib = h.clone(dto.ib);
-        this.gib = h.clone(dto.gib);
-        if (dto.data) {
-            this.data = h.clone(dto.data);
-        } else {
-            delete this.data;
+            if (!dto.ib) { console.warn(`${lc} dto.ib is falsy.`); }
+            if (!dto.gib) { console.warn(`${lc} dto.gib is falsy.`); }
+
+            this.ib = h.clone(dto.ib);
+            this.gib = h.clone(dto.gib);
+            if (dto.data) {
+                this.data = h.clone(dto.data);
+            } else {
+                delete this.data;
+            }
+            if (dto.rel8ns) { this.rel8ns = h.clone(dto.rel8ns); } else { delete this.rel8ns; }
+
+            return Promise.resolve();
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
         }
-        if (dto.rel8ns) { this.rel8ns = h.clone(dto.rel8ns); } else { delete this.rel8ns; }
     }
 
     /**

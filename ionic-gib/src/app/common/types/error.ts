@@ -36,6 +36,10 @@ export interface ErrorData_V1 {
      * I often include error ids.
      */
     uuid?: string;
+    /**
+     * All errors should have `errorIbGib.data.success` = false
+     */
+    success: false;
 }
 
 export interface ErrorRel8ns_V1 extends IbGibRel8ns_V1 {

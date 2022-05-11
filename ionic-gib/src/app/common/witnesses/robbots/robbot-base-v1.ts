@@ -9,18 +9,20 @@ import {
     RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1,
     RobbotCmd,
     RobbotCmdData, RobbotCmdRel8ns, RobbotCmdIbGib,
+    RobbotResultData, RobbotResultRel8ns, RobbotResultIbGib,
 } from '../../types/robbot';
 import { WitnessBase_V1, } from '../witness-base-v1';
 import { CommentIbGib_V1 } from '../../types/comment';
 import { PicIbGib_V1 } from '../../types/pic';
-import { isComment } from '../../helper/comment';
-import { isPic } from '../../helper/pic';
 import { validateCommonRobbotData } from '../../helper/robbot';
 import { argy_, isArg, resulty_ } from '../witness-helper';
 import { IbGibSpaceAny } from '../spaces/space-base-v1';
 import { IbgibsService } from '../../../services/ibgibs.service';
 import { validateIbGibIntrinsically } from '../../helper/validate';
 import { persistTransformResult } from '../../helper/space';
+import { ErrorIbGib_V1 } from '../../types/error';
+import { errorIbGib } from '../../helper/error';
+import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -78,7 +80,7 @@ export abstract class RobbotBase_V1<
             = IbGib_V1<TOptionsData, TOptionsRel8ns>,
         TResultData extends any = any,
         TResultRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1,
-        TResultIbGib extends IbGib_V1<TResultData, TResultRel8ns>
+        TResultIbGib extends IbGib_V1<TResultData, TResultRel8ns> | ErrorIbGib_V1
             = IbGib_V1<TResultData, TResultRel8ns>,
         TData extends RobbotData_V1 = RobbotData_V1,
         TRel8ns extends RobbotRel8ns_V1 = RobbotRel8ns_V1,
@@ -124,11 +126,27 @@ export abstract class RobbotBase_V1<
      * In the base class, this just returns {@link routeAndDoArg}. If you don't
      * want to route, then override this.
      */
-    protected witnessImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
+    protected async witnessImpl(arg: TOptionsIbGib): Promise<TResultIbGib | undefined> {
         const lc = `${this.lc}[${this.witnessImpl.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
             debugger;
+
+            if (this.ibgibsSvc) {
+                // check for newer version of self locally before executing
+                const robbotAddr = h.getIbGibAddr({ibGib: this});
+                const latestAddr = await this.ibgibsSvc.getLatestAddr({ibGib: this});
+                if (latestAddr && latestAddr !== robbotAddr) {
+                    // robbot has a newer ibgib in its timeline
+                    let resGet = await this.ibgibsSvc.get({addr: latestAddr});
+                    if (!resGet || !resGet?.success || (resGet?.ibGibs ?? []).length === 0) {
+                        throw new Error(`could not get newer robbot ibgib (E: 15fa346c8ac17edb96e4b0870104c122)`);
+                    }
+                    await this.loadIbGibDto(<IbGib_V1<TData,TRel8ns>>resGet.ibGibs[0]);
+                    const validationErrors = await this.validateThis();
+                    if (validationErrors?.length > 0) { throw new Error(`validationErrors when loading newer version: ${h.pretty(validationErrors)} (E: 0d9f0684a1ff6af44e20a57130e3ac22)`); }
+                }
+            }
             return this.routeAndDoArg({arg});
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -171,7 +189,11 @@ export abstract class RobbotBase_V1<
             }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
-            throw error;
+            if (this.data?.catchAllErrors) {
+                return <TResultIbGib>(await errorIbGib({rawMsg: error.message}));
+            } else {
+                throw error;
+            }
         } finally {
             if (logalot) { console.log(`${lc} complete.`); }
         }
@@ -336,7 +358,7 @@ export abstract class RobbotBase_V1<
      * * persists the new ibgib's transform result in the given space.
      * * registers the newer version of this robbot ibgib with the ibgibs svc.
      *
-     * @see {@link ibGib}
+     * @see {@link ibGibs}
      * @see {@link rel8nName}
      * @see {@link ibgibsSvc}
      * @see {@link space}
@@ -348,7 +370,7 @@ export abstract class RobbotBase_V1<
      * * If there is no `ibgibsSvc`, we won't register the new ibgibs locally.
      */
     protected async rel8To({
-        ibGib,
+        ibGibs,
         rel8nName,
         ibgibsSvc,
         space,
@@ -356,7 +378,7 @@ export abstract class RobbotBase_V1<
         /**
          * The ibgib to which we are relating.
          */
-        ibGib: IbGib_V1,
+        ibGibs: IbGib_V1[],
         /**
          * If given, will use this as the rel8n name when performing the `rel8`
          * transform.
@@ -379,9 +401,10 @@ export abstract class RobbotBase_V1<
             if (logalot) { console.log(`${lc} starting...`); }
 
             // #region initialize, validate args and this
-            rel8nName = rel8nName || this.data?.defaultRel8nName;
 
-            if (!ibGib) { throw new Error(`ibGib required (E: 2fd13de0f025b170885bede4d7a50922)`); }
+            if ((ibGibs ?? []).length === 0) { throw new Error(`ibGibs required (E: 2fd13de0f025b170885bede4d7a50922)`); }
+
+            rel8nName = rel8nName || this.data?.defaultRel8nName;
             if (!rel8nName) { throw new Error(`rel8nName required either as an arg or in this.data.defaultRel8nName (E: 43ab8ae63694a2a82cd8a70ed6b6b522)`); }
 
             const thisValidationErrors = await this.validateThis();
@@ -403,11 +426,30 @@ export abstract class RobbotBase_V1<
 
             // #endregion initialize, validate args and this
 
+
+
+            // we want to rel8 only to the ibGibs whose timelines we're not
+            // already related to. So we look to see if we already have the tjpGib
+            // per our rel8nName.
+            const alreadyRel8dAddrs = this.rel8ns[rel8nName] ?? [];
+            const alreadyRel8dTjpGibs = alreadyRel8dAddrs.map(x => getGibInfo({ibGibAddr: x}).tjpGib);
+            const ibGibsNotYetRel8dByTjp = ibGibs.filter(x => {
+                const tjpGib = getGibInfo({ibGibAddr: h.getIbGibAddr({ibGib: x})}).tjpGib;
+                return !alreadyRel8dTjpGibs.includes(tjpGib);
+            });
+
+            if (ibGibsNotYetRel8dByTjp.length === 0) {
+                if (logalot) { console.log(`${lc} already rel8d to all incoming ibGib(s) via tjp. (I: 5e9d94a98ba262f146c0c0b765157922)`); }
+                debugger;
+                return; // <<<< returns
+            }
+
+            debugger;
             // perform the raw ibgib rel8 transform
-            const addr = h.getIbGibAddr({ibGib});
+            const addrs = ibGibsNotYetRel8dByTjp.map(x => h.getIbGibAddr({ibGib: x}));
             const resNewRobbot = await V1.rel8({
                 src: this.toIbGibDto(),
-                rel8nsToAddByAddr: { [rel8nName]: [addr] },
+                rel8nsToAddByAddr: { [rel8nName]: addrs },
                 linkedRel8ns: ["past", "ancestor"], // we only want the most recent key address
                 dna: true,
                 nCounter: true,
@@ -434,7 +476,7 @@ export abstract class RobbotBase_V1<
 
             // update this witness' primary ibGib properties (ib, gib, data, rel8ns).
             //   override `loadIbGibDto` to update secondary/derivative properties
-            this.loadIbGibDto(newRobbotIbGib);
+            await this.loadIbGibDto(newRobbotIbGib);
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -473,24 +515,29 @@ export abstract class RobbotBase_V1<
      *
      * wrapper convenience to avoid long generic calls.
      */
-    protected async argy<TCmdOptionsData extends RobbotCmdData = RobbotCmdData, TCmdOptionsRel8ns extends RobbotCmdRel8ns = RobbotCmdRel8ns, TCmdOptionsIbGib extends RobbotCmdIbGib<IbGib_V1, TCmdOptionsData, RobbotCmdRel8ns> = RobbotCmdIbGib<IbGib_V1, TCmdOptionsData, TCmdOptionsRel8ns>>({
+    async argy<
+        TCmdOptionsData extends RobbotCmdData = RobbotCmdData,
+        TCmdOptionsRel8ns extends RobbotCmdRel8ns = RobbotCmdRel8ns,
+        TCmdOptionsIbGib extends RobbotCmdIbGib<IbGib_V1, TCmdOptionsData, TCmdOptionsRel8ns> =
+            RobbotCmdIbGib<IbGib_V1, TCmdOptionsData, TCmdOptionsRel8ns>
+    >({
         argData,
         ibMetadata,
         noTimestamp,
-        // ibGibs,
+        ibGibs,
     }: {
-        argData: TOptionsData,
+        argData: TCmdOptionsData,
         ibMetadata?: string,
         noTimestamp?: boolean,
-        // ibGibs?: TIbGib[],
-    }): Promise<TOptionsIbGib> {
+        ibGibs?: IbGib_V1[],
+    }): Promise<TCmdOptionsIbGib> {
         const arg = await argy_<TCmdOptionsData, TCmdOptionsRel8ns, TCmdOptionsIbGib>({
             argData,
             ibMetadata,
             noTimestamp
         });
 
-        // if (ibGibs) { arg.ibGibs = ibGibs; }
+        if (ibGibs) { arg.ibGibs = ibGibs; }
 
         return arg;
     }
@@ -504,18 +551,23 @@ export abstract class RobbotBase_V1<
      *
      * wrapper convenience to avoid long generic calls.
      */
-    protected async resulty({
+    async resulty<
+        TResultData extends RobbotResultData = RobbotResultData,
+        TResultRel8ns extends RobbotResultRel8ns = RobbotResultRel8ns,
+        TResultIbGib extends RobbotResultIbGib<IbGib_V1, TResultData, TResultRel8ns> =
+            RobbotResultIbGib<IbGib_V1, TResultData, TResultRel8ns>
+    >({
         resultData,
-        // ibGibs,
+        ibGibs,
     }: {
         resultData: TResultData,
-        // ibGibs?: TIbGib[],
+        ibGibs?: IbGib_V1[],
     }): Promise<TResultIbGib> {
         const result = await resulty_<TResultData, TResultIbGib>({
             // ibMetadata: getRobbotResultMetadata({space: this}),
             resultData,
         });
-        // if (ibGibs) { result.ibGibs = ibGibs; }
+        if (ibGibs) { result.ibGibs = ibGibs; }
         return result;
     }
 

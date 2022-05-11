@@ -257,14 +257,14 @@ export class IonicSpace_V1<
      * @param dto space ibGib dto that we're going to load from
      * @returns newly created space built upon `dto`
      */
-    static createFromDto<
+    static async createFromDto<
             TData extends IonicSpaceData_V1 = IonicSpaceData_V1,
             TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
-        >(dto: IbGib_V1<TData, TRel8ns>): IonicSpace_V1<TData, TRel8ns> {
+        >(dto: IbGib_V1<TData, TRel8ns>): Promise<IonicSpace_V1<TData, TRel8ns>> {
         const lc = `[${IonicSpace_V1.name}][${this.createFromDto.name}]`;
         if (logalot) { console.log(`${lc}`); }
         const space = new IonicSpace_V1<TData, TRel8ns>(null, null);
-        space.loadIbGibDto(dto);
+        await space.loadIbGibDto(dto);
         return space;
     }
 

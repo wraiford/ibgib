@@ -869,12 +869,12 @@ export class AWSDynamoSpace_V1<
      * @param dto space ibGib dto that we're going to load from
      * @returns newly created space built upon `dto`
      */
-    static createFromDto<
+    static async createFromDto<
             TData extends SyncSpaceData_AWSDynamoDB = SyncSpaceData_AWSDynamoDB,
             TRel8ns extends SyncSpaceRel8ns_AWSDynamoDB = SyncSpaceRel8ns_AWSDynamoDB
-        >(dto: IbGib_V1<TData, TRel8ns>): AWSDynamoSpace_V1<TData, TRel8ns> {
+        >(dto: IbGib_V1<TData, TRel8ns>): Promise<AWSDynamoSpace_V1<TData, TRel8ns>> {
         const space = new AWSDynamoSpace_V1<TData, TRel8ns>(null, null);
-        space.loadIbGibDto(dto);
+        await space.loadIbGibDto(dto);
         return space;
     }
 

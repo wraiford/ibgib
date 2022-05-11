@@ -2031,31 +2031,51 @@ export class IbgibsService {
     }
   }
 
-  async getAppRobbots({
+  async getAppRobbotIbGibs({
     createIfNone,
     space,
   }: {
     createIfNone: boolean,
     space?: IbGibSpaceAny,
   }): Promise<RobbotIbGib_V1[]> {
-    const lc = `${this.lc}[${this.getAppRobbots.name}]`;
+    const lc = `${this.lc}[${this.getAppRobbotIbGibs.name}]`;
     try {
       space = space ?? await this.getLocalUserSpace({});
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: bf09346708ba4d6e9a1389bd1b66d500)`); }
 
-      // get existing
-      let appRobbots: IbGibRobbotAny[] =
-        await this.getSpecialRel8dIbGibs<IbGibRobbotAny>({
+      // get existing. Note that these are not the robbot witnesses, but only
+      // the robbot ibgib (dtos). They do not have a `witness` function on them
+      // at this point.
+      let appRobbots_MaybeOutOfDate: RobbotIbGib_V1[] =
+        await this.getSpecialRel8dIbGibs<RobbotIbGib_V1>({
           type: "robbots",
           rel8nName: c.ROBBOT_REL8N_NAME,
           space,
         });
 
+      let appRobbots: RobbotIbGib_V1[] = [];
+      for (let i = 0; i < appRobbots_MaybeOutOfDate.length; i++) {
+        const robbotIbGib = appRobbots_MaybeOutOfDate[i];
+        const robbotAddr = h.getIbGibAddr({ibGib: robbotIbGib});
+        const latestAddr = await this.getLatestAddr({ibGib: robbotIbGib});
+        if (latestAddr && latestAddr !== robbotAddr) {
+          // robbot has a newer ibgib in its timeline
+          let resGet = await this.get({addr: latestAddr});
+          if (!resGet || !resGet?.success || (resGet?.ibGibs ?? []).length === 0) {
+            throw new Error(`could not get newer robbot ibgib (E: 15fa346c8ac17edb96e4b0870104c122)`);
+          }
+          appRobbots.push(<RobbotIbGib_V1>resGet.ibGibs[0]);
+        } else {
+          appRobbots.push(robbotIbGib);
+        }
+      }
+
+
       // create if applicable
       if (appRobbots.length === 0 && createIfNone) {
         let robbot = await createNewRobbot({ibgibs: this, space});
         if (robbot) {
-          appRobbots = await this.getSpecialRel8dIbGibs<IbGibRobbotAny>({
+          appRobbots = await this.getSpecialRel8dIbGibs<RobbotIbGib_V1>({
             type: "robbots",
             rel8nName: c.ROBBOT_REL8N_NAME,
             space,

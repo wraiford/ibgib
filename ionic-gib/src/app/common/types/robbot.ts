@@ -181,7 +181,7 @@ export interface RobbotIbGib_V1 extends IbGib_V1<RobbotData_V1, RobbotRel8ns_V1>
  * */
 export type RobbotCmd =
     'ib' | 'gib' | 'ibgib';
-/** Cmds for interacting with ibgib spaces.  */
+/** Cmds for interacting with ibgib spaces. */
 export const RobbotCmd = {
     /**
      * it's more like a grunt that is intepreted by context from the robbot.

@@ -3,6 +3,7 @@ import { Ib } from "ts-gib";
 import * as c from '../constants';
 import { constantIbGib } from "./ibgib";
 import { ErrorData_V1, ErrorIbGib_V1, ErrorRel8ns_V1 } from '../types/error';
+import { IbGib_V1 } from "ts-gib/dist/V1/types";
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -74,6 +75,7 @@ export function parseRawErrorMsg({
             const [_, location, unexpectedAtStart, body, idSection, unexpectedAtEnd] = regexResult;
             if (!body) { throw new Error(`invalid error msg body (E: a675e6855cca96519d33d44ea5400922)`); }
             data = {
+                success: false,
                 raw: rawMsg,
                 body: body?.trim(),
                 uuid: idSection.slice(4,36),
@@ -83,6 +85,7 @@ export function parseRawErrorMsg({
         } else {
             // no id or unexpected regex (maybe changed?)
             data = {
+                success: false,
                 raw: rawMsg,
                 body: rawMsg,
             };
@@ -113,7 +116,7 @@ export function parseRawErrorMsg({
  * @see {@link ErrorData_V1}
  * @see {@link ErrorIbGib_V1}
  */
-export async function errorIbGib({rawMsg}: {rawMsg: string}): Promise<ErrorIbGib_V1> {
+export function errorIbGib({rawMsg}: {rawMsg: string}): Promise<ErrorIbGib_V1> {
     const lc = `[${errorIbGib.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting...`); }
@@ -124,6 +127,24 @@ export async function errorIbGib({rawMsg}: {rawMsg: string}): Promise<ErrorIbGib
             data: parseRawErrorMsg({rawMsg}),
             ibRegExpPattern: c.ERROR_IB_REGEXP.source,
         });
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+export function isError({
+    ibGib
+}: {
+    ibGib: IbGib_V1
+}): boolean {
+    const lc = `[${isError.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting...`); }
+        if (!ibGib) { throw new Error(`ibGib required (E: 1d756fbbd96f1734b97ba013537ed522)`); }
+        return ibGib.ib.startsWith('error ');
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

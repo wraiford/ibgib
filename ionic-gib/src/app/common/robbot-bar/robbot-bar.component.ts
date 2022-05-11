@@ -1,14 +1,18 @@
 import { ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
 
+import * as h from 'ts-gib/dist/helper';
+import { IbGibAddr } from 'ts-gib/dist/types';
+
 import * as c from '../constants';
 import { CommonService } from '../../services/common.service';
 import { IbgibComponentBase } from '../bases/ibgib-component-base';
-import { IbGibAddr } from 'ts-gib/dist/types';
 import { createNewRobbot } from '../helper/robbot';
 import { IbGibRobbotAny } from '../witnesses/robbots/robbot-base-v1';
 import { RobbotIbGib_V1 } from '../types/robbot';
 import { Witness } from '../types/witness';
 import { WitnessAny, WitnessBase_V1 } from '../witnesses/witness-base-v1';
+import { isError } from '../helper/error';
+import { ErrorIbGib_V1 } from '../types/error';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -67,7 +71,7 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
-      this.robbots = await this.common.ibgibs.getAppRobbots({createIfNone: false}) ?? [];
+      this.robbots = await this.common.ibgibs.getAppRobbotIbGibs({createIfNone: false}) ?? [];
       if (this.robbots?.length > 0) {
         this.robbotNames = this.robbots.map(r => r.data.name);
         this.selectedRobbotName = this.robbots[0].data.name;
@@ -138,9 +142,27 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       debugger;
       const name: string = robbotIbGib.data.classname;
       const factory = this.common.factories.getFactory({name});
-      const robbot = <WitnessAny>(await factory.newUp({})).newIbGib;
-      robbot.loadIbGibDto(robbotIbGib);
-      await robbot.witness(this.ibGib);
+      const robbot = <IbGibRobbotAny>(await factory.newUp({})).newIbGib;
+      await robbot.loadIbGibDto(robbotIbGib);
+
+      // setting ibgibsSvc is necessary to hook up plumbing atow,
+      // but in the future this is essentially assigning a local space
+      // to an ibgib witness (robbot in this case).
+      robbot.ibgibsSvc = this.common.ibgibs;
+
+      const cmdIbGib = await robbot.argy({
+        argData: {
+          cmd: 'ib', // look
+          ibGibAddrs: [this.addr],
+        },
+        ibGibs: [this.ibGib],
+      });
+      const resCmd = await robbot.witness(cmdIbGib);
+      if (!resCmd) { throw new Error(`resCmd is falsy. (E: e9d5046381c32bfe8d6b7a11cc7ef722)`); }
+      if (isError({ibGib: resCmd})) {
+        const errIbGib = <ErrorIbGib_V1>resCmd;
+        throw new Error(`errIbGib: ${h.pretty(errIbGib)} (E: bbd032d860ff710973dc1f24f6446122)`);
+      }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
