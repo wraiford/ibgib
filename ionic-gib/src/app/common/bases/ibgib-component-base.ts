@@ -387,6 +387,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         queryParams,
         queryParamsHandling = 'preserve',
         isModal,
+        force,
     }: NavInfo): Promise<void> {
         let lc: string = '[invalid lc] (E: 9048c65ff92e4a08b840cf15d0a2867c)';
         try {
@@ -405,6 +406,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
                 queryParamsHandling,
                 queryParams,
                 isModal,
+                force,
             });
 
             if (logalot) { console.log(`${lc} complete.`); }

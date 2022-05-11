@@ -113,7 +113,7 @@ export class IbGibPage extends IbgibComponentBase
   set autoRefresh(value: boolean) { this.paused = value; }
 
   @Input()
-  robbotBarIsVisible: boolean;
+  robbotBarIsVisible: boolean = true;
 
   // @Input()
   // actionBarHeightPerPlatform: string = '55px !important';
@@ -172,6 +172,8 @@ export class IbGibPage extends IbgibComponentBase
         if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 936911af9f942cbdde7de4bf65fef822)`); }
         await h.delay(100);
       }
+
+      // this.updateIbGib_RobbotBarVisible();
       statusId = this.addStatusText({text: 'updating ibgib...'})
       this.stopPollLatest_Local();
       this.stopPollLatest_Store();
@@ -216,6 +218,16 @@ export class IbGibPage extends IbgibComponentBase
   updateIbGib_Paused(): void {
     this.paused = (this.activatedRoute.snapshot.queryParams[c.QUERY_PARAM_PAUSED] || 'false') === 'true';
   }
+  // updateIbGib_RobbotBarVisible(): void {
+  //   // this.paused = (this.activatedRoute.snapshot.queryParams[c.QUERY_PARAM_PAUSED] || 'false') === 'true';
+  //   console.log('ping yo map updateIbGibrobbotbarsldkjfldksjfkj')
+  //   // this.robbotBarIsVisible = (this.activatedRoute.snapshot.queryParams[c.QUERY_PARAM_ROBBOT] || 'false') === 'true';
+  //   setTimeout(() => {
+  //     // this.robbotBarIsVisible = (this.activatedRoute.queryParams[c.QUERY_PARAM_ROBBOT] || 'false') === 'true';
+  //     this.robbotBarIsVisible = location.href?.includes('robbot=true');
+  //     this.ref.detectChanges();
+  //   });
+  // }
 
   subscribeParamMap() {
     let lc = `${this.lc}[${this.subscribeParamMap.name}]`;
@@ -224,6 +236,7 @@ export class IbGibPage extends IbgibComponentBase
       let addr = map.get('addr');
       lc = `${lc}[paramMapSub]`;
       if (logalot) { console.log(`${lc} new addr: ${addr}`); }
+      console.log('ping yo map')
 
       if (!SPECIAL_URLS.includes((addr || "").toLowerCase()) && encodeURI(addr).includes('%5E')) {
         // normal handling for a normal ibGib is to update the page's ibgib
@@ -416,12 +429,23 @@ export class IbGibPage extends IbgibComponentBase
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
+      this.robbotBarIsVisible = !this.robbotBarIsVisible;
+      setTimeout(() => this.ref.detectChanges());
+      // await this.go({
+      //   toAddr: this.addr,
+      //   fromAddr: this.addr,
+      //   queryParams: { [c.QUERY_PARAM_ROBBOT]: !this.robbotBarIsVisible ? true : null },
+      //   queryParamsHandling: 'merge',
+      //   force: true,
+      //   skipStack: true,
+      // });
+      // this.updateIbGib_RobbotBarVisible();
       // const robbots = await this.common.ibgibs.getAppRobbots({createIfNone: true});
       // if (robbots.length > 0) {
         // this.robbotNames = robbots.map(r => r.data.name);
         // this.defaultRobbotName = robbots[0].data.name;
-        this.robbotBarIsVisible = !this.robbotBarIsVisible;
-        setTimeout(() => this.ref.detectChanges());
+        // this.robbotBarIsVisible = !this.robbotBarIsVisible;
+        // setTimeout(() => this.ref.detectChanges());
       // }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -760,7 +784,6 @@ export class IbGibPage extends IbgibComponentBase
 
   async handleTitleClick(): Promise<void> {
     if (this.item?.type === 'comment') {
-      debugger; // debugging weird showing alert on robbot look
       await Modals.alert({
         title: 'Context',
         message: this.item?.text,
@@ -789,6 +812,7 @@ export class IbGibPage extends IbgibComponentBase
       const MIN_DELTA = 50;
       if (delta > MIN_DELTA) {
         this.actionBar.actionDetailVisible = false;
+        this.robbotBarIsVisible = false;
         setTimeout(() => this.ref.detectChanges());
       }
     }
@@ -962,10 +986,8 @@ export class IbGibPage extends IbgibComponentBase
     try {
       // let info = JSON.stringify(this.ibGib_Context, null, 2);
       // let addr = getIbGibAddr({ibGib: this.ibGib_Context});
-      debugger;
       let info = JSON.stringify(this.ibGib, null, 2);
       let addr = getIbGibAddr({ibGib: this.ibGib});
-      debugger;
       await Modals.alert({title: addr, message: info});
       console.log(info);
     } catch (error) {

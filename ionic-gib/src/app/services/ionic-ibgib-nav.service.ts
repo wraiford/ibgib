@@ -34,6 +34,7 @@ export class IonicIbgibNavService implements IbgibNav {
     queryParamsHandling = 'preserve',
     isModal,
     force,
+    skipStack,
   }: NavInfo): Promise<void> {
     const lc: string = `${this.lc}[${this.go.name}]`;
     if (logalot) { console.log(`${lc} starting...(${toAddr || 'falsy'}) from (${fromAddr || 'falsy'})`); }
@@ -96,7 +97,7 @@ export class IonicIbgibNavService implements IbgibNav {
             // updating is paused, so we add even intra-timeline addresses to stack
             Object.entries(queryParams ?? {}).some(([k,v]) => k === c.QUERY_PARAM_PAUSED && v === true)
           );
-        if (pushToStack) {
+        if (pushToStack && !skipStack) {
           this.stack.push({
             toAddr, toAddr_TjpGib,
             fromAddr, fromAddr_TjpGib,
@@ -126,7 +127,6 @@ export class IonicIbgibNavService implements IbgibNav {
           animationDirection: 'forward',
           queryParams,
       }).then(resNav => {
-        // debugger;
         if (!resNav) {
           // navResult is false? not sure what would cause this.
           if (pushedToStack && this.stack.length > 0) {
@@ -156,7 +156,6 @@ export class IonicIbgibNavService implements IbgibNav {
     if (logalot) { console.log(`${lc} starting...`); }
     try {
       if (logalot) { console.log(`${lc} stack: ${h.pretty(this.stack)}`); }
-      // debugger;
       // query params handling will require taking a snapshot of the query
       // params after going forward with the given merge strategy, i.e., it
       // would be best to get the actual url and go there. But we don't have

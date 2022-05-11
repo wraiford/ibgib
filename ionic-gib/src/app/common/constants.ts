@@ -432,6 +432,7 @@ export const HEXADECIMAL_HASH_STRING_REGEXP_32 = /^[0-9a-fA-F]{32}$/;
 export const HEXADECIMAL_HASH_STRING_REGEXP_64 = /^[0-9a-fA-F]{64}$/;
 
 export const QUERY_PARAM_PAUSED = 'paused';
+export const QUERY_PARAM_ROBBOT = 'robbot';
 
 // #region AWS Amazon
 

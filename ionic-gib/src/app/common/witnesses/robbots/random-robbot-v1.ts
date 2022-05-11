@@ -1,23 +1,26 @@
 import { Injectable } from '@angular/core';
 
 import * as h from 'ts-gib/dist/helper';
-import { IbGib_V1, ROOT, Factory_V1 as factory, Rel8n, IbGibRel8ns_V1, IbGibData_V1 } from 'ts-gib/dist/V1';
+import {
+    IbGib_V1, ROOT, Factory_V1 as factory, Rel8n,
+    IbGibRel8ns_V1, isPrimitive,
+} from 'ts-gib/dist/V1';
+import { Gib, IbGibAddr, TransformResult } from 'ts-gib';
+import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 import * as c from '../../constants';
 import { RobbotBase_V1 } from './robbot-base-v1';
-// import { getFnAlert } from '../../helper'; // refactoring to not use index
 import {
-    RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1, RobbotCmdData, RobbotCmdIbGib, RobbotCmdRel8ns, RobbotCmd,
-    // RobbotOutputMode,
+    RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1,
+    RobbotCmdData, RobbotCmdIbGib, RobbotCmdRel8ns, RobbotCmd,
 } from '../../types/robbot';
-import { getFnAlert } from '../../helper/prompt-functions';
-import { FormItemInfo, DynamicForm } from '../../../ibgib-forms/types/form-items';
+import { DynamicForm } from '../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
-import { getRegExp, patchObject, getIdPool } from '../../helper/utils';
+import { getIdPool } from '../../helper/utils';
 import { WitnessFormBuilder } from '../../helper/witness';
 import { getRobbotIb, RobbotFormBuilder } from '../../helper/robbot';
-import { TransformResult } from 'ts-gib';
 import { constantIbGib } from '../../helper/ibgib';
+import { createCommentIbGib } from '../../helper/comment';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -82,34 +85,6 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    // protected async witnessImpl(arg: IbGib_V1): Promise<IbGib_V1> {
-    //     const lc = `${this.lc}[${this.witnessImpl.name}]`;
-    //     try {
-    //         debugger;
-    //         if (logalot) { console.log(`${lc} starting...`); }
-
-    //         // leaving off here May 9
-    //         // if we are witnessing a raw ibgib, then that is equivalent to
-    //         // saying "look at this ibgib", i.e. rel8To this ibgib.  if we pass
-    //         // in a special meta/control ibgib, then this robbot will join the
-    //         // conversation in that context.  perhaps I need to change this to
-    //         // two special ibgib arg wrappers similar to space args for "look"
-    //         // and "join" functions.
-    //         await this.rel8To({ ibGib: arg });
-
-    //         await getFnAlert()({title: 'yo', msg: h.pretty(arg)});
-    //         // need to add handling space/robbot in the base class
-
-    //         return ROOT;
-    //     } catch (error) {
-    //         console.error(`${lc} ${error.message}`);
-    //         throw error;
-    //     } finally {
-    //         if (logalot) { console.log(`${lc} complete.`); }
-    //     }
-    // }
-
-
     protected async doDefault({
         ibGib,
     }: {
@@ -118,7 +93,6 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[${this.doDefault.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            debugger;
             await this.rel8To({ibGibs: [ibGib]});
             return ROOT;
         } catch (error) {
@@ -143,7 +117,6 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[${this.doCmdIb.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            debugger;
             await this.rel8To({ibGibs: arg.ibGibs});
             return ROOT;
         } catch (error) {
@@ -154,6 +127,12 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
         }
     }
 
+    /**
+     * "Speak" one of the memorized ibgibs using the given arg.data.ibGibAddrs[0] as the context
+     * ibGib.
+     *
+     * @returns ROOT if all goes well, otherwise throws an error.
+     */
     protected async doCmdGib({
         arg,
     }: {
@@ -162,7 +141,81 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[${this.doCmdGib.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
+
+            const space = await this.ibgibsSvc.getLocalUserSpace({lock: true});
+
             // choose from rel8d and post to given context.
+            const rel8nName =
+                this.data?.defaultRel8nName ?? c.DEFAULT_ROBBOT_TARGET_REL8N_NAME;
+            const rel8dAddrs = (this.rel8ns ?? {})[rel8nName] ?? [];
+
+            const contextIbGibAddr = arg.data.ibGibAddrs[0]; // guaranteed by this.validateWitnessArg
+            let contextTjpGib = getGibInfo({ibGibAddr: contextIbGibAddr}).tjpGib;
+            /**
+             * flag to indicate if one of our rel8d ibgib addrs belongs to the
+             * same timeline as the current context.
+             */
+            let contextTjpCollision = false;
+
+            let ibGibAddrToSpeak: IbGibAddr;
+            let addrPool = rel8dAddrs.filter(x => {
+                // only addrs that are a different timeline from the current context
+                // or any existing rel8d
+                const xTjpGib = getGibInfo({gib: h.getIbAndGib({ibGibAddr: x}).gib}).tjpGib;
+                if (xTjpGib === contextTjpGib) { contextTjpCollision = true; }
+                return xTjpGib !== contextTjpGib;
+            });
+            if (addrPool.length > 0) {
+                const randomIndex = Math.floor(addrPool.length * Math.random());
+                ibGibAddrToSpeak = addrPool[randomIndex];
+            }
+
+            /**
+             * if we create a comment, we don't need to go fetching a more up to
+             * date version, because we just made it and know that it is already
+             * up-to-date.
+             */
+            let upToDateConfirmed = false;
+            if (!ibGibAddrToSpeak) {
+                const text = contextTjpCollision ?
+                    `${this.data?.outputPrefix ?? ''}I've only seen the current ibgib so far!${this.data?.outputSuffix ?? ''}` :
+                    `${this.data?.outputPrefix ?? ''}I haven't seen anything yet!${this.data?.outputSuffix ?? ''}`;
+                const resComment = await createCommentIbGib({text, space, saveInSpace: true});
+                await this.ibgibsSvc.registerNewIbGib({ibGib: resComment.newIbGib});
+                ibGibAddrToSpeak = h.getIbGibAddr({ibGib: resComment.newIbGib});
+                upToDateConfirmed = true;
+            }
+
+            let resGetContext = await this.ibgibsSvc.get({addr: contextIbGibAddr, space});
+            if (!resGetContext.success || resGetContext.ibGibs?.length !== 1) { throw new Error(`get context address failed (E: 7690ec188f9680bd138fe7e1eef87522)`); }
+            let contextIbGib = resGetContext.ibGibs[0];
+            const contextLatestAddr =
+                await this.ibgibsSvc.getLatestAddr({ibGib: contextIbGib, space}) ?? contextIbGibAddr;
+            if (contextLatestAddr !== contextIbGibAddr) {
+                // update to the latest context ibgib
+                resGetContext = await this.ibgibsSvc.get({addr: contextLatestAddr, space});
+                if (!resGetContext.success || resGetContext.ibGibs?.length !== 1) { throw new Error(`get latest context address failed (E: 3f4c44173af34cb5a6e93ae631c73de0)`); }
+                contextIbGib = resGetContext.ibGibs[0];
+            }
+
+            if (!upToDateConfirmed && !isPrimitive({gib: h.getIbAndGib({ibGibAddr: ibGibAddrToSpeak}).gib})) {
+                // get the latest ibgib addr to speak
+                let resGetIbGib = await this.ibgibsSvc.get({addr: ibGibAddrToSpeak, space});
+                if (!resGetIbGib.success || resGetIbGib.ibGibs?.length !== 1) { throw new Error(`get ibGib failed (E: 0afd345445b248b2aac60267fc57249a)`); }
+                let ibGibToSpeak = resGetIbGib.ibGibs[0];
+                const ibGibToSpeakLatestAddr =
+                    await this.ibgibsSvc.getLatestAddr({ibGib: ibGibToSpeak, space}) ?? ibGibAddrToSpeak;
+                if (ibGibToSpeakLatestAddr !== ibGibAddrToSpeak) {
+                    ibGibAddrToSpeak = ibGibToSpeakLatestAddr;
+                }
+            }
+
+            await this.rel8ToIbGib({
+                ibGibAddrToRel8: ibGibAddrToSpeak,
+                contextIbGib,
+                rel8nNames: [rel8nName],
+            });
+
             return ROOT;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -188,6 +241,29 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
 
+    }
+
+    protected async validateWitnessArg(arg: RobbotCmdIbGib): Promise<string[]> {
+        const lc = `${this.lc}[${this.validateWitnessArg.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            const errors = await super.validateWitnessArg(arg) ?? [];
+            if (!this.ibgibsSvc) {
+                errors.push(`this.ibgibsSvc required (E: 2e64390a2e014631b5bcc1c0cc9b80cf)`);
+            }
+            if ((<any>arg.data).cmd) {
+                // perform extra validation for cmds
+                if ((arg.ibGibs ?? []).length === 0) {
+                    errors.push(`ibGibs required. (E: a21da24eea0049128eeed253aae1218b)`);
+                }
+            }
+            return errors;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
     }
 
     protected async validateThis(): Promise<string[]> {

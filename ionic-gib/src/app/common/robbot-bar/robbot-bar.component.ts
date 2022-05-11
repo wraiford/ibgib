@@ -139,7 +139,6 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       console.warn(`${lc} if robbot name isn't unique, then this may not return the correct robbot. (W: 100287bce6b249d6af7f27c1fc53d90d)`);
 
       if (logalot) { console.log(`${lc} calling robbot.witness (uuid: ${robbotIbGib.data.uuid}) on this.ibGib (${this.addr})  (I: e591b792bf459fe533d5e26202412722)`); }
-      debugger;
       const name: string = robbotIbGib.data.classname;
       const factory = this.common.factories.getFactory({name});
       const robbot = <IbGibRobbotAny>(await factory.newUp({})).newIbGib;
@@ -193,7 +192,6 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       console.warn(`${lc} if robbot name isn't unique, then this may not return the correct robbot. (W: 100287bce6b249d6af7f27c1fc53d90d)`);
 
       if (logalot) { console.log(`${lc} calling robbot.witness (uuid: ${robbotIbGib.data.uuid}) on this.ibGib (${this.addr})  (I: e591b792bf459fe533d5e26202412722)`); }
-      debugger;
       const name: string = robbotIbGib.data.classname;
       const factory = this.common.factories.getFactory({name});
       const robbot = <IbGibRobbotAny>(await factory.newUp({})).newIbGib;

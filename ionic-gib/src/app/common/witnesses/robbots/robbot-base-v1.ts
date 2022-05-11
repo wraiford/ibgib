@@ -1,5 +1,5 @@
 import * as h from 'ts-gib/dist/helper';
-import { V1 } from 'ts-gib';
+import { IbGibAddr, V1 } from 'ts-gib';
 import {
     IbGib_V1, IbGibRel8ns_V1, ROOT,
 } from 'ts-gib/dist/V1';
@@ -130,7 +130,6 @@ export abstract class RobbotBase_V1<
         const lc = `${this.lc}[${this.witnessImpl.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            debugger;
 
             if (this.ibgibsSvc) {
                 // check for newer version of self locally before executing
@@ -440,11 +439,9 @@ export abstract class RobbotBase_V1<
 
             if (ibGibsNotYetRel8dByTjp.length === 0) {
                 if (logalot) { console.log(`${lc} already rel8d to all incoming ibGib(s) via tjp. (I: 5e9d94a98ba262f146c0c0b765157922)`); }
-                debugger;
                 return; // <<<< returns
             }
 
-            debugger;
             // perform the raw ibgib rel8 transform
             const addrs = ibGibsNotYetRel8dByTjp.map(x => h.getIbGibAddr({ibGib: x}));
             const resNewRobbot = await V1.rel8({
@@ -569,6 +566,53 @@ export abstract class RobbotBase_V1<
         });
         if (ibGibs) { result.ibGibs = ibGibs; }
         return result;
+    }
+
+    protected async rel8ToIbGib({
+        ibGibToRel8,
+        ibGibAddrToRel8,
+        contextIbGib,
+        rel8nNames,
+    }: {
+        ibGibToRel8?: IbGib_V1,
+        ibGibAddrToRel8?: IbGibAddr,
+        contextIbGib: IbGib_V1,
+        rel8nNames: string[],
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.rel8ToIbGib.name}]`;
+        try {
+            if (!ibGibToRel8 && !ibGibAddrToRel8) { throw new Error(`ibGibToRel8 or ibGibAddrToRel8 required (E: 3ee14659fd22355a5ba0e537a477be22)`); }
+            if (!contextIbGib) { throw new Error(`contextIbGib required (E: 85f27c7cbf713704c21084c141cd8822)`); }
+
+            if ((rel8nNames ?? []).length === 0) {
+                if (!this.data?.defaultRel8nName) { throw new Error(`either rel8nNames or this.data.defaultRel8nName required (E: a14ab4b3e479d9274c61bc5a30bc2222)`); }
+                rel8nNames = [this.data.defaultRel8nName];
+            }
+
+            // set up the rel8ns to add
+            const rel8nsToAddByAddr: IbGibRel8ns_V1 = {};
+            ibGibAddrToRel8 = ibGibAddrToRel8 || h.getIbGibAddr({ibGib: ibGibToRel8});
+            rel8nNames.forEach((rel8nName) => { rel8nsToAddByAddr[rel8nName] = [ibGibAddrToRel8]; });
+
+            // perform the rel8 transform and...
+            const resRel8ToContext =
+                await V1.rel8({
+                    src: contextIbGib,
+                    rel8nsToAddByAddr,
+                    dna: true,
+                    nCounter: true
+                });
+
+            // ...persist it...
+            await this.ibgibsSvc.persistTransformResult({resTransform: resRel8ToContext});
+
+            // ...register the context.
+            const { newIbGib: newContext } = resRel8ToContext;
+            await this.ibgibsSvc.registerNewIbGib({ibGib: newContext});
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        }
     }
 
 }

@@ -49,6 +49,10 @@ export interface NavInfo {
    * If true, will navigate even if `toAddr === fromAddr`.
    */
   force?: boolean;
+  /**
+   * explicitly skip the navigation stack
+   */
+  skipStack?: boolean;
 }
 
 export interface IbgibNav {
