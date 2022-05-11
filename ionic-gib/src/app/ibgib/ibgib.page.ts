@@ -112,8 +112,15 @@ export class IbGibPage extends IbgibComponentBase
   get autoRefresh(): boolean { return !this.paused; }
   set autoRefresh(value: boolean) { this.paused = value; }
 
+  _robbotBarIsVisible: boolean = true;
   @Input()
-  robbotBarIsVisible: boolean = true;
+  get robbotBarIsVisible(): boolean {
+    return this._robbotBarIsVisible && !!this.ibGib && !this.refreshing;
+  }
+  set robbotBarIsVisible(value: boolean) {
+    this._robbotBarIsVisible = value;
+  }
+
 
   // @Input()
   // actionBarHeightPerPlatform: string = '55px !important';

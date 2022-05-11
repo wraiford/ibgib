@@ -162,6 +162,19 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
         const errIbGib = <ErrorIbGib_V1>resCmd;
         throw new Error(`errIbGib: ${h.pretty(errIbGib)} (E: bbd032d860ff710973dc1f24f6446122)`);
       }
+
+      let robbotName = robbot.data?.name ?? 'robbot';
+      let alerty = await this.common.alertController.create({
+        header: robbotName,
+        message: `${robbot.data?.outputPrefix ?? ''}got it...${robbot.data?.outputSuffix ?? ''}`,
+        buttons: [
+          {
+            text: `ok ${robbotName}`,
+            role: 'cancel',
+          }
+        ]
+      })
+      await alerty.present();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

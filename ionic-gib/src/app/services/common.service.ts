@@ -1,4 +1,4 @@
-import { ModalController, Platform, } from '@ionic/angular';
+import { AlertController, ModalController, Platform, } from '@ionic/angular';
 import { Injectable, Inject, } from '@angular/core';
 
 import { Gib, IbGibAddr } from 'ts-gib';
@@ -83,6 +83,7 @@ export class CommonService {
     @Inject('IbgibNav') public nav: IbgibNav,
     public platform: Platform,
     public factories: WitnessFactoriesService,
+    public alertController: AlertController,
   ) {
 
   }

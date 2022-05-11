@@ -37,6 +37,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     public debugBorderStyle: string = "solid";
 
     private _updatingIbGib: boolean;
+    public get updatingIbGib(): boolean { return this._updatingIbGib; }
 
     // private _addr: IbGibAddr;
     get addr(): IbGibAddr { return this.item?.addr; }
