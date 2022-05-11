@@ -152,7 +152,7 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
 
       const cmdIbGib = await robbot.argy({
         argData: {
-          cmd: 'ib', // look
+          cmd: 'ib', // look (at this ibGib I'm showing you)
           ibGibAddrs: [this.addr],
         },
         ibGibs: [this.ibGib],
@@ -162,6 +162,60 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       if (isError({ibGib: resCmd})) {
         const errIbGib = <ErrorIbGib_V1>resCmd;
         throw new Error(`errIbGib: ${h.pretty(errIbGib)} (E: bbd032d860ff710973dc1f24f6446122)`);
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleRobbotSpeak(event: MouseEvent): Promise<void> {
+    const lc = `${this.lc}[${this.handleRobbotSpeak.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      event.stopImmediatePropagation();
+      event.stopPropagation();
+
+      if (!this.ibGib) { throw new Error(`this.ibGib required (E: 469051c049b443119b203420f72d2337)`); }
+      if (!this.selectedRobbotName) { throw new Error(`(UNEXPECTED) selectedRobbotName should be truthy if this function is accessible. (E: 611986f6903a4b6b9a0cbb41b60bf33d)`); }
+      if ((this.robbots ?? []).length === 0) { throw new Error(`(UNEXPECTED) this.robbots should be truthy if this function is accessible. (E: 92cb8d13628546d3972f9332af3c2b6d)`); }
+
+      const filteredIbGibs =
+        this.robbots.filter(x => x?.data?.name === this.selectedRobbotName);
+
+      if (filteredIbGibs.length === 0) { throw new Error(`(UNEXPECTED) selectedRobbotName not found in robbots list? (E: 1fd157b2d9ee4075a08693a5cc4a4366)`); }
+
+      const robbotIbGib = filteredIbGibs[0];
+      // hack: change this to correctly map name/ion-select item to the robbot using gib/id
+      console.warn(`${lc} if robbot name isn't unique, then this may not return the correct robbot. (W: 100287bce6b249d6af7f27c1fc53d90d)`);
+
+      if (logalot) { console.log(`${lc} calling robbot.witness (uuid: ${robbotIbGib.data.uuid}) on this.ibGib (${this.addr})  (I: e591b792bf459fe533d5e26202412722)`); }
+      debugger;
+      const name: string = robbotIbGib.data.classname;
+      const factory = this.common.factories.getFactory({name});
+      const robbot = <IbGibRobbotAny>(await factory.newUp({})).newIbGib;
+      await robbot.loadIbGibDto(robbotIbGib);
+
+      // setting ibgibsSvc is necessary to hook up plumbing atow,
+      // but in the future this is essentially assigning a local space
+      // to an ibgib witness (robbot in this case).
+      robbot.ibgibsSvc = this.common.ibgibs;
+
+      const cmdIbGib = await robbot.argy({
+        argData: {
+          cmd: 'gib', // speak (in this context I'm passing you)
+          ibGibAddrs: [this.addr],
+        },
+        ibGibs: [this.ibGib],
+      });
+      const resCmd = await robbot.witness(cmdIbGib);
+      if (!resCmd) { throw new Error(`resCmd is falsy. (E: 9ddd93b5d5554bbb8fa3b4ad59f48aae)`); }
+      if (isError({ibGib: resCmd})) {
+        const errIbGib = <ErrorIbGib_V1>resCmd;
+        throw new Error(`errIbGib: ${h.pretty(errIbGib)} (E: 967e544ccb2a4332a3ecaf4b6885f75a)`);
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);

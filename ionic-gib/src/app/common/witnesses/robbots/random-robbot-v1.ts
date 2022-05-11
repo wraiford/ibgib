@@ -162,6 +162,7 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[${this.doCmdGib.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
+            // choose from rel8d and post to given context.
             return ROOT;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
