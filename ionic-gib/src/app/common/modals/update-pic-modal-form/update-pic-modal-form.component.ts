@@ -308,7 +308,7 @@ export class UpdatePicModalFormComponent
       if (logalot) { console.log(`${lc} starting...`); }
       if (this.handlingInputFileClick) {
         console.error(`${lc} (UNEXPECTED) already handling inputfile click. This button should be disabled when already picking. (E: d7417182d5534cb1994dc20336b79342)`);
-        return; // <<<< returns
+        return; // <<<< returns early
       }
       this.handlingInputFileClick = true;
 

@@ -490,7 +490,7 @@ export class IonicSpace_V1<
             // }
 
             if (logalot) { console.log(`arg and internal state validated...calling impl func`); }
-            return await this.putIbGibsImpl(arg); // returns
+            return await this.putIbGibsImpl(arg); // <<<< returns early
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = errors.concat([error.message]);
@@ -1095,13 +1095,13 @@ export class IonicSpace_V1<
         let allExist = paths.every(path => this.pathExistsMap[getPathKey(path)]);
         if (allExist) {
             if (logalot) { console.log(`${lc} allExist (I: f14ad6db1d29e368c37c3117fee1cb22)`); }
-            return; // <<<< returns
+            return; // <<<< returns early
         }
 
         const permitted = await this.ensurePermissions();
         if (!permitted) {
             console.error(`${lc} permission not granted.`);
-            return; // <<<< returns
+            return; // <<<< returns early
         }
 
         for (let i = 0; i < paths.length; i++) {

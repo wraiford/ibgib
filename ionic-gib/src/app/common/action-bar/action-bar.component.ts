@@ -160,7 +160,7 @@ export class ActionBarComponent extends IbgibComponentBase
         message: 'add text',
         inputPlaceholder: 'text here',
       });
-      if (resComment.cancelled || !resComment.value) { return; } // <<<< returns
+      if (resComment.cancelled || !resComment.value) { return; } // <<<< returns early
       const text = resComment.value.trim();
       if (logalot) { console.log(`${lc} text: ${text}`); }
       if (text === '') {
@@ -493,7 +493,7 @@ export class ActionBarComponent extends IbgibComponentBase
         title: 'ibgib address',
         msg: 'enter the ibgib address that you would like to import.',
       }))?.trim();
-      // if (!resAddr) { return; } // returns
+      // if (!resAddr) { return; } // <<<< returns early
       return resAddr;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -523,7 +523,7 @@ export class ActionBarComponent extends IbgibComponentBase
 
       // const addr = resAddr;
       // const addr = await this.promptForImportAddr();
-      // if (!addr) { return; } // <<<< returns
+      // if (!addr) { return; } // <<<< returns early
 
       const addr = this.actionDetailImportText;
 
@@ -560,7 +560,7 @@ export class ActionBarComponent extends IbgibComponentBase
         if (logalot) { console.log(`${lc} ${msg}`) };
         const fnAlert = getFnAlert();
         await fnAlert({title: "Cancelled", msg});
-        return; // returns
+        return; // <<<< returns early
       }
 
       // ...iterate and look inside each space.

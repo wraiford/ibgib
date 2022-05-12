@@ -489,7 +489,7 @@ export async function getDependencyGraph({
                     // return a recursive call for the newly-gotten ibgibs'
                     // dependencies, passing in the now-larger accumulating
                     // `gotten` map of ibgibs already processed.
-                    return await getDependencyGraph({ibGibs: resGet.ibGibs, gotten, skipAddrs, skipRel8nNames, space}); // returns
+                    return await getDependencyGraph({ibGibs: resGet.ibGibs, gotten, skipAddrs, skipRel8nNames, space}); // <<<< returns early
                 } else if (resGet.ibGibs?.length > 0 && resGet.ibGibs.length < addrsWeDontHaveAlready_Rel8dAddrs.length) {
                     debugger;
                     if (logalot) { console.warn(`${lc} got SOME of them (happy-ish path?). not sure what to do here... (W: e3458f61a1ae4979af9e6b18ac935c14)`); }
@@ -1086,7 +1086,7 @@ export async function registerNewIbGib({
             // check to see if ibgib is already the latest
             if (existingLatestAddr === ibGibAddr) {
                 if (logalot) { console.log(`${lc} Neither is newer because ibGibAddr is already registered as latest, so returning without any further action. (I: 7f5bd5d3391be95919240f0e97976e22)`); }
-                return; // <<<< returns
+                return; // <<<< returns early
             }
 
             // not the latest or not registered, so get the full existing latest
@@ -1374,7 +1374,7 @@ export async function getTjpIbGib({
         // intrinsically the tjp and there is no 'tjp' or 'past' rel8n to check
         if (!ibGib.rel8ns) {
             if (logalot) { console.log(`${lc} ibgib not tjp in data, and rel8ns is falsy. so tjp is undefined (I: acdadb76a7568807db7a68f6f866de22)`); }
-            return undefined; // <<<< returns
+            return undefined; // <<<< returns early
         }
 
         // check explicitly listed tjp in rel8ns
@@ -1398,7 +1398,7 @@ export async function getTjpIbGib({
         if (past.length === 0) {
             console.warn(`${lc} past.length === 0, so there is no tjp.`)
             if (logalot) { console.log(`${lc} ibgib is not tjp in data, not in tjp rel8n, and past is empty. so tjp is undefined (I: bf06f664917dcf4492fb9c4c106a6222)`); }
-            return undefined; // <<<< returns
+            return undefined; // <<<< returns early
         }
         const pastIbGibAddr = past[past.length-1];
         const resGetPastIbGib = await getFromSpace({addr: pastIbGibAddr, space});
@@ -2748,7 +2748,7 @@ export async function updateBootstrapIbGib({
         if (!bootstrapIbGib) {
             if (!createIfNotFound) {
                 if (logalot) { console.log(`${lc} bootstrapIbGib not found but createIfNotFound falsy, so returning early. (I: 5c67d85a8599a5ba4a6780f26a66ea22)`); }
-                return; // <<<< returns
+                return; // <<<< returns early
             }
 
             // create the bootstrap^gib space that points to user space

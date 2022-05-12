@@ -295,7 +295,7 @@ export class IbGibPage extends IbgibComponentBase
 
       if (!resConfirm) {
         await alert({title: 'K', msg: 'Cancelled'});
-        return; // <<<< returns
+        return; // <<<< returns early
       }
 
       this.downloadingPic = true;
@@ -377,7 +377,7 @@ export class IbGibPage extends IbgibComponentBase
       if (logalot) { console.log(`${lc} starting...`); }
       if (this.updatingPic) {
         console.error(`${lc} (UNEXPECTED) already updating pic. this handler should be disabled yes? returning early. (E: 9cbb5388290a4f33bf8f2919aab9fdaa)`);
-        return; // <<<< returns
+        return; // <<<< returns early
       }
       this.updatingPic = true;
 
@@ -538,7 +538,7 @@ export class IbGibPage extends IbgibComponentBase
       if (logalot) { console.log(`${lc} starting...`); }
       if (this.syncing) {
         if (logalot) { console.log(`${lc} sync called, but already syncing. (I: e3d3b51b431ded802fc02a11478f7c22)`); }
-        return; // <<<< returns
+        return; // <<<< returns early
       }
       this.item.syncing = true;
       this.ref.detectChanges();
@@ -560,7 +560,7 @@ export class IbGibPage extends IbgibComponentBase
             another tab open? Please hit the refresh button (until we get this
             automatic in the near future!).`.replace(/\n/g, ' ').replace(/  /g, '')
         });
-        return; // <<<< returns
+        return; // <<<< returns early
       }
 
       // sync requires the entire dependency graph of the current ibgib
@@ -589,7 +589,7 @@ export class IbGibPage extends IbgibComponentBase
           setTimeout(() => this.ref.detectChanges());
           setTimeout(() => this.ref.detectChanges());
           // this.autosync = false; // unnecessary?
-          return; // <<<< returns
+          return; // <<<< returns early
         }
 
         // enable autosync for regardless of first-run success, but do not start
@@ -633,7 +633,7 @@ export class IbGibPage extends IbgibComponentBase
         if (logalot) { console.log(`${lc} user cancelled sync. returning... (I: 7e0cd20a9796ff5b0a8afd2d14ff6a22)`); }
         this.item.syncing = false;
         setTimeout(() => this.ref.detectChanges(), 200);
-        return; // <<<< returns
+        return; // <<<< returns early
       }
 
       if (turnOnAutosyncing) {
@@ -655,7 +655,7 @@ export class IbGibPage extends IbgibComponentBase
       if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
       if (isPrimitive({ibGib: this.ibGib})) {
         if (logalot) { console.log(`${lc} refresh clicked for primitive. returning early. (I: af3e72b0a6288fd815a30f251f943f22)`); }
-        return; // <<<< returns
+        return; // <<<< returns early
       }
       if (!this.tjp) { await this.loadTjp(); }
 
@@ -704,7 +704,7 @@ export class IbGibPage extends IbgibComponentBase
       // if (!this.tjp || !this.tjpAddr) { await this.loadTjp(); }
       // if (!this.tjpAddr) {
       //   if (logalot) { console.log(`${lc} no tjp, so ignoring latest. (I: 298b2557007a7f310436f4c7c3716722)`); }
-      //   return; // <<<< returns
+      //   return; // <<<< returns early
       // }
       // if (this.tjpAddr !== info.tjpAddr) { return; }
 
@@ -713,7 +713,7 @@ export class IbGibPage extends IbgibComponentBase
 
       // if (this.addr === info.latestAddr) {
       //   if (logalot) { console.log(`${lc} latest is the same. returning early. (I: 5aa4a956d59cb0358f2ea1d79dba8322)`); }
-      //   return; // returns
+      //   return; // <<<< returns early
       // }
 
       // // check manually comparing data
@@ -725,7 +725,7 @@ export class IbGibPage extends IbgibComponentBase
       //     info_latestIbGib = resGet.ibGibs[0];
       //   } else {
       //     console.error(`${lc} could not get latest ibgib that was published. (E: 85599b5cca4a4bba93578a3156c98b50)`);
-      //     return; // returns
+      //     return; // <<<< returns early
       //   }
       // }
       // const isNewer = (info_latestIbGib.data?.n ?? -1) > (this.ibGib.data?.n ?? -1);
@@ -1034,13 +1034,13 @@ export class IbGibPage extends IbgibComponentBase
     // return early if busy with some other job...
     if (this.syncing || this.common.ibgibs.syncing) {
       if (logalot) { console.log(`${lc} currently syncing, so skipping poll call.`); }
-      return; // <<<< returns
+      return; // <<<< returns early
     } else if (this.refreshing) {
       if (logalot) { console.log(`${lc} currently refreshing, so skipping poll call.`); }
-      return; // <<<< returns
+      return; // <<<< returns early
     } else if (this._pollingLatest_Local) {
       if (logalot) { console.log(`${lc} currently already polling, so skipping new poll call.`); }
-      return; // <<<< returns
+      return; // <<<< returns early
     }
 
     if (logalot) { console.log(`${lc} poll call starting... (I: 3b58bc80651d831e3d421e5647cbcd22)`); }
@@ -1125,24 +1125,24 @@ export class IbGibPage extends IbgibComponentBase
     // return early if busy with some other job...
     if (this.syncing) {
       if (logalot) { console.log(`${lc} currently syncing, so skipping poll call.`); }
-      return; // <<<< returns
+      return; // <<<< returns early
     } else if (this.refreshing) {
       if (logalot) { console.log(`${lc} currently refreshing, so skipping poll call.`); }
-      return; // <<<< returns
+      return; // <<<< returns early
     } else if (this._pollingLatest_Store) {
       if (logalot) { console.log(`${lc} currently already polling, so skipping new poll call.`); }
-      return; // <<<< returns
+      return; // <<<< returns early
     } else if (!this.autosync) {
       if (logalot) { console.log(`${lc} this.autosync is false, so stopping polling. (I: b7c151e1b1afa40a4160e31f88824522)`); }
       setTimeout(() => this.stopPollLatest_Store());
-      return; // <<<< returns
+      return; // <<<< returns early
     } else if (this.tjpUpdatesAvailableCount_Store > 0) {
       if (logalot) { console.log(`${lc} updates already available, so skipping poll call. (I: dcc433c400134ee45773c81c9af4fb22)`); }
       setTimeout(() => this.ref.detectChanges(), 100);
       setTimeout(() => this.ref.detectChanges(), 100);
       setTimeout(() => this.ref.detectChanges(), 100);
       setTimeout(() => this.ref.detectChanges(), 100);
-      return; // <<<< returns
+      return; // <<<< returns early
     }
 
     if (logalot) { console.log(`${lc} poll call starting... (I: b12f7fd857a4483989057bb62f0ab204)`); }

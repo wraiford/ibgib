@@ -1012,18 +1012,18 @@ export class AWSDynamoSpace_V1<
 
             if (!arg.syncSagaInfo) {
                 console.warn(`${lc} arg.syncSagaInfo required to watch. (W: 0e3641020d96479eb6a8a29dfff8e994)`);
-                return; // returns
+                return; // <<<< returns early
             }
             if (!srcSpaceId) {
                 console.warn(`${lc} srcSpaceId required to watch. (W: ee815a021f2c48b0a3764809d69e942a)`);
-                return; // returns
+                return; // <<<< returns early
             }
 
             const {syncAddrs_All_AreTjps} = arg.syncSagaInfo;
 
             if ((syncAddrs_All_AreTjps ?? []).length === 0) {
                 if (logalot) { console.log(`${lc} no tjp timelines to watch. (I: 36b0d293025a47a980bde66672ff23e2)`); }
-                return; // returns
+                return; // <<<< returns early
             }
 
             const client = createDynamoDBClient({
@@ -1065,7 +1065,7 @@ export class AWSDynamoSpace_V1<
                 if (tjpAddrsToAddToWatchList.length === 0) {
                     // watch space already exists and no new addresses to watch
                     if (logalot) { console.log(`${lc} space watch already exists and no tjp addrs to add, so returning.`); }
-                    return; // <<<< returns
+                    return; // <<<< returns early
                 } else {
                     if (logalot) { console.log(`${lc} adding watches...tjpAddrsToAddToWatchList.length ${tjpAddrsToAddToWatchList.length}`); }
                 }
@@ -1896,7 +1896,7 @@ export class AWSDynamoSpace_V1<
                 (W: a2f7604814954946a58da11eb9648d7e)`;
                 console.warn(warning);
                 warnings.push(warning);
-                return ibGibs; // returns
+                return ibGibs; // <<<< returns early
             }
 
             // build infos
@@ -2495,7 +2495,7 @@ export class AWSDynamoSpace_V1<
 
             if (arg.ibGibs?.length > 0) {
                 throwIfDuplicates({ibGibs: arg.ibGibs});
-                return await this.putIbGibsImpl({arg, client}); // returns
+                return await this.putIbGibsImpl({arg, client}); // <<<< returns early
             } else {
                 throw new Error(`ibGibs required. (E: 235902107ad64c6fa2232041b234b546)`);
             }
@@ -3179,7 +3179,7 @@ export class AWSDynamoSpace_V1<
             if (resGetWatch?.length === 0) {
                 if (logalot) { console.log(`${lc} NO space watch NOT found for spaceId: ${spaceId}, so returning.`); }
                 // no watch on space
-                return undefined; // <<<< returns
+                return undefined; // <<<< returns early
             } else {
                 if (logalot) { console.log(`${lc} YES space watch found for spaceId: ${spaceId}.`); }
             }
@@ -3799,7 +3799,7 @@ export class AWSDynamoSpace_V1<
             let spaceIdsToUpdate = Object.keys(spaceToTjpAddrUpdateMap);
             if (spaceIdsToUpdate.length === 0) {
                 if (logalot) { console.log(`${lc} spaceIdsToUpdate.length === 0, so returning without updating any space watch ibgibs (I: c6cd69a708184bad9b604cc531f79f0e)`); }
-                return; // <<<< returns
+                return; // <<<< returns early
             } else {
                 if (logalot) { console.log(`${lc} spaceIdsToUpdate: ${spaceIdsToUpdate.join('|')}`); }
             }
@@ -3847,7 +3847,7 @@ export class AWSDynamoSpace_V1<
                 if (errors.length > 0) { console.error(`${lc} errors: ${errors.join('|')} (E: efd4ac3094854934abd1317289c5df47)`); }
             } else {
                 console.warn(`${lc} (UNEXPECTED) we had spaceIds but couldn't get their watches? (W: e9ca32c4d92c43e4a5a1322e841a60c6)`);
-                return; // <<<< returns
+                return; // <<<< returns early
             }
         } catch (error) {
             debugger;

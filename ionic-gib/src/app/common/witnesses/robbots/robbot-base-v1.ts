@@ -439,7 +439,7 @@ export abstract class RobbotBase_V1<
 
             if (ibGibsNotYetRel8dByTjp.length === 0) {
                 if (logalot) { console.log(`${lc} already rel8d to all incoming ibGib(s) via tjp. (I: 5e9d94a98ba262f146c0c0b765157922)`); }
-                return; // <<<< returns
+                return; // <<<< returns early
             }
 
             // perform the raw ibgib rel8 transform

@@ -910,11 +910,11 @@ export class IbgibsService {
     try {
       if (!ibGib) {
         if (logalot) { console.log(`${lc} ibGib falsy.`); }
-        return; // <<<< returns
+        return; // <<<< returns early
       }
       if (isPrimitive({ibGib})) {
         console.warn(`${lc} tried to ping latest for primitive. returning early... (W: 06c50cfe028cc04cca67e97a48e6fe22)`);
-        return; // <<<< returns
+        return; // <<<< returns early
       }
       space = space ?? await this.getLocalUserSpace({});
       if (!space) {
@@ -1781,11 +1781,11 @@ export class IbgibsService {
     try {
       const createdSecret = await this._createSecret({space});
       if (logalot) { console.log(`${lc} createdSecret: ${createdSecret} (I: 9fc011d8ecb1e10c86c86025be4d5c22)`); }
-      if (!createdSecret) { return false; } // <<<< returns
+      if (!createdSecret) { return false; } // <<<< returns early
 
       const createdEncryption = await this._createEncryption({space});
       if (logalot) { console.log(`${lc} createdEncryption: ${createdEncryption} (I: 6796bbeb7338471e965cf1806d0dea9c)`); }
-      if (!createdEncryption) { return false; } // <<<< returns
+      if (!createdEncryption) { return false; } // <<<< returns early
 
       const createdOuterspace = await this._createOuterspace(space);
       if (logalot) { console.log(`${lc} createdOuterspace: ${createdOuterspace} (I: 6796bbeb7338471e965cf1806d0dea9c)`); }
@@ -2287,7 +2287,7 @@ export class IbgibsService {
       if (sagaInfoKeys.length === 0) {
         this.sagaInfoMap = {};
         if (this._syncing) { this._syncing = false; }
-        return; // <<<< returns
+        return; // <<<< returns early
       }
 
       const sagaInfos = Object.values(this.sagaInfoMap);
@@ -2930,7 +2930,7 @@ export class IbgibsService {
         tjpAddrs.filter(tjpAddr => !this._alwaysAutosyncTjpAddrsCache.has(tjpAddr));
       if (notAlreadySyncingTjpAddrs.length === 0) {
         console.warn(`${lc} all tjpAddrs already auto syncing. tjpAddrs: ${tjpAddrs.join('\n')} (W: 7fbe51c8187840efa1b259417053bd22)`);
-        return; // <<<< returns
+        return; // <<<< returns early
       }
 
       // ...and double check in autosyncs itself, more expensive though
@@ -2939,7 +2939,7 @@ export class IbgibsService {
       notAlreadySyncingTjpAddrs = tjpAddrs.filter(tjpAddr => !alreadySyncing.includes(tjpAddr));
       if (notAlreadySyncingTjpAddrs.length === 0) {
         console.error(`${lc} (UNEXPECTED) all tjpAddrs already auto syncing per special ibgib. Proceeding without throwing here, but this means that the cache is out of sync with the special ibgib also. tjpAddrs: ${tjpAddrs.join('\n')} (E: 574e163118f043fa8c50cfd575e62122)`);
-        return; // <<<< returns
+        return; // <<<< returns early
       }
 
       // map back from tjp addrs to the tjp ibgibs
@@ -3002,7 +3002,7 @@ export class IbgibsService {
       });
       if (tjpAddrsToRemove.length === 0) {
         console.warn(`${lc} tried to disable autosync for tjpAddrs but none were valid. returning early. (W: f9bdda90d906471aa56804d76b6e9522)`);
-        return; // <<<< returns
+        return; // <<<< returns early
       }
 
       const uniqueTjpAddrsToRemove = Array.from(new Set(tjpAddrsToRemove));
