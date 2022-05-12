@@ -1,6 +1,6 @@
 {
   "name": "ionicgib",
-  "version": "0.1.180",
+  "version": "0.2.0",
   "author": "William Raiford",
   "repository": {
     "url": "https://github.com/wraiford/ibgib",
@@ -60,7 +60,9 @@
     "chrome": "web-ext run -s './www' -t chromium --keep-profile-changes --browser-console",
     "test": "ng test",
     "lint": "ng lint",
-    "e2e": "ng e2e"
+    "e2e": "ng e2e",
+    "bump:patch": "npm --no-git-tag-version version patch",
+    "bump:minor": "npm version minor"
   },
   "private": true,
   "dependencies": {
