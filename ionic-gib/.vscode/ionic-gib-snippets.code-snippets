@@ -183,7 +183,7 @@
 		"prefix": "return_early",
 		"description": "I like to indicate returning early in a function in a comment, so it's more obvious in the editor if I'm scanning for comments.",
 		"body": [
-			"returns; // <<<< returns early",
+			"return; // <<<< returns early",
 		],
     },
 }
