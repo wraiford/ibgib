@@ -52,11 +52,9 @@ All of these is assuming you've cloned the entire ibgib repo but that
   * possibly not needed globally...?
   * `npm install -g @angular@13`
   * cli is already installed locally as dev dependency
-* ionic v5 installed globally
-  * possibly not needed globally...?
-  * https://ionicframework.com/docs/v5/
-  * `npm install -g @ionic/cli@5` (?)
-  * still need to upgrade to ionic v6
+* ionic v6 installed globally
+  * https://ionicframework.com/docs/intro/cli
+  * `npm install -g @ionic/cli`
 * [web-ext](https://github.com/mozilla/web-ext) installed globally
 
 
