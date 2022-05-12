@@ -40,7 +40,7 @@
       (keypress)="handleCommentDetailInput($event)"
       autocomplete="true"
       spellcheck="true"
-      debounce="100"
+      [debounce]="debounceMs"
       >
     </ion-textarea>
     <ion-button id="sendBtn" (click)="addComment()" color="primary">
@@ -53,7 +53,7 @@
     >
     <ion-input #inputImport id="inputImportId"
       (ionChange)="handleImportDetailChange($event)"
-      debounce="100"
+      [debounce]="debounceMs"
       >
     </ion-input>
     <ion-button id="sendBtn" color="primary"

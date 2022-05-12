@@ -111,6 +111,9 @@ export class ActionBarComponent extends IbgibComponentBase
   @ViewChild('inputImport')
   inputImport: IonInput;
 
+  @Input()
+  debounceMs: number = 100;
+
   public debugBorderWidth: string = debugBorder ? "22px" : "0px"
   public debugBorderColor: string = "#FFAABB";
   public debugBorderStyle: string = "solid";
@@ -224,6 +227,7 @@ export class ActionBarComponent extends IbgibComponentBase
       //   return;
       // }
 
+      await h.delay(this.debounceMs + 50); // to allow for debounce in binding
       const text = this.actionDetailCommentText; // already trimmed
 
       const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
