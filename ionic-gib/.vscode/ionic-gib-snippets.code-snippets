@@ -178,4 +178,12 @@
 			"if (logalot) { console.log(`\\${lc}\\${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }$0"
 		],
     },
+    "return early": {
+        "scope": "javascript,typescript",
+		"prefix": "return_early",
+		"description": "I like to indicate returning early in a function in a comment, so it's more obvious in the editor if I'm scanning for comments.",
+		"body": [
+			"returns; // <<<< returns early",
+		],
+    },
 }
