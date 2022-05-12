@@ -180,15 +180,23 @@ export class IbGibPage extends IbgibComponentBase
         await h.delay(100);
       }
 
-      // this.updateIbGib_RobbotBarVisible();
+      // initialize/cleanup
       statusId = this.addStatusText({text: 'updating ibgib...'})
       this.stopPollLatest_Local();
       this.stopPollLatest_Store();
+
+      // loads the default properties for this.item
       await super.updateIbGib(addr);
+
+      // additional loading because we're the main page
       await this.loadIbGib();
       await this.loadTjp();
       if (logalot) { console.log(`${lc} ibGib: ${pretty(this.ibGib)}`); }
+
+      // additional item loading if we're a pic/comment
       await this.loadItem();
+
+      // poll if there is a timeline/tjp involved
       if (this.tjp) {
         this.startPollLatest_Local();
         this.autosync = this.common.ibgibs.autosyncIsEnabled({tjp: this.tjp});
@@ -196,7 +204,11 @@ export class IbGibPage extends IbgibComponentBase
         this.autosync = false;
       }
       if (this.autosync) { this.startPollLatest_Store(); }
+
+      // update paused before checking it
       this.updateIbGib_Paused();
+
+      // trigger an initial ping to check for newer ibgibs
       if (!this.paused && !this.ib.startsWith('bin.') && !isPrimitive({gib: this.gib})) {
         this.item.refreshing = true;
         setTimeout(async () => {
@@ -204,8 +216,9 @@ export class IbGibPage extends IbgibComponentBase
           await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjp: this.tjp});
         });
       }
-      document.title = this.item?.text ?? this.ibGib?.data?.text ?? this.gib;
 
+      // cosmetic UI
+      document.title = this.item?.text ?? this.ibGib?.data?.text ?? this.gib;
       if (this.platform === 'web' && this.ibGib && this.gib !== 'gib') {
         this.actionBar.focusDetail();
       }
@@ -214,6 +227,35 @@ export class IbGibPage extends IbgibComponentBase
       this.clearItem();
     } finally {
       this.removeStatusText({statusId});
+      this.ref.detectChanges();
+      if (logalot) { console.log(`${lc} updated.`); }
+    }
+  }
+
+  async updateIbGib_Diff(addr: IbGibAddr): Promise<void> {
+    const lc = `${this.lc}[${this.updateIbGib_Diff.name}(${addr})]`;
+    if (logalot) { console.log(`${lc} updating...`); }
+    try {
+      await this.smallDelayToLoadBalanceUI();
+
+      // loads the default properties for this.item
+      this.loadItemPrimaryProperties(addr, this.item);
+
+      // additional loading because we're the main page
+      await this.loadIbGib();
+
+      // additional item loading if we're a pic/comment
+      if (this.item?.type === 'pic') { await this.loadPic(this.item); }
+      if (this.item?.type === 'comment') { await this.loadComment(this.item); }
+
+      // cosmetic UI
+      document.title = this.item?.text ?? this.ibGib?.data?.text ?? this.gib;
+      await this.actionBar.reset();
+
+    } catch (error) {
+      console.error(`${lc} error: ${error.message}`);
+      this.clearItem();
+    } finally {
       this.ref.detectChanges();
       if (logalot) { console.log(`${lc} updated.`); }
     }
@@ -243,13 +285,13 @@ export class IbGibPage extends IbgibComponentBase
       let addr = map.get('addr');
       lc = `${lc}[paramMapSub]`;
       if (logalot) { console.log(`${lc} new addr: ${addr}`); }
-      console.log('ping yo map')
 
       if (!SPECIAL_URLS.includes((addr || "").toLowerCase()) && encodeURI(addr).includes('%5E')) {
         // normal handling for a normal ibGib is to update the page's ibgib
         // and load everything.
         if (logalot) { console.log(`${lc} new paramMap. addr: ${addr}`); }
         if (addr !== this.addr) {
+          console.log(`${lc} addr is different than this.addr, so calling updateIbGib (I: 5733e91178ab46198593a7a5542c8d3a)`);
           await this.updateIbGib(addr);
         } else {
           // do nothing, it's the same as the current addr
@@ -258,7 +300,7 @@ export class IbGibPage extends IbgibComponentBase
         // default special non-ibgib handler, go to the tags ibGib
         while (this.common.ibgibs.initializing) {
           if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 936911af9f942cbdde7de4bf65fef822)`); }
-          await h.delay(100);
+          await h.delay(50);
         }
         const tagsIbGib = await this.common.ibgibs.getSpecialIbGib({type: "tags"});
         let tagsAddr = getIbGibAddr({ibGib: tagsIbGib});
@@ -415,21 +457,8 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
-
-  async initRobbots(): Promise<void> {
-    const lc = `${this.lc}[${this.initRobbots.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting...`); }
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
-
   /**
-   * Bring this ibgib to the attention of an Abot.
+   * Show/hide the robbot bar.
    */
   async handleRobbotClick(): Promise<void> {
     const lc = `${this.lc}[${this.handleRobbotClick.name}]`;
@@ -745,34 +774,43 @@ export class IbGibPage extends IbgibComponentBase
       // if the order of dna transforms matters.
 
       // does the ibgib have/use dna (list of transforms)?
-      const hasDna =
-        this.ibGib.rel8ns?.dna?.length > 0 ||
-        latestIbGib.rel8ns?.dna?.length > 0;
+      // const hasDna =
+      //   this.ibGib.rel8ns?.dna?.length > 0 ||
+      //   latestIbGib.rel8ns?.dna?.length > 0;
 
-      if (hasDna) {
-        // yes, has dna...
+      // if (hasDna) {
+      //   // yes, has dna...
 
-          // in the normal course of events, the history of dna transforms
-          // should be "equivalent" up to the point of newness, not guaranteeing
-          // order. for now, we will do diffing if this is the case. If there is
-          // a transform in the old (current) ibgib that does not exist in the
-          // new ibgib, then we will do the fallback behavior, which is to do an
-          // entirely new navigate to the newer ibgib.
+      //     // in the normal course of events, the history of dna transforms
+      //     // should be "equivalent" up to the point of newness, not guaranteeing
+      //     // order. for now, we will do diffing if this is the case. If there is
+      //     // a transform in the old (current) ibgib that does not exist in the
+      //     // new ibgib, then we will do the fallback behavior, which is to do an
+      //     // entirely new navigate to the newer ibgib.
 
-          // so does the new one have all of the old one's transforms?
-            // yes, latest has all previous transforms
-            // no, latest does NOT have all previous transforms
-      } else {
-        // no, does not have dna...
-          // we will have to check manually against the old state and the new state
-          // and "simply" update accordingly.
-      }
+      //     // so does the new one have all of the old one's transforms?
+      //       // yes, latest has all previous transforms
+      //       // no, latest does NOT have all previous transforms
+      // } else {
+      //   // no, does not have dna...
+      //     // we will have to check manually against the old state and the new state
+      //     // and "simply" update accordingly.
+
+      //   // // temporary
+      //   // await this.go({
+      //   //   toAddr: latestAddr,
+      //   //   fromAddr: this.addr,
+      //   // });
+      // }
+
+      await this.updateIbGib_Diff(latestAddr);
+      setTimeout(() => this.ref.detectChanges());
 
       // uncommenting this for previous behavior for now until implemented...
-      await this.go({
-        toAddr: latestAddr,
-        fromAddr: this.addr,
-      });
+      // await this.go({
+      //   toAddr: latestAddr,
+      //   fromAddr: this.addr,
+      // });
 
     } catch (error) {
       this.errorMsg = `${lc} ${error.message}`;

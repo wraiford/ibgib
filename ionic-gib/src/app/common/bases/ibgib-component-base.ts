@@ -264,13 +264,21 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         if (addr) {
             if (logalot) { console.log(`${lc} setting new address`) }
             // we have an addr which is different than our previous.
-            const{ ib, gib } = h.getIbAndGib({ibGibAddr: addr});
-            this.item = <any>{addr, ib, gib};
+            this.item = <any>{};
+            this.loadItemPrimaryProperties(addr, this.item);
 
             if (this.gib === GIB && !this.isMeta) { this.item.isMeta = true; }
         } else {
             if (logalot) { console.log(`${lc} no new address`) }
         }
+    }
+
+    async loadItemPrimaryProperties(addr: IbGibAddr, item?: TItem): Promise<void> {
+        item = item ?? this.item;
+        const{ ib, gib } = h.getIbAndGib({ibGibAddr: addr});
+        item.ib = ib;
+        item.gib = gib;
+        item.addr = addr;
     }
 
     /**
@@ -282,6 +290,8 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
      *
      * This should only be triggered once a genuinely new ibgib on the timeline
      * tjp occurs, so checking for different addrs should be unnecessary.
+     *
+     * This should not be triggered if there is no tjp (timeline).
      */
     async updateIbGibTimeline_PerLatestEventNotification({
         latestAddr,
@@ -334,7 +344,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         }
         if (!item) {
             console.warn(`${lc} item is undefined/null`);
-            return;
+            return; // <<<< returns early
         }
         if (item.addr) {
             const {ib, gib} = h.getIbAndGib({ibGibAddr: item.addr});
@@ -345,14 +355,14 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
                     // primitive, just build
                     item.ibGib = Factory_V1.primitive({ib});
                 } else {
-                    // try to get from files provider
+                    // these components often try a little too soon when
+                    // starting up the app...so delay
                     while (!this.common.ibgibs.initialized) {
-                        // these components often try a little too soon when
-                        // starting up the app...so delay
                         const delayMs = Math.ceil(Math.random() * 100) + 10;
                         if (logalot) { console.warn(`${lc} ibgibs initializing...waiting ${delayMs} ms...`); }
                         await h.delay(delayMs);
                     }
+                    // get the full ibgib record from the ibgibs service (local space)
                     const resGet = await this.common.ibgibs.get({addr: item.addr, isMeta: item.isMeta });
                     if (resGet.success && resGet.ibGibs?.length === 1) {
                         item.ibGib = resGet.ibGibs![0];
@@ -449,6 +459,12 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         }
     }
 
+    /**
+     * Loads the item with the pic's properties like `filenameWithExt` and
+     * binary properties like `binHash`.
+     *
+     * @param item the item on which we are setting the properties.
+     */
     async loadPic(item?: TItem): Promise<void> {
         const lc = `${this.lc}[${this.loadPic.name}]`;
         if (!this.isPic) { return; }
@@ -499,6 +515,11 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         }
     }
 
+    /**
+     * Loads the item with the comment's properties like `text` & `timestamp`.
+     *
+     * @param item the item on which we are setting the properties.
+     */
     async loadComment(item?: TItem): Promise<void> {
         const lc = `${this.lc}[${this.loadComment.name}]`;
         item = item || this.item;

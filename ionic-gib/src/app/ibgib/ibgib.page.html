@@ -111,6 +111,8 @@
 <ion-content [fullscreen]="false">
 
   <ion-text *ngIf="statusText" color="primary">{{statusText}}</ion-text>
+
+  <!-- spinnerfish -->
   <div *ngIf="!item?.ibGib || refreshing" class="loading-div">
     <!-- <p>loading...</p> -->
     <div class="spacer-50"></div>
@@ -145,7 +147,8 @@
       <ion-spinner color="tertiary"></ion-spinner>
     </div>
   </div>
-    <!-- [ngStyle]="{'border-color': '[debugBorderColor]','border-width':'155px','border-stroke':'solid'}" -->
+
+  <!-- main body -->
   <div id="container" *ngIf="item?.ibGib"
     [style.border-color]="debugBorderColor"
     [style.border-width]="debugBorderWidth"
@@ -158,7 +161,10 @@
       (scroll)="scrollSubject.next($event)"
       >
     </tag-list>
-    <root-list *ngIf='isRoots' [addr]='addr' [ibGib_Context]='ibGib'></root-list>
+    <root-list *ngIf='isRoots' [addr]='addr' [ibGib_Context]='ibGib'
+      (scroll)="scrollSubject.next($event)"
+      >
+    </root-list>
     <chat-view *ngIf='!(isTags || isRoots)' [addr]='addr' [ibGib_Context]='ibGib'
       (scroll)="scrollSubject.next($event)"
       >

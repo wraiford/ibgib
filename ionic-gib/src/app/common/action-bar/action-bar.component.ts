@@ -723,4 +723,21 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
+  async reset(): Promise<void> {
+    const lc = `${this.lc}[${this.reset.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (this.textareaComment) { this.textareaComment.value = ''; }
+      if (this.inputImport) { this.inputImport.value = ''; }
+      this.actionDetailCommentText = '';
+      this.actionDetailImportText = '';
+      setTimeout(() => this.ref.detectChanges());
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
 }
