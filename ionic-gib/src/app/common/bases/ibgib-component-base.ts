@@ -136,6 +136,8 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     @Input()
     errored: boolean;
     @Input()
+    errorMsg: string;
+    @Input()
     get refreshing(): boolean {
         return this._updatingIbGib || this.item?.refreshing ||
             !this.item || this.addr === ROOT_ADDR;
@@ -281,19 +283,19 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
      * This should only be triggered once a genuinely new ibgib on the timeline
      * tjp occurs, so checking for different addrs should be unnecessary.
      */
-    async updateIbGib_PerLatestEventNotification({
+    async updateIbGibTimeline_PerLatestEventNotification({
         latestAddr,
         latestIbGib,
         tjpAddr,
     }: LatestEventInfo): Promise<void> {
-        const lc = `${this.lc}[${this.updateIbGib_PerLatestEventNotification.name}]`;
+        const lc = `${this.lc}[${this.updateIbGibTimeline_PerLatestEventNotification.name}]`;
         try {
             if (logalot || true) { console.log(`${lc} starting...`); }
 
             // cheap double-check assertion
             if (latestAddr === this.addr) {
                 console.warn(`${lc} (UNEXPECTED) this function is expected to fire only when latest is already checked to be different, but latestAddr (${latestAddr}) === this.addr (${this.addr}) (W: a23c8187caef4308b1d9f85b3aa8bedc)`);
-                return;
+                return; // <<<< returns early
             }
 
             this.addr = latestAddr; // triggers `updateIbGib` call
@@ -568,13 +570,13 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
                     info.latestIbGib = info_latestIbGib;
                 } else {
                     console.error(`${lc} could not get latest ibgib that was published. (E: 85599b5cca4a4bba93578a3156c98b50)`);
-                    return; // returns
+                    return; // <<<< returns early
                 }
             }
 
             const isNewer = (info_latestIbGib.data?.n ?? -1) > (this.ibGib.data?.n ?? -1);
             if (isNewer) {
-                await this.updateIbGib_PerLatestEventNotification(info);
+                await this.updateIbGibTimeline_PerLatestEventNotification(info);
             } else {
                 console.warn(`${lc} ignoring "latest" info because it's not newer. We're going to register this.ibGib the new latest as a fix for recent test data. (W: c88d135984c39a2aaefd48620d913b22)`);
                 if (logalot) { console.log(`${lc} current: ${h.pretty(this.ibGib)}, "latest": ${h.pretty(info_latestIbGib)} (I: c89622ffc6ca1be7f668940c26fb5b22)`); }

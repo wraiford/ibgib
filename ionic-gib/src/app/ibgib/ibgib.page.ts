@@ -699,48 +699,6 @@ export class IbGibPage extends IbgibComponentBase
     const lc = `${this.lc}[${this.handleIbGib_NewLatest.name}]`;
     try {
       await super.handleIbGib_NewLatest(info);
-      // leaving this in for awhile. I've restructured and this code is in base class.
-      // moving other updating code to updateIbGib_PerLatestEventNotification function
-      // if (!this.tjp || !this.tjpAddr) { await this.loadTjp(); }
-      // if (!this.tjpAddr) {
-      //   if (logalot) { console.log(`${lc} no tjp, so ignoring latest. (I: 298b2557007a7f310436f4c7c3716722)`); }
-      //   return; // <<<< returns early
-      // }
-      // if (this.tjpAddr !== info.tjpAddr) { return; }
-
-
-      // if (!this.ibGib) { return; }
-
-      // if (this.addr === info.latestAddr) {
-      //   if (logalot) { console.log(`${lc} latest is the same. returning early. (I: 5aa4a956d59cb0358f2ea1d79dba8322)`); }
-      //   return; // <<<< returns early
-      // }
-
-      // // check manually comparing data
-      // if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\nlatest info: ${JSON.stringify(info, null, 2)}`); }
-      // let info_latestIbGib = info.latestIbGib;
-      // if (!info_latestIbGib) {
-      //   let resGet = await this.common.ibgibs.get({addr: info.latestAddr});
-      //   if (resGet.success && resGet.ibGibs?.length === 1) {
-      //     info_latestIbGib = resGet.ibGibs[0];
-      //   } else {
-      //     console.error(`${lc} could not get latest ibgib that was published. (E: 85599b5cca4a4bba93578a3156c98b50)`);
-      //     return; // <<<< returns early
-      //   }
-      // }
-      // const isNewer = (info_latestIbGib.data?.n ?? -1) > (this.ibGib.data?.n ?? -1);
-      // if (isNewer) {
-      //     // for now, we'll just navigate to the latest addr
-      //     await this.go({
-      //       toAddr: info.latestAddr,
-      //       fromAddr: this.addr,
-      //     });
-      //   // }
-      // } else {
-      //   console.warn(`${lc} ignoring "latest" info because it's not newer. We're going to register this.ibGib the new latest as a fix for recent test data. (W: c88d135984c39a2aaefd48620d913b22)`);
-      //   if (logalot) { console.log(`${lc} current: ${h.pretty(this.ibGib)}, "latest": ${h.pretty(info_latestIbGib)} (I: c89622ffc6ca1be7f668940c26fb5b22)`); }
-      //   await this.common.ibgibs.registerNewIbGib({ibGib: this.ibGib});
-      // }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     } finally {
@@ -752,38 +710,75 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
-  async updateIbGib_PerLatestEventNotification({
+  async updateIbGibTimeline_PerLatestEventNotification({
     latestAddr,
     latestIbGib,
     tjpAddr,
   }: LatestEventInfo): Promise<void> {
-    const lc = `${this.lc}[${this.updateIbGib_PerLatestEventNotification.name}]`;
+    const lc = `${this.lc}[${this.updateIbGibTimeline_PerLatestEventNotification.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
-      // for now, we'll just navigate to the latest addr
+      // old code that completely reloads page each little update
+      // await this.go({
+      //   toAddr: latestAddr,
+      //   fromAddr: this.addr,
+      // });
+
+      if (latestAddr === this.addr) {
+        console.warn(`${lc} (UNEXPECTED) this function is expected to fire only when latest is already checked to be different, but latestAddr (${latestAddr}) === this.addr (${this.addr}) (W: 3ed850e6ec784b4187cbe4a7bf6a2a80)`);
+        return; // <<<< returns early
+      }
+
+      if (!this.ibGib) {
+        console.warn(`${lc} (UNEXPECTED) this.ibGib is assumed truthy, but is falsy. (W: 8c25259e67a244419f0787a60cd4fa55)`);
+        return; // <<<< returns early
+      }
+
+      // so we know...
+      // this.ibGib is truthy
+      // this.ibGib has a timeline/tjp
+      // there is an update this.ibGib's timeline.
+
+      // we do NOT know...
+      // if the ibgib timeline has dna or not.
+      // if the order of dna transforms matters.
+
+      // does the ibgib have/use dna (list of transforms)?
+      const hasDna =
+        this.ibGib.rel8ns?.dna?.length > 0 ||
+        latestIbGib.rel8ns?.dna?.length > 0;
+
+      if (hasDna) {
+        // yes, has dna...
+
+          // in the normal course of events, the history of dna transforms
+          // should be "equivalent" up to the point of newness, not guaranteeing
+          // order. for now, we will do diffing if this is the case. If there is
+          // a transform in the old (current) ibgib that does not exist in the
+          // new ibgib, then we will do the fallback behavior, which is to do an
+          // entirely new navigate to the newer ibgib.
+
+          // so does the new one have all of the old one's transforms?
+            // yes, latest has all previous transforms
+            // no, latest does NOT have all previous transforms
+      } else {
+        // no, does not have dna...
+          // we will have to check manually against the old state and the new state
+          // and "simply" update accordingly.
+      }
+
+      // uncommenting this for previous behavior for now until implemented...
       await this.go({
         toAddr: latestAddr,
         fromAddr: this.addr,
       });
 
-      if (!this.ibGib) {
-        console.warn(`${lc} this.ibGib is assumed truthy, but is falsy. (W: 8c25259e67a244419f0787a60cd4fa55)`);
-        return;
-      }
-
-      // I'm putting the following code in on an experimental basis, so wrapping
-      // in a non-executing block...
-      if (false) {
-        // diff the new ibgib with the current one. If it's less than some small
-        // threshold number of updates away, then update piecemeal. If it's over
-        // that threshold, then update by navigation.
-        const currentN = this.ibGib
-      }
-
     } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
+      this.errorMsg = `${lc} ${error.message}`;
+      console.error(this.errorMsg);
+      this.errored = true;
+      setTimeout(() => this.ref.detectChanges());
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
     }
