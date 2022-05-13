@@ -1,12 +1,13 @@
 import { OnInit, OnDestroy, Input, ChangeDetectorRef } from '@angular/core';
 import { IbGibAddr } from "ts-gib";
 import { Injectable } from "@angular/core";
-import { IbgibItem } from '../types/ux';
+import { IbgibItem, TimelineUpdateInfo } from '../types/ux';
 import { IbgibComponentBase } from './ibgib-component-base';
 import { CommonService } from 'src/app/services/common.service';
 import * as c from '../constants';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 import { unique } from '../helper/utils';
+import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -50,6 +51,38 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
         super.ngOnDestroy();
     }
 
+    async updateIbGib_NewerTimelineFrame({
+        latestAddr,
+        // latestIbGib,
+        // tjpAddr,
+    }: TimelineUpdateInfo): Promise<void> {
+        const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+
+            // we want to change how we update the ibgib depending on if it's
+            // the same ibgib timeline (same tjp) or a completely different one.
+            // this will abort this call to `updateIbGib` and return early,
+            // transferring control over to `updateIbGib_NewerTimelineFrame`
+
+            // loads the default properties for this.item
+            await this.loadItemPrimaryProperties(latestAddr, this.item);
+
+
+            // loads the ibgib object proper
+            const oldIbGib = this.item.ibGib;
+            await this.loadIbGib();
+
+            await this.loadTjp();
+            await this.updateItems();
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
     async updateIbGib(addr: IbGibAddr): Promise<void> {
         const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
         if (logalot) { console.log(`${lc} updating...`); }
@@ -61,6 +94,22 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
                 timerName = lc.substring(0, 24) + '[timer d2e45a]';
                 console.log(`${timerName} starting timer`);
                 console.time(timerName);
+            }
+
+            // we want to change how we update the ibgib depending on if it's
+            // the same ibgib timeline (same tjp) or a completely different one.
+            // this will abort this call to `updateIbGib` and return early,
+            // transferring control over to `updateIbGib_NewerTimelineFrame`
+
+            if (this.item?.ibGib && this.item?.addr && addr) {
+                // both old and new are non-falsy
+                let oldTjpGib = getGibInfo({ibGibAddr: this.item.addr}).tjpGib;
+                let newTjpGib = getGibInfo({ibGibAddr: addr}).tjpGib;
+                if (oldTjpGib === newTjpGib) {
+                    // same timeline
+                    await this.updateIbGib_NewerTimelineFrame({ latestAddr: addr })
+                    return; // <<<< returns early
+                }
             }
 
             await super.updateIbGib(addr);
@@ -86,10 +135,11 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
         }
     }
 
-    // /**
-    //  * Override this to add/remove rel8n names for the list.
-    //  */
-    // updateRel8nNames(): void { this.rel8nNames = DEFAULT_LIST_REL8N_NAMES; }
+    /**
+     * How many items we're going to be adding when doing differential udpate.
+     */
+    @Input()
+    skeletonItemsCount: number = 0;
 
     /**
      *
@@ -101,6 +151,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibItem = IbgibItem
         this._updatingItems = true;
         try {
             if (logalot) { console.log(`${lc}${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
+            debugger;
             this.items = [];
             let newItems = [];
             if (!this.item || !this.item.ibGib || !this.item.ibGib!.rel8ns) { return; }

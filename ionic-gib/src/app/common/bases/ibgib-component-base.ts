@@ -13,7 +13,7 @@ import { CommonService, NavInfo } from 'src/app/services/common.service';
 import { Capacitor } from '@capacitor/core';
 import { CommentData_V1 } from '../types/comment';
 import { PicData_V1 } from '../types/pic';
-import { IbgibItem, LatestEventInfo } from '../types/ux';
+import { IbgibItem, TimelineUpdateInfo } from '../types/ux';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -216,7 +216,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     subscribeLatest(): void {
         const lc = `${this.lc}[${this.subscribeLatest.name}]`;
         if (this.subLatest) { this.subLatest.unsubscribe(); }
-        this.subLatest = this.common.ibgibs.latestObs.subscribe((evnt: LatestEventInfo) => {
+        this.subLatest = this.common.ibgibs.latestObs.subscribe((evnt: TimelineUpdateInfo) => {
             if (logalot) { console.log(`${lc} latestEvent heard...`); }
             this.handleIbGib_NewLatest(evnt); // SPINS OFF ASYNC!!
         });
@@ -292,13 +292,18 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
      * tjp occurs, so checking for different addrs should be unnecessary.
      *
      * This should not be triggered if there is no tjp (timeline).
+     *
+     * ## notes
+     *
+     * * by default, this just sets `this.addr` to the `latestAddr`, which triggers
+     *   a call to `updateIbGib`.
      */
-    async updateIbGibTimeline_PerLatestEventNotification({
+    async updateIbGib_NewerTimelineFrame({
         latestAddr,
         latestIbGib,
         tjpAddr,
-    }: LatestEventInfo): Promise<void> {
-        const lc = `${this.lc}[${this.updateIbGibTimeline_PerLatestEventNotification.name}]`;
+    }: TimelineUpdateInfo): Promise<void> {
+        const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
         try {
             if (logalot || true) { console.log(`${lc} starting...`); }
 
@@ -386,9 +391,15 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
     }
 
     async loadTjp(): Promise<void> {
-        if (this.ibGib && this.gib !== GIB && !this.ib.startsWith('bin.')) {
+        const tjpAlreadySet =
+            this.ibGib && this.tjp && this.tjpAddr &&
+            getGibInfo({ibGibAddr: this.addr}).tjpGib === this.tjp.gib;
+
+        if (!tjpAlreadySet && this.ibGib && this.gib !== GIB && !this.ib.startsWith('bin.')) {
             let tjp = await this.common.ibgibs.getTjpIbGib({ibGib: this.ibGib, naive: true});
             this.tjp = tjp;
+        } else if (tjpAlreadySet) {
+            // do nothing
         } else if (this.tjp) {
             delete this.tjp;
         }
@@ -538,7 +549,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
      *
      * @param info event info for the new latest ibGib
      */
-    async handleIbGib_NewLatest(info: LatestEventInfo): Promise<void> {
+    async handleIbGib_NewLatest(info: TimelineUpdateInfo): Promise<void> {
         const lc = `${this.lc}[${this.handleIbGib_NewLatest.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`)}
@@ -597,7 +608,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
 
             const isNewer = (info_latestIbGib.data?.n ?? -1) > (this.ibGib.data?.n ?? -1);
             if (isNewer) {
-                await this.updateIbGibTimeline_PerLatestEventNotification(info);
+                await this.updateIbGib_NewerTimelineFrame(info);
             } else {
                 console.warn(`${lc} ignoring "latest" info because it's not newer. We're going to register this.ibGib the new latest as a fix for recent test data. (W: c88d135984c39a2aaefd48620d913b22)`);
                 if (logalot) { console.log(`${lc} current: ${h.pretty(this.ibGib)}, "latest": ${h.pretty(info_latestIbGib)} (I: c89622ffc6ca1be7f668940c26fb5b22)`); }

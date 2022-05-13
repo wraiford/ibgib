@@ -24,7 +24,10 @@ export class ListViewComponent
 
   @Input()
   get addr(): IbGibAddr { return super.addr; }
-  set addr(value: IbGibAddr) { super.addr = value; }
+  set addr(value: IbGibAddr) {
+    debugger;
+    super.addr = value;
+  }
 
   @Input()
   get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
@@ -62,6 +65,10 @@ export class ListViewComponent
   updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
     if (logalot) { console.log(`${lc}`) }
+      debugger;
+    if (this.item?.addr) {
+      debugger;
+    }
     return super.updateIbGib(addr);
   }
 

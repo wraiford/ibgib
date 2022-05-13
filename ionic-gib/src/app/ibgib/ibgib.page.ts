@@ -19,7 +19,7 @@ import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/
 import { concatMap, debounceTime } from 'rxjs/operators';
 import { IbGibSpaceAny } from '../common/witnesses/spaces/space-base-v1';
 import { PicData_V1, PicIbGib_V1 } from '../common/types/pic';
-import { LatestEventInfo } from '../common/types/ux';
+import { TimelineUpdateInfo } from '../common/types/ux';
 import { ensureDirPath, pathExists, writeFile } from '../common/helper/ionic';
 import { getFnAlert, getFnPrompt, getFnConfirm } from '../common/helper/prompt-functions';
 import { createNewTag } from '../common/helper/tag';
@@ -232,34 +232,34 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
-  async updateIbGib_Diff(addr: IbGibAddr): Promise<void> {
-    const lc = `${this.lc}[${this.updateIbGib_Diff.name}(${addr})]`;
-    if (logalot) { console.log(`${lc} updating...`); }
-    try {
-      await this.smallDelayToLoadBalanceUI();
+  // async updateIbGib_Diff(addr: IbGibAddr): Promise<void> {
+  //   const lc = `${this.lc}[${this.updateIbGib_Diff.name}(${addr})]`;
+  //   if (logalot) { console.log(`${lc} updating...`); }
+  //   try {
+  //     await this.smallDelayToLoadBalanceUI();
 
-      // loads the default properties for this.item
-      this.loadItemPrimaryProperties(addr, this.item);
+  //     // loads the default properties for this.item
+  //     this.loadItemPrimaryProperties(addr, this.item);
 
-      // additional loading because we're the main page
-      await this.loadIbGib();
+  //     // additional loading because we're the main page
+  //     await this.loadIbGib();
 
-      // additional item loading if we're a pic/comment
-      if (this.item?.type === 'pic') { await this.loadPic(this.item); }
-      if (this.item?.type === 'comment') { await this.loadComment(this.item); }
+  //     // additional item loading if we're a pic/comment
+  //     if (this.item?.type === 'pic') { await this.loadPic(this.item); }
+  //     if (this.item?.type === 'comment') { await this.loadComment(this.item); }
 
-      // cosmetic UI
-      document.title = this.item?.text ?? this.ibGib?.data?.text ?? this.gib;
-      await this.actionBar.reset();
+  //     // cosmetic UI
+  //     document.title = this.item?.text ?? this.ibGib?.data?.text ?? this.gib;
+  //     await this.actionBar.reset();
 
-    } catch (error) {
-      console.error(`${lc} error: ${error.message}`);
-      this.clearItem();
-    } finally {
-      this.ref.detectChanges();
-      if (logalot) { console.log(`${lc} updated.`); }
-    }
-  }
+  //   } catch (error) {
+  //     console.error(`${lc} error: ${error.message}`);
+  //     this.clearItem();
+  //   } finally {
+  //     this.ref.detectChanges();
+  //     if (logalot) { console.log(`${lc} updated.`); }
+  //   }
+  // }
 
   /**
    * Updates this.paused per current query params 'paused' value, if exists.
@@ -724,7 +724,7 @@ export class IbGibPage extends IbgibComponentBase
   //   }
   // }
 
-  async handleIbGib_NewLatest(info: LatestEventInfo): Promise<void> {
+  async handleIbGib_NewLatest(info: TimelineUpdateInfo): Promise<void> {
     const lc = `${this.lc}[${this.handleIbGib_NewLatest.name}]`;
     try {
       await super.handleIbGib_NewLatest(info);
@@ -739,12 +739,12 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
-  async updateIbGibTimeline_PerLatestEventNotification({
+  async updateIbGib_NewerTimelineFrame({
     latestAddr,
     latestIbGib,
     tjpAddr,
-  }: LatestEventInfo): Promise<void> {
-    const lc = `${this.lc}[${this.updateIbGibTimeline_PerLatestEventNotification.name}]`;
+  }: TimelineUpdateInfo): Promise<void> {
+    const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
@@ -801,10 +801,22 @@ export class IbGibPage extends IbgibComponentBase
       //   //   toAddr: latestAddr,
       //   //   fromAddr: this.addr,
       //   // });
-      // }
+      await this.smallDelayToLoadBalanceUI();
 
-      await this.updateIbGib_Diff(latestAddr);
-      setTimeout(() => this.ref.detectChanges());
+      // loads the default properties for this.item
+      await this.loadItemPrimaryProperties(latestAddr, this.item);
+
+      // additional loading because we're the main page
+      await this.loadIbGib();
+
+      // additional item loading if we're a pic/comment
+      if (this.item?.type === 'pic') { await this.loadPic(this.item); }
+      if (this.item?.type === 'comment') { await this.loadComment(this.item); }
+
+      // cosmetic UI
+      document.title = this.item?.text ?? this.ibGib?.data?.text ?? this.gib;
+      await this.actionBar.reset();
+     // }
 
       // uncommenting this for previous behavior for now until implemented...
       // await this.go({
@@ -816,8 +828,9 @@ export class IbGibPage extends IbgibComponentBase
       this.errorMsg = `${lc} ${error.message}`;
       console.error(this.errorMsg);
       this.errored = true;
-      setTimeout(() => this.ref.detectChanges());
+      this.clearItem();
     } finally {
+      setTimeout(() => this.ref.detectChanges());
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }

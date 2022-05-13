@@ -37,7 +37,7 @@ import { PicIbGib_V1 } from '../common/types/pic';
 import { ParticipantInfo, StatusCode, SyncSagaInfo, SyncSpaceOptionsData, SyncSpaceOptionsIbGib, SyncSpaceResultIbGib, SyncStatusIbGib } from '../common/types/outer-space';
 import { TjpIbGibAddr } from '../common/types/ibgib';
 import { BootstrapIbGib } from '../common/types/space';
-import { LatestEventInfo, RootData, SpecialIbGibType } from '../common/types/ux';
+import { TimelineUpdateInfo, RootData, SpecialIbGibType } from '../common/types/ux';
 import {
   CiphertextData, CiphertextIbGib_V1, CiphertextRel8ns,
   EncryptionData_V1, EncryptionInfo_EncryptGib,
@@ -164,7 +164,7 @@ export class IbgibsService {
   private _initializing: boolean;
   get initializing(): boolean { return this._initializing; }
 
-  private _latestSubj = new ReplaySubject<LatestEventInfo>();
+  private _latestSubj = new ReplaySubject<TimelineUpdateInfo>();
   latestObs = this._latestSubj.asObservable();
 
   async getLocalUserSpace({
@@ -645,7 +645,7 @@ export class IbgibsService {
     await updateBootstrapIbGib({space: newSpace, zeroSpace: this.zeroSpace});
   }
 
-  fnBroadcast = (info: LatestEventInfo) => {
+  fnBroadcast = (info: TimelineUpdateInfo) => {
     // this._latestSubj.next({tjpAddr, latestAddr: ibGibAddr, latestIbGib: ibGib});
     this._latestSubj.next(info);
   }

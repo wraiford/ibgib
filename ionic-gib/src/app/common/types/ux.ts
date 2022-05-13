@@ -135,8 +135,8 @@ export const SpecialIbGibType = {
 /**
  * There has been a new ibGib that is the latest for a given tjp timeline.
  */
-export interface LatestEventInfo {
-    tjpAddr: IbGibAddr;
+export interface TimelineUpdateInfo {
+    tjpAddr?: IbGibAddr;
     latestAddr: IbGibAddr;
     latestIbGib?: IbGib_V1<any>;
 }
