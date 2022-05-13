@@ -102,6 +102,15 @@ export interface IbgibItem {
     syncing?: boolean;
 }
 
+export interface IbgibListItem extends IbgibItem {
+    /**
+     * 0-based index of item in list.
+     *
+     * @optional
+     */
+    position?: number;
+}
+
 /**
  * Special ibgib types, used for metadata within a space.
  */

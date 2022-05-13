@@ -25,7 +25,7 @@ export class ListViewComponent
   @Input()
   get addr(): IbGibAddr { return super.addr; }
   set addr(value: IbGibAddr) {
-    debugger;
+    // debugger;
     super.addr = value;
   }
 
@@ -60,16 +60,6 @@ export class ListViewComponent
 
   ngOnInit() {
     super.ngOnInit();
-  }
-
-  updateIbGib(addr: IbGibAddr): Promise<void> {
-    const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-    if (logalot) { console.log(`${lc}`) }
-      debugger;
-    if (this.item?.addr) {
-      debugger;
-    }
-    return super.updateIbGib(addr);
   }
 
   async handleClicked(item: IbgibItem): Promise<void> {

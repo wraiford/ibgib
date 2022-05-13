@@ -68,15 +68,7 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
           scrollDelayMs = c.DEFAULT_SCROLL_DELAY_MS_WEB_HACK;
           break;
       }
-      setTimeout(() => {
-        if (document) {
-          const list = document.getElementById('theList');
-          if (list) {
-            if (logalot) { console.log(`${lc} scrolling`); }
-            list.scrollTop = list.scrollHeight;
-          }
-        }
-      }, scrollDelayMs);
+      setTimeout(() => { this.scrollToBottom(); }, scrollDelayMs);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       // throw error; // don't rethrow atm
@@ -94,5 +86,20 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
 
   handleScroll(event: any): void {
     this.scroll.emit(event);
+  }
+
+  scrollToBottom(): void {
+    const lc = `${this.lc}[${this.scrollToBottom.name}]`;
+    if (document) {
+      const list = document.getElementById('theList');
+      if (list) {
+        if (logalot) { console.log(`${lc} scrolling`); }
+        list.scrollTop = list.scrollHeight;
+      }
+    }
+  }
+
+  handleItemsAdded(): void {
+    this.scrollToBottom();
   }
 }

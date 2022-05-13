@@ -17,4 +17,8 @@
   <pre [style.maxHeight]="'100px'" class="is-title">{{ item?.text }}</pre>
 </div>
 <!-- <img *ngIf='ibGib' src='data:///DOCUMENTS/ibgib/bin/02a50cc8592578690e51adb7b633220dae599a7e096eb78783cf3752a48be9c1.png'/> -->
-<p *ngIf='!ibGib'>Loading...</p>
+<!-- <p *ngIf='!ibGib'>Loading...</p> -->
+<ion-skeleton-text *ngIf='!ibGib' animated
+  style="width: 100%;height:70px;border-radius:5px"
+  color="primary">
+</ion-skeleton-text>

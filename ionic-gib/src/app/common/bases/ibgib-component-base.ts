@@ -46,8 +46,9 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         const lc = `${this.lc}[set addr(${value})]`;
         if (logalot) { console.log(`${lc}[start]${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
         if (this._updatingIbGib) {
-            if (logalot) { console.log(`${lc} already updatingIbGib`) }
-            return;
+            if (logalot) { console.log(`${lc} already updating ibGib...retrying soon... (I: 3d6d0098625248a4996526842ed1259c)`) }
+            h.delay(100).then(() => { this.addr = value; }); // calls this recursively, because is sync
+            return; // <<<< returns early
         }
         if (value === this.addr) {
             if (logalot) { console.log(`${lc} value already === this.addr`); }
@@ -84,11 +85,11 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         const lc = `${this.lc}[set ibGib_Context]`;
         if (this.item?.ibGib_Context) {
             console.warn(`${lc} can only set context once.`);
-            return;
+            return; // <<<< returns early
         }
         if (!value) {
             if (logalot) { console.log(`${lc} ignored setting falsy context.`); }
-            return;
+            return; // <<<< returns early
         }
         const setContext = () => {
             if (logalot) { console.log(`${lc} setting context`); }
@@ -255,7 +256,9 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
 
     async updateIbGib(addr: IbGibAddr): Promise<void> {
         const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-        if (addr === this.addr) { return; }
+        if (addr === this.addr) {
+            return; // <<<< returns early
+        }
 
         await this.smallDelayToLoadBalanceUI();
 
@@ -446,7 +449,9 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
      */
     async loadItem(item?: TItem): Promise<void> {
         item = item || this.item;
-        if (!item) { return; }
+        if (!item) {
+            return; // <<<< returns early
+        }
 
         await this.loadType(item);
         if (item.type === 'pic') { await this.loadPic(item); }
@@ -478,7 +483,9 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
      */
     async loadPic(item?: TItem): Promise<void> {
         const lc = `${this.lc}[${this.loadPic.name}]`;
-        if (!this.isPic) { return; }
+        if (!this.isPic) {
+            return; // <<<< returns early
+        }
         if (logalot) { console.log(`${lc} starting...`); }
         try {
             item = item || this.item;
@@ -486,15 +493,15 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
 
             if (!this.ibGib?.data?.binHash) {
                 if (logalot) { console.log(`${lc} no data.binHash`); }
-                return;
+                return; // <<<< returns early
             }
             if (!this.ibGib!.data!.ext) {
                 if (logalot) { console.log(`${lc} no data.ext`); }
-                return;
+                return; // <<<< returns early
             }
             if (!this.ibGib.rel8ns || this.ibGib.rel8ns['bin'].length === 0) {
                 if (logalot) { console.log(`${lc} no rel8ns.bin`); }
-                return;
+                return; // <<<< returns early
             }
 
             const data = <PicData_V1>this.ibGib.data;
@@ -556,23 +563,23 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
 
             if (!this.ibGib) {
                 if (logalot) { console.log(`${lc} this.ibGib is falsy, returning early. (I: b75c97830164f4b08c658717a3b20122)`); }
-                return;
+                return; // <<<< returns early
             }
 
             // check if different addr first because moderate likelihood and cheap to check
             if (this.addr && this.addr === info.latestAddr) {
                 if (logalot) { console.log(`${lc} already latest, so returning early. (I: c3331d8298dfc1d5e8bce69ecc645e22)`); }
-                return;
+                return; // <<<< returns early
             }
 
             // check paused & errored early because less likely, but extremely cheap to check
             if (this.paused) {
                 if (logalot) { console.log(`${lc} this.paused truthy, so returning early. (I: 4d4b4bd3f01a4c7fadb6eab9d5cb7e50)`); }
-                return;
+                return; // <<<< returns early
             }
             if (this.errored) {
                 if (logalot) { console.log(`${lc} this.errored truthy, so returning early. (I: 8aa06ebb7fec43f78cb710088c8ecbc7)`); }
-                return;
+                return; // <<<< returns early
             }
 
             // if we don't have a timeline, then we won't update no matter what.
@@ -580,13 +587,13 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
             if (!this.tjp || !this.tjpAddr) { await this.loadTjp(); }
             if (!this.tjp) {
                 if (logalot) { console.log(`${lc} no tjp, so returning early. (I: 342575ac8de44c258965355dbd92a515)`); }
-                return;
+                return; // <<<< returns early
             }
 
             // if it's not for this ibgib's timeline, then dont update
             if (this.tjpAddr !== info.tjpAddr) {
                 if (logalot) { console.log(`${lc} tjpAddr isn't us, so returning early. (I: c30f4da018224fb08df77adc98495a25)`); }
-                return;
+                return; // <<<< returns early
             }
 
             // if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)} (I: c0483014944c43cdac5f8d296bb56e05)`); }

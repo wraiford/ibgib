@@ -40,3 +40,8 @@ app-root, ion-app, ion-router-outlet {
     user-select: text;
     // box-sizing: border-box;
 }
+
+ion-skeleton-text {
+    --background: var(--ion-color-primary);
+    --background-rgb: var(--ion-color-primary-rgb);
+}

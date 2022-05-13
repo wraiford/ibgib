@@ -267,6 +267,7 @@ export class ActionBarComponent extends IbgibComponentBase
         navToAddr = h.getIbGibAddr({ibGib: newComment});
       }
 
+      this.actionDetailVisible = true;
     } catch (error) {
       console.error(`${lc} ${error.message}`)
     } finally {

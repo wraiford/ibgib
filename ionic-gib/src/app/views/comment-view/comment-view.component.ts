@@ -1,5 +1,6 @@
 import { Component, OnInit, ChangeDetectorRef, Input } from '@angular/core';
 
+import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 
@@ -46,6 +47,7 @@ export class CommentViewComponent
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
     if (logalot) { console.log(`${lc} updating...`); }
     try {
+      await h.delay(250);
       await super.updateIbGib(addr);
       await this.loadIbGib();
       await this.loadTjp();

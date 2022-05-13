@@ -1,5 +1,5 @@
 <list-item
-  *ngFor='let item of items'
+  *ngFor='let item of items;trackBy: trackByAddr'
   [addr]='item.addr'
   (click)='handleClicked(item)'
   [style.border-color]="debugBorderColor"
