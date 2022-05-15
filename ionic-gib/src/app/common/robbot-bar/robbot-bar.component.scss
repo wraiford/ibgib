@@ -17,8 +17,17 @@ ion-buttons {
 }
 
 #robbot-name {
-    display: flex;
-    flex-direction: column;
+    // display: flex;
+    // flex-direction: column;
+    width: 100%;
+    overflow: hidden;
+}
+
+#robbot-name ion-label {
+  width: 10%;
+}
+#robbot-name ion-select {
+  width: 90%;
 }
 
 // ion-toolbar {

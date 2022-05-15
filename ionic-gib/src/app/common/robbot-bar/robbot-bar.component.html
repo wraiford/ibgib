@@ -4,8 +4,11 @@
   [style.border-style]="debugBorderStyle"
 >
   <ion-item id="robbot-name" fill="outline" >
-    <ion-label color="primary">Robbot: </ion-label>
+    <ion-label color="primary" position="start">
+      <ion-icon name="body-outline"></ion-icon>
+    </ion-label>
     <ion-select
+      position="primary"
       [compareWith]="compareStrings"
       [value]="selectedRobbotName"
       okText="Select Robbot"

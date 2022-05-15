@@ -62,7 +62,10 @@
       </ion-button>
       <ion-button *ngIf="ibGib" [disabled]="refreshing"
         class="toolbar-title-btn"
-        (click)="handleRobbotClick()">
+        (click)="handleRobbotClick()"
+        [ngClass]="{'active-btn':robbotBarIsVisible}"
+        >
+
         <ion-icon name="body-outline"></ion-icon>
       </ion-button>
       <ion-button *ngIf="tjp" [disabled]="syncing || refreshing"
