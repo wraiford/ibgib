@@ -100,6 +100,10 @@ export interface IbgibItem {
      * (publishing to) other space(s).
      */
     syncing?: boolean;
+    /**
+     * if the item has children per rel8nNames
+     */
+    hasChildren?: boolean;
 }
 
 export interface IbgibListItem extends IbgibItem {

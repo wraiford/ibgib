@@ -34,7 +34,7 @@
 
   <!-- ibgib context buttons -->
   <ion-toolbar color="background">
-    <ion-buttons slot="end" collapse="true">
+    <ion-buttons slot="end">
       <!-- leaving these in for future testing of download the d*$! pic -->
       <!-- <ion-button *ngIf="item?.type === 'pic' && (ios || android)" class="toolbar-title-btn" -->
       <ion-button *ngIf="item?.type === 'pic'" class="toolbar-title-btn"
@@ -108,7 +108,7 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="false">
+<ion-content #ibgibPageContent [fullscreen]="false">
 
   <ion-text *ngIf="statusText" color="primary">{{statusText}}</ion-text>
 
@@ -165,8 +165,10 @@
       (scroll)="scrollSubject.next($event)"
       >
     </root-list>
-    <chat-view *ngIf='!(isTags || isRoots)' [addr]='addr' [ibGib_Context]='ibGib'
+    <chat-view #chatView *ngIf='!(isTags || isRoots)'
+      [addr]='addr' [ibGib_Context]='ibGib'
       (scroll)="scrollSubject.next($event)"
+      (chatItemsAdded)="handleChatItemsAdded()"
       >
     </chat-view>
 
@@ -177,6 +179,7 @@
 <ion-footer>
     <!-- [style.height]="actionBarHeightPerPlatform" -->
   <action-bar #actionBar
-    [addr]='addr' [ibGib_Context]='ibGib'>
+    [addr]='addr' [ibGib_Context]='ibGib'
+    >
   </action-bar>
 </ion-footer>

@@ -38,6 +38,9 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
   @Output()
   scroll: EventEmitter<ScrollBaseCustomEvent> = new EventEmitter();
 
+  @Output()
+  chatItemsAdded: EventEmitter<number> = new EventEmitter();
+
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
@@ -68,6 +71,10 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
           scrollDelayMs = c.DEFAULT_SCROLL_DELAY_MS_WEB_HACK;
           break;
       }
+      setTimeout(() => { this.scrollToBottom(); });
+      setTimeout(() => { this.scrollToBottom(); }, Math.floor(scrollDelayMs/4));
+      setTimeout(() => { this.scrollToBottom(); }, Math.floor(scrollDelayMs/3));
+      setTimeout(() => { this.scrollToBottom(); }, Math.floor(scrollDelayMs/2));
       setTimeout(() => { this.scrollToBottom(); }, scrollDelayMs);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -88,18 +95,11 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
     this.scroll.emit(event);
   }
 
-  scrollToBottom(): void {
-    const lc = `${this.lc}[${this.scrollToBottom.name}]`;
-    if (document) {
-      const list = document.getElementById('theList');
-      if (list) {
-        if (logalot) { console.log(`${lc} scrolling`); }
-        list.scrollTop = list.scrollHeight;
-      }
-    }
-  }
-
   handleItemsAdded(): void {
-    this.scrollToBottom();
+    this.chatItemsAdded.emit();
+    // setTimeout(() => {
+    //   this.scrollToBottom();
+    //   this.ref.detectChanges();
+    // }, 500);
   }
 }

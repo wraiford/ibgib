@@ -45,6 +45,9 @@ export class ListViewComponent
   // @Output()
   // scrolled: EventEmitter<void> = new EventEmitter();
 
+  @Output()
+  itemsAdded: EventEmitter<number> = new EventEmitter();
+
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,

@@ -25,7 +25,7 @@ import { getFnAlert, getFnPrompt, getFnConfirm } from '../common/helper/prompt-f
 import { createNewTag } from '../common/helper/tag';
 import { ActionBarComponent } from '../common/action-bar/action-bar.component';
 import { ChatViewComponent } from '../views/chat-view/chat-view.component';
-import { IonAccordionGroup, IonRouterOutlet } from '@ionic/angular';
+import { IonAccordionGroup, IonContent, IonRouterOutlet } from '@ionic/angular';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -121,6 +121,7 @@ export class IbGibPage extends IbgibComponentBase
     this._robbotBarIsVisible = value;
   }
 
+  hidePerScroll: boolean = true;
 
   // @Input()
   // actionBarHeightPerPlatform: string = '55px !important';
@@ -130,6 +131,15 @@ export class IbGibPage extends IbgibComponentBase
 
   @ViewChild('chatView')
   chatView: ChatViewComponent;
+
+  /**
+   * atow, this contains the robbot bar. So there are two containers
+   * that must be scrolled to scroll to the bottom: this
+   * and the chatView (or whatever the child list view is).
+   */
+  @ViewChild('ibgibPageContent')
+  ibgibPageContent: IonContent;
+
 
   constructor(
     protected common: CommonService,
@@ -291,7 +301,7 @@ export class IbGibPage extends IbgibComponentBase
         // and load everything.
         if (logalot) { console.log(`${lc} new paramMap. addr: ${addr}`); }
         if (addr !== this.addr) {
-          console.log(`${lc} addr is different than this.addr, so calling updateIbGib (I: 5733e91178ab46198593a7a5542c8d3a)`);
+          if (logalot) { console.log(`${lc} addr is different than this.addr, so calling updateIbGib (I: 5733e91178ab46198593a7a5542c8d3a)`); }
           await this.updateIbGib(addr);
         } else {
           // do nothing, it's the same as the current addr
@@ -859,16 +869,17 @@ export class IbGibPage extends IbgibComponentBase
     // especially happen on touch screens.
     let targetScrolltop = <number>((<any>event?.target)?.scrollTop ?? -1);
     if (logalot) { console.log(`${lc} targetScrolltop: ${targetScrolltop} (I: 70dfd9882bb2493da37222869c429415)`); }
-    if (this.actionBar.actionDetailVisible && targetScrolltop > -1) {
-      const delta = Math.abs(targetScrolltop - this.prevScrollTop);
-      if (logalot) { console.log(`${lc} delta: ${delta} (I: de2ac480085f8a404b6e01a2ad614822)`); }
-      const MIN_DELTA = 50;
-      if (delta > MIN_DELTA) {
-        this.actionBar.actionDetailVisible = false;
-        this.robbotBarIsVisible = false;
-        setTimeout(() => this.ref.detectChanges());
-      }
-    }
+    // if (this.hidePerScroll && this.actionBar.actionDetailVisible && targetScrolltop > -1) {
+    //   debugger;
+    //   const delta = Math.abs(targetScrolltop - this.prevScrollTop);
+    //   if (logalot) { console.log(`${lc} delta: ${delta} (I: de2ac480085f8a404b6e01a2ad614822)`); }
+    //   const MIN_DELTA = 100;
+    //   if (delta > MIN_DELTA) {
+    //     this.actionBar.actionDetailVisible = false;
+    //     this.robbotBarIsVisible = false;
+    //     setTimeout(() => this.ref.detectChanges());
+    //   }
+    // }
     this.prevScrollTop = targetScrolltop;
   }
 
@@ -1314,6 +1325,24 @@ export class IbGibPage extends IbgibComponentBase
   }
   // #endregion test accordion
 
+  async handleChatItemsAdded(): Promise<void> {
+    const lc = `${this.lc}[${this.handleChatItemsAdded.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (this.ibgibPageContent) {
+        setTimeout(() => this.ibgibPageContent.scrollToBottom());
+      } else {
+        debugger;
+        if (logalot) { console.log(`${lc} this.ibgibPageContent is falsy (I: 9e27785a017741afafefb72ce4629842)`); }
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+      setTimeout(() => this.ref.detectChanges());
+    }
+  }
 
 }
 

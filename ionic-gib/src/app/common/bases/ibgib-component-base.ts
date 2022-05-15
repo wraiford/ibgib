@@ -197,6 +197,9 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
      */
     protected _statusTexts: { [msgId: string]: string } = {};
 
+    @Input()
+    get hasChildren(): boolean { return this.item?.hasChildren; }
+
     constructor(
         protected common: CommonService,
         protected ref: ChangeDetectorRef,
@@ -374,6 +377,16 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
                     const resGet = await this.common.ibgibs.get({addr: item.addr, isMeta: item.isMeta });
                     if (resGet.success && resGet.ibGibs?.length === 1) {
                         item.ibGib = resGet.ibGibs![0];
+
+                        // set item.hasChildren hack - uses default list rel8n names
+                        if (item.ibGib.rel8ns) {
+                            for (let rel8nName of c.DEFAULT_LIST_REL8N_NAMES) {
+                                if (item.ibGib.rel8ns[rel8nName] && item.ibGib.rel8ns[rel8nName].length > 0) {
+                                    item.hasChildren = true;
+                                    break;
+                                }
+                            }
+                        }
                     } else if (!resGet.success && item.isMeta) {
                         // we've tried to load a meta ibGib that does not exist.
                         // item.ibGib = Factory_V1.primitive({ib});

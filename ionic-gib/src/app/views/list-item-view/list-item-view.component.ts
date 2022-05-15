@@ -32,7 +32,7 @@ export class ListItemViewComponent extends IbgibComponentBase {
   clicked: EventEmitter<IbgibItem> = new EventEmitter();
 
   public debugBorderWidth: string = debugBorder ? "2px" : "0px"
-  public debugBorderColor: string = "yellow";
+  public debugBorderColor: string = "#92ed80";
   public debugBorderStyle: string = "solid";
 
   constructor(
@@ -42,7 +42,7 @@ export class ListItemViewComponent extends IbgibComponentBase {
     super(common, ref)
     const lc = `${this.lc}[ctor]`;
     if (logalot) { console.log(`${lc} created`); }
-   }
+  }
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;

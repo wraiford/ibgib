@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, Input, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, Input, ViewChild, AfterViewInit, Output, EventEmitter } from '@angular/core';
 import { Plugins, } from '@capacitor/core';
 const { Modals } = Plugins;
 
@@ -654,9 +654,10 @@ export class ActionBarComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.handleCommentDetailChange.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
-      if (!event?.target?.textContent) {
-        throw new Error(`event?.target?.textContent falsy (E: 39a1e8879a06a8d77a20da1a0e544c22)`);
-      }
+      // if (!event?.target?.textContent) {
+      //   debugger;
+      //   throw new Error(`event?.target?.textContent falsy (E: 39a1e8879a06a8d77a20da1a0e544c22)`);
+      // }
       const text: string = event.target.textContent || '';
       this.actionDetailCommentText = text.trim();
     } catch (error) {
@@ -684,6 +685,7 @@ export class ActionBarComponent extends IbgibComponentBase
   }
 
   async handleCommentDetailInput(event: KeyboardEvent): Promise<void> {
+    // const lc = `${this.lc}[${this.handleCommentDetailInput}]`;
     if (!this.actionDetailVisible) { this.actionDetailVisible = true; }
     if ((!event.shiftKey) &&
       this.platform === 'web' &&

@@ -9,12 +9,10 @@ import { IbgibComponentBase } from '../bases/ibgib-component-base';
 import { createNewRobbot } from '../helper/robbot';
 import { IbGibRobbotAny } from '../witnesses/robbots/robbot-base-v1';
 import { RobbotIbGib_V1 } from '../types/robbot';
-import { Witness } from '../types/witness';
-import { WitnessAny, WitnessBase_V1 } from '../witnesses/witness-base-v1';
 import { isError } from '../helper/error';
 import { ErrorIbGib_V1 } from '../types/error';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({

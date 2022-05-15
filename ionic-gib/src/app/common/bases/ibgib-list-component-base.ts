@@ -190,10 +190,14 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
             // sorts by timestamp
             const sortItems = (x: TItem[]) => {
                 return x.sort((a,b) => {
-                    if (!a.ibGib?.data?.timestamp || !b.ibGib?.data?.timestamp) {
-                        console.error(`${lc} no timestamp `)
+                    if (!a.ibGib?.data || !b.ibGib?.data) { return 0; }
+                    if (!a.ibGib?.data?.timestamp ?? a.ibGib?.data?.textTimestamp) {
+                        console.error(`${lc} no timestamp a.addr: ${a.addr}`)
                     }
-                    return new Date(a.ibGib?.data?.timestamp) < new Date(b.ibGib?.data?.timestamp) ? -1 : 1
+                    if (!b.ibGib?.data?.timestamp ?? b.ibGib?.data?.textTimestamp) {
+                        console.error(`${lc} no timestamp b.addr: ${b.addr}`)
+                    }
+                    return new Date(a.ibGib?.data?.timestamp ?? a.ibGib?.data?.textTimestamp) < new Date(b.ibGib?.data?.timestamp ?? b.ibGib?.data?.textTimestamp) ? -1 : 1
                 });
             }
 
@@ -263,25 +267,28 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
                 }
             }
 
-            // if we're adding a single item, then we're betting it's a
-            // new item.
+            // only sort on the main list if the earliest item to add is earlier
+            // than the latest on the existing list. Otherwise, should already
+            // be sorted.
+
             if (this.items.length > 0 && itemsToAdd.length > 0) {
-// if (!a.ibGib?.data?.timestamp || !b.ibGib?.data?.timestamp) {
-//     console.error(`${lc} no timestamp `)
-// }
-// return new Date(a.ibGib?.data?.timestamp) < new Date(b.ibGib?.data?.timestamp) ? -1 : 1
                 const lastExisting = this.items[this.items.length];
-                const lastTimestamp = lastExisting.ibGib?.data?.timestamp;
+                const lastTimestamp = lastExisting?.ibGib?.data?.timestamp;
                 const firstToAddTimestamp = itemsToAdd[0].ibGib?.data?.timestamp;
                 if (lastTimestamp > firstToAddTimestamp) {
                     debugger;
                     sortItems(this.items);
+                } else {
+                    if (logalot) { console.log(`${lc} itemsToAdd later than current items. lastTimestamp: ${lastTimestamp}. firstToAddTimestamp: ${firstToAddTimestamp} (I: dad96ddde10515083aa1965aeb70af22)`); }
                 }
             }
 
+            if (itemsToAdd.length > 0) {
+                if (logalot) { console.log(`${lc} emitting itemsAdded (I: 145ca8df34da5119d1e08fe970faac22)`); }
+                // sortItems(this.items);
+                this.itemsAdded.emit();
+            }
             setTimeout(() => this.ref.detectChanges());
-
-            if (itemsToAdd.length > 0) { this.itemsAdded.emit(); }
 
             if (logalot && timerEnabled) {
                 console.timeEnd(timerName);
@@ -300,6 +307,17 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
 
     trackByAddr(index: number, item: TItem): any {
         return item.addr;
+    }
+
+    scrollToBottom(): void {
+        const lc = `${this.lc}[${this.scrollToBottom.name}]`;
+        if (document) {
+        const list = document.getElementById('theList');
+            if (list) {
+                if (logalot) { console.log(`${lc} scrolling`); }
+                list.scrollTop = list.scrollHeight + 100;
+            }
+        }
     }
 
 }
