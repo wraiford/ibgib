@@ -3,12 +3,14 @@
   [style.border-width]="debugBorderWidth"
   [style.border-style]="debugBorderStyle"
 >
-  <ion-item id="robbot-name" fill="outline" >
-    <ion-label color="primary" position="start">
+  <ion-anchor slot="start">
+    <ion-label id="robbot-bar-label" color="primary">
       <ion-icon name="body-outline"></ion-icon>
     </ion-label>
-    <ion-select
-      position="primary"
+  </ion-anchor>
+  <!-- <ion-item > -->
+    <ion-select id="robbot-name"
+      slot="primary"
       [compareWith]="compareStrings"
       [value]="selectedRobbotName"
       okText="Select Robbot"
@@ -19,18 +21,18 @@
         <ion-label>{{ name }}</ion-label>
       </ion-select-option>
     </ion-select>
-  </ion-item>
+  <!-- </ion-item> -->
   <ion-buttons slot="primary">
     <ion-button *ngIf="selectedRobbotName" (click)="handleRobbotLook($event)">
-      <ion-icon name="body-outline"></ion-icon>
+      <!-- <ion-icon name="body-outline"></ion-icon> -->
       <ion-label>👀</ion-label>
     </ion-button>
     <ion-button *ngIf="selectedRobbotName" (click)="handleRobbotSpeak($event)">
-      <ion-icon name="body-outline"></ion-icon>
+      <!-- <ion-icon name="body-outline"></ion-icon> -->
       <ion-icon name="chatbubbles-outline"></ion-icon>
     </ion-button>
     <ion-button (click)="handleAddRobbot()">
-      <ion-icon name="body-outline"></ion-icon>
+      <!-- <ion-icon name="body-outline"></ion-icon> -->
       <ion-icon name="add-outline"></ion-icon>
     </ion-button>
   </ion-buttons>

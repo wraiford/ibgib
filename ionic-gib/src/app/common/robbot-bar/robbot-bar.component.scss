@@ -1,3 +1,7 @@
+ion-toolbar {
+  justify-content: stretch;
+}
+
 ion-button, #robbot-name {
   color: var(--ion-color-primary);
   border-color: var(--ion-color-primary);
@@ -17,17 +21,18 @@ ion-buttons {
 }
 
 #robbot-name {
-    // display: flex;
-    // flex-direction: column;
-    width: 100%;
-    overflow: hidden;
+  // display: flex;
+  // flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+  margin: 0px 0px 0px -19px;
+  padding: 6px 6px 6px 18px;
 }
 
-#robbot-name ion-label {
-  width: 10%;
-}
-#robbot-name ion-select {
-  width: 90%;
+#robbot-bar-label {
+  height: 100%;
+  padding: 6px;
+  margin-right: 2px;
 }
 
 // ion-toolbar {

@@ -1241,6 +1241,14 @@ export class IbgibsService {
     }
   }
 
+  /**
+   * Gets the tjpIbGib for the given `ibGib` in the given `space`.
+   * atow, naive must be true.
+   *
+   *
+   *
+   * @returns tjpIbGib for the given `ibGib`
+   */
   async getTjpIbGib({
     ibGib,
     naive = true,
@@ -1259,7 +1267,6 @@ export class IbgibsService {
         console.warn(`${lc} space falsy and localUserSpace not initialized.`);
         return ibGib;
       }
-
       return getTjpIbGib({ibGib, naive, space});
     } catch (error) {
       console.error(`${lc} ${error.message}`);

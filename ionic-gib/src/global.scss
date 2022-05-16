@@ -45,3 +45,14 @@ ion-skeleton-text {
     --background: var(--ion-color-primary);
     --background-rgb: var(--ion-color-primary-rgb);
 }
+
+ion-input.floating-with-placeholder{
+    input:focus::-webkit-input-placeholder { color:gray; }
+    input:focus:-moz-placeholder { color:gray; }
+    input:focus::-moz-placeholder { color:gray; }
+    input:focus:-ms-input-placeholder { color:gray; }
+    input::-webkit-input-placeholder { color:transparent; }
+    input:-moz-placeholder { color:transparent; }
+    input::-moz-placeholder { color:transparent; }
+    input:-ms-input-placeholder { color:transparent; }
+}

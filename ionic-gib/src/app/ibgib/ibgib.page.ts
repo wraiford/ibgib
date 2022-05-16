@@ -477,22 +477,6 @@ export class IbGibPage extends IbgibComponentBase
 
       this.robbotBarIsVisible = !this.robbotBarIsVisible;
       setTimeout(() => this.ref.detectChanges());
-      // await this.go({
-      //   toAddr: this.addr,
-      //   fromAddr: this.addr,
-      //   queryParams: { [c.QUERY_PARAM_ROBBOT]: !this.robbotBarIsVisible ? true : null },
-      //   queryParamsHandling: 'merge',
-      //   force: true,
-      //   skipStack: true,
-      // });
-      // this.updateIbGib_RobbotBarVisible();
-      // const robbots = await this.common.ibgibs.getAppRobbots({createIfNone: true});
-      // if (robbots.length > 0) {
-        // this.robbotNames = robbots.map(r => r.data.name);
-        // this.defaultRobbotName = robbots[0].data.name;
-        // this.robbotBarIsVisible = !this.robbotBarIsVisible;
-        // setTimeout(() => this.ref.detectChanges());
-      // }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

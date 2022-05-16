@@ -66,7 +66,7 @@ import { validateIbGibIntrinsically } from '../../helper/validate';
 
 // #endregion imports
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 // #region AWS related
 
