@@ -1125,7 +1125,6 @@ export class AWSDynamoSpace_V1<
         } catch (error) {
             // does not rethrow atm, because this is not "mission critical"
             // (but I sure want to know if something is happening here...)
-            debugger;
             console.error(`${lc} ${error.message}`);
         } finally {
             if (logalot) { console.log(`${lc} complete.`); }
@@ -1324,7 +1323,6 @@ export class AWSDynamoSpace_V1<
                 watch would still have a reference though). Perhaps this is
                 self-healing though, since we're about to add the space if the
                 reference doesnt exist.`.replace(/\n/g, ' ').replace(/  /g, '');
-                debugger;
                 console.error(`${lc_getTjpWatchIbGibs} ${error.message} (${hmmMsg})`);
                 tjpWatchIbGibs_ThatAlreadyExist = [];
             }
@@ -1635,7 +1633,6 @@ export class AWSDynamoSpace_V1<
                         throw new Error(validationErrors.join('\n'));
                     }
                 } catch (error) {
-                    debugger; // need to differentiate between not found error and other errors
                     const emsg = `${lc} ${error?.message || 'error getting addr from S3: (E: a7df594a7f384923a66f1e0c42a72317)'}`;
                     console.error(emsg);
                     addrsNotFound.push(binaryAddr);
@@ -1761,7 +1758,7 @@ export class AWSDynamoSpace_V1<
                 ibGibs = [...ibGibs, ...gotIbGibs];
 
                 if (errors.length > 0) {
-                    debugger;
+                    if (logalot) { console.log(`${lc} errors.length > 0, breaking... (I: cb90edde840c03f3687330bed4f82622)`); }
                     break;
                 }
 
@@ -2596,7 +2593,6 @@ export class AWSDynamoSpace_V1<
                 return false;
             } else {
                 // some other error
-                debugger;
                 const emsg = `${lc} ${error.message ?? 'some kind of aws error... (E: 29c23afd29ff4c2fa92f6d6e46b995fa)'}`;
                 console.error(emsg);
                 throw new Error(emsg);
@@ -2765,7 +2761,6 @@ export class AWSDynamoSpace_V1<
             await putDynamoDbItems(ibGibItems);
 
         } catch (error) {
-            debugger;
             let items = ibGibItems;
             let ibgibs = ibGibs;
             console.error(`${lc} ${error.message}`);
@@ -2815,7 +2810,6 @@ export class AWSDynamoSpace_V1<
             }
             if (logalot) { console.log(`${lc} total: ${runningCount}.`); }
         } catch (error) {
-            debugger;
             console.error(`${lc} ${error.message}`);
             errors.push(error.message);
         }
@@ -3276,7 +3270,6 @@ export class AWSDynamoSpace_V1<
                 syncStatus$.next(statusIbGib);
             }
         } catch (error) {
-            debugger;
             const emsg = `${lc} ${error.message}`;
             console.error(emsg);
             errors.push(emsg);
@@ -3594,7 +3587,6 @@ export class AWSDynamoSpace_V1<
                 if (ibGibsToStoreNotAlreadyStored.length > 0) {
                     await this.putIbGibs({client, ibGibs: ibGibsToStoreNotAlreadyStored, errors, warnings});
                     if (errors.length > 0) {
-                        debugger;
                         throw new Error(errors.join('\n'));
                     }
                     if (warnings.length > 0) { console.warn(`${lc} warnings:\n${warnings.join('\n')}`); }
@@ -3708,13 +3700,11 @@ export class AWSDynamoSpace_V1<
             // #endregion complete saga
 
         } catch (error) {
-            debugger;
             const emsg = `${lc} ${error.message}`;
             if (error.message === c.AWS_ERROR_MSG_ITEM_SIZE_EXCEEDED) {
                 // hmm, try to handle this post hoc?
                 console.error(emsg);
             } else {
-                debugger; // this should stop the busy indicator but it isn't
                 console.error(emsg);
             }
 
@@ -3727,7 +3717,6 @@ export class AWSDynamoSpace_V1<
                 syncStatus$.error(emsg);
             } else {
                 if (logalot) { console.warn(`${lc} error happened...NO do NOT publish error to syncStatus...`)}
-                debugger;
             }
             // does not rethrow because this is a spun off promise
         }
@@ -3850,7 +3839,6 @@ export class AWSDynamoSpace_V1<
                 return; // <<<< returns early
             }
         } catch (error) {
-            debugger;
             console.error(`${lc} ${error.message}`);
             // do not rethrow because watches are not "mission critical"
         }
@@ -4290,7 +4278,6 @@ export class AWSDynamoSpace_V1<
 
             updates[tjpAddr] = h.getIbGibAddr({ibGib: latestIbGib_Store});
         } catch (error) {
-            debugger;
             console.error(`${lc} ${error.message}`);
             throw error;
         }
@@ -4394,14 +4381,14 @@ export class AWSDynamoSpace_V1<
                 latestIbGib_Store.data.n ?? -1;
             const nNext = nHighest + 1;
 
-            debugger; // first run check above
+            debugger; // first run check above (still haven't tested this?)
             let d0 = {1: "asdf", 2: "222"};
             let r0 = {1: "fx", c: 'ccccrecessive'};
             let m0 = mergeMapsOrArrays_Naive<{}>({dominant: d0, recessive: r0});
             if (m0[1] !== "asdf") { throw new Error(`doesn't work c7878b8b7d8b4f8b950ce31135e33d6b`); }
             if (m0[2] !== "222") { throw new Error(`doesn't work 1a4f60aae2dc4704ae54cfb95aff7ac3`); }
             if (m0['c'] !== "ccccrecessive") { throw new Error(`doesn't work 1a4f60aae2dc4704ae54cfb95aff7ac3`); }
-            debugger; // first run check above
+            debugger; // first run check above (still haven't tested this?)
 
             const mergedData = mergeMapsOrArrays_Naive<any>({
                 dominant: latestIbGib_Store.data ?? {},
@@ -4444,7 +4431,6 @@ export class AWSDynamoSpace_V1<
             ibGibMergeMap[latestAddr_Local] = mergedIbGib;
             updates[tjpAddr] = h.getIbGibAddr({ibGib: mergedIbGib});
         } catch (error) {
-            debugger;
             console.error(`${lc} ${error.message}`);
             throw error;
         }
@@ -4538,11 +4524,9 @@ export class AWSDynamoSpace_V1<
                 // (ibgib addresses matching necessitates deep equal)
                 if ((resTransform.dnas ?? []).length > 0) {
                     if (!resTransform.dnas.some(x => h.getIbGibAddr(x) === dnaAddrToApply)) {
-                        debugger; // examine the dnas
                         console.warn(`${lc}(UNEXPECTED) Expected to generate exact dna that we applied in transform. dnaAddr: ${dnaAddrToApply} (W: 4a364c0b5d8d46c8af6bd540915fd973)`);
                     }
                 } else {
-                    debugger;
                     console.warn(`${lc}(UNEXPECTED) expected resTransform to include generated dna. dnaAddr: ${dnaAddrToApply}(W: 9648e2d5c40d42b7b9fb7efb09c5b13a)`)
                 }
 
@@ -4596,7 +4580,6 @@ export class AWSDynamoSpace_V1<
             ibGibsWithoutTjp.forEach(x => ibGibsToStore.push(x));
             if (logalot) { console.log(`${lc} ibGibsToStore.map(x => h.getIbGibAddr({ibGib: x})): ${ibGibsToStore.map(x => h.getIbGibAddr({ibGib: x}))}`); }
         } catch (error) {
-            debugger;
             console.error(`${lc} ${error.message}`);
             throw error;
         }

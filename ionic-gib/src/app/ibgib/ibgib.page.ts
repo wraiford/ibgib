@@ -854,7 +854,6 @@ export class IbGibPage extends IbgibComponentBase
     let targetScrolltop = <number>((<any>event?.target)?.scrollTop ?? -1);
     if (logalot) { console.log(`${lc} targetScrolltop: ${targetScrolltop} (I: 70dfd9882bb2493da37222869c429415)`); }
     // if (this.hidePerScroll && this.actionBar.actionDetailVisible && targetScrolltop > -1) {
-    //   debugger;
     //   const delta = Math.abs(targetScrolltop - this.prevScrollTop);
     //   if (logalot) { console.log(`${lc} delta: ${delta} (I: de2ac480085f8a404b6e01a2ad614822)`); }
     //   const MIN_DELTA = 100;
@@ -1316,7 +1315,6 @@ export class IbGibPage extends IbgibComponentBase
       if (this.ibgibPageContent) {
         setTimeout(() => this.ibgibPageContent.scrollToBottom());
       } else {
-        debugger;
         if (logalot) { console.log(`${lc} this.ibgibPageContent is falsy (I: 9e27785a017741afafefb72ce4629842)`); }
       }
     } catch (error) {

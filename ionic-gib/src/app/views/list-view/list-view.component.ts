@@ -25,7 +25,6 @@ export class ListViewComponent
   @Input()
   get addr(): IbGibAddr { return super.addr; }
   set addr(value: IbGibAddr) {
-    // debugger;
     super.addr = value;
   }
 

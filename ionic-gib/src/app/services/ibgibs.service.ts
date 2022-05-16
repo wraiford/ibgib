@@ -700,9 +700,6 @@ export class IbgibsService {
       if (roots.rel8ns.current.length > 1) { throw new Error(`Invalid Roots: multiple current roots selected. (E: 370fe6e3920a4a1299f879e6fcbbc448)`); }
 
       const currentRootAddr = roots.rel8ns.current[0]!;
-      if (!currentRootAddr) {
-        debugger; // debug
-      }
       const resCurrentRoot =
         await this.get({addr: currentRootAddr, isMeta: true, space});
       if (resCurrentRoot.ibGibs?.length === 1) {
@@ -945,9 +942,6 @@ export class IbgibsService {
         });
       } else {
         // console.log(`${lc} there is a later version`);
-      if (!latestAddr) {
-        debugger; // debug
-      }
         let resLatestIbGib = await this.get({addr: latestAddr, space});
         if (!resLatestIbGib.success || resLatestIbGib.ibGibs?.length !== 1) {
           throw new Error('latest not found');
@@ -1013,9 +1007,6 @@ export class IbgibsService {
   }: GetIbGibOpts): Promise<GetIbGibResult> {
     let lc = `${this.lc}[${this.get.name}]`;
     try {
-      if (!addr || addr === 'ib^gib') {
-        debugger;
-      }
       space = space ?? await this.getLocalUserSpace({});
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: 86ccdcf3417a45b4a3a8c280fb9a6df7)`); }
 
@@ -1221,15 +1212,12 @@ export class IbgibsService {
         } else if (resGetLatest.data.addrsNotFound?.length === 1) {
           return undefined;
         } else if (resGetLatest.data.addrsErrored?.length === 1) {
-          debugger;
           const emsg = resGetLatest.data.errors?.join('|') ?? "[unspecified error(s)] (E: 24f338036aa84ac99e3c39a660207222)";
           throw new Error(`resGetLatest had error(s): ${emsg}`);
         } else {
-          debugger;
           throw new Error(`unknown error, invalid resGetLatest: ${h.pretty(resGetLatest)} (E: 6aa5aa225ebf49b588664370cb8feb22)`);
         }
       } else {
-        debugger;
         const emsg = resGetLatest.data.errors?.join('|') ?? "[unspecified error(s)] (E: dcd6dcd6ec052fd112a4d48f1afa2922)";
         throw new Error(`resGetLatest had error(s): ${emsg}`);
       }
@@ -2889,7 +2877,6 @@ export class IbgibsService {
           if (!addrsAlreadyStoredLocally.includes(updatedAddr)) {
             const updatedIbGib = newerIbGibDependencyGraphFromOuterSpace[updatedAddr];
             if (!updatedIbGib) {
-              debugger;
               throw new Error(`did not get updatedIbGib (${updatedAddr}) from outerspace (${outerSpace.data.uuid}) (E: 818de70f5b444a3ba198ba6480a15b04)`);
             }
             await this.registerNewIbGib({ibGib: updatedIbGib});

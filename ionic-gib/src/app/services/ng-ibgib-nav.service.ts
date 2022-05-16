@@ -32,7 +32,6 @@
 //       await this.router.navigate(['ibgib', toAddr], {
 //           queryParamsHandling: 'preserve',
 //       }).then(resNav => {
-//         debugger;
 //         if (resNav) {
 //           this.stack.push({toAddr, fromAddr, queryParamsHandling, queryParams});
 //         } else {

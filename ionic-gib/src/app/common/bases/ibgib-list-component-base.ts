@@ -276,7 +276,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
                 const lastTimestamp = lastExisting?.ibGib?.data?.timestamp;
                 const firstToAddTimestamp = itemsToAdd[0].ibGib?.data?.timestamp;
                 if (lastTimestamp > firstToAddTimestamp) {
-                    debugger;
+                    if (logalot) { console.log(`${lc} lastTimestamp > firstToAddTimestamp (?) (I: d49a3d286e1e2eaa4c70385e0c323a22)`); }
                     sortItems(this.items);
                 } else {
                     if (logalot) { console.log(`${lc} itemsToAdd later than current items. lastTimestamp: ${lastTimestamp}. firstToAddTimestamp: ${firstToAddTimestamp} (I: dad96ddde10515083aa1965aeb70af22)`); }

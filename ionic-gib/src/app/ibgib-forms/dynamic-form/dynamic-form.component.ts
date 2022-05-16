@@ -503,7 +503,6 @@ export class DynamicFormComponent
         return `${errorStrings.join('\n')}`;
       }
     } catch (error) {
-      debugger;
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {

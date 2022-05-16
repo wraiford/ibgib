@@ -311,7 +311,6 @@ export class WitnessFormBuilder {
         if (persistOptsAndResultIbGibs) { this.persistOptsAndResultIbGibs({of: data.persistOptsAndResultIbGibs}); }
         if (trace) { this.trace({of: data.trace}); }
         if (version) { this.version({of: data.version}); }
-        // debugger;
         return this;
     }
 

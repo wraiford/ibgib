@@ -212,7 +212,8 @@ export class RobbotModalFormComponent
   }
 
   handleValidatedSubform(event: any): void {
-    debugger;
+    const lc = `${this.lc}[${this.handleValidatedSubform.name}]`;
+    console.log(`${lc}`);
   }
 
 }

@@ -212,20 +212,11 @@ export class ActionBarComponent extends IbgibComponentBase
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
-      // debugger;
-
       // they've clicked the comment button and there is text in the comment
       // text area.
 
       actionItem = this.items.filter(x => x.name === 'comment')[0];
       actionItem.busy = true;
-
-      // const alert = getFnAlert();
-      // let text = await this.promptForCommentText();
-      // if (!text) {
-      //   await alert({title: 'no comment text entered', msg: 'Comment cannot contain only whitespace. Cancelling...'});
-      //   return;
-      // }
 
       await h.delay(this.debounceMs + 50); // to allow for debounce in binding
       const text = this.actionDetailCommentText; // already trimmed
@@ -239,33 +230,18 @@ export class ActionBarComponent extends IbgibComponentBase
 
       const { newIbGib: newComment } = resCommentIbGib;
       const newCommentAddr = h.getIbGibAddr({ibGib: newComment});
-      // await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newComment, linked: true});
       await this.common.ibgibs.registerNewIbGib({ibGib: newComment});
-      // need to nav to picture if not in a context, or
-      // or if in context need to rel8 to the context.
 
-      let navToAddr: string;
-      if (this.addr) {
-        // if we have a context, rel8 to it
-        if (!this.ibGib) {
-          await this.loadIbGib();
-          await this.loadTjp();
-        }
-        const rel8nsToAddByAddr = { comment: [newCommentAddr] };
-        const resRel8ToContext =
-          await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
-        await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToContext});
-        const { newIbGib: newContext } = resRel8ToContext;
-        await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
-
-        // nav to either the ibgib we just added, or the new context "in time"
-        // to which the ibgib was added.
-        navToAddr = this.isMeta ?
-          h.getIbGibAddr({ibGib: newComment}) :
-          h.getIbGibAddr({ibGib: newContext});
-      } else {
-        navToAddr = h.getIbGibAddr({ibGib: newComment});
+      if (!this.ibGib) {
+        await this.loadIbGib();
+        await this.loadTjp();
       }
+      const rel8nsToAddByAddr = { comment: [newCommentAddr] };
+      const resRel8ToContext =
+        await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
+      await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToContext});
+      const { newIbGib: newContext } = resRel8ToContext;
+      await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
 
       this.actionDetailVisible = true;
     } catch (error) {
@@ -283,11 +259,9 @@ export class ActionBarComponent extends IbgibComponentBase
   private async _rel8ToCurrentContext({
     ibGibToRel8,
     rel8nNames,
-    navigateAfter,
   }: {
     ibGibToRel8: IbGib_V1,
     rel8nNames: string[],
-    navigateAfter: boolean,
   }): Promise<void> {
     const lc = `${this.lc}[${this._rel8ToCurrentContext.name}]`;
     try {
@@ -315,17 +289,12 @@ export class ActionBarComponent extends IbgibComponentBase
       const { newIbGib: newContext } = resRel8ToContext;
       await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
 
-      // nav to either the ibGib we just added, or the new context frame that we
-      // just created via the rel8 transform
-      if (navigateAfter) {
-        const navToAddr = this.isMeta ?
-          h.getIbGibAddr({ibGib: ibGibToRel8}) :
-          h.getIbGibAddr({ibGib: newContext});
-        await this.go({
-          toAddr: navToAddr,
-          fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
-        });
-      }
+      // ping that there is an update to our ibGib, so the "navigation"/"update"
+      // can happen
+      // await this.common.ibgibs.pingLatest_Local({
+      //   ibGib: this.ibGib,
+      //   tjp: this.tjp,
+      // });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -367,7 +336,6 @@ export class ActionBarComponent extends IbgibComponentBase
   //     await this._rel8ToCurrentContext({
   //       ibGibToRel8: newPic,
   //       rel8nNames: ['pic'],
-  //       navigateAfter: true,
   //     });
   //   } catch (error) {
   //     console.error(`${lc} ${error.message}`)
@@ -400,54 +368,11 @@ export class ActionBarComponent extends IbgibComponentBase
       const newPic = resCreatePic.newIbGib;
       await this.common.ibgibs.registerNewIbGib({ibGib: newPic, space});
 
-      // // await Modals.alert({title: 'file', message: `picked a file yo`});
-      // // thanks https://edupala.com/capacitor-camera-example/
-      // const file = (event.target as HTMLInputElement).files[0];
-      // const pattern = /image-*/;
-      // const reader = new FileReader();
-
-      // if (!file.type.match(pattern)) {
-      //   if (logalot) { console.log('File format not supported'); }
-      //   return;
-      // }
-
-      // reader.onload = async (_: any) => {
-      //   const lc2 = `${lc}[reader.onload]`;
-      //   try {
-      //     if (logalot) { console.log(`${lc2} starting... (I: 1e948476ca86b328a12700dc57be0a22)`); }
-      //     let imageBase64 = reader.result.toString().split('base64,')[1];
-      //     let binHash = await hash({s: imageBase64});
-      //     const filenameWithExt = file.name;
-      //     const filenamePieces = filenameWithExt.split('.');
-      //     const filename = filenamePieces.slice(0, filenamePieces.length-1).join('.');
-      //     const ext = filenamePieces.slice(filenamePieces.length-1)[0];
-
-      //     const newPic = await createAndAddPicIbGib({
-      //       imageBase64: imageBase64,
-      //       binHash,
-      //       filename,
-      //       ext,
-      //       common: this.common
-      //     });
-
-          // rel8 to context and nav
-          await this._rel8ToCurrentContext({
-            ibGibToRel8: newPic,
-            rel8nNames: ['pic'],
-            navigateAfter: true,
-          });
-      //   } catch (error) {
-      //     console.error(`${lc2} ${error.message}`);
-      //     throw error;
-      //   } finally {
-      //     if (actionItem) {
-      //       actionItem.busy = false;
-      //       this.ref.detectChanges();
-      //     }
-      //     if (logalot) { console.log(`${lc2} complete. (I: d88dcaeb874c4f049d51d58655dc2b62)`); }
-      //   }
-      // };
-      // reader.readAsDataURL(file);
+      // rel8 to context and nav
+      await this._rel8ToCurrentContext({
+        ibGibToRel8: newPic,
+        rel8nNames: ['pic'],
+      });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       // doesn't rethrow at this level
@@ -546,7 +471,6 @@ export class ActionBarComponent extends IbgibComponentBase
         await this._rel8ToCurrentContext({
           ibGibToRel8: resGet_Local.ibGibs[0],
           rel8nNames: ['import'],
-          navigateAfter: true,
         });
         return;
       }
@@ -589,13 +513,11 @@ export class ActionBarComponent extends IbgibComponentBase
 
           } else {
             // not found
-            debugger; // look at rawResult if you wish
             if (logalot) { console.log(`${lc} NOT found ibgib (${addr}) in space (${spaceAddr}).`); }
             let rawResult = <SyncSpaceResultIbGib>resGet.rawResultIbGib;
           }
         } else {
-          debugger;
-          throw new Error(`resGet.success falsy, but get should not be throwing... addr: (${addr}) in space (${spaceAddr}). (E: b200973da68343b58bddb48c2274a6e1)(UNEXPECTED)`);
+          throw new Error(`(UNEXPECTED) resGet.success falsy, but get should not be throwing... addr: (${addr}) in space (${spaceAddr}). (E: b200973da68343b58bddb48c2274a6e1)`);
         }
       }
 
@@ -612,12 +534,10 @@ export class ActionBarComponent extends IbgibComponentBase
           await this._rel8ToCurrentContext({
             ibGibToRel8: gotIbGib,
             rel8nNames: ['import'],
-            navigateAfter: true,
           });
 
         } else {
-          debugger;
-          throw new Error(`error(s) saving in local space: ${resPutGraph.errorMsg}`);
+          throw new Error(`(UNEXPECTED) error(s) saving in local space: ${resPutGraph.errorMsg} (E: 5c5a7bf28cc84ea0b03239f4c4c4e4d4)`);
         }
 
       } else {
@@ -654,10 +574,6 @@ export class ActionBarComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.handleCommentDetailChange.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
-      // if (!event?.target?.textContent) {
-      //   debugger;
-      //   throw new Error(`event?.target?.textContent falsy (E: 39a1e8879a06a8d77a20da1a0e544c22)`);
-      // }
       const text: string = event.target.textContent || '';
       this.actionDetailCommentText = text.trim();
     } catch (error) {
@@ -671,9 +587,6 @@ export class ActionBarComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.handleCommentDetailChange.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
-      if (!event?.detail?.value) {
-        throw new Error(`event?.detail?.value falsy (E: a12a6fcf0ac1a9d09b45cdcd05d32622)`);
-      }
       const text: string = event.detail.value || '';
       this.actionDetailImportText = text.trim();
     } catch (error) {
@@ -685,7 +598,7 @@ export class ActionBarComponent extends IbgibComponentBase
   }
 
   async handleCommentDetailInput(event: KeyboardEvent): Promise<void> {
-    // const lc = `${this.lc}[${this.handleCommentDetailInput}]`;
+    const lc = `${this.lc}[${this.handleCommentDetailInput}]`;
     if (!this.actionDetailVisible) { this.actionDetailVisible = true; }
     if ((!event.shiftKey) &&
       this.platform === 'web' &&

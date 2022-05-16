@@ -13,7 +13,7 @@ import * as c from '../constants';
 import {hasTjp} from './ibgib';
 import { BootstrapData, BootstrapRel8ns } from '../types/space';
 
-// const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 /**
  * validates the ibGib's address (`ib` and `gib` properties) and recalculates
@@ -40,12 +40,13 @@ export async function validateIbGibIntrinsically({
     try {
         let errors: string[] = [];
         if (ibGib) {
-            errors = validateIbGibAddr({addr: h.getIbGibAddr({ibGib})}) ?? [];
+            const addr = h.getIbGibAddr({ibGib});
+            errors = validateIbGibAddr({addr}) ?? [];
 
             if (errors.length > 0) {
-                debugger;
-                return errors;
-            } // returns
+                console.error(`${lc} errors found in addr: ${addr}`);
+                return errors; // <<<< returns early
+            }
 
             // rest of the function assumes correctly formatted ib and gib
 
@@ -58,13 +59,11 @@ export async function validateIbGibIntrinsically({
             // ensures that it is the same tjp gib.
             const gottenGib = await getGib({ibGib, hasTjp: hasTjp({ibGib})});
             if (gottenGib !== ibGib.gib) {
-                debugger;
                 errors.push(`Ibgib invalid intrinsically - gottenGib (${gottenGib}) does not equal ibGib.gib (${ibGib.gib}). (E: 7416db016878430ca3c5b20697f164ed)`);
             }
 
             return errors.length > 0 ? errors : null;
         } else {
-            debugger;
             errors.push(`ibGib is itself falsy. (E: 4fb98caf6ed24ef7b35a19cef56e2d7e)`);
             return errors;
         }
@@ -113,6 +112,10 @@ export function validateIbGibAddr({
         // ...gib
         const resValidateGib = validateGib({gib, ibGibAddrDelimiter: delimiter, version});
         if (resValidateGib) { errors = errors.concat(resValidateGib); }
+
+        if (errors.length > 0) {
+            if (logalot) { console.log(`${lc} errors.length > 0. errors: ${errors.join('|')} (I: 9c18f993e138f15613e4c6a340d41722)`); }
+        }
 
         // we're done
         return errors.length > 0 ? errors : null;

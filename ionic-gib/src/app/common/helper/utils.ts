@@ -21,7 +21,6 @@ export function groupBy<TItem>({
         }
         return result;
     } catch (error) {
-        debugger;
         console.error(`${lc} ${error.message}`);
         throw error;
     }

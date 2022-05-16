@@ -299,7 +299,6 @@ export abstract class SpaceBase_V1<
             const ibGibs  = arg.ibGibs;
             if (!cmd) { errors.push(`arg.data.cmd required (E: 72a11ee87a0d4896bcacd65a9c0284d9)`); }
             if (!Object.values(IbGibSpaceOptionsCmd).includes(<any>cmd)) { errors.push(`unknown arg.data.cmd: ${cmd}. (E: 95282ce61e97429f8049e61ec9f14f0b)`); }
-            // debugger;
             const ibGibAddrsLength = ibGibAddrs?.length ?? 0;
             if (
                 cmd === IbGibSpaceOptionsCmd.get &&
@@ -321,7 +320,6 @@ export abstract class SpaceBase_V1<
                     // confirm the incoming ibGibs match up with the addresses
                     // we have in `ibGibAddrs`.
                     if (ibGibsLength !== ibGibAddrsLength) {
-                        debugger;
                         errors.push(`ibGibsLength !== ibGibAddrsLength and this.data.validateIbGibAddrsMatchIbGibs is true. (E: 6c6bf824ab32443aa4d6b8bf4f8113dd)`);
                     } else {
                         // lengths match, so validate ibgibs

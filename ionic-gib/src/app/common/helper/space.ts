@@ -105,7 +105,6 @@ export async function getFromSpace({
         }
         addrs = (addrs ?? []).length > 0 ? addrs : [addr];
 
-        if (!space.argy) { debugger; }
         const argGet = await space.argy({
             ibMetadata: getSpaceArgMetadata({space}),
             argData: {
@@ -167,7 +166,6 @@ export async function putInSpace({
         ibGibs = ibGibs ?? [ibGib];
 
         if (logalot) { console.log(`${lc} ibGibs.length: ${ibGibs.length}`)}
-        if (!space.argy) { debugger; }
         const argPutIbGibs = await space.argy({
             ibMetadata: getSpaceArgMetadata({space}),
             argData: {
@@ -207,7 +205,6 @@ export async function deleteFromSpace({
     try {
         if (!space) { throw new Error(`space required. (E: 40ab3b51e91c4b5eb4f215baeefbcef0)`); }
 
-        if (!space.argy) { debugger; }
         const argDel = await space.argy({
             ibMetadata: getSpaceArgMetadata({space}),
             argData: {
@@ -417,7 +414,6 @@ export async function getDependencyGraph({
                     // failed
                     throw new Error(`unable to retrieve dependency ibgibs from space.\n\nThis is often because downloading failed due to the sync space's server getting temporarily overloaded, OR...it sometimes happens when an ibgib doesn't get fully published to the sync space in the first place.\n\nYou could retry immediately or later, but if the problem persists, then retry from the publishers end (have the publisher sync again). (E: 8413594b6c1b447988781cf3f3e1729d)`);
                 } else {
-                    debugger;
                     throw new Error(`retrieved only partial ibGibs from space? (E: 7135746742504724bb5b9644d463e648)(UNEXPECTED)`);
                 }
             }
@@ -491,16 +487,13 @@ export async function getDependencyGraph({
                     // `gotten` map of ibgibs already processed.
                     return await getDependencyGraph({ibGibs: resGet.ibGibs, gotten, skipAddrs, skipRel8nNames, space}); // <<<< returns early
                 } else if (resGet.ibGibs?.length > 0 && resGet.ibGibs.length < addrsWeDontHaveAlready_Rel8dAddrs.length) {
-                    debugger;
                     if (logalot) { console.warn(`${lc} got SOME of them (happy-ish path?). not sure what to do here... (W: e3458f61a1ae4979af9e6b18ac935c14)`); }
                     throw new Error(`trouble getting dependency ibgibs (E: 8156bf65fd084ae4a4e8a0669db28b07)`);
                 } else if (resGet.ibGibs?.length > 0 && resGet.ibGibs.length > addrsWeDontHaveAlready_Rel8dAddrs.length) {
                     // got more than our original list? not a good space behavior...
-                    debugger;
                     throw new Error(`(UNEXPECTED) got more ibGibs than addrs that we asked for. space not working properly. (E: 352219b3d18543bcbda957f2d60b78f3)`);
                 } else {
                     // didn't get any...hmm...
-                    debugger;
                     throw new Error(`couldn't get dependency ibgibs from space. (E: 225f26b7d7f84911bb033753a062209b)`);
                 }
             } else {
@@ -544,7 +537,6 @@ export async function persistTransformResult({
 
         const { newIbGib, intermediateIbGibs, dnas } = resTransform;
         const ibGibs = [newIbGib, ...(intermediateIbGibs || [])];
-        if (!space.argy) { debugger; }
         const argPutIbGibs = await space.argy({
             ibMetadata: getSpaceArgMetadata({space}),
             argData: {
@@ -565,7 +557,6 @@ export async function persistTransformResult({
             throw new Error(errorMsg);
         }
 
-        if (!space.argy) { debugger; }
         if (dnas?.length > 0) {
             const argPutDnas = await space.argy({
                 ibMetadata: getSpaceArgMetadata({space}),
@@ -739,7 +730,6 @@ export async function getSpecialIbGib({
         if (resSpecial.ibGibs?.length !== 1) { throw new Error(`no ibGib in result`); }
         return resSpecial.ibGibs![0];
     } catch (error) {
-        debugger;
         console.error(`${lc} ${error.message}`);
         return null;
     }
@@ -2372,7 +2362,6 @@ export async function getValidatedBootstrapIbGib({
         const bootstrapAddr = c.BOOTSTRAP_IBGIB_ADDR;
 
         if (logalot) { console.log(`${lc} getting from zeroSpace...`); }
-        if (!zeroSpace.argy) { debugger; }
         const argGet = await zeroSpace.argy({
             ibMetadata: getSpaceArgMetadata({space: zeroSpace}),
             argData: {
@@ -2503,7 +2492,6 @@ export async function getLocalSpace<TSpace extends IbGibSpaceAny>({
 
         const fnGet: () => Promise<TSpace> = async () => {
 
-            if (!zeroSpace.argy) { debugger; }
             const argGet = await zeroSpace.argy({
                 ibMetadata: getSpaceArgMetadata({space: zeroSpace}),
                 argData: {
@@ -2538,7 +2526,6 @@ export async function getLocalSpace<TSpace extends IbGibSpaceAny>({
         }
 
     } catch (error) {
-        debugger;
         console.error(`${lc} ${error.message}`);
         throw error;
     }
@@ -2677,7 +2664,6 @@ export async function unlockSpace({
                     }
                 };
             } else {
-                debugger; // just curious if gets here ever
                 console.warn(`${lc} ${emsg} (W: 14c84fcac15944bd9a417099964d5d9d)`);
             }
         }
@@ -2799,7 +2785,6 @@ export async function updateBootstrapIbGib({
 
         // save the bootstrap^gib in the zero space for future space loadings,
         // especially when the app first starts up
-        if (!zeroSpace.argy) { debugger; }
         const argPutBootstrap = await zeroSpace.argy({
             ibMetadata: bootstrapIbGib.ib,
             argData: {
@@ -2983,7 +2968,6 @@ export async function getLatestAddrs({
                 if (!addrHasExistingTjpGib) { addrsToQuery.add(ibGibAddr); }
             });
 
-        if (!space.argy) { debugger; } // remove at some point...
 
         // construct the arg and execute
         const argGet = await space.argy({
@@ -2996,7 +2980,6 @@ export async function getLatestAddrs({
         });
         return await space.witness(argGet);
     } catch (error) {
-        debugger; // until done with this function
         console.error(`${lc} ${error.message}`);
         throw error;
     }

@@ -25,18 +25,40 @@ ion-buttons {
   // flex-direction: column;
   width: 100%;
   overflow: hidden;
-  margin: 0px 0px 0px -19px;
+  margin: 0px 0px 0px -18px;
   padding: 6px 6px 6px 18px;
 }
 
+
 #robbot-bar-label {
   height: 100%;
-  padding: 6px;
+  padding: 6px 6px 6px 6px;
   margin-right: 2px;
 }
 
-// ion-toolbar {
-//     width: 100%;
-//     display: flex;
-//     flex-direction: column;
-// }
+@media (max-width: 350px) {
+  #robbot-name {
+    width: 100%;
+    overflow: hidden;
+    margin: 0px 0px 0px -18px;
+    padding: 6px 6px 6px 18px;
+  }
+}
+
+@media (min-width: 350px) and (max-width: 900px) {
+  #robbot-name {
+    width: 100%;
+    overflow: hidden;
+    margin: 0px 0px 0px -22px;
+    padding: 6px 6px 6px 22px;
+  }
+}
+
+@media (min-width: 900px) {
+  #robbot-name {
+    width: 100%;
+    overflow: hidden;
+    margin: 0px 0px 0px -23px;
+    padding: 6px 6px 6px 23px;
+  }
+}

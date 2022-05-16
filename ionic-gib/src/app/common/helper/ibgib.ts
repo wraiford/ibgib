@@ -486,7 +486,6 @@ export function mergeMapsOrArrays_Naive<T extends {}|any[]>({
 }): T {
     const lc = `[${mergeMapsOrArrays_Naive.name}]`;
     try {
-        debugger; // first run
         if (Array.isArray(dominant) && Array.isArray(recessive)) {
             // arrays
             let output: any[] = <any[]>h.clone(<any[]>dominant);
@@ -547,7 +546,6 @@ export function mergeMapsOrArrays_Naive<T extends {}|any[]>({
             return <T>dominant;
         }
     } catch (error) {
-        debugger; // what up wit dit
         console.error(`${lc} ${error.message}`);
         throw error;
     }
