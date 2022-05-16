@@ -405,6 +405,11 @@ export async function getDependencyGraph({
         // go ahead and retrieve any associated ibGibs from the space that we
         // don't already have (if any)
         if (addrsWeDontHaveAlready_IncomingIbGibAddrs.length > 0) {
+            const primaryKeysDebug: { [addr: string]: string } = {};
+            for (let i = 0; i < addrsWeDontHaveAlready_IncomingIbGibAddrs.length; i++) {
+                const addr = addrsWeDontHaveAlready_IncomingIbGibAddrs[i];
+                primaryKeysDebug[addr] = await h.hash({s: addr, algorithm: 'SHA-256'});
+            }
             let resGetThese = await getFromSpace({addrs: addrsWeDontHaveAlready_IncomingIbGibAddrs, space});
             if (resGetThese.success) {
                 if ((resGetThese.ibGibs ?? []).length === addrsWeDontHaveAlready_IncomingIbGibAddrs.length) {
@@ -414,6 +419,8 @@ export async function getDependencyGraph({
                     // failed
                     throw new Error(`unable to retrieve dependency ibgibs from space.\n\nThis is often because downloading failed due to the sync space's server getting temporarily overloaded, OR...it sometimes happens when an ibgib doesn't get fully published to the sync space in the first place.\n\nYou could retry immediately or later, but if the problem persists, then retry from the publishers end (have the publisher sync again). (E: 8413594b6c1b447988781cf3f3e1729d)`);
                 } else {
+                    console.dir(primaryKeysDebug);
+                    debugger;
                     throw new Error(`retrieved only partial ibGibs from space? (E: 7135746742504724bb5b9644d463e648)(UNEXPECTED)`);
                 }
             }

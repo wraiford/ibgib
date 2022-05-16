@@ -630,10 +630,11 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
             if (isNewer) {
                 await this.updateIbGib_NewerTimelineFrame(info);
             } else {
-                console.warn(`${lc} ignoring "latest" info because it's not newer. We're going to register this.ibGib the new latest as a fix for recent test data. (W: c88d135984c39a2aaefd48620d913b22)`);
+                console.warn(
+                    `${lc} ignoring "latest" info because it's not newer. We're going to register this.ibGib the new latest as a fix for recent test data.\nthis.addr: ${this.addr}\nlatestAddr: ${info.latestAddr} (W: c88d135984c39a2aaefd48620d913b22)`);
                 if (logalot) { console.log(`${lc} current: ${h.pretty(this.ibGib)}, "latest": ${h.pretty(info_latestIbGib)} (I: c89622ffc6ca1be7f668940c26fb5b22)`); }
                 // the following call is idempotent, so okay here in base class.
-                await this.common.ibgibs.registerNewIbGib({ibGib: this.ibGib});
+                // await this.common.ibgibs.registerNewIbGib({ibGib: this.ibGib});
             }
         } catch (error) {
             console.error(`${lc} ${error.message}`);

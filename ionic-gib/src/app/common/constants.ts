@@ -457,8 +457,8 @@ export const DEFAULT_PRIMARY_KEY_NAME = 'ibGibAddrHash';
 /** Max number of retries due to throughput failures */
 export const DEFAULT_AWS_MAX_RETRY_THROUGHPUT = 3;
 export const DEFAULT_AWS_MAX_RETRY_UNPROCESSED_ITEMS = 5;
-export const DEFAULT_AWS_PUT_BATCH_SIZE = 25;
-export const DEFAULT_AWS_GET_BATCH_SIZE = 100;
+export const DEFAULT_AWS_PUT_BATCH_SIZE = 22;
+export const DEFAULT_AWS_GET_BATCH_SIZE = 90;
 export const DEFAULT_AWS_PUT_THROTTLE_MS = 1000;
 export const DEFAULT_AWS_GET_THROTTLE_MS = 500;
 /** Will send query commands in parallel in batches of this size.  */

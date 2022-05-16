@@ -1744,7 +1744,15 @@ export class AWSDynamoSpace_V1<
             let addrs = ibGibAddrs.concat();
 
             let runningCount = 0;
-            const batchSize = this.data.getBatchSize || c.DEFAULT_AWS_GET_BATCH_SIZE;
+            let batchSize = this.data.getBatchSize || c.DEFAULT_AWS_GET_BATCH_SIZE;
+            if (batchSize > c.DEFAULT_AWS_GET_BATCH_SIZE) {
+                console.warn(`${lc} this.data.queryBatchSize exceeds allowed size of ${c.DEFAULT_AWS_GET_BATCH_SIZE}. setting to this max size. (W: 6e8789252f654c9397554e2a7f0d2fcc)`);
+                batchSize = c.DEFAULT_AWS_GET_BATCH_SIZE;
+            }
+            if (batchSize < 1) {
+                console.warn(`${lc} batchSize < 1. Setting to 1. (W: fbc52d4dfa3544f491a3dc276658fc2f)`);
+                batchSize = 1;
+            }
             const throttleMs = this.data.throttleMsBetweenGets || c.DEFAULT_AWS_GET_THROTTLE_MS;
             const rounds = Math.ceil(addrs.length / batchSize);
             for (let i = 0; i < rounds; i++) {
@@ -2154,6 +2162,11 @@ export class AWSDynamoSpace_V1<
         try {
             // const maxRetries = this.data.maxRetryThroughputCount || c.DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
 
+            // make a copy of the master list. ibGibAddrs will mutate per batch.
+            // (not great, but I'm reusing existing code to do batching...eesh)
+            let allAddrs= ibGibAddrs.concat();
+            let allAddrsWorkingCopy = ibGibAddrs.concat();
+
             let retryUnprocessedItemsCount = 0;
             const projectionExpression = 'ib,gib'
             const doItems = async (unprocessedKeys?: KeysAndAttributes) => {
@@ -2222,7 +2235,42 @@ export class AWSDynamoSpace_V1<
             }
 
             // triggers first run, which may have recursive calls
+            // need to do items in batches
+
+            let runningCount = 0;
+            let batchSize = this.data.getBatchSize || c.DEFAULT_AWS_GET_BATCH_SIZE;
+            if (batchSize > c.DEFAULT_AWS_GET_BATCH_SIZE) {
+                console.warn(`${lc} this.data.queryBatchSize exceeds allowed size of ${c.DEFAULT_AWS_GET_BATCH_SIZE}. setting to this max size. (W: ac6886e168944343ab75b41aea2950be)`);
+                batchSize = c.DEFAULT_AWS_GET_BATCH_SIZE;
+            }
+            if (batchSize < 1) {
+                console.warn(`${lc} batchSize < 1. Setting to 1. (W: b8d96a52e4d4400bb5b6f5575145abba)`);
+                batchSize = 1;
+            }
+            const throttleMs = this.data.throttleMsBetweenGets || c.DEFAULT_AWS_GET_THROTTLE_MS;
+            const rounds = Math.ceil(ibGibAddrs.length / batchSize);
+            for (let i = 0; i < rounds; i++) {
+                if (i > 0) {
+                    if (logalot) { console.log(`${lc} delaying ${throttleMs}ms`); }
+                    await h.delay(throttleMs);
+                }
+                let addrsToDoNextRound = addrs.splice(batchSize);
+                const gotIbGibs =
+                    await this.getIbGibsBatch({ibGibAddrs: addrs, client, errors, addrsNotFound});
+                ibGibs = [...ibGibs, ...gotIbGibs];
+
+                if (errors.length > 0) {
+                    if (logalot) { console.log(`${lc} errors.length > 0, breaking... (I: cb90edde840c03f3687330bed4f82622)`); }
+                    break;
+                }
+
+                runningCount = ibGibs.length;
+                if (logalot) { console.log(`${lc} runningCount: ${runningCount}...`); }
+                addrs = addrsToDoNextRound;
+            }
+
             await doItems();
+
             // at this point, all items are done.
 
             // populate which ones were not found.
@@ -2291,7 +2339,11 @@ export class AWSDynamoSpace_V1<
 
             // execute rounds in batches, depending on this AWS dynamo space settings.
             let runningCount = 0;
-            const batchSize = this.data.queryBatchSize || c.DEFAULT_AWS_QUERY_LATEST_BATCH_SIZE;
+            let batchSize = this.data.queryBatchSize || c.DEFAULT_AWS_QUERY_LATEST_BATCH_SIZE;
+            if (batchSize > c.DEFAULT_AWS_QUERY_LATEST_BATCH_SIZE) {
+                console.warn(`${lc} this.data.queryBatchSize exceeds allowed size of ${c.DEFAULT_AWS_QUERY_LATEST_BATCH_SIZE}. setting to this max size. (W: a7015e45d61f4d5aa0a10712fecd596c)`)
+                batchSize = c.DEFAULT_AWS_QUERY_LATEST_BATCH_SIZE;
+            }
             const throttleMs = this.data.throttleMsBetweenGets || c.DEFAULT_AWS_GET_THROTTLE_MS;
             const rounds = Math.ceil(infos.length / batchSize);
             for (let i = 0; i < rounds; i++) {
@@ -3362,7 +3414,7 @@ export class AWSDynamoSpace_V1<
             // that are currently in the store.
             const resLatestAddrsMap =
                 await this.getLatestIbGibAddrsInStore({client, ibGibs, errors, warnings});
-            if (errors.length > 0) { throw new Error(`[getLatestAddrsInStore] errors: ${errors.join('|')} (E: 0c929b53b906412781da867c68288b03)`); }
+            if (errors.length > 0) { throw new Error(`${lc}[${this.getLatestIbGibAddrsInStore.name}] errors: ${errors.join('|')} (E: 0c929b53b906412781da867c68288b03)`); }
             if (warnings.length > 0) {
                 console.warn(`${lc}[getLatestAddrsInStore] warnings: ${warnings.join('|')} (W: 9bca93caf1bd43218da0749a62c8f722) `)
                 warnings = [];
