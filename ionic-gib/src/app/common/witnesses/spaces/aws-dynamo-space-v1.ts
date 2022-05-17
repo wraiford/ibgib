@@ -2143,6 +2143,14 @@ export class AWSDynamoSpace_V1<
             errors.push(error.message);
         }
     }
+
+    /**
+     * builds a map of addr: boolean for existence in store.
+     *
+     * does not throw. populates `errors` & `warnings` if any.
+     *
+     * @returns map of addr: boolean for existence in store
+     */
     protected async existsInStore({
         client,
         ibGibAddrs,
@@ -2155,17 +2163,92 @@ export class AWSDynamoSpace_V1<
         warnings: string[],
     }): Promise<{[addr: string]: boolean}> {
         const lc = `${this.lc}[${this.existsInStore.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            if (!errors) { throw new Error(`errors array (empty or not) required (E: 409b726324a80f9d7889671e18e23322)`); }
+            if (!warnings) { throw new Error(`warnings array (empty or not) required (E: ef33f0734f80405bb9dead37ef6fa0f1)`); }
+
+            let addrs = ibGibAddrs.concat();
+            let resExists_Aggregate: {[addr: string]: boolean} = {};
+
+            let runningCount = 0;
+            let batchSize = this.data.getBatchSize || c.DEFAULT_AWS_GET_BATCH_SIZE;
+            if (batchSize > c.DEFAULT_AWS_GET_BATCH_SIZE) {
+                console.warn(`${lc} this.data.getBatchSize exceeds allowed size of ${c.DEFAULT_AWS_GET_BATCH_SIZE}. setting to this max size. (W: 2c80e69d2ba7448f9427c6009d42a06c)`);
+                batchSize = c.DEFAULT_AWS_GET_BATCH_SIZE;
+            }
+            if (batchSize < 1) {
+                console.warn(`${lc} batchSize < 1. Setting to 1. (W: fbc52d4dfa3544f491a3dc276658fc2f)`);
+                batchSize = 1;
+            }
+            const throttleMs = this.data.throttleMsBetweenGets || c.DEFAULT_AWS_GET_THROTTLE_MS;
+            const rounds = Math.ceil(addrs.length / batchSize);
+            for (let i = 0; i < rounds; i++) {
+                // throttle between calls slightly
+                if (i > 0) {
+                    if (logalot) { console.log(`${lc} delaying ${throttleMs}ms`); }
+                    await h.delay(throttleMs);
+                }
+                // prepare batch call
+                let addrsToDoNextRound = addrs.splice(batchSize);
+                const errors_Batch: string[] = [];
+                const warnings_Batch: string[] = [];
+
+                // execute batch call
+                let resExists_Batch = await this.existsInStoreBatch({
+                    client,
+                    ibGibAddrs: addrs,
+                    errors: errors_Batch,
+                    warnings: warnings_Batch,
+                });
+
+                // update our aggregate result map
+                resExists_Aggregate = { ...resExists_Aggregate, ...resExists_Batch };
+
+                // update our aggregate incoming errors/warnings
+                errors_Batch.forEach(x => errors.push(x));
+                warnings_Batch.forEach(x => warnings.push(x));
+
+                if (errors.length > 0) {
+                    if (logalot) { console.log(`${lc} errors.length > 0, breaking... (I: cb90edde840c03f3687330bed4f82622)`); }
+                    break;
+                }
+
+                runningCount = Object.keys(resExists_Aggregate).length;
+                if (logalot) { console.log(`${lc} runningCount: ${runningCount}...`); }
+                addrs = addrsToDoNextRound;
+            }
+
+            if (logalot) { console.log(`${lc} total: ${runningCount}.`); }
+
+            return resExists_Aggregate;
+        } catch (error) {
+            const emsg = `${lc} ${error.message}`;
+            console.error(emsg);
+            if (errors) { errors.push(emsg); }
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    protected async existsInStoreBatch({
+        client,
+        ibGibAddrs,
+        errors,
+        warnings,
+    }: {
+        client: DynamoDBClient,
+        ibGibAddrs: IbGibAddr[],
+        errors: string[],
+        warnings: string[],
+    }): Promise<{[addr: string]: boolean}> {
+        const lc = `${this.lc}[${this.existsInStoreBatch.name}]`;
         errors = errors ?? [];
         warnings = warnings ?? [];
         const ibGibAddrsThatExistInStore: IbGibAddr[] = [];
         const resExistsMap: {[addr: string]: boolean} = {};
         try {
             // const maxRetries = this.data.maxRetryThroughputCount || c.DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
-
-            // make a copy of the master list. ibGibAddrs will mutate per batch.
-            // (not great, but I'm reusing existing code to do batching...eesh)
-            let allAddrs= ibGibAddrs.concat();
-            let allAddrsWorkingCopy = ibGibAddrs.concat();
 
             let retryUnprocessedItemsCount = 0;
             const projectionExpression = 'ib,gib'
@@ -2235,39 +2318,6 @@ export class AWSDynamoSpace_V1<
             }
 
             // triggers first run, which may have recursive calls
-            // need to do items in batches
-
-            let runningCount = 0;
-            let batchSize = this.data.getBatchSize || c.DEFAULT_AWS_GET_BATCH_SIZE;
-            if (batchSize > c.DEFAULT_AWS_GET_BATCH_SIZE) {
-                console.warn(`${lc} this.data.queryBatchSize exceeds allowed size of ${c.DEFAULT_AWS_GET_BATCH_SIZE}. setting to this max size. (W: ac6886e168944343ab75b41aea2950be)`);
-                batchSize = c.DEFAULT_AWS_GET_BATCH_SIZE;
-            }
-            if (batchSize < 1) {
-                console.warn(`${lc} batchSize < 1. Setting to 1. (W: b8d96a52e4d4400bb5b6f5575145abba)`);
-                batchSize = 1;
-            }
-            const throttleMs = this.data.throttleMsBetweenGets || c.DEFAULT_AWS_GET_THROTTLE_MS;
-            const rounds = Math.ceil(ibGibAddrs.length / batchSize);
-            for (let i = 0; i < rounds; i++) {
-                if (i > 0) {
-                    if (logalot) { console.log(`${lc} delaying ${throttleMs}ms`); }
-                    await h.delay(throttleMs);
-                }
-                let addrsToDoNextRound = addrs.splice(batchSize);
-                const gotIbGibs =
-                    await this.getIbGibsBatch({ibGibAddrs: addrs, client, errors, addrsNotFound});
-                ibGibs = [...ibGibs, ...gotIbGibs];
-
-                if (errors.length > 0) {
-                    if (logalot) { console.log(`${lc} errors.length > 0, breaking... (I: cb90edde840c03f3687330bed4f82622)`); }
-                    break;
-                }
-
-                runningCount = ibGibs.length;
-                if (logalot) { console.log(`${lc} runningCount: ${runningCount}...`); }
-                addrs = addrsToDoNextRound;
-            }
 
             await doItems();
 
