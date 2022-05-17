@@ -1,21 +1,23 @@
 /**
- * @module AWSDynamoSpace_V1 space provides an interface for a sync space
- * with the substrate that uses DynamoDB for most ibGibs and S3 for
- * ibGibs that are too large for DynamoDB (e.g. binaries). These still
- * have a record inserted into DynamoDB, but the entire ibGib is stored
- * in S3.
+ * @module AWSDynamoSpace_V1 space provides a sync space substrate that uses
+ * DynamoDB for most ibGibs and S3 for ibGibs that are too large for DynamoDB
+ * (e.g. binaries). These still have a record inserted into DynamoDB, but the
+ * entire ibGib is stored in S3.
  *
  * ## DynamoDB
  *
  * ## S3
+ *
  * This space uses S3 for large ibgib storage and all binaries (ibgibs that
  * start with `bin.` in the `ib`.)
  *
  * ### CORS
  *
- * CORS is a factor when configuring S3 bucket. This config is found in
- * the same folder as this space atow, in AWS_S3_CORS.json.
+ * CORS is a factor when configuring S3 bucket. This config is found in the same
+ * folder as this space atow, in AWS_S3_CORS.json.
  *
+ * @see {@link SpaceBase_V1}
+ * @see {@link IbGibSpace}
  */
 
 // #region imports
@@ -36,7 +38,7 @@ import { ReplaySubject } from 'rxjs/internal/ReplaySubject';
 
 import { IbGib_V1, Factory_V1 as factory, FORBIDDEN_ADD_RENAME_REMOVE_REL8N_NAMES, IbGibRel8ns_V1, GIB, ROOT} from 'ts-gib/dist/V1';
 import {
-    getIbGibAddr, Gib, Ib, IbGibAddr,
+    getIbGibAddr, Ib, IbGibAddr,
     TransformOpts, TransformOpts_Mut8, TransformOpts_Rel8,
     TransformResult,
     V1,

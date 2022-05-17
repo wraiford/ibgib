@@ -29,7 +29,7 @@ import { isExpired, getExpirationUTCString, getTimestampInTicks } from './utils'
 import { SimpleIbgibCacheService } from 'src/app/services/simple-ibgib-cache.service';
 import { IbGibCacheService } from '../types/ibgib';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 
 /**
@@ -252,6 +252,8 @@ export async function getDependencyGraph({
     gotten,
     skipAddrs,
     skipRel8nNames,
+    maxRetries,
+    msBetweenRetries,
     space,
 }: {
     /**
@@ -310,6 +312,16 @@ export async function getDependencyGraph({
      * I'm adding this to be able to skip getting dna ibgibs.
      */
     skipRel8nNames?: string[],
+    /**
+     * If not found when getting dependency graph, do we retry? This is the
+     * max number of retries.
+     */
+    maxRetries?: number,
+    /**
+     * If provided and {@link maxRetries} is non-zero, the next retry will be
+     * delayed this amount of time if one or more addrs are not found.
+     */
+    msBetweenRetries?: number,
     /**
      * Space within which we should be looking for ibGibs.
      */
@@ -405,25 +417,64 @@ export async function getDependencyGraph({
         // go ahead and retrieve any associated ibGibs from the space that we
         // don't already have (if any)
         if (addrsWeDontHaveAlready_IncomingIbGibAddrs.length > 0) {
+            // delete this related code when I'm done testing this.
             const primaryKeysDebug: { [addr: string]: string } = {};
             for (let i = 0; i < addrsWeDontHaveAlready_IncomingIbGibAddrs.length; i++) {
                 const addr = addrsWeDontHaveAlready_IncomingIbGibAddrs[i];
                 primaryKeysDebug[addr] = await h.hash({s: addr, algorithm: 'SHA-256'});
             }
-            let resGetThese = await getFromSpace({addrs: addrsWeDontHaveAlready_IncomingIbGibAddrs, space});
-            if (resGetThese.success) {
-                if ((resGetThese.ibGibs ?? []).length === addrsWeDontHaveAlready_IncomingIbGibAddrs.length) {
-                    // got them
-                    resGetThese.ibGibs.forEach(x => ibGibs.push(x));
-                } else if ((resGetThese.ibGibs ?? []).length === 0){
-                    // failed
-                    throw new Error(`unable to retrieve dependency ibgibs from space.\n\nThis is often because downloading failed due to the sync space's server getting temporarily overloaded, OR...it sometimes happens when an ibgib doesn't get fully published to the sync space in the first place.\n\nYou could retry immediately or later, but if the problem persists, then retry from the publishers end (have the publisher sync again). (E: 8413594b6c1b447988781cf3f3e1729d)`);
-                } else {
-                    console.dir(primaryKeysDebug);
-                    debugger;
-                    throw new Error(`retrieved only partial ibGibs from space? (E: 7135746742504724bb5b9644d463e648)(UNEXPECTED)`);
+
+            // get from space those we don't already have, with retries if applicable
+
+            // do multiple retry attempts if necessary and caller sets it.
+            let addrsToGet = addrsWeDontHaveAlready_IncomingIbGibAddrs.concat();
+            let retryCount = 0;
+            maxRetries = maxRetries ?? 0;
+            while (retryCount <= maxRetries && addrsToGet.length > 0) {
+                // delay if applicable
+                if (retryCount > 0 && msBetweenRetries) {
+                    if (logalot) { console.log(`${lc} retrying. addrsToGet (${addrsToGet.length}): ${addrsToGet} (I: 8460694cdd5518472680784c3b96a822)`); }
+                    await h.delay(msBetweenRetries);
                 }
+
+                // do the get
+                let resGetThese = await getFromSpace({addrs: addrsToGet, space});
+                if (resGetThese.success && resGetThese.ibGibs?.length > 0) {
+                    resGetThese.ibGibs.forEach(x => ibGibs.push(x));
+                    const gottenAddrs = resGetThese.ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
+                    if (gottenAddrs.length === addrsToGet.length) {
+                        // got them all, so we're done
+                        addrsToGet = [];
+                        break;
+                    } else {
+                        // got only some, prune addrsToGet for next retry (if any)
+                        addrsToGet = addrsToGet.filter(x => !gottenAddrs.includes(x));
+                    }
+                } else {
+                    // failed, addrsToGet stays the same
+                }
+                retryCount++;
             }
+            if (addrsToGet?.length > 0) {
+                console.dir(primaryKeysDebug);
+                debugger;
+                throw new Error(`unable to retrieve dependency ibgibs from space.\n\nThis is often because downloading failed due to the sync space's server getting temporarily overloaded, OR...it sometimes happens when an ibgib doesn't get fully published to the sync space in the first place.\n\nYou could retry immediately or later, but if the problem persists, then retry from the publishers end (have the publisher sync again). (E: 8413594b6c1b447988781cf3f3e1729d)`);
+            }
+
+            // let resGetThese = await getFromSpace({addrs: addrsWeDontHaveAlready_IncomingIbGibAddrs, space});
+            // if (resGetThese.success) {
+            //     if ((resGetThese.ibGibs ?? []).length === addrsWeDontHaveAlready_IncomingIbGibAddrs.length) {
+            //         // got them
+            //         resGetThese.ibGibs.forEach(x => ibGibs.push(x));
+            //     } else if ((resGetThese.ibGibs ?? []).length === 0){
+            //         // failed
+            //         throw new Error(`unable to retrieve dependency ibgibs from space.\n\nThis is often because downloading failed due to the sync space's server getting temporarily overloaded, OR...it sometimes happens when an ibgib doesn't get fully published to the sync space in the first place.\n\nYou could retry immediately or later, but if the problem persists, then retry from the publishers end (have the publisher sync again). (E: 8413594b6c1b447988781cf3f3e1729d)`);
+            //     } else {
+            //         console.dir(primaryKeysDebug);
+            //         debugger;
+            //         throw new Error(`retrieved only partial ibGibs from space? (E: 7135746742504724bb5b9644d463e648)(UNEXPECTED)`);
+            //     }
+            // }
         }
 
         // next, compile what could be a rather large list of rel8d ibgibAddrs

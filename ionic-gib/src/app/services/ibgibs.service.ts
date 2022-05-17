@@ -2127,7 +2127,7 @@ export class IbgibsService {
         space: localUserSpace,
       });
       if (appSyncSpaces.length === 0) {
-        const msg = `Can't sync without sync spaces. Cancelled.`;
+        const msg = `Can't sync without sync spaces...wrong password? Cancelling. Restart app to retry password (I know it sucks!...just me coding this thing right now)`;
         if (logalot) { console.log(`${lc} ${msg}`) };
         const fnAlert = getFnAlert();
         await fnAlert({title: "Cancelled", msg});
