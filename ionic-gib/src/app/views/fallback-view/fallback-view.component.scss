@@ -1,0 +1,19 @@
+:host {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 2px;
+}
+
+.is-title {
+  padding: 0px !important;
+  margin: 1px !important;
+  font-size: small;
+}
+
+.fallback-timestamp {
+  height: 15%;
+  font-size: small;
+  font-style: italic !important;
+  text-align: right;
+}

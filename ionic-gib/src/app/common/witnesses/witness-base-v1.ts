@@ -221,6 +221,7 @@ export abstract class WitnessBase_V1<
             const validationErrors_arg = await this.validateWitnessArg(arg);
             if (validationErrors_arg?.length > 0) {
                 for (const error of validationErrors_arg) { console.error(`${lc} ${error}`); }
+                debugger;
                 throw new Error(`arg validation failed. See \`WitnessBase_V1.validateWitnessArg\` (E: 51531a1d928a485e8ffc277145ec44e9)`);
             }
             if (logalot || this.trace) { console.log(`${lc} addr: ${getIbGibAddr(arg)}`); }

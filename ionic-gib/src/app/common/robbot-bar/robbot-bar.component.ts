@@ -87,7 +87,7 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
   }
 
   async handleRobbotSelectChange(event: any): Promise<void> {
-    console.log(`event: ${event.detail}`)
+    if (logalot) { console.log(`event: ${event.detail}`) }
     const robbotName = event?.detail?.value;
     console.log(`selectedRobbotName: ${this.selectedRobbotName}`);
     if (this.selectedRobbotName !== robbotName) {

@@ -2,7 +2,7 @@
 
 import { Component, OnInit, ChangeDetectorRef, Input, OnDestroy } from '@angular/core';
 import { NavigationEnd, Router, } from '@angular/router';
-import { MenuController, Platform } from '@ionic/angular';
+import { MenuController, } from '@ionic/angular';
 import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { Subscription } from 'rxjs';
@@ -18,11 +18,12 @@ import { CommonService } from './services/common.service';
 import { IbGibSpaceAny } from './common/witnesses/spaces/space-base-v1';
 import { createNewRobbot } from './common/helper/robbot';
 import { RobbotIbGib_V1 } from './common/types/robbot';
-import { RootData } from './common/types/ux';
+import { RootData, SpecialIbGibType } from './common/types/ux';
 import { SpaceId } from './common/types/space';
 import {
   getFn_promptCreateSecretIbGib, getFn_promptCreateEncryptionIbGib,
-  getFn_promptCreateOuterSpaceIbGib, getFn_promptUpdatePicIbGib, getFnAlert, getFn_promptRobbotIbGib
+  getFn_promptCreateOuterSpaceIbGib, getFn_promptUpdatePicIbGib,
+  getFnAlert, getFn_promptRobbotIbGib
 } from './common/helper/prompt-functions';
 import { createNewTag } from './common/helper/tag';
 import { validateIbGibIntrinsically, spaceNameIsValid } from './common/helper/validate';
@@ -159,6 +160,12 @@ export class AppComponent extends IbgibComponentBase
 
   @Input()
   menuOpen: string = 'tags';
+
+  @Input()
+  addingRobbot: boolean;
+
+  @Input()
+  addingTag: boolean;
 
   constructor(
     private splashScreen: SplashScreen,
@@ -1101,8 +1108,27 @@ export class AppComponent extends IbgibComponentBase
     return `${spaceType} ${spaceItem.title}`;
   }
 
-  @Input()
-  addingTag: boolean;
+
+  async handleGotoSpecial(type: SpecialIbGibType): Promise<void> {
+    const lc = `${this.lc}[${this.handleGotoSpecial.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      const specialIbGib = await this.common.ibgibs.getSpecialIbGib({type});
+      const specialAddr = h.getIbGibAddr({ibGib: specialIbGib});
+      if (specialAddr !== this.addr) {
+        await this.menu.close();
+        await this.go({
+          toAddr: specialAddr,
+          fromAddr: this.addr,
+        });
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 
   async handleAddTag(): Promise<void> {
     const lc = `${this.lc}[${this.handleAddTag.name}]`;
@@ -1119,9 +1145,6 @@ export class AppComponent extends IbgibComponentBase
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
-
-  @Input()
-  addingRobbot: boolean;
 
   async handleAddRobbot(): Promise<void> {
     const lc = `${this.lc}[${this.handleAddRobbot.name}]`;

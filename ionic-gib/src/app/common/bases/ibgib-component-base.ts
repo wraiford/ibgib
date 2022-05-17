@@ -257,7 +257,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         await h.delay(Math.ceil(Math.random()*16));
     }
 
-    async updateIbGib(addr: IbGibAddr): Promise<void> {
+    protected async updateIbGib(addr: IbGibAddr): Promise<void> {
         const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
         if (addr === this.addr) {
             return; // <<<< returns early
@@ -467,6 +467,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         }
 
         await this.loadType(item);
+        await this.loadTimestamp(item);
         if (item.type === 'pic') { await this.loadPic(item); }
         if (item.type === 'comment') { await this.loadComment(item); }
     }
@@ -523,7 +524,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
             const addr = binAddrs[binAddrs.length-1];
             if (logalot) { console.log(`${lc} getting bin addr: ${addr}`); }
             const resGet = await this.common.ibgibs.get({addr});
-            item.timestamp = data.timestamp;
+            // item.timestamp = data.timestamp;
             if (logalot) { console.log(`${lc} initial item.picSrc.length: ${item?.picSrc?.length}`); }
 
             item.filenameWithExt = `${data.filename || data.binHash}.${data.ext}`;
@@ -559,7 +560,15 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
 
         const data = <CommentData_V1>this.ibGib.data;
         item.text = data.text;
-        item.timestamp = data.textTimestamp || data.timestamp;
+    }
+
+    async loadTimestamp(item?: TItem): Promise<void> {
+        if (!this.ibGib?.data) { return; }
+        if (this.isComment) {
+            item.timestamp = this.ibGib?.data.textTimestamp || this.ibGib?.data.timestamp;
+        } else {
+            item.timestamp = this.ibGib?.data?.timestamp;
+        }
     }
 
     /**

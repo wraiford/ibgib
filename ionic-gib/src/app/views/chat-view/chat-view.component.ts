@@ -79,6 +79,8 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       // throw error; // don't rethrow atm
+    } finally {
+      setTimeout(() => this.ref.detectChanges());
     }
 
   }

@@ -1180,8 +1180,6 @@ export class IbGibPage extends IbgibComponentBase
       if (logalot) { console.log(`${lc} updates already available, so skipping poll call. (I: dcc433c400134ee45773c81c9af4fb22)`); }
       setTimeout(() => this.ref.detectChanges(), 100);
       setTimeout(() => this.ref.detectChanges(), 100);
-      setTimeout(() => this.ref.detectChanges(), 100);
-      setTimeout(() => this.ref.detectChanges(), 100);
       return; // <<<< returns early
     }
 
@@ -1189,85 +1187,90 @@ export class IbGibPage extends IbgibComponentBase
     this._pollingLatest_Store = true;
     try {
       if (!this.tjpAddr) { await this.loadTjp(); }
-      if (this.tjpAddr) {
-        if (logalot) { console.log(`${lc} this.tjpAddr: ${this.tjpAddr}`); }
-        // get our sync spaces
-        const appSyncSpaces = await this.common.ibgibs.getAppSyncSpaces({
-          unwrapEncrypted: true,
-          createIfNone: true,
-        });
-        const syncSpaceIds = appSyncSpaces.map(syncSpace => syncSpace?.data?.uuid);
-        if (logalot) { console.log(`${lc} syncSpaceIds: ${syncSpaceIds} (I: 141f050b682f1a1a23ebb06c69b2c422)`); }
+      if (!this.tjpAddr) {
+        if (logalot) { console.log(`${lc} this ibgib has no tjp. stopping further polling. (I: 5e79aba1ffb6490eb89994fa2415e4d4)`); }
+        this.stopPollLatest_Store();
+        return; // <<<< returns early
+      }
+      if (logalot) { console.log(`${lc} this.tjpAddr: ${this.tjpAddr}`); }
 
-        // look in each space (in parallel) for a newer latest address for a tjp
-        const spacesAndGetLatestAddrPromises = appSyncSpaces.map(syncSpace => {
-          // note this does NOT await, so we can await all in parallel
-          return <[IbGibSpaceAny, Promise<string>]>[
-            // the space
-            syncSpace,
-            // the promise
-            this.common.ibgibs.getLatestAddr({tjpAddr: this.tjpAddr, space: syncSpace}),
-          ];
-        });
-        /** This will track the updates across all sync spaces. */
-        let runningDiffCountAcrossAllSpaces = 0;
-        await Promise.all(spacesAndGetLatestAddrPromises.map(([_, p]) => p));
-        for (let i = 0; i < spacesAndGetLatestAddrPromises.length; i++) {
-          const lc2 = `${lc}[getLatestAddr]`;
-          try {
-            const [syncSpace, getLatestAddrPromise] = spacesAndGetLatestAddrPromises[i];
-            const spaceIb = syncSpace.ib;
-            if (!spaceIb) { throw new Error(`invalid space. ib required (E: 7194b47156afd9e492f7c4d8ea386d22)`); }
-            if (logalot) { console.log(`${lc} doing spaceIb: ${spaceIb} (I: 5facc3c362540642ea78196778b05622)`); }
-            const latestAddr = await getLatestAddrPromise;
-            if (logalot) { console.log(`${lc} latestAddr: ${latestAddr} (I: ebc8fac522767b94785ba4377f142f22)`); }
-            if (latestAddr !== this.addr) {
-              if (logalot) { console.log(`${lc} there is a new latest addr in the sync space. latestAddr: ${latestAddr} (I: 72cbfbb603b349f3a85b3265c679a9bf)`); }
-              // get the latest but don't save it, we're just going to see how many
-              // iterations we're behind.
-              const resLatestIbGib =
-                await this.common.ibgibs.get({addr: latestAddr, space: syncSpace});
-              if (resLatestIbGib.success && resLatestIbGib.ibGibs?.length > 0) {
-                const latestIbGib = resLatestIbGib.ibGibs[0];
-                const currentPastLength = this.ibGib.rel8ns?.past?.length ?? 0;
-                const latestPastLength_Store = latestIbGib.rel8ns?.past?.length ?? 0;
-                const diff = latestPastLength_Store - currentPastLength;
-                if (diff > 0) {
-                  if (logalot) { console.log(`${lc} newer ibgib in store. diff === ${diff} in spaceIb: ${spaceIb} (I: 7ca33c3361d54fb5918dea5ff1a5b1b5)`); }
-                  runningDiffCountAcrossAllSpaces += diff;
-                } else if (diff < 0) {
-                  if (this.autosync) {
-                    if (!this.syncing) {
-                      if (logalot) { console.log(`${lc} starting execSync automatically because local is newer than store latest ibgib... (I: d92f5c7a9bec749c4b4bd1b61a4a3e22)`); }
-                      await this.execSync({turnOnAutosyncing: false});
-                      if (logalot) { console.log(`${lc} executed sync, so aborting this poll call. (I: 9aa1a4dcba06bb6eee7db686a31ce822)`); }
-                    } else {
-                      if (logalot) { console.log(`${lc} local latestIbGib is newer than store, but already syncing in progress... (I: 029f69c149d614fb26412696efbcd122)`); }
-                    }
+      // get our sync spaces
+      const appSyncSpaces = await this.common.ibgibs.getAppSyncSpaces({
+        unwrapEncrypted: true,
+        createIfNone: true,
+      });
+      const syncSpaceIds = appSyncSpaces.map(syncSpace => syncSpace?.data?.uuid);
+      if (logalot) { console.log(`${lc} syncSpaceIds: ${syncSpaceIds} (I: 141f050b682f1a1a23ebb06c69b2c422)`); }
+
+      // look in each space (in parallel) for a newer latest address for a tjp
+      const spacesAndGetLatestAddrPromises = appSyncSpaces.map(syncSpace => {
+        // note this does NOT await, so we can await all in parallel
+        return <[IbGibSpaceAny, Promise<string>]>[
+          // the space
+          syncSpace,
+          // the promise
+          this.common.ibgibs.getLatestAddr({tjpAddr: this.tjpAddr, space: syncSpace}),
+        ];
+      });
+      /** This will track the updates across all sync spaces. */
+      let runningDiffCountAcrossAllSpaces = 0;
+      await Promise.all(spacesAndGetLatestAddrPromises.map(([_, p]) => p));
+      for (let i = 0; i < spacesAndGetLatestAddrPromises.length; i++) {
+        const lc2 = `${lc}[getLatestAddr]`;
+        try {
+          const [syncSpace, getLatestAddrPromise] = spacesAndGetLatestAddrPromises[i];
+          const spaceIb = syncSpace.ib;
+          if (!spaceIb) { throw new Error(`invalid space. ib required (E: 7194b47156afd9e492f7c4d8ea386d22)`); }
+          if (logalot) { console.log(`${lc} doing spaceIb: ${spaceIb} (I: 5facc3c362540642ea78196778b05622)`); }
+          const latestAddr = await getLatestAddrPromise;
+          if (logalot) { console.log(`${lc} latestAddr: ${latestAddr} (I: ebc8fac522767b94785ba4377f142f22)`); }
+          if (latestAddr !== this.addr) {
+            if (logalot) { console.log(`${lc} there is a new latest addr in the sync space. latestAddr: ${latestAddr} (I: 72cbfbb603b349f3a85b3265c679a9bf)`); }
+            // get the latest but don't save it, we're just going to see how many
+            // iterations we're behind.
+            const resLatestIbGib =
+              await this.common.ibgibs.get({addr: latestAddr, space: syncSpace});
+            if (resLatestIbGib.success && resLatestIbGib.ibGibs?.length > 0) {
+              const latestIbGib = resLatestIbGib.ibGibs[0];
+              const currentPastLength = this.ibGib.rel8ns?.past?.length ?? 0;
+              const latestPastLength_Store = latestIbGib.rel8ns?.past?.length ?? 0;
+              const diff = latestPastLength_Store - currentPastLength;
+              if (diff > 0) {
+                if (logalot) { console.log(`${lc} newer ibgib in store. diff === ${diff} in spaceIb: ${spaceIb} (I: 7ca33c3361d54fb5918dea5ff1a5b1b5)`); }
+                runningDiffCountAcrossAllSpaces += diff;
+              } else if (diff < 0) {
+                if (this.autosync) {
+                  if (!this.syncing) {
+                    if (logalot) { console.log(`${lc} starting execSync automatically because local is newer than store latest ibgib... (I: d92f5c7a9bec749c4b4bd1b61a4a3e22)`); }
+                    await this.execSync({turnOnAutosyncing: false});
+                    if (logalot) { console.log(`${lc} executed sync, so aborting this poll call. (I: 9aa1a4dcba06bb6eee7db686a31ce822)`); }
                   } else {
-                    console.warn(`${lc} local latestIbGib registered is newer than latest ibGib in store but autosync is off. (W: 6941969946b04f539ba4f15c6b68ea22)`);
-                    runningDiffCountAcrossAllSpaces += Math.abs(diff);
+                    if (logalot) { console.log(`${lc} local latestIbGib is newer than store, but already syncing in progress... (I: 029f69c149d614fb26412696efbcd122)`); }
                   }
                 } else {
-                  // equal
-                  if (logalot) { console.log(`${lc} diff === 0 (I: 9072dfeb65d140e196544cc9c1239222)`); }
+                  console.warn(`${lc} local latestIbGib registered is newer than latest ibGib in store but autosync is off. (W: 6941969946b04f539ba4f15c6b68ea22)`);
+                  runningDiffCountAcrossAllSpaces += Math.abs(diff);
                 }
+              } else {
+                // equal
+                if (logalot) { console.log(`${lc} diff === 0 (I: 9072dfeb65d140e196544cc9c1239222)`); }
               }
-            } else {
-              if (logalot) { console.log(`${lc} latestAddr === this.addr (I: 36a3b311076ae894ded4219e90807922)`); }
             }
-          } catch (error) {
-            console.error(`${lc} ${error.message}`);
-            throw error;
+          } else {
+            if (logalot) { console.log(`${lc} latestAddr === this.addr (I: 36a3b311076ae894ded4219e90807922)`); }
           }
+        } catch (error) {
+          console.error(`${lc} ${error.message}`);
+          throw error;
         }
-        if (runningDiffCountAcrossAllSpaces > 0) {
+      }
+      if (runningDiffCountAcrossAllSpaces > 0) {
+        if (this.autosync) {
+          await this.execSync({turnOnAutosyncing: false});
+        } else {
           this.tjpUpdatesAvailableCount_Store = runningDiffCountAcrossAllSpaces;
           setTimeout(() => this.ref.detectChanges());
         }
-      } else {
-        if (logalot) { console.log(`${lc} this ibgib has no tjp. stopping further polling. (I: 5e79aba1ffb6490eb89994fa2415e4d4)`); }
-        this.stopPollLatest_Store();
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);

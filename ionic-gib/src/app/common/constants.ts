@@ -255,6 +255,8 @@ export const DEFAULT_LIST_REL8N_NAMES: string[] = [
     'tagged', TAGGED_REL8N_NAME, TAG_REL8N_NAME,
     ROOT_REL8N_NAME, // hack for now to get all to show
     DEFAULT_ROOT_REL8N_NAME,
+    ROBBOT_REL8N_NAME,
+    SYNC_SPACE_REL8N_NAME,
 ]
 
 export const DEFAULT_META_IB_STARTS: Ib[] = [
@@ -458,7 +460,7 @@ export const DEFAULT_PRIMARY_KEY_NAME = 'ibGibAddrHash';
 export const DEFAULT_AWS_MAX_RETRY_THROUGHPUT = 3;
 export const DEFAULT_AWS_MAX_RETRY_UNPROCESSED_ITEMS = 5;
 export const DEFAULT_AWS_PUT_BATCH_SIZE = 22;
-export const DEFAULT_AWS_GET_BATCH_SIZE = 90;
+export const DEFAULT_AWS_GET_BATCH_SIZE = 100;
 export const DEFAULT_AWS_PUT_THROTTLE_MS = 1000;
 export const DEFAULT_AWS_GET_THROTTLE_MS = 500;
 /** Will send query commands in parallel in batches of this size.  */
@@ -478,8 +480,8 @@ export const AWS_ERROR_MSG_ITEM_SIZE_EXCEEDED = "Item size has exceeded the maxi
  * space for checking its internal state.
  *
  * Of course, long polling is very hacky, but so is using DynamoDB in the cloud
- * for a sync space. Obviously need to progress to a more mature and robust
- * sync space/outer space architecture.
+ * for a sync space. Obviously need to progress to a more mature and robust sync
+ * space/outer space architecture.
  */
 export const DEFAULT_LOCAL_SPACE_POLLING_INTERVAL_MS = 30_000;
 export const DEFAULT_LOCAL_SPACE_POLLING_DELAY_FIRST_RUN_MS = 10_000;

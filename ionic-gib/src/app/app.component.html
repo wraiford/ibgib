@@ -31,6 +31,24 @@
                   <ion-label>{{ spaceItem.title }}</ion-label>
                 </ion-button>
               </ion-item>
+              <ion-item lines="none">
+                <ion-buttons class="special-menu-btns">
+                  <ion-button
+                    title="goto spaces ibgib where all of your individual space ibgibs are"
+                    color="secondary"
+                    (click)="handleGotoSpecial('outerspaces')">
+                    <ion-icon slot="start" name="navigate-outline" color="primary"></ion-icon>
+                    <ion-label>goto</ion-label>
+                  </ion-button>
+                  <!-- <ion-button [disabled]="addingSpace"
+                    color="secondary"
+                    (click)="handleAddSpace()">
+                    <ion-spinner *ngIf="addingSpace" name="circles" color="primary"></ion-spinner>
+                    <ion-icon slot="start" name="add-outline" color="primary"></ion-icon>
+                    <ion-label>add</ion-label>
+                  </ion-button> -->
+                </ion-buttons>
+              </ion-item>
             </ion-list>
           </ion-accordion>
 
@@ -53,14 +71,25 @@
                   <ion-label>{{ tagItem.title }}</ion-label>
                 </ion-button>
               </ion-item>
-              <ion-item *ngIf='tagsAddr' lines="none" title="add tag">
-                <ion-button [disabled]="refreshing || addingTag || !ibGib"
-                  color="secondary"
-                  (click)="handleAddTag()">
-                  <ion-spinner *ngIf="refreshing || addingTag || !ibGib" name="circles" color="primary"></ion-spinner>
-                  <ion-icon slot="start" name="add-outline" color="primary"></ion-icon>
-                  <ion-label>add tag</ion-label>
-                </ion-button>
+              <ion-item lines="none">
+                <ion-buttons class="special-menu-btns">
+                  <ion-button [disabled]="addingTag"
+                    title="goto tags ibgib where all of your tags are"
+                    color="secondary"
+                    (click)="handleGotoSpecial('tags')">
+                    <ion-spinner *ngIf="addingTag" name="circles" color="primary"></ion-spinner>
+                    <ion-icon slot="start" name="navigate-outline" color="primary"></ion-icon>
+                    <ion-label>goto</ion-label>
+                  </ion-button>
+                  <ion-button [disabled]="refreshing || addingTag || !ibGib"
+                    title="add tag"
+                    color="secondary"
+                    (click)="handleAddTag()">
+                    <ion-spinner *ngIf="refreshing || addingTag || !ibGib" name="circles" color="primary"></ion-spinner>
+                    <ion-icon slot="start" name="add-outline" color="primary"></ion-icon>
+                    <ion-label>add</ion-label>
+                  </ion-button>
+                </ion-buttons>
               </ion-item>
               <ion-item *ngIf="!ibGib">
                 <ion-label color="primary">i believe...</ion-label>
@@ -89,16 +118,24 @@
                   <ion-label>{{ robbotItem.title }}</ion-label>
                 </ion-button>
               </ion-item>
-              <ion-item *ngIf='robbotsAddr'
-                lines="none" title="add robbot"
-                >
-                <ion-button [disabled]="refreshing || addingRobbot || !ibGib"
-                  color="secondary"
-                  (click)="handleAddRobbot()">
-                  <ion-spinner *ngIf="refreshing || addingRobbot || !ibGib" name="circles" color="primary"></ion-spinner>
-                  <ion-icon slot="start" name="add-outline" color="primary"></ion-icon>
-                  <ion-label>add robbot</ion-label>
-                </ion-button>
+              <ion-item lines="none">
+                <ion-buttons class="special-menu-btns">
+                  <ion-button [disabled]="addingRobbot"
+                    title="goto robbots ibgib where all of your robbots are"
+                    color="secondary"
+                    (click)="handleGotoSpecial('robbots')">
+                    <ion-spinner *ngIf="addingRobbot" name="circles" color="primary"></ion-spinner>
+                    <ion-icon slot="start" name="navigate-outline" color="primary"></ion-icon>
+                    <ion-label>goto</ion-label>
+                  </ion-button>
+                  <ion-button [disabled]="refreshing || addingRobbot || !ibGib"
+                    color="secondary"
+                    (click)="handleAddRobbot()">
+                    <ion-spinner *ngIf="refreshing || addingRobbot || !ibGib" name="circles" color="primary"></ion-spinner>
+                    <ion-icon slot="start" name="add-outline" color="primary"></ion-icon>
+                    <ion-label>add</ion-label>
+                  </ion-button>
+                </ion-buttons>
               </ion-item>
               <ion-item *ngIf="!ibGib">
                 <ion-label color="primary">i believe...</ion-label>
@@ -139,6 +176,24 @@
                   <ion-icon slot="start" [name]="rootItem.icon"></ion-icon>
                   <ion-label>{{ rootItem.title }}</ion-label>
                 </ion-button>
+              </ion-item>
+              <ion-item lines="none">
+                <ion-buttons class="special-menu-btns">
+                  <ion-button
+                    title="goto roots ibgib where all of your individual root ibgibs are"
+                    color="secondary"
+                    (click)="handleGotoSpecial('roots')">
+                    <ion-icon slot="start" name="navigate-outline" color="primary"></ion-icon>
+                    <ion-label>goto</ion-label>
+                  </ion-button>
+                  <!-- <ion-button [disabled]="addingRoot"
+                    color="secondary"
+                    (click)="handleAddRoot()">
+                    <ion-spinner *ngIf="addingRoot" name="circles" color="primary"></ion-spinner>
+                    <ion-icon slot="start" name="add-outline" color="primary"></ion-icon>
+                    <ion-label>add</ion-label>
+                  </ion-button> -->
+                </ion-buttons>
               </ion-item>
 
             </ion-list>
