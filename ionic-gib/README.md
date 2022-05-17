@@ -116,6 +116,11 @@ Here are descriptions of the extension scripts that I use the most in
     to emulate multiple different simultaneous participants in ibgib chats.
 * `npm run ff:chrome` for testing both simultaneously.
 
+#### known issues
+
+* when hitting duplicate tab when using an extension, it doesn't know how to load the ibgib.
+  * https://discourse.mozilla.org/t/extension-development-routing/95112
+
 ## firefox on android
 
 * https://extensionworkshop.com/documentation/develop/developing-extensions-for-firefox-for-android/#set-up-your-computer-and-android-emulator-or-device
