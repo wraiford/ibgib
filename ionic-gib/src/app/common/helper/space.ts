@@ -29,7 +29,7 @@ import { isExpired, getExpirationUTCString, getTimestampInTicks } from './utils'
 import { SimpleIbgibCacheService } from 'src/app/services/simple-ibgib-cache.service';
 import { IbGibCacheService } from '../types/ibgib';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 
 /**
@@ -457,7 +457,6 @@ export async function getDependencyGraph({
             }
             if (addrsToGet?.length > 0) {
                 console.dir(primaryKeysDebug);
-                debugger;
                 throw new Error(`unable to retrieve dependency ibgibs from space.\n\nThis is often because downloading failed due to the sync space's server getting temporarily overloaded, OR...it sometimes happens when an ibgib doesn't get fully published to the sync space in the first place.\n\nYou could retry immediately or later, but if the problem persists, then retry from the publishers end (have the publisher sync again). (E: 8413594b6c1b447988781cf3f3e1729d)`);
             }
 
@@ -471,7 +470,6 @@ export async function getDependencyGraph({
             //         throw new Error(`unable to retrieve dependency ibgibs from space.\n\nThis is often because downloading failed due to the sync space's server getting temporarily overloaded, OR...it sometimes happens when an ibgib doesn't get fully published to the sync space in the first place.\n\nYou could retry immediately or later, but if the problem persists, then retry from the publishers end (have the publisher sync again). (E: 8413594b6c1b447988781cf3f3e1729d)`);
             //     } else {
             //         console.dir(primaryKeysDebug);
-            //         debugger;
             //         throw new Error(`retrieved only partial ibGibs from space? (E: 7135746742504724bb5b9644d463e648)(UNEXPECTED)`);
             //     }
             // }
@@ -543,7 +541,15 @@ export async function getDependencyGraph({
                     // return a recursive call for the newly-gotten ibgibs'
                     // dependencies, passing in the now-larger accumulating
                     // `gotten` map of ibgibs already processed.
-                    return await getDependencyGraph({ibGibs: resGet.ibGibs, gotten, skipAddrs, skipRel8nNames, space}); // <<<< returns early
+                    return await getDependencyGraph({
+                        ibGibs: resGet.ibGibs,
+                        gotten,
+                        skipAddrs,
+                        skipRel8nNames,
+                        maxRetries,
+                        msBetweenRetries,
+                        space,
+                    }); // <<<< returns early
                 } else if (resGet.ibGibs?.length > 0 && resGet.ibGibs.length < addrsWeDontHaveAlready_Rel8dAddrs.length) {
                     if (logalot) { console.warn(`${lc} got SOME of them (happy-ish path?). not sure what to do here... (W: e3458f61a1ae4979af9e6b18ac935c14)`); }
                     throw new Error(`trouble getting dependency ibgibs (E: 8156bf65fd084ae4a4e8a0669db28b07)`);

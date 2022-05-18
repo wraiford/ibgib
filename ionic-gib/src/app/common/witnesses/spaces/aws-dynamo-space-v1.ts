@@ -4292,6 +4292,8 @@ export class AWSDynamoSpace_V1<
                 // const rel8d_warningsGetIbGibs: string[] = [];
                 const rel8dGraph = await getDependencyGraph({
                     ibGibAddrs: rel8dAddrsOnlyInStore,
+                    maxRetries: c.DEFAULT_MAX_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
+                    msBetweenRetries: c.DEFAULT_MS_BETWEEN_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
                     space: this,
                 });
                 const rel8dIbGibsOnlyInStore = Object.values(rel8dGraph);

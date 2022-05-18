@@ -567,6 +567,33 @@ export const DEFAULT_SECONDS_VALID_LOCAL = 2;
  */
 export const DEFAULT_SECONDS_VALID_OUTER = 30;
 
+/**
+ * retry count when calling getDependencyGraph.
+ *
+ * ## driving use case
+ *
+ * dependency graph fails when concurrent merges made in sync space.
+ * need to wait until previous graph merger happens then retry.
+ */
+export const DEFAULT_MAX_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE = 5;
+/**
+ * when getting dependency graph, sometimes we have to wait to retry
+ */
+export const DEFAULT_MS_BETWEEN_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE = 5000;
+/**
+ * retry count when calling getDependencyGraph.
+ *
+ * ## driving use case
+ *
+ * dependency graph fails when concurrent merges made in sync space.
+ * need to wait until previous graph merger happens then retry.
+ */
+export const DEFAULT_MAX_RETRIES_GET_DEPENDENCY_GRAPH_LOCAL = 3;
+/**
+ * when getting dependency graph, sometimes we have to wait to retry
+ */
+export const DEFAULT_MS_BETWEEN_RETRIES_GET_DEPENDENCY_GRAPH_LOCAL = 1000;
+
 export const AWS_RESERVED_WORDS = [
     'ABORT',
     'ABSOLUTE',

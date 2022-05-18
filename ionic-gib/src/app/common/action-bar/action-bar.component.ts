@@ -524,7 +524,12 @@ export class ActionBarComponent extends IbgibComponentBase
       if (gotIbGib) {
         // we found it in `space` with `spaceAddr`
         // but we may not (probably don't) have the entire dependency graph.
-        let graph = await getDependencyGraph({ibGib: gotIbGib, space});
+        let graph = await getDependencyGraph({
+          ibGib: gotIbGib,
+          maxRetries: c.DEFAULT_MAX_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
+          msBetweenRetries: c.DEFAULT_MS_BETWEEN_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
+          space,
+        });
         let resPutGraph =
           await this.common.ibgibs.put({ibGibs: Object.values(graph)});
         if (resPutGraph.success) {

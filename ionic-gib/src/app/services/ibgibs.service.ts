@@ -1085,6 +1085,8 @@ export class IbgibsService {
     gotten,
     skipAddrs,
     skipRel8nNames,
+    maxRetries,
+    msBetweenRetries,
     space,
   }: {
     /**
@@ -1144,6 +1146,16 @@ export class IbgibsService {
      */
     skipRel8nNames?: string[],
     /**
+     * If not found when getting dependency graph, do we retry? This is the
+     * max number of retries.
+     */
+    maxRetries?: number,
+    /**
+     * If provided and {@link maxRetries} is non-zero, the next retry will be
+     * delayed this amount of time if one or more addrs are not found.
+     */
+    msBetweenRetries?: number,
+    /**
      * Space within which we should be looking for ibGibs.
      */
     space?: IbGibSpaceAny,
@@ -1158,6 +1170,7 @@ export class IbgibsService {
         ibGibAddr, ibGibAddrs,
         gotten,
         skipAddrs, skipRel8nNames,
+        maxRetries, msBetweenRetries,
         space,
       });
     } catch (error) {
@@ -2746,7 +2759,9 @@ export class IbgibsService {
         // graph already has been fully traversed, so we put this in `gotten`
         allIbGibsToMergeMap = await this.getDependencyGraph({
           ibGib: latestIbGibWithTjp,
-          gotten: allIbGibsToMergeMap
+          gotten: allIbGibsToMergeMap,
+          maxRetries: c.DEFAULT_MAX_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
+          msBetweenRetries: c.DEFAULT_MS_BETWEEN_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
         });
       }
 
@@ -2847,6 +2862,8 @@ export class IbgibsService {
        */
       const localDependencyGraphs = await this.getDependencyGraph({
         ibGibAddrs: latestAddrsLocallyWithUpdate,
+        maxRetries: c.DEFAULT_MAX_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
+        msBetweenRetries: c.DEFAULT_MS_BETWEEN_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
       });
 
       /** all addrs we already have locally */
