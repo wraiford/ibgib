@@ -59,6 +59,7 @@ export async function validateIbGibIntrinsically({
             // ensures that it is the same tjp gib.
             const gottenGib = await getGib({ibGib, hasTjp: hasTjp({ibGib})});
             if (gottenGib !== ibGib.gib) {
+                debugger;
                 errors.push(`Ibgib invalid intrinsically - gottenGib (${gottenGib}) does not equal ibGib.gib (${ibGib.gib}). (E: 7416db016878430ca3c5b20697f164ed)`);
             }
 

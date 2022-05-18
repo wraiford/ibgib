@@ -26,6 +26,7 @@ import {
     KeysAndAttributes, ConsumedCapacity,
     BatchWriteItemCommand, BatchWriteItemCommandInput, BatchWriteItemCommandOutput,
     BatchGetItemCommand, BatchGetItemCommandInput, BatchGetItemCommandOutput,
+    DeleteItemCommand, DeleteItemCommandInput, DeleteItemCommandOutput,
     QueryCommand, QueryCommandInput, QueryCommandOutput,
 } from '@aws-sdk/client-dynamodb';
 import {
@@ -38,7 +39,7 @@ import { ReplaySubject } from 'rxjs/internal/ReplaySubject';
 
 import { IbGib_V1, Factory_V1 as factory, FORBIDDEN_ADD_RENAME_REMOVE_REL8N_NAMES, IbGibRel8ns_V1, GIB, ROOT} from 'ts-gib/dist/V1';
 import {
-    getIbGibAddr, Ib, IbGibAddr,
+    getIbGibAddr, Gib, Ib, IbGibAddr,
     TransformOpts, TransformOpts_Mut8, TransformOpts_Rel8,
     TransformResult,
     V1,
@@ -62,8 +63,8 @@ import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { AWSRegion, SyncSpaceData, SyncSpaceRel8ns, SyncSpaceOptionsData, SyncSpaceOptionsRel8ns, SyncSpaceOptionsIbGib, SyncSpaceResultData, SyncSpaceResultRel8ns, SyncSpaceResultIbGib, SyncSpaceOptionsCmdModifier, SyncSagaInfo, SyncStatusIbGib, StatusCode, getStatusIb, SyncStatusData, ParticipantInfo } from '../../types/outer-space';
 import { IbGibSpaceOptionsCmd } from '../../types/space';
 import { groupBy } from '../../helper/utils';
-import { isBinary, mergeMapsOrArrays_Naive, splitPerTjpAndOrDna } from '../../helper/ibgib';
-import { getDependencyGraph, throwIfDuplicates } from '../../helper/space';
+import { constantIbGib, isBinary, mergeMapsOrArrays_Naive, splitPerTjpAndOrDna } from '../../helper/ibgib';
+import { execInSpaceWithLocking, getDependencyGraph, lockSpace, throwIfDuplicates } from '../../helper/space';
 import { validateIbGibIntrinsically } from '../../helper/validate';
 
 // #endregion imports
@@ -317,6 +318,48 @@ async function createDynamoDBBatchGetItemCommand({
         throw error;
     }
 }
+async function createDynamoDBDeleteItemCommand({
+    tableName,
+    addr,
+}: {
+    tableName: string,
+    addr: IbGibAddr,
+}): Promise<DeleteItemCommand> {
+    const lc = `[${createDynamoDBDeleteItemCommand.name}]`;
+    try {
+        if (!tableName) { throw new Error(`tableName required. (E: 999e4822cb1440378d4f49d430168ac1)`); }
+        if (!addr) { throw new Error(`addr required. (E: f8bbdb60992e4fb5990d15dd7c761d3c)`); }
+
+        // build the params input either from scratch of the unprocessedKeys
+        let params: BatchGetItemCommandInput;
+        if (!addrs) {
+            // populate keys
+            const keys: string[] = [];
+            for (let i = 0; i < addrs.length; i++) {
+                const addr = addrs[i];
+                const primaryKey = await getPrimaryKey({addr});
+                keys.push(primaryKey);
+            }
+            params = {
+                RequestItems: {
+                    [tableName]: {
+                        // e.g. { IbGibAddrHash: { S: '3b5781e8653a40269132a5c586e6472b'} },
+                        Keys: keys.map(key => { return { [c.DEFAULT_PRIMARY_KEY_NAME]: { S: key }} }),
+                        ConsistentRead: true,
+                        ProjectionExpression: projectionExpression,
+                    }
+                }
+            };
+        }
+
+        // create the cmd
+        return new BatchGetItemCommand(params);
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
+
 
 /**
  * Can't have reserved words in projection expressions.
@@ -1758,6 +1801,7 @@ export class AWSDynamoSpace_V1<
             const throttleMs = this.data.throttleMsBetweenGets || c.DEFAULT_AWS_GET_THROTTLE_MS;
             const rounds = Math.ceil(addrs.length / batchSize);
             for (let i = 0; i < rounds; i++) {
+                if (logalot) { console.log(`${lc} i: ${i} (I: c107d13c8e956020959e36adce7c2c22)`); }
                 if (i > 0) {
                     if (logalot) { console.log(`${lc} delaying ${throttleMs}ms`); }
                     await h.delay(throttleMs);
@@ -1773,6 +1817,7 @@ export class AWSDynamoSpace_V1<
                 }
 
                 runningCount = ibGibs.length;
+                if (runningCount === 0) { debugger; }
                 if (logalot) { console.log(`${lc} runningCount: ${runningCount}...`); }
                 addrs = addrsToDoNextRound;
             }
@@ -2970,7 +3015,7 @@ export class AWSDynamoSpace_V1<
         const addrsErrored: IbGibAddr[] = [];
         try {
             try {
-                throw new Error(`not implemented`);
+                if ()
             } catch (error) {
                 console.error(`${lc} error: ${error.message}`);
                 resultData.errors = errors.concat([error.message]);
@@ -3494,281 +3539,293 @@ export class AWSDynamoSpace_V1<
 
                 let statusCode: StatusCode;
                 const tjpAddr = tjpAddrs[i];
+                const tjpGib = h.getIbAndGib({ibGibAddr: tjpAddr}).gib;
 
-                // we're going to build up a list of ibgibs that we're going
-                // to put to the store. These will either be those who are totally
-                // untracked or those that we create by applying local transforms to
-                // latest ibgibs.
-                const ibGibsToStore_thisTjp: IbGib_V1[] = [];
-                /**
-                 * These are new ibGibs that are created here in the sync space.
-                 *
-                 * ## notes
-                 *
-                 * * It just so happens that the timeline merging in this particular
-                 *   aws sync space happens physically on the local machine. But this
-                 *   is really happenining logically inside this sync space, which is
-                 *   an outerspace relative to the local space.
-                 */
-                const ibGibsCreated_thisTjp: IbGib_V1[] = [];
-                /**
-                 * These are ibgibs that originate in some other space and are found
-                 * in the store's timeline and not the local timeline.
-                 */
-                const ibGibsOnlyInStore_thisTjp: IbGib_V1[] = [];
-                /**
-                 * map of "old" local ibgib addr to new latest ibgib created in the store,
-                 * if a timeline merge occurs.
-                 */
-                const ibGibsMergeMap_thisTjp: { [oldAddr: string]: IbGib_V1 } = {};
+                await execInSpaceWithLocking({
+                    space: this,
+                    scope: tjpGib,
+                    secondsValid: 60*5, // testing 5 minutes
+                    maxDelayMs: 1000 * 60, // testing 5 minutes
+                    callerInstanceId: sagaId,
+                    maxLockAttempts: 5,
+                    fn: async () => {
+                        // #region prepare
 
-                const tjpGroupIbGibs_Local_Ascending = mapIbGibsWithTjpGroupedByTjpAddr[tjpAddr]
-                    .filter(x => (x.data.n ?? -1) >= 0)
-                    .sort((a, b) => a.data.n > b.data.n ? 1 : -1); // sorts ascending, e.g., 0,1,2...[Highest]
-                const latestAddr_Store = resLatestAddrsMap[tjpAddr];
-                if (logalot) { console.log(`${lc} tjpAddr: ${tjpAddr}`); }
-                if (logalot) { console.log(`${lc} resLatestAddrsMap: ${h.pretty(resLatestAddrsMap)}`); }
-                if (logalot) { console.log(`${lc} latestAddr_Store: ${latestAddr_Store}`); }
+                        // we're going to build up a list of ibgibs that we're going
+                        // to put to the store. These will either be those who are totally
+                        // untracked or those that we create by applying local transforms to
+                        // latest ibgibs.
+                        const ibGibsToStore_thisTjp: IbGib_V1[] = [];
+                        /**
+                         * These are new ibGibs that are created here in the sync space.
+                         *
+                         * ## notes
+                         *
+                         * * It just so happens that the timeline merging in this particular
+                         *   aws sync space happens physically on the local machine. But this
+                         *   is really happenining logically inside this sync space, which is
+                         *   an outerspace relative to the local space.
+                         */
+                        const ibGibsCreated_thisTjp: IbGib_V1[] = [];
+                        /**
+                         * These are ibgibs that originate in some other space and are found
+                         * in the store's timeline and not the local timeline.
+                         */
+                        const ibGibsOnlyInStore_thisTjp: IbGib_V1[] = [];
+                        /**
+                         * map of "old" local ibgib addr to new latest ibgib created in the store,
+                         * if a timeline merge occurs.
+                         */
+                        const ibGibsMergeMap_thisTjp: { [oldAddr: string]: IbGib_V1 } = {};
 
-                // #region reconcile local timeline with store
+                        const tjpGroupIbGibs_Local_Ascending = mapIbGibsWithTjpGroupedByTjpAddr[tjpAddr]
+                            .filter(x => (x.data.n ?? -1) >= 0)
+                            .sort((a, b) => a.data.n > b.data.n ? 1 : -1); // sorts ascending, e.g., 0,1,2...[Highest]
+                        const latestAddr_Store = resLatestAddrsMap[tjpAddr];
+                        if (logalot) { console.log(`${lc} tjpAddr: ${tjpAddr}`); }
+                        if (logalot) { console.log(`${lc} resLatestAddrsMap: ${h.pretty(resLatestAddrsMap)}`); }
+                        if (logalot) { console.log(`${lc} latestAddr_Store: ${latestAddr_Store}`); }
 
-                if (latestAddr_Store) {
+                        // #endregion prepare
 
-                    // the tjp timeline DOES exist in the sync space.  analyze
-                    // and reconcile (if not already synced).
-                    const tjpGroupAddrs_Local_Ascending =
-                        tjpGroupIbGibs_Local_Ascending.map(x => h.getIbGibAddr({ibGib: x}));
-                    if (logalot) { console.log(`${lc} tjpGroupAddrs_Local_Ascending: ${tjpGroupAddrs_Local_Ascending}`); }
+                        // #region reconcile local timeline with store
 
-                    const latestAddr_Local =
-                        tjpGroupAddrs_Local_Ascending[tjpGroupAddrs_Local_Ascending.length-1];
-                    if (logalot) { console.log(`${lc} latestAddr_Local: ${latestAddr_Local}`); }
+                        if (latestAddr_Store) {
+
+                            // the tjp timeline DOES exist in the sync space.  analyze
+                            // and reconcile (if not already synced).
+                            const tjpGroupAddrs_Local_Ascending =
+                                tjpGroupIbGibs_Local_Ascending.map(x => h.getIbGibAddr({ibGib: x}));
+                            if (logalot) { console.log(`${lc} tjpGroupAddrs_Local_Ascending: ${tjpGroupAddrs_Local_Ascending}`); }
+
+                            const latestAddr_Local =
+                                tjpGroupAddrs_Local_Ascending[tjpGroupAddrs_Local_Ascending.length-1];
+                            if (logalot) { console.log(`${lc} latestAddr_Local: ${latestAddr_Local}`); }
 
 
-                    if (latestAddr_Store === latestAddr_Local) {
-                        // #region already synced
-                        if (logalot) { console.log(`${lc} store and local spaces are already synced.`); }
-                        // todo: cache this address as already synced with timestamp
-                        statusCode = StatusCode.already_synced;
-                        // ibGibsToStore = [];
-                        // ibGibsCreated = [];
-                        // ibGibMergeMap = {};
-                        // do not need to do anything with watches
-                        // #endregion already synced
+                            if (latestAddr_Store === latestAddr_Local) {
+                                // #region already synced
+                                if (logalot) { console.log(`${lc} store and local spaces are already synced.`); }
+                                // todo: cache this address as already synced with timestamp
+                                statusCode = StatusCode.already_synced;
+                                // ibGibsToStore = [];
+                                // ibGibsCreated = [];
+                                // ibGibMergeMap = {};
+                                // do not need to do anything with watches
+                                // #endregion already synced
 
-                    } else if (tjpGroupAddrs_Local_Ascending.includes(latestAddr_Store)) {
-                        // #region only Local has changes
-                        if (logalot) { console.log(`${lc} local space has changes, store does NOT. Will update store with more recent local.`); }
-                        // sync call, i.e. no need for await
-                        this.reconcile_UpdateStoreWithMoreRecentLocal({
-                            tjpAddr,
-                            latestAddr_Store,
-                            tjpGroupAddrs_Local_Ascending,
-                            tjpGroupIbGibs_Local_Ascending,
-                            ibGibsWithoutTjp: ibGibsWithoutTjp,
-                            ibGibsToStore: ibGibsToStore_thisTjp,
-                            updates,
-                        });
-                        statusCode = StatusCode.updated;
-                        // nothing created or merged
-                        // ibGibsCreated = [];
-                        // ibGibsMerged = [];
-                        // #endregion only Local has changes
+                            } else if (tjpGroupAddrs_Local_Ascending.includes(latestAddr_Store)) {
+                                // #region only Local has changes
+                                if (logalot) { console.log(`${lc} local space has changes, store does NOT. Will update store with more recent local.`); }
+                                // sync call, i.e. no need for await
+                                this.reconcile_UpdateStoreWithMoreRecentLocal({
+                                    tjpAddr,
+                                    latestAddr_Store,
+                                    tjpGroupAddrs_Local_Ascending,
+                                    tjpGroupIbGibs_Local_Ascending,
+                                    ibGibsWithoutTjp: ibGibsWithoutTjp,
+                                    ibGibsToStore: ibGibsToStore_thisTjp,
+                                    updates,
+                                });
+                                statusCode = StatusCode.updated;
+                                // nothing created or merged
+                                // ibGibsCreated = [];
+                                // ibGibsMerged = [];
+                                // #endregion only Local has changes
 
-                    } else {
-                        // #region store has changes, maybe also local
+                            } else {
+                                // #region store has changes, maybe also local
 
-                        // store definitely has changes. maybe only the store
-                        // has changes OR maybe both store & local have changes
-                        // also, maybe we have ibgibs with dna, maybe not
+                                // store definitely has changes. maybe only the store
+                                // has changes OR maybe both store & local have changes
+                                // also, maybe we have ibgibs with dna, maybe not
 
-                        if (logalot) { console.log(`${lc} store has changes not
-                        in local, maybe also local has changes. So, merge
-                        timelines appropriately. If so, then will apply those
-                        local changes to store's foreign-changed latest and save
-                        the resulting store's latest.`.replace(/\n/g, ' ').replace(/  /g, '')); }
+                                if (logalot) { console.log(`${lc} store has changes not in local, maybe also local has changes. So, merge timelines appropriately. If so, then will apply those local changes to store's foreign-changed latest and save the resulting store's latest. (I: 86d0f267afce439db7d62b3703e1007d)`.replace(/\n/g, ' ').replace(/  /g, '')); }
 
-                        const latestIbGib_Local =
-                            tjpGroupIbGibs_Local_Ascending
-                                .filter(x => h.getIbGibAddr({ibGib: x}) === latestAddr_Local)[0];
-                        const latestIbGib_Local_HasDna =
-                            (latestIbGib_Local.rel8ns?.dna ?? []).length > 0;
-                        let latestIbGib_Store: IbGib_V1;
-                        // #region get latestIbGib_Store
-                        const errorsGetLatestStore: string[] = [];
-                        const warningsGetLatestStore: string[] = [];
-                        const addrsNotFound_GetLatestStore: IbGibAddr[] = [];
-                        let resGetStoreIbGib = await this.getIbGibs({
-                            client,
-                            ibGibAddrs: [latestAddr_Store],
-                            warnings: warningsGetLatestStore,
-                            errors: errorsGetLatestStore,
-                            addrsNotFound: addrsNotFound_GetLatestStore,
-                        });
-                        if (addrsNotFound_GetLatestStore.length > 0) { throw new Error(`store ibgib addr not found, but we just got this addr from the store. latestAddr_Store: ${latestAddr_Store}. (E: c9ed2f2854a74ddb82d932fb31cc301a)(UNEXPECTED)`); }
-                        if (errorsGetLatestStore.length > 0) { throw new Error(`problem getting full ibgib for latest addr from store. errors: ${errors.join('\n')}. (E: 3525deb3c668441fb6f4605d20845fc6)`); }
-                        if (warningsGetLatestStore.length > 0) { console.warn(`${lc} ${warningsGetLatestStore} (W: c310638669784e78b5e34b447754eafb)`); }
-                        if ((resGetStoreIbGib ?? []).length === 0) { throw new Error(`resGetStoreIbGib empty, but addrsNotFound not populated? (E: d2e7183af0ae4b98a2905b0e79c550ec)(UNEXPECTED)`); }
-                        if ((resGetStoreIbGib ?? []).length > 1) { throw new Error(`resGetStoreIbGib.length > 1? Expecting just the single ibgib corresponding to latest ibgib addr (${latestAddr_Store}). (E: d2e7183af0ae4b98a2905b0e79c550ec)(UNEXPECTED)`); }
-                        latestIbGib_Store = resGetStoreIbGib[0];
-                        // #endregion get latestIbGib_Store
-                        const latestIbGib_Store_HasDna =
-                            (latestIbGib_Store.rel8ns?.dna ?? []).length > 0;
-                        if (latestIbGib_Local_HasDna && latestIbGib_Store_HasDna) {
-                            if (logalot) { console.log(`${lc} merge via dna. latestAddr_Local: ${latestAddr_Local}`); }
-                            await this.reconcile_MergeLocalWithStore_ViaDna({
-                                client,
-                                tjpAddr,
-                                latestAddr_Local, latestIbGib_Local,
-                                latestAddr_Store,
-                                latestIbGib_Store,
-                                // tjpGroupIbGibs_Local_Ascending,
-                                ibGibsCreated: ibGibsCreated_thisTjp,
-                                ibGibMergeMap: ibGibsMergeMap_thisTjp,
-                                ibGibsOnlyInStore: ibGibsOnlyInStore_thisTjp,
-                                allLocalIbGibs: ibGibs,
-                                updates,
-                            });
-                            ibGibsCreated_thisTjp.forEach(x => ibGibsToStore_thisTjp.push(x));
-                            statusCode = StatusCode.merged_dna;
+                                const latestIbGib_Local =
+                                    tjpGroupIbGibs_Local_Ascending
+                                        .filter(x => h.getIbGibAddr({ibGib: x}) === latestAddr_Local)[0];
+                                const latestIbGib_Local_HasDna =
+                                    (latestIbGib_Local.rel8ns?.dna ?? []).length > 0;
+                                let latestIbGib_Store: IbGib_V1;
+                                // #region get latestIbGib_Store
+                                const errorsGetLatestStore: string[] = [];
+                                const warningsGetLatestStore: string[] = [];
+                                const addrsNotFound_GetLatestStore: IbGibAddr[] = [];
+                                debugger;
+                                let resGetStoreIbGib = await this.getIbGibs({
+                                    client,
+                                    ibGibAddrs: [latestAddr_Store],
+                                    warnings: warningsGetLatestStore,
+                                    errors: errorsGetLatestStore,
+                                    addrsNotFound: addrsNotFound_GetLatestStore,
+                                });
+                                if (addrsNotFound_GetLatestStore.length > 0) { throw new Error(`store ibgib addr not found, but we just got this addr from the store. latestAddr_Store: ${latestAddr_Store}. (E: c9ed2f2854a74ddb82d932fb31cc301a)(UNEXPECTED)`); }
+                                if (errorsGetLatestStore.length > 0) { throw new Error(`problem getting full ibgib for latest addr from store. errors: ${errors.join('\n')}. (E: 3525deb3c668441fb6f4605d20845fc6)`); }
+                                if (warningsGetLatestStore.length > 0) { console.warn(`${lc} ${warningsGetLatestStore} (W: c310638669784e78b5e34b447754eafb)`); }
+                                if ((resGetStoreIbGib ?? []).length === 0) { throw new Error(`resGetStoreIbGib empty, but addrsNotFound not populated? (E: d2e7183af0ae4b98a2905b0e79c550ec)(UNEXPECTED)`); }
+                                if ((resGetStoreIbGib ?? []).length > 1) { throw new Error(`resGetStoreIbGib.length > 1? Expecting just the single ibgib corresponding to latest ibgib addr (${latestAddr_Store}). (E: d2e7183af0ae4b98a2905b0e79c550ec)(UNEXPECTED)`); }
+                                latestIbGib_Store = resGetStoreIbGib[0];
+                                // #endregion get latestIbGib_Store
+                                const latestIbGib_Store_HasDna =
+                                    (latestIbGib_Store.rel8ns?.dna ?? []).length > 0;
+                                if (latestIbGib_Local_HasDna && latestIbGib_Store_HasDna) {
+                                    if (logalot) { console.log(`${lc} merge via dna. latestAddr_Local: ${latestAddr_Local}`); }
+                                    await this.reconcile_MergeLocalWithStore_ViaDna({
+                                        client,
+                                        tjpAddr,
+                                        latestAddr_Local, latestIbGib_Local,
+                                        latestAddr_Store,
+                                        latestIbGib_Store,
+                                        // tjpGroupIbGibs_Local_Ascending,
+                                        ibGibsCreated: ibGibsCreated_thisTjp,
+                                        ibGibMergeMap: ibGibsMergeMap_thisTjp,
+                                        ibGibsOnlyInStore: ibGibsOnlyInStore_thisTjp,
+                                        allLocalIbGibs: ibGibs,
+                                        updates,
+                                    });
+                                    ibGibsCreated_thisTjp.forEach(x => ibGibsToStore_thisTjp.push(x));
+                                    statusCode = StatusCode.merged_dna;
+                                } else {
+                                    if (logalot) { console.log(`${lc} merge manually via state. latestAddr_Local: ${latestAddr_Local}`); }
+                                    await this.reconcile_MergeLocalWithStore_ViaState({
+                                        client,
+                                        tjpAddr,
+                                        latestIbGib_Local,
+                                        latestAddr_Local,
+                                        latestAddr_Store,
+                                        ibGibsCreated: ibGibsCreated_thisTjp,
+                                        ibGibMergeMap: ibGibsMergeMap_thisTjp,
+                                        updates,
+                                    });
+                                    ibGibsCreated_thisTjp.forEach(x => ibGibsToStore_thisTjp.push(x));
+                                    statusCode = StatusCode.merged_state;
+                                }
+
+                                // #endregion store has changes, maybe also local
+                            }
                         } else {
-                            if (logalot) { console.log(`${lc} merge manually via state. latestAddr_Local: ${latestAddr_Local}`); }
-                            await this.reconcile_MergeLocalWithStore_ViaState({
-                                client,
-                                tjpAddr,
-                                latestIbGib_Local,
-                                latestAddr_Local,
-                                latestAddr_Store,
-                                ibGibsCreated: ibGibsCreated_thisTjp,
-                                ibGibMergeMap: ibGibsMergeMap_thisTjp,
-                                updates,
+
+                            if (logalot) { console.log(`${lc} the timeline DOES NOT exist in the store, so insert it.`)}
+
+                            // if we're inserting the first time into the store, then there
+                            // can't have been any watches to update
+                            await this.reconcile_InsertFirstTimeIntoStore({
+                                tjpGroupIbGibs_Local_Ascending,
+                                ibGibsWithoutTjp: ibGibsWithoutTjp,
+                                ibGibsToStore: ibGibsToStore_thisTjp,
                             });
-                            ibGibsCreated_thisTjp.forEach(x => ibGibsToStore_thisTjp.push(x));
-                            statusCode = StatusCode.merged_state;
+                            statusCode = StatusCode.inserted;
+                            // nothing created or merged
+                            // ibGibsCreated = [];
+                            // ibGibMergeMap = {};
+
                         }
 
-                        // #endregion store has changes, maybe also local
+                        // #endregion reconcile local timeline with store
+
+                        // #region execute put in store operation
+
+                        // some of the ibGibs may already be stored. but we'll skip only
+                        // those that we definitely know are already there.  Note that
+                        // "inserting" or "storing" ibGibs is an idempotent process,
+                        // since they are content addressable.
+                        const ibGibAddrsForSureAlreadyInStore = Object.values(resLatestAddrsMap);
+                        for (let i = 0; i < ibGibsToStore_thisTjp.length; i++) {
+                            const maybeIbGib = ibGibsToStore_thisTjp[i];
+                            const maybeAddr = h.getIbGibAddr({ibGib: maybeIbGib});
+                            if (!ibGibAddrsForSureAlreadyInStore.includes(maybeAddr) &&
+                                !ibGibsToStoreNotAlreadyStored.some(x => h.getIbGibAddr({ibGib: x}) === maybeAddr)) {
+                                ibGibsToStoreNotAlreadyStored.push(maybeIbGib);
+                            }
+                        }
+
+                        // in this first naive implementation, we're just going all or none
+                        // in terms of success and publishing it.
+                        // (though not in the transactional sense for the time being).
+                        if (ibGibsToStoreNotAlreadyStored.length > 0) {
+                            await this.putIbGibs({client, ibGibs: ibGibsToStoreNotAlreadyStored, errors, warnings});
+                            if (errors.length > 0) {
+                                throw new Error(errors.join('\n'));
+                            }
+                            if (warnings.length > 0) { console.warn(`${lc} warnings:\n${warnings.join('\n')}`); }
+
+                        }
+
+                        if (logalot) { console.log(`${lc} checking if need to updated tjpWatches via updates`); }
+                        if (Object.keys(updates).length > 0) {
+                            if (logalot) { console.log(`${lc} updates occurred. calling updateTjpWatches...`); }
+                            // we've updated at least one tjpAddr with a new ibGib.
+                            // So we need to go through and register these changes
+                            // with the corresponding watch ibgibs. those updates
+                            // will be picked up on the next call by the incoming
+                            // space.
+                            await this.updateTjpWatches({client, srcSpaceId, updates});
+                        } else {
+                            if (logalot) { console.log(`${lc} no updates occurred, so NOT calling updateTjpWatches.`); }
+                        }
+
+                        // #endregion execute put in store operation
+
+                        // #region publish status update
+
+                        // putting of non-metadata ibGibs succeeded now we must create
+                        // the new status ibgib and store it. if that succeeds, then we
+                        // can publish that to the status observable.
+
+                        const ibGibAddrs_DidRxFromLocal = ibGibsToStoreNotAlreadyStored.length > 0 ?
+                            ibGibsToStoreNotAlreadyStored.map(x => h.getIbGibAddr({ibGib: x})) :
+                            undefined;
+                        const ibGibAddrsCreated = ibGibsCreated_thisTjp.length > 0 ?
+                            ibGibsCreated_thisTjp.map(x => h.getIbGibAddr({ibGib: x})) :
+                            undefined;
+                        const ibGibAddrs_DidTxToLocal = ibGibsOnlyInStore_thisTjp.length > 0 ?
+                            ibGibsOnlyInStore_thisTjp.map(x => h.getIbGibAddr({ibGib: x})) :
+                            undefined;
+                        const ibGibAddrsMergeMap: {[oldAddr: string]: IbGibAddr } = {};
+                        for (const [oldAddr, newIbGib] of Object.entries(ibGibsMergeMap_thisTjp)) {
+                            ibGibAddrsMergeMap[oldAddr] = h.getIbGibAddr({ibGib: newIbGib});
+                        }
+                        const resSyncStatusIbGib = await V1.mut8({
+                            src: statusIbGib,
+                            mut8Ib: getStatusIb({
+                                spaceType: 'sync', spaceSubtype: 'aws-dynamodb', statusCode, sagaId,
+                            }),
+                            dataToAddOrPatch: <SyncStatusData>{
+                                statusCode: statusCode,
+                                success: true,
+                                errors: (errors ?? []).length > 0 ? errors.concat() : undefined,
+                                warnings: (warnings ?? []).length > 0 ? warnings.concat() : undefined,
+                                didRx: ibGibAddrs_DidRxFromLocal?.concat(),
+                                didTx: ibGibAddrs_DidTxToLocal?.concat(),
+                                didCreate: ibGibAddrsCreated?.concat(),
+                                didMergeMap: h.clone(ibGibAddrsMergeMap),
+                            },
+                            dna: false,
+                        });
+
+                        // update our references to statusIbGib/Graph
+                        statusIbGib = <SyncStatusIbGib>resSyncStatusIbGib.newIbGib;
+                        statusIbGib.statusIbGibGraph = resSyncStatusIbGib.intermediateIbGibs ?
+                            [statusIbGib, ...resSyncStatusIbGib.intermediateIbGibs] :
+                            [statusIbGib];
+                        if (ibGibsCreated_thisTjp.length > 0) {
+                            statusIbGib.createdIbGibs = ibGibsCreated_thisTjp.concat();
+                        }
+                        if (ibGibsOnlyInStore_thisTjp.length > 0) {
+                            statusIbGib.storeOnlyIbGibs = ibGibsOnlyInStore_thisTjp.concat();
+                        }
+                        if (Object.keys(ibGibsMergeMap_thisTjp).length > 0) {
+                            statusIbGib.ibGibsMergeMap = h.clone(ibGibsMergeMap_thisTjp);
+                        }
+
+                        // publish the intermediate status corresponding to this tjpAddr
+                        await this.saveInStoreAndPublishStatus({client, statusIbGib, syncStatus$});
+
+                        // #endregion complete/finalize sync saga
                     }
-                } else {
+                })
 
-                    if (logalot) { console.log(`${lc} the timeline DOES NOT exist in the store, so insert it.`)}
-
-                    // if we're inserting the first time into the store, then there
-                    // can't have been any watches to update
-                    await this.reconcile_InsertFirstTimeIntoStore({
-                        tjpGroupIbGibs_Local_Ascending,
-                        ibGibsWithoutTjp: ibGibsWithoutTjp,
-                        ibGibsToStore: ibGibsToStore_thisTjp,
-                    });
-                    statusCode = StatusCode.inserted;
-                    // nothing created or merged
-                    // ibGibsCreated = [];
-                    // ibGibMergeMap = {};
-
-                }
-
-                // #endregion reconcile local timeline with store
-
-                // #region execute put in store operation
-
-                // some of the ibGibs may already be stored. but we'll skip only
-                // those that we definitely know are already there.  Note that
-                // "inserting" or "storing" ibGibs is an idempotent process,
-                // since they are content addressable.
-                const ibGibAddrsForSureAlreadyInStore = Object.values(resLatestAddrsMap);
-                for (let i = 0; i < ibGibsToStore_thisTjp.length; i++) {
-                    const maybeIbGib = ibGibsToStore_thisTjp[i];
-                    const maybeAddr = h.getIbGibAddr({ibGib: maybeIbGib});
-                    if (!ibGibAddrsForSureAlreadyInStore.includes(maybeAddr) &&
-                        !ibGibsToStoreNotAlreadyStored.some(x => h.getIbGibAddr({ibGib: x}) === maybeAddr)) {
-                        ibGibsToStoreNotAlreadyStored.push(maybeIbGib);
-                    }
-                }
-
-                // in this first naive implementation, we're just going all or none
-                // in terms of success and publishing it.
-                // (though not in the transactional sense for the time being).
-                if (ibGibsToStoreNotAlreadyStored.length > 0) {
-                    await this.putIbGibs({client, ibGibs: ibGibsToStoreNotAlreadyStored, errors, warnings});
-                    if (errors.length > 0) {
-                        throw new Error(errors.join('\n'));
-                    }
-                    if (warnings.length > 0) { console.warn(`${lc} warnings:\n${warnings.join('\n')}`); }
-
-                }
-
-                if (logalot) { console.log(`${lc} checking if need to updated tjpWatches via updates`); }
-                if (Object.keys(updates).length > 0) {
-                    if (logalot) { console.log(`${lc} updates occurred. calling updateTjpWatches...`); }
-                    // we've updated at least one tjpAddr with a new ibGib.
-                    // So we need to go through and register these changes
-                    // with the corresponding watch ibgibs. those updates
-                    // will be picked up on the next call by the incoming
-                    // space.
-                    await this.updateTjpWatches({client, srcSpaceId, updates});
-                } else {
-                    if (logalot) { console.log(`${lc} no updates occurred, so NOT calling updateTjpWatches.`); }
-                }
-
-
-                // #endregion execute put in store operation
-
-                // #region publish status update
-
-                // putting of non-metadata ibGibs succeeded now we must create
-                // the new status ibgib and store it. if that succeeds, then we
-                // can publish that to the status observable.
-
-                const ibGibAddrs_DidRxFromLocal = ibGibsToStoreNotAlreadyStored.length > 0 ?
-                    ibGibsToStoreNotAlreadyStored.map(x => h.getIbGibAddr({ibGib: x})) :
-                    undefined;
-                const ibGibAddrsCreated = ibGibsCreated_thisTjp.length > 0 ?
-                    ibGibsCreated_thisTjp.map(x => h.getIbGibAddr({ibGib: x})) :
-                    undefined;
-                const ibGibAddrs_DidTxToLocal = ibGibsOnlyInStore_thisTjp.length > 0 ?
-                    ibGibsOnlyInStore_thisTjp.map(x => h.getIbGibAddr({ibGib: x})) :
-                    undefined;
-                const ibGibAddrsMergeMap: {[oldAddr: string]: IbGibAddr } = {};
-                for (const [oldAddr, newIbGib] of Object.entries(ibGibsMergeMap_thisTjp)) {
-                    ibGibAddrsMergeMap[oldAddr] = h.getIbGibAddr({ibGib: newIbGib});
-                }
-                const resSyncStatusIbGib = await V1.mut8({
-                    src: statusIbGib,
-                    mut8Ib: getStatusIb({
-                        spaceType: 'sync', spaceSubtype: 'aws-dynamodb', statusCode, sagaId,
-                    }),
-                    dataToAddOrPatch: <SyncStatusData>{
-                        statusCode: statusCode,
-                        success: true,
-                        errors: (errors ?? []).length > 0 ? errors.concat() : undefined,
-                        warnings: (warnings ?? []).length > 0 ? warnings.concat() : undefined,
-                        didRx: ibGibAddrs_DidRxFromLocal?.concat(),
-                        didTx: ibGibAddrs_DidTxToLocal?.concat(),
-                        didCreate: ibGibAddrsCreated?.concat(),
-                        didMergeMap: h.clone(ibGibAddrsMergeMap),
-                    },
-                    dna: false,
-                });
-
-                // update our references to statusIbGib/Graph
-                statusIbGib = <SyncStatusIbGib>resSyncStatusIbGib.newIbGib;
-                statusIbGib.statusIbGibGraph = resSyncStatusIbGib.intermediateIbGibs ?
-                    [statusIbGib, ...resSyncStatusIbGib.intermediateIbGibs] :
-                    [statusIbGib];
-                if (ibGibsCreated_thisTjp.length > 0) {
-                    statusIbGib.createdIbGibs = ibGibsCreated_thisTjp.concat();
-                }
-                if (ibGibsOnlyInStore_thisTjp.length > 0) {
-                    statusIbGib.storeOnlyIbGibs = ibGibsOnlyInStore_thisTjp.concat();
-                }
-                if (Object.keys(ibGibsMergeMap_thisTjp).length > 0) {
-                    statusIbGib.ibGibsMergeMap = h.clone(ibGibsMergeMap_thisTjp);
-                }
-
-                // publish the intermediate status corresponding to this tjpAddr
-                await this.saveInStoreAndPublishStatus({client, statusIbGib, syncStatus$});
-
-                // #endregion complete/finalize sync saga
             }
 
             // #endregion iterate through tjps, reconciling and publishing status
@@ -4215,6 +4272,7 @@ export class AWSDynamoSpace_V1<
                 const pastAddrsNotFound: IbGibAddr[] = [];
                 const past_errorsGetIbGibs: string[] = [];
                 const past_warningsGetIbGibs: string[] = [];
+                debugger;
                 pastIbGibsOnlyInStore = await this.getIbGibs({
                     client,
                     ibGibAddrs: pastAddrsOnlyInStore,
@@ -4807,17 +4865,57 @@ export class AWSDynamoSpace_V1<
         }
     }
 
-    protected async subscribeToAddrs({
-        ibGibAddrs,
+    /**
+     * When merging/updating timelines, we don't want this to happen from
+     * multiple users at the same time. So we will put a lock on the timeline.
+     *
+     * If you are acquiring the lock, then it is expected you are going to add
+     * to the timeline.
+     */
+    protected async acquireLockOnTimeline({
+        tjpGib,
+        secondsValid,
+        timeoutSeconds,
     }: {
-        ibGibAddrs: IbGibAddr[],
-    }): Promise<void> {
-        const lc = `${this.lc}[${this.subscribeToAddrs.name}]`;
+        /**
+         * We will lock based on the timeline's tjp's gib.
+         *
+         * There is an extremely small chance of accidental gib collision,
+         * but since this is a transient lock, that should be okay. (It's
+         * really small anyway except on of course the universal size, where it's
+         * a dead certainty.)
+         */
+        tjpGib: Gib,
+        secondsValid?: number,
+        /**
+         * After this amount of time, we error out.
+         */
+        timeoutSeconds: number,
+    }): Promise<boolean> {
+        const lc = `${this.lc}[${this.acquireLockOnTimeline.name}]`;
         try {
-            //
+            return true;
+            // if (logalot) { console.log(`${lc} starting...`); }
+            // execInSpaceWithLocking({
+            //     space: this,
+            //     fn
+            // })
+            // let result = await lockSpace({
+            //     space: this,
+            //     scope: tjpGib,
+            //     secondsValid,
+
+            // });
+            // if (result.data.alreadyLocked
+            // const lockIbGib = constantIbGib({
+            //     parentPrimitiveIb: 'aws_ddb_lock',
+            //     ib:
+            // })
         } catch (error) {
-            console.log(`${lc} ${error.message}`);
+            console.error(`${lc} ${error.message}`);
             throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
         }
     }
 }

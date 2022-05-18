@@ -2327,6 +2327,7 @@ export async function execInSpaceWithLocking<TResult>({
     maxDelayMs,
     fn,
     callerInstanceId,
+    maxLockAttempts,
 }: {
     space: IbGibSpaceAny,
     scope: string,
@@ -2342,7 +2343,12 @@ export async function execInSpaceWithLocking<TResult>({
      * ## intent
      * the idea is the ibgibs service has an instance id and passes it in here.
      */
-    callerInstanceId: string,
+    callerInstanceId?: string,
+    /**
+     * if given, will try to acquire lock at most this many times, else
+     * will default to {@link c.DEFAULT_MAX_DELAY_RETRY_LOCK_ACQUIRE_ATTEMPTS}.
+     */
+    maxLockAttempts?: number,
 }): Promise<TResult> {
     const lc = `[${execInSpaceWithLocking.name}]`;
     try {
@@ -2353,7 +2359,7 @@ export async function execInSpaceWithLocking<TResult>({
         if (!space) { throw new Error(`space required. (E: 66fd8f21a5b2b572d18cdeb9472a7722)`); }
         if (!secondsValid) { throw new Error(`secondsValid required. (E: 92c5610e57ceede5ce83cff86d5c2a22)`); }
         if (secondsValid < 0) { throw new Error(`secondsValid must be positive. (E: 970a7510c517235d7a355a843d18d222)`); }
-        if (secondsValid > c.MAX_LOCK_SECONDS_VALID) { throw new Error(`secondsValid arg (${secondsValid}) exceeds max secondsValid (${c.MAX_LOCK_SECONDS_VALID}) (E: 4cffe49a23c8f1698bf7c78eaccbb722)`); }
+        // if (secondsValid > c.MAX_LOCK_SECONDS_VALID) { throw new Error(`secondsValid arg (${secondsValid}) exceeds max secondsValid (${c.MAX_LOCK_SECONDS_VALID}) (E: 4cffe49a23c8f1698bf7c78eaccbb722)`); }
         if (!fn) { throw new Error(`fnGet required (E: 7022e280252ec2faf756b6db05c56e22)`); }
 
         // #endregion validation
@@ -2365,6 +2371,10 @@ export async function execInSpaceWithLocking<TResult>({
         maxDelayMs =
             (maxDelayMs ?? 0) > 0 ? maxDelayMs : c.DEFAULT_MAX_DELAY_MS_RETRY_LOCK_ACQUIRE
         let attempts = 0;
+        maxLockAttempts =
+            maxLockAttempts > 0 ?
+            maxLockAttempts :
+            c.DEFAULT_MAX_DELAY_RETRY_LOCK_ACQUIRE_ATTEMPTS;
         do {
             lockIbGib = await lockSpace({
                 space,
@@ -2376,7 +2386,7 @@ export async function execInSpaceWithLocking<TResult>({
             /** Delay a small random amount of time before trying again. */
             let delayMs = Math.ceil(Math.random() * maxDelayMs);
             await h.delay(delayMs);
-        } while (attempts < c.DEFAULT_MAX_DELAY_RETRY_LOCK_ACQUIRE_ATTEMPTS);
+        } while (attempts < maxLockAttempts);
         if (lockIbGib?.data?.success) {
             if (logalot) { console.log(`${lc} lock acquired. (I: d847fa953ee131a57e1a89c537342722)`); }
         } else {

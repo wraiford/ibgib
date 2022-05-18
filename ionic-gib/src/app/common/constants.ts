@@ -594,6 +594,20 @@ export const DEFAULT_MAX_RETRIES_GET_DEPENDENCY_GRAPH_LOCAL = 3;
  */
 export const DEFAULT_MS_BETWEEN_RETRIES_GET_DEPENDENCY_GRAPH_LOCAL = 1000;
 
+/**
+ * When locking an ibgib timeline, this is used for the ib schema.
+ *
+ * atow, the lock will be a constant ibGib and will have this constant term
+ * and the `tjpGib`.
+ *
+ * @example
+ * {
+ *   ib: `${aws_dynamodb_lock} ${tjpGib}`,
+ *   gib: HASH123,
+ * }
+ */
+export const AWS_DYNAMODB_LOCK_IB = 'aws_dynamodb_lock';
+
 export const AWS_RESERVED_WORDS = [
     'ABORT',
     'ABSOLUTE',
