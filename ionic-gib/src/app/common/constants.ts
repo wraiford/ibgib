@@ -457,7 +457,7 @@ export const AWS_REGION_REGEXP = /^[a-z][a-z]-[a-z]{1,20}-[0-9]{1,2}$/;
  */
 export const DEFAULT_PRIMARY_KEY_NAME = 'ibGibAddrHash';
 /** Max number of retries due to throughput failures */
-export const DEFAULT_AWS_MAX_RETRY_THROUGHPUT = 3;
+export const DEFAULT_AWS_MAX_RETRY_THROUGHPUT = 5;
 export const DEFAULT_AWS_MAX_RETRY_UNPROCESSED_ITEMS = 5;
 export const DEFAULT_AWS_PUT_BATCH_SIZE = 22;
 export const DEFAULT_AWS_GET_BATCH_SIZE = 100;
@@ -542,6 +542,7 @@ export const STATUS_UNDEFINED_TJP_GIB = GIB;
  */
 export const STATUS_UNDEFINED_TX_ID = '0';
 
+export const SPACE_LOCK_IB_TERM = 'space_lock';
 /**
  * When attempting to acquire a lock ona  space, and it is already lock, it will
  * wait a random amount of ms before trying to lock again. This is the default
@@ -593,20 +594,6 @@ export const DEFAULT_MAX_RETRIES_GET_DEPENDENCY_GRAPH_LOCAL = 3;
  * when getting dependency graph, sometimes we have to wait to retry
  */
 export const DEFAULT_MS_BETWEEN_RETRIES_GET_DEPENDENCY_GRAPH_LOCAL = 1000;
-
-/**
- * When locking an ibgib timeline, this is used for the ib schema.
- *
- * atow, the lock will be a constant ibGib and will have this constant term
- * and the `tjpGib`.
- *
- * @example
- * {
- *   ib: `${aws_dynamodb_lock} ${tjpGib}`,
- *   gib: HASH123,
- * }
- */
-export const AWS_DYNAMODB_LOCK_IB = 'aws_dynamodb_lock';
 
 export const AWS_RESERVED_WORDS = [
     'ABORT',

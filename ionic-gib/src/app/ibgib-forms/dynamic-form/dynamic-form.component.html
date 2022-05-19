@@ -20,7 +20,7 @@
         [placeholder]="item?.placeholder"
         [value]="item.value"
         [type]="item.dataType"
-        (ionChange)="handleTextChanged($event.target.value, item)"
+        (ionChange)="handleTextChanged(castToAny($event).target.value, item)"
         [readonly]="item.readonly"
         debounce="1000"
       ></ion-input>
@@ -28,7 +28,7 @@
         [formControlName]="item.uuid"
         [placeholder]="item?.placeholder"
         [value]="item.value"
-        (ionChange)="handleTextChanged($event.target.value, item)"
+        (ionChange)="handleTextChanged(castToAny($event).target.value, item)"
         [readonly]="item.readonly"
         debounce="1000"
       ></ion-textarea>

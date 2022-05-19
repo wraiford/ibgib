@@ -312,7 +312,8 @@ async function createDynamoDBBatchGetItemCommand({
         }
 
         // create the cmd
-        return new BatchGetItemCommand(params);
+        const cmd = new BatchGetItemCommand(params);
+        return cmd;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -331,29 +332,27 @@ async function createDynamoDBDeleteItemCommand({
         if (!addr) { throw new Error(`addr required. (E: f8bbdb60992e4fb5990d15dd7c761d3c)`); }
 
         // build the params input either from scratch of the unprocessedKeys
-        let params: BatchGetItemCommandInput;
-        if (!addrs) {
-            // populate keys
-            const keys: string[] = [];
-            for (let i = 0; i < addrs.length; i++) {
-                const addr = addrs[i];
-                const primaryKey = await getPrimaryKey({addr});
-                keys.push(primaryKey);
-            }
-            params = {
-                RequestItems: {
-                    [tableName]: {
-                        // e.g. { IbGibAddrHash: { S: '3b5781e8653a40269132a5c586e6472b'} },
-                        Keys: keys.map(key => { return { [c.DEFAULT_PRIMARY_KEY_NAME]: { S: key }} }),
-                        ConsistentRead: true,
-                        ProjectionExpression: projectionExpression,
-                    }
-                }
-            };
-        }
+        let params: DeleteItemCommandInput;
+        // populate key
+        const primaryKey = await getPrimaryKey({addr});
+        params = {
+            TableName: tableName,
+            Key: {
+                ibGibAddrHash: { S: primaryKey }
+            },
+            // ConditionExpression: "begins_with(#ib, :ib_start)",
+            // ExpressionAttributeNames: {
+            //     "#ib": "ib",
+            // },
+            // ExpressionAttributeValues: {
+            //     ":ib_start": { S: c.SPACE_LOCK_IB_TERM },
+            // },
+            // ReturnConsumedCapacity: "TOTAL",
+        };
 
         // create the cmd
-        return new BatchGetItemCommand(params);
+        let cmd = new DeleteItemCommand(params);
+        return cmd;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -940,12 +939,20 @@ export class AWSDynamoSpace_V1<
             }
 
             if (
-                arg.data?.cmd === 'get' &&
-                !arg.data?.cmdModifiers?.includes('latest') &&
-                !arg.data?.binExt && !arg.data?.binHash &&
-                (arg.data?.ibGibAddrs?.length === 0)
+                arg.data.cmd === 'get' &&
+                !arg.data.cmdModifiers?.includes('latest') &&
+                !arg.data.binExt && !arg.data?.binHash &&
+                ((arg.data.ibGibAddrs ?? []).length === 0)
             ) {
                 errors.push(`when "get" cmd is called, either ibGibAddrs or binExt+binHash required.`);
+            }
+
+            if (arg.data.cmd === 'delete') {
+                if ((arg.data.ibGibAddrs ?? []).length === 0) {
+                    errors.push(`when "delete" cmd is called, one ibGibAddr is required. Zero have been provided.`);
+                } else if (arg.data.ibGibAddrs.length > 1) {
+                    errors.push(`when "delete" cmd is called, only one ibGibAddr is required. ${arg.data.ibGibAddrs.length} have been provided.`);
+                }
             }
 
             if (arg.data.projectionExpression && !arg.data.projectionExpression.startsWith('ib,gib')) {
@@ -1604,6 +1611,8 @@ export class AWSDynamoSpace_V1<
         /**
          * I want the logging information to include which type of command it is.
          *
+         * @example 'BatchGetItem'
+         *
          * ## driving use case
          *
          * include which command in logging of consumed capacity.
@@ -1817,7 +1826,6 @@ export class AWSDynamoSpace_V1<
                 }
 
                 runningCount = ibGibs.length;
-                if (runningCount === 0) { debugger; }
                 if (logalot) { console.log(`${lc} runningCount: ${runningCount}...`); }
                 addrs = addrsToDoNextRound;
             }
@@ -3014,12 +3022,30 @@ export class AWSDynamoSpace_V1<
         const addrsDeleted: IbGibAddr[] = [];
         const addrsErrored: IbGibAddr[] = [];
         try {
+            if (logalot) { console.log(`${lc} starting... (I: f688b87409b290b158578afd606fcd22)`); }
+            // validated already to have one and only one ibgibAddr
+            const addr = arg.data.ibGibAddrs[0];
             try {
-                if ()
+                const client = createDynamoDBClient({
+                    accessKeyId: this.data.accessKeyId,
+                    secretAccessKey: this.data.secretAccessKey,
+                    region: this.data.region,
+                });
+                const cmd = await createDynamoDBDeleteItemCommand({
+                    tableName: this.data.tableName,
+                    addr,
+                });
+                let resCmd = await this.sendCmd<DeleteItemCommandOutput>({
+                    cmd,
+                    client,
+                    cmdLogLabel: 'DeleteItem',
+                });
+
+                console.dir(resCmd); // debug only
             } catch (error) {
                 console.error(`${lc} error: ${error.message}`);
                 resultData.errors = errors.concat([error.message]);
-                resultData.addrsErrored = addrsErrored;
+                resultData.addrsErrored = [addr];
                 resultData.success = false;
             }
             const result = await this.resulty({resultData});
@@ -3027,6 +3053,8 @@ export class AWSDynamoSpace_V1<
         } catch (error) {
             console.error(`${lc}(UNEXPECTED) error creating result via resulty. (E: ecf8643373bd44b490f167939453ed31)`);
             throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete. (I: c729a16647f3f8fec7a3251cda567522)`); }
         }
     }
 
@@ -3544,8 +3572,8 @@ export class AWSDynamoSpace_V1<
                 await execInSpaceWithLocking({
                     space: this,
                     scope: tjpGib,
-                    secondsValid: 60*5, // testing 5 minutes
-                    maxDelayMs: 1000 * 60, // testing 5 minutes
+                    secondsValid: 60*5, // testing
+                    maxDelayMs: 1000 * 60, // testing
                     callerInstanceId: sagaId,
                     maxLockAttempts: 5,
                     fn: async () => {
@@ -3652,7 +3680,6 @@ export class AWSDynamoSpace_V1<
                                 const errorsGetLatestStore: string[] = [];
                                 const warningsGetLatestStore: string[] = [];
                                 const addrsNotFound_GetLatestStore: IbGibAddr[] = [];
-                                debugger;
                                 let resGetStoreIbGib = await this.getIbGibs({
                                     client,
                                     ibGibAddrs: [latestAddr_Store],
@@ -4272,7 +4299,6 @@ export class AWSDynamoSpace_V1<
                 const pastAddrsNotFound: IbGibAddr[] = [];
                 const past_errorsGetIbGibs: string[] = [];
                 const past_warningsGetIbGibs: string[] = [];
-                debugger;
                 pastIbGibsOnlyInStore = await this.getIbGibs({
                     client,
                     ibGibAddrs: pastAddrsOnlyInStore,

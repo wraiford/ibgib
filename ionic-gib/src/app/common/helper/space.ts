@@ -29,7 +29,7 @@ import { isExpired, getExpirationUTCString, getTimestampInTicks } from './utils'
 import { SimpleIbgibCacheService } from 'src/app/services/simple-ibgib-cache.service';
 import { IbGibCacheService } from '../types/ibgib';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 
 /**
@@ -2299,7 +2299,7 @@ export function getSpaceLockAddr({
         }
 
         const spaceId = space.data!.uuid;
-        const ib = `space_lock ${spaceId} ${scope}`;
+        const ib = `${c.SPACE_LOCK_IB_TERM} ${spaceId} ${scope}`;
         const gib = GIB;
         return h.getIbGibAddr({ib, gib});
     } catch (error) {

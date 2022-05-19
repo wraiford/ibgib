@@ -80,7 +80,7 @@
     <!-- method -->
     <ion-item>
       <ion-label>{{fields.method.label}}: </ion-label>
-      <ion-select slot="end" [(ngModel)]="method" (ionChange)="method = $event.detail.value">
+      <ion-select slot="end" [(ngModel)]="method" (ionChange)="method = castToAny($event).detail.value">
         <!-- FOR SOME REASON, THE BINDING WON'T WORK? -->
         <!-- maybe related to https://github.com/ionic-team/ionic-framework/issues/19324 -->
         <!-- <ion-select-option *ngFor="let item of secretTypes" [value]="item">

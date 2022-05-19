@@ -510,4 +510,11 @@ export class DynamicFormComponent
     }
   }
 
+  /**
+   * hack to get type casting to work in templates
+   * @param val
+   * @returns value casted as any
+   */
+  castToAny(val: any) : any { return val; }
+
 }
