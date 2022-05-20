@@ -66,6 +66,7 @@ import { groupBy } from '../../helper/utils';
 import { constantIbGib, isBinary, mergeMapsOrArrays_Naive, splitPerTjpAndOrDna } from '../../helper/ibgib';
 import { execInSpaceWithLocking, getDependencyGraph, lockSpace, throwIfDuplicates } from '../../helper/space';
 import { validateIbGibIntrinsically } from '../../helper/validate';
+import { Subscription } from 'rxjs/internal/Subscription';
 
 // #endregion imports
 
@@ -3256,6 +3257,9 @@ export class AWSDynamoSpace_V1<
             if ((arg.data.ibGibAddrs ?? []).length === 0) { throw new Error(`arg.data.ibGibAddrs required. (E: 6f2062572cc247f6a12b34759418c66b)`); }
             throwIfDuplicates({ibGibAddrs: arg.data.ibGibAddrs});
             if (!arg.data.sagaId) { throw new Error(`sagaId required. (E: af30b1b3cf3a4676a89399514743da79)`); }
+            const timeLogName = `sync_log ${arg.data.sagaId}`;
+            console.timeLog(timeLogName, `${lc} starting...`);
+            await h.delay(1000); // seeing if it's just not registering the console.timeLog
             if ((arg.ibGibs ?? []).length === 0) { throw new Error(`no ibgibs given. (E: 62ae74eab0434b90b866caa285403143)`); }
             throwIfDuplicates({ibGibs: arg.ibGibs});
             if (!arg.syncSagaInfo) { throw new Error(`arg.syncSagaInfo required. (E: 33efb28789ff40b9b340eedcba0017f7)`); }
@@ -3277,6 +3281,7 @@ export class AWSDynamoSpace_V1<
             // #endregion validation, initialize some variables
 
             // #region add new watches, get any existing watch updates for space
+            console.timeLog(timeLogName, 'add new watches, get any existing watch updates for space starting...');
             if (arg.data.cmdModifiers?.includes('watch')) {
                 if (logalot) { console.log(`${lc} cmd is put, modifier includes watch sync. Hooking into tjp addr updates. (I: f1d1ed57d03c4842b0654215113297e6)`); }
                 // hook into any updates if the caller has included the
@@ -3290,6 +3295,7 @@ export class AWSDynamoSpace_V1<
             } else {
                 if (logalot) { console.log(`${lc} cmd is put, modifier includes sync but NOT watch. (I: 82180b881b7f47c49d157c14f8128785)`); }
             }
+            console.timeLog(timeLogName, 'add new watches, get any existing watch updates for space complete.');
             // #endregion add new watches, get any existing watch updates for space
 
             // create the initial status ibgib.
@@ -3484,7 +3490,13 @@ export class AWSDynamoSpace_V1<
         const lc = `${this.lc}[${this.spinOffToCompleteSync.name}]`;
         errors = errors ?? [];
         warnings = warnings ?? [];
+        const timeLogName = `sync_log ${sagaId}`;
         try {
+            // #region initialize sync timer log
+            // console.time(timeLogName);
+            console.timeLog(timeLogName, `${lc} starting...`);
+            // #endregion initialize sync timer log
+
             // #region set statusIbGib/Graph, save & publish (syncStatusIbGib_Start)
 
             // this variable will be used for references to the most recent
@@ -3497,6 +3509,8 @@ export class AWSDynamoSpace_V1<
 
             // save first status that we'll use to track the entire sync saga
             await this.saveInStoreAndPublishStatus({client, statusIbGib, syncStatus$});
+
+            // console.timeLog(timeLogName, 'saveInStoreAndPublishStatus complete');
 
             // #endregion
 
@@ -3539,6 +3553,7 @@ export class AWSDynamoSpace_V1<
             // that are currently in the store.
             const resLatestAddrsMap =
                 await this.getLatestIbGibAddrsInStore({client, ibGibs, errors, warnings});
+            console.timeLog(timeLogName, 'getLatestIbGibAddrsInStore complete');
             if (errors.length > 0) { throw new Error(`${lc}[${this.getLatestIbGibAddrsInStore.name}] errors: ${errors.join('|')} (E: 0c929b53b906412781da867c68288b03)`); }
             if (warnings.length > 0) {
                 console.warn(`${lc}[getLatestAddrsInStore] warnings: ${warnings.join('|')} (W: 9bca93caf1bd43218da0749a62c8f722) `)
@@ -3569,6 +3584,7 @@ export class AWSDynamoSpace_V1<
                 const tjpAddr = tjpAddrs[i];
                 const tjpGib = h.getIbAndGib({ibGibAddr: tjpAddr}).gib;
 
+                console.timeLog(timeLogName, `execInSpaceWithLocking tjpGib: ${tjpGib.slice(0,16)} starting...`);
                 await execInSpaceWithLocking({
                     space: this,
                     scope: tjpGib,
@@ -3632,6 +3648,7 @@ export class AWSDynamoSpace_V1<
 
 
                             if (latestAddr_Store === latestAddr_Local) {
+                                console.timeLog(timeLogName, 'already synced');
                                 // #region already synced
                                 if (logalot) { console.log(`${lc} store and local spaces are already synced.`); }
                                 // todo: cache this address as already synced with timestamp
@@ -3643,6 +3660,7 @@ export class AWSDynamoSpace_V1<
                                 // #endregion already synced
 
                             } else if (tjpGroupAddrs_Local_Ascending.includes(latestAddr_Store)) {
+                                console.timeLog(timeLogName, 'only Local has changes');
                                 // #region only Local has changes
                                 if (logalot) { console.log(`${lc} local space has changes, store does NOT. Will update store with more recent local.`); }
                                 // sync call, i.e. no need for await
@@ -3655,6 +3673,7 @@ export class AWSDynamoSpace_V1<
                                     ibGibsToStore: ibGibsToStore_thisTjp,
                                     updates,
                                 });
+                                console.timeLog(timeLogName, 'reconcile_UpdateStoreWithMoreRecentLocal complete');
                                 statusCode = StatusCode.updated;
                                 // nothing created or merged
                                 // ibGibsCreated = [];
@@ -3662,6 +3681,7 @@ export class AWSDynamoSpace_V1<
                                 // #endregion only Local has changes
 
                             } else {
+                                console.timeLog(timeLogName, 'store has changes, maybe also local');
                                 // #region store has changes, maybe also local
 
                                 // store definitely has changes. maybe only the store
@@ -3687,6 +3707,7 @@ export class AWSDynamoSpace_V1<
                                     errors: errorsGetLatestStore,
                                     addrsNotFound: addrsNotFound_GetLatestStore,
                                 });
+                                console.timeLog(timeLogName, 'resGetStoreIbGib complete');
                                 if (addrsNotFound_GetLatestStore.length > 0) { throw new Error(`store ibgib addr not found, but we just got this addr from the store. latestAddr_Store: ${latestAddr_Store}. (E: c9ed2f2854a74ddb82d932fb31cc301a)(UNEXPECTED)`); }
                                 if (errorsGetLatestStore.length > 0) { throw new Error(`problem getting full ibgib for latest addr from store. errors: ${errors.join('\n')}. (E: 3525deb3c668441fb6f4605d20845fc6)`); }
                                 if (warningsGetLatestStore.length > 0) { console.warn(`${lc} ${warningsGetLatestStore} (W: c310638669784e78b5e34b447754eafb)`); }
@@ -3698,6 +3719,7 @@ export class AWSDynamoSpace_V1<
                                     (latestIbGib_Store.rel8ns?.dna ?? []).length > 0;
                                 if (latestIbGib_Local_HasDna && latestIbGib_Store_HasDna) {
                                     if (logalot) { console.log(`${lc} merge via dna. latestAddr_Local: ${latestAddr_Local}`); }
+                                    console.timeLog(timeLogName, 'reconcile_MergeLocalWithStore_ViaDna starting...');
                                     await this.reconcile_MergeLocalWithStore_ViaDna({
                                         client,
                                         tjpAddr,
@@ -3710,10 +3732,13 @@ export class AWSDynamoSpace_V1<
                                         ibGibsOnlyInStore: ibGibsOnlyInStore_thisTjp,
                                         allLocalIbGibs: ibGibs,
                                         updates,
+                                        timeLogName,
                                     });
+                                    console.timeLog(timeLogName, 'reconcile_MergeLocalWithStore_ViaDna complete.');
                                     ibGibsCreated_thisTjp.forEach(x => ibGibsToStore_thisTjp.push(x));
                                     statusCode = StatusCode.merged_dna;
                                 } else {
+                                    console.timeLog(timeLogName, 'merge manually via state');
                                     if (logalot) { console.log(`${lc} merge manually via state. latestAddr_Local: ${latestAddr_Local}`); }
                                     await this.reconcile_MergeLocalWithStore_ViaState({
                                         client,
@@ -3725,6 +3750,7 @@ export class AWSDynamoSpace_V1<
                                         ibGibMergeMap: ibGibsMergeMap_thisTjp,
                                         updates,
                                     });
+                                    console.timeLog(timeLogName, 'reconcile_MergeLocalWithStore_ViaState complete');
                                     ibGibsCreated_thisTjp.forEach(x => ibGibsToStore_thisTjp.push(x));
                                     statusCode = StatusCode.merged_state;
                                 }
@@ -3732,6 +3758,7 @@ export class AWSDynamoSpace_V1<
                                 // #endregion store has changes, maybe also local
                             }
                         } else {
+                            console.timeLog(timeLogName, 'the timeline DOES NOT exist in the store');
 
                             if (logalot) { console.log(`${lc} the timeline DOES NOT exist in the store, so insert it.`)}
 
@@ -3742,6 +3769,7 @@ export class AWSDynamoSpace_V1<
                                 ibGibsWithoutTjp: ibGibsWithoutTjp,
                                 ibGibsToStore: ibGibsToStore_thisTjp,
                             });
+                            console.timeLog(timeLogName, 'reconcile_InsertFirstTimeIntoStore complete');
                             statusCode = StatusCode.inserted;
                             // nothing created or merged
                             // ibGibsCreated = [];
@@ -3766,6 +3794,7 @@ export class AWSDynamoSpace_V1<
                                 ibGibsToStoreNotAlreadyStored.push(maybeIbGib);
                             }
                         }
+                        console.timeLog(timeLogName, 'update ibGibsToStoreNotAlreadyStored complete');
 
                         // in this first naive implementation, we're just going all or none
                         // in terms of success and publishing it.
@@ -3776,8 +3805,8 @@ export class AWSDynamoSpace_V1<
                                 throw new Error(errors.join('\n'));
                             }
                             if (warnings.length > 0) { console.warn(`${lc} warnings:\n${warnings.join('\n')}`); }
-
                         }
+                        console.timeLog(timeLogName, 'putIbGibs ibGibsToStoreNotAlreadyStored complete');
 
                         if (logalot) { console.log(`${lc} checking if need to updated tjpWatches via updates`); }
                         if (Object.keys(updates).length > 0) {
@@ -3787,7 +3816,9 @@ export class AWSDynamoSpace_V1<
                             // with the corresponding watch ibgibs. those updates
                             // will be picked up on the next call by the incoming
                             // space.
+                            console.timeLog(timeLogName, 'updateTjpWatches starting...');
                             await this.updateTjpWatches({client, srcSpaceId, updates});
+                            console.timeLog(timeLogName, 'updateTjpWatches complete.');
                         } else {
                             if (logalot) { console.log(`${lc} no updates occurred, so NOT calling updateTjpWatches.`); }
                         }
@@ -3851,7 +3882,8 @@ export class AWSDynamoSpace_V1<
 
                         // #endregion complete/finalize sync saga
                     }
-                })
+                });
+                console.timeLog(timeLogName, `execInSpaceWithLocking tjpGib: ${tjpGib.slice(0,16)} complete.`);
 
             }
 
@@ -3859,6 +3891,7 @@ export class AWSDynamoSpace_V1<
 
             // #region complete saga
 
+            console.timeLog(timeLogName, 'complete saga cleanup starting...');
             const statusCode = StatusCode.completed;
             const resSyncStatusIbGib_Complete = await V1.mut8({
                 src: statusIbGib,
@@ -3882,6 +3915,8 @@ export class AWSDynamoSpace_V1<
             // publish the last status to indicate sync completion (for this space's saga).
             await this.saveInStoreAndPublishStatus({client, statusIbGib, syncStatus$});
 
+            console.timeLog(timeLogName, 'complete saga cleanup complete.');
+
             // complete this space's observable
             syncStatus$.complete();
 
@@ -3889,6 +3924,7 @@ export class AWSDynamoSpace_V1<
 
         } catch (error) {
             const emsg = `${lc} ${error.message}`;
+            console.timeLog(timeLogName, `errored. emsg: ${emsg}`);
             if (error.message === c.AWS_ERROR_MSG_ITEM_SIZE_EXCEEDED) {
                 // hmm, try to handle this post hoc?
                 console.error(emsg);
@@ -3907,6 +3943,8 @@ export class AWSDynamoSpace_V1<
                 if (logalot) { console.warn(`${lc} error happened...NO do NOT publish error to syncStatus...`)}
             }
             // does not rethrow because this is a spun off promise
+        } finally {
+            console.timeLog(timeLogName, `${lc} complete.`);
         }
     }
 
@@ -4149,6 +4187,7 @@ export class AWSDynamoSpace_V1<
         ibGibMergeMap,
         allLocalIbGibs,
         updates,
+        timeLogName,
     }: {
         client: DynamoDBClient,
         tjpAddr: IbGibAddr,
@@ -4216,6 +4255,7 @@ export class AWSDynamoSpace_V1<
          * address for this tjpAddr that is reconciled with the store.
          */
         updates: { [tjpAddr: string]: IbGibAddr },
+        timeLogName: string,
     }): Promise<void> {
         const lc = `${this.lc}[${this.reconcile_MergeLocalWithStore_ViaDna.name}]`;
         try {
@@ -4235,7 +4275,8 @@ export class AWSDynamoSpace_V1<
             if (logalot) { console.log(`${lc} pastAddrs_Store: ${pastAddrs_Store.join('\n')}`); }
             // if ((pastAddrs_Store ?? []).length === 0) { throw new Error(`store ibgib does not have past. (E: 6f621d46d390435eb4d8421fe90d0086)`); }
 
-            // #region first get store changes (if any) that local doesn't have
+            // #region find where dna diverges
+            // console.timeLog(timeLogName, 'find where dna diverges starting...');
 
             // we're going to have to do a subset of a dependency graph.  we
             // only want additional dependencies that exist since the divergent
@@ -4270,10 +4311,14 @@ export class AWSDynamoSpace_V1<
             }
             if (logalot) { console.log(`${lc} pastFirstDifferent_Index_Store: ${pastFirstDifferent_Index_Store}`); }
 
+            // console.timeLog(timeLogName, 'find where dna diverges complete.');
+            // #endregion find where dna diverges
+
             // regardless of if we found a different dna index, we know we have
             // changes on the store. So go ahead and get do those changes.
 
             // #region first, populate ibGibsOnlyInStore
+            console.timeLog(timeLogName, 'populate ibGibsOnlyInStore starting...');
 
             // so the new ibgibs will be of three varieties:
             // 1. the new ibgibs in the tjp timeline itself, which can be
@@ -4299,6 +4344,7 @@ export class AWSDynamoSpace_V1<
                 const pastAddrsNotFound: IbGibAddr[] = [];
                 const past_errorsGetIbGibs: string[] = [];
                 const past_warningsGetIbGibs: string[] = [];
+                console.timeLog(timeLogName, 'getIbGibs pastIbGibsOnlyInStore starting...');
                 pastIbGibsOnlyInStore = await this.getIbGibs({
                     client,
                     ibGibAddrs: pastAddrsOnlyInStore,
@@ -4306,6 +4352,7 @@ export class AWSDynamoSpace_V1<
                     errors: past_errorsGetIbGibs,
                     warnings: past_warningsGetIbGibs,
                 });
+                console.timeLog(timeLogName, 'getIbGibs pastIbGibsOnlyInStore complete.');
                 if (past_errorsGetIbGibs.length > 0) { throw new Error(`past_errorsGetIbGibs: ${past_errorsGetIbGibs.join('|')} (E: 3f996dcb7c014361b96b8cbb5c53b704)`) }
                 if (past_warningsGetIbGibs.length > 0) { console.warn(`${lc} past_warningsGetIbGibs: ${past_warningsGetIbGibs.join('|')} (W: 827dcd97c73e4b7aa1ccbea0f0afc183)`); }
                 if (pastAddrsNotFound.length > 0) { throw new Error(`Errors getting past ibgibs. pastAddrsNotFound: ${pastAddrsNotFound.join('\n')} (E: c26d4e963d4f4d3eaf13459648f6e995)`)}
@@ -4317,6 +4364,7 @@ export class AWSDynamoSpace_V1<
             // #endregion get the new ibgibs in timeline itself
 
             // #region get the corresponding store-only dna transforms
+            console.timeLog(timeLogName, 'get the corresponding store-only dna transforms starting...');
             const dnaAddrsOnlyInStore = dnaAddrs_Store.slice(dnaFirstDifferent_Index_Store ?? dnaSmallerArray.length);
             let dnaIbGibsOnlyInStore: IbGib_V1[] = [];
             if (dnaAddrsOnlyInStore.length > 0) {
@@ -4341,9 +4389,11 @@ export class AWSDynamoSpace_V1<
                 if (logalot) { console.log(`${lc} dnaAddrsOnlyInStore is empty.`); }
             }
 
-            // #endregion get the corresponding dna transforms
+            console.timeLog(timeLogName, 'get the corresponding store-only dna transforms complete.');
+            // #endregion get the corresponding store-only dna transforms
 
             // #region newly rel8d/store-only ibgibs (added since divergence)
+            console.timeLog(timeLogName, 'newly rel8d/store-only ibgibs (added since divergence) starting...');
 
             // analyze each dna. Regardless of the transform type, we've
             // already added both the transform ibgib and its subsequently
@@ -4371,26 +4421,17 @@ export class AWSDynamoSpace_V1<
                             });
                     }
                 }
-                // const rel8dAddrsNotFound: IbGibAddr[] = [];
-                // const rel8d_errorsGetIbGibs: string[] = [];
-                // const rel8d_warningsGetIbGibs: string[] = [];
+                console.timeLog(timeLogName, 'getDependencyGraph starting...');
                 const rel8dGraph = await getDependencyGraph({
                     ibGibAddrs: rel8dAddrsOnlyInStore,
                     maxRetries: c.DEFAULT_MAX_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
                     msBetweenRetries: c.DEFAULT_MS_BETWEEN_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
+                    skipAddrs: allLocalIbGibs.map(x => h.getIbGibAddr({ibGib: x})),
                     space: this,
+                    timeLogName,
                 });
+                console.timeLog(timeLogName, 'getDependencyGraph complete.');
                 const rel8dIbGibsOnlyInStore = Object.values(rel8dGraph);
-                // const rel8dIbGibsOnlyInStore = await this.getIbGibs({
-                //     client,
-                //     ibGibAddrs: rel8dAddrsOnlyInStore,
-                //     addrsNotFound: rel8dAddrsNotFound,
-                //     errors: rel8d_errorsGetIbGibs,
-                //     warnings: rel8d_warningsGetIbGibs,
-                // });
-                // if (rel8d_errorsGetIbGibs.length > 0) { throw new Error(`rel8d_errorsGetIbGibs: ${rel8d_errorsGetIbGibs.join('|')} (E: 6b50908e9a39437f9b5999d721657076)`) }
-                // if (rel8d_warningsGetIbGibs.length > 0) { console.warn(`${lc} rel8d_warningsGetIbGibs: ${rel8d_warningsGetIbGibs.join('|')} (W: 57ba9ca1c14a401d9151b1e8c6eb934c)`); }
-                // if (rel8dAddrsNotFound.length > 0) { throw new Error(`Errors getting rel8d ibgibs. rel8dAddrsNotFound: ${rel8dAddrsNotFound.join('\n')} (E: 57f63dd73e1345f6a9ca22723f09c662)`)}
                 if (rel8dIbGibsOnlyInStore.length < rel8dAddrsOnlyInStore.length) { throw new Error(`rel8dIbGibsOnlyInStore.length < rel8dAddrsOnlyInStore.length? We should have at least those ibgibs explicitly rel8d, plus their dependency graphs. (E: 17654562e21f41ef98ff7a8906c2830c)`); }
                 if (rel8dIbGibsOnlyInStore.length > 0) {
                     if (logalot) { console.log(`${lc} rel8dIbGibsOnlyInStore(mapped, length: ${rel8dIbGibsOnlyInStore.length}): ${rel8dIbGibsOnlyInStore.map(x => h.getIbGibAddr({ibGib: x})).join('\n')}`); }
@@ -4408,10 +4449,12 @@ export class AWSDynamoSpace_V1<
                 // focus/resources.
             }
 
+            console.timeLog(timeLogName, 'newly rel8d/store-only ibgibs (added since divergence) complete.');
             // #endregion newly rel8d/store-only ibgibs (added since divergence)
 
             if (logalot) { console.log(`${lc} ibGibsOnlyInStore (${ibGibsOnlyInStore.length}) mapped to addrs: ${ibGibsOnlyInStore.map(x => h.getIbGibAddr({ibGib: x})).join('\n')}`); }
 
+            console.timeLog(timeLogName, 'populate ibGibsOnlyInStore complete.');
             // #endregion first, populate ibGibsOnlyInStore
 
             if (dnaFirstDifferent_Index_Store) {
@@ -4421,6 +4464,7 @@ export class AWSDynamoSpace_V1<
                 // to apply.
 
                 // #region next, merge local changes (if any) into store
+                console.timeLog(timeLogName, 'next, merge local changes (if any) into store starting...');
 
                 // get transforms (already in ascending order) that the local ibgib
                 // has but the store ibgib does not have.
@@ -4443,6 +4487,7 @@ export class AWSDynamoSpace_V1<
                     createdIbGibs_Running.forEach(x => ibGibsCreated.push(x));
                 }
 
+                console.timeLog(timeLogName, 'next, merge local changes (if any) into store complete.');
                 // #endregion next, merge local changes (if any) into store
 
             } else {
@@ -4461,8 +4506,6 @@ export class AWSDynamoSpace_V1<
                 // and no local changes to apply. We already applied those so
                 // we're done.
             }
-
-            // #endregion first get store changes (if any) that local doesn't have
 
             ibGibMergeMap[latestAddr_Local] = latestIbGib_Store;
 

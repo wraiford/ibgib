@@ -6,7 +6,7 @@
 import { Injectable } from '@angular/core';
 import { AlertController, ModalController } from '@ionic/angular';
 import { Capacitor } from '@capacitor/core';
-import { Observable, ReplaySubject, Subject, } from 'rxjs';
+import { Observable, ReplaySubject, Subject, Subscription, } from 'rxjs';
 
 import { IbGib_V1, GIB, GIB_DELIMITER, } from 'ts-gib/dist/V1';
 import { Gib, IbGibAddr, TransformResult, } from 'ts-gib';
@@ -1601,6 +1601,9 @@ export class IbgibsService {
 
       // do actual decryption
       if (logalot) { console.log(`${lc} starting decrypt...`); }
+      const timerName = 'sync_log decrypt';
+      console.time(timerName);
+      console.timeLog(timerName, 'decrypting...');
       const resDecrypt = await decrypt({
         encryptedData: ciphertextIbGib.data.ciphertext,
         secret: password,
@@ -1615,6 +1618,8 @@ export class IbgibsService {
           encryptionIbGib.data.hashAlgorithm || c.DEFAULT_ENCRYPTION_HASH_ALGORITHM,
         encryptedDataDelimiter: encryptionIbGib.data.encryptedDataDelimiter,
       });
+      console.timeLog(timerName, 'decrypting complete.');
+      console.timeEnd(timerName);
       if (logalot) { console.log(`${lc} decrypt complete.`); }
       if (resDecrypt.errors?.length > 0) { throw new Error(resDecrypt.errors.join('|')); }
 
@@ -2100,6 +2105,9 @@ export class IbgibsService {
 
   // #region syncIbGibs related
 
+  private subSagaSyncTimeLog: Subscription;
+
+
   async syncIbGibs({
     dependencyGraphIbGibs,
     // confirm,
@@ -2125,6 +2133,29 @@ export class IbgibsService {
 
       this._syncing = true;
 
+      // have to make sagaId and syncStatus$ early to enable timeLog calls
+      const sagaId = (await h.getUUID()).slice(0,24);
+      const syncStatus$ = new ReplaySubject<SyncStatusIbGib>();
+      const syncTimelogName = `sync_log ${sagaId}`;
+      console.time(syncTimelogName);
+      console.timeLog(syncTimelogName, 'start');
+      this.subSagaSyncTimeLog = syncStatus$.subscribe(
+        (status) => {
+          if (status.data?.statusCode === StatusCode.completed) {
+            console.timeLog(syncTimelogName, 'StatusCode.complete');
+          }
+        },
+        (_: any) => {
+          console.timeEnd(syncTimelogName)
+          this.subSagaSyncTimeLog?.unsubscribe();
+          debugger;
+        }, () => {
+          console.timeEnd(syncTimelogName)
+          this.subSagaSyncTimeLog?.unsubscribe();
+          debugger;
+        }
+      );
+
       // #region validate
       if (logalot) { console.log(`${lc} starting...`); }
       if (!dependencyGraphIbGibs || dependencyGraphIbGibs.length === 0) { throw new Error(`ibGibs required. (E: 404c36475fb84fc285a23a67c0b8fcb2)`); }
@@ -2134,17 +2165,21 @@ export class IbgibsService {
 
       // #region get sync spaces and build participant infos
       if (logalot) { console.log(`${lc} get sync spaces (returns if none)`); }
+      console.timeLog(syncTimelogName, 'getAppSyncSpaces starting (unwrapEncrypted is true) starting...');
       const appSyncSpaces: IbGibSpaceAny[] = await this.getAppSyncSpaces({
         unwrapEncrypted: true,
         createIfNone: true,
         space: localUserSpace,
       });
+      console.timeLog(syncTimelogName, 'getAppSyncSpaces starting (unwrapEncrypted is true) complete.');
       if (appSyncSpaces.length === 0) {
         const msg = `Can't sync without sync spaces...wrong password? Cancelling. Restart app to retry password (I know it sucks!...just me coding this thing right now)`;
         if (logalot) { console.log(`${lc} ${msg}`) };
         const fnAlert = getFnAlert();
         await fnAlert({title: "Cancelled", msg});
         this._syncing = false;
+        console.timeLog(syncTimelogName, 'cancelled');
+        console.timeEnd(syncTimelogName);
         return;
       }
       // const localUserSpace = await this.getLocalUserSpace({});
@@ -2177,7 +2212,6 @@ export class IbgibsService {
       const multiSpaceOpId = await h.getUUID();
       const allSagaInfos: SyncSagaInfo[] = [];
       const startSyncPromises: Promise<void>[] = appSyncSpaces.map(async syncSpace => {
-
         // create the info that will track progress over entire sync saga
         const sagaInfo =
           await this._createNewSyncSagaInfo({
@@ -2185,6 +2219,8 @@ export class IbgibsService {
             allIbGibsToSync,
             syncSpace,
             participants,
+            sagaId,
+            syncStatus$,
           });
         this.sagaInfoMap[sagaInfo.sagaId] = sagaInfo;
         allSagaInfos.push(sagaInfo);
@@ -2193,7 +2229,7 @@ export class IbgibsService {
           // on the status updates throughout the sync saga. We can handle
           // updating our own local space based on those status updates.
           // await this._startSync({syncSagaInfo: sagaInfo, confirm});
-          await this._startSync({syncSagaInfo: sagaInfo, watch});
+          await this._startSync({syncSagaInfo: sagaInfo, watch, syncTimelogName});
         } catch (error) {
           // if this throws, then that is unexpected. The above result should
           // always be returned, and if it's errored then it should indicate as
@@ -2206,7 +2242,9 @@ export class IbgibsService {
       // await just the initial starting of each space's sync operation.  when
       // this promise is awaited, the sync operation is not done, only the
       // starting of all sync sagas across all spaces.
+      console.timeLog(syncTimelogName, 'awaiting all startSyncPromises starting...');
       await Promise.all(startSyncPromises);
+      console.timeLog(syncTimelogName, 'awaiting all startSyncPromises complete.');
 
       // at this point, all spaces have prepared and are going. the sync saga
       // info attached to each arg/result ibgib has the observable syncStatus$
@@ -2317,12 +2355,22 @@ export class IbgibsService {
     multiSpaceOpId,
     allIbGibsToSync,
     syncSpace: outerSpace,
-    participants
+    participants,
+    sagaId,
+    syncStatus$,
   }: {
     multiSpaceOpId: string,
     allIbGibsToSync: IbGib_V1[],
     syncSpace: IbGibSpaceAny,
     participants: ParticipantInfo[],
+    /**
+     * have to make this early to enable the console.time/Log calls.
+     */
+    sagaId: string,
+    /**
+     * have to make this early to enable the console.time/Log calls.
+     */
+    syncStatus$: ReplaySubject<SyncStatusIbGib>,
   }): Promise<SyncSagaInfo> {
     const lc = `${this.lc}[${this._createNewSyncSagaInfo.name}]`;
     try {
@@ -2345,11 +2393,12 @@ export class IbgibsService {
         outerSpace,
         // spaceGib: syncSpace.gib,
         spaceId: outerSpace.data.uuid,
-        sagaId: (await h.getUUID()).slice(0,24),
+        sagaId,
         participants,
         witnessFnArgsAndResults$: new ReplaySubject<SyncSpaceOptionsIbGib|SyncSpaceResultIbGib>(),
 
-        syncStatus$: new ReplaySubject<SyncStatusIbGib>(),
+        // syncStatus$: new ReplaySubject<SyncStatusIbGib>(),
+        syncStatus$,
         syncStatusSubscriptions: [],
 
         syncIbGibs_All: allIbGibsToSync,
@@ -2363,6 +2412,9 @@ export class IbgibsService {
         syncAddrs_Failed: [],
       };
 
+      const syncTimelogName = `sync_log ${syncSagaInfo.sagaId}`;
+      // console.time(syncTimelogName);
+      console.timeLog(syncTimelogName);
       // return it
       return syncSagaInfo;
     } catch (error) {
@@ -2388,6 +2440,7 @@ export class IbgibsService {
     syncSagaInfo,
     watch,
     // confirm,
+    syncTimelogName,
   }: {
     syncSagaInfo: SyncSagaInfo,
     watch?: boolean,
@@ -2398,6 +2451,7 @@ export class IbgibsService {
      * NOTE: IGNORED ATM
      */
     // confirm?: boolean,
+    syncTimelogName: string,
   }): Promise<SyncSpaceResultIbGib> {
     const lc = `${this.lc}[${this._startSync.name}]`;
     try {
@@ -2410,7 +2464,10 @@ export class IbgibsService {
       // first we want to get the ball rolling
       // we will get back an ibGib that we can use to track the progress of the
       // entire operation wrt this space.
+      console.timeLog(syncTimelogName, `getLocalUserSpace starting...`);
       const localUserSpace = await this.getLocalUserSpace({});
+      console.timeLog(syncTimelogName, `getLocalUserSpace complete.`);
+
       const argStartSync: SyncSpaceOptionsIbGib = await syncSpace.argy({
         argData: <SyncSpaceOptionsData>{
           cmd: 'put', cmdModifiers: watch ? ['sync', 'watch'] : ['sync'],
@@ -2429,17 +2486,21 @@ export class IbgibsService {
       // of multiple cycles, which is why I have this structured as an observable
       // and not hard-coding a single arg/result in the saga info.
       syncSagaInfo.witnessFnArgsAndResults$.next(argStartSync);
+      console.timeLog(syncTimelogName, `syncSpace witness starting...`);
       const resStartSync: SyncSpaceResultIbGib = await syncSpace.witness(argStartSync);
+      console.timeLog(syncTimelogName, `syncSpace witness complete.`);
       if (!resStartSync.data?.statusTjpAddr) { throw new Error(`resStartSync.data.statusTjpAddr is falsy. sagaId: ${sagaId} (E: 727b5cc1a0254497bc6e06e9c6760564)`); }
       syncSagaInfo.witnessFnArgsAndResults$.next(resStartSync);
 
       // in our return, we can check for updates since our last communication.
       if (Object.keys(resStartSync.data.watchTjpUpdateMap ?? {}).length > 0) {
         if (logalot) { console.log(`${lc} resStartSync.data.watchTjpUpdateMap: ${h.pretty(resStartSync.data.watchTjpUpdateMap)}`); }
+        console.timeLog(syncTimelogName, `handleWatchTjpUpdates starting...`);
         await this.handleWatchTjpUpdates({
           outerSpace: syncSpace,
           updates: resStartSync.data.watchTjpUpdateMap
         });
+        console.timeLog(syncTimelogName, `handleWatchTjpUpdates complete.`);
       }
 
       // most of our handling will be in subscription to syncStatus$ updates.

@@ -255,6 +255,7 @@ export async function getDependencyGraph({
     maxRetries,
     msBetweenRetries,
     space,
+    timeLogName,
 }: {
     /**
      * source ibGib to grab dependencies of.
@@ -326,6 +327,10 @@ export async function getDependencyGraph({
      * Space within which we should be looking for ibGibs.
      */
     space: IbGibSpaceAny,
+    /**
+     * If supplied, will make intermittent calls to console.timeLog using this name.
+     */
+    timeLogName?: string,
 }): Promise<{ [addr: string]: IbGib_V1 }> {
     const lc = `[${getDependencyGraph.name}]`;
     try {
@@ -333,6 +338,7 @@ export async function getDependencyGraph({
         if (!ibGib && !ibGibAddr && (ibGibs ?? []).length === 0 && (ibGibAddrs ?? []).length === 0) {
             throw new Error(`either ibGib/s or ibGibAddr/s required. (E: b6d08699651f455697f0d05a41edb039)`);
         }
+        if (timeLogName) { console.timeLog(timeLogName, `${lc} starting...`)}
 
         skipRel8nNames = skipRel8nNames || [];
         skipAddrs = skipAddrs || [];
@@ -431,27 +437,35 @@ export async function getDependencyGraph({
             let retryCount = 0;
             maxRetries = maxRetries ?? 0;
             while (retryCount <= maxRetries && addrsToGet.length > 0) {
+                if (timeLogName && retryCount === 0) { console.timeLog(timeLogName, `${lc} FIRST try starting...`)}
+                if (timeLogName && retryCount > 0) { console.timeLog(timeLogName, `${lc} RETRY starting...`)}
                 // delay if applicable
                 if (retryCount > 0 && msBetweenRetries) {
+                    if (timeLogName) { console.timeLog(timeLogName, `${lc} delaying ${msBetweenRetries}ms for retry`); }
                     if (logalot) { console.log(`${lc} retrying. addrsToGet (${addrsToGet.length}): ${addrsToGet} (I: 8460694cdd5518472680784c3b96a822)`); }
                     await h.delay(msBetweenRetries);
                 }
 
                 // do the get
+                if (timeLogName) { console.timeLog(timeLogName, `${lc} getFromSpace (${addrsToGet?.length}) starting...`); }
                 let resGetThese = await getFromSpace({addrs: addrsToGet, space});
+                if (timeLogName) { console.timeLog(timeLogName, `${lc} getFromSpace complete.`); }
                 if (resGetThese.success && resGetThese.ibGibs?.length > 0) {
                     resGetThese.ibGibs.forEach(x => ibGibs.push(x));
                     const gottenAddrs = resGetThese.ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
                     if (gottenAddrs.length === addrsToGet.length) {
+                        if (timeLogName) { console.timeLog(timeLogName, `${lc} got all.`)}
                         // got them all, so we're done
                         addrsToGet = [];
                         break;
                     } else {
+                        if (timeLogName) { console.timeLog(timeLogName, `${lc} got some.`)}
                         // got only some, prune addrsToGet for next retry (if any)
                         addrsToGet = addrsToGet.filter(x => !gottenAddrs.includes(x));
                     }
                 } else {
                     // failed, addrsToGet stays the same
+                    if (timeLogName) { console.timeLog(timeLogName, `${lc} failed. addrs: ${addrsToGet?.join(',')}`)}
                 }
                 retryCount++;
             }
@@ -484,6 +498,7 @@ export async function getDependencyGraph({
         // so, we will iterate through all of our given and loaded ibGibs (not
         // the ones in gotten map though), look through all of their rel8ns, and
         // add any that haven't already been gotten
+        if (timeLogName) { console.timeLog(timeLogName, `${lc} analyzing next step starting...`); }
         for (let i = 0; i < ibGibs.length; i++) {
             ibGib = ibGibs[i];
             ibGibAddr = h.getIbGibAddr({ibGib});
@@ -498,7 +513,6 @@ export async function getDependencyGraph({
             if (!Object.keys(gotten).includes(ibGibAddr)) { gotten[ibGibAddr] = ibGib; }
 
             // iterate through rel8ns and compile list of ibgib addrs not yet gotten
-            /** list that we're compiling to get */
             /** map of addr to validation errors array */
             const invalidAddrs: { [addr: string]: string[] } = {};
             const rel8ns = ibGib.rel8ns || {};
@@ -528,12 +542,14 @@ export async function getDependencyGraph({
             if (Object.keys(invalidAddrs).length > 0) {
                 throw new Error(`invalid addresses found in dependency graph. Errors (clipped to 1kB): ${JSON.stringify(invalidAddrs).substring(0, 1024)}`);
             }
-
         }
+        if (timeLogName) { console.timeLog(timeLogName, `${lc} analyzing next step complete.`); }
 
         if (addrsWeDontHaveAlready_Rel8dAddrs.length > 0) {
+            if (timeLogName) { console.timeLog(timeLogName, `${lc} get addrsWeDontHaveAlready_Rel8dAddrs starting...`); }
             // execute the get on those addrs
             const resGet = await getFromSpace({addrs: addrsWeDontHaveAlready_Rel8dAddrs, space});
+            if (timeLogName) { console.timeLog(timeLogName, `${lc} get addrsWeDontHaveAlready_Rel8dAddrs complete.`); }
             if (resGet.success) {
                 if (resGet.ibGibs?.length === addrsWeDontHaveAlready_Rel8dAddrs.length) {
                     if (logalot) { console.log(`${lc} got ALL of them (happy path)`); }
@@ -541,7 +557,8 @@ export async function getDependencyGraph({
                     // return a recursive call for the newly-gotten ibgibs'
                     // dependencies, passing in the now-larger accumulating
                     // `gotten` map of ibgibs already processed.
-                    return await getDependencyGraph({
+                    if (timeLogName) { console.timeLog(timeLogName, `${lc} call getDependencyGraph recursively starting...`); }
+                    const result = await getDependencyGraph({
                         ibGibs: resGet.ibGibs,
                         gotten,
                         skipAddrs,
@@ -549,7 +566,9 @@ export async function getDependencyGraph({
                         maxRetries,
                         msBetweenRetries,
                         space,
-                    }); // <<<< returns early
+                    });
+                    if (timeLogName) { console.timeLog(timeLogName, `${lc} call getDependencyGraph recursively complete.`); }
+                    return result; // <<<< returns early
                 } else if (resGet.ibGibs?.length > 0 && resGet.ibGibs.length < addrsWeDontHaveAlready_Rel8dAddrs.length) {
                     if (logalot) { console.warn(`${lc} got SOME of them (happy-ish path?). not sure what to do here... (W: e3458f61a1ae4979af9e6b18ac935c14)`); }
                     throw new Error(`trouble getting dependency ibgibs (E: 8156bf65fd084ae4a4e8a0669db28b07)`);
@@ -573,8 +592,12 @@ export async function getDependencyGraph({
         }
 
     } catch (error) {
-        console.error(`${lc} ${error.message}`);
+        const emsg = `${lc} ${error.message}`;
+        console.error(emsg);
+        if (timeLogName) { console.timeLog(timeLogName, `${lc} error: ${emsg}`); }
         throw error;
+    } finally {
+        if (timeLogName) { console.timeLog(timeLogName, `${lc} complete.`)}
     }
 }
 
