@@ -29,7 +29,7 @@ import { isExpired, getExpirationUTCString, getTimestampInTicks } from './utils'
 import { SimpleIbgibCacheService } from 'src/app/services/simple-ibgib-cache.service';
 import { IbGibCacheService } from '../types/ibgib';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 
 /**

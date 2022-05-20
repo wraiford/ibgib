@@ -11,7 +11,7 @@ import { IbgibComponentBase } from './ibgib-component-base';
 import { CommonService } from '../../services/common.service';
 import { unique } from '../helper/utils';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 @Injectable({providedIn: "root"})
 export abstract class IbgibListComponentBase<TItem extends IbgibListItem = IbgibListItem>
@@ -76,7 +76,6 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
 
             // loads the default properties for this.item
             await this.loadItemPrimaryProperties(latestAddr, this.item);
-
 
             // loads the ibgib object proper
             const oldIbGib = this.item.ibGib;
@@ -173,8 +172,8 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
         try {
             if (logalot) { console.log(`${lc}${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
 
+            reloadAll = true;
             if (reloadAll || !this.items) { this.items = []; }
-            const isInitialLoad = this.items.length === 0;
 
             if (!this.item || !this.item.ibGib || !this.item.ibGib!.rel8ns) { return; }
             if (logalot) { console.log(`${lc} this.rel8nNames: ${this.rel8nNames?.toString()}`); }
@@ -252,34 +251,60 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
                 const newItem = <TItem>{ addr: addrToAdd };
                 itemsToAdd.push(newItem);
             }
-            sortItems(itemsToAdd);
+            // sortItems(itemsToAdd);
 
             for (let i = 0; i < itemsToAdd.length; i++) {
                 const item = itemsToAdd[i];
                 await this.loadIbGib({item});
                 await this.loadItem(item);
-                this.items.push(item);
-                await h.delay(10);
-                if (i % 5 === 0) {
-                    sortItems(this.items);
-                    await h.delay(50);
+                // this.items.push(item);
+                // await h.delay(10);
+                // if ((i % 5 === 0) || (i === itemsToAdd.length-1)) {
+                //     sortItems(this.items);
+                //     await h.delay(50);
+                //     setTimeout(() => this.ref.detectChanges());
+                // }
+            }
+            sortItems(itemsToAdd);
+
+            // note our previous last item, which we'll use to determine if we
+            // have to sort again after adding the items
+            const lastExistingItemBeforeAdd = this.items?.length > 0 ?
+                this.items[this.items.length - 1] :
+                null;
+
+            // add the items to the list, which will change our bound view
+            for (let i = 0; i < itemsToAdd.length; i++) {
+                const itemToAdd = itemsToAdd[i];
+                this.items.push(itemToAdd);
+                if (this.items?.length > 15) {
                     setTimeout(() => this.ref.detectChanges());
+                    // debugger;
                 }
+                // if (i % 5 === 0)  {
+                //     await h.delay(10); // process messages hack
+                // }
             }
 
             // only sort on the main list if the earliest item to add is earlier
             // than the latest on the existing list. Otherwise, should already
             // be sorted.
 
-            if (this.items.length > 0 && itemsToAdd.length > 0) {
-                const lastExisting = this.items[this.items.length];
-                const lastTimestamp = lastExisting?.ibGib?.data?.timestamp;
+            if (lastExistingItemBeforeAdd && itemsToAdd.length > 0) {
+                const lastTimestamp = lastExistingItemBeforeAdd?.ibGib?.data?.timestamp;
+                if (!lastTimestamp) { console.warn(`${lc} lastExistingItemBeforeAdd does not have a timestamp. (W: c24fbdad927441bd9a8ef9afff9c9597)`); }
+
                 const firstToAddTimestamp = itemsToAdd[0].ibGib?.data?.timestamp;
-                if (lastTimestamp > firstToAddTimestamp) {
-                    if (logalot) { console.log(`${lc} lastTimestamp > firstToAddTimestamp (?) (I: d49a3d286e1e2eaa4c70385e0c323a22)`); }
-                    sortItems(this.items);
+                if (lastTimestamp && firstToAddTimestamp) {
+                    if (lastTimestamp > firstToAddTimestamp) {
+                        if (logalot) { console.log(`${lc} lastTimestamp > firstToAddTimestamp (?) (I: d49a3d286e1e2eaa4c70385e0c323a22)`); }
+                        sortItems(this.items);
+                    } else {
+                        if (logalot) { console.log(`${lc} itemsToAdd later than current items. lastTimestamp: ${lastTimestamp}. firstToAddTimestamp: ${firstToAddTimestamp} (I: dad96ddde10515083aa1965aeb70af22)`); }
+                    }
                 } else {
-                    if (logalot) { console.log(`${lc} itemsToAdd later than current items. lastTimestamp: ${lastTimestamp}. firstToAddTimestamp: ${firstToAddTimestamp} (I: dad96ddde10515083aa1965aeb70af22)`); }
+                    if (logalot) { console.log(`${lc} edge case. going ahead and sorting. lastTimestamp: ${lastTimestamp}. firstToAddTimestamp: ${firstToAddTimestamp} (I: 6d1ebac90694dde0a541e1c650cf2622)`); }
+                    sortItems(this.items);
                 }
             }
 
@@ -288,7 +313,19 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
                 // sortItems(this.items);
                 this.itemsAdded.emit();
             }
+
+            if (logalot) { console.log(`${lc} this.items.length: ${this.items?.length} (I: 094cb3faac89df7d53aaa34fb538b522)`); }
+            const thisItemsAddrs = (this.items ?? []).map(x => x.addr);
+            if (logalot) { console.log(`${lc} this.items addrs: ${thisItemsAddrs.join('\n')} (I: 9693f8b265189a16172d01187e318422)`); }
             setTimeout(() => this.ref.detectChanges());
+            setTimeout(() => this.ref.detectChanges());
+            setTimeout(() => this.ref.detectChanges());
+            setTimeout(() => this.ref.detectChanges());
+            setTimeout(() => this.ref.detectChanges());
+            setTimeout(() => this.ref.detectChanges());
+            setTimeout(() => this.ref.detectChanges());
+            setTimeout(() => this.ref.detectChanges());
+            setTimeout(() => this.ref.detectChanges(),1000);
 
             if (logalot && timerEnabled) {
                 console.timeEnd(timerName);
@@ -297,6 +334,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
 
             if (logalot) { console.log(`${lc} this.items count: ${this.items.length}`); }
         } catch (error) {
+            debugger;
             console.error(`${lc} ${error.message}`);
         } finally {
             this.ref.detectChanges();
@@ -306,7 +344,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
     }
 
     trackByAddr(index: number, item: TItem): any {
-        return item.addr;
+        return item?.addr;
     }
 
     scrollToBottom(): void {

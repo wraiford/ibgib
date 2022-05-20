@@ -7,7 +7,7 @@ import { IbGib_V1 } from 'ts-gib/dist/V1';
 
 import * as c from '../../common/constants';
 import { CommonService } from 'src/app/services/common.service';
-import { IbgibItem } from '../../common/types/ux';
+import { IbgibItem, TimelineUpdateInfo } from '../../common/types/ux';
 import { IbgibListComponentBase } from 'src/app/common/bases/ibgib-list-component-base';
 import { ScrollBaseCustomEvent } from '@ionic/angular';
 
@@ -49,6 +49,10 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
   }
 
   ngOnInit() {
+  }
+
+  async updateIbGib_NewerTimelineFrame({ latestAddr, }: TimelineUpdateInfo): Promise<void> {
+    await super.updateIbGib_NewerTimelineFrame({latestAddr})
   }
 
   async updateItems(): Promise<void> {

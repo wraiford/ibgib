@@ -3,7 +3,7 @@ import { DynamicForm, FormItemInfo } from "../../ibgib-forms/types/form-items";
 import { getRegExp } from "./utils";
 import { WitnessData_V1 } from '../types/witness';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 /**
  * Fluent-style builder helper class.
