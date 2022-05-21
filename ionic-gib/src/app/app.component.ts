@@ -293,12 +293,12 @@ export class AppComponent extends IbgibComponentBase
     if (logalot) { console.log(`${lc} complete. waiting for platform.ready...`); }
   }
 
-  ngOnInit() {
+  async ngOnInit(): Promise<void> {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
     if (logalot) { console.log(`${lc} starting...`); }
     try {
       this.subscribeParamMap();
-      super.ngOnInit();
+      await super.ngOnInit();
       // const path = window.location.pathname.split('ibgib/')[1];
       // console.log(`path: ${path}`);
       // if (path !== undefined) {

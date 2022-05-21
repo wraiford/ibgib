@@ -41,8 +41,8 @@ export class RootViewComponent extends IbgibComponentBase
     if (logalot) { console.log(`${lc} created. (I: 20dbfdcb806be315594f15438faaf322)`); }
   }
 
-  ngOnInit() {
-
+  async ngOnInit(): Promise<void> {
+    await super.ngOnInit();
   }
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {

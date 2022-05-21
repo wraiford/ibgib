@@ -5,7 +5,7 @@ import { IbGib_V1 } from 'ts-gib/dist/V1';
 
 import { IbgibComponentBase } from '../../common/bases/ibgib-component-base';
 import { CommonService } from '../../services/common.service';
-import { IbgibItem } from '../../common/types/ux';
+import { IbgibItem, TimelineUpdateInfo } from '../../common/types/ux';
 import * as c from '../../common/constants';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;;
@@ -59,6 +59,12 @@ export class ListItemViewComponent extends IbgibComponentBase {
       this.ref.detectChanges();
       if (logalot) { console.log(`${lc} updated.`); }
     }
+  }
+
+  updateIbGib_NewerTimelineFrame({ latestAddr, latestIbGib, tjpAddr, }: TimelineUpdateInfo): Promise<void> {
+    const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
+    if (logalot) { console.log(`${lc} triggered (I: b362bd7458722d2a7a3e913ae8703e22)`); }
+    return super.updateIbGib_NewerTimelineFrame({latestAddr, latestIbGib, tjpAddr });
   }
 
   async handleClicked(item: IbgibItem): Promise<void> {

@@ -58,9 +58,10 @@ export abstract class ModalFormComponentBase<TDataOut> implements OnInit, OnDest
     protected common: CommonService,
   ) { }
 
-  ngOnInit() {
+  async ngOnInit(): Promise<void> {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
-    if (logalot) { console.log(`${lc}`); }
+    if (logalot) { console.log(`${this.lc}`); }
+    // await super.ngOnInit();
   }
 
   ngOnDestroy() {

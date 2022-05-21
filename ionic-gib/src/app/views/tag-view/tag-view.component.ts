@@ -39,7 +39,9 @@ export class TagViewComponent extends IbgibComponentBase
     super(common, ref)
    }
 
-  ngOnInit() {}
+  async ngOnInit(): Promise<void> {
+    await super.ngOnInit();
+  }
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;

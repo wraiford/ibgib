@@ -646,6 +646,10 @@ export class IbgibsService {
   }
 
   fnBroadcast = (info: TimelineUpdateInfo) => {
+    // if (!h.getIbAndGib({ibGibAddr: info.latestAddr}).gib?.includes('.')) {
+    //   debugger;
+    // need to know why tjp's continue to get published as the latest addrs
+    // }
     // this._latestSubj.next({tjpAddr, latestAddr: ibGibAddr, latestIbGib: ibGib});
     this._latestSubj.next(info);
   }
@@ -2148,11 +2152,9 @@ export class IbgibsService {
         (_: any) => {
           console.timeEnd(syncTimelogName)
           this.subSagaSyncTimeLog?.unsubscribe();
-          debugger;
         }, () => {
           console.timeEnd(syncTimelogName)
           this.subSagaSyncTimeLog?.unsubscribe();
-          debugger;
         }
       );
 

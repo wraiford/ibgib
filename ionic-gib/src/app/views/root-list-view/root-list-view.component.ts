@@ -40,8 +40,8 @@ export class RootListViewComponent
     console.log(`${lc} created`);
   }
 
-  ngOnInit() {
-    super.ngOnInit();
+  async ngOnInit(): Promise<void> {
+    await super.ngOnInit();
   }
 
   updateIbGib(addr: IbGibAddr): Promise<void> {

@@ -41,7 +41,10 @@ export class CommentViewComponent
     super(common, ref)
    }
 
-  ngOnInit() {}
+  async ngOnInit(): Promise<void> {
+    if (logalot) { console.log(`${this.lc} addr: ${this.addr}`); }
+    await super.ngOnInit();
+  }
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;

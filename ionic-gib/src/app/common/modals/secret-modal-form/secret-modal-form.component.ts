@@ -148,9 +148,10 @@ export class SecretModalFormComponent
     super(common);
   }
 
-  ngOnInit() {
+  async ngOnInit(): Promise<void> {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
-    if (logalot) { console.log(`${lc}`); }
+    if (logalot) { console.log(`${this.lc}`); }
+    await super.ngOnInit();
   }
 
   ngOnDestroy() {

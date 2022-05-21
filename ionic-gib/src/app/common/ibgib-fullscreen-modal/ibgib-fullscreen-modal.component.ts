@@ -37,9 +37,9 @@ export class IbgibFullscreenModalComponent
     super(common, ref);
   }
 
-  ngOnInit() {
+  async ngOnInit(): Promise<void> {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
-    super.ngOnInit();
+    await super.ngOnInit();
     // setTimeout(async () => {
     //   console.log(` dismissing`)
     //   await this.modalController.dismiss({x: 1});

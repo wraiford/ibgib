@@ -8,6 +8,7 @@ import { WitnessData_V1, WitnessRel8ns_V1, Witness_V1, } from '../types/witness'
 import { validateGib, validateIb, validateIbGibIntrinsically } from '../helper/validate';
 import { ErrorIbGib_V1 } from '../types/error';
 import { errorIbGib } from '../helper/error';
+import { toDto } from '../helper/ibgib';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -141,16 +142,17 @@ export abstract class WitnessBase_V1<
      * @see {loadIbGibDto}
      */
     toIbGibDto(): IbGib_V1<TData, TRel8ns> {
-        const lc = `${this.lc}[${this.toIbGibDto.name}]`;
-        if (!this.ib) { console.warn(`${lc} this.ib is falsy. (W: 60162e3ab42941e9a68cd6adc8d23387)`); }
-        if (!this.gib) { console.warn(`${lc} this.gib is falsy. (W: 61dc535639dc410d874635013fce5b8a)`); }
+        return toDto({ibGib: this});
+        // const lc = `${this.lc}[${this.toIbGibDto.name}]`;
+        // if (!this.ib) { console.warn(`${lc} this.ib is falsy. (W: 60162e3ab42941e9a68cd6adc8d23387)`); }
+        // if (!this.gib) { console.warn(`${lc} this.gib is falsy. (W: 61dc535639dc410d874635013fce5b8a)`); }
 
-        let dtoIbGib: IbGib_V1<TData, TRel8ns> = { ib: (this.ib || '').slice() };
-        if (this.gib) { dtoIbGib.gib = this.gib.slice(); };
-        if (this.data) { dtoIbGib.data = h.clone(this.data); }
-        if (this.rel8ns) { dtoIbGib.rel8ns = h.clone(this.rel8ns); }
+        // let dtoIbGib: IbGib_V1<TData, TRel8ns> = { ib: (this.ib || '').slice() };
+        // if (this.gib) { dtoIbGib.gib = this.gib.slice(); };
+        // if (this.data) { dtoIbGib.data = h.clone(this.data); }
+        // if (this.rel8ns) { dtoIbGib.rel8ns = h.clone(this.rel8ns); }
 
-        return dtoIbGib;
+        // return dtoIbGib;
     }
 
     /**

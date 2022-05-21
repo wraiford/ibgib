@@ -52,8 +52,8 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
         if (logalot) { console.log(`${lc}${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
     }
 
-    ngOnInit() {
-        super.ngOnInit();
+    async ngOnInit(): Promise<void> {
+        await super.ngOnInit();
     }
 
     ngOnDestroy() {
@@ -172,7 +172,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
         try {
             if (logalot) { console.log(`${lc}${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
 
-            reloadAll = true;
+            // reloadAll = true;
             if (reloadAll || !this.items) { this.items = []; }
 
             if (!this.item || !this.item.ibGib || !this.item.ibGib!.rel8ns) { return; }

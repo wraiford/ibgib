@@ -125,8 +125,9 @@ export class ActionBarComponent extends IbgibComponentBase
     super(common, ref);
   }
 
-  ngOnInit() {
+  async ngOnInit(): Promise<void> {
     if (logalot) { console.log(`${this.lc} addr: ${this.addr}`); }
+    await super.ngOnInit();
   }
 
   ngAfterViewInit() {

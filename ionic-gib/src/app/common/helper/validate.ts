@@ -10,7 +10,7 @@ import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 import * as c from '../constants';
 
-import {hasTjp} from './ibgib';
+import {hasTjp, toDto} from './ibgib';
 import { BootstrapData, BootstrapRel8ns } from '../types/space';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -57,7 +57,13 @@ export async function validateIbGibIntrinsically({
             // this validates not only that the punctiliar gib hash for this ibgib record
             // hashes to the same value, but it also checks the internal tjp address and
             // ensures that it is the same tjp gib.
-            const gottenGib = await getGib({ibGib, hasTjp: hasTjp({ibGib})});
+            const gottenGib = await getGib({ibGib: toDto({ibGib}), hasTjp: hasTjp({ibGib})});
+            // const gottenGib = await getGib({ibGib, hasTjp: hasTjp({ibGib})});
+            // const ibGib_Dto = toDto({ibGib});
+            // const gottenGib_Dto = await getGib({ibGib: ibGib_Dto, hasTjp: hasTjp({ibGib: ibGib_Dto})});
+            // if (gottenGib !== gottenGib_Dto) {
+            //     debugger;
+            // }
             if (gottenGib !== ibGib.gib) {
                 debugger;
                 errors.push(`Ibgib invalid intrinsically - gottenGib (${gottenGib}) does not equal ibGib.gib (${ibGib.gib}). (E: 7416db016878430ca3c5b20697f164ed)`);

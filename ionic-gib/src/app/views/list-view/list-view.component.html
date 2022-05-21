@@ -1,4 +1,4 @@
-<p>debug: this.items?.length: {{this.items?.length}}</p>
+<!-- <p>debug: this.items?.length: {{this.items?.length}}</p> -->
 <list-item
   *ngFor='let item of items;trackBy: trackByAddr'
   [addr]='item.addr'
@@ -8,7 +8,6 @@
   [style.border-style]="debugBorderStyle"
   >
 </list-item>
-<p>debug: this.items?.length: {{this.items?.length}}</p>
 <!-- <p
   *ngFor='let item of items;let i = index;trackBy: trackByAddr'>
   {{i}}: {{item?.addr}}

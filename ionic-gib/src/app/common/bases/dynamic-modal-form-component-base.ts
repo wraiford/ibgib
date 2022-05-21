@@ -74,9 +74,10 @@ export abstract class DynamicModalFormComponentBase<TDataOut>
     protected ref: ChangeDetectorRef,
   ) { }
 
-  ngOnInit() {
+  async ngOnInit(): Promise<void> {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
     if (logalot) { console.log(`${lc}`); }
+    // super.ngOnInit();
   }
 
   async ngAfterViewInit(): Promise<void> {

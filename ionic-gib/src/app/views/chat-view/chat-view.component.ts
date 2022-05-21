@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, ChangeDetectorRef, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, Input, ChangeDetectorRef, Output, EventEmitter, ViewChild } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 
 import * as h from 'ts-gib/dist/helper';
@@ -10,6 +10,7 @@ import { CommonService } from 'src/app/services/common.service';
 import { IbgibItem, TimelineUpdateInfo } from '../../common/types/ux';
 import { IbgibListComponentBase } from 'src/app/common/bases/ibgib-list-component-base';
 import { ScrollBaseCustomEvent } from '@ionic/angular';
+import { ListViewComponent } from '../list-view/list-view.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -22,8 +23,7 @@ interface ChatItem extends IbgibItem {
   templateUrl: './chat-view.component.html',
   styleUrls: ['./chat-view.component.scss'],
 })
-export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
-  implements OnInit {
+export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
 
   protected lc: string = `[${ChatViewComponent.name}]`;
 
@@ -41,6 +41,9 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
   @Output()
   chatItemsAdded: EventEmitter<number> = new EventEmitter();
 
+  @ViewChild('listView')
+  listView: ListViewComponent;
+
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
@@ -48,11 +51,11 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem>
     super(common, ref);
   }
 
-  ngOnInit() {
-  }
-
-  async updateIbGib_NewerTimelineFrame({ latestAddr, }: TimelineUpdateInfo): Promise<void> {
-    await super.updateIbGib_NewerTimelineFrame({latestAddr})
+  async updateIbGib_NewerTimelineFrame(info: TimelineUpdateInfo): Promise<void> {
+    await super.updateIbGib_NewerTimelineFrame(info);
+    // if (this.listView) {
+    //   await this.listView.updateIbGib_NewerTimelineFrame(info);
+    // }
   }
 
   async updateItems(): Promise<void> {

@@ -4384,6 +4384,13 @@ export class AWSDynamoSpace_V1<
                 if (dna_warningsGetIbGibs.length > 0) { console.warn(`${lc} dna_warningsGetIbGibs: ${dna_warningsGetIbGibs.join('|')} (W: 2e954bd2924b4e7eb5aebd36d677e6bf)`); }
                 if (dnaAddrsNotFound.length > 0) { throw new Error(`Errors getting dna ibgibs. dnaAddrsNotFound: ${dnaAddrsNotFound.join('\n')} (E: e25b73475b4b4c85b268e2a7b07350bf)`)}
                 if (dnaIbGibsOnlyInStore.length !== dnaAddrsOnlyInStore.length) { throw new Error(`dnaIbGibsOnlyInStore.length !== dnaAddrsOnlyInStore.length? (E: f69be0a0d72348989d434aa4878636e1)`); }
+                // #region debug delete this
+                dnaIbGibsOnlyInStore.forEach(x => {
+                    if (x.ib === 'rel8' && x.data?.src) {
+                        debugger;
+                    }
+                });
+                // #endregion debug delete this
                 dnaIbGibsOnlyInStore.forEach(x => ibGibsOnlyInStore.push(x));
             } else {
                 if (logalot) { console.log(`${lc} dnaAddrsOnlyInStore is empty.`); }

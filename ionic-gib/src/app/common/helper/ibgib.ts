@@ -586,3 +586,20 @@ export async function isTjp_Naive({
         throw error;
     }
 }
+
+export function toDto<TData, TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1>({
+    ibGib,
+}: {
+    ibGib: IbGib_V1,
+}): IbGib_V1<TData, TRel8ns> {
+    const lc = `[${toDto.name}]`;
+    if (!ibGib.ib) { console.warn(`${lc} ibGib.ib is falsy. (W: e60e41c2a1fc48268379d88ce13cb77b)`); }
+    if (!ibGib.gib) { console.warn(`${lc} ibGib.gib is falsy. (W: fb3889cbf0684ae4ac51e48f28570377)`); }
+
+    let dtoIbGib: IbGib_V1<TData, TRel8ns> = { ib: (ibGib.ib || '').slice() };
+    if (ibGib.gib) { dtoIbGib.gib = ibGib.gib.slice(); };
+    if (ibGib.data) { dtoIbGib.data = h.clone(ibGib.data); }
+    if (ibGib.rel8ns) { dtoIbGib.rel8ns = h.clone(ibGib.rel8ns); }
+
+    return dtoIbGib;
+}

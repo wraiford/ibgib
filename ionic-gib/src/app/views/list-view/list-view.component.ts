@@ -5,7 +5,7 @@ import { IbGibAddr } from 'ts-gib';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 
 import * as c from '../../common/constants';
-import { IbgibItem } from '../../common/types/ux';
+import { IbgibItem, TimelineUpdateInfo } from '../../common/types/ux';
 import { IbgibListComponentBase } from '../../common/bases/ibgib-list-component-base';
 import { CommonService } from '../../services/common.service';
 
@@ -16,9 +16,7 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
   templateUrl: './list-view.component.html',
   styleUrls: ['./list-view.component.scss'],
 })
-export class ListViewComponent
-  extends IbgibListComponentBase
-  implements OnInit {
+export class ListViewComponent extends IbgibListComponentBase {
 
   protected lc: string = `[${ListViewComponent.name}]`;
 
@@ -60,8 +58,8 @@ export class ListViewComponent
     setTimeout(() => { this.ref.detectChanges(); }, 5000); // no idea
   }
 
-  ngOnInit() {
-    super.ngOnInit();
+  async updateIbGib_NewerTimelineFrame(info: TimelineUpdateInfo): Promise<void> {
+    await super.updateIbGib_NewerTimelineFrame(info);
   }
 
   async handleClicked(item: IbgibItem): Promise<void> {

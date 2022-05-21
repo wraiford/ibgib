@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, Input, AfterViewInit } from '@angular/core';
+import { Component, ChangeDetectorRef, Input, AfterViewInit } from '@angular/core';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib';
@@ -56,8 +56,15 @@ export class FallbackViewComponent extends IbgibComponentBase
 
   ngAfterViewInit(): void {
     setTimeout(() => {
-      this.isSkeleton = false;
+      if (!this.destroyed) {
+        this.isSkeleton = false;
+      }
     }, this.delayMs);
+  }
+
+  destroyed: boolean = false;
+  ngOnDestroy(): void {
+    this.destroyed = true;
   }
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
@@ -71,9 +78,11 @@ export class FallbackViewComponent extends IbgibComponentBase
       // trigger an initial ping to check for newer ibgibs
       if (!this.paused) {
         setTimeout(async () => {
-          await this.smallDelayToLoadBalanceUI();
-          await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjp: this.tjp});
-        });
+          if (!this.destroyed) {
+            await this.smallDelayToLoadBalanceUI();
+            await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjp: this.tjp});
+          }
+        }, 2000);
       }
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);

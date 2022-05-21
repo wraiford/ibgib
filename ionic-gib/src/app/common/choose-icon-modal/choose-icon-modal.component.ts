@@ -32,10 +32,11 @@ export class ChooseIconModalComponent implements OnInit, OnDestroy {
     private ref: ChangeDetectorRef,
   ) { }
 
-  ngOnInit() {
+  async ngOnInit(): Promise<void> {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
-
+    if (logalot) { console.log(`${this.lc}`); }
     setTimeout(() => { this.ref.detectChanges(); }, 5000)
+    // await super.ngOnInit();
   }
 
   ngOnDestroy() {

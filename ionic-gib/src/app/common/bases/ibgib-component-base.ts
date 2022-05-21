@@ -217,9 +217,11 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
      * If you want to override just HOW TO HANDLE this subscription, then
      * override {@link handleIbGib_NewLatest} function.
      */
-    subscribeLatest(): void {
+    async subscribeLatest(): Promise<void> {
         const lc = `${this.lc}[${this.subscribeLatest.name}]`;
         if (this.subLatest) { this.subLatest.unsubscribe(); }
+        await this.smallDelayToLoadBalanceUI();
+        if (this.subLatest) { this.subLatest.unsubscribe(); delete this.subLatest; }
         this.subLatest = this.common.ibgibs.latestObs.subscribe((evnt: TimelineUpdateInfo) => {
             if (logalot) { console.log(`${lc} latestEvent heard...`); }
             this.handleIbGib_NewLatest(evnt); // SPINS OFF ASYNC!!
@@ -233,8 +235,8 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         if (this.subLatest) { this.subLatest.unsubscribe(); delete this.subLatest; }
     }
 
-    ngOnInit() {
-        this.subscribeLatest();
+    async ngOnInit(): Promise<void> {
+        await this.subscribeLatest();
     }
 
     ngOnDestroy() {
@@ -607,6 +609,9 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
             // if we don't have a timeline, then we won't update no matter what.
             // odds are that if we care about timelines, tjp is already loaded
             if (!this.tjp || !this.tjpAddr) { await this.loadTjp(); }
+            if (!this.ibGib) {
+                return; // <<<< returns early
+            }
             if (!this.tjp) {
                 if (logalot) { console.log(`${lc} no tjp, so returning early. (I: 342575ac8de44c258965355dbd92a515)`); }
                 return; // <<<< returns early
@@ -618,9 +623,13 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
                 return; // <<<< returns early
             }
 
+            if (!this.ibGib) {
+                return; // <<<< returns early
+            }
             // if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)} (I: c0483014944c43cdac5f8d296bb56e05)`); }
             if (logalot) { console.log(`${lc} setting this.addr (${this.addr}) to info.latestAddr (${info.latestAddr}). (I: 74f2ce5803064578a5f4166ad045c1bf)`); }
 
+            if (!this.ibGib) { debugger; }
             // check manually comparing data
             if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\nlatest info: ${JSON.stringify(info, null, 2)}`); }
             let info_latestIbGib = info.latestIbGib;
@@ -635,17 +644,21 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
                 }
             }
 
+            if (!this.ibGib) { debugger; }
+
             const isNewer = (info_latestIbGib.data?.n ?? -1) > (this.ibGib.data?.n ?? -1);
             if (isNewer) {
                 await this.updateIbGib_NewerTimelineFrame(info);
             } else {
+            if (!this.ibGib) { debugger; }
                 console.warn(
-                    `${lc} ignoring "latest" info because it's not newer. We're going to register this.ibGib the new latest as a fix for recent test data.\nthis.addr: ${this.addr}\nlatestAddr: ${info.latestAddr} (W: c88d135984c39a2aaefd48620d913b22)`);
+                    `${lc} ignoring "latest" info because it's not newer.\nthis.addr: ${this.addr}\nlatestAddr: ${info.latestAddr} (W: c88d135984c39a2aaefd48620d913b22)`);
                 if (logalot) { console.log(`${lc} current: ${h.pretty(this.ibGib)}, "latest": ${h.pretty(info_latestIbGib)} (I: c89622ffc6ca1be7f668940c26fb5b22)`); }
                 // the following call is idempotent, so okay here in base class.
                 // await this.common.ibgibs.registerNewIbGib({ibGib: this.ibGib});
             }
         } catch (error) {
+            debugger;
             console.error(`${lc} ${error.message}`);
             this.errored = true;
         } finally {
