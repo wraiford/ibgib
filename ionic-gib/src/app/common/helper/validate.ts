@@ -57,7 +57,7 @@ export async function validateIbGibIntrinsically({
             // this validates not only that the punctiliar gib hash for this ibgib record
             // hashes to the same value, but it also checks the internal tjp address and
             // ensures that it is the same tjp gib.
-            const gottenGib = await getGib({ibGib: toDto({ibGib}), hasTjp: hasTjp({ibGib})});
+            let gottenGib = await getGib({ibGib: toDto({ibGib}), hasTjp: hasTjp({ibGib})});
             // const gottenGib = await getGib({ibGib, hasTjp: hasTjp({ibGib})});
             // const ibGib_Dto = toDto({ibGib});
             // const gottenGib_Dto = await getGib({ibGib: ibGib_Dto, hasTjp: hasTjp({ibGib: ibGib_Dto})});
@@ -65,8 +65,28 @@ export async function validateIbGibIntrinsically({
             //     debugger;
             // }
             if (gottenGib !== ibGib.gib) {
-                debugger;
-                errors.push(`Ibgib invalid intrinsically - gottenGib (${gottenGib}) does not equal ibGib.gib (${ibGib.gib}). (E: 7416db016878430ca3c5b20697f164ed)`);
+                if (ibGib.data?.src && ibGib.data.srcAddr && ibGib.ib === 'rel8')  {
+                    // this is NOT the place to do this, but I'm plodding through trying to think of how to fix it
+                    // this is what it looks like in data
+                    // {
+                    //     "rel8nsToAddByAddr":{
+                    //         "comment":["comment 11221^F6B9477984D31FEF5FD25297CA39126A64ADDE2C91C1A2D670CCFE3965DEC4C9.847F0E9A1B2738DC167B32AA9B2D7D9B88B76F21848B1F193E994BB21F90DAEE"]
+                    //     },
+                    //     "dna":true,
+                    //     "nCounter":true,
+                    //     "type":"rel8"
+                    // }
+                    delete ibGib.data.src;
+                    delete ibGib.data.srcAddr;
+                    gottenGib = await getGib({ibGib: toDto({ibGib}), hasTjp: hasTjp({ibGib})});
+                    if (gottenGib !== ibGib.gib) {
+                        errors.push(`Ibgib invalid intrinsically - gottenGib (${gottenGib}) does not equal ibGib.gib (${ibGib.gib}). (E: 020b71479e944b2198fe436e7e137786)`);
+                    // } else {
+                    //     debugger;
+                    }
+                } else {
+                    errors.push(`Ibgib invalid intrinsically - gottenGib (${gottenGib}) does not equal ibGib.gib (${ibGib.gib}). (E: 7416db016878430ca3c5b20697f164ed)`);
+                }
             }
 
             return errors.length > 0 ? errors : null;
