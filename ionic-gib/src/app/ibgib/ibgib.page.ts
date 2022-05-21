@@ -140,6 +140,8 @@ export class IbGibPage extends IbgibComponentBase
   @ViewChild('ibgibPageContent')
   ibgibPageContent: IonContent;
 
+  @Input()
+  syncErrored: boolean = false;
 
   constructor(
     protected common: CommonService,
@@ -557,6 +559,7 @@ export class IbGibPage extends IbgibComponentBase
     turnOnAutosyncing: boolean,
   }): Promise<void> {
     const lc = `${this.lc}[${this.execSync.name}]`;
+    let cancelled = false;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       if (this.syncing) {
@@ -564,7 +567,8 @@ export class IbGibPage extends IbgibComponentBase
         return; // <<<< returns early
       }
       this.item.syncing = true;
-      this.ref.detectChanges();
+
+      this.syncErrored = false;
 
       if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
       if (!this.tjpAddr) { console.warn(`${lc} tjpAddr is falsy. (W: 9336c52b8a8745f1b969cac6b4cdf4ca)`); }
@@ -583,6 +587,7 @@ export class IbGibPage extends IbgibComponentBase
             another tab open? Please hit the refresh button (until we get this
             automatic in the near future!).`.replace(/\n/g, ' ').replace(/  /g, '')
         });
+        cancelled = true;
         return; // <<<< returns early
       }
 
@@ -612,6 +617,7 @@ export class IbGibPage extends IbgibComponentBase
           setTimeout(() => this.ref.detectChanges());
           setTimeout(() => this.ref.detectChanges(), 1000);
           // this.autosync = false; // unnecessary?
+          cancelled = true;
           return; // <<<< returns early
         }
 
@@ -654,6 +660,7 @@ export class IbGibPage extends IbgibComponentBase
         });
       } else {
         if (logalot) { console.log(`${lc} user cancelled sync. returning... (I: 7e0cd20a9796ff5b0a8afd2d14ff6a22)`); }
+        cancelled = true;
         this.item.syncing = false;
         setTimeout(() => this.ref.detectChanges(), 200);
         return; // <<<< returns early
@@ -667,6 +674,7 @@ export class IbGibPage extends IbgibComponentBase
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       this.item.syncing = false;
+      if (!cancelled) { this.syncErrored = true; }
     } finally {
       if (logalot) { console.log(`${lc} complete. (I: 2334b5444103f24178e4d2d2116de322)`); }
       this.item.syncing = false;
@@ -1147,8 +1155,8 @@ export class IbGibPage extends IbgibComponentBase
         // just a hack here for initial testing
         if (logalot) { console.log(`${lc} subscribing to polling... (I: ec9ddb3d270d4cc3a9a94dd3bf4bf952)`); }
         this._subPollLatest_Store =
-          // interval(c.DEFAULT_OUTER_SPACE_POLLING_INTERVAL_MS).pipe(
-          interval(15_000).pipe( // for debugging only!!!! DO NOT PUT IN PRODUCTION
+          interval(c.DEFAULT_OUTER_SPACE_POLLING_INTERVAL_MS).pipe(
+          // interval(15_000).pipe( // for debugging only!!!! DO NOT PUT IN PRODUCTION
             concatMap(async (_) => { await this.execPollLatest_Store(); })
           ).subscribe();
       // }, 5_000); // for debugging only!!!! DO NOT PUT IN PRODUCTION

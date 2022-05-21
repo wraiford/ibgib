@@ -77,6 +77,9 @@
         [disabled]="syncing || refreshing"
         class="toolbar-title-btn"
         (click)="handleSyncClick()">
+        <ion-badge *ngIf="syncErrored" color="danger" slot="start">
+          <ion-icon name="alert-circle-outline"></ion-icon>
+        </ion-badge>
         <ion-icon name="rocket-outline"></ion-icon>
         <ion-icon name="sync-outline"></ion-icon>
         <ion-spinner *ngIf="syncing" name="circles" color="tertiary"></ion-spinner>

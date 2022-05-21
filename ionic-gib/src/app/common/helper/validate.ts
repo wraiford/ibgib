@@ -57,13 +57,8 @@ export async function validateIbGibIntrinsically({
             // this validates not only that the punctiliar gib hash for this ibgib record
             // hashes to the same value, but it also checks the internal tjp address and
             // ensures that it is the same tjp gib.
+            // not necessary the dto here, but I'm sensitive at this point.
             let gottenGib = await getGib({ibGib: toDto({ibGib}), hasTjp: hasTjp({ibGib})});
-            // const gottenGib = await getGib({ibGib, hasTjp: hasTjp({ibGib})});
-            // const ibGib_Dto = toDto({ibGib});
-            // const gottenGib_Dto = await getGib({ibGib: ibGib_Dto, hasTjp: hasTjp({ibGib: ibGib_Dto})});
-            // if (gottenGib !== gottenGib_Dto) {
-            //     debugger;
-            // }
             if (gottenGib !== ibGib.gib) {
                 if (ibGib.data?.src && ibGib.data.srcAddr && ibGib.ib === 'rel8')  {
                     // this is NOT the place to do this, but I'm plodding through trying to think of how to fix it

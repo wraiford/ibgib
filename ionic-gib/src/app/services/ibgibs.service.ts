@@ -2570,7 +2570,7 @@ export class IbgibsService {
             async (error: string) => {
               const emsg = `${lc}(sagaId: ${sagaInfo.sagaId}) syncStatus$.error: ${error}`;
               console.error(emsg);
-              await getFnAlert()({title: 'couldnt this.syncIbGibs...', msg: emsg});
+              // await getFnAlert()({title: 'couldnt this.syncIbGibs...', msg: emsg});
               this.finalizeSyncSaga({sagaInfo, error: emsg});
             },
             /*complete*/ () => {
