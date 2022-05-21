@@ -4491,6 +4491,19 @@ export class AWSDynamoSpace_V1<
                         dnaAddrsToApplyToStoreVersion,
                         allLocalIbGibs,
                     });
+                    // debug checking for rel8.data.src/Addr
+                    // debug checking for rel8.data.src/Addr
+                    console.warn(`${lc} debug checking for rel8.data.src/Addr. take out this code`);
+                    console.warn(`${lc} debug checking for rel8.data.src/Addr. take out this code`);
+                    console.warn(`${lc} debug checking for rel8.data.src/Addr. take out this code`);
+                    console.warn(`${lc} debug checking for rel8.data.src/Addr. take out this code`);
+                    createdIbGibs_Running.forEach(x => {
+                        if (x.ib === 'rel8' && x.data?.src) {
+                            debugger;
+                        }
+                    })
+                    // debug checking for rel8.data.src/Addr
+                    // debug checking for rel8.data.src/Addr
                     createdIbGibs_Running.forEach(x => ibGibsCreated.push(x));
                 }
 

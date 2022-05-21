@@ -610,7 +610,7 @@ export class IbGibPage extends IbgibComponentBase
           this.item.syncing = false;
           setTimeout(() => this.ref.detectChanges());
           setTimeout(() => this.ref.detectChanges());
-          setTimeout(() => this.ref.detectChanges());
+          setTimeout(() => this.ref.detectChanges(), 1000);
           // this.autosync = false; // unnecessary?
           return; // <<<< returns early
         }
@@ -669,6 +669,7 @@ export class IbGibPage extends IbgibComponentBase
       this.item.syncing = false;
     } finally {
       if (logalot) { console.log(`${lc} complete. (I: 2334b5444103f24178e4d2d2116de322)`); }
+      this.item.syncing = false;
     }
   }
 
