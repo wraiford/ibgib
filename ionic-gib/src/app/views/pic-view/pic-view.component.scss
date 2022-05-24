@@ -1,6 +1,5 @@
 :host {
   width: 100%;
-  // padding: 2px;
 }
 
 ion-card {
@@ -9,8 +8,6 @@ ion-card {
   flex-direction: column;
   -ms-flex-direction: column;
   align-items: center;
-  // margin: 1px 4px 4px 4px;
-  // padding: 0px 0px 2px 0px;
 }
 
 ion-card-content {
@@ -25,7 +22,6 @@ ion-skeleton-text {
 img {
   max-height: 1000px !important;
   border-radius: 5px;
-  // margin: 0px 0px 2px 0px;
   justify-self: center;
 }
 
@@ -35,5 +31,4 @@ img {
   font-size: small !important;
   font-style: italic !important;
   text-align: right;
-  // padding: 0px 18px 0px 2px;
 }
