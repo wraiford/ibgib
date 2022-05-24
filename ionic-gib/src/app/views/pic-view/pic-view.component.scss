@@ -1,14 +1,39 @@
-.pic-img {
-  height: 85%;
+:host {
+  width: 100%;
+  // padding: 2px;
+}
+
+ion-card {
+  width: 96%;
+  display: flex;
+  flex-direction: column;
+  -ms-flex-direction: column;
+  align-items: center;
+  // margin: 1px 4px 4px 4px;
+  // padding: 0px 0px 2px 0px;
+}
+
+ion-card-content {
+  display: initial;
+  width: 100%;
+}
+
+ion-skeleton-text {
+  width: 100%;
 }
 
 img {
   max-height: 1000px !important;
+  border-radius: 5px;
+  // margin: 0px 0px 2px 0px;
+  justify-self: center;
 }
 
-.pic-timestamp {
-  height: 5%;
-  font-size: small;
-  font-style: italic;
+.timestamp {
+  height: 15%;
+  width: 97%;
+  font-size: small !important;
+  font-style: italic !important;
   text-align: right;
+  // padding: 0px 18px 0px 2px;
 }

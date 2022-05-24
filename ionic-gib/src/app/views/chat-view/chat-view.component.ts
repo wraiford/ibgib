@@ -53,9 +53,11 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
 
   async updateIbGib_NewerTimelineFrame(info: TimelineUpdateInfo): Promise<void> {
     await super.updateIbGib_NewerTimelineFrame(info);
-    // if (this.listView) {
-    //   await this.listView.updateIbGib_NewerTimelineFrame(info);
-    // }
+
+    // temporary hack...no idea why it's still not updating correctly on the device
+    if (this.listView) {
+      await this.listView.updateIbGib_NewerTimelineFrame(info);
+    }
   }
 
   async updateItems(): Promise<void> {

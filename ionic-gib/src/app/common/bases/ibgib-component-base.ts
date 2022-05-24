@@ -205,8 +205,25 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         protected ref: ChangeDetectorRef,
     ) {
         const lc = `${this.lc}[ctor]`;
-        if (logalot) { console.log(`${lc}${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
 
+        let now = new Date();
+        if (!console.time) {
+            console.time = (s: string) => {
+                console.log(`${lc} ${now} ${s} time (custom timeLog)`);
+            };
+        }
+        if (!console.timeLog) {
+            console.timeLog = (s: string) => {
+                console.log(`${lc} ${now} ${s} (custom timeLog)`);
+            }
+        }
+        if (!console.timeEnd) {
+            console.timeEnd = (s: string) => {
+                console.log(`${lc} ${now} ${s} timeEnd (custom timeLog)`);
+            }
+        }
+
+        if (logalot) { console.log(`${lc}${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
     }
 
     /**

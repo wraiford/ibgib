@@ -1,21 +1,26 @@
-<ion-card *ngIf='!isTitle'>
-    <img *ngIf='ibGib' [src]='item.picSrc'/>
-    <ion-card-header *ngIf='ibGib'>
-        <!-- <p *ngIf='ibGib' class='pic-timestamp'>{{ item?.timestamp }}</p> -->
-        <ion-card-subtitle class='pic-timestamp'>
-            {{ item?.timestamp }}
-        </ion-card-subtitle>
-        <ion-card-content *ngIf='!ibGib'>
-            <!-- <p *ngIf='!ibGib'>pic loading...</p> -->
-            pic loading...
-        </ion-card-content>
-
-    </ion-card-header>
+<!-- non-title pic -->
+<ion-card *ngIf='!isTitle'
+  [style.border-color]="debugBorderColor"
+  [style.border-width]="debugBorderWidth"
+  [style.border-style]="debugBorderStyle"
+  >
+  <img *ngIf='ibGib' [src]='item.picSrc'/>
+  <ion-card-content *ngIf='!ibGib'>
+    <ion-skeleton-text *ngIf='!ibGib' animated
+      style="width: 100%;height:200px;border-radius:5px"
+      color="primary">
+    </ion-skeleton-text>
+  </ion-card-content>
+  <ion-card-subtitle class='timestamp'>{{ item?.timestamp }}</ion-card-subtitle>
 </ion-card>
+
+<!-- title pic -->
 <div *ngIf='isTitle'>
-    <img *ngIf='ibGib' [src]='item.picSrc'/>
+  <img *ngIf='ibGib' [src]='item.picSrc'/>
 </div>
+
+<!-- placeholder/loading -->
 <ion-skeleton-text *ngIf='!ibGib' animated
-  style="width: 100%;height:70px;border-radius:5px"
+  style="width: 100%;height:200px;border-radius:5px"
   color="primary">
 </ion-skeleton-text>

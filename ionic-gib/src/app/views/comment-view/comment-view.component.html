@@ -1,23 +1,21 @@
+<!-- non-title comment -->
 <ion-card *ngIf='ibGib && !isTitle' [title]="item?.text || item?.ib || '[html title binding error!]'"
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"
   [style.border-style]="debugBorderStyle"
   >
-  <ion-card-header>
-    <ion-card-content class="comment-text">
-      <pre>{{ item?.text }}</pre>
-      <!-- [class.is-title]='isTitle'>{{ item?.text }} -->
-      <!-- <p *ngIf='!isTitle' class='comment-timestamp'>{{ item?.timestamp }}</p> -->
-    </ion-card-content>
-    <ion-card-subtitle *ngIf='!isTitle' class='comment-timestamp'>{{ item?.timestamp }}</ion-card-subtitle>
-  </ion-card-header>
+  <pre class="comment-text">{{ item?.text }}</pre>
+  <!-- <ion-card-content *ngIf='!isTitle'> </ion-card-content> -->
+  <ion-card-subtitle class='timestamp'>{{ item?.timestamp }}</ion-card-subtitle>
 </ion-card>
+
+<!-- title comment -->
 <div *ngIf='ibGib && isTitle' [title]="item?.text || item?.ib || '[html title binding error!]'"
   >
   <pre [style.maxHeight]="'100px'" class="is-title">{{ item?.text }}</pre>
 </div>
-<!-- <img *ngIf='ibGib' src='data:///DOCUMENTS/ibgib/bin/02a50cc8592578690e51adb7b633220dae599a7e096eb78783cf3752a48be9c1.png'/> -->
-<!-- <p *ngIf='!ibGib'>Loading...</p> -->
+
+<!-- placeholder/loading -->
 <ion-skeleton-text *ngIf='!ibGib' animated
   style="width: 100%;height:70px;border-radius:5px"
   color="primary">

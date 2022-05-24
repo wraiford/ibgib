@@ -2565,7 +2565,7 @@ export class IbgibsService {
             })
           ).subscribe(
             (status: SyncStatusIbGib) => {
-              if (logalot) { console.log(`${lc}(sagaId: ${sagaInfo.sagaId}) subscribe next triggered.`); }
+              if (logalot) { console.log(`${lc}(sagaId: ${sagaInfo.sagaId}) subscribe next triggered. status: ${status?.data?.statusCode} (I: 41e1f61e5e1b422ead1d72a1c92c7d51)`); }
             },
             async (error: string) => {
               const emsg = `${lc}(sagaId: ${sagaInfo.sagaId}) syncStatus$.error: ${error}`;
