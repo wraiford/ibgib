@@ -12,10 +12,23 @@ ion-card {
 
 ion-icon {
     width: 10%;
+    color: var(--ion-color-primary);
 }
 
 .tag-text {
     width: 90%;
     text-align: center;
     margin-left: -10%;
+    color: var(--ion-color-primary);
+}
+
+
+@media (prefers-color-scheme: dark) {
+  ion-icon {
+    color: var(--ion-color-primary);
+  }
+
+  .tag-text {
+    color: var(--ion-color-primary);
+  }
 }

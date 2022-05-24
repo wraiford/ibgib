@@ -2,7 +2,7 @@
 <ion-card>
     <ion-icon [name]="ibGib?.data?.icon"></ion-icon>
     <ion-card-content>
-        <div class='tag-text'> {{ ibGib?.data?.tagText || ibGib?.data?.text || '[...]' }}</div>
+        <div color="primary" class='tag-text'> {{ ibGib?.data?.tagText || ibGib?.data?.text || '[...]' }}</div>
     </ion-card-content>
     <ion-skeleton-text *ngIf='!ibGib' animated
     style="width: 100%;height:70px;border-radius:5px"
