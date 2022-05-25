@@ -424,6 +424,8 @@ export const IB_MAX_LENGTH_DEFAULT = 155;
  */
 export const IB_REGEXP_DEFAULT = new RegExp(`^[\\w\\t\\-|=+.&%\$#@!~\` \\[\\]\\(\\)\\{\\}]{1,${IB_MAX_LENGTH_DEFAULT}}$`);
 
+export const TAG_TEXT_REGEXP = /^\w[\w .\-?]{1,32}\w$/;
+
 /**
  * RegExp for a hexadecimal string of length 32
  */

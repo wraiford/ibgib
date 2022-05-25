@@ -264,39 +264,6 @@ export class RobbotFormBuilder extends WitnessFormBuilder {
         this.what = 'robbot';
     }
 
-    // name<RobbotFormBuilder>({ of, required, }: { of: string; required?: boolean; }): RobbotFormBuilder {
-    //     return <RobbotFormBuilder><any>super.name({of, required});
-    // }
-    // description<RobbotFormBuilder>({ of, required, }: { of: string; required?: boolean; }): RobbotFormBuilder {
-    //     return <RobbotFormBuilder><any>super.description({of, required});
-    // }
-
-    // outputMode({
-    //     of,
-    //     required,
-    // }: {
-    //     of: string,
-    //     required?: boolean,
-    // }): RobbotFormBuilder {
-    //     this.addItem({
-    //         // witness.data.outputMode
-    //         name: "outputMode",
-    //         description: `Technical setting which proscribes how the robbot outputs its beliefs.`,
-    //         label: "Output Mode",
-    //         regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
-    //         regexpErrorMsg: `0 to 155 alphanumerics or chars: ${c.SAFE_SPECIAL_CHARS}`,
-    //         // regexpSource: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}).source,
-    //         dataType: 'checkbox',
-    //         selectOptions: [
-    //             RobbotOutputMode.context,
-    //             RobbotOutputMode.subcontext,
-    //         ],
-    //         value: of,
-    //         required,
-    //     });
-    //     return this;
-    // }
-
     outputPrefix({
         of,
         required,

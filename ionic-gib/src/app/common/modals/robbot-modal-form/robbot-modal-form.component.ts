@@ -1,29 +1,21 @@
 import {
   AfterViewInit, ChangeDetectorRef, Component, Input,
-  OnDestroy, OnInit, ViewChild,
+  ViewChild,
 } from '@angular/core';
-import { IonContent, ModalController } from '@ionic/angular';
 
-import * as h from 'ts-gib/dist/helper';
-import { IbGib_V1, Factory_V1 as factory, Rel8n } from 'ts-gib/dist/V1';
-
-import { HashAlgorithm } from 'encrypt-gib';
 import { TransformResult } from 'ts-gib';
 
 import * as c from '../../constants';
 import { FormItemInfo } from '../../../ibgib-forms/types/form-items';
 import { RobbotData_V1, RobbotIbGib_V1, RobbotRel8ns_V1 } from '../../types/robbot';
 import { CommonService } from '../../../services/common.service';
-import {
-  RandomRobbotData_V1, RandomRobbot_V1,
-  RandomRobbot_V1_Factory,
-} from '../../witnesses/robbots/random-robbot-v1';
+import { RandomRobbot_V1, } from '../../witnesses/robbots/random-robbot-v1';
 import { getRegExp } from '../../helper/utils';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
-import { IbGibRobbotAny, RobbotBase_V1 } from '../../witnesses/robbots/robbot-base-v1';
+import { IbGibRobbotAny, } from '../../witnesses/robbots/robbot-base-v1';
 import { DynamicModalFormComponentBase } from '../../bases/dynamic-modal-form-component-base';
 import { WitnessFactoriesService } from '../../../services/witness-factories.service';
-import { WitnessFactoryAny } from '../../witnesses/witness-factory-base';
+import { DynamicFormComponent } from '../../../ibgib-forms/dynamic-form/dynamic-form.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -55,7 +47,7 @@ export class RobbotModalFormComponent
       description: `Type of robbot`,
       label: "Type",
       regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
-      dataType: 'checkbox',
+      dataType: 'select',
       multiple: false,
       required: true,
     };
@@ -74,6 +66,22 @@ export class RobbotModalFormComponent
   ibGib: RobbotIbGib_V1;
 
   robbotFactories: DynamicFormFactoryBase<any, RobbotRel8ns_V1, IbGibRobbotAny>[];
+
+  /**
+   * Optional metaform used to select the robbot type.
+   *
+   * This is a hack that I used in implementing a robbot dynamic form. Ideally
+   * it should have just been one large form, but I'm delaying dealing with
+   * subforms.
+   */
+  @ViewChild('metaform')
+  metaform: DynamicFormComponent;
+
+  /**
+   * @see {@link metaform}
+   */
+  @Input()
+  metaformItems: FormItemInfo[];
 
   constructor(
     protected common: CommonService,
@@ -159,6 +167,7 @@ export class RobbotModalFormComponent
       return resNewIbGib;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
+      throw error;
     }
   }
 

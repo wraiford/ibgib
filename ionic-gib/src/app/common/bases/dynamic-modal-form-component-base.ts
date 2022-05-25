@@ -54,17 +54,11 @@ export abstract class DynamicModalFormComponentBase<TDataOut>
   @Input()
   isReadonly: boolean;
 
-  @ViewChild('metaform')
-  metaform: DynamicFormComponent;
-
   @ViewChild('form')
   form: DynamicFormComponent;
 
   @Input()
   initializing: boolean;
-
-  @Input()
-  metaformItems: FormItemInfo[];
 
   @Input()
   formItems: FormItemInfo[];
@@ -73,6 +67,19 @@ export abstract class DynamicModalFormComponentBase<TDataOut>
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
   ) { }
+
+  /**
+   * Using this in binding to the modal's ion-title.
+   *
+   * Override this in descending classes.
+   */
+  getTitleText(): string { return 'Form'; }
+  /**
+   * Using this in binding to the modal's ion-title.
+   *
+   * Override this in descending classes.
+   */
+  getTitleHint(): string { return 'Fill this out why doncha...'; }
 
   async ngOnInit(): Promise<void> {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
@@ -138,6 +145,7 @@ export abstract class DynamicModalFormComponentBase<TDataOut>
       await this.common.modalController.dismiss(data);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
+      await this.common.modalController.dismiss(undefined);
     }
   }
 

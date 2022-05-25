@@ -13,6 +13,14 @@
  */
 
 /**
+ * For when you want options with both a label and icons.
+ */
+export interface SelectOptionWithIcon {
+  label: string;
+  icon: string;
+}
+
+/**
  * Used in modal forms.
  */
 export interface FormItemInfo {
@@ -113,6 +121,11 @@ export interface FormItemInfo {
    */
   selectOptions?: string[];
   /**
+   * If you want your select options to include icons, use this.
+   * @see {@link selectOptions}
+   */
+  selectOptionsWithIcons?: SelectOptionWithIcon[];
+  /**
    * If given, should be the min of the field for validation.
    *
    * If the dataType is some kind of text, then this refers to the length of string.
@@ -137,9 +150,9 @@ export interface FormItemInfo {
    */
   max?: number;
   /**
-   * If true, checkbox can select multiple items.
+   * If true, select can select multiple items.
    *
-   * If not a checkbox, then not sure what's up.
+   * If not a select, then not sure what's up.
    */
   multiple?: boolean;
   /**
@@ -155,7 +168,7 @@ export interface FormItemInfo {
 
 // /** @see {@link FormItemDataType} */
 export type FormItemDataType =
-    'text' | 'textarea' | 'checkbox' | 'toggle' | 'number' | 'form';
+    'text' | 'textarea' | 'select' | 'toggle' | 'number' | 'form';
 /**
  * Type of the data, to drive what kind of control will be used for data.
  *
@@ -167,7 +180,7 @@ export type FormItemDataType =
  *
  * @see {@link FormItemDataType.text}
  * @see {@link textarea}
- * @see {@link checkbox}
+ * @see {@link select}
  * @see {@link toggle}
  * @see {@link number}
  */
@@ -187,7 +200,7 @@ export const FormItemDataType = {
    *
    * @see {@link FormItemInfo.multiple}
    */
-  checkbox: 'checkbox' as FormItemDataType,
+  select: 'select' as FormItemDataType,
   /**
    * Boolean true/false or on/off, etc.
    */

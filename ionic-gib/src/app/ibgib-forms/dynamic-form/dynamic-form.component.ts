@@ -7,7 +7,7 @@ import * as h from 'ts-gib/dist/helper';
 // import { DynamicFormBase } from '../bases/dynamic-form-base';
 
 import * as c from '../dynamic-form-constants';
-import { DynamicForm, FormItemDataType, FormItemInfo } from '../types/form-items';
+import { DynamicForm, FormItemDataType, FormItemInfo, SelectOptionWithIcon } from '../types/form-items';
 
 console.log(`ibgib reminder: dynamic forms module doesn't use global logalot/debugBorder from constants file...(delete this reminder at some point when refactor common module and constants)`);
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -249,6 +249,20 @@ export class DynamicFormComponent
     //   return false;
     // }
     return a && b ? a?.toLowerCase() === b?.toLowerCase() : a === b;
+  }
+
+  compareStringsAndIcons(a: SelectOptionWithIcon, b: SelectOptionWithIcon): boolean {
+    // const lc = `${this.lc}[compareMenuItems]`; // this is not defined when compareRoots is used
+    const lc = `[compareStrings]`;
+    if (logalot) { console.log(`${lc}`); }
+    // reactive form controls when passing in {value: x} without something else
+    // has the curious case that b is "" but toLowerCase is not a function.
+    // if (typeof a !== 'string') { return false; }
+    // if (typeof b !== 'string') { return false; }
+    // if (!a.toLowerCase || !b.toLowerCase) {
+    //   return false;
+    // }
+    return a && b ? a?.label?.toLowerCase() === b?.label?.toLowerCase() : a === b;
   }
 
   handleShowHelpClick(): void {

@@ -21,6 +21,7 @@ import { WitnessFormBuilder } from '../../helper/witness';
 import { getRobbotIb, RobbotFormBuilder } from '../../helper/robbot';
 import { constantIbGib } from '../../helper/ibgib';
 import { createCommentIbGib } from '../../helper/comment';
+import { DynamicFormBuilder } from '../../helper/form';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -391,9 +392,10 @@ export class RandomRobbot_V1_Factory
                 .outputPrefix({of: data.outputPrefix})
                 .outputSuffix({of: data.outputSuffix})
                 // .outputMode({of: data.outputMode})
-                .and<WitnessFormBuilder>()
+                .and<DynamicFormBuilder>()
                 .uuid({of: data.uuid, required: true})
                 .classname({of: data.classname})
+                .and<WitnessFormBuilder>()
                 .commonWitnessFields({data})
                 .outputForm({
                     formName: 'form',

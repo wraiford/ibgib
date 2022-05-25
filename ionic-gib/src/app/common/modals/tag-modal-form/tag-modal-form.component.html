@@ -1,0 +1,20 @@
+<ion-header translucent>
+  <ion-toolbar>
+    <ion-title color="primary" [title]="getTitleHint()">{{ getTitleText() }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button color="primary" (click)="handleShowHelpClick()">
+        <ion-icon name="help-circle-outline"></ion-icon>
+      </ion-button>
+      <ion-button color="danger" (click)="handleCancelClick()">Cancel</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content #modalIonContent fullscreen>
+  <!-- form that corresponds to the tag we will create/edit -->
+  <ib-dynamic-form #form *ngIf="formItems?.length > 0"
+    [items]="formItems"
+    (dynamicSubmit)="handleSubmit_DynamicModal($event)"
+    [showHelp]="showHelp"
+    >
+  </ib-dynamic-form>
+</ion-content>

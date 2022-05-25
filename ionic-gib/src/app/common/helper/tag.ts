@@ -80,14 +80,14 @@ async function chooseTagIcon(common: CommonService): Promise<string | undefined>
     const lc = `[${chooseTagIcon.name}]`;
     try {
         const modal = await common.modalController.create({
-        component: ChooseIconModalComponent,
+            component: ChooseIconModalComponent,
         });
         await modal.present();
         let resModal = await modal.onWillDismiss();
         const iconItem: IconItem = resModal.data;
         if (!iconItem) {
         if (logalot) { console.log(`${lc} cancelled.`) }
-        return;
+            return;
         }
         if (logalot) { console.log(`${lc} icon: ${iconItem.icon}`); }
         return iconItem!.icon;

@@ -33,11 +33,22 @@
         debounce="1000"
       ></ion-textarea>
         <!-- [disabled]="item.readonly" -->
-      <ion-select *ngIf="['checkbox'].includes(item.dataType)"
+      <ion-select *ngIf="['select'].includes(item.dataType) && item.selectOptions?.length > 0"
         [formControlName]="item.uuid"
         okText="Select"
         (ionChange)="handleSelectChange($event, item)"
         [compareWith]="compareStrings"
+        >
+        <ion-select-option *ngFor="let option of item.selectOptions"
+          [value]="option">
+          <ion-label>{{ option }}</ion-label>
+        </ion-select-option>
+      </ion-select>
+      <ion-select *ngIf="['select'].includes(item.dataType) && item.selectOptionsWithIcons?.length > 0"
+        [formControlName]="item.uuid"
+        okText="Select"
+        (ionChange)="handleSelectChange($event, item)"
+        [compareWith]="compareStringsAndIcons"
         >
         <ion-select-option *ngFor="let option of item.selectOptions"
           [value]="option">
