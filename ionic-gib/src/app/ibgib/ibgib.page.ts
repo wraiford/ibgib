@@ -8,7 +8,6 @@ const { Modals, Clipboard, Filesystem } = Plugins;
 
 import * as h from 'ts-gib';
 import { IbGibAddr, V1 } from 'ts-gib';
-import { getIbGibAddr, pretty } from 'ts-gib/dist/helper';
 import { IbGib_V1, isPrimitive } from 'ts-gib/dist/V1';
 
 import * as c from '../common/constants';
@@ -26,6 +25,7 @@ import { createNewTag } from '../common/helper/tag';
 import { ActionBarComponent } from '../common/action-bar/action-bar.component';
 import { ChatViewComponent } from '../views/chat-view/chat-view.component';
 import { IonAccordionGroup, IonContent, IonRouterOutlet } from '@ionic/angular';
+import { TagIbGib_V1 } from '../common/types/tag';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -143,6 +143,9 @@ export class IbGibPage extends IbgibComponentBase
   @Input()
   syncErrored: boolean = false;
 
+  @Input()
+  showModal_PromptForTag: boolean;
+
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
@@ -203,7 +206,7 @@ export class IbGibPage extends IbgibComponentBase
       // additional loading because we're the main page
       await this.loadIbGib();
       await this.loadTjp();
-      if (logalot) { console.log(`${lc} ibGib: ${pretty(this.ibGib)}`); }
+      if (logalot) { console.log(`${lc} ibGib: ${h.pretty(this.ibGib)}`); }
 
       // additional item loading if we're a pic/comment
       await this.loadItem();
@@ -315,7 +318,7 @@ export class IbGibPage extends IbgibComponentBase
           await h.delay(50);
         }
         const tagsIbGib = await this.common.ibgibs.getSpecialIbGib({type: "tags"});
-        let tagsAddr = getIbGibAddr({ibGib: tagsIbGib});
+        let tagsAddr = h.getIbGibAddr({ibGib: tagsIbGib});
         console.warn(`${lc} special url entered, so defaulting nav to tags ibGib (tagsAddr: ${tagsAddr}) (W: bcc8a669f4f44cbb837080615c3db51a)`);
         await this.go({ toAddr: tagsAddr, fromAddr: this.addr });
       }
@@ -920,6 +923,9 @@ export class IbGibPage extends IbgibComponentBase
     await this.common.nav.back();
   }
 
+  @Input()
+  tagIbGibs: TagIbGib_V1[] = [];
+
   // #region tagging
 
   async handleTagClick(_: MouseEvent): Promise<void> {
@@ -928,7 +934,7 @@ export class IbGibPage extends IbgibComponentBase
       this.tagging = true;
       if (!this.ibGib) { throw new Error(`There isn't a current ibGib loaded...?`); }
       if (!this.addr) { throw new Error(`There isn't a current ibGib addr loaded...?`); }
-      // const contextAddr = getIbGibAddr({ibGib: this.ibGib});
+      // const contextAddr = h.getIbGibAddr({ibGib: this.ibGib});
       // console.log(`${lc} contextAddr: ${contextAddr}`);
 
       while (this.common.ibgibs.initializing) {
@@ -936,85 +942,125 @@ export class IbGibPage extends IbgibComponentBase
         await h.delay(109);
       }
       const tagsIbGib = await this.common.ibgibs.getSpecialIbGib({type: "tags"});
-      const tagAddrs = tagsIbGib.rel8ns.tag;
-      const tagInfos: TagInfo[] = tagAddrs.map(addr => {
-        const { ib } = h.getIbAndGib({ibGibAddr: addr});
-        const tag = ib.substring('tag '.length);
-        const tagInfo: TagInfo = { title: tag, addr };
-        return tagInfo;
+      this.tagIbGibs = await this.common.ibgibs.getSpecialRel8dIbGibs<TagIbGib_V1>({
+        type: "tags",
+        rel8nName: c.TAG_REL8N_NAME,
       });
+      // const tagAddrs = tagsIbGib.rel8ns.tag;
+      // const tagInfos: TagInfo[] = tagAddrs.map(addr => {
+      //   const { ib } = h.getIbAndGib({ibGibAddr: addr});
+      //   const tag = ib.substring('tag '.length);
+      //   const tagInfo: TagInfo = { title: tag, addr };
+      //   return tagInfo;
+      // });
+      // for (let i = 0; i < tagInfos.length; i++) {
+      //   const tagInfo = tagInfos[i];
+      //   tagInfo.addr
+      // }
 
-      const resPrompt = await Modals.showActions({
-        title: 'Select tag',
-        message: 'Select a tag to add this ibGib to',
-        options: [
-          {
-            // index 0
-            title: 'Cancel',
-            style: ActionSheetOptionStyle.Cancel
-          },
-          {
-            // index 1
-            title: 'New Tag...',
-            style: ActionSheetOptionStyle.Default
-          },
+      this.showModal_PromptForTag = !this.showModal_PromptForTag;
 
-          // index = i-2
-          ...tagInfos,
-        ]
-      });
+      return; // <<<< returns early
+      // const resPrompt = await Modals.showActions({
+      //   title: 'Select tag',
+      //   message: 'Select a tag to add this ibGib to',
+      //   options: [
+      //     {
+      //       // index 0
+      //       title: 'Cancel',
+      //       style: ActionSheetOptionStyle.Cancel
+      //     },
+      //     {
+      //       // index 1
+      //       title: 'New Tag...',
+      //       style: ActionSheetOptionStyle.Default
+      //     },
+
+      //     // index = i-2
+      //     ...tagInfos,
+      //   ]
+      // });
 
       let tagIbGib: IbGib_V1;
-      if (resPrompt.index === 0) {
+      // if (resPrompt.index === 0) {
 
-        if (logalot) { console.log(`${lc} cancelled`); }
-        await Plugins.Modals.alert({ title: 'nope', message: 'cancelled' });
-        this.tagging = false;
-        this.ref.detectChanges();
-        return;
+      //   if (logalot) { console.log(`${lc} cancelled`); }
+      //   await Plugins.Modals.alert({ title: 'nope', message: 'cancelled' });
+      //   this.tagging = false;
+      //   this.ref.detectChanges();
+      //   return;
 
-      } else if (resPrompt.index === 1) {
+      // } else if (resPrompt.index === 1) {
 
-        if (logalot) { console.log(`${lc} create new tag`); }
-        tagIbGib = await createNewTag(this.common);
-        if (!tagIbGib) {
-          if (logalot) { console.log(`${lc} aborting creating new tag.`); }
-          this.tagging = false;
-          this.ref.detectChanges();
-          return;
-        }
+      //   if (logalot) { console.log(`${lc} create new tag`); }
+      //   tagIbGib = await createNewTag(this.common);
+      //   if (!tagIbGib) {
+      //     if (logalot) { console.log(`${lc} aborting creating new tag.`); }
+      //     this.tagging = false;
+      //     this.ref.detectChanges();
+      //     return;
+      //   }
 
-      } else {
+      // } else {
 
-        if (logalot) { console.log(`${lc} tag with existing tag, but may not be latest addr`); }
-        const tagInfo: TagInfo = tagInfos[resPrompt.index - 2];
-        const resTagIbGib = await this.common.ibgibs.get({addr: tagInfo.addr});
-        if (resTagIbGib.success && resTagIbGib.ibGibs?.length === 1) {
-          const rel8dTagIbGibAddr = getIbGibAddr({ibGib: resTagIbGib.ibGibs[0]});
-          if (logalot) { console.log(`${lc} the rel8d tag may not be the latest: ${rel8dTagIbGibAddr}`); }
-          const latestTagAddr = await this.common.ibgibs.getLatestAddr({ibGib: resTagIbGib.ibGibs[0]});
-          if (logalot) { console.log(`${lc} latestTagAddr: ${latestTagAddr}`); }
-          if (rel8dTagIbGibAddr === latestTagAddr) {
-            console.error(`${lc} tag is already the latest`);
-            tagIbGib = resTagIbGib.ibGibs[0]!;
-          } else {
-            console.error(`${lc} tag is NOT the latest`);
-            const resTagIbGibLatest = await this.common.ibgibs.get({addr: latestTagAddr});
-            if (resTagIbGibLatest.success && resTagIbGibLatest.ibGibs?.length === 1) {
-              console.error(`${lc} tag is NOT the latest and we got a new ibgib`);
-              tagIbGib = resTagIbGibLatest.ibGibs![0];
-            } else {
-              console.error(`${lc} couldn't find latest tag addr (${latestTagAddr}). using previous tag (${rel8dTagIbGibAddr})`);
-              tagIbGib = resTagIbGib.ibGibs![0];
-            }
-          }
-        } else {
-          throw new Error(`${resTagIbGib.errorMsg || 'there was a problem getting the tag ibGib. (E: 62d65029338d4929b5b12ca57d9c0222)'}`);
-        }
+      //   if (logalot) { console.log(`${lc} tag with existing tag, but may not be latest addr`); }
+      //   const tagInfo: TagInfo = tagInfos[resPrompt.index - 2];
+      //   const resTagIbGib = await this.common.ibgibs.get({addr: tagInfo.addr});
+      //   if (resTagIbGib.success && resTagIbGib.ibGibs?.length === 1) {
+      //     const rel8dTagIbGibAddr = h.getIbGibAddr({ibGib: resTagIbGib.ibGibs[0]});
+      //     if (logalot) { console.log(`${lc} the rel8d tag may not be the latest: ${rel8dTagIbGibAddr}`); }
+      //     const latestTagAddr = await this.common.ibgibs.getLatestAddr({ibGib: resTagIbGib.ibGibs[0]});
+      //     if (logalot) { console.log(`${lc} latestTagAddr: ${latestTagAddr}`); }
+      //     if (rel8dTagIbGibAddr === latestTagAddr) {
+      //       console.error(`${lc} tag is already the latest`);
+      //       tagIbGib = resTagIbGib.ibGibs[0]!;
+      //     } else {
+      //       console.error(`${lc} tag is NOT the latest`);
+      //       const resTagIbGibLatest = await this.common.ibgibs.get({addr: latestTagAddr});
+      //       if (resTagIbGibLatest.success && resTagIbGibLatest.ibGibs?.length === 1) {
+      //         console.error(`${lc} tag is NOT the latest and we got a new ibgib`);
+      //         tagIbGib = resTagIbGibLatest.ibGibs![0];
+      //       } else {
+      //         console.error(`${lc} couldn't find latest tag addr (${latestTagAddr}). using previous tag (${rel8dTagIbGibAddr})`);
+      //         tagIbGib = resTagIbGib.ibGibs![0];
+      //       }
+      //     }
+      //   } else {
+      //     throw new Error(`${resTagIbGib.errorMsg || 'there was a problem getting the tag ibGib. (E: 62d65029338d4929b5b12ca57d9c0222)'}`);
+      //   }
 
-      }
+      // }
 
-      // relate context to tag
+      // // relate context to tag
+      // const rel8nsToAddByAddr = { [c.TAGGED_REL8N_NAME]: [this.addr] };
+      // const resRel8ToTag =
+      //   await V1.rel8({src: tagIbGib, rel8nsToAddByAddr, dna: true, nCounter: true});
+      // await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToTag});
+      // const { newIbGib: newTag } = resRel8ToTag;
+      // await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newTag, linked: true});
+      // await this.common.ibgibs.registerNewIbGib({ibGib: newTag});
+
+      // if (logalot) { console.log(`${lc} tag successful.`); }
+      // await Modals.alert({title: 'yess', message: `Tagged.`});
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      await Modals.alert({title: 'something went awry...', message: error.message});
+    } finally {
+      // this.showModal_PromptForTag = false;
+      this.tagging = false;
+      this.ref.detectChanges();
+    }
+
+  }
+  async rel8ToTag({
+    tagIbGib,
+  }: {
+    tagIbGib: TagIbGib_V1,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.rel8ToTag.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
       const rel8nsToAddByAddr = { [c.TAGGED_REL8N_NAME]: [this.addr] };
       const resRel8ToTag =
         await V1.rel8({src: tagIbGib, rel8nsToAddByAddr, dna: true, nCounter: true});
@@ -1027,23 +1073,103 @@ export class IbGibPage extends IbgibComponentBase
       await Modals.alert({title: 'yess', message: `Tagged.`});
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-      await Modals.alert({title: 'something went awry...', message: error.message});
+      throw error;
     } finally {
-      this.tagging = false;
-      this.ref.detectChanges();
+      if (logalot) { console.log(`${lc} complete.`); }
     }
-
   }
 
+  async handleSelectTag_ExistingTag(tagIbGib: TagIbGib_V1): Promise<void> {
+    const lc = `${this.lc}[${this.handleSelectTag_ExistingTag.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      this.showModal_PromptForTag = false;
+      setTimeout(() => this.ref.detectChanges());
+
+      if (logalot) { console.log(`${lc} tag with existing tag, but may not be latest addr`); }
+      const rel8dTagIbGibAddr = h.getIbGibAddr({ibGib: tagIbGib});
+      if (logalot) { console.log(`${lc} the rel8d tag may not be the latest: ${rel8dTagIbGibAddr}`); }
+      const latestTagAddr = await this.common.ibgibs.getLatestAddr({ibGib: tagIbGib});
+      if (logalot) { console.log(`${lc} latestTagAddr: ${latestTagAddr}`); }
+      if (rel8dTagIbGibAddr === latestTagAddr) {
+        if (logalot) { console.log(`${lc} tag is already the latest (I: b98f190c9d6bc2f5575606ad0b7ff122)`); }
+      } else {
+        if (logalot) { console.log(`${lc} tag is NOT the latest (I: 1a8d0849cdb5b0fc652529146d81db22)`); }
+        const resTagIbGibLatest = await this.common.ibgibs.get({addr: latestTagAddr});
+        if (resTagIbGibLatest.success && resTagIbGibLatest.ibGibs?.length === 1) {
+          if (logalot) { console.log(`${lc} tag is NOT the latest and we got a new ibgib (I: 9391166b53577630697da4ff810b1b22)`); }
+          tagIbGib = <TagIbGib_V1>resTagIbGibLatest.ibGibs![0];
+        } else {
+          console.warn(`${lc} couldn't find latest tag addr (${latestTagAddr}). using previous tag (${rel8dTagIbGibAddr})`);
+        }
+      }
+
+      await this.rel8ToTag({ tagIbGib });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      this.tagging = false;
+      setTimeout(() => this.ref.detectChanges());
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleSelectTag_New(): Promise<void> {
+    const lc = `${this.lc}[${this.handleSelectTag_New.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      this.showModal_PromptForTag = false;
+      setTimeout(() => this.ref.detectChanges());
+
+      if (logalot) { console.log(`${lc} create new tag`); }
+      let tagIbGib = await createNewTag(this.common);
+      if (!tagIbGib) {
+        if (logalot) { console.log(`${lc} aborting creating new tag.`); }
+        this.tagging = false;
+        this.ref.detectChanges();
+        return;
+      }
+
+      await this.rel8ToTag({ tagIbGib });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      this.tagging = false;
+      setTimeout(() => this.ref.detectChanges());
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleSelectTag_Cancel(): Promise<void> {
+    const lc = `${this.lc}[${this.handleSelectTag_Cancel.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      this.showModal_PromptForTag = false;
+      setTimeout(() => this.ref.detectChanges());
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      this.tagging = false;
+      setTimeout(() => this.ref.detectChanges());
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
   // #endregion tagging
 
   async handleInfoClick(event: MouseEvent): Promise<void> {
     const lc = `${this.lc}[${this.handleInfoClick.name}]`;
     try {
       // let info = JSON.stringify(this.ibGib_Context, null, 2);
-      // let addr = getIbGibAddr({ibGib: this.ibGib_Context});
+      // let addr = h.getIbGibAddr({ibGib: this.ibGib_Context});
       let info = JSON.stringify(this.ibGib, null, 2);
-      let addr = getIbGibAddr({ibGib: this.ibGib});
+      let addr = h.getIbGibAddr({ibGib: this.ibGib});
       await Modals.alert({title: addr, message: info});
       console.log(info);
     } catch (error) {

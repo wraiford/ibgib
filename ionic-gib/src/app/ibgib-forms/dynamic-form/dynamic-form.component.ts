@@ -253,7 +253,7 @@ export class DynamicFormComponent
 
   compareStringsAndIcons(a: SelectOptionWithIcon, b: SelectOptionWithIcon): boolean {
     // const lc = `${this.lc}[compareMenuItems]`; // this is not defined when compareRoots is used
-    const lc = `[compareStrings]`;
+    const lc = `[compareStringsAndIcons]`;
     if (logalot) { console.log(`${lc}`); }
     // reactive form controls when passing in {value: x} without something else
     // has the curious case that b is "" but toLowerCase is not a function.
@@ -262,7 +262,7 @@ export class DynamicFormComponent
     // if (!a.toLowerCase || !b.toLowerCase) {
     //   return false;
     // }
-    return a && b ? a?.label?.toLowerCase() === b?.label?.toLowerCase() : a === b;
+    return a && b ? a?.value?.toLowerCase() === b?.value?.toLowerCase() : a === b;
   }
 
   handleShowHelpClick(): void {
@@ -307,7 +307,7 @@ export class DynamicFormComponent
         } else {
           if (logalot) { console.log(`${lc} adding standard control (I: aafdaadf4b4e0e659bd6a53d52924622)`); }
           control = this.fb.control({
-              value: item.value ?? item.defaultValue ?? '',
+              value: item.value || item.defaultValue || '',
               // disabled: ['toggle', 'select'].includes(item.dataType) ? item.readonly ?? false : false,
               disabled: item.readonly ?? false,
             },
@@ -369,6 +369,7 @@ export class DynamicFormComponent
 
       if (item.items?.length > 0) {
         // it's a subform
+        console.error(`${lc} (UNEXPECTED) subform not implemented yet...? (E: 7db42a26e80543c5bb2a7f71b37553d4)`);
       } else {
         // it's a leaf node concrete control
 

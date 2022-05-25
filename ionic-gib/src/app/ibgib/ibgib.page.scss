@@ -152,3 +152,27 @@ ion-button:hover, ion-menu-button:hover, #robbot-name:hover {
   border-width: 2px;
   background-color:rgba(var(--ion-color-primary-rgb), 0.14);
 }
+
+#select-tag-btns {
+  display: flex;
+  flex-direction: column;
+  width: auto;
+  align-items: center;
+  justify-content: center;
+}
+
+#special-tag-btns {
+  display: flex;
+  flex-direction: row;
+  width: auto;
+}
+
+.select-tag-btn {
+  width: 77%;
+}
+
+#select-tag-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

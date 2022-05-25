@@ -18,6 +18,7 @@
 export interface SelectOptionWithIcon {
   label: string;
   icon: string;
+  value: string;
 }
 
 /**

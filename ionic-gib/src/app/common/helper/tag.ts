@@ -1,13 +1,15 @@
 import { Plugins } from '@capacitor/core';
 const { Modals } = Plugins;
 
+import * as h from 'ts-gib/dist/helper';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 import { ChooseIconModalComponent } from '../choose-icon-modal/choose-icon-modal.component';
 
 import * as c from '../constants';
 import { IconItem } from '../types/ux';
-import { TagIbGib_V1 } from '../types/tag';
+import { TagData_V1, TagIbGib_V1 } from '../types/tag';
 import { CommonService } from '../../services/common.service';
+import { TagModalFormComponent } from '../modals/tag-modal-form/tag-modal-form.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -18,14 +20,32 @@ export async function createNewTag(common: CommonService):
     try {
         if (logalot) { console.log(`${lc} starting...`); }
 
+        // using this modal doesn't show icons in list to select
+        // const modal = await common.modalController.create({
+        //     component: TagModalFormComponent,
+        // });
+        // await modal.present();
+        // let resModal = await modal.onWillDismiss();
+        // const tagData: TagData_V1 = resModal.data;
+        // if (!tagData) {
+        //     if (logalot) { console.log(`${lc} cancelled.`) }
+        //     return; // <<<< returns early
+        // }
+
+        // if (logalot) { console.log(`${lc} tagData: ${h.pretty(tagData)}`); }
+        // const { text, icon, description } = tagData;
+
         const text = await chooseTagText();
         if (!text) { return; }
         const icon = await chooseTagIcon(common);
         if (!icon) { return; }
         const description = await chooseTagDescription(text);
         if (!description) { return; }
-
-        const resNewTag = await common.ibgibs.createTagIbGib({text, icon, description});
+        const resNewTag = await common.ibgibs.createTagIbGib({
+            text,
+            icon,
+            description
+        });
 
         return resNewTag.newTagIbGib;
     } catch (error) {

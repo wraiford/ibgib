@@ -126,9 +126,11 @@ export class DynamicFormBuilder {
     description({
         of: value,
         required,
+        defaultValue,
     }: {
         of: string,
         required?: boolean,
+        defaultValue?: string,
     }): DynamicFormBuilder {
         this.addItem({
             // witness.data.description
@@ -141,7 +143,7 @@ export class DynamicFormBuilder {
             // regexpSource: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}).source,
             dataType: 'textarea',
             required,
-            defaultValue: 'testing ddefault for desc',
+            defaultValue,
             value,
         });
         return this;

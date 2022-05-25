@@ -23,13 +23,6 @@ export abstract class DynamicModalFormComponentBase<TDataOut>
 
   protected modalContext: ModalContext = 'create';
 
-  // @Input()
-  // validationErrors: string[] = [];
-  // @Input()
-  // validationErrorString: string;
-  // @Input()
-  // erroredFields: string[] = [];
-
   @Input()
   showHelp: boolean;
 

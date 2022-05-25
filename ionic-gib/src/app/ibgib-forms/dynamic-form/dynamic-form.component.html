@@ -50,9 +50,10 @@
         (ionChange)="handleSelectChange($event, item)"
         [compareWith]="compareStringsAndIcons"
         >
-        <ion-select-option *ngFor="let option of item.selectOptions"
+        <ion-select-option *ngFor="let option of item.selectOptionsWithIcons"
           [value]="option">
-          <ion-label>{{ option }}</ion-label>
+          <ion-icon [name]="option.icon"></ion-icon>
+          <ion-label>{{ option.label }}</ion-label>
         </ion-select-option>
       </ion-select>
         <!-- [disabled]="!!item.readonly" -->
