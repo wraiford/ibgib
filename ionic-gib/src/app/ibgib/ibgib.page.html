@@ -34,7 +34,7 @@
 
   <!-- ibgib context buttons -->
   <ion-toolbar color="background">
-    <ion-buttons slot="end">
+    <ion-buttons id="context-btns" slot="end">
       <!-- leaving these in for future testing of download the d*$! pic -->
       <!-- <ion-button *ngIf="item?.type === 'pic' && (ios || android)" class="toolbar-title-btn" -->
       <ion-button *ngIf="item?.type === 'pic'" class="toolbar-title-btn"
@@ -183,7 +183,7 @@
     <ion-modal [isOpen]="showModal_PromptForTag">
       <ng-template>
         <ion-content id="select-tag-content">
-          <ion-title>Select tag...</ion-title>
+          <ion-title id="select-tag-title">Select tag...</ion-title>
           <ion-buttons id="select-tag-btns">
             <ion-button *ngFor="let tag of tagIbGibs"
               class="select-tag-btn"
@@ -194,14 +194,14 @@
               <ion-label>{{ tag.data?.text || '[tag text missing?]' }} </ion-label>
             </ion-button>
           </ion-buttons>
-          <ion-buttons id="special-tag-btns">
+          <ion-buttons id="select-tag-btns-special">
             <ion-button (click)="handleSelectTag_New()"
               color="secondary">
               <ion-icon name="add-outline"></ion-icon>
               <ion-label>new tag...</ion-label>
             </ion-button>
             <ion-button (click)="handleSelectTag_Cancel()"
-              color="secondary">
+              color="danger">
               <ion-icon name="close-outline"></ion-icon>
               <ion-label>cancel</ion-label>
             </ion-button>

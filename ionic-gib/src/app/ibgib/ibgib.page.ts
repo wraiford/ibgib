@@ -932,6 +932,8 @@ export class IbGibPage extends IbgibComponentBase
     const lc = `${this.lc}[${this.handleTagClick.name}]`;
     try {
       this.tagging = true;
+      setTimeout(() => this.ref.detectChanges());
+
       if (!this.ibGib) { throw new Error(`There isn't a current ibGib loaded...?`); }
       if (!this.addr) { throw new Error(`There isn't a current ibGib addr loaded...?`); }
       // const contextAddr = h.getIbGibAddr({ibGib: this.ibGib});
@@ -1047,7 +1049,7 @@ export class IbGibPage extends IbgibComponentBase
       await Modals.alert({title: 'something went awry...', message: error.message});
     } finally {
       // this.showModal_PromptForTag = false;
-      this.tagging = false;
+      // this.tagging = false;
       this.ref.detectChanges();
     }
 
@@ -1161,6 +1163,7 @@ export class IbGibPage extends IbgibComponentBase
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
+
   // #endregion tagging
 
   async handleInfoClick(event: MouseEvent): Promise<void> {
@@ -1435,6 +1438,7 @@ export class IbGibPage extends IbgibComponentBase
   // #endregion Polling
 
   // #region test accordion
+
   @ViewChild(IonAccordionGroup, { static: true }) accordionGroup: IonAccordionGroup;
 
   logAccordionValue() {
@@ -1466,7 +1470,7 @@ export class IbGibPage extends IbgibComponentBase
 
 }
 
-interface TagInfo {
-  title: string;
-  addr: string;
-}
+// interface TagInfo {
+//   title: string;
+//   addr: string;
+// }
