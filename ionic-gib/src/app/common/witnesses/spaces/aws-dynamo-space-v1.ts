@@ -1884,6 +1884,7 @@ export class AWSDynamoSpace_V1<
                     info = h.clone(info);
                     const projectionExpression =
                         info.projectionExpression || c.DEFAULT_AWS_PROJECTION_EXPRESSION;
+                    if (logalot) { console.log(`${lc} projectionExpression: ${projectionExpression} (I: 91e261857baffeb1a4c794b478cef522)`); }
                     const cmd = await createDynamoDBQueryNewerCommand({
                         tableName: this.data.tableName,
                         info,

@@ -581,7 +581,7 @@ export async function getDependencyGraph({
             } else {
                 // resGet.success falsy indicates an error in the space. If it wasn't found
                 // then resGet.success would (should) still be truthy.
-                throw new Error(`failure getting addrs. (E: 60404e6e389249d9bbecf0039cd51878) addrs:\n${addrsWeDontHaveAlready_Rel8dAddrs.join('\n')} `);
+                throw new Error(`failure getting addrs in space ${space?.data?.name || '[no name?]'} (id: ${space?.data?.uuid || '[no uuid?]'}). (E: 60404e6e389249d9bbecf0039cd51878) addrs:\n${addrsWeDontHaveAlready_Rel8dAddrs.join('\n')} `);
             }
         } else {
             // no other rel8d addrs to get, so our job is done and the `gotten`
