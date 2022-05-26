@@ -59,7 +59,23 @@ export class ListViewComponent extends IbgibListComponentBase {
   }
 
   async updateIbGib_NewerTimelineFrame(info: IbGibTimelineUpdateInfo): Promise<void> {
-    await super.updateIbGib_NewerTimelineFrame(info);
+    const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      await super.updateIbGib_NewerTimelineFrame(info);
+      // if (this.items?.length > 0) {
+      //   debugger;
+      // }
+      console.log(`${lc}[testing] this.items.length: ${this.items?.length ?? -1}`);
+        // debugger;
+
+    } catch (error) {
+      debugger;
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
   async handleClicked(item: IbGibItem): Promise<void> {

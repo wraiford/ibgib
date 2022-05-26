@@ -647,10 +647,11 @@ export class IbgibsService {
 
   fnBroadcast = (info: IbGibTimelineUpdateInfo) => {
     // if (!h.getIbAndGib({ibGibAddr: info.latestAddr}).gib?.includes('.')) {
-    //   debugger;
     // need to know why tjp's continue to get published as the latest addrs
     // }
     // this._latestSubj.next({tjpAddr, latestAddr: ibGibAddr, latestIbGib: ibGib});
+    // let gib = h.getIbAndGib({ibGibAddr: info.latestAddr}).gib;
+    // if (!gib.includes('.')) { debugger; }
     this._latestSubj.next(info);
   }
 
@@ -939,6 +940,8 @@ export class IbgibsService {
       // console.log(`${lc} ping it out`);
       if (latestAddr === ibGibAddr) {
         // console.log(`${lc} no (different) latest exists`);
+        // let gib = h.getIbAndGib({ibGibAddr: latestAddr}).gib;
+        // if (!gib.includes('.')) { debugger; }
         this._latestSubj.next({
           latestIbGib: ibGib,
           latestAddr: ibGibAddr,
@@ -951,6 +954,8 @@ export class IbgibsService {
           throw new Error('latest not found');
         }
         const latestIbGib = resLatestIbGib.ibGibs![0];
+        // let gib = h.getIbAndGib({ibGibAddr: latestAddr}).gib;
+        // if (!gib.includes('.')) { debugger; }
         this._latestSubj.next({
           latestIbGib,
           latestAddr,

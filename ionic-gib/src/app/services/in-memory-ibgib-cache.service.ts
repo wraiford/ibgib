@@ -33,6 +33,12 @@ export class InMemoryIbgibCacheService implements IbGibCacheService {
       if (!info.addr) { throw new Error(`addr required (E: dc4118cb7b88464f9f2c30e624081207)`); }
       if (!info.ibGib) { throw new Error(`ibGib required (E: 6990e984856aa49306c645db9ac6a422)`); }
 
+      const ibGibKeys = Object.keys(info.ibGib);
+      if (ibGibKeys.length > 4 || ibGibKeys.some(key => !['ib', 'gib', 'data', 'rel8ns'].includes(key))) {
+        if (logalot) { console.log(`${lc} complex ibGib beyond basic ib,gib,data,rel8ns. skipping cache (I: 6d0f2888177ba8ad83e287e6ba76d822)`); }
+        return; /* <<<< returns early */
+      }
+
       this.ibGibs[info.addr] = h.clone(info);
     } catch (error) {
       debugger;

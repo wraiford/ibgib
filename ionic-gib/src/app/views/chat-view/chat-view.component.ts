@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, ChangeDetectorRef, Output, EventEmitter, ViewChild } from '@angular/core';
+import { Component, Input, ChangeDetectorRef, Output, EventEmitter, ViewChild } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 
 import * as h from 'ts-gib/dist/helper';
@@ -12,7 +12,7 @@ import { IbgibListComponentBase } from 'src/app/common/bases/ibgib-list-componen
 import { ScrollBaseCustomEvent } from '@ionic/angular';
 import { ListViewComponent } from '../list-view/list-view.component';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 interface ChatItem extends IbGibItem {
 
@@ -52,11 +52,24 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
   }
 
   async updateIbGib_NewerTimelineFrame(info: IbGibTimelineUpdateInfo): Promise<void> {
-    await super.updateIbGib_NewerTimelineFrame(info);
+    const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
 
-    // temporary hack...no idea why it's still not updating correctly on the device
-    if (this.listView) {
-      await this.listView.updateIbGib_NewerTimelineFrame(info);
+      await super.updateIbGib_NewerTimelineFrame(info);
+      console.log(`${lc}[testing] this.items.length: ${this.items?.length ?? -1}`);
+
+      // temporary hack...no idea why it's still not updating correctly on the device
+      if (this.listView) {
+        await this.listView.updateIbGib_NewerTimelineFrame(info);
+      }
+
+    } catch (error) {
+      debugger;
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 

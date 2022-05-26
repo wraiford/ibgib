@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib';
-import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { getGibInfo, isPrimitive } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 import * as c from '../constants';
 import { IbgibListItem, IbGibTimelineUpdateInfo } from '../types/ux';
@@ -60,12 +60,40 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
         const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
+            console.log(`[testing] caching items (I: d61f38fbed6042f98518e47a4edd6f67)`);
+            this.cacheItems(); // spin off!
             await super.ngOnDestroy();
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
         } finally {
             if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    private _cachingItems: boolean;
+    async cacheItems(): Promise<void> {
+        const lc = `${this.lc}[${this.cacheItems.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            if (this._cachingItems) {
+                if (logalot) { console.log(`${lc} already caching items (I: c023abc2e4efb2879e39735d58288122)`); }
+                return; /* <<<< returns early */
+            }
+
+            for (let i = 0; i < this.items.length; i++) {
+                const item = this.items[i];
+                if (item?.addr && item.ibGib && !isPrimitive({gib: item.gib})) {
+                    await this.common.cache.put({addr: item.addr, ibGib: item.ibGib, other: item});
+                }
+            }
+
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+            this._cachingItems = false;
         }
     }
 
@@ -82,6 +110,10 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
             // the same ibgib timeline (same tjp) or a completely different one.
             // this will abort this call to `updateIbGib` and return early,
             // transferring control over to `updateIbGib_NewerTimelineFrame`
+            if (!this.item) {
+                console.warn(`${lc} this.item is falsy. (W: 591df83f351a4717b79d3cd38916000c)`);
+                return; /* <<<< returns early */
+            }
 
             // loads the default properties for this.item
             await this.loadItemPrimaryProperties(latestAddr, this.item);
@@ -187,6 +219,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
             if (!this.item || !this.item.ibGib || !this.item.ibGib!.rel8ns) { return; }
             if (logalot) { console.log(`${lc} this.rel8nNames: ${this.rel8nNames?.toString()}`); }
 
+            // debugger;
             let timerName: string;
             const timerEnabled = true;
             if (logalot && timerEnabled) {
@@ -255,17 +288,31 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
 
             let itemsToAdd: TItem[] = [];
             addrsToAdd = unique(addrsToAdd);
+
             for (let i = 0; i < addrsToAdd.length; i++) {
                 const addrToAdd = addrsToAdd[i];
-                const newItem = <TItem>{ addr: addrToAdd };
+                const cached = this._cachingItems ?
+                    null :
+                    await this.common.cache.get({addr: addrToAdd + lc});
+                let newItem: TItem;
+                if (cached) {
+                    newItem = cached?.other ? cached.other : <TItem>{ addr: addrToAdd };
+                    console.log(`[testing] found item in cache (I: d61f38fbed6042f98518e47a4edd6f67)`);
+                } else {
+                    newItem = <TItem>{ addr: addrToAdd };
+                }
                 itemsToAdd.push(newItem);
             }
+
+
             // sortItems(itemsToAdd);
 
             for (let i = 0; i < itemsToAdd.length; i++) {
                 const item = itemsToAdd[i];
-                await this.loadIbGib({item});
-                await this.loadItem(item);
+                if (!item.ibGib) {
+                    await this.loadIbGib({item});
+                    await this.loadItem(item);
+                }
                 // this.items.push(item);
                 // await h.delay(10);
                 // if ((i % 5 === 0) || (i === itemsToAdd.length-1)) {
