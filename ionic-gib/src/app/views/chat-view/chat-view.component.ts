@@ -7,14 +7,14 @@ import { IbGib_V1 } from 'ts-gib/dist/V1';
 
 import * as c from '../../common/constants';
 import { CommonService } from 'src/app/services/common.service';
-import { IbgibItem, TimelineUpdateInfo } from '../../common/types/ux';
+import { IbGibItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
 import { IbgibListComponentBase } from 'src/app/common/bases/ibgib-list-component-base';
 import { ScrollBaseCustomEvent } from '@ionic/angular';
 import { ListViewComponent } from '../list-view/list-view.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
-interface ChatItem extends IbgibItem {
+interface ChatItem extends IbGibItem {
 
 }
 
@@ -51,7 +51,7 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
     super(common, ref);
   }
 
-  async updateIbGib_NewerTimelineFrame(info: TimelineUpdateInfo): Promise<void> {
+  async updateIbGib_NewerTimelineFrame(info: IbGibTimelineUpdateInfo): Promise<void> {
     await super.updateIbGib_NewerTimelineFrame(info);
 
     // temporary hack...no idea why it's still not updating correctly on the device
@@ -94,7 +94,7 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
 
   }
 
-  async itemClicked(item: IbgibItem): Promise<void> {
+  async itemClicked(item: IbGibItem): Promise<void> {
     if (logalot) { console.log(`item: ${h.pretty(item)}`); }
     await this.go({
       toAddr: item.addr,

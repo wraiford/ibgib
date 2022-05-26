@@ -5,7 +5,7 @@ import { IbGib_V1 } from 'ts-gib/dist/V1';
 
 import { IbgibComponentBase } from '../../common/bases/ibgib-component-base';
 import { CommonService } from '../../services/common.service';
-import { IbgibItem, TimelineUpdateInfo } from '../../common/types/ux';
+import { IbGibItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
 import * as c from '../../common/constants';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;;
@@ -29,7 +29,7 @@ export class ListItemViewComponent extends IbgibComponentBase {
   set ibGib_Context(value: IbGib_V1 ) { super.ibGib_Context = value; }
 
   @Output()
-  clicked: EventEmitter<IbgibItem> = new EventEmitter();
+  clicked: EventEmitter<IbGibItem> = new EventEmitter();
 
   public debugBorderWidth: string = debugBorder ? "2px" : "0px"
   public debugBorderColor: string = "#92ed80";
@@ -61,13 +61,13 @@ export class ListItemViewComponent extends IbgibComponentBase {
     }
   }
 
-  updateIbGib_NewerTimelineFrame({ latestAddr, latestIbGib, tjpAddr, }: TimelineUpdateInfo): Promise<void> {
+  updateIbGib_NewerTimelineFrame({ latestAddr, latestIbGib, tjpAddr, }: IbGibTimelineUpdateInfo): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
     if (logalot) { console.log(`${lc} triggered (I: b362bd7458722d2a7a3e913ae8703e22)`); }
     return super.updateIbGib_NewerTimelineFrame({latestAddr, latestIbGib, tjpAddr });
   }
 
-  async handleClicked(item: IbgibItem): Promise<void> {
+  async handleClicked(item: IbGibItem): Promise<void> {
     if (logalot) { console.log(`item: ${JSON.stringify(item, null, 2)}`); }
     this.clicked.emit(item);
   }

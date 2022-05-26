@@ -7,7 +7,7 @@ import * as h from 'ts-gib/dist/helper';
 import * as c from '../../common/constants';
 import { IbgibListComponentBase } from 'src/app/common/bases/ibgib-list-component-base';
 import { CommonService } from 'src/app/services/common.service';
-import { IbgibItem } from '../../common/types/ux';
+import { IbGibItem } from '../../common/types/ux';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -59,7 +59,7 @@ export class RootListViewComponent
     // }, 1000);
   }
 
-  async rootClicked(item: IbgibItem): Promise<void> {
+  async rootClicked(item: IbGibItem): Promise<void> {
     if (logalot) { console.log(`item: ${JSON.stringify(item, null, 2)}`); }
     await this.go({
       toAddr: item.addr,

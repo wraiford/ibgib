@@ -1,13 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 
-import { SimpleIbgibCacheService } from './simple-ibgib-cache.service';
+import { InMemoryIbgibCacheService } from './in-memory-ibgib-cache.service';
 
 describe('SimpleIbgibCacheService', () => {
-  let service: SimpleIbgibCacheService;
+  let service: InMemoryIbgibCacheService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    service = TestBed.inject(SimpleIbgibCacheService);
+    service = TestBed.inject(InMemoryIbgibCacheService);
   });
 
   it('should be created', () => {

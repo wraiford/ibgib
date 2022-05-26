@@ -6,7 +6,7 @@ import { CommonService, IbgibNav } from 'src/app/services/common.service';
 //import { FilesService } from 'src/app/services/files.service';
 import { IbgibsService } from 'src/app/services/ibgibs.service';
 import { IonicIbgibNavService } from 'src/app/services/ionic-ibgib-nav.service';
-import { IbgibItem } from '../types/ux'; // refactoring to not use types/index
+import { IbGibItem } from '../types/ux'; // refactoring to not use types/index
 import { IbgibListComponentBase } from './ibgib-list-component-base';
 import { ModalController, NavController } from '@ionic/angular';
 

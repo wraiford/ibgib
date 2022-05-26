@@ -4,7 +4,7 @@ import {
 import { Subscription } from 'rxjs';
 
 import * as h from 'ts-gib/dist/helper';
-import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { getGibInfo, isPrimitive } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { IbGib_V1, GIB, Factory_V1, ROOT_ADDR } from "ts-gib/dist/V1";
 import { IbGibAddr, Ib, Gib, } from "ts-gib";
 
@@ -13,13 +13,13 @@ import { CommonService, NavInfo } from 'src/app/services/common.service';
 import { Capacitor } from '@capacitor/core';
 import { CommentData_V1 } from '../types/comment';
 import { PicData_V1 } from '../types/pic';
-import { IbgibItem, TimelineUpdateInfo } from '../types/ux';
+import { IbGibItem, IbGibTimelineUpdateInfo } from '../types/ux';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Injectable()
-export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
+export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     implements OnInit, OnDestroy {
 
     /**
@@ -239,7 +239,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         if (this.subLatest) { this.subLatest.unsubscribe(); }
         await this.smallDelayToLoadBalanceUI();
         if (this.subLatest) { this.subLatest.unsubscribe(); delete this.subLatest; }
-        this.subLatest = this.common.ibgibs.latestObs.subscribe((evnt: TimelineUpdateInfo) => {
+        this.subLatest = this.common.ibgibs.latestObs.subscribe((evnt: IbGibTimelineUpdateInfo) => {
             if (logalot) { console.log(`${lc} latestEvent heard...`); }
             this.handleIbGib_NewLatest(evnt); // SPINS OFF ASYNC!!
         });
@@ -256,8 +256,31 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         await this.subscribeLatest();
     }
 
-    ngOnDestroy() {
-        this.unsubscribeLatest();
+    async ngOnDestroy(): Promise<void> {
+        const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+
+            if (this.gib !== 'gib') {
+                // debugger;
+                console.dir(this.item);
+                let x = this.item;
+            }
+            if (this.addr && this.item && this.ibGib && !isPrimitive({gib: this.gib})) {
+                console.warn(`${lc} debug `)
+                await this.common.cache.put({
+                    addr: this.addr + this.lc,
+                    ibGib: this.ibGib,
+                    other: this.item,
+                })
+            }
+            this.unsubscribeLatest();
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
     }
 
     clearItem(): void {
@@ -273,7 +296,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
      * Otherwise, angular tends to freeze a bit afaict.
      */
     async smallDelayToLoadBalanceUI(): Promise<void> {
-        await h.delay(Math.ceil(Math.random()*16));
+        await h.delay(Math.ceil(Math.random()*32));
     }
 
     protected async updateIbGib(addr: IbGibAddr): Promise<void> {
@@ -289,10 +312,22 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         if (addr) {
             if (logalot) { console.log(`${lc} setting new address`) }
             // we have an addr which is different than our previous.
-            this.item = <any>{};
-            this.loadItemPrimaryProperties(addr, this.item);
 
-            if (this.gib === GIB && !this.isMeta) { this.item.isMeta = true; }
+            // first try from item cache
+            if (this.lc) {
+                const cached = await this.common.cache.get({addr: addr + this.lc});
+                if (cached?.other) { this.item = <TItem>cached.other; }
+            } else {
+                console.warn(`${lc} (UNEXPECTED) this.lc is undefined? (W: bd14ef72b8214bdfa109ee39b08cba32)`);
+            }
+
+            if (!this.item) {
+                this.item = <any>{};
+                this.loadItemPrimaryProperties(addr, this.item);
+
+                if (this.gib === GIB && !this.isMeta) { this.item.isMeta = true; }
+            }
+
         } else {
             if (logalot) { console.log(`${lc} no new address`) }
         }
@@ -327,7 +362,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
         latestAddr,
         latestIbGib,
         tjpAddr,
-    }: TimelineUpdateInfo): Promise<void> {
+    }: IbGibTimelineUpdateInfo): Promise<void> {
         const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
         try {
             if (logalot || true) { console.log(`${lc} starting...`); }
@@ -380,6 +415,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
             const {ib, gib} = h.getIbAndGib({ibGibAddr: item.addr});
             if (!force && item.ibGib && h.getIbGibAddr({ibGib: item.ibGib}) === item.addr) {
                 // do nothing, because we already have loaded this address.
+                if (logalot) { console.log(`${lc} already loaded item.ibGib and force flag is falsy (I: dde55ba695fb2aa0e20caadb1ef83922)`); }
             } else {
                 if (gib === GIB) {
                     // primitive, just build
@@ -392,6 +428,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
                         if (logalot) { console.warn(`${lc} ibgibs initializing...waiting ${delayMs} ms...`); }
                         await h.delay(delayMs);
                     }
+                    //
                     // get the full ibgib record from the ibgibs service (local space)
                     const resGet = await this.common.ibgibs.get({addr: item.addr, isMeta: item.isMeta });
                     if (resGet.success && resGet.ibGibs?.length === 1) {
@@ -597,7 +634,7 @@ export abstract class IbgibComponentBase<TItem extends IbgibItem = IbgibItem>
      *
      * @param info event info for the new latest ibGib
      */
-    async handleIbGib_NewLatest(info: TimelineUpdateInfo): Promise<void> {
+    async handleIbGib_NewLatest(info: IbGibTimelineUpdateInfo): Promise<void> {
         const lc = `${this.lc}[${this.handleIbGib_NewLatest.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`)}

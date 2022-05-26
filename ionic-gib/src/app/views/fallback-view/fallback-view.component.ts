@@ -44,6 +44,8 @@ export class FallbackViewComponent extends IbgibComponentBase
   @Input()
   isSkeleton: boolean = true;
 
+  destroyed: boolean = false;
+
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
@@ -62,9 +64,19 @@ export class FallbackViewComponent extends IbgibComponentBase
     }, this.delayMs);
   }
 
-  destroyed: boolean = false;
-  ngOnDestroy(): void {
-    this.destroyed = true;
+  async ngOnDestroy(): Promise<void> {
+    const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      this.destroyed = true;
+
+      await super.ngOnDestroy();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {

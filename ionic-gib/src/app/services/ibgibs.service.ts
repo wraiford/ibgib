@@ -37,7 +37,7 @@ import { PicIbGib_V1 } from '../common/types/pic';
 import { ParticipantInfo, StatusCode, SyncSagaInfo, SyncSpaceOptionsData, SyncSpaceOptionsIbGib, SyncSpaceResultIbGib, SyncStatusIbGib } from '../common/types/outer-space';
 import { TjpIbGibAddr } from '../common/types/ibgib';
 import { BootstrapIbGib } from '../common/types/space';
-import { TimelineUpdateInfo, RootData, SpecialIbGibType } from '../common/types/ux';
+import { IbGibTimelineUpdateInfo, RootData, SpecialIbGibType } from '../common/types/ux';
 import {
   CiphertextData, CiphertextIbGib_V1, CiphertextRel8ns,
   EncryptionData_V1, EncryptionInfo_EncryptGib,
@@ -58,7 +58,7 @@ import { spaceNameIsValid } from '../common/helper/validate';
 import { groupBy } from '../common/helper/utils';
 import { RobbotModalResult } from '../common/modals/robbot-modal-form/robbot-modal-form.component';
 import { createNewRobbot } from '../common/helper/robbot';
-import { SimpleIbgibCacheService } from './simple-ibgib-cache.service';
+import { InMemoryIbgibCacheService } from './in-memory-ibgib-cache.service';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -164,7 +164,7 @@ export class IbgibsService {
   private _initializing: boolean;
   get initializing(): boolean { return this._initializing; }
 
-  private _latestSubj = new ReplaySubject<TimelineUpdateInfo>();
+  private _latestSubj = new ReplaySubject<IbGibTimelineUpdateInfo>();
   latestObs = this._latestSubj.asObservable();
 
   async getLocalUserSpace({
@@ -314,7 +314,7 @@ export class IbgibsService {
   constructor(
     public modalController: ModalController,
     public alertController: AlertController,
-    private cacheSvc: SimpleIbgibCacheService,
+    private cacheSvc: InMemoryIbgibCacheService,
   ) {
     const lc = `${this.lc}[ctor]`;
     if (logalot) { console.log(`${lc} doodle `); }
@@ -645,7 +645,7 @@ export class IbgibsService {
     await updateBootstrapIbGib({space: newSpace, zeroSpace: this.zeroSpace});
   }
 
-  fnBroadcast = (info: TimelineUpdateInfo) => {
+  fnBroadcast = (info: IbGibTimelineUpdateInfo) => {
     // if (!h.getIbAndGib({ibGibAddr: info.latestAddr}).gib?.includes('.')) {
     //   debugger;
     // need to know why tjp's continue to get published as the latest addrs

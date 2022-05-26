@@ -22,11 +22,10 @@ import { validateBootstrapIbGib, validateIbGibAddr, } from './validate';
 import { getRootIb, getSpecialConfigKey, getSpecialIbGibIb, getTjpAddrs, isTjp_Naive, tagTextToIb } from './ibgib';
 import { TagData_V1, TagIbGib_V1 } from '../types/tag';
 import { getRobbotIb } from './robbot';
-import { TimelineUpdateInfo, RootData, SpecialIbGibType } from '../types/ux';
+import { IbGibTimelineUpdateInfo, RootData, SpecialIbGibType } from '../types/ux';
 import { RobbotData_V1, RobbotIbGib_V1 } from '../types/robbot';
 import { SpaceLockScope, IbGibSpaceLockIbGib, BootstrapIbGib, SpaceId, IbGibSpaceLockOptions, BootstrapData, BootstrapRel8ns, TxId, IbGibSpaceResultIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns } from '../types/space';
 import { isExpired, getExpirationUTCString, getTimestampInTicks } from './utils';
-import { SimpleIbgibCacheService } from 'src/app/services/simple-ibgib-cache.service';
 import { IbGibCacheService } from '../types/ibgib';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -760,7 +759,7 @@ export async function getSpecialIbGib({
     /**
      * Only required if `initialize` is true.
      */
-    fnBroadcast?: (info: TimelineUpdateInfo) => void,
+    fnBroadcast?: (info: IbGibTimelineUpdateInfo) => void,
     /**
      * Initialization lock getter function.
      */
@@ -987,7 +986,7 @@ export async function setCurrentRoot({
     space: IbGibSpaceAny,
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
-    fnBroadcast: (info: TimelineUpdateInfo) => void,
+    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<void> {
     const lc = `[${setCurrentRoot.name}]`;
     try {
@@ -1042,7 +1041,7 @@ export async function rel8ToCurrentRoot({
     linked?: boolean,
     rel8nName?: string,
     space: IbGibSpaceAny,
-    fnBroadcast: (info: TimelineUpdateInfo) => void,
+    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
 }): Promise<void> {
@@ -1106,7 +1105,7 @@ export async function registerNewIbGib({
 }: {
     ibGib: IbGib_V1,
     space: IbGibSpaceAny,
-    fnBroadcast: (info: TimelineUpdateInfo) => void,
+    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
 }): Promise<void> {
@@ -1335,7 +1334,7 @@ export async function rel8ToSpecialIbGib({
      * Use this if you want to broadcast the new space's address after this
      * function performs the rel8 transform.
      */
-    fnBroadcast: (info: TimelineUpdateInfo) => void,
+    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr> {
     const lc = `[${rel8ToSpecialIbGib.name}](type:${type},rel8nName:${rel8nName})`;
     try {
@@ -1508,7 +1507,7 @@ export async function createSpecial({
     space: IbGibSpaceAny,
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
-    fnBroadcast: (info: TimelineUpdateInfo) => void,
+    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr | null> {
     const lc = `[${createSpecial.name}]`;
     try {
@@ -1566,7 +1565,7 @@ export async function createSpecialIbGib({
     space: IbGibSpaceAny,
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
-    fnBroadcast: (info: TimelineUpdateInfo) => void,
+    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGib_V1> {
     const lc = `[${createSpecialIbGib.name}][${type || 'falsy type?'}]`;
     try {
@@ -1616,7 +1615,7 @@ export async function createTags({
     space: IbGibSpaceAny,
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
-    fnBroadcast: (info: TimelineUpdateInfo) => void,
+    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr | null> {
     const lc = `[${createTags.name}]`;
     try {
@@ -1676,7 +1675,7 @@ export async function createTagIbGibAndSundry({
     space: IbGibSpaceAny,
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
-    fnBroadcast: (info: TimelineUpdateInfo) => void,
+    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<{newTagIbGib: TagIbGib_V1, newTagsAddr: string}> {
     const lc = `[${createTagIbGibAndSundry.name}]`;
     try {
@@ -1721,7 +1720,7 @@ export async function createRootsIbGib({
     space: IbGibSpaceAny,
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
-    fnBroadcast: (info: TimelineUpdateInfo) => void,
+    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr | null> {
     const lc = `[${createRootsIbGib.name}]`;
     try {
@@ -1795,7 +1794,7 @@ async function createRootIbGib({
     space: IbGibSpaceAny,
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
-    fnBroadcast: (info: TimelineUpdateInfo) => void,
+    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<{newRootIbGib: IbGib_V1<RootData>, newRootsAddr: string}> {
     const lc = `[${createRootIbGib.name}]`;
     try {
@@ -1846,7 +1845,7 @@ async function createLatest({
     space: IbGibSpaceAny,
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
-    fnBroadcast: (info: TimelineUpdateInfo) => void,
+    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr | null> {
     const lc = `[${createLatest.name}]`;
     try {
@@ -1885,7 +1884,7 @@ async function createSecrets({
     space: IbGibSpaceAny,
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
-    fnBroadcast: (info: TimelineUpdateInfo) => void,
+    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr | null> {
     const lc = `[${createSecrets.name}]`;
     try {
@@ -1922,7 +1921,7 @@ async function createEncryptions({
     space: IbGibSpaceAny,
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
-    fnBroadcast: (info: TimelineUpdateInfo) => void,
+    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr | null> {
     const lc = `[${createEncryptions.name}]`;
     try {
@@ -1959,7 +1958,7 @@ async function createOuterSpaces({
     space: IbGibSpaceAny,
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
-    fnBroadcast: (info: TimelineUpdateInfo) => void,
+    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr | null> {
     const lc = `[${createOuterSpaces.name}]`;
     try {
@@ -1996,7 +1995,7 @@ async function createAutosyncs({
     space: IbGibSpaceAny,
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
-    fnBroadcast: (info: TimelineUpdateInfo) => void,
+    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr | null> {
     const lc = `[${createAutosyncs.name}]`;
     try {
@@ -2031,7 +2030,7 @@ export async function createRobbots({
     space: IbGibSpaceAny,
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
-    fnBroadcast: (info: TimelineUpdateInfo) => void,
+    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr | null> {
     const lc = `[${createRobbots.name}]`;
     try {
@@ -2077,7 +2076,7 @@ export async function createRobbotIbGib({
     space: IbGibSpaceAny,
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
-    fnBroadcast: (info: TimelineUpdateInfo) => void,
+    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<{newRobbotIbGib: RobbotIbGib_V1, newRobbotsAddr: string}> {
     const lc = `[${createRobbotIbGib.name}]`;
     try {
@@ -2256,7 +2255,7 @@ function rel8TagToTagsIbGib({
     space: IbGibSpaceAny,
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
-    fnBroadcast: (info: TimelineUpdateInfo) => void,
+    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr> {
     return rel8ToSpecialIbGib({
         type: "tags",

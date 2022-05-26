@@ -18,7 +18,7 @@ import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/
 import { concatMap, debounceTime } from 'rxjs/operators';
 import { IbGibSpaceAny } from '../common/witnesses/spaces/space-base-v1';
 import { PicData_V1, PicIbGib_V1 } from '../common/types/pic';
-import { TimelineUpdateInfo } from '../common/types/ux';
+import { IbGibTimelineUpdateInfo } from '../common/types/ux';
 import { ensureDirPath, pathExists, writeFile } from '../common/helper/ionic';
 import { getFnAlert, getFnPrompt, getFnConfirm } from '../common/helper/prompt-functions';
 import { createNewTag } from '../common/helper/tag';
@@ -175,14 +175,21 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
-  ngOnDestroy() {
+  async ngOnDestroy(): Promise<void> {
     const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
-    if (logalot) { console.log(`${lc} called.`) }
-    this.stopPollLatest_Local();
-    this.stopPollLatest_Store();
-    this.unsubscribeParamMap();
-    this.destroyScroll();
-    super.ngOnDestroy();
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      this.stopPollLatest_Local();
+      this.stopPollLatest_Store();
+      this.unsubscribeParamMap();
+      this.destroyScroll();
+      await super.ngOnDestroy();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
@@ -730,7 +737,7 @@ export class IbGibPage extends IbgibComponentBase
   //   }
   // }
 
-  async handleIbGib_NewLatest(info: TimelineUpdateInfo): Promise<void> {
+  async handleIbGib_NewLatest(info: IbGibTimelineUpdateInfo): Promise<void> {
     const lc = `${this.lc}[${this.handleIbGib_NewLatest.name}]`;
     try {
       await super.handleIbGib_NewLatest(info);
@@ -749,7 +756,7 @@ export class IbGibPage extends IbgibComponentBase
     latestAddr,
     latestIbGib,
     tjpAddr,
-  }: TimelineUpdateInfo): Promise<void> {
+  }: IbGibTimelineUpdateInfo): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }

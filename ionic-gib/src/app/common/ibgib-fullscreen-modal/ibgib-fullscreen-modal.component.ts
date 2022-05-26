@@ -56,9 +56,17 @@ export class IbgibFullscreenModalComponent
     setTimeout(() => { this.ref.detectChanges(); }, 5000)
   }
 
-  ngOnDestroy() {
+  async ngOnDestroy(): Promise<void> {
     const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
-    if (logalot) { console.log(`${lc}`); }
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      await super.ngOnDestroy();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
   // async handleItemClick(item: any): Promise<void> {

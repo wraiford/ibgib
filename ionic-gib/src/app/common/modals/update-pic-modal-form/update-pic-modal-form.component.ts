@@ -5,7 +5,7 @@ import { IbGibAddr, TransformResult, V1 } from 'ts-gib';
 
 import * as c from '../../constants';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
-import { IbgibItem } from '../../types/ux';
+import { IbGibItem } from '../../types/ux';
 import { FormItemInfo } from '../../../ibgib-forms/types/form-items';
 import { PicIbGib_V1 } from '../../types/pic';
 import { BinIbGib_V1 } from '../../types/bin';
@@ -56,13 +56,13 @@ export class UpdatePicModalFormComponent
    * item containing information about the current pic ibgib.
    */
   @Input()
-  item: IbgibItem;
+  item: IbGibItem;
   /**
    * Item corresponding to what the updated ibgib would look like (before it is
    * saved).
    */
   @Input()
-  updatedItem: IbgibItem;
+  updatedItem: IbGibItem;
 
   public fields: { [name: string]: FormItemInfo } = {
     name: {

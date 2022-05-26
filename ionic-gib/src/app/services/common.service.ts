@@ -5,6 +5,8 @@ import { Gib, IbGibAddr } from 'ts-gib';
 
 import { IbgibsService } from './ibgibs.service';
 import { WitnessFactoriesService } from './witness-factories.service';
+import { InMemoryIbgibCacheService } from './in-memory-ibgib-cache.service';
+import { IbGibItem } from '../common/types/ux';
 
 export interface NavInfo {
   /** The ibgib address we're going to.  */
@@ -84,6 +86,7 @@ export class CommonService {
     public platform: Platform,
     public factories: WitnessFactoriesService,
     public alertController: AlertController,
+    public cache: InMemoryIbgibCacheService,
   ) {
 
   }

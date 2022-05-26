@@ -5,7 +5,7 @@ import { IbGibAddr } from 'ts-gib';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 
 import * as c from '../../common/constants';
-import { IbgibItem, TimelineUpdateInfo } from '../../common/types/ux';
+import { IbGibItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
 import { IbgibListComponentBase } from '../../common/bases/ibgib-list-component-base';
 import { CommonService } from '../../services/common.service';
 
@@ -37,7 +37,7 @@ export class ListViewComponent extends IbgibListComponentBase {
   rel8nNames: string[] = c.DEFAULT_LIST_REL8N_NAMES;
 
   @Output()
-  clicked: EventEmitter<IbgibItem> = new EventEmitter();
+  clicked: EventEmitter<IbGibItem> = new EventEmitter();
 
   // @Output()
   // scrolled: EventEmitter<void> = new EventEmitter();
@@ -58,11 +58,11 @@ export class ListViewComponent extends IbgibListComponentBase {
     setTimeout(() => { this.ref.detectChanges(); }, 5000); // no idea
   }
 
-  async updateIbGib_NewerTimelineFrame(info: TimelineUpdateInfo): Promise<void> {
+  async updateIbGib_NewerTimelineFrame(info: IbGibTimelineUpdateInfo): Promise<void> {
     await super.updateIbGib_NewerTimelineFrame(info);
   }
 
-  async handleClicked(item: IbgibItem): Promise<void> {
+  async handleClicked(item: IbGibItem): Promise<void> {
     if (logalot) { console.log(`item: ${JSON.stringify(item, null, 2)}`); }
     this.clicked.emit(item);
   }

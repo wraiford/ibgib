@@ -312,11 +312,20 @@ export class AppComponent extends IbgibComponentBase
     }
   }
 
-  ngOnDestroy() {
+  async ngOnDestroy(): Promise<void> {
     const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
-    if (logalot) { console.log(`${lc} starting... (I: e57d82b671684a80b9a2882c996a1422)`); }
-    this.unsubscribeParamMap();
-    if (logalot) { console.log(`${lc} complete. (I: de0dfbff72484ebc956b39e8f3aa9b22)`); }
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      this.unsubscribeParamMap();
+
+      await super.ngOnDestroy();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
   subscribeParamMap() {

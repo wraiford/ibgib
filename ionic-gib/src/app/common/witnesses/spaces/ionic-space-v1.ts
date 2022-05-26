@@ -360,7 +360,8 @@ export class IonicSpace_V1<
             if (logalot) { console.log(`${lc} starting...`); }
             let cached = this.ibGibs[addr];
             if (!cached && this.cacheSvc) {
-                cached = await this.cacheSvc.get({addr});
+                const info = await this.cacheSvc.get({addr});
+                cached = info.ibGib;
             }
             return cached;
         } catch (error) {

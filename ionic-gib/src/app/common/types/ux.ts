@@ -15,10 +15,13 @@ import { TagData_V1 } from './tag';
  *
  *
  */
-export type IbgibItemType =
+export type IbGibItemType =
     'pic' | 'comment' | 'link' | 'tag' | 'tags' | 'root' | 'roots' | 'other';
 
-export interface IbgibItem {
+/**
+ * This is the (base) model that the component views bind to in ibgib components.
+ */
+export interface IbGibItem {
     /**
      * Metadata ib value per use case
      */
@@ -56,7 +59,7 @@ export interface IbgibItem {
      * In the future, any comment could conceivably be a tag and thus have
      * multiple types.
      */
-    type?: IbgibItemType;
+    type?: IbGibItemType;
     /**
      * hash of the full-sized image.
      */
@@ -106,7 +109,7 @@ export interface IbgibItem {
     hasChildren?: boolean;
 }
 
-export interface IbgibListItem extends IbgibItem {
+export interface IbgibListItem extends IbGibItem {
     /**
      * 0-based index of item in list.
      *
@@ -148,7 +151,7 @@ export const SpecialIbGibType = {
 /**
  * There has been a new ibGib that is the latest for a given tjp timeline.
  */
-export interface TimelineUpdateInfo {
+export interface IbGibTimelineUpdateInfo {
     tjpAddr?: IbGibAddr;
     latestAddr: IbGibAddr;
     latestIbGib?: IbGib_V1<any>;

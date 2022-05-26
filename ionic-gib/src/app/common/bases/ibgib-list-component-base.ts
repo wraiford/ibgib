@@ -6,7 +6,7 @@ import { IbGibAddr } from 'ts-gib';
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 import * as c from '../constants';
-import { IbgibListItem, TimelineUpdateInfo } from '../types/ux';
+import { IbgibListItem, IbGibTimelineUpdateInfo } from '../types/ux';
 import { IbgibComponentBase } from './ibgib-component-base';
 import { CommonService } from '../../services/common.service';
 import { unique } from '../helper/utils';
@@ -56,15 +56,24 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
         await super.ngOnInit();
     }
 
-    ngOnDestroy() {
-        super.ngOnDestroy();
+    async ngOnDestroy(): Promise<void> {
+        const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            await super.ngOnDestroy();
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
     }
 
     async updateIbGib_NewerTimelineFrame({
         latestAddr,
         // latestIbGib,
         // tjpAddr,
-    }: TimelineUpdateInfo): Promise<void> {
+    }: IbGibTimelineUpdateInfo): Promise<void> {
         const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
