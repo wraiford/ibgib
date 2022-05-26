@@ -911,11 +911,11 @@ export class IbgibsService {
     try {
       if (!ibGib) {
         if (logalot) { console.log(`${lc} ibGib falsy.`); }
-        return; // <<<< returns early
+        return; /* <<<< returns early */
       }
       if (isPrimitive({ibGib})) {
         console.warn(`${lc} tried to ping latest for primitive. returning early... (W: 06c50cfe028cc04cca67e97a48e6fe22)`);
-        return; // <<<< returns early
+        return; /* <<<< returns early */
       }
       space = space ?? await this.getLocalUserSpace({});
       if (!space) {
@@ -2335,7 +2335,7 @@ export class IbgibsService {
       if (sagaInfoKeys.length === 0) {
         this.sagaInfoMap = {};
         if (this._syncing) { this._syncing = false; }
-        return; // <<<< returns early
+        return; /* <<<< returns early */
       }
 
       const sagaInfos = Object.values(this.sagaInfoMap);
@@ -2917,7 +2917,7 @@ export class IbgibsService {
       }
       if (latestAddrsLocallyWithUpdate.length === 0) {
         if (logalot) { console.log(`${lc} latestAddrsLocallyWithUpdate.length === 0. We already had all of the updates locally perhaps. Returning early. (I: 844193c515084d0ebc348349f1ac41f4)`); }
-        return; // <<<< returns early
+        return; /* <<<< returns early */
       }
 
       /**
@@ -3004,7 +3004,7 @@ export class IbgibsService {
         tjpAddrs.filter(tjpAddr => !this._alwaysAutosyncTjpAddrsCache.has(tjpAddr));
       if (notAlreadySyncingTjpAddrs.length === 0) {
         console.warn(`${lc} all tjpAddrs already auto syncing. tjpAddrs: ${tjpAddrs.join('\n')} (W: 7fbe51c8187840efa1b259417053bd22)`);
-        return; // <<<< returns early
+        return; /* <<<< returns early */
       }
 
       // ...and double check in autosyncs itself, more expensive though
@@ -3013,7 +3013,7 @@ export class IbgibsService {
       notAlreadySyncingTjpAddrs = tjpAddrs.filter(tjpAddr => !alreadySyncing.includes(tjpAddr));
       if (notAlreadySyncingTjpAddrs.length === 0) {
         console.error(`${lc} (UNEXPECTED) all tjpAddrs already auto syncing per special ibgib. Proceeding without throwing here, but this means that the cache is out of sync with the special ibgib also. tjpAddrs: ${tjpAddrs.join('\n')} (E: 574e163118f043fa8c50cfd575e62122)`);
-        return; // <<<< returns early
+        return; /* <<<< returns early */
       }
 
       // map back from tjp addrs to the tjp ibgibs
@@ -3076,7 +3076,7 @@ export class IbgibsService {
       });
       if (tjpAddrsToRemove.length === 0) {
         console.warn(`${lc} tried to disable autosync for tjpAddrs but none were valid. returning early. (W: f9bdda90d906471aa56804d76b6e9522)`);
-        return; // <<<< returns early
+        return; /* <<<< returns early */
       }
 
       const uniqueTjpAddrsToRemove = Array.from(new Set(tjpAddrsToRemove));

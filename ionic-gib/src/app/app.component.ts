@@ -1016,7 +1016,7 @@ export class AppComponent extends IbgibComponentBase
       // return if we don't have any robbots.
       if (!robbotAddrs || robbotAddrs.length === 0) {
         if (logalot) { console.log(`${lc} no robbots found. (I: e0dc2d290a9a9a5b812c1a88b01d2e22)`); }
-        return; // <<<< returns early
+        return; /* <<<< returns early */
       }
 
       // load individual robbot items

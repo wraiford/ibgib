@@ -1,5 +1,6 @@
 :host {
   width: 100%;
+  color: var(--ion-color-primary);
 }
 
 .is-title {
@@ -20,6 +21,7 @@ pre {
   white-space: -pre-wrap;      /* Opera 4-6 */
   white-space: -o-pre-wrap;    /* Opera 7 */
   word-wrap: break-word;       /* Internet Explorer 5.5+ */
+  color: var(--ion-color-primary);
 }
 
 .comment-text {

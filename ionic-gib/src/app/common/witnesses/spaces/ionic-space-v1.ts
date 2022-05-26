@@ -1096,13 +1096,13 @@ export class IonicSpace_V1<
         let allExist = paths.every(path => this.pathExistsMap[getPathKey(path)]);
         if (allExist) {
             if (logalot) { console.log(`${lc} allExist (I: f14ad6db1d29e368c37c3117fee1cb22)`); }
-            return; // <<<< returns early
+            return; /* <<<< returns early */
         }
 
         const permitted = await this.ensurePermissions();
         if (!permitted) {
             console.error(`${lc} permission not granted.`);
-            return; // <<<< returns early
+            return; /* <<<< returns early */
         }
 
         for (let i = 0; i < paths.length; i++) {

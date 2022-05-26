@@ -78,7 +78,7 @@ export class IonicIbgibNavService implements IbgibNav {
             forceRefresh = true;
           } else {
             console.warn(`${lc} toAddr === fromAddr, so ignoring navigation request. (W: 28cf000a906a4c5caa957135bdfaa9dc)`);
-            return; // <<<< returns early
+            return; /* <<<< returns early */
           }
         }
         /** We only want to push to the stack if we're not updating a timeline. */

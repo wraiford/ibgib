@@ -490,7 +490,7 @@ export class ActionBarComponent extends IbgibComponentBase
         if (logalot) { console.log(`${lc} ${msg}`) };
         const fnAlert = getFnAlert();
         await fnAlert({title: "Cancelled", msg});
-        return; // <<<< returns early
+        return; /* <<<< returns early */
       }
 
       // ...iterate and look inside each space.

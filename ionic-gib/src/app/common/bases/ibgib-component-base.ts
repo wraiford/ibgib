@@ -48,7 +48,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
         if (this._updatingIbGib) {
             if (logalot) { console.log(`${lc} already updating ibGib...retrying soon... (I: 3d6d0098625248a4996526842ed1259c)`) }
             h.delay(100).then(() => { this.addr = value; }); // calls this recursively, because is sync
-            return; // <<<< returns early
+            return; /* <<<< returns early */
         }
         if (value === this.addr) {
             if (logalot) { console.log(`${lc} value already === this.addr`); }
@@ -85,11 +85,11 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
         const lc = `${this.lc}[set ibGib_Context]`;
         if (this.item?.ibGib_Context) {
             console.warn(`${lc} can only set context once.`);
-            return; // <<<< returns early
+            return; /* <<<< returns early */
         }
         if (!value) {
             if (logalot) { console.log(`${lc} ignored setting falsy context.`); }
-            return; // <<<< returns early
+            return; /* <<<< returns early */
         }
         const setContext = () => {
             if (logalot) { console.log(`${lc} setting context`); }
@@ -256,24 +256,47 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
         await this.subscribeLatest();
     }
 
+    /**
+     * helper function to clean up an item's transient flags, e.g., refreshing
+     * or syncing.
+     *
+     * @param item to clean
+     */
+    cleanItem(item: TItem): void {
+        delete item.refreshing;
+        delete item.selected;
+        delete item.syncing;
+    }
+
+    async cleanAndCacheCurrentItem(): Promise<void> {
+        const lc = `${this.lc}[${this.cleanAndCacheCurrentItem.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            if (!this.addr || !this.item || !this.ibGib || !isPrimitive({gib: this.gib}))  {
+                if (logalot) { console.log(`${lc} skipping this (I: 97001b8238b423b5619fa297a942cb22)`); }
+                return; /* <<<< returns early */
+            }
+
+            this.cleanItem(this.item);
+            await this.common.cache.put({
+                addr: this.addr + this.lc,
+                ibGib: this.ibGib,
+                other: this.item,
+            });
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
     async ngOnDestroy(): Promise<void> {
         const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
 
-            if (this.gib !== 'gib') {
-                // debugger;
-                console.dir(this.item);
-                let x = this.item;
-            }
-            if (this.addr && this.item && this.ibGib && !isPrimitive({gib: this.gib})) {
-                console.warn(`${lc} debug `)
-                await this.common.cache.put({
-                    addr: this.addr + this.lc,
-                    ibGib: this.ibGib,
-                    other: this.item,
-                })
-            }
+            await this.cleanAndCacheCurrentItem();
             this.unsubscribeLatest();
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -301,35 +324,48 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
 
     protected async updateIbGib(addr: IbGibAddr): Promise<void> {
         const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-        if (addr === this.addr) {
-            return; // <<<< returns early
-        }
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
 
-        await this.smallDelayToLoadBalanceUI();
+            if (addr === this.addr) { return; /* <<<< returns early */ }
 
-        this.clearItem();
+            await this.smallDelayToLoadBalanceUI();
 
-        if (addr) {
-            if (logalot) { console.log(`${lc} setting new address`) }
-            // we have an addr which is different than our previous.
+            this.clearItem();
 
-            // first try from item cache
-            if (this.lc) {
-                const cached = await this.common.cache.get({addr: addr + this.lc});
-                if (cached?.other) { this.item = <TItem>cached.other; }
+            if (addr) {
+                // we have different addr from our previous one.
+                if (logalot) { console.log(`${lc} setting new address`); }
+
+                // first try from item cache
+                if (this.lc) {
+                    const cached = await this.common.cache.get({addr: addr + this.lc});
+                    if (cached?.other) {
+                        // first clean other flags
+                        const cachedItem = <TItem>cached.other;
+                        this.cleanItem(cachedItem);
+                        this.item = cachedItem;
+                    }
+                } else {
+                    console.warn(`${lc} (UNEXPECTED) this.lc is undefined? (W: bd14ef72b8214bdfa109ee39b08cba32)`);
+                }
+
+                if (!this.item) {
+                    // not found in cache, manually load
+                    this.item = <any>{};
+                    this.loadItemPrimaryProperties(addr, this.item);
+
+                    if (this.gib === GIB && !this.isMeta) { this.item.isMeta = true; }
+                }
             } else {
-                console.warn(`${lc} (UNEXPECTED) this.lc is undefined? (W: bd14ef72b8214bdfa109ee39b08cba32)`);
+                if (logalot) { console.log(`${lc} no new address`) }
             }
 
-            if (!this.item) {
-                this.item = <any>{};
-                this.loadItemPrimaryProperties(addr, this.item);
-
-                if (this.gib === GIB && !this.isMeta) { this.item.isMeta = true; }
-            }
-
-        } else {
-            if (logalot) { console.log(`${lc} no new address`) }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
         }
     }
 
@@ -370,7 +406,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             // cheap double-check assertion
             if (latestAddr === this.addr) {
                 console.warn(`${lc} (UNEXPECTED) this function is expected to fire only when latest is already checked to be different, but latestAddr (${latestAddr}) === this.addr (${this.addr}) (W: a23c8187caef4308b1d9f85b3aa8bedc)`);
-                return; // <<<< returns early
+                return; /* <<<< returns early */
             }
 
             this.addr = latestAddr; // triggers `updateIbGib` call
@@ -409,7 +445,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
         }
         if (!item) {
             console.warn(`${lc} item is undefined/null`);
-            return; // <<<< returns early
+            return; /* <<<< returns early */
         }
         if (item.addr) {
             const {ib, gib} = h.getIbAndGib({ibGibAddr: item.addr});
@@ -519,7 +555,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     async loadItem(item?: TItem): Promise<void> {
         item = item || this.item;
         if (!item) {
-            return; // <<<< returns early
+            return; /* <<<< returns early */
         }
 
         await this.loadType(item);
@@ -529,6 +565,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     }
 
     async loadType(item?: TItem): Promise<void> {
+        if (item.type) { return; }
         item = item || this.item;
         if (this.isTag) {
             this.item.type = 'tag';
@@ -554,24 +591,29 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     async loadPic(item?: TItem): Promise<void> {
         const lc = `${this.lc}[${this.loadPic.name}]`;
         if (!this.isPic) {
-            return; // <<<< returns early
+            return; /* <<<< returns early */
         }
         if (logalot) { console.log(`${lc} starting...`); }
         try {
             item = item || this.item;
             // item = this.item;
 
+            if (item.picSrc) {
+                if (logalot) { console.log(`${lc} item.picSrc already loaded pic (I: a1ea6c6e4feec51d849e86877b033122)`); }
+                return; /* <<<< returns early */
+            }
+
             if (!this.ibGib?.data?.binHash) {
                 if (logalot) { console.log(`${lc} no data.binHash`); }
-                return; // <<<< returns early
+                return; /* <<<< returns early */
             }
             if (!this.ibGib!.data!.ext) {
                 if (logalot) { console.log(`${lc} no data.ext`); }
-                return; // <<<< returns early
+                return; /* <<<< returns early */
             }
             if (!this.ibGib.rel8ns || this.ibGib.rel8ns['bin'].length === 0) {
                 if (logalot) { console.log(`${lc} no rel8ns.bin`); }
-                return; // <<<< returns early
+                return; /* <<<< returns early */
             }
 
             const data = <PicData_V1>this.ibGib.data;
@@ -611,8 +653,18 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     async loadComment(item?: TItem): Promise<void> {
         const lc = `${this.lc}[${this.loadComment.name}]`;
         item = item || this.item;
-        if (!this.isComment) { return; }
-        if (!this.ibGib?.data?.text) { return; }
+        if (!this.isComment) {
+            if (logalot) { console.log(`${lc} !this.isComment (I: 5b5a6b2c0fd2717c655e7ff587afc822)`); }
+            return; /* <<<< returns early */
+        }
+        if (!this.ibGib?.data?.text) {
+            if (logalot) { console.log(`${lc} !this.ibGib?.data?.text (I: 3f042c7067a2f6a8a949b49ebf6b8922)`); }
+            return; /* <<<< returns early */
+        }
+        if (item.text) {
+            if (logalot) { console.log(`${lc} item.text already loaded (I: 4b277f3ac1d953cf4fcc5cf9c9dc1a22)`); }
+            return; /* <<<< returns early */
+        }
 
         const data = <CommentData_V1>this.ibGib.data;
         item.text = data.text;
@@ -620,6 +672,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
 
     async loadTimestamp(item?: TItem): Promise<void> {
         if (!this.ibGib?.data) { return; }
+        if (item.timestamp) { return; }
         if (this.isComment) {
             item.timestamp = this.ibGib?.data.textTimestamp || this.ibGib?.data.timestamp;
         } else {
@@ -641,44 +694,44 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
 
             if (!this.ibGib) {
                 if (logalot) { console.log(`${lc} this.ibGib is falsy, returning early. (I: b75c97830164f4b08c658717a3b20122)`); }
-                return; // <<<< returns early
+                return; /* <<<< returns early */
             }
 
             // check if different addr first because moderate likelihood and cheap to check
             if (this.addr && this.addr === info.latestAddr) {
                 if (logalot) { console.log(`${lc} already latest, so returning early. (I: c3331d8298dfc1d5e8bce69ecc645e22)`); }
-                return; // <<<< returns early
+                return; /* <<<< returns early */
             }
 
             // check paused & errored early because less likely, but extremely cheap to check
             if (this.paused) {
                 if (logalot) { console.log(`${lc} this.paused truthy, so returning early. (I: 4d4b4bd3f01a4c7fadb6eab9d5cb7e50)`); }
-                return; // <<<< returns early
+                return; /* <<<< returns early */
             }
             if (this.errored) {
                 if (logalot) { console.log(`${lc} this.errored truthy, so returning early. (I: 8aa06ebb7fec43f78cb710088c8ecbc7)`); }
-                return; // <<<< returns early
+                return; /* <<<< returns early */
             }
 
             // if we don't have a timeline, then we won't update no matter what.
             // odds are that if we care about timelines, tjp is already loaded
             if (!this.tjp || !this.tjpAddr) { await this.loadTjp(); }
             if (!this.ibGib) {
-                return; // <<<< returns early
+                return; /* <<<< returns early */
             }
             if (!this.tjp) {
                 if (logalot) { console.log(`${lc} no tjp, so returning early. (I: 342575ac8de44c258965355dbd92a515)`); }
-                return; // <<<< returns early
+                return; /* <<<< returns early */
             }
 
             // if it's not for this ibgib's timeline, then dont update
             if (this.tjpAddr !== info.tjpAddr) {
                 if (logalot) { console.log(`${lc} tjpAddr isn't us, so returning early. (I: c30f4da018224fb08df77adc98495a25)`); }
-                return; // <<<< returns early
+                return; /* <<<< returns early */
             }
 
             if (!this.ibGib) {
-                return; // <<<< returns early
+                return; /* <<<< returns early */
             }
             // if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)} (I: c0483014944c43cdac5f8d296bb56e05)`); }
             if (logalot) { console.log(`${lc} setting this.addr (${this.addr}) to info.latestAddr (${info.latestAddr}). (I: 74f2ce5803064578a5f4166ad045c1bf)`); }
@@ -694,7 +747,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
                     info.latestIbGib = info_latestIbGib;
                 } else {
                     console.error(`${lc} could not get latest ibgib that was published. (E: 85599b5cca4a4bba93578a3156c98b50)`);
-                    return; // <<<< returns early
+                    return; /* <<<< returns early */
                 }
             }
 

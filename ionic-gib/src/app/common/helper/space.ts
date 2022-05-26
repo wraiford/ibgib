@@ -1162,7 +1162,7 @@ export async function registerNewIbGib({
             // check to see if ibgib is already the latest
             if (existingLatestAddr === ibGibAddr) {
                 if (logalot) { console.log(`${lc} Neither is newer because ibGibAddr is already registered as latest, so returning without any further action. (I: 7f5bd5d3391be95919240f0e97976e22)`); }
-                return; // <<<< returns early
+                return; /* <<<< returns early */
             }
 
             // not the latest or not registered, so get the full existing latest
@@ -2830,7 +2830,7 @@ export async function updateBootstrapIbGib({
         if (!bootstrapIbGib) {
             if (!createIfNotFound) {
                 if (logalot) { console.log(`${lc} bootstrapIbGib not found but createIfNotFound falsy, so returning early. (I: 5c67d85a8599a5ba4a6780f26a66ea22)`); }
-                return; // <<<< returns early
+                return; /* <<<< returns early */
             }
 
             // create the bootstrap^gib space that points to user space

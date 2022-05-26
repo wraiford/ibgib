@@ -29,7 +29,7 @@ export async function createNewTag(common: CommonService):
         // const tagData: TagData_V1 = resModal.data;
         // if (!tagData) {
         //     if (logalot) { console.log(`${lc} cancelled.`) }
-        //     return; // <<<< returns early
+        //     return; /* <<<< returns early */
         // }
 
         // if (logalot) { console.log(`${lc} tagData: ${h.pretty(tagData)}`); }

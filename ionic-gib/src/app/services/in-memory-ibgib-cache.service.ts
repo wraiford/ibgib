@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 
+import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib';
-import { IbGib_V1 } from 'ts-gib/dist/V1';
 
 import * as c from '../common/constants';
 import { IbGibCacheInfo, IbGibCacheService } from '../common/types/ibgib';
@@ -29,11 +29,13 @@ export class InMemoryIbgibCacheService implements IbGibCacheService {
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
+      if (!info) { throw new Error(`info required (E: 49511896a6dd0fbb8933cef3ad5b9722)`); }
       if (!info.addr) { throw new Error(`addr required (E: dc4118cb7b88464f9f2c30e624081207)`); }
       if (!info.ibGib) { throw new Error(`ibGib required (E: 6990e984856aa49306c645db9ac6a422)`); }
 
-      this.ibGibs[info.addr] = info;
+      this.ibGibs[info.addr] = h.clone(info);
     } catch (error) {
+      debugger;
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
@@ -47,9 +49,11 @@ export class InMemoryIbgibCacheService implements IbGibCacheService {
       if (logalot) { console.log(`${lc} starting...`); }
       if (!addr) { throw new Error(`addr required (E: ca72f30befa7db8c66bc4fe6ea7a5722)`); }
 
-      const cached = this.ibGibs[addr];
+      let cached = this.ibGibs[addr];
+      if (cached) { cached = h.clone(cached); }
       return Promise.resolve(cached);
     } catch (error) {
+      debugger;
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {

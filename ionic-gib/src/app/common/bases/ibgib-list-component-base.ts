@@ -125,7 +125,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
                 if (oldTjpGib === newTjpGib) {
                     // same timeline
                     await this.updateIbGib_NewerTimelineFrame({ latestAddr: addr })
-                    return; // <<<< returns early
+                    return; /* <<<< returns early */
                 }
             }
 

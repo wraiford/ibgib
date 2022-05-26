@@ -359,7 +359,7 @@ export class IbGibPage extends IbgibComponentBase
 
       if (!resConfirm) {
         await alert({title: 'K', msg: 'Cancelled'});
-        return; // <<<< returns early
+        return; /* <<<< returns early */
       }
 
       this.downloadingPic = true;
@@ -441,7 +441,7 @@ export class IbGibPage extends IbgibComponentBase
       if (logalot) { console.log(`${lc} starting...`); }
       if (this.updatingPic) {
         console.error(`${lc} (UNEXPECTED) already updating pic. this handler should be disabled yes? returning early. (E: 9cbb5388290a4f33bf8f2919aab9fdaa)`);
-        return; // <<<< returns early
+        return; /* <<<< returns early */
       }
       this.updatingPic = true;
 
@@ -574,7 +574,7 @@ export class IbGibPage extends IbgibComponentBase
       if (logalot) { console.log(`${lc} starting...`); }
       if (this.syncing) {
         if (logalot) { console.log(`${lc} sync called, but already syncing. (I: e3d3b51b431ded802fc02a11478f7c22)`); }
-        return; // <<<< returns early
+        return; /* <<<< returns early */
       }
       this.item.syncing = true;
 
@@ -598,7 +598,7 @@ export class IbGibPage extends IbgibComponentBase
             automatic in the near future!).`.replace(/\n/g, ' ').replace(/  /g, '')
         });
         cancelled = true;
-        return; // <<<< returns early
+        return; /* <<<< returns early */
       }
 
       // sync requires the entire dependency graph of the current ibgib
@@ -628,7 +628,7 @@ export class IbGibPage extends IbgibComponentBase
           setTimeout(() => this.ref.detectChanges(), 1000);
           // this.autosync = false; // unnecessary?
           cancelled = true;
-          return; // <<<< returns early
+          return; /* <<<< returns early */
         }
 
         // enable autosync for regardless of first-run success, but do not start
@@ -673,7 +673,7 @@ export class IbGibPage extends IbgibComponentBase
         cancelled = true;
         this.item.syncing = false;
         setTimeout(() => this.ref.detectChanges(), 200);
-        return; // <<<< returns early
+        return; /* <<<< returns early */
       }
 
       if (turnOnAutosyncing) {
@@ -697,7 +697,7 @@ export class IbGibPage extends IbgibComponentBase
       if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
       if (isPrimitive({ibGib: this.ibGib})) {
         if (logalot) { console.log(`${lc} refresh clicked for primitive. returning early. (I: af3e72b0a6288fd815a30f251f943f22)`); }
-        return; // <<<< returns early
+        return; /* <<<< returns early */
       }
       if (!this.tjp) { await this.loadTjp(); }
 
@@ -769,12 +769,12 @@ export class IbGibPage extends IbgibComponentBase
 
       if (latestAddr === this.addr) {
         console.warn(`${lc} (UNEXPECTED) this function is expected to fire only when latest is already checked to be different, but latestAddr (${latestAddr}) === this.addr (${this.addr}) (W: 3ed850e6ec784b4187cbe4a7bf6a2a80)`);
-        return; // <<<< returns early
+        return; /* <<<< returns early */
       }
 
       if (!this.ibGib) {
         console.warn(`${lc} (UNEXPECTED) this.ibGib is assumed truthy, but is falsy. (W: 8c25259e67a244419f0787a60cd4fa55)`);
-        return; // <<<< returns early
+        return; /* <<<< returns early */
       }
 
       // so we know...
@@ -969,7 +969,7 @@ export class IbGibPage extends IbgibComponentBase
 
       this.showModal_PromptForTag = !this.showModal_PromptForTag;
 
-      return; // <<<< returns early
+      return; /* <<<< returns early */
       // const resPrompt = await Modals.showActions({
       //   title: 'Select tag',
       //   message: 'Select a tag to add this ibGib to',
@@ -1219,13 +1219,13 @@ export class IbGibPage extends IbgibComponentBase
     // return early if busy with some other job...
     if (this.syncing || this.common.ibgibs.syncing) {
       if (logalot) { console.log(`${lc} currently syncing, so skipping poll call.`); }
-      return; // <<<< returns early
+      return; /* <<<< returns early */
     } else if (this.refreshing) {
       if (logalot) { console.log(`${lc} currently refreshing, so skipping poll call.`); }
-      return; // <<<< returns early
+      return; /* <<<< returns early */
     } else if (this._pollingLatest_Local) {
       if (logalot) { console.log(`${lc} currently already polling, so skipping new poll call.`); }
-      return; // <<<< returns early
+      return; /* <<<< returns early */
     }
 
     if (logalot) { console.log(`${lc} poll call starting... (I: 3b58bc80651d831e3d421e5647cbcd22)`); }
@@ -1310,22 +1310,22 @@ export class IbGibPage extends IbgibComponentBase
     // return early if busy with some other job...
     if (this.syncing) {
       if (logalot) { console.log(`${lc} currently syncing, so skipping poll call.`); }
-      return; // <<<< returns early
+      return; /* <<<< returns early */
     } else if (this.refreshing) {
       if (logalot) { console.log(`${lc} currently refreshing, so skipping poll call.`); }
-      return; // <<<< returns early
+      return; /* <<<< returns early */
     } else if (this._pollingLatest_Store) {
       if (logalot) { console.log(`${lc} currently already polling, so skipping new poll call.`); }
-      return; // <<<< returns early
+      return; /* <<<< returns early */
     } else if (!this.autosync) {
       if (logalot) { console.log(`${lc} this.autosync is false, so stopping polling. (I: b7c151e1b1afa40a4160e31f88824522)`); }
       setTimeout(() => this.stopPollLatest_Store());
-      return; // <<<< returns early
+      return; /* <<<< returns early */
     } else if (this.tjpUpdatesAvailableCount_Store > 0) {
       if (logalot) { console.log(`${lc} updates already available, so skipping poll call. (I: dcc433c400134ee45773c81c9af4fb22)`); }
       setTimeout(() => this.ref.detectChanges(), 100);
       setTimeout(() => this.ref.detectChanges(), 100);
-      return; // <<<< returns early
+      return; /* <<<< returns early */
     }
 
     if (logalot) { console.log(`${lc} poll call starting... (I: b12f7fd857a4483989057bb62f0ab204)`); }
@@ -1335,7 +1335,7 @@ export class IbGibPage extends IbgibComponentBase
       if (!this.tjpAddr) {
         if (logalot) { console.log(`${lc} this ibgib has no tjp. stopping further polling. (I: 5e79aba1ffb6490eb89994fa2415e4d4)`); }
         this.stopPollLatest_Store();
-        return; // <<<< returns early
+        return; /* <<<< returns early */
       }
       if (logalot) { console.log(`${lc} this.tjpAddr: ${this.tjpAddr}`); }
 

@@ -23,6 +23,9 @@ ion-button:hover, ion-menu-button:hover {
 
 #context-btns {
   overflow-x: auto;
+  // scrollbar-color: pink !important;
+  // scrollbar-gutter: 10px;
+  // background-color: blue;
 }
 
 #container {
@@ -138,18 +141,17 @@ ion-badge {
 
 .active-btn {
   // can't convert css to scss variable here...i'm a terrible ui person
-  $color: #61db6b;
-  background-color: rgba(red($color), green($color), blue($color), 0.7);
+  $primarycolorNotDry: #47a135;
+  background-color: rgba(red($primarycolorNotDry), green($primarycolorNotDry), blue($primarycolorNotDry), 0.5);
 }
-
 @media (prefers-color-scheme: dark) {
-
+  $primarycolorNotDry: #213b23;
   .active-btn {
     // can't convert css to scss variable here...i'm a terrible ui person
-    $color: #213b23;
-    background-color: rgba(red($color), green($color), blue($color), 0.7);
+    // $color: #213b23;
+    // background-color: rgba(red($color), green($color), blue($color), 0.7);
+    background-color: rgba(red($primarycolorNotDry), green($primarycolorNotDry), blue($primarycolorNotDry), 0.7);
   }
-
 }
 
 ion-button:hover, ion-menu-button:hover, #robbot-name:hover {
