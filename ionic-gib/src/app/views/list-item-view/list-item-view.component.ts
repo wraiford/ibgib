@@ -63,13 +63,30 @@ export class ListItemViewComponent extends IbgibComponentBase {
 
   updateIbGib_NewerTimelineFrame({ latestAddr, latestIbGib, tjpAddr, }: IbGibTimelineUpdateInfo): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
-    if (logalot) { console.log(`${lc} triggered (I: b362bd7458722d2a7a3e913ae8703e22)`); }
-    return super.updateIbGib_NewerTimelineFrame({latestAddr, latestIbGib, tjpAddr });
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 2c15f733144ced6f19bbbdb378adae22)`); }
+      return super.updateIbGib_NewerTimelineFrame({latestAddr, latestIbGib, tjpAddr });
+    } catch (error) {
+      debugger;
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
   async handleClicked(item: IbGibItem): Promise<void> {
-    if (logalot) { console.log(`item: ${JSON.stringify(item, null, 2)}`); }
-    this.clicked.emit(item);
+    const lc = `${this.lc}[${this.handleClicked.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (logalot) { console.log(`${lc} item: ${JSON.stringify(item, null, 2)}`); }
+      this.clicked.emit(item);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
 }

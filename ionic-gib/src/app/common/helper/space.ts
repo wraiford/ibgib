@@ -3064,7 +3064,7 @@ export async function getLatestAddrs({
                 if (!addrHasExistingTjpGib) { addrsToQuery.add(ibGibAddr); }
             });
 
-        console.log(`[testing] addrsToQuery: ${Array.from(addrsToQuery)} (I: 8a2202912c364238b6d6eb09577bc246)`);
+        if (logalot) { console.log(`${lc}[testing] ${space.data?.name || space.ib} (${space.data?.uuid || '[space.data.uuid falsy]'}) addrsToQuery: ${Array.from(addrsToQuery)} (I: 8a2202912c364238b6d6eb09577bc246)`); }
 
         // construct the arg and execute
         const argGet = await space.argy({

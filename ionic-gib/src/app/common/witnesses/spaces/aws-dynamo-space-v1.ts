@@ -60,17 +60,23 @@ import { SpaceBase_V1 } from './space-base-v1';
 // } from '../../types';
 import * as c from '../../constants';
 import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
-import { AWSRegion, SyncSpaceData, SyncSpaceRel8ns, SyncSpaceOptionsData, SyncSpaceOptionsRel8ns, SyncSpaceOptionsIbGib, SyncSpaceResultData, SyncSpaceResultRel8ns, SyncSpaceResultIbGib, SyncSpaceOptionsCmdModifier, SyncSagaInfo, SyncStatusIbGib, StatusCode, getStatusIb, SyncStatusData, ParticipantInfo } from '../../types/outer-space';
+import {
+    AWSRegion,
+    SyncSpaceData, SyncSpaceRel8ns,
+    SyncSpaceOptionsData, SyncSpaceOptionsRel8ns, SyncSpaceOptionsIbGib,
+    SyncSpaceResultData, SyncSpaceResultRel8ns, SyncSpaceResultIbGib,
+    SyncSpaceOptionsCmdModifier, SyncSagaInfo, SyncStatusIbGib,
+    StatusCode, getStatusIb, SyncStatusData, ParticipantInfo,
+} from '../../types/outer-space';
 import { IbGibSpaceOptionsCmd } from '../../types/space';
 import { groupBy } from '../../helper/utils';
-import { constantIbGib, isBinary, mergeMapsOrArrays_Naive, splitPerTjpAndOrDna } from '../../helper/ibgib';
-import { execInSpaceWithLocking, getDependencyGraph, lockSpace, throwIfDuplicates } from '../../helper/space';
+import { isBinary, mergeMapsOrArrays_Naive, splitPerTjpAndOrDna } from '../../helper/ibgib';
+import { execInSpaceWithLocking, getDependencyGraph, throwIfDuplicates } from '../../helper/space';
 import { validateIbGibIntrinsically } from '../../helper/validate';
-import { Subscription } from 'rxjs/internal/Subscription';
 
 // #endregion imports
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 // #region AWS related
 

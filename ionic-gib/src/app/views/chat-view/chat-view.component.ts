@@ -12,7 +12,7 @@ import { IbgibListComponentBase } from 'src/app/common/bases/ibgib-list-componen
 import { ScrollBaseCustomEvent } from '@ionic/angular';
 import { ListViewComponent } from '../list-view/list-view.component';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 interface ChatItem extends IbGibItem {
 
@@ -57,12 +57,12 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
       if (logalot) { console.log(`${lc} starting...`); }
 
       await super.updateIbGib_NewerTimelineFrame(info);
-      console.log(`${lc}[testing] this.items.length: ${this.items?.length ?? -1}`);
+      if (logalot) { console.log(`${lc}[testing] this.items.length: ${this.items?.length ?? -1}`); }
 
       // temporary hack...no idea why it's still not updating correctly on the device
-      if (this.listView) {
-        await this.listView.updateIbGib_NewerTimelineFrame(info);
-      }
+      // if (this.listView) {
+      //   await this.listView.updateIbGib_NewerTimelineFrame(info);
+      // }
 
     } catch (error) {
       debugger;
@@ -108,11 +108,20 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
   }
 
   async itemClicked(item: IbGibItem): Promise<void> {
-    if (logalot) { console.log(`item: ${h.pretty(item)}`); }
-    await this.go({
-      toAddr: item.addr,
-      fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
-    });
+    const lc = `${this.lc}[${this.itemClicked.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
+      await this.go({
+        toAddr: item.addr,
+        fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
+      });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
   handleScroll(event: any): void {

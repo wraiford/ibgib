@@ -838,6 +838,7 @@ export class IbGibPage extends IbgibComponentBase
       // });
 
     } catch (error) {
+      debugger;
       this.errorMsg = `${lc} ${error.message}`;
       console.error(this.errorMsg);
       this.errored = true;

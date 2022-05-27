@@ -413,7 +413,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     }: IbGibTimelineUpdateInfo): Promise<void> {
         const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
         try {
-            if (logalot || true) { console.log(`${lc} starting...`); }
+            if (logalot) { console.log(`${lc} starting... (I: f67a7a947bec4906b5a940d724a26891)`); }
 
             // cheap double-check assertion
             if (latestAddr === this.addr) {
@@ -424,10 +424,11 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             this.addr = latestAddr; // triggers `updateIbGib` call
 
         } catch (error) {
+            debugger;
             console.error(`${lc} ${error.message}`);
             throw error;
         } finally {
-            if (logalot) { console.log(`${lc} complete.`); }
+            if (logalot) { console.log(`${lc} complete. (I: f67a7a947bec4906b5a940d724a26891)`); }
         }
     }
 

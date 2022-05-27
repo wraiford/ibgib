@@ -1,6 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef, Output, Input } from '@angular/core';
 import { EventEmitter } from '@angular/core';
 
+import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 
@@ -66,7 +67,7 @@ export class ListViewComponent extends IbgibListComponentBase {
       // if (this.items?.length > 0) {
       //   debugger;
       // }
-      console.log(`${lc}[testing] this.items.length: ${this.items?.length ?? -1}`);
+      if (logalot) { console.log(`${lc}[testing] this.items.length: ${this.items?.length ?? -1}`); }
         // debugger;
 
     } catch (error) {
@@ -79,7 +80,16 @@ export class ListViewComponent extends IbgibListComponentBase {
   }
 
   async handleClicked(item: IbGibItem): Promise<void> {
-    if (logalot) { console.log(`item: ${JSON.stringify(item, null, 2)}`); }
-    this.clicked.emit(item);
+    const lc = `${this.lc}[${this.handleClicked.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 159dff8460f9cf2349348dfce3ca3c22)`); }
+      if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
+      this.clicked.emit(item);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 }

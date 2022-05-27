@@ -60,10 +60,19 @@ export class RootListViewComponent
   }
 
   async rootClicked(item: IbGibItem): Promise<void> {
-    if (logalot) { console.log(`item: ${JSON.stringify(item, null, 2)}`); }
-    await this.go({
-      toAddr: item.addr,
-      fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
-    });
+    const lc = `${this.lc}[${this.rootClicked.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (logalot) { console.log(`${lc} item: ${JSON.stringify(item, null, 2)}`); }
+      await this.go({
+        toAddr: item.addr,
+        fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
+      });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 }

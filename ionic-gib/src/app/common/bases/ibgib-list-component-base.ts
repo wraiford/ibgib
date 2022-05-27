@@ -11,7 +11,7 @@ import { IbgibComponentBase } from './ibgib-component-base';
 import { CommonService } from '../../services/common.service';
 import { unique } from '../helper/utils';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 @Injectable({providedIn: "root"})
 export abstract class IbgibListComponentBase<TItem extends IbgibListItem = IbgibListItem>
@@ -60,7 +60,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
         const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            console.log(`[testing] caching items (I: d61f38fbed6042f98518e47a4edd6f67)`);
+            if (logalot) { console.log(`${lc}[testing] caching items (I: d61f38fbed6042f98518e47a4edd6f67)`); }
             this.cacheItems(); // spin off!
             await super.ngOnDestroy();
         } catch (error) {
@@ -105,6 +105,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
         const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
+            if (logalot) { console.log(`${lc} LOOOKING AT THIS starting...`); }
 
             // we want to change how we update the ibgib depending on if it's
             // the same ibgib timeline (same tjp) or a completely different one.
@@ -125,6 +126,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
             await this.loadTjp();
             await this.updateItems();
         } catch (error) {
+            debugger;
             console.error(`${lc} ${error.message}`);
             throw error;
         } finally {
@@ -134,7 +136,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
 
     async updateIbGib(addr: IbGibAddr): Promise<void> {
         const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
-        if (logalot) { console.log(`${lc} updating...`); }
+        if (logalot) { console.log(`${lc} starting...`); }
         try {
 
             let timerName: string;
@@ -180,7 +182,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
             this.clearItem();
         } finally {
             this.ref.detectChanges();
-            if (logalot) { console.log(`${lc} updated.`); }
+            if (logalot) { console.log(`${lc} complete.`); }
         }
     }
 
@@ -208,7 +210,22 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
     }): Promise<void> {
         const lc = `${this.lc}[${this.updateItems.name}]`;
         if (logalot) { console.log(`${lc} updating...`); }
-        if (this._updatingItems) { return; }
+        let updatingCheckCount = 0;
+        while (this._updatingItems) {
+            if (logalot) { console.log(`${lc} already _updatingItems. delaying... (I: 176913fc1e18d619838b8abdf6be1222)`); }
+            await h.delay(500); // arbitrary but finite...
+            if (!this._updatingItems) {
+                if (logalot) { console.log(`${lc} delaying done. no longer updating items from previous call. (I: 2cbe6daddf6f5faf51fd81ac20eb8422)`); }
+                break;
+            } else if (updatingCheckCount > 60) { // arbitrary but finite...
+                if (logalot) { console.log(`${lc} already updating and we've waited 10 times. aborting this updateItems call. (I: 1c8d7eba8cf52e3f6d0cc98f75a6fc22)`); }
+                return; /* <<<< returns early */
+            } else {
+                if (logalot) { console.log(`${lc} still _updatingItems. updatingCheckCount: ${updatingCheckCount} (I: f18f6ca56b88a6b325a069dd7f292a22)`); }
+                updatingCheckCount++;
+            }
+        }
+
         this._updatingItems = true;
         try {
             if (logalot) { console.log(`${lc}${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
@@ -219,7 +236,6 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
             if (!this.item || !this.item.ibGib || !this.item.ibGib!.rel8ns) { return; }
             if (logalot) { console.log(`${lc} this.rel8nNames: ${this.rel8nNames?.toString()}`); }
 
-            // debugger;
             let timerName: string;
             const timerEnabled = true;
             if (logalot && timerEnabled) {
@@ -297,7 +313,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
                 let newItem: TItem;
                 if (cached) {
                     newItem = cached?.other ? cached.other : <TItem>{ addr: addrToAdd };
-                    console.log(`[testing] found item in cache (I: d61f38fbed6042f98518e47a4edd6f67)`);
+                    if (logalot) { console.log(`${lc}[testing] found item in cache (I: d61f38fbed6042f98518e47a4edd6f67)`); }
                 } else {
                     newItem = <TItem>{ addr: addrToAdd };
                 }
