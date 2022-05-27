@@ -1,6 +1,6 @@
 {
   "name": "ionicgib",
-  "version": "0.2.75",
+  "version": "0.2.79",
   "author": "William Raiford",
   "repository": {
     "url": "https://github.com/wraiford/ibgib",
@@ -16,6 +16,9 @@
     "prestart": "npm --no-git-tag-version version patch",
     "start": "ng serve --ssl --extra-webpack-config webpack.partial.js",
     "poststart": "npm run man:start",
+    "prestart:lan": "npm --no-git-tag-version version patch",
+    "start:lan": "ng serve --ssl --extra-webpack-config webpack.partial.js --host 0.0.0.0",
+    "poststart:lan": "npm run man:start",
     "prestart:android": "npm --no-git-tag-version version patch",
     "start:android": "ionic capacitor run android",
     "prestart:ios": "npm --no-git-tag-version version patch",
@@ -75,6 +78,7 @@
     "@angular/platform-browser": "^13.3.5",
     "@angular/platform-browser-dynamic": "^13.3.5",
     "@angular/router": "^13.3.5",
+    "@angular/service-worker": "^13.3.4",
     "@aws-sdk/client-dynamodb": "^3.94.0",
     "@aws-sdk/client-s3": "^3.49.0",
     "@capacitor/android": "^2.2.1",

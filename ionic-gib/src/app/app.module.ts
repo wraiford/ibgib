@@ -13,6 +13,8 @@ import { AppRoutingModule } from './app-routing.module';
 import { IonicIbgibNavService } from './services/ionic-ibgib-nav.service';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
+import { ServiceWorkerModule } from '@angular/service-worker';
+import { environment } from '../environments/environment';
 
 @NgModule({
     declarations: [
@@ -24,7 +26,13 @@ import { ReactiveFormsModule } from '@angular/forms';
         CommonModule,
         ReactiveFormsModule,
         IonicModule.forRoot(),
-        AppRoutingModule
+        AppRoutingModule,
+        ServiceWorkerModule.register('ngsw-worker.js', {
+          enabled: environment.production,
+          // Register the ServiceWorker as soon as the application is stable
+          // or after 30 seconds (whichever comes first).
+          registrationStrategy: 'registerWhenStable:30000'
+        })
     ],
     providers: [
         StatusBar,
