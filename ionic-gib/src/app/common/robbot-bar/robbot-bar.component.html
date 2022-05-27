@@ -28,13 +28,24 @@
   <!-- robbot action buttons -->
   <!-- primary also because that's how the formatting is "working" -->
   <ion-buttons slot="primary">
-    <ion-button *ngIf="selectedRobbotName" (click)="handleRobbotLook($event)">
+    <ion-button *ngIf="selectedRobbotName" (click)="handleRobbotGoto($event)"
+      title="Navigate to the robbot's ibGib"
+      >
+      <ion-icon slot="start" name="navigate-outline" color="primary"></ion-icon>
+    </ion-button>
+    <ion-button *ngIf="selectedRobbotName" (click)="handleRobbotLook($event)"
+      title="Let the robbot look at the current ibGib. What this does inevitably will depend on the robbot, but it's like putting the ibGib in its memory."
+      >
       <ion-label>👀</ion-label>
     </ion-button>
-    <ion-button *ngIf="selectedRobbotName" (click)="handleRobbotSpeak($event)">
+    <ion-button *ngIf="selectedRobbotName" (click)="handleRobbotSpeak($event)"
+      title="Ask the robbot to join in the conversation. For some robbots, this will prompt only one item to be added to the chat, but for others perhaps more dynamic interaction."
+      >
       <ion-icon name="chatbubbles-outline"></ion-icon>
     </ion-button>
-    <ion-button (click)="handleAddRobbot()">
+    <ion-button (click)="handleAddRobbot()"
+      title="Create a new robbot. You can create more than one instance of any particular type of Robbot. The new Robbot will have its own (often new) memory and experience through time."
+      >
       <ion-icon name="add-outline"></ion-icon>
     </ion-button>
   </ion-buttons>

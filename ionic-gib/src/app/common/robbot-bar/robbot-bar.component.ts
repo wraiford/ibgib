@@ -123,24 +123,7 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       event.stopImmediatePropagation();
       event.stopPropagation();
 
-      if (!this.ibGib) { throw new Error(`this.ibGib required (E: c7fd946bd71c6a41132ab30ae59a3622)`); }
-      if (!this.selectedRobbotName) { throw new Error(`(UNEXPECTED) selectedRobbotName should be truthy if this function is accessible. (E: 224ee81bff3e9ccbff00e886b562df22)`); }
-      if ((this.robbots ?? []).length === 0) { throw new Error(`(UNEXPECTED) this.robbots should be truthy if this function is accessible. (E: 8593609fbe3041668e5b672cdffe2793)`); }
-
-      const filteredIbGibs =
-        this.robbots.filter(x => x?.data?.name === this.selectedRobbotName);
-
-      if (filteredIbGibs.length === 0) { throw new Error(`(UNEXPECTED) selectedRobbotName not found in robbots list? (E: 28f90c07eb9bad4a5694bf431ffe7422)`); }
-
-      const robbotIbGib = filteredIbGibs[0];
-      // hack: change this to correctly map name/ion-select item to the robbot using gib/id
-      console.warn(`${lc} if robbot name isn't unique, then this may not return the correct robbot. (W: 100287bce6b249d6af7f27c1fc53d90d)`);
-
-      if (logalot) { console.log(`${lc} calling robbot.witness (uuid: ${robbotIbGib.data.uuid}) on this.ibGib (${this.addr})  (I: e591b792bf459fe533d5e26202412722)`); }
-      const name: string = robbotIbGib.data.classname;
-      const factory = this.common.factories.getFactory({name});
-      const robbot = <IbGibRobbotAny>(await factory.newUp({})).newIbGib;
-      await robbot.loadIbGibDto(robbotIbGib);
+      const robbot = await this.getSelectedRobbot_FullWitness();
 
       // setting ibgibsSvc is necessary to hook up plumbing atow,
       // but in the future this is essentially assigning a local space
@@ -189,24 +172,7 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       event.stopImmediatePropagation();
       event.stopPropagation();
 
-      if (!this.ibGib) { throw new Error(`this.ibGib required (E: 469051c049b443119b203420f72d2337)`); }
-      if (!this.selectedRobbotName) { throw new Error(`(UNEXPECTED) selectedRobbotName should be truthy if this function is accessible. (E: 611986f6903a4b6b9a0cbb41b60bf33d)`); }
-      if ((this.robbots ?? []).length === 0) { throw new Error(`(UNEXPECTED) this.robbots should be truthy if this function is accessible. (E: 92cb8d13628546d3972f9332af3c2b6d)`); }
-
-      const filteredIbGibs =
-        this.robbots.filter(x => x?.data?.name === this.selectedRobbotName);
-
-      if (filteredIbGibs.length === 0) { throw new Error(`(UNEXPECTED) selectedRobbotName not found in robbots list? (E: 1fd157b2d9ee4075a08693a5cc4a4366)`); }
-
-      const robbotIbGib = filteredIbGibs[0];
-      // hack: change this to correctly map name/ion-select item to the robbot using gib/id
-      console.warn(`${lc} if robbot name isn't unique, then this may not return the correct robbot. (W: 100287bce6b249d6af7f27c1fc53d90d)`);
-
-      if (logalot) { console.log(`${lc} calling robbot.witness (uuid: ${robbotIbGib.data.uuid}) on this.ibGib (${this.addr})  (I: e591b792bf459fe533d5e26202412722)`); }
-      const name: string = robbotIbGib.data.classname;
-      const factory = this.common.factories.getFactory({name});
-      const robbot = <IbGibRobbotAny>(await factory.newUp({})).newIbGib;
-      await robbot.loadIbGibDto(robbotIbGib);
+      const robbot = await this.getSelectedRobbot_FullWitness();
 
       // setting ibgibsSvc is necessary to hook up plumbing atow,
       // but in the future this is essentially assigning a local space
@@ -234,4 +200,76 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
     }
   }
 
+
+  async getSelectedRobbot_IbGibOnly(): Promise<RobbotIbGib_V1> {
+    const lc = `${this.lc}[${this.getSelectedRobbot_IbGibOnly.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      if (!this.ibGib) { throw new Error(`this.ibGib required (E: 469051c049b443119b203420f72d2337)`); }
+      if (!this.selectedRobbotName) { throw new Error(`(UNEXPECTED) selectedRobbotName should be truthy if this function is accessible. (E: 611986f6903a4b6b9a0cbb41b60bf33d)`); }
+      if ((this.robbots ?? []).length === 0) { throw new Error(`(UNEXPECTED) this.robbots should be truthy if this function is accessible. (E: 92cb8d13628546d3972f9332af3c2b6d)`); }
+
+      const filteredIbGibs =
+        this.robbots.filter(x => x?.data?.name === this.selectedRobbotName);
+
+      if (filteredIbGibs.length === 0) { throw new Error(`(UNEXPECTED) selectedRobbotName not found in robbots list? (E: 1fd157b2d9ee4075a08693a5cc4a4366)`); }
+
+      // hack: change this to correctly map name/ion-select item to the robbot using gib/id
+      console.warn(`${lc} if robbot name isn't unique, then this may not return the correct robbot. (W: 100287bce6b249d6af7f27c1fc53d90d)`);
+
+      const robbotIbGib = filteredIbGibs[0];
+      return robbotIbGib;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async getSelectedRobbot_FullWitness(): Promise<IbGibRobbotAny> {
+    const lc = `${this.lc}[${this.getSelectedRobbot_FullWitness.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      const robbotIbGib = await this.getSelectedRobbot_IbGibOnly();
+
+      if (logalot) { console.log(`${lc} calling robbot.witness (uuid: ${robbotIbGib.data.uuid}) on this.ibGib (${this.addr})  (I: e591b792bf459fe533d5e26202412722)`); }
+      const name: string = robbotIbGib.data.classname;
+      const factory = this.common.factories.getFactory({name});
+      const robbotWitness = <IbGibRobbotAny>(await factory.newUp({})).newIbGib;
+      await robbotWitness.loadIbGibDto(robbotIbGib);
+
+      return robbotWitness;
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleRobbotGoto(event: MouseEvent): Promise<void> {
+    const lc = `${this.lc}[${this.handleRobbotGoto.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      event.stopImmediatePropagation();
+      event.stopPropagation();
+
+      const ibGib = await this.getSelectedRobbot_IbGibOnly();
+      const addr = h.getIbGibAddr({ibGib});
+      await this.go({
+        toAddr: addr,
+        fromAddr: this.addr,
+      });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 }
