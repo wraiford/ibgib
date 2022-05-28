@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, Output, EventEmitter, Input } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, Output, EventEmitter, Input, ElementRef } from '@angular/core';
 
 import { IbGibAddr } from 'ts-gib';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
@@ -7,6 +7,7 @@ import { IbgibComponentBase } from '../../common/bases/ibgib-component-base';
 import { CommonService } from '../../services/common.service';
 import { IbGibItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
 import * as c from '../../common/constants';
+import { AnimationController } from '@ionic/angular';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -31,6 +32,9 @@ export class ListItemViewComponent extends IbgibComponentBase {
   @Output()
   clicked: EventEmitter<IbGibItem> = new EventEmitter();
 
+  // @Input()
+  // thisElementRef
+
   public debugBorderWidth: string = debugBorder ? "2px" : "0px"
   public debugBorderColor: string = "#92ed80";
   public debugBorderStyle: string = "solid";
@@ -38,6 +42,8 @@ export class ListItemViewComponent extends IbgibComponentBase {
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
+    private elementRef: ElementRef,
+    private animation: AnimationController,
   ) {
     super(common, ref)
     const lc = `${this.lc}[ctor]`;
@@ -80,6 +86,8 @@ export class ListItemViewComponent extends IbgibComponentBase {
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       if (logalot) { console.log(`${lc} item: ${JSON.stringify(item, null, 2)}`); }
+      debugger;
+      // let x: ListItem = this.elementRef.nativeElement;
       this.clicked.emit(item);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -89,5 +97,18 @@ export class ListItemViewComponent extends IbgibComponentBase {
     }
   }
 
+
+  initializeAnimation(): void {
+    const lc = `${this.lc}[${this.initializeAnimation.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 23a07bccfede43ac41fbcd65ae905e22)`); }
+      // this.animation.create().
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 }
 

@@ -1,8 +1,9 @@
 <!-- <p>debug: this.items?.length: {{this.items?.length}}</p> -->
-<list-item
+<list-item #itemRef
   *ngFor='let item of items;trackBy: trackByAddr'
   [addr]='item.addr'
-  (click)='handleClicked(item)'
+  [ibClickAnimation]="itemRef"
+  (click)='handleClicked(item, itemRef)'
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"
   [style.border-style]="debugBorderStyle"
