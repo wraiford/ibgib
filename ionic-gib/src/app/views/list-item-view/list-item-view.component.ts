@@ -32,9 +32,6 @@ export class ListItemViewComponent extends IbgibComponentBase {
   @Output()
   clicked: EventEmitter<IbGibItem> = new EventEmitter();
 
-  // @Input()
-  // thisElementRef
-
   public debugBorderWidth: string = debugBorder ? "2px" : "0px"
   public debugBorderColor: string = "#92ed80";
   public debugBorderStyle: string = "solid";
@@ -86,8 +83,6 @@ export class ListItemViewComponent extends IbgibComponentBase {
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       if (logalot) { console.log(`${lc} item: ${JSON.stringify(item, null, 2)}`); }
-      debugger;
-      // let x: ListItem = this.elementRef.nativeElement;
       this.clicked.emit(item);
     } catch (error) {
       console.error(`${lc} ${error.message}`);

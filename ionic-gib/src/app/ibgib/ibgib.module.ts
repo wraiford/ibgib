@@ -33,7 +33,7 @@ import { TagModalFormComponent } from '../common/modals/tag-modal-form/tag-modal
 import { UpdatePicModalFormComponent } from '../common/modals/update-pic-modal-form/update-pic-modal-form.component';
 import { IbgibFormsModule } from '../ibgib-forms/ibgib-forms.module';
 
-import { ClickAnimationDirective } from '../common/directives/click-animation.directive';
+import { ClickAnimationDirective } from '../common/directives/animations/click-animation.directive';
 import { HighlightDirective } from '../common/directives/highlight.directive';
 
 @NgModule({

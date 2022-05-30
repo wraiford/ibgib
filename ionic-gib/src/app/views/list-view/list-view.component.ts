@@ -64,12 +64,6 @@ export class ListViewComponent extends IbgibListComponentBase {
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       await super.updateIbGib_NewerTimelineFrame(info);
-      // if (this.items?.length > 0) {
-      //   debugger;
-      // }
-      if (logalot) { console.log(`${lc}[testing] this.items.length: ${this.items?.length ?? -1}`); }
-        // debugger;
-
     } catch (error) {
       debugger;
       console.error(`${lc} ${error.message}`);
@@ -84,7 +78,7 @@ export class ListViewComponent extends IbgibListComponentBase {
     try {
       if (logalot) { console.log(`${lc} starting... (I: 159dff8460f9cf2349348dfce3ca3c22)`); }
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
-      debugger;
+      // debugger;
       this.clicked.emit(item);
     } catch (error) {
       console.error(`${lc} ${error.message}`);

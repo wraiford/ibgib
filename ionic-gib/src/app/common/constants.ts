@@ -1580,3 +1580,18 @@ export const ROBBOT_PREFIX_SUFFIX_REGEXP_DESC =
     `0 to 64 alphanumerics, spaces, select special characters and emojis.`;
 
 // #endregion other robbot related
+
+// #region gestures
+
+export const GESTURE_DOUBLE_CLICK_THRESHOLD_MS = 500;
+/**
+ * If a gesture's move threshold is less than this, then it can still be
+ * considered a single punctiliar click. Otherwise, it's a move event.
+ *
+ * IOW, a click gesture only is considered a "click" if the onMove is triggered
+ * less than this many times. If onMove is detected more than this many times,
+ * then a move gesture will be triggered.
+ */
+export const GESTURE_CLICK_TOLERANCE_ONMOVE_THRESHOLD_COUNT = 5;
+
+// #endregion gestures
