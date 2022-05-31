@@ -12,7 +12,22 @@ import { IbGib_V1, IB } from "ts-gib/dist/V1";
 export declare type TjpIbGibAddr = IbGibAddr;
 
 export interface IbGibCacheInfo {
-  addr: IbGibAddr,
+  /**
+   * The "primary key" of the cache info. If {@link addrScope} is not provided,
+   * then atow this will be the only location information for the ibGib.
+   */
+  addr: IbGibAddr;
+  /**
+   * If provided, this will be used to identify the cache info in combination
+   * with the addr. Else, just the addr will be used.
+   *
+   * So, e.g., you may store an ibGib item by
+   * @example { addr: comment abc^123, addrScope: 'item', ibGib, other: item }
+   */
+  addrScope?: string;
+  /**
+   * ibGib reference.
+   */
   ibGib: IbGib_V1;
   /**
    * Place to store additional associated cached data with the ibGib.
@@ -39,7 +54,7 @@ export interface IbGibCacheInfo {
  * it more extensible in the future (i think...)
  */
 export interface IbGibCacheService {
-  has({addr}: { addr: IbGibAddr }): Promise<boolean>;
+  has({addr, addrScope}: { addr: IbGibAddr, addrScope?: string }): Promise<boolean>;
   put(info: IbGibCacheInfo): Promise<void>;
-  get({addr}: { addr: IbGibAddr }): Promise<IbGibCacheInfo | undefined>;
+  get({addr, addrScope}: { addr: IbGibAddr, addrScope?: string }): Promise<IbGibCacheInfo | undefined>;
 }

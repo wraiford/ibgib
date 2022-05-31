@@ -1,16 +1,22 @@
-<!-- <p>debug: this.items?.length: {{this.items?.length}}</p> -->
-<list-item #itemRef
-  *ngFor='let item of items;trackBy: trackByAddr'
-  [addr]='item.addr'
-  [ibClickAnimation]="itemRef"
-  (click)='handleClicked(item, itemRef)'
-  [style.border-color]="debugBorderColor"
-  [style.border-width]="debugBorderWidth"
-  [style.border-style]="debugBorderStyle"
-  >
-</list-item>
-  <!-- (click)='handleClicked(item, itemRef)' -->
-<!-- <p
-  *ngFor='let item of items;let i = index;trackBy: trackByAddr'>
-  {{i}}: {{item?.addr}}
-</p> -->
+<ion-content>
+  <ion-infinite-scroll #infiniteScroll threshold="100px"
+    position="top"
+    (ionInfinite)="loadData($event)">
+    <ion-infinite-scroll-content
+      loadingSpinner="bubbles"
+      loadingText="i believe we are...loading more data">
+    </ion-infinite-scroll-content>
+  </ion-infinite-scroll>
+  <ion-list>
+    <list-item #itemRef
+      *ngFor='let item of items;trackBy: trackByAddr'
+      [addr]='item.addr'
+      [ibClickAnimation]="itemRef"
+      (click)='handleClicked(item, itemRef)'
+      [style.border-color]="debugBorderColor"
+      [style.border-width]="debugBorderWidth"
+      [style.border-style]="debugBorderStyle"
+      >
+    </list-item>
+  </ion-list>
+</ion-content>

@@ -36,7 +36,7 @@ export class FallbackViewComponent extends IbgibComponentBase
    *
    */
   @Input()
-  delayMs: number = 1000;
+  delayMs: number = 4000;
 
   /**
    * @see {@link delayMs}

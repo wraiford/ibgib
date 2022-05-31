@@ -1,4 +1,4 @@
-import { OnInit, OnDestroy, Input, ChangeDetectorRef, Output, EventEmitter } from '@angular/core';
+import { OnInit, OnDestroy, Input, ChangeDetectorRef, Output, EventEmitter, ViewChild } from '@angular/core';
 import { Injectable } from '@angular/core';
 
 import * as h from 'ts-gib/dist/helper';
@@ -10,10 +10,11 @@ import { IbgibListItem, IbGibTimelineUpdateInfo } from '../types/ux';
 import { IbgibComponentBase } from './ibgib-component-base';
 import { CommonService } from '../../services/common.service';
 import { unique } from '../helper/utils';
+import { InfiniteScrollCustomEvent, IonInfiniteScroll } from '@ionic/angular';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
-@Injectable({providedIn: "root"})
+@Injectable({ providedIn: "root" })
 export abstract class IbgibListComponentBase<TItem extends IbgibListItem = IbgibListItem>
     extends IbgibComponentBase<TItem>
     implements OnInit, OnDestroy {
@@ -43,6 +44,9 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
     @Output()
     itemsAdded: EventEmitter<number> = new EventEmitter();
 
+    @ViewChild('infiniteScroll')
+    infiniteScroll: IonInfiniteScroll;
+
     constructor(
         protected common: CommonService,
         protected ref: ChangeDetectorRef,
@@ -61,7 +65,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
         try {
             if (logalot) { console.log(`${lc} starting...`); }
             if (logalot) { console.log(`${lc}[testing] caching items (I: d61f38fbed6042f98518e47a4edd6f67)`); }
-            this.cacheItems(); // spin off!
+            // this.cacheItems(); // spin off!
             await super.ngOnDestroy();
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -71,31 +75,31 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
         }
     }
 
-    private _cachingItems: boolean;
-    async cacheItems(): Promise<void> {
-        const lc = `${this.lc}[${this.cacheItems.name}]`;
-        try {
-            if (logalot) { console.log(`${lc} starting...`); }
-            if (this._cachingItems) {
-                if (logalot) { console.log(`${lc} already caching items (I: c023abc2e4efb2879e39735d58288122)`); }
-                return; /* <<<< returns early */
-            }
+    // private _cachingItems: boolean;
+    // async cacheItems(): Promise<void> {
+    //     const lc = `${this.lc}[${this.cacheItems.name}]`;
+    //     try {
+    //         if (logalot) { console.log(`${lc} starting...`); }
+    //         if (this._cachingItems) {
+    //             if (logalot) { console.log(`${lc} already caching items (I: c023abc2e4efb2879e39735d58288122)`); }
+    //             return; /* <<<< returns early */
+    //         }
 
-            for (let i = 0; i < this.items.length; i++) {
-                const item = this.items[i];
-                if (item?.addr && item.ibGib && !isPrimitive({gib: item.gib})) {
-                    await this.common.cache.put({addr: item.addr, ibGib: item.ibGib, other: item});
-                }
-            }
+    //         for (let i = 0; i < this.items.length; i++) {
+    //             const item = this.items[i];
+    //             if (item?.addr && item.ibGib && !isPrimitive({gib: item.gib})) {
+    //                 await this.common.cache.put({addr: item.addr, addrScope: this.lc, ibGib: item.ibGib, other: item});
+    //             }
+    //         }
 
-        } catch (error) {
-            console.error(`${lc} ${error.message}`);
-            throw error;
-        } finally {
-            if (logalot) { console.log(`${lc} complete.`); }
-            this._cachingItems = false;
-        }
-    }
+    //     } catch (error) {
+    //         console.error(`${lc} ${error.message}`);
+    //         throw error;
+    //     } finally {
+    //         if (logalot) { console.log(`${lc} complete.`); }
+    //         this._cachingItems = false;
+    //     }
+    // }
 
     async updateIbGib_NewerTimelineFrame({
         latestAddr,
@@ -154,8 +158,8 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
 
             if (this.item?.ibGib && this.item?.addr && addr) {
                 // both old and new are non-falsy
-                let oldTjpGib = getGibInfo({ibGibAddr: this.item.addr}).tjpGib;
-                let newTjpGib = getGibInfo({ibGibAddr: addr}).tjpGib;
+                let oldTjpGib = getGibInfo({ ibGibAddr: this.item.addr }).tjpGib;
+                let newTjpGib = getGibInfo({ ibGibAddr: addr }).tjpGib;
                 if (oldTjpGib === newTjpGib) {
                     // same timeline
                     await this.updateIbGib_NewerTimelineFrame({ latestAddr: addr })
@@ -197,6 +201,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
      */
     async updateItems({
         reloadAll,
+        direction,
     }: {
         /**
          * If true, will clear current items and load all from scratch.
@@ -205,8 +210,10 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
          * adding/removing items that are found in the current ibGib.
          */
         reloadAll?: boolean,
+        direction: 'insert' | 'append',
     } = {
         reloadAll: false,
+        direction: 'append',
     }): Promise<void> {
         const lc = `${this.lc}[${this.updateItems.name}]`;
         if (logalot) { console.log(`${lc} updating...`); }
@@ -225,6 +232,13 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
                 updatingCheckCount++;
             }
         }
+
+        /**
+         * flag used in finally clause to indicate if we can disable the
+         * infinite scroll.
+         */
+        let addedAllItems = true;
+        this.infiniteScroll.disabled = false;
 
         this._updatingItems = true;
         try {
@@ -246,7 +260,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
 
             // sorts by timestamp
             const sortItems = (x: TItem[]) => {
-                return x.sort((a,b) => {
+                return x.sort((a, b) => {
                     if (!a.ibGib?.data || !b.ibGib?.data) { return 0; }
                     if (!a.ibGib?.data?.timestamp ?? a.ibGib?.data?.textTimestamp) {
                         console.error(`${lc} no timestamp a.addr: ${a.addr}`)
@@ -289,9 +303,11 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
                 sortItems(this.items);
             }
 
-            let addrsToAdd: IbGibAddr[] = [];
+            let itemsToAdd: TItem[] = [];
+            let itemsToCache: TItem[] = [];
 
             for (let i = 0; i < rel8nNames.length; i++) {
+                let addrsToAdd: IbGibAddr[] = [];
                 const rel8nName = rel8nNames[i];
                 const rel8dAddrs = this.item.ibGib?.rel8ns[rel8nName] || [];
                 for (let j = 0; j < rel8dAddrs.length; j++) {
@@ -300,33 +316,45 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
                         addrsToAdd.push(rel8dAddr);
                     }
                 }
-            }
 
-            let itemsToAdd: TItem[] = [];
-            addrsToAdd = unique(addrsToAdd);
+                addrsToAdd = unique(addrsToAdd);
 
-            for (let i = 0; i < addrsToAdd.length; i++) {
-                const addrToAdd = addrsToAdd[i];
-                const cached = this._cachingItems ?
-                    null :
-                    await this.common.cache.get({addr: addrToAdd + lc});
-                let newItem: TItem;
-                if (cached) {
-                    newItem = cached?.other ? cached.other : <TItem>{ addr: addrToAdd };
-                    if (logalot) { console.log(`${lc}[testing] found item in cache (I: d61f38fbed6042f98518e47a4edd6f67)`); }
+                // we want to add only the last [batch size] number of items
+                const batchSize = 3;
+                if (addrsToAdd.length > batchSize) {
+                    addrsToAdd = addrsToAdd.slice(addrsToAdd.length - batchSize);
                 } else {
-                    newItem = <TItem>{ addr: addrToAdd };
+                    addedAllItems = true;
                 }
-                itemsToAdd.push(newItem);
+
+                for (let i = 0; i < addrsToAdd.length; i++) {
+                    const addrToAdd = addrsToAdd[i];
+                    const cached = await this.common.cache.get({ addr: addrToAdd, addrScope: this.lc });
+                    // const cached = this._cachingItems ?
+                    //     null :
+                    //     await this.common.cache.get({addr: addrToAdd, addrScope: this.lc});
+                    let newItem: TItem;
+                    if (cached?.other) {
+                        newItem = cached?.other;
+                        if (logalot) { console.log(`${lc} found item in cache (I: d61f38fbed6042f98518e47a4edd6f67)`); }
+                    } else {
+                        newItem = <TItem>{ addr: addrToAdd };
+                        if (logalot) { console.log(`${lc} queueing item to cache (${addrToAdd}) (I: 0fe55669bfdd74f0cc9714ae96e4a622)`); }
+                        itemsToCache.push(newItem);
+                    }
+                    itemsToAdd.push(newItem);
+                }
+
             }
 
+            if (itemsToAdd.length > 0) { addedAllItems = false; }
 
             // sortItems(itemsToAdd);
 
             for (let i = 0; i < itemsToAdd.length; i++) {
                 const item = itemsToAdd[i];
                 if (!item.ibGib) {
-                    await this.loadIbGib({item});
+                    await this.loadIbGib({ item });
                     await this.loadItem(item);
                 }
                 // this.items.push(item);
@@ -339,46 +367,61 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
             }
             sortItems(itemsToAdd);
 
+            for (let i = 0; i < itemsToCache.length; i++) {
+                const item = itemsToCache[i];
+                setTimeout(async () => {
+                    await h.delay(100);
+                    if (logalot) { console.log(`${lc} caching item: ${item.addr} (I: 672fc975b7547191e72e0034a03de422)`); }
+                    await this.common.cache.put({ addr: item.addr, addrScope: this.lc, ibGib: item.ibGib, other: item });
+                });
+            }
+
             // note our previous last item, which we'll use to determine if we
             // have to sort again after adding the items
-            const lastExistingItemBeforeAdd = this.items?.length > 0 ?
-                this.items[this.items.length - 1] :
-                null;
+            // const lastExistingItemBeforeAdd = this.items?.length > 0 ?
+            //     this.items[this.items.length - 1] :
+            //     null;
 
             // add the items to the list, which will change our bound view
-            for (let i = 0; i < itemsToAdd.length; i++) {
-                const itemToAdd = itemsToAdd[i];
-                this.items.push(itemToAdd);
-                if (this.items?.length > 15) {
-                    setTimeout(() => this.ref.detectChanges());
-                    // debugger;
-                }
-                // if (i % 5 === 0)  {
-                //     await h.delay(10); // process messages hack
-                // }
-            }
+
+            this.items = direction === 'insert' ?
+                [...itemsToAdd, ...this.items] :
+                [...this.items, ...itemsToAdd];
+            // for (let i = 0; i < itemsToAdd.length; i++) {
+            //     const itemToAdd = itemsToAdd[i];
+            //     this.items.push(itemToAdd); // appends
+            //     if (this.items?.length > 15) {
+            //         setTimeout(() => this.ref.detectChanges());
+            //         // debugger;
+            //     }
+            //     // if (i % 5 === 0)  {
+            //     //     await h.delay(10); // process messages hack
+            //     // }
+            // }
+
+            sortItems(this.items);
 
             // only sort on the main list if the earliest item to add is earlier
             // than the latest on the existing list. Otherwise, should already
             // be sorted.
 
-            if (lastExistingItemBeforeAdd && itemsToAdd.length > 0) {
-                const lastTimestamp = lastExistingItemBeforeAdd?.ibGib?.data?.timestamp;
-                if (!lastTimestamp) { console.warn(`${lc} lastExistingItemBeforeAdd does not have a timestamp. (W: c24fbdad927441bd9a8ef9afff9c9597)`); }
+            // if (lastExistingItemBeforeAdd && itemsToAdd.length > 0) {
+            //     const lastTimestamp = lastExistingItemBeforeAdd?.ibGib?.data?.timestamp;
+            //     if (!lastTimestamp) { console.warn(`${lc} lastExistingItemBeforeAdd does not have a timestamp. (W: c24fbdad927441bd9a8ef9afff9c9597)`); }
 
-                const firstToAddTimestamp = itemsToAdd[0].ibGib?.data?.timestamp;
-                if (lastTimestamp && firstToAddTimestamp) {
-                    if (lastTimestamp > firstToAddTimestamp) {
-                        if (logalot) { console.log(`${lc} lastTimestamp > firstToAddTimestamp (?) (I: d49a3d286e1e2eaa4c70385e0c323a22)`); }
-                        sortItems(this.items);
-                    } else {
-                        if (logalot) { console.log(`${lc} itemsToAdd later than current items. lastTimestamp: ${lastTimestamp}. firstToAddTimestamp: ${firstToAddTimestamp} (I: dad96ddde10515083aa1965aeb70af22)`); }
-                    }
-                } else {
-                    if (logalot) { console.log(`${lc} edge case. going ahead and sorting. lastTimestamp: ${lastTimestamp}. firstToAddTimestamp: ${firstToAddTimestamp} (I: 6d1ebac90694dde0a541e1c650cf2622)`); }
-                    sortItems(this.items);
-                }
-            }
+            //     const firstToAddTimestamp = itemsToAdd[0].ibGib?.data?.timestamp;
+            //     if (lastTimestamp && firstToAddTimestamp) {
+            //         if (lastTimestamp > firstToAddTimestamp) {
+            //             if (logalot) { console.log(`${lc} lastTimestamp > firstToAddTimestamp (?) (I: d49a3d286e1e2eaa4c70385e0c323a22)`); }
+            //             sortItems(this.items);
+            //         } else {
+            //             if (logalot) { console.log(`${lc} itemsToAdd later than current items. lastTimestamp: ${lastTimestamp}. firstToAddTimestamp: ${firstToAddTimestamp} (I: dad96ddde10515083aa1965aeb70af22)`); }
+            //         }
+            //     } else {
+            //         if (logalot) { console.log(`${lc} edge case. going ahead and sorting. lastTimestamp: ${lastTimestamp}. firstToAddTimestamp: ${firstToAddTimestamp} (I: 6d1ebac90694dde0a541e1c650cf2622)`); }
+            //         sortItems(this.items);
+            //     }
+            // }
 
             if (itemsToAdd.length > 0) {
                 if (logalot) { console.log(`${lc} emitting itemsAdded (I: 145ca8df34da5119d1e08fe970faac22)`); }
@@ -390,14 +433,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
             const thisItemsAddrs = (this.items ?? []).map(x => x.addr);
             if (logalot) { console.log(`${lc} this.items addrs: ${thisItemsAddrs.join('\n')} (I: 9693f8b265189a16172d01187e318422)`); }
             setTimeout(() => this.ref.detectChanges());
-            setTimeout(() => this.ref.detectChanges());
-            setTimeout(() => this.ref.detectChanges());
-            setTimeout(() => this.ref.detectChanges());
-            setTimeout(() => this.ref.detectChanges());
-            setTimeout(() => this.ref.detectChanges());
-            setTimeout(() => this.ref.detectChanges());
-            setTimeout(() => this.ref.detectChanges());
-            setTimeout(() => this.ref.detectChanges(),1000);
+            setTimeout(() => this.ref.detectChanges(), 1000);
 
             if (logalot && timerEnabled) {
                 console.timeEnd(timerName);
@@ -410,6 +446,12 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
             console.error(`${lc} ${error.message}`);
         } finally {
             this.ref.detectChanges();
+            if (this.infiniteScroll) {
+                this.infiniteScroll.complete();
+                if (addedAllItems) {
+                    this.infiniteScroll.disabled = true;
+                }
+            }
             this._updatingItems = false;
             if (logalot) { console.log(`${lc} updated.`); }
         }
@@ -422,7 +464,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
     scrollToBottom(): void {
         const lc = `${this.lc}[${this.scrollToBottom.name}]`;
         if (document) {
-        const list = document.getElementById('theList');
+            const list = document.getElementById('theList');
             if (list) {
                 if (logalot) { console.log(`${lc} scrolling`); }
                 list.scrollTop = list.scrollHeight + 100;
@@ -430,4 +472,19 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
         }
     }
 
+    async loadData(event: any): Promise<void> {
+        const lc = `${this.lc}[${this.loadData.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: b0f64180f5e15b26dedfb4b138b23722)`); }
+            // debugger;
+            await this.updateItems({ reloadAll: false, direction: 'insert' });
+            // this.infiniteScroll.disabled = true;
+            // event;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
 }

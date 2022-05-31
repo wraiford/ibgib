@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, Output, Input } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, Output, Input, ViewChild } from '@angular/core';
 import { EventEmitter } from '@angular/core';
 
 import * as h from 'ts-gib/dist/helper';
@@ -9,8 +9,9 @@ import * as c from '../../common/constants';
 import { IbGibItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
 import { IbgibListComponentBase } from '../../common/bases/ibgib-list-component-base';
 import { CommonService } from '../../services/common.service';
+import { IonInfiniteScroll } from '@ionic/angular';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 @Component({
   selector: 'list-view',
@@ -45,6 +46,9 @@ export class ListViewComponent extends IbgibListComponentBase {
 
   @Output()
   itemsAdded: EventEmitter<number> = new EventEmitter();
+
+  @ViewChild('infiniteScroll')
+  infiniteScroll: IonInfiniteScroll;
 
   constructor(
     protected common: CommonService,
@@ -87,4 +91,5 @@ export class ListViewComponent extends IbgibListComponentBase {
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
+
 }

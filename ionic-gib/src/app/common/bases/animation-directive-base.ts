@@ -10,7 +10,7 @@ import * as h from 'ts-gib/dist/helper';
 import * as c from '../constants';
 import { DirectiveBase } from "./directive-base";
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 /**
  * A little plumbing to simplify for future animations with
