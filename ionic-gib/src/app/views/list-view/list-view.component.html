@@ -1,4 +1,7 @@
-<ion-content>
+<ion-content #listViewContent
+  [scrollEvents]="true"
+  (ionScrollStart)="scrollStartSubject_InfHack.next($event)"
+  >
   <ion-infinite-scroll #infiniteScroll threshold="100px"
     position="top"
     (ionInfinite)="loadData($event)">
@@ -7,7 +10,9 @@
       loadingText="i believe we are...loading more data">
     </ion-infinite-scroll-content>
   </ion-infinite-scroll>
-  <ion-list>
+  <ion-list
+    (ionScroll)="handleScroll($event)"
+    >
     <list-item #itemRef
       *ngFor='let item of items;trackBy: trackByAddr'
       [addr]='item.addr'

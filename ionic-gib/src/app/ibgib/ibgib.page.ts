@@ -254,51 +254,12 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
-  // async updateIbGib_Diff(addr: IbGibAddr): Promise<void> {
-  //   const lc = `${this.lc}[${this.updateIbGib_Diff.name}(${addr})]`;
-  //   if (logalot) { console.log(`${lc} updating...`); }
-  //   try {
-  //     await this.smallDelayToLoadBalanceUI();
-
-  //     // loads the default properties for this.item
-  //     this.loadItemPrimaryProperties(addr, this.item);
-
-  //     // additional loading because we're the main page
-  //     await this.loadIbGib();
-
-  //     // additional item loading if we're a pic/comment
-  //     if (this.item?.type === 'pic') { await this.loadPic(this.item); }
-  //     if (this.item?.type === 'comment') { await this.loadComment(this.item); }
-
-  //     // cosmetic UI
-  //     document.title = this.item?.text ?? this.ibGib?.data?.text ?? this.gib;
-  //     await this.actionBar.reset();
-
-  //   } catch (error) {
-  //     console.error(`${lc} error: ${error.message}`);
-  //     this.clearItem();
-  //   } finally {
-  //     this.ref.detectChanges();
-  //     if (logalot) { console.log(`${lc} updated.`); }
-  //   }
-  // }
-
   /**
    * Updates this.paused per current query params 'paused' value, if exists.
    */
   updateIbGib_Paused(): void {
     this.paused = (this.activatedRoute.snapshot.queryParams[c.QUERY_PARAM_PAUSED] || 'false') === 'true';
   }
-  // updateIbGib_RobbotBarVisible(): void {
-  //   // this.paused = (this.activatedRoute.snapshot.queryParams[c.QUERY_PARAM_PAUSED] || 'false') === 'true';
-  //   console.log('ping yo map updateIbGibrobbotbarsldkjfldksjfkj')
-  //   // this.robbotBarIsVisible = (this.activatedRoute.snapshot.queryParams[c.QUERY_PARAM_ROBBOT] || 'false') === 'true';
-  //   setTimeout(() => {
-  //     // this.robbotBarIsVisible = (this.activatedRoute.queryParams[c.QUERY_PARAM_ROBBOT] || 'false') === 'true';
-  //     this.robbotBarIsVisible = location.href?.includes('robbot=true');
-  //     this.ref.detectChanges();
-  //   });
-  // }
 
   subscribeParamMap() {
     let lc = `${this.lc}[${this.subscribeParamMap.name}]`;
@@ -550,19 +511,6 @@ export class IbGibPage extends IbgibComponentBase
     }
   }
 
-  async foo(): Promise<void> {
-    const lc = `${this.lc}[${this.foo.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting...`); }
-
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
-
   async execSync({
     turnOnAutosyncing,
   }: {
@@ -761,12 +709,6 @@ export class IbGibPage extends IbgibComponentBase
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
-      // old code that completely reloads page each little update
-      // await this.go({
-      //   toAddr: latestAddr,
-      //   fromAddr: this.addr,
-      // });
-
       if (latestAddr === this.addr) {
         console.warn(`${lc} (UNEXPECTED) this function is expected to fire only when latest is already checked to be different, but latestAddr (${latestAddr}) === this.addr (${this.addr}) (W: 3ed850e6ec784b4187cbe4a7bf6a2a80)`);
         return; /* <<<< returns early */
@@ -777,43 +719,6 @@ export class IbGibPage extends IbgibComponentBase
         return; /* <<<< returns early */
       }
 
-      // so we know...
-      // this.ibGib is truthy
-      // this.ibGib has a timeline/tjp
-      // there is an update this.ibGib's timeline.
-
-      // we do NOT know...
-      // if the ibgib timeline has dna or not.
-      // if the order of dna transforms matters.
-
-      // does the ibgib have/use dna (list of transforms)?
-      // const hasDna =
-      //   this.ibGib.rel8ns?.dna?.length > 0 ||
-      //   latestIbGib.rel8ns?.dna?.length > 0;
-
-      // if (hasDna) {
-      //   // yes, has dna...
-
-      //     // in the normal course of events, the history of dna transforms
-      //     // should be "equivalent" up to the point of newness, not guaranteeing
-      //     // order. for now, we will do diffing if this is the case. If there is
-      //     // a transform in the old (current) ibgib that does not exist in the
-      //     // new ibgib, then we will do the fallback behavior, which is to do an
-      //     // entirely new navigate to the newer ibgib.
-
-      //     // so does the new one have all of the old one's transforms?
-      //       // yes, latest has all previous transforms
-      //       // no, latest does NOT have all previous transforms
-      // } else {
-      //   // no, does not have dna...
-      //     // we will have to check manually against the old state and the new state
-      //     // and "simply" update accordingly.
-
-      //   // // temporary
-      //   // await this.go({
-      //   //   toAddr: latestAddr,
-      //   //   fromAddr: this.addr,
-      //   // });
       await this.smallDelayToLoadBalanceUI();
 
       // loads the default properties for this.item
@@ -829,14 +734,6 @@ export class IbGibPage extends IbgibComponentBase
       // cosmetic UI
       document.title = this.item?.text ?? this.ibGib?.data?.text ?? this.gib;
       await this.actionBar.reset();
-     // }
-
-      // uncommenting this for previous behavior for now until implemented...
-      // await this.go({
-      //   toAddr: latestAddr,
-      //   fromAddr: this.addr,
-      // });
-
     } catch (error) {
       debugger;
       this.errorMsg = `${lc} ${error.message}`;
@@ -873,16 +770,6 @@ export class IbGibPage extends IbgibComponentBase
     // especially happen on touch screens.
     let targetScrolltop = <number>((<any>event?.target)?.scrollTop ?? -1);
     if (logalot) { console.log(`${lc} targetScrolltop: ${targetScrolltop} (I: 70dfd9882bb2493da37222869c429415)`); }
-    // if (this.hidePerScroll && this.actionBar.actionDetailVisible && targetScrolltop > -1) {
-    //   const delta = Math.abs(targetScrolltop - this.prevScrollTop);
-    //   if (logalot) { console.log(`${lc} delta: ${delta} (I: de2ac480085f8a404b6e01a2ad614822)`); }
-    //   const MIN_DELTA = 100;
-    //   if (delta > MIN_DELTA) {
-    //     this.actionBar.actionDetailVisible = false;
-    //     this.robbotBarIsVisible = false;
-    //     setTimeout(() => this.ref.detectChanges());
-    //   }
-    // }
     this.prevScrollTop = targetScrolltop;
   }
 
@@ -913,14 +800,6 @@ export class IbGibPage extends IbgibComponentBase
         },
       });
       await modal.present();
-      // await modal.componentOnReady();
-      // await (<IbgibFullscreenModalComponent>modal.component).updateIbGib(this.addr);
-      // let resModal = await modal.onWillDismiss();
-      // const iconItem: IconItem = resModal.data;
-      // if (!iconItem) {
-      //   if (logalot) { console.log(`${lc} cancelled.`) }
-      //   return;
-      // }
       if (logalot) { console.log(`${lc} modal closed.`); }
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);
@@ -944,120 +823,23 @@ export class IbGibPage extends IbgibComponentBase
 
       if (!this.ibGib) { throw new Error(`There isn't a current ibGib loaded...?`); }
       if (!this.addr) { throw new Error(`There isn't a current ibGib addr loaded...?`); }
-      // const contextAddr = h.getIbGibAddr({ibGib: this.ibGib});
-      // console.log(`${lc} contextAddr: ${contextAddr}`);
 
       while (this.common.ibgibs.initializing) {
         if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 67e795e53b9c4732ab53837bcaa22c1f)`); }
         await h.delay(109);
       }
-      const tagsIbGib = await this.common.ibgibs.getSpecialIbGib({type: "tags"});
       this.tagIbGibs = await this.common.ibgibs.getSpecialRel8dIbGibs<TagIbGib_V1>({
         type: "tags",
         rel8nName: c.TAG_REL8N_NAME,
       });
-      // const tagAddrs = tagsIbGib.rel8ns.tag;
-      // const tagInfos: TagInfo[] = tagAddrs.map(addr => {
-      //   const { ib } = h.getIbAndGib({ibGibAddr: addr});
-      //   const tag = ib.substring('tag '.length);
-      //   const tagInfo: TagInfo = { title: tag, addr };
-      //   return tagInfo;
-      // });
-      // for (let i = 0; i < tagInfos.length; i++) {
-      //   const tagInfo = tagInfos[i];
-      //   tagInfo.addr
-      // }
 
       this.showModal_PromptForTag = !this.showModal_PromptForTag;
 
       return; /* <<<< returns early */
-      // const resPrompt = await Modals.showActions({
-      //   title: 'Select tag',
-      //   message: 'Select a tag to add this ibGib to',
-      //   options: [
-      //     {
-      //       // index 0
-      //       title: 'Cancel',
-      //       style: ActionSheetOptionStyle.Cancel
-      //     },
-      //     {
-      //       // index 1
-      //       title: 'New Tag...',
-      //       style: ActionSheetOptionStyle.Default
-      //     },
-
-      //     // index = i-2
-      //     ...tagInfos,
-      //   ]
-      // });
-
-      let tagIbGib: IbGib_V1;
-      // if (resPrompt.index === 0) {
-
-      //   if (logalot) { console.log(`${lc} cancelled`); }
-      //   await Plugins.Modals.alert({ title: 'nope', message: 'cancelled' });
-      //   this.tagging = false;
-      //   this.ref.detectChanges();
-      //   return;
-
-      // } else if (resPrompt.index === 1) {
-
-      //   if (logalot) { console.log(`${lc} create new tag`); }
-      //   tagIbGib = await createNewTag(this.common);
-      //   if (!tagIbGib) {
-      //     if (logalot) { console.log(`${lc} aborting creating new tag.`); }
-      //     this.tagging = false;
-      //     this.ref.detectChanges();
-      //     return;
-      //   }
-
-      // } else {
-
-      //   if (logalot) { console.log(`${lc} tag with existing tag, but may not be latest addr`); }
-      //   const tagInfo: TagInfo = tagInfos[resPrompt.index - 2];
-      //   const resTagIbGib = await this.common.ibgibs.get({addr: tagInfo.addr});
-      //   if (resTagIbGib.success && resTagIbGib.ibGibs?.length === 1) {
-      //     const rel8dTagIbGibAddr = h.getIbGibAddr({ibGib: resTagIbGib.ibGibs[0]});
-      //     if (logalot) { console.log(`${lc} the rel8d tag may not be the latest: ${rel8dTagIbGibAddr}`); }
-      //     const latestTagAddr = await this.common.ibgibs.getLatestAddr({ibGib: resTagIbGib.ibGibs[0]});
-      //     if (logalot) { console.log(`${lc} latestTagAddr: ${latestTagAddr}`); }
-      //     if (rel8dTagIbGibAddr === latestTagAddr) {
-      //       console.error(`${lc} tag is already the latest`);
-      //       tagIbGib = resTagIbGib.ibGibs[0]!;
-      //     } else {
-      //       console.error(`${lc} tag is NOT the latest`);
-      //       const resTagIbGibLatest = await this.common.ibgibs.get({addr: latestTagAddr});
-      //       if (resTagIbGibLatest.success && resTagIbGibLatest.ibGibs?.length === 1) {
-      //         console.error(`${lc} tag is NOT the latest and we got a new ibgib`);
-      //         tagIbGib = resTagIbGibLatest.ibGibs![0];
-      //       } else {
-      //         console.error(`${lc} couldn't find latest tag addr (${latestTagAddr}). using previous tag (${rel8dTagIbGibAddr})`);
-      //         tagIbGib = resTagIbGib.ibGibs![0];
-      //       }
-      //     }
-      //   } else {
-      //     throw new Error(`${resTagIbGib.errorMsg || 'there was a problem getting the tag ibGib. (E: 62d65029338d4929b5b12ca57d9c0222)'}`);
-      //   }
-
-      // }
-
-      // // relate context to tag
-      // const rel8nsToAddByAddr = { [c.TAGGED_REL8N_NAME]: [this.addr] };
-      // const resRel8ToTag =
-      //   await V1.rel8({src: tagIbGib, rel8nsToAddByAddr, dna: true, nCounter: true});
-      // await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToTag});
-      // const { newIbGib: newTag } = resRel8ToTag;
-      // await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newTag, linked: true});
-      // await this.common.ibgibs.registerNewIbGib({ibGib: newTag});
-
-      // if (logalot) { console.log(`${lc} tag successful.`); }
-      // await Modals.alert({title: 'yess', message: `Tagged.`});
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       await Modals.alert({title: 'something went awry...', message: error.message});
     } finally {
-      // this.showModal_PromptForTag = false;
-      // this.tagging = false;
       this.ref.detectChanges();
     }
 

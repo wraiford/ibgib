@@ -79,25 +79,25 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
       this.rel8nNames = [...c.DEFAULT_LIST_REL8N_NAMES];
       await super.updateItems();
 
-      // hack for demo purposes
-      let scrollDelayMs: number;
-      const platform = Capacitor.getPlatform();
-      switch (platform) {
-        case 'android':
-          scrollDelayMs = c.DEFAULT_SCROLL_DELAY_MS_ANDROID_HACK;
-          break;
-        case 'ios':
-          scrollDelayMs = c.DEFAULT_SCROLL_DELAY_MS_IOS_HACK;
-          break;
-        default:
-          scrollDelayMs = c.DEFAULT_SCROLL_DELAY_MS_WEB_HACK;
-          break;
-      }
-      setTimeout(() => { this.scrollToBottom(); });
-      setTimeout(() => { this.scrollToBottom(); }, Math.floor(scrollDelayMs/4));
-      setTimeout(() => { this.scrollToBottom(); }, Math.floor(scrollDelayMs/3));
-      setTimeout(() => { this.scrollToBottom(); }, Math.floor(scrollDelayMs/2));
-      setTimeout(() => { this.scrollToBottom(); }, scrollDelayMs);
+      // // hack for demo purposes
+      // let scrollDelayMs: number;
+      // const platform = Capacitor.getPlatform();
+      // switch (platform) {
+      //   case 'android':
+      //     scrollDelayMs = c.DEFAULT_SCROLL_DELAY_MS_ANDROID_HACK;
+      //     break;
+      //   case 'ios':
+      //     scrollDelayMs = c.DEFAULT_SCROLL_DELAY_MS_IOS_HACK;
+      //     break;
+      //   default:
+      //     scrollDelayMs = c.DEFAULT_SCROLL_DELAY_MS_WEB_HACK;
+      //     break;
+      // }
+      // setTimeout(() => { this.scrollToBottom(); });
+      // setTimeout(() => { this.scrollToBottom(); }, Math.floor(scrollDelayMs/4));
+      // setTimeout(() => { this.scrollToBottom(); }, Math.floor(scrollDelayMs/3));
+      // setTimeout(() => { this.scrollToBottom(); }, Math.floor(scrollDelayMs/2));
+      // setTimeout(() => { this.scrollToBottom(); }, scrollDelayMs);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       // throw error; // don't rethrow atm
@@ -125,7 +125,9 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
   }
 
   handleScroll(event: any): void {
+    const lc = `${this.lc}[${this.handleScroll.name}]`;
     this.scroll.emit(event);
+    if (logalot) { console.log(`${lc} scrolling (I: b62e75fad64d0d12147cd608e8323622)`); }
   }
 
   handleItemsAdded(): void {

@@ -4,6 +4,10 @@
   overflow-y: auto;
 }
 
+ion-list {
+  background-color: transparent;
+}
+
 .md :host {
   display: flex;
   flex-direction: column;

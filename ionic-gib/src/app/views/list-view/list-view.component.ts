@@ -9,9 +9,9 @@ import * as c from '../../common/constants';
 import { IbGibItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
 import { IbgibListComponentBase } from '../../common/bases/ibgib-list-component-base';
 import { CommonService } from '../../services/common.service';
-import { IonInfiniteScroll } from '@ionic/angular';
+import { IonContent, IonInfiniteScroll } from '@ionic/angular';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 @Component({
   selector: 'list-view',
@@ -46,6 +46,9 @@ export class ListViewComponent extends IbgibListComponentBase {
 
   @Output()
   itemsAdded: EventEmitter<number> = new EventEmitter();
+
+  @ViewChild('listViewContent')
+  listViewContent: IonContent;
 
   @ViewChild('infiniteScroll')
   infiniteScroll: IonInfiniteScroll;

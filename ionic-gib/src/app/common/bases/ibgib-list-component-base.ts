@@ -10,9 +10,12 @@ import { IbgibListItem, IbGibTimelineUpdateInfo } from '../types/ux';
 import { IbgibComponentBase } from './ibgib-component-base';
 import { CommonService } from '../../services/common.service';
 import { unique } from '../helper/utils';
-import { InfiniteScrollCustomEvent, IonInfiniteScroll } from '@ionic/angular';
+import { InfiniteScrollCustomEvent, IonContent, IonInfiniteScroll } from '@ionic/angular';
+import { Subject } from 'rxjs/internal/Subject';
+import { Observable, Subscription } from 'rxjs';
+import { debounceTime } from 'rxjs/internal/operators/debounceTime';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 @Injectable({ providedIn: "root" })
 export abstract class IbgibListComponentBase<TItem extends IbgibListItem = IbgibListItem>
@@ -44,6 +47,9 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
     @Output()
     itemsAdded: EventEmitter<number> = new EventEmitter();
 
+    @ViewChild('listViewContent')
+    listViewContent: IonContent;
+
     @ViewChild('infiniteScroll')
     infiniteScroll: IonInfiniteScroll;
 
@@ -57,16 +63,12 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
     }
 
     async ngOnInit(): Promise<void> {
-        await super.ngOnInit();
-    }
-
-    async ngOnDestroy(): Promise<void> {
-        const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
+        const lc = `${this.lc}[${this.ngOnInit.name}]`;
         try {
-            if (logalot) { console.log(`${lc} starting...`); }
-            if (logalot) { console.log(`${lc}[testing] caching items (I: d61f38fbed6042f98518e47a4edd6f67)`); }
-            // this.cacheItems(); // spin off!
-            await super.ngOnDestroy();
+            if (logalot) { console.log(`${lc} starting... (I: 9013c36ff8e7532361f03b61b242b822)`); }
+            await super.ngOnInit();
+            await this.initializeScrollHandler();
+            await this.bumpIntermittentItemUpdateInterval();
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -75,31 +77,21 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
         }
     }
 
-    // private _cachingItems: boolean;
-    // async cacheItems(): Promise<void> {
-    //     const lc = `${this.lc}[${this.cacheItems.name}]`;
-    //     try {
-    //         if (logalot) { console.log(`${lc} starting...`); }
-    //         if (this._cachingItems) {
-    //             if (logalot) { console.log(`${lc} already caching items (I: c023abc2e4efb2879e39735d58288122)`); }
-    //             return; /* <<<< returns early */
-    //         }
-
-    //         for (let i = 0; i < this.items.length; i++) {
-    //             const item = this.items[i];
-    //             if (item?.addr && item.ibGib && !isPrimitive({gib: item.gib})) {
-    //                 await this.common.cache.put({addr: item.addr, addrScope: this.lc, ibGib: item.ibGib, other: item});
-    //             }
-    //         }
-
-    //     } catch (error) {
-    //         console.error(`${lc} ${error.message}`);
-    //         throw error;
-    //     } finally {
-    //         if (logalot) { console.log(`${lc} complete.`); }
-    //         this._cachingItems = false;
-    //     }
-    // }
+    async ngOnDestroy(): Promise<void> {
+        const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            if (logalot) { console.log(`${lc}[testing] caching items (I: d61f38fbed6042f98518e47a4edd6f67)`); }
+            // this.cacheItems(); // spin off!
+            this.destroyScrollHandler();
+            await super.ngOnDestroy();
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
 
     async updateIbGib_NewerTimelineFrame({
         latestAddr,
@@ -124,7 +116,6 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
             await this.loadItemPrimaryProperties(latestAddr, this.item);
 
             // loads the ibgib object proper
-            const oldIbGib = this.item.ibGib;
             await this.loadIbGib();
 
             await this.loadTjp();
@@ -202,6 +193,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
     async updateItems({
         reloadAll,
         direction,
+        scrollAfter,
     }: {
         /**
          * If true, will clear current items and load all from scratch.
@@ -210,10 +202,12 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
          * adding/removing items that are found in the current ibGib.
          */
         reloadAll?: boolean,
-        direction: 'insert' | 'append',
+        direction?: 'insert' | 'append',
+        scrollAfter?: boolean,
     } = {
         reloadAll: false,
         direction: 'append',
+        scrollAfter: true,
     }): Promise<void> {
         const lc = `${this.lc}[${this.updateItems.name}]`;
         if (logalot) { console.log(`${lc} updating...`); }
@@ -238,7 +232,9 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
          * infinite scroll.
          */
         let addedAllItems = true;
-        this.infiniteScroll.disabled = false;
+        if (this.infiniteScroll) {
+            this.infiniteScroll.disabled = false;
+        }
 
         this._updatingItems = true;
         try {
@@ -357,13 +353,6 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
                     await this.loadIbGib({ item });
                     await this.loadItem(item);
                 }
-                // this.items.push(item);
-                // await h.delay(10);
-                // if ((i % 5 === 0) || (i === itemsToAdd.length-1)) {
-                //     sortItems(this.items);
-                //     await h.delay(50);
-                //     setTimeout(() => this.ref.detectChanges());
-                // }
             }
             sortItems(itemsToAdd);
 
@@ -387,41 +376,8 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
             this.items = direction === 'insert' ?
                 [...itemsToAdd, ...this.items] :
                 [...this.items, ...itemsToAdd];
-            // for (let i = 0; i < itemsToAdd.length; i++) {
-            //     const itemToAdd = itemsToAdd[i];
-            //     this.items.push(itemToAdd); // appends
-            //     if (this.items?.length > 15) {
-            //         setTimeout(() => this.ref.detectChanges());
-            //         // debugger;
-            //     }
-            //     // if (i % 5 === 0)  {
-            //     //     await h.delay(10); // process messages hack
-            //     // }
-            // }
 
             sortItems(this.items);
-
-            // only sort on the main list if the earliest item to add is earlier
-            // than the latest on the existing list. Otherwise, should already
-            // be sorted.
-
-            // if (lastExistingItemBeforeAdd && itemsToAdd.length > 0) {
-            //     const lastTimestamp = lastExistingItemBeforeAdd?.ibGib?.data?.timestamp;
-            //     if (!lastTimestamp) { console.warn(`${lc} lastExistingItemBeforeAdd does not have a timestamp. (W: c24fbdad927441bd9a8ef9afff9c9597)`); }
-
-            //     const firstToAddTimestamp = itemsToAdd[0].ibGib?.data?.timestamp;
-            //     if (lastTimestamp && firstToAddTimestamp) {
-            //         if (lastTimestamp > firstToAddTimestamp) {
-            //             if (logalot) { console.log(`${lc} lastTimestamp > firstToAddTimestamp (?) (I: d49a3d286e1e2eaa4c70385e0c323a22)`); }
-            //             sortItems(this.items);
-            //         } else {
-            //             if (logalot) { console.log(`${lc} itemsToAdd later than current items. lastTimestamp: ${lastTimestamp}. firstToAddTimestamp: ${firstToAddTimestamp} (I: dad96ddde10515083aa1965aeb70af22)`); }
-            //         }
-            //     } else {
-            //         if (logalot) { console.log(`${lc} edge case. going ahead and sorting. lastTimestamp: ${lastTimestamp}. firstToAddTimestamp: ${firstToAddTimestamp} (I: 6d1ebac90694dde0a541e1c650cf2622)`); }
-            //         sortItems(this.items);
-            //     }
-            // }
 
             if (itemsToAdd.length > 0) {
                 if (logalot) { console.log(`${lc} emitting itemsAdded (I: 145ca8df34da5119d1e08fe970faac22)`); }
@@ -432,8 +388,6 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
             if (logalot) { console.log(`${lc} this.items.length: ${this.items?.length} (I: 094cb3faac89df7d53aaa34fb538b522)`); }
             const thisItemsAddrs = (this.items ?? []).map(x => x.addr);
             if (logalot) { console.log(`${lc} this.items addrs: ${thisItemsAddrs.join('\n')} (I: 9693f8b265189a16172d01187e318422)`); }
-            setTimeout(() => this.ref.detectChanges());
-            setTimeout(() => this.ref.detectChanges(), 1000);
 
             if (logalot && timerEnabled) {
                 console.timeEnd(timerName);
@@ -445,14 +399,13 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
             debugger;
             console.error(`${lc} ${error.message}`);
         } finally {
-            this.ref.detectChanges();
+            if (scrollAfter) { this.scrollToBottom(); }
             if (this.infiniteScroll) {
                 this.infiniteScroll.complete();
-                if (addedAllItems) {
-                    this.infiniteScroll.disabled = true;
-                }
+                this.infiniteScroll.disabled = true;
             }
             this._updatingItems = false;
+            setTimeout(() => this.ref.detectChanges());
             if (logalot) { console.log(`${lc} updated.`); }
         }
     }
@@ -461,23 +414,30 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
         return item?.addr;
     }
 
+    subScrollYo: Subscription;
+
     scrollToBottom(): void {
         const lc = `${this.lc}[${this.scrollToBottom.name}]`;
-        if (document) {
-            const list = document.getElementById('theList');
-            if (list) {
-                if (logalot) { console.log(`${lc} scrolling`); }
-                list.scrollTop = list.scrollHeight + 100;
+        setTimeout(() => {
+            if (this.listViewContent) {
+                this.listViewContent.scrollToBottom(500);
+            } else if (document) {
+                const list = document.getElementById('theList');
+                if (list) {
+                    if (logalot) { console.log(`${lc} scrolling`); }
+                    list.scrollTop = list.scrollHeight + 100;
+                }
             }
-        }
+        }, 2000);
     }
 
     async loadData(event: any): Promise<void> {
         const lc = `${this.lc}[${this.loadData.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: b0f64180f5e15b26dedfb4b138b23722)`); }
-            // debugger;
-            await this.updateItems({ reloadAll: false, direction: 'insert' });
+            await this.updateItems({
+                reloadAll: false, direction: 'insert', scrollAfter: false,
+            });
             // this.infiniteScroll.disabled = true;
             // event;
         } catch (error) {
@@ -487,4 +447,150 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
+
+
+    private async initializeScrollHandler(): Promise<void> {
+        const lc = `${this.lc}[${this.initializeScrollHandler.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: bef3d7ecfbd3476798665517ffdd5e22)`); }
+            if (this._subScrollStart_InfHack) {
+                this.destroyScrollHandler();
+            }
+            this._subScrollStart_InfHack = this.scrollStart_InfHack$.pipe(
+                debounceTime(100),
+            ).subscribe((event) => {
+                this.handleScroll(event);
+            });
+
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    private destroyScrollHandler(): void {
+        if (this._subScrollStart_InfHack) {
+            this._subScrollStart_InfHack.unsubscribe();
+            delete this._subScrollStart_InfHack;
+        }
+    }
+
+    scrollStartSubject_InfHack: Subject<any> = new Subject<any>();
+    scrollStart_InfHack$: Observable<any> = this.scrollStartSubject_InfHack.asObservable();
+    private _subScrollStart_InfHack: Subscription;
+
+    handleScroll(event: any): void {
+        const lc = `${this.lc}[${this.handleScroll.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: e21e95ba10781450ca6d836fb0a7c222)`); }
+            this.ionInfiniteScrollHack_OnScrollUpdateDisabled();
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    // #region ion-infinite-scroll hack workaround
+
+    /**
+     * The ion-infinite-scroll doesn't work quite correctly.  So we need to
+     * manually always disable and re-enable on scroll, depending on if we've
+     * loaded all of our data.
+     */
+    private async ionInfiniteScrollHack_PostLoadData(): Promise<void> {
+        const lc = `${this.lc}[${this.ionInfiniteScrollHack_PostLoadData.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 00b39ce34b6c248a77c07a1d1aed8322)`); }
+            if (this.infiniteScroll) {
+                this.infiniteScroll.disabled = true;
+            }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    /**
+     * @see {@link ionInfiniteScrollHack_PostLoadData}
+     */
+    private ionInfiniteScrollHack_OnScrollUpdateDisabled(): void {
+        const lc = `${this.lc}[${this.ionInfiniteScrollHack_OnScrollUpdateDisabled.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 67ebd7ff72ca4b58ac53c92cd2b6837f)`); }
+            if (!this.infiniteScroll) {
+                if (logalot) { console.log(`${lc} this.infiniteScroll falsy, returning early. (I: 47ac2ee2cdec7ad18da5066b59173422)`); }
+                return; /* <<<< returns early */
+            }
+
+            this.infiniteScroll.disabled = true;
+
+            const currentItemAddrs = this.items.map(item => item.addr);
+
+            /** unique list of rel8nNames used in this.items */
+            const rel8nNames = unique(this.rel8nNames);
+
+            // go through all rel8d addrs to check to see if they already exist
+            // in the current items. If not, then we need to re-enable the
+            // infinite scroll
+            for (let i = 0; i < rel8nNames.length; i++) {
+                const rel8nName = rel8nNames[i];
+                const rel8dAddrs = this.item.ibGib?.rel8ns[rel8nName] || [];
+                rel8dAddrs.forEach(x => {
+                    if (!currentItemAddrs.includes(x)) {
+                        // we do not have all items, so re-enable the infinite scroll
+                        this.infiniteScroll.disabled = false;
+                        return; /* <<<< returns early */
+                    }
+                });
+            }
+
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+            this.bumpIntermittentItemUpdateInterval();
+        }
+    }
+
+    private _pollItemUpdateHackInterval: any;
+    private bumpIntermittentItemUpdateInterval(): void {
+        const lc = `${this.lc}[${this.bumpIntermittentItemUpdateInterval.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 46409af8fcfca43b633fae165cc5ee22)`); }
+            if (this._pollItemUpdateHackInterval) {
+                if (logalot) { console.log(`${lc} already hacky interval poll going (I: 6d7261401c11b1bbb72fe45fd2736422)`); }
+                return; /* <<<< returns early */
+            }
+            let counter = 0;
+            this._pollItemUpdateHackInterval = setInterval(async () => {
+                await this.updateItems({
+                    reloadAll: false,
+                    direction: 'insert',
+                    scrollAfter: false,
+                });
+                counter++;
+                if (counter === 3) {
+                    if (this._pollItemUpdateHackInterval) {
+                        clearInterval(this._pollItemUpdateHackInterval);
+                        delete this._pollItemUpdateHackInterval;
+                    }
+                }
+            }, 3000);
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    // #endregion ion-infinite-scroll hack workaround
+
 }

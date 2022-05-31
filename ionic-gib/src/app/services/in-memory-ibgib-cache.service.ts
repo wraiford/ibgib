@@ -6,7 +6,7 @@ import { IbGibAddr } from 'ts-gib';
 import * as c from '../common/constants';
 import { IbGibCacheInfo, IbGibCacheService } from '../common/types/ibgib';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 /**
  * simple caching service for ibgibs...relatively self explanatory.

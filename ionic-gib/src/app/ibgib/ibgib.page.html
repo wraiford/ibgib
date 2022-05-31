@@ -115,7 +115,9 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content #ibgibPageContent [fullscreen]="false" [forceOverscroll]="false">
+<ion-content #ibgibPageContent
+  [fullscreen]="false" [forceOverscroll]="false"
+  >
 
   <ion-text *ngIf="statusText" color="primary">{{statusText}}</ion-text>
 
