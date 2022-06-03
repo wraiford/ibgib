@@ -18,11 +18,11 @@
     </ion-title>
     <ion-title *ngIf='isPic' class='pic-title toolbar-title-yo'>
       <ion-thumbnail>
-        <pic-view [addr]='item.addr' [isTitle]='true' (click)="showFullscreenModal()"></pic-view>
+        <pic-view [addr]='item.addr' [isTitleOrJustSmall]='true' (click)="showFullscreenModal()"></pic-view>
       </ion-thumbnail>
     </ion-title>
     <ion-title *ngIf='isComment' class='comment-title toolbar-title-yo' (click)="handleTitleClick()">
-        <comment-view [addr]='item.addr' [isTitle]='true'></comment-view>
+        <comment-view [addr]='item.addr' [isTitleOrJustSmall]='true'></comment-view>
     </ion-title>
     <ion-title *ngIf='isRoot' class='toolbar-title-yo'>
       <root-view [addr]='item.addr'> </root-view>

@@ -1,4 +1,4 @@
-<ion-card *ngIf='!isSkeleton && !isTitle' [title]="addr"
+<ion-card *ngIf='!isSkeleton && !isTitleOrJustSmall' [title]="addr"
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"
   [style.border-style]="debugBorderStyle"
@@ -9,10 +9,10 @@
       <!-- [class.is-title]='isTitle'>{{ item?.text }} -->
       <!-- <p *ngIf='!isTitle' class='comment-timestamp'>{{ item?.timestamp }}</p> -->
     </ion-card-content>
-    <ion-card-subtitle *ngIf='!isTitle' class='fallback-timestamp'>{{ item?.timestamp || 'no timestamp...?'}}</ion-card-subtitle>
+    <ion-card-subtitle *ngIf='!isTitleOrJustSmall' class='fallback-timestamp'>{{ item?.timestamp || 'no timestamp...?'}}</ion-card-subtitle>
   </ion-card-header>
 </ion-card>
-<div *ngIf='!isSkeleton && ibGib && isTitle' [title]="item?.text || item?.ib || '[html title binding error!]'"
+<div *ngIf='!isSkeleton && ibGib && isTitleOrJustSmall' [title]="item?.text || item?.ib || '[html title binding error!]'"
   >
   <pre [style.maxHeight]="'100px'" class="is-title">{{ item?.text }}</pre>
 </div>

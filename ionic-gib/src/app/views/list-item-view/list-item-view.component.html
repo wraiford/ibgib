@@ -18,7 +18,7 @@
   *ngIf='item?.type === "pic"'
   class='pic-item'
   [addr]='addr'
-  [isTitle]='false'
+  [isTitleOrJustSmall]='false'
   (click)='handleClicked(item)'
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"

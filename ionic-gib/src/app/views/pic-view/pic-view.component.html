@@ -1,5 +1,5 @@
 <!-- non-title pic -->
-<ion-card *ngIf='!isTitle'
+<ion-card *ngIf='!isTitleOrJustSmall'
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"
   [style.border-style]="debugBorderStyle"
@@ -15,7 +15,7 @@
 </ion-card>
 
 <!-- title pic -->
-<div *ngIf='isTitle'>
+<div *ngIf='isTitleOrJustSmall'>
   <img *ngIf='ibGib' [src]='item.picSrc'/>
 </div>
 

@@ -1,16 +1,19 @@
-import { OnInit, OnDestroy, Input, ChangeDetectorRef, Output, EventEmitter, ViewChild } from '@angular/core';
+import {
+    OnInit, OnDestroy, Input, ChangeDetectorRef, Output,
+    EventEmitter, ViewChild,
+} from '@angular/core';
 import { Injectable } from '@angular/core';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib';
-import { getGibInfo, isPrimitive } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { getGibInfo, } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 import * as c from '../constants';
 import { IbgibListItem, IbGibTimelineUpdateInfo } from '../types/ux';
 import { IbgibComponentBase } from './ibgib-component-base';
 import { CommonService } from '../../services/common.service';
 import { unique } from '../helper/utils';
-import { InfiniteScrollCustomEvent, IonContent, IonInfiniteScroll } from '@ionic/angular';
+import { IonContent, IonInfiniteScroll } from '@ionic/angular';
 import { Subject } from 'rxjs/internal/Subject';
 import { Observable, Subscription } from 'rxjs';
 import { debounceTime } from 'rxjs/internal/operators/debounceTime';

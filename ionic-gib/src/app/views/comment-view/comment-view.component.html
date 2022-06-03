@@ -1,5 +1,5 @@
 <!-- non-title comment -->
-<ion-card *ngIf='ibGib && !isTitle' [title]="item?.text || item?.ib || '[html title binding error!]'"
+<ion-card *ngIf='ibGib && !isTitleOrJustSmall' [title]="item?.text || item?.ib || '[html title binding error!]'"
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"
   [style.border-style]="debugBorderStyle"
@@ -10,7 +10,7 @@
 </ion-card>
 
 <!-- title comment -->
-<div *ngIf='ibGib && isTitle' [title]="item?.text || item?.ib || '[html title binding error!]'"
+<div *ngIf='ibGib && isTitleOrJustSmall' [title]="item?.text || item?.ib || '[html title binding error!]'"
   >
   <pre [style.maxHeight]="'100px'" class="is-title">{{ item?.text }}</pre>
 </div>

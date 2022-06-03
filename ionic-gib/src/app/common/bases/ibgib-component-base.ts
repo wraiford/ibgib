@@ -147,7 +147,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     get syncing(): boolean { return this._updatingIbGib || this.item?.syncing; }
 
     @Input()
-    isTitle: boolean;
+    isTitleOrJustSmall: boolean;
 
     get title(): string {
         if (this.isTag) {

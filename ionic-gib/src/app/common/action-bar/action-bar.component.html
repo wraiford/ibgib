@@ -10,12 +10,13 @@
       <ion-spinner *ngIf="item.busy" name="circles" color="tertiary"></ion-spinner>
     </ion-button>
 
+      <!-- (click)='inputFile.click()'> -->
     <ion-button *ngIf='item.type === "inputfile" && (gib !== "gib" || item.allowPrimitive)'
       color="primary"
-      (click)='inputFile.click()'>
+      (click)='item.handler($event)'>
       <ion-icon *ngFor="let iconName of item?.icons" slot="start" [name]="iconName"></ion-icon>
       <ion-spinner *ngIf="item.busy" name="circles" color="tertiary"></ion-spinner>
-      <input #inputFile type="file" hidden (change)='item.filepicked($event)'/>
+      <!-- <input #inputFile type="file" hidden (change)='item.filepicked($event)'/> -->
     </ion-button>
 
     <ion-button *ngIf='item.type === "inputfile-camera" && (gib !== "gib" || item.allowPrimitive)'
@@ -43,25 +44,57 @@
       [debounce]="debounceMs"
       >
     </ion-textarea>
-    <ion-button id="sendBtn" (click)="addComment()" color="primary">
+    <ion-button class="sendBtn" color="primary"
+      [disabled]="sending"
+      (click)="send_AddComment()">
       <ion-icon name="chatbox-outline"></ion-icon>
-      <ion-icon name="arrow-forward-outline"></ion-icon>
+      <ion-icon *ngIf="!sending" name="arrow-forward-outline"></ion-icon>
+      <ion-spinner *ngIf="sending" name="circles" color="tertiary"></ion-spinner>
     </ion-button>
   </div>
-  <div *ngIf="actionDetailMode === 'import'"
-      class="import-detail"
-    >
+  <div *ngIf="actionDetailMode === 'import'" class="import-detail"
+    [disabled]="sending">
     <ion-input #inputImport id="inputImportId"
       (ionChange)="handleImportDetailChange($event)"
       [debounce]="debounceMs"
       >
     </ion-input>
-    <ion-button id="sendBtn" color="primary"
-      (click)="addImport()"
-      >
+    <ion-button class="sendBtn" color="primary"
+      (click)="send_AddImport()"
+      [disabled]="sending">
       <ion-icon name="sparkles-outline"></ion-icon>
       <ion-icon name="download-outline"></ion-icon>
-      <ion-icon name="arrow-forward-outline"></ion-icon>
+      <ion-icon *ngIf="!sending" name="arrow-forward-outline"></ion-icon>
+      <ion-spinner *ngIf="sending" name="circles" color="tertiary"></ion-spinner>
+    </ion-button>
+  </div>
+  <div *ngIf="actionDetailMode === 'file'"
+      class="file-detail"
+    >
+    <ion-list id="thumbnails">
+      <ion-item *ngFor="let candidate of resCreatePicCandidates;trackBy: trackByPicSrc">
+        <ion-thumbnail >
+          <img [src]='candidate.picSrc'/>
+        </ion-thumbnail>
+        <ion-badge slot="end" (click)="cancelPic(candidate)" color="danger">x</ion-badge>
+      </ion-item>
+
+    </ion-list>
+    <ion-button class="thumbnail-like" color="primary" (click)='inputFile2.click()'>
+      <ion-icon name="image-outline"></ion-icon>
+      <input #inputFile2 type="file" hidden (change)="actionAddImage2($event, 'file')"/>
+    </ion-button>
+    <ion-button class="thumbnail-like" color="primary" (click)='inputFile2.click()'>
+      <ion-icon name="camera-outline"></ion-icon>
+      <input #inputFile3 type="file" hidden (change)="actionAddImage2($event, 'camera')"/>
+    </ion-button>
+    <ion-button class="sendBtn" color="primary"
+      (click)="send_AddPics()"
+      [disabled]="sending">
+      <ion-icon name="camera-outline"></ion-icon>
+      <ion-icon name="image-outline"></ion-icon>
+      <ion-icon *ngIf="!sending" name="arrow-forward-outline"></ion-icon>
+      <ion-spinner *ngIf="sending" name="circles" color="tertiary"></ion-spinner>
     </ion-button>
   </div>
 </div>

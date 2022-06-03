@@ -3,7 +3,7 @@ import { Plugins, } from '@capacitor/core';
 const { Modals } = Plugins;
 
 import * as h from 'ts-gib/dist/helper';
-import { IbGibAddr, V1 } from 'ts-gib';
+import { IbGibAddr, TransformResult, V1 } from 'ts-gib';
 import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 
 import * as c from '../constants';
@@ -18,6 +18,8 @@ import { getFnAlert, getFnPrompt } from '../helper/prompt-functions';
 import { getFromSpace, getDependencyGraph } from '../helper/space';
 import { validateIbGibAddr } from '../helper/validate';
 import { IonInput, IonTextarea } from '@ionic/angular';
+import { PicIbGib_V1 } from '../types/pic';
+import { BinIbGib_V1 } from '../types/bin';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -56,18 +58,11 @@ export class ActionBarComponent extends IbgibComponentBase
       handler: async (event) => await this.actionAddComment(event),
     },
     {
-      name: 'camera',
-      type: 'inputfile-camera',
-      text: 'camera',
-      icons: ['camera-outline'],
-      filepicked: async (event) => await this.handleHtml5PicButton(event),
-    },
-    {
       name: 'file',
       type: 'inputfile',
       text: 'image',
       icons: ['image-outline'],
-      filepicked: async (event) => await this.actionAddImage(event, 'file'),
+      handler: async (event) => await this.actionAddImage(event),
     },
     {
       name: 'import',
@@ -113,6 +108,12 @@ export class ActionBarComponent extends IbgibComponentBase
 
   @Input()
   debounceMs: number = 100;
+
+  /**
+   * flag that drives busy indicator of send button
+   */
+  @Input()
+  sending: boolean;
 
   public debugBorderWidth: string = debugBorder ? "22px" : "0px"
   public debugBorderColor: string = "#FFAABB";
@@ -207,11 +208,12 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
-  async addComment(): Promise<void> {
-    const lc = `${this.lc}[${this.addComment.name}]`;
+  async send_AddComment(): Promise<void> {
+    const lc = `${this.lc}[${this.send_AddComment.name}]`;
     let actionItem: ActionItem;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
+      this.sending = true;
 
       // they've clicked the comment button and there is text in the comment
       // text area.
@@ -248,6 +250,7 @@ export class ActionBarComponent extends IbgibComponentBase
     } catch (error) {
       console.error(`${lc} ${error.message}`)
     } finally {
+      this.sending = false;
       this.actionDetailCommentText = '';
       this.focusDetail();
       if (actionItem) {
@@ -260,9 +263,11 @@ export class ActionBarComponent extends IbgibComponentBase
   private async _rel8ToCurrentContext({
     ibGibToRel8,
     rel8nNames,
+    // registerNewContext,
   }: {
     ibGibToRel8: IbGib_V1,
     rel8nNames: string[],
+    // registerNewContext?: boolean,
   }): Promise<void> {
     const lc = `${this.lc}[${this._rel8ToCurrentContext.name}]`;
     try {
@@ -272,7 +277,9 @@ export class ActionBarComponent extends IbgibComponentBase
       // set up the rel8ns to add
       const rel8nsToAddByAddr: IbGibRel8ns_V1 = {};
       const ibGibToRel8Addr = h.getIbGibAddr({ibGib: ibGibToRel8});
-      rel8nNames.forEach((rel8nName) => { rel8nsToAddByAddr[rel8nName] = [ibGibToRel8Addr]; });
+      rel8nNames.forEach((rel8nName) => {
+        rel8nsToAddByAddr[rel8nName] = [ibGibToRel8Addr];
+      });
 
       // perform the rel8 transform and...
       const resRel8ToContext =
@@ -287,8 +294,10 @@ export class ActionBarComponent extends IbgibComponentBase
       await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToContext});
 
       // ...register the context.
-      const { newIbGib: newContext } = resRel8ToContext;
-      await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
+      // if (registerNewContext) {
+        const { newIbGib: newContext } = resRel8ToContext;
+        await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
+      // }
 
       // ping that there is an update to our ibGib, so the "navigation"/"update"
       // can happen
@@ -348,32 +357,77 @@ export class ActionBarComponent extends IbgibComponentBase
   //   }
   // }
 
-  async handleHtml5PicButton(event: any): Promise<void> {
-    await this.actionAddImage(event, 'camera');
+  // async handleHtml5PicButton(event: any): Promise<void> {
+  //   await this.actionAddImage(event, 'camera');
+  // }
+
+  async actionAddImage(_event: MouseEvent): Promise<void> {
+    const lc = `${this.lc}[${this.actionAddImage.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      if (!this.actionDetailVisible) {
+        this.actionDetailMode = 'file';
+        this.actionDetailVisible = true;
+        // this.focusDetail({force: true});
+      } else if (this.actionDetailMode !== 'file') {
+        this.actionDetailMode = 'file';
+        // this.focusDetail({force: true});
+        // setTimeout(() => this.inputImport.setFocus());
+      } else if (this.actionDetailMode === 'file') {
+        this.actionDetailVisible = false;
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
-  async actionAddImage(event: any, actionItemName: ActionItemName): Promise<void> {
-    const lc = `${this.lc}[${this.actionAddImage.name}]`;
+  async actionAddImage2(event: any, actionItemName: ActionItemName): Promise<void> {
+    const lc = `${this.lc}[${this.actionAddImage2.name}]`;
     let actionItem: ActionItem;
     try {
       if (logalot) { console.log(`${lc} starting... (I: d9ef296eec29433fba5d7fd07e9f4a99)`); }
+
       actionItem = this.items.filter(x => x.name === actionItemName)[0];
       actionItem.busy = true;
+
+      // update the action detail visibility
+      if (!this.actionDetailVisible) {
+        this.actionDetailMode = actionItemName;
+        this.actionDetailVisible = true;
+      } else if (this.actionDetailMode !== actionItemName) {
+        this.actionDetailMode = actionItemName;
+      // } else if (this.actionDetailMode === actionItemName) {
+      //   this.actionDetailVisible = false;
+      //   return; /* <<<< returns early */
+      }
+
       const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
 
-      const [resCreatePic, _resCreateBin] = await createPicAndBinIbGibsFromInputFilePickedEvent({
-        event,
-        saveInSpace: true,
-        space,
-      });
-      const newPic = resCreatePic.newIbGib;
-      await this.common.ibgibs.registerNewIbGib({ibGib: newPic, space});
+      await h.delay(100);
 
-      // rel8 to context and nav
-      await this._rel8ToCurrentContext({
-        ibGibToRel8: newPic,
-        rel8nNames: ['pic'],
-      });
+      const [resCreatePic, resCreateBin] =
+        await createPicAndBinIbGibsFromInputFilePickedEvent({
+          event,
+          saveInSpace: false,
+          space,
+        });
+
+      const binData = resCreateBin.newIbGib.data;
+      const picSrc = `data:image/jpeg;base64,${binData}`;
+      if (!this.resCreatePicCandidates.some(x => x.picSrc === picSrc)) {
+        this.resCreatePicCandidates.push({
+          resCreatePic,
+          resCreateBin,
+          picSrc,
+        });
+      } else {
+        console.warn(`${lc} tried to add duplicate pic`);
+      }
+
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       // doesn't rethrow at this level
@@ -386,6 +440,74 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
+  async send_AddPics(): Promise<void> {
+    const lc = `${this.lc}[${this.send_AddPics.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: e3d4a4d3a388bdd65ecb029dcc5d9f22)`); }
+      // do i need to get the space every iteration? hmm...
+      const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
+
+      for (let i = 0; i < this.resCreatePicCandidates.length; i++) {
+
+        if (i > 0) { await h.delay(50); } // helps process messages/UI thread
+
+        // get our transform results and manually save/register them
+        const {resCreatePic, resCreateBin} = this.resCreatePicCandidates[i];
+
+        // do the bin first
+        // persist...
+        await this.common.ibgibs.persistTransformResult({
+          resTransform: resCreateBin,
+          space,
+        });
+        // ...then register
+        await this.common.ibgibs.registerNewIbGib({
+          ibGib: resCreateBin.newIbGib,
+          space
+        });
+
+        // do the pic next...
+        // persist...
+        await this.common.ibgibs.persistTransformResult({
+          resTransform: resCreatePic,
+          space,
+        });
+        // ...then register
+        await this.common.ibgibs.registerNewIbGib({
+          ibGib: resCreatePic.newIbGib,
+          space,
+        });
+
+        // rel8 to context, but only register the absolute last context
+        // in order to avoid navigating to each interim context.
+        await this._rel8ToCurrentContext({
+          ibGibToRel8: resCreatePic.newIbGib,
+          rel8nNames: ['pic'],
+          // only register on the last context
+          // registerNewContext: i === this.resCreatePicCandidates.length-1,
+        });
+
+      }
+
+      this.resCreatePicCandidates = [];
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  /**
+   * we're creating pic/bin ibgibs when user adds one via
+   * file picker or camera. But we don't save/register it yet.
+   * These are just the candidate infos, that when the user presses
+   * the send button, we will add these candidates.
+   */
+  @Input()
+  resCreatePicCandidates: PicCandidate[] = [];
+
   async actionAddImport(_event: MouseEvent): Promise<void> {
     const lc = `${this.lc}[${this.actionAddImport.name}]`;
     try {
@@ -395,11 +517,8 @@ export class ActionBarComponent extends IbgibComponentBase
         this.actionDetailMode = 'import';
         this.actionDetailVisible = true;
         this.focusDetail({force: true});
-        // setTimeout(() => this.inputImport.setFocus());
       } else if (this.actionDetailMode !== 'import') {
         this.actionDetailMode = 'import';
-        // this.ref.detectChanges();
-        // while (!this.inputImport) { await h.delay(100); }
         this.focusDetail({force: true});
         // setTimeout(() => this.inputImport.setFocus());
       } else if (this.actionDetailMode === 'import') {
@@ -438,8 +557,8 @@ export class ActionBarComponent extends IbgibComponentBase
    * Import an ibgib from either the local space or our sync spaces to our
    * current context ibgib.
    */
-  async addImport(): Promise<void> {
-    const lc = `${this.lc}[${this.addImport.name}]`;
+  async send_AddImport(): Promise<void> {
+    const lc = `${this.lc}[${this.send_AddImport.name}]`;
     let actionItem: ActionItem;
     try {
       actionItem = this.items.filter(x => x.name === 'import')[0];
@@ -613,7 +732,7 @@ export class ActionBarComponent extends IbgibComponentBase
     ) {
       event.stopPropagation(); // doesn't work
       event.stopImmediatePropagation(); // doesn't work
-      await this.addComment();
+      await this.send_AddComment();
     }
   }
 
@@ -662,4 +781,34 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
+  async cancelPic(candidateToCancel: PicCandidate): Promise<void> {
+    const lc = `${this.lc}[${this.cancelPic.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: ba5628348b6a05d9e14e9cb6e48c3b22)`); }
+      for (let i = 0; i < this.resCreatePicCandidates.length; i++) {
+        const candidate = this.resCreatePicCandidates[i];
+      }
+
+      this.resCreatePicCandidates = this.resCreatePicCandidates.filter(x => {
+        return x.picSrc !== candidateToCancel.picSrc;
+      });
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+
+    trackByPicSrc(index: number, item: PicCandidate): any {
+      return item.picSrc;
+    }
+}
+
+interface PicCandidate {
+  resCreatePic: TransformResult<PicIbGib_V1>;
+  resCreateBin: TransformResult<BinIbGib_V1>;
+  picSrc: string;
 }

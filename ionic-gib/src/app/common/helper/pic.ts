@@ -211,6 +211,7 @@ export function createPicAndBinIbGibsFromInputFilePickedEvent({
             throw new Error(`file extension cannot contain the character ${IBGIB_DELIMITER} (E: f5bc9ef79f7efe01cd53abd49d9f6122)`);
           }
 
+          await h.delay(32); // slight doProcesses UI thread hack - not sure how much it helps (if any)
           const resCreate = await createPicAndBinIbGibs({
             imageBase64, binHash, filename, ext, saveInSpace, space,
           });

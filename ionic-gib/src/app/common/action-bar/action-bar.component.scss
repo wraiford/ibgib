@@ -38,7 +38,7 @@ ion-button {
 
 }
 
-.comment-detail, .import-detail {
+.comment-detail, .import-detail, .file-detail {
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -56,7 +56,7 @@ ion-button {
     margin: 3px;
 }
 
-#sendBtn {
+.sendBtn {
     // color: var(--ion-color-secondary);
     border-color: var(--ion-color-primary);
     border-radius: 5px;
@@ -71,4 +71,21 @@ ion-button:hover, ion-menu-button:hover {
   border-color: var(--ion-color-secondary) !important;
 //   border-color:rgba(var(--ion-color-primary-rgb), 0.84) !important;
   border-style: solid;
+}
+
+ion-thumbnail {
+  margin: 1px;
+}
+
+.thumbnail-like {
+  margin: 1px;
+}
+
+ion-thumbnail {
+  border-radius: 5px;
+}
+
+#thumbnails {
+  display: flex;
+  flex-direction: row;
 }
