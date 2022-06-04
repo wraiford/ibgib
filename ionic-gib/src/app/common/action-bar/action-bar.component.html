@@ -1,7 +1,8 @@
 <!-- action buttons (comment, pic, import) at the top of the bar -->
+<!-- NOTE: does not use segment quite correctly atm, using (click) instead of (ionChange) on segment -->
 <ion-segment id="action-buttons" value="comment" color="secondary">
   <ion-segment-button *ngFor='let item of items'
-    color="primary" [disabled]="item.busy" (click)='item.handler($event)'
+    color="primary" [disabled]="!canSend" (click)='item.handler($event)'
     [value]="item.text"
     >
     <div *ngIf='item.type === "button" && (gib !== "gib" || item.allowPrimitive)' color="primary">
@@ -15,23 +16,6 @@
     </div>
   </ion-segment-button>
 </ion-segment>
-<!-- does not use segment ...delete this in awhile -->
-<!-- <div id="action-buttons">
-  <div *ngFor='let item of items'>
-    <ion-button *ngIf='item.type === "button" && (gib !== "gib" || item.allowPrimitive)'
-      color="primary" [disabled]="item.busy" (click)='item.handler($event)'>
-      <ion-icon *ngFor="let iconName of item?.icons" slot="start" [name]="iconName"></ion-icon>
-      <ion-spinner *ngIf="item.busy" name="circles" color="tertiary"></ion-spinner>
-    </ion-button>
-
-    <ion-button *ngIf='item.type === "inputfile" && (gib !== "gib" || item.allowPrimitive)'
-      color="primary"
-      (click)='item.handler($event)'>
-      <ion-icon *ngFor="let iconName of item?.icons" slot="start" [name]="iconName"></ion-icon>
-      <ion-spinner *ngIf="item.busy" name="circles" color="tertiary"></ion-spinner>
-    </ion-button>
-  </div>
-</div> -->
 
 <!-- action detail -->
 <div *ngIf="actionDetailVisible && gib !== 'gib'" class="action-detail">
@@ -47,9 +31,9 @@
       >
     </ion-textarea>
     <ion-button class="send-btn" color="primary"
-      [disabled]="sending"
+      [disabled]="!canSend"
       (click)="send_AddComment()">
-      <ion-icon name="chatbox-outline"></ion-icon>
+      <!-- <ion-icon name="chatbox-outline"></ion-icon> -->
       <ion-icon *ngIf="!sending" name="arrow-forward-outline"></ion-icon>
       <ion-spinner *ngIf="sending" name="circles" color="tertiary"></ion-spinner>
     </ion-button>
@@ -84,15 +68,16 @@
         [disabled]="sending" slot="icon-only" size="small">
         <ion-icon name="camera-outline"></ion-icon>
         <ion-badge slot="end">+</ion-badge>
-        <input #inputFile_Cam type="file" hidden (change)="handleAddFileCamClick($event, 'camera')"/>
+        <input #inputFile_Cam type="file" hidden (change)="handleAddFileCamClick($event, 'camera')" accept="image/*" capture/>
+        <!-- <input #inputFileCapture type="file" hidden (change)='item.filepicked($event)' accept="image/*" capture/> -->
       </ion-button>
     </div>
     <!-- send btn -->
     <ion-button class="send-btn" color="primary"
       (click)="send_AddPics()"
-      [disabled]="sending">
-      <ion-icon name="camera-outline"></ion-icon>
-      <ion-icon name="image-outline"></ion-icon>
+      [disabled]="!canSend">
+      <!-- <ion-icon name="camera-outline"></ion-icon>
+      <ion-icon name="image-outline"></ion-icon> -->
       <ion-icon *ngIf="!sending" name="arrow-forward-outline"></ion-icon>
       <ion-spinner *ngIf="sending" name="circles" color="tertiary"></ion-spinner>
     </ion-button>
@@ -107,9 +92,9 @@
     </ion-input>
     <ion-button class="send-btn" color="primary"
       (click)="send_AddImport()"
-      [disabled]="sending">
-      <ion-icon name="sparkles-outline"></ion-icon>
-      <ion-icon name="download-outline"></ion-icon>
+      [disabled]="!canSend">
+      <!-- <ion-icon name="sparkles-outline"></ion-icon>
+      <ion-icon name="download-outline"></ion-icon> -->
       <ion-icon *ngIf="!sending" name="arrow-forward-outline"></ion-icon>
       <ion-spinner *ngIf="sending" name="circles" color="tertiary"></ion-spinner>
     </ion-button>

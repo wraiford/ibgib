@@ -115,6 +115,15 @@ export class ActionBarComponent extends IbgibComponentBase
   @Input()
   sending: boolean;
 
+  @Input()
+  get addingPic(): boolean { return this._addingPicRefCount > 0; }
+  private _addingPicRefCount: number = 0;
+
+  @Input()
+  get canSend(): boolean {
+    return !this.sending && !this.addingPic;
+  }
+
   public debugBorderWidth: string = debugBorder ? "22px" : "0px"
   public debugBorderColor: string = "#FFAABB";
   public debugBorderStyle: string = "solid";
@@ -303,52 +312,6 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
-  //  This function is not in use because Camera is very limited. Commenting out
-  //  for now, delete this later after download pic is implemented correctly.
-  // /**
-  //  * This function uses the Capacitor Camera to add a picture, create the ibgib,
-  //  * save, etc.
-  //  */
-  // async actionAddPic(event: MouseEvent): Promise<void> {
-  //   const lc = `${this.lc}[${this.actionAddPic.name}]`;
-  //   let actionItem: ActionItem;
-  //   try {
-  //     actionItem = this.items.filter(x => x.name === 'camera')[0];
-  //     actionItem.busy = true;
-
-  //     // get the image from the camera
-  //     const image = await Camera.getPhoto({
-  //       quality: 90,
-  //       allowEditing: false,
-  //       resultType: CameraResultType.Base64,
-  //     });
-  //     // save the image bin data
-  //     // get the hash of the image
-  //     const binHash = await hash({s: image.base64String});
-  //     const ext = image.format;
-
-  //     const newPic = await createAndAddPicIbGib({
-  //       imageBase64: image.base64String,
-  //       binHash,
-  //       ext,
-  //       common: this.common
-  //     });
-
-  //     // rel8 to context and nav
-  //     await this._rel8ToCurrentContext({
-  //       ibGibToRel8: newPic,
-  //       rel8nNames: ['pic'],
-  //     });
-  //   } catch (error) {
-  //     console.error(`${lc} ${error.message}`)
-  //   } finally {
-  //     if (actionItem) {
-  //       actionItem.busy = false;
-  //       this.ref.detectChanges();
-  //     }
-  //   }
-  // }
-
   async actionAddImage(_event: MouseEvent): Promise<void> {
     const lc = `${this.lc}[${this.actionAddImage.name}]`;
     try {
@@ -378,6 +341,7 @@ export class ActionBarComponent extends IbgibComponentBase
 
       actionItem = this.items.filter(x => x.name === 'file')[0];
       actionItem.busy = true;
+      this._addingPicRefCount++;
 
       const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
 
@@ -407,6 +371,7 @@ export class ActionBarComponent extends IbgibComponentBase
       // doesn't rethrow at this level
     } finally {
       if (actionItem) { actionItem.busy = false; }
+      this._addingPicRefCount--;
       if (logalot) { console.log(`${lc} complete. (I: d88dcaeb874c4f049d51d58655dc2b62)`); }
       this.ref.detectChanges();
     }
