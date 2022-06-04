@@ -217,12 +217,6 @@ export function createPicAndBinIbGibsFromInputFilePickedEvent({
           });
           resolve(resCreate);
 
-          // rel8 to context and nav
-          // await _rel8ToCurrentContext({
-          //   ibGibToRel8: newPic,
-          //   rel8nNames: ['pic'],
-          //   navigateAfter: true,
-          // });
         } catch (error) {
           console.error(`${lc2} ${error.message}`);
           reject(error);

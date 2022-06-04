@@ -1,76 +1,100 @@
 :host {
-    overflow-x: scroll;
-    // overflow-y: hidden;
-    // height: 100%;
-    height: auto;
-    width: 100%;
+  overflow-x: scroll;
+  height: auto;
+  width: 100%;
 
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
-#inputFile, #inputFileCapture {
-    height: 0px;
-    width: 0px;
-    margin: 0px;
-    padding: 0px;
+$highlightBorderWidth: 3px;
+
+#inputFile,
+#inputFileCapture {
+  height: 0px;
+  width: 0px;
+  margin: 0px;
+  padding: 0px;
 }
 
 ion-icon {
-    margin: 0px;
+  margin: 0px;
 }
 
 ion-button {
   border-radius: 5px;
 }
 
-.action-buttons {
-    height: 100%;
-    width: 99%;
-    display: flex;
-    flex-direction: row;
+#action-buttons {
+  height: 100%;
+  width: 99%;
+  display: flex;
+  flex-direction: row;
+
+  ion-button {
+    border-width: $highlightBorderWidth !important;
+    border-color: transparent;
+    border-style: solid;
+  }
 }
 
 .action-detail {
-    height: 100%;
-    width: 99%;
-    // height: 150px;
-
+  height: 100%;
+  width: 99%;
 }
 
-.comment-detail, .import-detail, .file-detail {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
+.comment-detail,
+.import-detail,
+.file-detail {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 
-    // color: var(--ion-color-primary);
-    // border-style: solid;
-    // border-width: 2px;
-    border-color: var(--ion-color-primary);
-    border-style: solid;
-    border-width: 1px;
-    border-radius: 5px;
+  border-color: var(--ion-color-primary);
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 5px;
 }
 
-#textareaCommentId, #inputImportId {
-    margin: 3px;
+#textareaCommentId,
+#inputImportId {
+  margin: 3px;
 }
 
-.sendBtn {
-    // color: var(--ion-color-secondary);
-    border-color: var(--ion-color-primary);
-    border-radius: 5px;
-    border-width: 1px;
-    border-style: solid;
+.detail-content {
+  width: 90%;
 }
 
-ion-button:hover, ion-menu-button:hover {
-  border-width: 2px !important;
-//   color:rgba(var(--ion-color-primary-rgb), 0.14) !important;
+.file-detail-content {
+  display: flex;
+  flex-direction: row;
+  justify-content: start;
+  align-items: center;
+  overflow-x: scroll;
+}
+
+.send-btn {
+  width: 10%;
+  padding: 1px 2px 1px 2px;
+  border-color: var(--ion-color-primary);
+  border-radius: 5px;
+  border-width: 1px;
+  border-style: solid;
+  font-size: 1em;
+  --padding-start: 5px;
+  --padding-end: 5px;
+}
+
+ion-button:hover,
+ion-menu-button:hover {
+  border-width: $highlightBorderWidth !important;
   color: var(--ion-color-secondary);
   border-color: var(--ion-color-secondary) !important;
-//   border-color:rgba(var(--ion-color-primary-rgb), 0.84) !important;
   border-style: solid;
+
+  ion-badge {
+    color: var(--ion-color-secondary) !important;
+  }
 }
 
 ion-thumbnail {
@@ -78,14 +102,76 @@ ion-thumbnail {
 }
 
 .thumbnail-like {
-  margin: 1px;
+  margin: 4px;
+  background: transparent;
+  height: 50px;
+  width: 50px;
+
+  ion-badge {
+    position: absolute;
+    font-size: 10pt;
+    right: 0px;
+    top: 0px;
+    cursor: pointer;
+    border-radius: 50%;
+    height: 30%;
+    width: 30%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    ion-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    span {
+      cursor: pointer;
+    }
+  }
 }
 
-ion-thumbnail {
-  border-radius: 5px;
+#thumbnails {
+  ion-item {
+    --padding-start: 0px;
+    --inner-padding-end: 0px;
+    border-radius: 10px;
+  }
 }
+
 
 #thumbnails {
   display: flex;
   flex-direction: row;
+  padding: 0px;
+  margin: 0px;
+  background: transparent;
+}
+
+
+.thumbnail-btn {
+  --background: transparent !important;
+  color: var(--ion-color-primary);
+  border-color: var(--ion-color-primary);
+  border-width: 1px;
+  border-style: dashed;
+  border-radius: 5px;
+  padding: 0px;
+
+  ion-badge {
+    position: absolute;
+    background: transparent;
+    color: var(--ion-color-primary);
+    font-size: 8pt;
+    right: -5px;
+    top: 5px;
+    cursor: pointer;
+
+    span {
+      cursor: pointer;
+    }
+  }
+
 }

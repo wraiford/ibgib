@@ -253,10 +253,8 @@ export class ActionBarComponent extends IbgibComponentBase
       this.sending = false;
       this.actionDetailCommentText = '';
       this.focusDetail();
-      if (actionItem) {
-        actionItem.busy = false;
-        this.ref.detectChanges();
-      }
+      if (actionItem) { actionItem.busy = false; }
+      this.ref.detectChanges();
     }
   }
 
@@ -299,12 +297,6 @@ export class ActionBarComponent extends IbgibComponentBase
         await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
       // }
 
-      // ping that there is an update to our ibGib, so the "navigation"/"update"
-      // can happen
-      // await this.common.ibgibs.pingLatest_Local({
-      //   ibGib: this.ibGib,
-      //   tjp: this.tjp,
-      // });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -357,10 +349,6 @@ export class ActionBarComponent extends IbgibComponentBase
   //   }
   // }
 
-  // async handleHtml5PicButton(event: any): Promise<void> {
-  //   await this.actionAddImage(event, 'camera');
-  // }
-
   async actionAddImage(_event: MouseEvent): Promise<void> {
     const lc = `${this.lc}[${this.actionAddImage.name}]`;
     try {
@@ -369,11 +357,8 @@ export class ActionBarComponent extends IbgibComponentBase
       if (!this.actionDetailVisible) {
         this.actionDetailMode = 'file';
         this.actionDetailVisible = true;
-        // this.focusDetail({force: true});
       } else if (this.actionDetailMode !== 'file') {
         this.actionDetailMode = 'file';
-        // this.focusDetail({force: true});
-        // setTimeout(() => this.inputImport.setFocus());
       } else if (this.actionDetailMode === 'file') {
         this.actionDetailVisible = false;
       }
@@ -385,25 +370,14 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
-  async actionAddImage2(event: any, actionItemName: ActionItemName): Promise<void> {
-    const lc = `${this.lc}[${this.actionAddImage2.name}]`;
+  async handleAddFileCamClick(event: any, actionItemName: ActionItemName): Promise<void> {
+    const lc = `${this.lc}[${this.handleAddFileCamClick.name}]`;
     let actionItem: ActionItem;
     try {
       if (logalot) { console.log(`${lc} starting... (I: d9ef296eec29433fba5d7fd07e9f4a99)`); }
 
-      actionItem = this.items.filter(x => x.name === actionItemName)[0];
+      actionItem = this.items.filter(x => x.name === 'file')[0];
       actionItem.busy = true;
-
-      // update the action detail visibility
-      if (!this.actionDetailVisible) {
-        this.actionDetailMode = actionItemName;
-        this.actionDetailVisible = true;
-      } else if (this.actionDetailMode !== actionItemName) {
-        this.actionDetailMode = actionItemName;
-      // } else if (this.actionDetailMode === actionItemName) {
-      //   this.actionDetailVisible = false;
-      //   return; /* <<<< returns early */
-      }
 
       const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
 
@@ -432,11 +406,9 @@ export class ActionBarComponent extends IbgibComponentBase
       console.error(`${lc} ${error.message}`);
       // doesn't rethrow at this level
     } finally {
-      if (actionItem) {
-        actionItem.busy = false;
-        this.ref.detectChanges();
-      }
+      if (actionItem) { actionItem.busy = false; }
       if (logalot) { console.log(`${lc} complete. (I: d88dcaeb874c4f049d51d58655dc2b62)`); }
+      this.ref.detectChanges();
     }
   }
 
@@ -444,6 +416,8 @@ export class ActionBarComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.send_AddPics.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: e3d4a4d3a388bdd65ecb029dcc5d9f22)`); }
+      this.sending = true;
+
       // do i need to get the space every iteration? hmm...
       const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
 
@@ -495,6 +469,8 @@ export class ActionBarComponent extends IbgibComponentBase
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
+      this.sending = false;
+      this.ref.detectChanges();
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
@@ -520,7 +496,6 @@ export class ActionBarComponent extends IbgibComponentBase
       } else if (this.actionDetailMode !== 'import') {
         this.actionDetailMode = 'import';
         this.focusDetail({force: true});
-        // setTimeout(() => this.inputImport.setFocus());
       } else if (this.actionDetailMode === 'import') {
         this.actionDetailVisible = false;
       }
@@ -563,6 +538,7 @@ export class ActionBarComponent extends IbgibComponentBase
     try {
       actionItem = this.items.filter(x => x.name === 'import')[0];
       actionItem.busy = true;
+      this.sending = true;
 
       if (!this.ibGib) { throw new Error(`There isn't a current ibGib loaded...?`); }
       if (!this.addr) { throw new Error(`There isn't a current ibGib addr loaded...?`); }
@@ -570,10 +546,6 @@ export class ActionBarComponent extends IbgibComponentBase
       const fnAlert = getFnAlert();
 
       if (logalot) { console.log(`${lc} prompting for address to import.`); }
-
-      // const addr = resAddr;
-      // const addr = await this.promptForImportAddr();
-      // if (!addr) { return; } // <<<< returns early
 
       const addr = this.actionDetailImportText;
 
@@ -626,7 +598,6 @@ export class ActionBarComponent extends IbgibComponentBase
         if (resGet.success) {
           if (resGet.ibGibs?.length === 1) {
             if (logalot) { console.log(`${lc} found ibgib (${addr}) in space (${spaceAddr}).`); }
-            // let rawResult = <SyncSpaceResultIbGib>resGet.rawResultIbGib;
             // at this point, we have a copy of the ibGib, but what about the entire dependency graph?
             // we need to sync up the ibGib
             gotIbGib = resGet.ibGibs[0];
@@ -691,6 +662,7 @@ export class ActionBarComponent extends IbgibComponentBase
       await Modals.alert({title: 'something went awry...', message: error.message});
     } finally {
       actionItem.busy = false;
+      this.sending = false;
       this.ref.detectChanges();
     }
   }
@@ -785,9 +757,9 @@ export class ActionBarComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.cancelPic.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: ba5628348b6a05d9e14e9cb6e48c3b22)`); }
-      for (let i = 0; i < this.resCreatePicCandidates.length; i++) {
-        const candidate = this.resCreatePicCandidates[i];
-      }
+      // for (let i = 0; i < this.resCreatePicCandidates.length; i++) {
+      //   const candidate = this.resCreatePicCandidates[i];
+      // }
 
       this.resCreatePicCandidates = this.resCreatePicCandidates.filter(x => {
         return x.picSrc !== candidateToCancel.picSrc;
@@ -801,10 +773,9 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
-
-    trackByPicSrc(index: number, item: PicCandidate): any {
-      return item.picSrc;
-    }
+  trackByPicSrc(index: number, item: PicCandidate): any {
+    return item.picSrc;
+  }
 }
 
 interface PicCandidate {
