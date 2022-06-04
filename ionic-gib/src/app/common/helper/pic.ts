@@ -168,7 +168,7 @@ export async function createPicAndBinIbGibs({
   }
 }
 
-export function createPicAndBinIbGibsFromInputFilePickedEvent({
+export async function createPicAndBinIbGibsFromInputFilePickedEvent({
   event,
   saveInSpace,
   space,
@@ -181,7 +181,7 @@ export function createPicAndBinIbGibsFromInputFilePickedEvent({
    */
   saveInSpace?: boolean,
   space: IbGibSpaceAny,
-}): Promise<[TransformResult<PicIbGib_V1>, TransformResult<BinIbGib_V1>]> {
+}): Promise<[TransformResult<PicIbGib_V1>, TransformResult<BinIbGib_V1>][]> {
   const lc = `[${createPicAndBinIbGibsFromInputFilePickedEvent.name}]`;
   try {
     // validate incoming input picker result
@@ -189,43 +189,54 @@ export function createPicAndBinIbGibsFromInputFilePickedEvent({
     const target = event.target as HTMLInputElement;
     if (!target) { throw new Error(`event.target required (E: a9ade57d4359d3b0bbc75c3fea093a22)`); }
     if ((target.files ?? []).length === 0) { throw new Error(`target.files is falsy/empty (E: f2932f1012c9e04a5f06a521a381ff22)`); }
-    const file = target.files[0];
-    if (!file) { throw new Error(`file required. (E: 24a8bf4cdf17dcae04b15438bc0a4522)`); }
-    const pattern = /image-*/;
-    if (!file.type.match(pattern)) { throw new Error(`File format not supported (E: dca558def013c1c85c83f0ac088b2122)`); }
 
-    // wrap reader in promise for use with async/await
-    return new Promise<[TransformResult<PicIbGib_V1>, TransformResult<BinIbGib_V1>]>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = async (_: any) => {
-        const lc2 = `${lc}[reader.onload]`;
-        try {
-          if (logalot) { console.log(`${lc2} starting... (I: 1e948476ca86b328a12700dc57be0a22)`); }
-          let imageBase64 = reader.result.toString().split('base64,')[1];
-          let binHash = await h.hash({s: imageBase64});
-          const filenameWithExt = file.name;
-          const filenamePieces = filenameWithExt.split('.');
-          const filename = filenamePieces.slice(0, filenamePieces.length-1).join('.');
-          const ext = filenamePieces.slice(filenamePieces.length-1)[0];
-          if (ext.includes(IBGIB_DELIMITER)) {
-            throw new Error(`file extension cannot contain the character ${IBGIB_DELIMITER} (E: f5bc9ef79f7efe01cd53abd49d9f6122)`);
-          }
+    const result: [TransformResult<PicIbGib_V1>, TransformResult<BinIbGib_V1>][] = [];
 
-          await h.delay(32); // slight doProcesses UI thread hack - not sure how much it helps (if any)
-          const resCreate = await createPicAndBinIbGibs({
-            imageBase64, binHash, filename, ext, saveInSpace, space,
-          });
-          resolve(resCreate);
+    // going to execute serially to maintain order of incoming target files
+    // IOW not going to do a Promise.all equivalent
+    for (let i = 0; i < target.files.length; i++) {
+      const file = target.files[i];
+      if (!file) { throw new Error(`file required. (E: 24a8bf4cdf17dcae04b15438bc0a4522)`); }
+      const pattern = /image-*/;
+      if (!file.type.match(pattern)) { throw new Error(`File format not supported. file: ${file} (E: dca558def013c1c85c83f0ac088b2122)`); }
+      // wrap reader in promise for use with async/await
+      const resSingleCreate =
+        await new Promise<[TransformResult<PicIbGib_V1>, TransformResult<BinIbGib_V1>]>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = async (_: any) => {
+            const lc2 = `${lc}[reader.onload]`;
+            try {
+              if (logalot) { console.log(`${lc2} starting... (I: 1e948476ca86b328a12700dc57be0a22)`); }
+              let imageBase64 = reader.result.toString().split('base64,')[1];
+              let binHash = await h.hash({s: imageBase64});
+              const filenameWithExt = file.name;
+              const filenamePieces = filenameWithExt.split('.');
+              const filename = filenamePieces.slice(0, filenamePieces.length-1).join('.');
+              const ext = filenamePieces.slice(filenamePieces.length-1)[0];
+              if (ext.includes(IBGIB_DELIMITER)) {
+                throw new Error(`file extension cannot contain the character ${IBGIB_DELIMITER} (E: f5bc9ef79f7efe01cd53abd49d9f6122)`);
+              }
 
-        } catch (error) {
-          console.error(`${lc2} ${error.message}`);
-          reject(error);
-        } finally {
-          if (logalot) { console.log(`${lc2} complete. (I: d88dcaeb874c4f049d51d58655dc2b62)`); }
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+              await h.delay(32); // slight doProcesses UI thread hack - not sure how much it helps (if any)
+              const resCreate = await createPicAndBinIbGibs({
+                imageBase64, binHash, filename, ext, saveInSpace, space,
+              });
+              resolve(resCreate);
+
+            } catch (error) {
+              console.error(`${lc2} ${error.message}`);
+              reject(error);
+            } finally {
+              if (logalot) { console.log(`${lc2} complete. (I: d88dcaeb874c4f049d51d58655dc2b62)`); }
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+
+      result.push(resSingleCreate);
+    }
+
+    return result;
 
   } catch (error) {
     console.error(`${lc} ${error.message}`);

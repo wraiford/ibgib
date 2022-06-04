@@ -316,10 +316,9 @@ export class UpdatePicModalFormComponent
 
       // create the pic (and all other dependency ibgibs), but do not save yet.
       // we will save when the user chooses save update.
-      const [resCreatePic, resCreateBin] = await createPicAndBinIbGibsFromInputFilePickedEvent({
+      const [resCreatePic, resCreateBin] = (await createPicAndBinIbGibsFromInputFilePickedEvent({
         event, saveInSpace: false, space,
-      });
-
+      }))[0];
 
       // populate our fields for the updated pic candidate
       this.resCreatePic = resCreatePic;

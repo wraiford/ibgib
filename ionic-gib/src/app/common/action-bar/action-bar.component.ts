@@ -347,23 +347,26 @@ export class ActionBarComponent extends IbgibComponentBase
 
       await h.delay(100);
 
-      const [resCreatePic, resCreateBin] =
+      const resCreatePicBins =
         await createPicAndBinIbGibsFromInputFilePickedEvent({
           event,
           saveInSpace: false,
           space,
         });
 
-      const binData = resCreateBin.newIbGib.data;
-      const picSrc = `data:image/jpeg;base64,${binData}`;
-      if (!this.resCreatePicCandidates.some(x => x.picSrc === picSrc)) {
-        this.resCreatePicCandidates.push({
-          resCreatePic,
-          resCreateBin,
-          picSrc,
-        });
-      } else {
-        console.warn(`${lc} tried to add duplicate pic`);
+      for (let i = 0; i < resCreatePicBins.length; i++) {
+        const [resCreatePic, resCreateBin] = resCreatePicBins[i];
+        const binData = resCreateBin.newIbGib.data;
+        const picSrc = `data:image/jpeg;base64,${binData}`;
+        if (!this.resCreatePicCandidates.some(x => x.picSrc === picSrc)) {
+          this.resCreatePicCandidates.push({
+            resCreatePic,
+            resCreateBin,
+            picSrc,
+          });
+        } else {
+          console.warn(`${lc} tried to add duplicate pic`);
+        }
       }
 
     } catch (error) {

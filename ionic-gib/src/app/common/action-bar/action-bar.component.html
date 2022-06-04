@@ -61,7 +61,7 @@
         [disabled]="sending" slot="icon-only" size="small">
         <ion-icon name="image-outline"></ion-icon>
         <ion-badge slot="end">+</ion-badge>
-        <input #inputFile type="file" hidden (change)="handleAddFileCamClick($event, 'file')"/>
+        <input #inputFile type="file" hidden (change)="handleAddFileCamClick($event, 'file')" accept="image/*" multiple/>
       </ion-button>
       <!-- add from camera btn -->
       <ion-button class="thumbnail-btn thumbnail-like" (click)='inputFile_Cam.click()'
