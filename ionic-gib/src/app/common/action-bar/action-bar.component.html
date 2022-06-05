@@ -18,11 +18,12 @@
 </ion-segment>
 
 <!-- action detail -->
-<div *ngIf="actionDetailVisible && gib !== 'gib'" class="action-detail">
+<div *ngIf="actionDetailVisible && gib !== 'gib'" id="action-detail">
 
   <!-- comment -->
-  <div *ngIf="actionDetailMode === 'comment'" class="comment-detail" >
+  <div *ngIf="actionDetailMode === 'comment'" class="detail-container" >
     <ion-textarea #textareaComment id="textareaCommentId" class="detail-content"
+      rows="14"
       (ionChange)="handleCommentDetailChange($event)"
       (keypress)="handleCommentDetailInput($event)"
       autocomplete="true"
@@ -30,7 +31,7 @@
       [debounce]="debounceMs"
       >
     </ion-textarea>
-    <ion-button class="send-btn" color="primary"
+    <ion-button class="detail-send-btn" color="primary"
       [disabled]="!canSend"
       (click)="send_AddComment()">
       <!-- <ion-icon name="chatbox-outline"></ion-icon> -->
@@ -40,7 +41,7 @@
   </div>
 
   <!-- pics/files -->
-  <div *ngIf="actionDetailMode === 'file'" class="file-detail">
+  <div *ngIf="actionDetailMode === 'file'" class="detail-container">
     <div class="detail-content file-detail-content">
       <!-- thumbnails -->
       <ion-list id="thumbnails">
@@ -73,7 +74,7 @@
       </ion-button>
     </div>
     <!-- send btn -->
-    <ion-button class="send-btn" color="primary"
+    <ion-button class="detail-send-btn" color="primary"
       (click)="send_AddPics()"
       [disabled]="!canSend">
       <!-- <ion-icon name="camera-outline"></ion-icon>
@@ -84,13 +85,13 @@
   </div>
 
   <!-- import -->
-  <div *ngIf="actionDetailMode === 'import'" class="import-detail" [disabled]="sending">
+  <div *ngIf="actionDetailMode === 'import'" class="detail-container" [disabled]="sending">
     <ion-input #inputImport id="inputImportId" class="detail-content"
       (ionChange)="handleImportDetailChange($event)"
       [debounce]="debounceMs"
       >
     </ion-input>
-    <ion-button class="send-btn" color="primary"
+    <ion-button class="detail-send-btn" color="primary"
       (click)="send_AddImport()"
       [disabled]="!canSend">
       <!-- <ion-icon name="sparkles-outline"></ion-icon>

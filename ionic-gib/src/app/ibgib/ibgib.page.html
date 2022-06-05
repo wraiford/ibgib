@@ -216,10 +216,18 @@
 
 </ion-content>
 
-<ion-footer>
-    <!-- [style.height]="actionBarHeightPerPlatform" -->
-  <action-bar #actionBar
-    [addr]='addr' [ibGib_Context]='ibGib'
-    >
-  </action-bar>
-</ion-footer>
+<ion-modal #bottomSheet id="bottom-sheet-modal"
+  [isOpen]="true"
+  [breakpoints]="[0.1, 1]"
+  [initialBreakpoint]="0.1"
+  canDismiss="false"
+>
+  <ng-template>
+    <ion-content>
+      <action-bar #actionBar [addr]='addr' [ibGib_Context]='ibGib'></action-bar>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+<!-- <ion-footer>
+  <action-bar #actionBar [addr]='addr' [ibGib_Context]='ibGib'></action-bar>
+</ion-footer> -->

@@ -203,3 +203,18 @@ ion-button:hover, ion-menu-button:hover, #robbot-name:hover {
   height: 20%;
   width: 77%;
 }
+
+#bottom-sheet-modal {
+
+  // width: 100%;
+  --height: 55%;
+
+  ion-content {
+    height: 95%;
+  }
+
+  action-bar {
+    height: 100%;
+    width: 100%;
+  }
+}

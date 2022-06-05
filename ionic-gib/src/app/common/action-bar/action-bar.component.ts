@@ -1,4 +1,8 @@
-import { Component, OnInit, ChangeDetectorRef, Input, ViewChild, AfterViewInit, Output, EventEmitter } from '@angular/core';
+import {
+  Component, OnInit, ChangeDetectorRef,
+  Input, ViewChild, AfterViewInit,
+} from '@angular/core';
+import { IonInput, IonTextarea } from '@ionic/angular';
 import { Plugins, } from '@capacitor/core';
 const { Modals } = Plugins;
 
@@ -7,7 +11,7 @@ import { IbGibAddr, TransformResult, V1 } from 'ts-gib';
 import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 
 import * as c from '../constants';
-import { CommonService } from 'src/app/services/common.service';
+import { CommonService } from '../../services/common.service';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { IbgibComponentBase } from '../bases/ibgib-component-base';
 import { SyncSpaceResultIbGib } from '../types/outer-space';
@@ -17,7 +21,6 @@ import { createCommentIbGib } from '../helper/comment';
 import { getFnAlert, getFnPrompt } from '../helper/prompt-functions';
 import { getFromSpace, getDependencyGraph } from '../helper/space';
 import { validateIbGibAddr } from '../helper/validate';
-import { IonInput, IonTextarea } from '@ionic/angular';
 import { PicIbGib_V1 } from '../types/pic';
 import { BinIbGib_V1 } from '../types/bin';
 
