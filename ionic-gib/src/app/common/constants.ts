@@ -1595,3 +1595,5 @@ export const GESTURE_DOUBLE_CLICK_THRESHOLD_MS = 500;
 export const GESTURE_CLICK_TOLERANCE_ONMOVE_THRESHOLD_COUNT = 5;
 
 // #endregion gestures
+
+export const SIMPLE_CONFIG_KEY_ROBBOT_VISIBLE = 'robbotBarVisible';

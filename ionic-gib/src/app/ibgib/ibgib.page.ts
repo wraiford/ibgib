@@ -4,7 +4,7 @@ import {
 import { ActivatedRoute } from '@angular/router';
 import { Subscription, interval, Observable, Subject, fromEvent } from 'rxjs';
 import { ActionSheetOptionStyle, Capacitor, FilesystemDirectory, FilesystemEncoding, Plugins } from '@capacitor/core';
-const { Modals, Clipboard, Filesystem } = Plugins;
+const { Modals, Clipboard, Filesystem, Storage } = Plugins;
 
 import * as h from 'ts-gib';
 import { IbGibAddr, V1 } from 'ts-gib';
@@ -165,6 +165,7 @@ export class IbGibPage extends IbgibComponentBase
         await h.delay(100);
       }
       this.initScroll();
+      this.initLastViewConfiguration();
       this.subscribeParamMap();
       // if (this.common.platform.is('mobileweb')) {
       //   this.actionBarHeightPerPlatform = '110px !important';
@@ -449,6 +450,7 @@ export class IbGibPage extends IbgibComponentBase
       if (logalot) { console.log(`${lc} starting...`); }
 
       this.robbotBarIsVisible = !this.robbotBarIsVisible;
+      await Storage.set({key: c.SIMPLE_CONFIG_KEY_ROBBOT_VISIBLE, value: this.robbotBarIsVisible ? 'true' : 'false'});
       setTimeout(() => this.ref.detectChanges());
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -785,6 +787,20 @@ export class IbGibPage extends IbgibComponentBase
     if (this._subScroll) {
       this._subScroll.unsubscribe();
       delete this._subScroll;
+    }
+  }
+
+  private async initLastViewConfiguration(): Promise<void> {
+    const lc = `${this.lc}[${this.initLastViewConfiguration.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 2adbf456b36360f661d72f18de3eed22)`); }
+      this.robbotBarIsVisible =
+        (await Storage.get({key: c.SIMPLE_CONFIG_KEY_ROBBOT_VISIBLE}))?.value === 'true' ?? false;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 

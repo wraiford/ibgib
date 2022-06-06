@@ -1,3 +1,5 @@
+@import '../../theme/size-variables.scss';
+
 :host {
   box-sizing: border-box !important;
   scrollbar-color: var(--ion-color-primary) transparent;
@@ -66,11 +68,33 @@ pre {
   flex-direction: row;
 }
 
+
 ion-footer {
-  height: 15%;
+  height: 25%;
   // height: 300px;
   // display: flex;
   // flex-direction: row;
+}
+
+@media (min-height: $xs-height) and (max-height: $sm-height) {
+  ion-footer {
+    height: 22% !important;
+  }
+}
+@media (min-height: $sm-height) and (max-height: $md-height) {
+  ion-footer {
+    height: 17% !important;
+  }
+}
+@media (min-height: $md-height) and (max-height: $lg-height) {
+  ion-footer {
+    height: 13% !important;
+  }
+}
+@media (min-height: $lg-height) and (max-height: $xl-height) {
+  ion-footer {
+    height: 10% !important;
+  }
 }
 
 .toolbar-title-btn {
