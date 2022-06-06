@@ -89,7 +89,7 @@
 
   <!-- import -->
   <div *ngIf="actionDetailMode === 'import'" class="detail-container" [disabled]="sending">
-    <ion-textarea #inputImport id="inputImportId" class="detail-content"
+    <ion-textarea #inputImport id="textareaImportId" class="detail-content"
       (ionChange)="handleImportDetailChange($event)"
       [debounce]="debounceMs"
       spellcheck="false"

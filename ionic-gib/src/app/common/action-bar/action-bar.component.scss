@@ -1,4 +1,4 @@
-@import "../../../theme/size-variables.scss";
+// @import "../../../theme/size-variables.scss";
 
 
 :host {
@@ -67,7 +67,7 @@ ion-button {
   }
 
   #textareaCommentId,
-  #inputImportId {
+  #textareaImportId {
     margin: 3px;
     height: 98%;
     width: 100%;
@@ -77,8 +77,7 @@ ion-button {
     border-style: solid;
     border-width: 1px;
     border-radius: $btnBorderRadius;
-  }
-  #textareaCommentId {
+
     overflow-y: scroll;
   }
 
