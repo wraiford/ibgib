@@ -1,6 +1,3 @@
-@import "../../../theme/size-variables.scss";
-
-
 :host {
   overflow-x: scroll;
   height: 100%;
@@ -31,15 +28,10 @@ ion-button {
 }
 
 #action-buttons {
-  height: 30%;
+  height: 10%;
   width: 99%;
   display: flex;
   flex-direction: row;
-
-  ion-segment-button {
-    height: 99%;
-    min-height: 99%;
-  }
 
   ion-button {
     border-width: $btnBorderWidth !important;
@@ -49,7 +41,7 @@ ion-button {
 }
 
 #action-detail {
-  height: 68%;
+  height: 89%;
   width: 99%;
 
   .detail-container {
@@ -135,12 +127,8 @@ ion-thumbnail {
 .thumbnail-like {
   margin: 4px;
   background: transparent;
-  // height: 90%;
-  // height: 45px;
-  // width: 45px;
-  height: 6vh;
-  // width: 5vw;
-  // width: 5vh;
+  height: 50px;
+  width: 50px;
 
   ion-badge {
     position: absolute;
@@ -167,8 +155,6 @@ ion-thumbnail {
     }
   }
 }
-
-
 
 #thumbnails {
   ion-item {
@@ -202,70 +188,13 @@ ion-thumbnail {
     background: transparent;
     color: var(--ion-color-primary);
     font-size: 8pt;
-    right: -70%;
-    top: 2px;
+    right: -5px;
+    top: 5px;
     cursor: pointer;
 
     span {
       cursor: pointer;
     }
   }
+
 }
-
-// sizing per screen media queries
-
-
-// @media (max-height: $xs-height) {
-//   .thumbnail-like {
-//     height: 40px;
-//     width: 40px;
-//   }
-
-//   .thumbnail-btn {
-//     font-size: 18pt;
-
-//     ion-badge {
-//       font-size: 8pt;
-//       right: -10px;
-//       top: 10px;
-//     }
-//   }
-// }
-// @media (max-height: $sm-height) {
-//   .thumbnail-like {
-//     // height: 20px;
-//     // width: 20px;
-//     height: 5vh;
-//     width: 20px;
-
-//     ion-badge {
-//       // position: initial;
-//       // display: block;
-//       font-size: 4pt;
-//       right: 0px;
-//       top: 0px;
-//       height: 30%;
-//       width: 30%;
-
-//       ion-button {
-//         display: flex;
-//         align-items: center;
-//         justify-content: center;
-//       }
-//     }
-//   }
-
-//   .thumbnail-btn {
-//     // position: fixed;
-//     --padding-start: 1px;
-//     --padding-end: 1px;
-//     // font-size: 18pt;
-//     width: 25px;
-
-//     ion-badge {
-//       font-size: 8pt;
-//       right: -7px;
-//       top: -4px;
-//     }
-//   }
-// }

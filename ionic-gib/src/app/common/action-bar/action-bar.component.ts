@@ -1,6 +1,6 @@
 import {
   Component, OnInit, ChangeDetectorRef,
-  Input, ViewChild, AfterViewInit,
+  Input, ViewChild, AfterViewInit, EventEmitter, Output,
 } from '@angular/core';
 import { IonInput, IonTextarea } from '@ionic/angular';
 import { Plugins, } from '@capacitor/core';
@@ -126,6 +126,9 @@ export class ActionBarComponent extends IbgibComponentBase
   get canSend(): boolean {
     return !this.sending && !this.addingPic;
   }
+
+  @Output()
+  actionBtnClick = new EventEmitter<ActionItem>();
 
   public debugBorderWidth: string = debugBorder ? "22px" : "0px"
   public debugBorderColor: string = "#FFAABB";
@@ -746,6 +749,50 @@ export class ActionBarComponent extends IbgibComponentBase
 
   trackByPicSrc(index: number, item: PicCandidate): any {
     return item.picSrc;
+  }
+
+  protected async handleActionBtnClick(event: any, item: ActionItem): Promise<void> {
+    const lc = `${this.lc}[${this.handleActionBtnClick.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: d78a9b3d3e2eefe29a13551ea6210222)`); }
+
+      // fire off the event before (?) the handler (maybe doesn't matter)
+      this.actionBtnClick.emit(item);
+
+      // fire off the handler
+      await item.handler(event);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  /**
+   * for some reason the inner textarea doesn't grow with ion-textarea
+   * wrapper.
+   *
+   * So this is a hack to focus the inner text area
+   * @param event
+   */
+  protected handleTextAreaClick(event: any): void {
+    const lc = `${this.lc}[${this.handleTextAreaClick.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 61bdea9e93f2cc911bc4c0fac2fc5222)`); }
+      const textArea = event?.target?.firstChild?.firstChild;
+      if (textArea) {
+        setTimeout(() => textArea.focus());
+      } else {
+        // debugger;
+      }
+      console.dir(event);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 }
 

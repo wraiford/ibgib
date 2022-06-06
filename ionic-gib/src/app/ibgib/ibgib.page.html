@@ -216,10 +216,11 @@
 
 </ion-content>
 
-<ion-modal #bottomSheet id="bottom-sheet-modal"
+<!-- <ion-modal #bottomSheet id="bottom-sheet-modal"
   [isOpen]="true"
   [breakpoints]="[0.1, 1]"
-  [initialBreakpoint]="0.1"
+  [initialBreakpoint]="1"
+  [backdropBreakpoint]="1"
   canDismiss="false"
 >
   <ng-template>
@@ -227,7 +228,7 @@
       <action-bar #actionBar [addr]='addr' [ibGib_Context]='ibGib'></action-bar>
     </ion-content>
   </ng-template>
-</ion-modal>
-<!-- <ion-footer>
+</ion-modal> -->
+<ion-footer [style.height]="actionBar.actionDetailVisible ? '20%' : '3%'">
   <action-bar #actionBar [addr]='addr' [ibGib_Context]='ibGib'></action-bar>
-</ion-footer> -->
+</ion-footer>

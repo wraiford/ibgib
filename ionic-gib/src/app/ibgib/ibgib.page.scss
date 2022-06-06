@@ -67,6 +67,7 @@ pre {
 }
 
 ion-footer {
+  height: 15%;
   // height: 300px;
   // display: flex;
   // flex-direction: row;
@@ -204,17 +205,18 @@ ion-button:hover, ion-menu-button:hover, #robbot-name:hover {
   width: 77%;
 }
 
-#bottom-sheet-modal {
+// #bottom-sheet-modal {
 
-  // width: 100%;
-  --height: 55%;
+//   // width: 100%;
+//   --height: 55%;
 
-  ion-content {
-    height: 95%;
-  }
+//   ion-content {
+//     height: 95%;
+//   }
 
-  action-bar {
-    height: 100%;
-    width: 100%;
-  }
-}
+//   action-bar {
+//     height: 100%;
+//     width: 100%;
+//   }
+// }
+

@@ -1,8 +1,11 @@
 <!-- action buttons (comment, pic, import) at the top of the bar -->
 <!-- NOTE: does not use segment quite correctly atm, using (click) instead of (ionChange) on segment -->
-<ion-segment id="action-buttons" value="comment" color="secondary">
+<ion-segment id="action-buttons" value="comment" color="secondary"
+  [style.height]="actionDetailVisible ? '30%' : '99%'"
+  >
   <ion-segment-button *ngFor='let item of items'
-    color="primary" [disabled]="!canSend" (click)='item.handler($event)'
+    color="primary" [disabled]="!canSend"
+    (click)='handleActionBtnClick($event, item)'
     [value]="item.text"
     >
     <div *ngIf='item.type === "button" && (gib !== "gib" || item.allowPrimitive)' color="primary">
@@ -23,12 +26,12 @@
   <!-- comment -->
   <div *ngIf="actionDetailMode === 'comment'" class="detail-container" >
     <ion-textarea #textareaComment id="textareaCommentId" class="detail-content"
-      rows="14"
       (ionChange)="handleCommentDetailChange($event)"
       (keypress)="handleCommentDetailInput($event)"
-      autocomplete="true"
-      spellcheck="true"
+      autoGrow="true" autocomplete="true" autocapitalize="sentences"
+      spellcheck="true" enterkeyhint="'send'" inputmode="'text'"
       [debounce]="debounceMs"
+      (click)="handleTextAreaClick($event)"
       >
     </ion-textarea>
     <ion-button class="detail-send-btn" color="primary"
@@ -86,11 +89,14 @@
 
   <!-- import -->
   <div *ngIf="actionDetailMode === 'import'" class="detail-container" [disabled]="sending">
-    <ion-input #inputImport id="inputImportId" class="detail-content"
+    <ion-textarea #inputImport id="inputImportId" class="detail-content"
       (ionChange)="handleImportDetailChange($event)"
       [debounce]="debounceMs"
+      spellcheck="false"
+      autoGrow="true"
+      (click)="handleTextAreaClick($event)"
       >
-    </ion-input>
+    </ion-textarea>
     <ion-button class="detail-send-btn" color="primary"
       (click)="send_AddImport()"
       [disabled]="!canSend">
