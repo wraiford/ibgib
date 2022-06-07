@@ -885,4 +885,31 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
         // }
         return a && b ? a?.toLowerCase() === b?.toLowerCase() : a === b;
     }
+    compareIbGibs(a: IbGib_V1, b: IbGib_V1): boolean {
+        // const lc = `${this.lc}[compareMenuItems]`; // this is not defined when compareRoots is used
+        const lc = `[compareIbGibs]`;
+        if (logalot) { console.log(`${lc}`); }
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 37c2a1a080b616dab13753d7e664c922)`); }
+            // reactive form controls when passing in {value: x} without something else
+            // has the curious case that b is "" but toLowerCase is not a function.
+            // if (typeof a !== 'string') { return false; }
+            // if (typeof b !== 'string') { return false; }
+            // if (!a.toLowerCase || !b.toLowerCase) {
+            //   return false;
+            // }
+            // hack..., should compare full addr
+            if (a && b && a.gib && b.gib) {
+                return a?.gib.toLowerCase() === b?.gib.toLowerCase();
+            } else {
+                return a === b;
+            }
+        } catch (error) {
+            debugger;
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
 }

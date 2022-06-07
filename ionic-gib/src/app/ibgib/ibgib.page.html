@@ -164,7 +164,10 @@
     [style.border-style]="debugBorderStyle"
     >
 
-    <ib-robbot-bar *ngIf="robbotBarIsVisible" [addr]='addr'></ib-robbot-bar>
+    <ib-robbot-bar #robbotBar *ngIf="robbotBarIsVisible" [addr]='addr'
+      [selectedRobbotAddr]="selectedRobbotAddr"
+      (robbotSelected)="handleRobbotSelected($event)"
+      ></ib-robbot-bar>
 
     <tag-list *ngIf='isTags' [addr]='addr' [ibGib_Context]='ibGib'
       (scroll)="scrollSubject.next($event)"

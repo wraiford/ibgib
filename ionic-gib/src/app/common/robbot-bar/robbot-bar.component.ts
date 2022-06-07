@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib/dist/types';
@@ -11,6 +11,7 @@ import { IbGibRobbotAny } from '../witnesses/robbots/robbot-base-v1';
 import { RobbotIbGib_V1 } from '../types/robbot';
 import { isError } from '../helper/error';
 import { ErrorIbGib_V1 } from '../types/error';
+import { IonSelect } from '@ionic/angular';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -34,9 +35,25 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
   selectedRobbotName: string;
 
   @Input()
+  selectedRobbot: RobbotIbGib_V1;
+
+  @Input()
   addingRobbot: boolean;
 
   robbots: RobbotIbGib_V1[];
+
+  private _selectedRobbotAddr: IbGibAddr;
+  @Input()
+  get selectedRobbotAddr(): IbGibAddr { return this._selectedRobbotAddr; }
+  set selectedRobbotAddr(value: IbGibAddr) {
+    if (value !== this._selectedRobbotAddr) {
+      this._selectedRobbotAddr = value;
+      this.selectRobbot({robbotAddr: value}); // spins off
+    }
+  }
+
+  @Output()
+  robbotSelected = new EventEmitter<RobbotIbGib_V1>();
 
   constructor(
     protected common: CommonService,
@@ -64,6 +81,41 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
     }
   }
 
+  async selectRobbot({
+    robbotAddr,
+  }: {
+    robbotAddr: IbGibAddr,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.selectRobbot.name}]`;
+    try {
+      // delete this.selectedRobbot;
+      if (logalot) { console.log(`${lc} starting... (I: 8be84cc5aef559fdb5ba47f514124422)`); }
+      if ((this.robbots ?? []).length === 0) { await this.updateRobbots(); }
+      if ((this.robbots ?? []).length === 0) { throw new Error(`robbot selected but this.robbots is falsy/empty even after updating (E: f938dad5df2802107eafd2fb7edcc222)`); }
+      let robbotToSelect: RobbotIbGib_V1;
+      for (let i = 0; i < this.robbots.length; i++) {
+        const robbot = this.robbots[i];
+        const robbotAddrs = [
+          h.getIbGibAddr({ibGib: robbot}),
+          ...(robbot.rel8ns?.past ?? [])
+        ];
+        if (robbotAddrs.includes(robbotAddr)) {
+          robbotToSelect = robbot;
+          break;
+        }
+      }
+      if (!robbotToSelect) { throw new Error(`robbotAddr (${robbotAddr}) not found among robbots. (E: da7e66a4fee6e749321bd954b087ca22)`); }
+      this.selectedRobbot = robbotToSelect;
+      this.selectedRobbotName = robbotToSelect?.data?.name;
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
   async updateRobbots(): Promise<void> {
     const lc = `${this.lc}[${this.updateRobbots.name}]`;
     try {
@@ -87,11 +139,37 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
   }
 
   async handleRobbotSelectChange(event: any): Promise<void> {
-    if (logalot) { console.log(`event: ${event.detail}`) }
-    const robbotName = event?.detail?.value;
-    console.log(`selectedRobbotName: ${this.selectedRobbotName}`);
-    if (this.selectedRobbotName !== robbotName) {
-      this.selectedRobbotName = robbotName;
+    const lc = `${this.lc}[${this.handleRobbotSelectChange.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: a8b5cb51707b230f213b6e9f2dfcd322)`); }
+      const robbotIbGib = event?.detail?.value;
+
+      if (robbotIbGib) {
+        if (logalot) { console.log(`${lc} robbotIbGib: ${h.pretty(robbotIbGib)} (I: 334969aa75f8b6202a8b652534642222)`); }
+        if (!robbotIbGib.data.uuid) { throw new Error(`invalid robbot data. uuid required (E: 464d1fdf45f642f90bafc169b8aea122)`); }
+
+        if (this.selectedRobbot?.data.uuid !== robbotIbGib.data.uuid) {
+          this.selectedRobbot = robbotIbGib;
+          console.log(`new robbot selected. (I: f09b25c6b71b441c9c7c01e734ff2bb0)`);
+          this.selectedRobbotName = robbotIbGib.data.name ?? robbotIbGib.ib;
+          this.robbotSelected.emit(h.clone(robbotIbGib));
+        } else {
+          if (logalot) { console.log(`${lc} same robbot selected (I: 05680c6006b2800ef12ab466c69e2c22)`); }
+        }
+      } else {
+        // none selected
+        if (logalot) { console.log(`${lc} none selected? (I: eac4920f3384061c94bbb6642512af22)`); }
+        if (this.selectedRobbot) {
+          delete this.selectedRobbot;
+          this.robbotSelected.emit(null)
+        }
+      }
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
@@ -207,19 +285,21 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       if (logalot) { console.log(`${lc} starting...`); }
 
       if (!this.ibGib) { throw new Error(`this.ibGib required (E: 469051c049b443119b203420f72d2337)`); }
-      if (!this.selectedRobbotName) { throw new Error(`(UNEXPECTED) selectedRobbotName should be truthy if this function is accessible. (E: 611986f6903a4b6b9a0cbb41b60bf33d)`); }
+      if (!this.selectedRobbot) { throw new Error(`(UNEXPECTED) selectedRobbot should be truthy if this function is accessible. (E: 611986f6903a4b6b9a0cbb41b60bf33d)`); }
       if ((this.robbots ?? []).length === 0) { throw new Error(`(UNEXPECTED) this.robbots should be truthy if this function is accessible. (E: 92cb8d13628546d3972f9332af3c2b6d)`); }
 
-      const filteredIbGibs =
-        this.robbots.filter(x => x?.data?.name === this.selectedRobbotName);
+      return this.selectedRobbot;
 
-      if (filteredIbGibs.length === 0) { throw new Error(`(UNEXPECTED) selectedRobbotName not found in robbots list? (E: 1fd157b2d9ee4075a08693a5cc4a4366)`); }
+      // const filteredIbGibs =
+      //   this.robbots.filter(x => x?.data?.name === this.selectedRobbotName);
 
-      // hack: change this to correctly map name/ion-select item to the robbot using gib/id
-      console.warn(`${lc} if robbot name isn't unique, then this may not return the correct robbot. (W: 100287bce6b249d6af7f27c1fc53d90d)`);
+      // if (filteredIbGibs.length === 0) { throw new Error(`(UNEXPECTED) selectedRobbotName not found in robbots list? (E: 1fd157b2d9ee4075a08693a5cc4a4366)`); }
 
-      const robbotIbGib = filteredIbGibs[0];
-      return robbotIbGib;
+      // // hack: change this to correctly map name/ion-select item to the robbot using gib/id
+      // console.warn(`${lc} if robbot name isn't unique, then this may not return the correct robbot. (W: 100287bce6b249d6af7f27c1fc53d90d)`);
+
+      // const robbotIbGib = filteredIbGibs[0];
+      // return robbotIbGib;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

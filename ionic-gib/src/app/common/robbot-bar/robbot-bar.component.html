@@ -15,6 +15,17 @@
   <!-- drop-down selector for robbot name -->
   <ion-select id="robbot-name"
     slot="primary"
+    [compareWith]="compareIbGibs"
+    okText="Select Robbot"
+    [value]="selectedRobbot"
+    (ionChange)="handleRobbotSelectChange($event)"
+    >
+    <ion-select-option *ngFor="let robbot of robbots" [value]="robbot">
+      <ion-label>{{ robbot.data?.name || robbot.ib }}</ion-label>
+    </ion-select-option>
+  </ion-select>
+  <!-- <ion-select id="robbot-name"
+    slot="primary"
     [compareWith]="compareStrings"
     [value]="selectedRobbotName"
     okText="Select Robbot"
@@ -23,7 +34,7 @@
     <ion-select-option *ngFor="let name of robbotNames">
       <ion-label>{{ name }}</ion-label>
     </ion-select-option>
-  </ion-select>
+  </ion-select> -->
 
   <!-- robbot action buttons -->
   <!-- primary also because that's how the formatting is "working" -->

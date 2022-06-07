@@ -26,6 +26,8 @@ import { ActionBarComponent } from '../common/action-bar/action-bar.component';
 import { ChatViewComponent } from '../views/chat-view/chat-view.component';
 import { IonAccordionGroup, IonContent, IonRouterOutlet } from '@ionic/angular';
 import { TagIbGib_V1 } from '../common/types/tag';
+import { RobbotIbGib_V1 } from '../common/types/robbot';
+import { RobbotBarComponent } from '../common/robbot-bar/robbot-bar.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -120,6 +122,12 @@ export class IbGibPage extends IbgibComponentBase
   set robbotBarIsVisible(value: boolean) {
     this._robbotBarIsVisible = value;
   }
+
+  @Input()
+  selectedRobbotAddr: IbGibAddr;
+
+  @ViewChild('robbotBar')
+  robbotBar: RobbotBarComponent
 
   hidePerScroll: boolean = true;
 
@@ -452,6 +460,29 @@ export class IbGibPage extends IbgibComponentBase
       this.robbotBarIsVisible = !this.robbotBarIsVisible;
       await Storage.set({key: c.SIMPLE_CONFIG_KEY_ROBBOT_VISIBLE, value: this.robbotBarIsVisible ? 'true' : 'false'});
       setTimeout(() => this.ref.detectChanges());
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleRobbotSelected(robbot: RobbotIbGib_V1): Promise<void> {
+    const lc = `${this.lc}[${this.handleRobbotSelected.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 52aa29ec3ad4d236f7466d9a39761822)`); }
+      console.log(`${lc} robbot: ${h.pretty(robbot)}`);
+
+      if (robbot) {
+        await Storage.set({
+          key: c.SIMPLE_CONFIG_KEY_ROBBOT_SELECTED_ADDR,
+          value: h.getIbGibAddr({ibGib: robbot}),
+        })
+      } else {
+        await Storage.remove({key: c.SIMPLE_CONFIG_KEY_ROBBOT_SELECTED_ADDR});
+      }
+
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -794,8 +825,18 @@ export class IbGibPage extends IbgibComponentBase
     const lc = `${this.lc}[${this.initLastViewConfiguration.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 2adbf456b36360f661d72f18de3eed22)`); }
+
+      // robbot bar visibility
       this.robbotBarIsVisible =
         (await Storage.get({key: c.SIMPLE_CONFIG_KEY_ROBBOT_VISIBLE}))?.value === 'true' ?? false;
+
+      // which robbot was selected last
+      const selectedAddrSetting =
+        await Storage.get({ key: c.SIMPLE_CONFIG_KEY_ROBBOT_SELECTED_ADDR });
+      if (selectedAddrSetting.value) {
+        this.selectedRobbotAddr = selectedAddrSetting.value;
+      }
+
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

@@ -1597,3 +1597,4 @@ export const GESTURE_CLICK_TOLERANCE_ONMOVE_THRESHOLD_COUNT = 5;
 // #endregion gestures
 
 export const SIMPLE_CONFIG_KEY_ROBBOT_VISIBLE = 'robbotBarVisible';
+export const SIMPLE_CONFIG_KEY_ROBBOT_SELECTED_ADDR = 'robbotBarSelectedAddr';
