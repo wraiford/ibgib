@@ -76,7 +76,7 @@ import { validateIbGibIntrinsically } from '../../helper/validate';
 
 // #endregion imports
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 // #region AWS related
 
@@ -1630,7 +1630,6 @@ export class AWSDynamoSpace_V1<
         const maxRetries = this.data.maxRetryThroughputCount || c.DEFAULT_AWS_MAX_RETRY_THROUGHPUT;
         for (let i = 0; i < maxRetries; i++) {
             try {
-
                 const resCmd: TOutput = <any>(await client.send(cmd));
                 if (logalot && (<any>resCmd)?.ConsumedCapacity) {
                     const capacities = <ConsumedCapacity[]>(<any>resCmd)?.ConsumedCapacity;
@@ -1640,8 +1639,9 @@ export class AWSDynamoSpace_V1<
             } catch (error) {
                 if (!isThroughputError(error)){ throw error; }
             }
-            if (logalot) { console.log(`${lc} retry ${i} due to throughput in ${this.data.throttleMsDueToThroughputError} ms`); }
-            await h.delay(this.data.throttleMsDueToThroughputError);
+            const delayMs = this.data.throttleMsDueToThroughputError * (Math.pow(2, i+1));
+            if (logalot || true) { console.log(`${lc} retry ${i+1} of ${maxRetries} due to throughput in ${delayMs} ms`); }
+            await h.delay(delayMs);
         }
         // we return above, so if gets here then throw
         throw new Error(`Max retries (${maxRetries}) exceeded.`);
@@ -3801,7 +3801,7 @@ export class AWSDynamoSpace_V1<
                                 ibGibsToStoreNotAlreadyStored.push(maybeIbGib);
                             }
                         }
-                        console.timeLog(timeLogName, 'update ibGibsToStoreNotAlreadyStored complete');
+                        console.timeLog(timeLogName, `update ibGibsToStoreNotAlreadyStored (${ibGibsToStoreNotAlreadyStored?.length}) complete`);
 
                         // in this first naive implementation, we're just going all or none
                         // in terms of success and publishing it.
@@ -3813,7 +3813,7 @@ export class AWSDynamoSpace_V1<
                             }
                             if (warnings.length > 0) { console.warn(`${lc} warnings:\n${warnings.join('\n')}`); }
                         }
-                        console.timeLog(timeLogName, 'putIbGibs ibGibsToStoreNotAlreadyStored complete');
+                        console.timeLog(timeLogName, `putIbGibs ibGibsToStoreNotAlreadyStored (${ibGibsToStoreNotAlreadyStored?.length}) complete`);
 
                         if (logalot) { console.log(`${lc} checking if need to updated tjpWatches via updates`); }
                         if (Object.keys(updates).length > 0) {

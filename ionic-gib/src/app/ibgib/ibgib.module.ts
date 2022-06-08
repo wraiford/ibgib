@@ -35,6 +35,7 @@ import { IbgibFormsModule } from '../ibgib-forms/ibgib-forms.module';
 
 import { ClickAnimationDirective } from '../common/directives/animations/click-animation.directive';
 import { HighlightDirective } from '../common/directives/highlight.directive';
+import { ClickHoldAnimationDirective } from '../common/directives/animations/click-hold-animation.directive';
 
 @NgModule({
   imports: [
@@ -48,6 +49,7 @@ import { HighlightDirective } from '../common/directives/highlight.directive';
   declarations: [
     ClickAnimationDirective,
     HighlightDirective,
+    ClickHoldAnimationDirective,
 
     ActionBarComponent,
     RobbotBarComponent,

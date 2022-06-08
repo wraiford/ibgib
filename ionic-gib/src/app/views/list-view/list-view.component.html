@@ -17,6 +17,7 @@
       *ngFor='let item of items;trackBy: trackByAddr'
       [addr]='item.addr'
       [ibClickAnimation]="itemRef"
+      [ibClickHoldAnimation]="itemRef"
       (click)='handleClicked(item, itemRef)'
       [style.border-color]="debugBorderColor"
       [style.border-width]="debugBorderWidth"

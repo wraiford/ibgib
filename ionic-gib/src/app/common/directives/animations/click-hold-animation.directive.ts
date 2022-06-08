@@ -12,11 +12,11 @@ import { AnimationDirectiveBase } from '../../bases/animation-directive-base';
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 @Directive({
-    selector: '[ibClickAnimation]'
+    selector: '[ibClickHoldAnimation]'
 })
-export class ClickAnimationDirective extends AnimationDirectiveBase {
+export class ClickHoldAnimationDirective extends AnimationDirectiveBase {
 
-    protected lc: string = `[${ClickAnimationDirective.name}]`;
+    protected lc: string = `[${ClickHoldAnimationDirective.name}]`;
 
     private _itemRef: any;
     @Input('ibClickAnimation')
@@ -36,7 +36,7 @@ export class ClickAnimationDirective extends AnimationDirectiveBase {
         super(el, ref, animationCtrl, gestureCtrl);
         const lc = `${this.lc}[ctor]`;
         try {
-            if (logalot) { console.log(`${lc} starting... (I: a5a369aca6aa778ad3fbd4f674d25e22)`); }
+            if (logalot) { console.log(`${lc} starting... (I: cefd9db8b2c640d6aeabba0d14400a33)`); }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -48,17 +48,16 @@ export class ClickAnimationDirective extends AnimationDirectiveBase {
     protected async initializeAnimation(): Promise<void> {
         const lc = `${this.lc}[${this.initializeAnimation.name}]`;
         try {
-            if (logalot) { console.log(`${lc} starting... (I: ccd34399d335dc7d5a5b0af8de867f22)`); }
+            if (logalot) { console.log(`${lc} starting... (I: 7ce3a7e8f64c416c8f912550992eec8f)`); }
             // debugger;
 
             this.animation =
                 this.animationCtrl.create()
                     .addElement(this.el.nativeElement)
-                    .duration(200)
-                    .fromTo('transform', 'scale(1)', 'scale(1.05)')
-                    .fromTo('opacity', '1', '0.5');
+                    .duration(1000)
+                    .fromTo('transform', 'scale(1)', 'scale(1.5)')
+                    .fromTo('opacity', '1', '0.3');
             ;
-
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -70,15 +69,15 @@ export class ClickAnimationDirective extends AnimationDirectiveBase {
     protected async initializeGesture(): Promise<void> {
         const lc = `${this.lc}[${this.initializeGesture.name}]`;
         try {
-            if (logalot) { console.log(`${lc} starting... (I: febcc2f3a2b4a20193c1db09ff2e2622)`); }
+            if (logalot) { console.log(`${lc} starting... (I: c012d2cc63cd465db8879eeab23c6706)`); }
 
             this.moveCount = 0;
 
             this.gesture = this.gestureCtrl.create({
                 el: this.el.nativeElement,
-                threshold: 0, // immediately trigger gesture
-                gestureName: 'click',
-                gesturePriority: 0,
+                threshold: 10, // immediately trigger gesture
+                gestureName: 'clickHold',
+                gesturePriority: 1,
                 onStart: (detail) => this.onStart(detail),
                 onEnd: (detail) => this.onEnd(detail),
                 onMove: (detail) => this.onMove(detail),
@@ -97,16 +96,29 @@ export class ClickAnimationDirective extends AnimationDirectiveBase {
     protected onStart(_: GestureDetail): boolean | void {
         const lc = `${this.lc}[${this.onStart.name}]`;
         try {
-            if (logalot) { console.log(`${lc} starting... (I: 10d3487a77e17ce08b18b7aa78c5dc22)`); }
+            if (logalot) { console.log(`${lc} starting... (I: 9c5ca6a1637a41fda3c4c1512da28ba0)`); }
 
             if (this.animating) {
-                console.warn(`${lc} this.animating: ${this.animating}. returning early... (W: 1038d6fc3d9b455da632457593f92f31)`);
+                console.warn(`${lc} this.animating: ${this.animating}. returning early... (W: 61ea2686a00e4e55a2687beab2b99e5a)`);
                 return; /* <<<< returns early */
             }
-            this.aborting = false;
 
-            this.animating = true;
-            this.animation.direction('alternate').play();
+            /**
+             * If after this delay the gesture is not cancelled, then we begin animating.
+             */
+            const delayMs = 300;
+            setTimeout(() => {
+                if (this.aborting) {
+                    if (logalot) { console.log(`${lc} aborting is true. returning early (I: c3e34b0e6d8b8a470257b90f44214322)`); }
+                    return; /* <<<< returns early */
+
+                } else {
+                    this.animating = true;
+                    this.animation.direction('alternate').play();
+                }
+
+            }, delayMs);
+
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -118,7 +130,7 @@ export class ClickAnimationDirective extends AnimationDirectiveBase {
     protected onEnd(_: GestureDetail): boolean | void {
         const lc = `${this.lc}[${this.onEnd.name}]`;
         try {
-            if (logalot) { console.log(`${lc} starting... (I: 3a7e367472438e0ca29e9f0a7da8ff22)`); }
+            if (logalot) { console.log(`${lc} starting... (I: 579e247323e34d87b59e79bd62e1d6d3)`); }
             this.abortAnimation(); // spins off
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -131,13 +143,15 @@ export class ClickAnimationDirective extends AnimationDirectiveBase {
     protected onMove(detail: GestureDetail): boolean | void {
         const lc = `${this.lc}[${this.onMove.name}]`;
         try {
-            if (logalot) { console.log(`${lc} triggered. sansEvent(detail): ${h.pretty(this.sansEvent(detail))} (I: bc517d4e731f401d8a2341735ffbe025)`); }
+            if (logalot) { console.log(`${lc} triggered. sansEvent(detail): ${h.pretty(this.sansEvent(detail))} (I: 6c6eb37a67b94a73adad99b063e68dd8)`); }
+            console.log('moving long hold...')
             this.moveCount++;
-            if (this.moveCount > c.GESTURE_CLICK_TOLERANCE_ONMOVE_THRESHOLD_COUNT) {
-                if (logalot) { console.log(`${lc} gesture onmove threshold exceeded. cancelling click animation. (I: 139596d3b9e252cd524a997fe68f0322)`); }
-                this.abortAnimation(); // spins off
-                // this.gesture.destroy();
-            }
+            const style = this.el.nativeElement.style;
+            style.transform = `translate3d(${detail.deltaX}px, 0, 0)`;
+            // if (this.moveCount > c.GESTURE_CLICK_TOLERANCE_ONMOVE_THRESHOLD_COUNT) {
+            //     if (logalot) { console.log(`${lc} gesture onmove threshold exceeded. cancelling click animation. (I: 56a489e6befd43129beedf3136dd64e4)`); }
+            //     this.abortAnimation(); // spins off
+            // }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
