@@ -9,7 +9,7 @@ import * as c from '../../constants';
 import { ListItemViewComponent } from '../../../views/list-item-view/list-item-view.component';
 import { AnimationDirectiveBase } from '../../bases/animation-directive-base';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 @Directive({
     selector: '[ibClickHoldAnimation]'

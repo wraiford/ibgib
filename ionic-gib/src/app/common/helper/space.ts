@@ -200,9 +200,11 @@ export async function deleteFromSpace({
     isDna,
     space,
 }: DeleteIbGibOpts): Promise<DeleteIbGibResult> {
-    const lc = `[${deleteFromSpace.name}]`;
+    let lc = `[${deleteFromSpace.name}]`;
     try {
         if (!space) { throw new Error(`space required. (E: 40ab3b51e91c4b5eb4f215baeefbcef0)`); }
+        if (!space.data) { throw new Error(`space.data required. (E: 0d02c8e85ee143b8bd6a1a1db0d9af1b)`); }
+        lc = `${lc}[${space.data.name || 'noname?'}][${space.data.uuid || 'nouuid?'}]`;
 
         const argDel = await space.argy({
             ibMetadata: getSpaceArgMetadata({space}),
@@ -218,14 +220,20 @@ export async function deleteFromSpace({
             return { success: true, }
         } else {
             if (result.data?.warnings?.length > 0) {
+                debugger;
                 console.warn(`${lc} warnings with delete (${addr}): ${result.data!.warnings!.join('|')}`);
             }
             if (result.data?.addrs?.length > 0) {
+                debugger;
                 console.warn(`${lc} partial addrs deleted: ${result.data!.addrs!.join('|')}`);
             }
-            return {
-                errorMsg: result.data?.errors?.join('|') || `${lc} something went wrong (E: e397fd09b4a746a3ba3305d6ea0893cb)`,
+            const errorMsg: string = result.data?.errors?.join('|') || `${lc} something went wrong (E: e397fd09b4a746a3ba3305d6ea0893cb)`;
+            if (errorMsg.includes('File does not exist')) {
+                if (logalot) { console.log(`${lc} tried to delete file that does not exist. (I: cb5d1348ccbc58bf0bfc95f3006f1e22)`); }
+            } else {
+                debugger;
             }
+            return { errorMsg }
         }
     } catch (error) {
         console.error(`${lc} ${error.message}`);

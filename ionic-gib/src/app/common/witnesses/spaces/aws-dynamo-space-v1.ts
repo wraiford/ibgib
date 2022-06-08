@@ -3026,9 +3026,9 @@ export class AWSDynamoSpace_V1<
         const lc = `${this.lc}[${this.deleteImpl.name}]`;
         const resultData: AWSDynamoSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
         const errors: string[] = [];
-        const warnings: string[] = [];
-        const addrsDeleted: IbGibAddr[] = [];
-        const addrsErrored: IbGibAddr[] = [];
+        // const warnings: string[] = [];
+        // const addrsDeleted: IbGibAddr[] = [];
+        // const addrsErrored: IbGibAddr[] = [];
         try {
             if (logalot) { console.log(`${lc} starting... (I: f688b87409b290b158578afd606fcd22)`); }
             // validated already to have one and only one ibgibAddr
@@ -3050,7 +3050,9 @@ export class AWSDynamoSpace_V1<
                 });
 
                 console.dir(resCmd); // debug only
+                resultData.success = true;
             } catch (error) {
+                debugger;
                 console.error(`${lc} error: ${error.message}`);
                 resultData.errors = errors.concat([error.message]);
                 resultData.addrsErrored = [addr];
