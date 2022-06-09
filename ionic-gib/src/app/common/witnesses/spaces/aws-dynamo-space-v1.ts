@@ -76,7 +76,7 @@ import { validateIbGibIntrinsically } from '../../helper/validate';
 
 // #endregion imports
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 // #region AWS related
 
@@ -1817,7 +1817,7 @@ export class AWSDynamoSpace_V1<
             const throttleMs = this.data.throttleMsBetweenGets || c.DEFAULT_AWS_GET_THROTTLE_MS;
             const rounds = Math.ceil(addrs.length / batchSize);
             for (let i = 0; i < rounds; i++) {
-                if (logalot) { console.log(`${lc} i: ${i} (I: c107d13c8e956020959e36adce7c2c22)`); }
+                if (logalot) { console.log(`${lc} i: ${i} of ${rounds} rounds (I: c107d13c8e956020959e36adce7c2c22)`); }
                 if (i > 0) {
                     if (logalot) { console.log(`${lc} delaying ${throttleMs}ms`); }
                     await h.delay(throttleMs);
@@ -2130,8 +2130,12 @@ export class AWSDynamoSpace_V1<
         try {
             // for the tjpIbGibs we need to do a newer query, returning just the
             // addresses and `n` values.
-            let tjpLatestInfosMap =
-                await this.getTimelinesInfosPerTjpInStore({client, tjpIbGibs, errors, warnings});
+            let tjpLatestInfosMap = await this.getTimelinesInfosPerTjpInStore({
+                client,
+                tjpIbGibs,
+                errors,
+                warnings
+            });
             // this is a map of tjp addr => GetNewerQueryInfo. Each query info
             // has resultItems?: AWSDynamoSpaceItem[] that are only populated
             // with ib, gib, n, tjp (address)
@@ -2158,6 +2162,9 @@ export class AWSDynamoSpace_V1<
                         console.warn(`${lc} only expected resultItem.n >= 0. `)
                     }
                 }
+
+                // resLatestMap is not grouped by tjp, so set update the resLatestMap
+                // for each corresponding addr in the timeline
                 const argIbGibsWithThisTjp = ibGibsWithTjpGroupedByTjpAddr[tjpAddr];
                 argIbGibsWithThisTjp.forEach((ibGib) => {
                     resLatestMap[h.getIbGibAddr({ibGib})] = latestAddr;
@@ -2250,7 +2257,7 @@ export class AWSDynamoSpace_V1<
                 // throttle between calls slightly
                 if (i > 0) {
                     if (logalot) { console.log(`${lc} delaying ${throttleMs}ms`); }
-                    await h.delay(throttleMs);
+                    await h.delay(throttleMs * (Math.pow(2, i+2)));
                 }
                 // prepare batch call
                 let addrsToDoNextRound = addrs.splice(batchSize);
@@ -3602,6 +3609,7 @@ export class AWSDynamoSpace_V1<
                     callerInstanceId: sagaId,
                     maxLockAttempts: 5,
                     fn: async () => {
+                        const lcFn = `${lc}[fn][${tjpGib.slice(0,5)}]`;
                         // #region prepare
 
                         // we're going to build up a list of ibgibs that we're going
@@ -3635,9 +3643,9 @@ export class AWSDynamoSpace_V1<
                             .filter(x => (x.data.n ?? -1) >= 0)
                             .sort((a, b) => a.data.n > b.data.n ? 1 : -1); // sorts ascending, e.g., 0,1,2...[Highest]
                         const latestAddr_Store = resLatestAddrsMap[tjpAddr];
-                        if (logalot) { console.log(`${lc} tjpAddr: ${tjpAddr}`); }
-                        if (logalot) { console.log(`${lc} resLatestAddrsMap: ${h.pretty(resLatestAddrsMap)}`); }
-                        if (logalot) { console.log(`${lc} latestAddr_Store: ${latestAddr_Store}`); }
+                        if (logalot) { console.log(`${lcFn} tjpAddr: ${tjpAddr}`); }
+                        if (logalot) { console.log(`${lcFn} resLatestAddrsMap: ${h.pretty(resLatestAddrsMap)}`); }
+                        if (logalot) { console.log(`${lcFn} latestAddr_Store: ${latestAddr_Store}`); }
 
                         // #endregion prepare
 
@@ -3649,17 +3657,16 @@ export class AWSDynamoSpace_V1<
                             // and reconcile (if not already synced).
                             const tjpGroupAddrs_Local_Ascending =
                                 tjpGroupIbGibs_Local_Ascending.map(x => h.getIbGibAddr({ibGib: x}));
-                            if (logalot) { console.log(`${lc} tjpGroupAddrs_Local_Ascending: ${tjpGroupAddrs_Local_Ascending}`); }
+                            if (logalot) { console.log(`${lcFn} tjpGroupAddrs_Local_Ascending: ${tjpGroupAddrs_Local_Ascending}`); }
 
                             const latestAddr_Local =
                                 tjpGroupAddrs_Local_Ascending[tjpGroupAddrs_Local_Ascending.length-1];
-                            if (logalot) { console.log(`${lc} latestAddr_Local: ${latestAddr_Local}`); }
-
+                            if (logalot) { console.log(`${lcFn} latestAddr_Local: ${latestAddr_Local}`); }
 
                             if (latestAddr_Store === latestAddr_Local) {
                                 console.timeLog(timeLogName, 'already synced');
                                 // #region already synced
-                                if (logalot) { console.log(`${lc} store and local spaces are already synced.`); }
+                                if (logalot) { console.log(`${lcFn} store and local spaces are already synced.`); }
                                 // todo: cache this address as already synced with timestamp
                                 statusCode = StatusCode.already_synced;
                                 // ibGibsToStore = [];
@@ -3671,7 +3678,7 @@ export class AWSDynamoSpace_V1<
                             } else if (tjpGroupAddrs_Local_Ascending.includes(latestAddr_Store)) {
                                 console.timeLog(timeLogName, 'only Local has changes');
                                 // #region only Local has changes
-                                if (logalot) { console.log(`${lc} local space has changes, store does NOT. Will update store with more recent local.`); }
+                                if (logalot) { console.log(`${lcFn} local space has changes, store does NOT. Will update store with more recent local.`); }
                                 // sync call, i.e. no need for await
                                 this.reconcile_UpdateStoreWithMoreRecentLocal({
                                     tjpAddr,
@@ -3697,13 +3704,14 @@ export class AWSDynamoSpace_V1<
                                 // has changes OR maybe both store & local have changes
                                 // also, maybe we have ibgibs with dna, maybe not
 
-                                if (logalot) { console.log(`${lc} store has changes not in local, maybe also local has changes. So, merge timelines appropriately. If so, then will apply those local changes to store's foreign-changed latest and save the resulting store's latest. (I: 86d0f267afce439db7d62b3703e1007d)`.replace(/\n/g, ' ').replace(/  /g, '')); }
+                                if (logalot) { console.log(`${lcFn} store has changes not in local, maybe also local has changes. So, merge timelines appropriately. If so, then will apply those local changes to store's foreign-changed latest and save the resulting store's latest. (I: 86d0f267afce439db7d62b3703e1007d)`.replace(/\n/g, ' ').replace(/  /g, '')); }
 
                                 const latestIbGib_Local =
                                     tjpGroupIbGibs_Local_Ascending
                                         .filter(x => h.getIbGibAddr({ibGib: x}) === latestAddr_Local)[0];
                                 const latestIbGib_Local_HasDna =
                                     (latestIbGib_Local.rel8ns?.dna ?? []).length > 0;
+
                                 let latestIbGib_Store: IbGib_V1;
                                 // #region get latestIbGib_Store
                                 const errorsGetLatestStore: string[] = [];
@@ -3719,16 +3727,18 @@ export class AWSDynamoSpace_V1<
                                 console.timeLog(timeLogName, 'resGetStoreIbGib complete');
                                 if (addrsNotFound_GetLatestStore.length > 0) { throw new Error(`store ibgib addr not found, but we just got this addr from the store. latestAddr_Store: ${latestAddr_Store}. (E: c9ed2f2854a74ddb82d932fb31cc301a)(UNEXPECTED)`); }
                                 if (errorsGetLatestStore.length > 0) { throw new Error(`problem getting full ibgib for latest addr from store. errors: ${errors.join('\n')}. (E: 3525deb3c668441fb6f4605d20845fc6)`); }
-                                if (warningsGetLatestStore.length > 0) { console.warn(`${lc} ${warningsGetLatestStore} (W: c310638669784e78b5e34b447754eafb)`); }
+                                if (warningsGetLatestStore.length > 0) { console.warn(`${lcFn} ${warningsGetLatestStore} (W: c310638669784e78b5e34b447754eafb)`); }
                                 if ((resGetStoreIbGib ?? []).length === 0) { throw new Error(`resGetStoreIbGib empty, but addrsNotFound not populated? (E: d2e7183af0ae4b98a2905b0e79c550ec)(UNEXPECTED)`); }
                                 if ((resGetStoreIbGib ?? []).length > 1) { throw new Error(`resGetStoreIbGib.length > 1? Expecting just the single ibgib corresponding to latest ibgib addr (${latestAddr_Store}). (E: d2e7183af0ae4b98a2905b0e79c550ec)(UNEXPECTED)`); }
                                 latestIbGib_Store = resGetStoreIbGib[0];
                                 // #endregion get latestIbGib_Store
+
                                 const latestIbGib_Store_HasDna =
                                     (latestIbGib_Store.rel8ns?.dna ?? []).length > 0;
                                 if (latestIbGib_Local_HasDna && latestIbGib_Store_HasDna) {
-                                    if (logalot) { console.log(`${lc} merge via dna. latestAddr_Local: ${latestAddr_Local}`); }
+                                    if (logalot) { console.log(`${lcFn} merge via dna. latestAddr_Local: ${latestAddr_Local}`); }
                                     console.timeLog(timeLogName, 'reconcile_MergeLocalWithStore_ViaDna starting...');
+                                    debugger;
                                     await this.reconcile_MergeLocalWithStore_ViaDna({
                                         client,
                                         tjpAddr,
@@ -3748,7 +3758,7 @@ export class AWSDynamoSpace_V1<
                                     statusCode = StatusCode.merged_dna;
                                 } else {
                                     console.timeLog(timeLogName, 'merge manually via state');
-                                    if (logalot) { console.log(`${lc} merge manually via state. latestAddr_Local: ${latestAddr_Local}`); }
+                                    if (logalot) { console.log(`${lcFn} merge manually via state. latestAddr_Local: ${latestAddr_Local}`); }
                                     await this.reconcile_MergeLocalWithStore_ViaState({
                                         client,
                                         tjpAddr,
@@ -3769,7 +3779,7 @@ export class AWSDynamoSpace_V1<
                         } else {
                             console.timeLog(timeLogName, 'the timeline DOES NOT exist in the store');
 
-                            if (logalot) { console.log(`${lc} the timeline DOES NOT exist in the store, so insert it.`)}
+                            if (logalot) { console.log(`${lcFn} the timeline DOES NOT exist in the store, so insert it.`)}
 
                             // if we're inserting the first time into the store, then there
                             // can't have been any watches to update
@@ -3813,13 +3823,13 @@ export class AWSDynamoSpace_V1<
                             if (errors.length > 0) {
                                 throw new Error(errors.join('\n'));
                             }
-                            if (warnings.length > 0) { console.warn(`${lc} warnings:\n${warnings.join('\n')}`); }
+                            if (warnings.length > 0) { console.warn(`${lcFn} warnings:\n${warnings.join('\n')}`); }
                         }
                         console.timeLog(timeLogName, `putIbGibs ibGibsToStoreNotAlreadyStored (${ibGibsToStoreNotAlreadyStored?.length}) complete`);
 
-                        if (logalot) { console.log(`${lc} checking if need to updated tjpWatches via updates`); }
+                        if (logalot) { console.log(`${lcFn} checking if need to updated tjpWatches via updates`); }
                         if (Object.keys(updates).length > 0) {
-                            if (logalot) { console.log(`${lc} updates occurred. calling updateTjpWatches...`); }
+                            if (logalot) { console.log(`${lcFn} updates occurred. calling updateTjpWatches...`); }
                             // we've updated at least one tjpAddr with a new ibGib.
                             // So we need to go through and register these changes
                             // with the corresponding watch ibgibs. those updates
@@ -3829,7 +3839,7 @@ export class AWSDynamoSpace_V1<
                             await this.updateTjpWatches({client, srcSpaceId, updates});
                             console.timeLog(timeLogName, 'updateTjpWatches complete.');
                         } else {
-                            if (logalot) { console.log(`${lc} no updates occurred, so NOT calling updateTjpWatches.`); }
+                            if (logalot) { console.log(`${lcFn} no updates occurred, so NOT calling updateTjpWatches.`); }
                         }
 
                         // #endregion execute put in store operation

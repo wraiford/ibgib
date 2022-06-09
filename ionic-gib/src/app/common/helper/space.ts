@@ -28,7 +28,7 @@ import { SpaceLockScope, IbGibSpaceLockIbGib, BootstrapIbGib, SpaceId, IbGibSpac
 import { isExpired, getExpirationUTCString, getTimestampInTicks } from './utils';
 import { IbGibCacheService } from '../types/ibgib';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 
 /**
@@ -528,8 +528,19 @@ export async function getDependencyGraph({
             for (let i = 0; i < rel8nNames.length; i++) {
                 const rel8nName = rel8nNames[i];
                 const rel8dAddrs = rel8ns[rel8nName];
+                const falsyAddrs = rel8dAddrs.filter(addr =>
+                    addr === '' ||
+                    addr === undefined ||
+                    addr === null ||
+                    !addr.includes(IBGIB_DELIMITER)
+                );
+                if (falsyAddrs.length > 0) {
+                    console.warn(`${lc} (UNEXPECTED) has falsyAddrs: ${falsyAddrs} (W: da9505cb0a4db68a4aff7f279ad2d322)`);
+                    debugger;
+                }
                 const rel8dAddrsNotGottenYetThisRel8n =
                     rel8dAddrs
+                    .filter(addr => !!addr)
                     .filter(addr => !gottenKeys.includes(addr))
                     .filter(addr => !skipAddrs.includes(addr))
                     .filter(addr => h.getIbAndGib({ibGibAddr: addr}).gib !== GIB)
@@ -599,6 +610,7 @@ export async function getDependencyGraph({
         }
 
     } catch (error) {
+        debugger;
         const emsg = `${lc} ${error.message}`;
         console.error(emsg);
         if (timeLogName) { console.timeLog(timeLogName, `${lc} error: ${emsg}`); }

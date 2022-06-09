@@ -2727,6 +2727,7 @@ export class IbgibsService {
 
       if (status.storeOnlyIbGibs?.length > 0) {
         if (logalot) { console.log(`${lc} putting storeOnlyIbGibs (${status.storeOnlyIbGibs.length}): ${status.storeOnlyIbGibs.map(x => h.getIbGibAddr({ibGib: x})).join('\n')}.`); }
+        console.warn(`${lc} putting storeOnlyIbGibs (${status.storeOnlyIbGibs.length}): ${status.storeOnlyIbGibs.map(x => h.getIbGibAddr({ibGib: x})).join('\n')}.`);
         const resPutStoreOnly = await this.put({ibGibs: status.storeOnlyIbGibs});
         if (!resPutStoreOnly.success) { throw new Error(`Couldn't save storeonly ibGibs locally? (E: c5ab044718ab42bba27f5852149b7ddc)`); }
         await registerLatestInTimelines(status.storeOnlyIbGibs)
