@@ -19,7 +19,7 @@ import {
     DeleteIbGibOpts, DeleteIbGibResult,
 } from '../types/legacy';
 import { validateBootstrapIbGib, validateIbGibAddr, } from './validate';
-import { getRootIb, getSpecialConfigKey, getSpecialIbGibIb, getTjpAddrs, isTjp_Naive, tagTextToIb } from './ibgib';
+import { getRootIb, getSpecialConfigKey, getSpecialIbGibIb, getTimelinesGroupedByTjp, getTjpAddrs, isTjp_Naive, splitPerTjpAndOrDna, tagTextToIb } from './ibgib';
 import { TagData_V1, TagIbGib_V1 } from '../types/tag';
 import { getRobbotIb } from './robbot';
 import { IbGibTimelineUpdateInfo, RootData, SpecialIbGibType } from '../types/ux';
@@ -269,6 +269,8 @@ export async function getDependencyGraph({
     try {
         if (logalot) { console.log(`${lc} starting... (I: 70508d7a5c63eae1f22ae851b32b3d22)`); }
 
+        // #region validate & initialize
+
         if (!space) { throw new Error(`space required. (E: 9f38166ab70340cb919174f8d26af909)`); }
         if (!ibGib && !ibGibAddr && (ibGibs ?? []).length === 0 && (ibGibAddrs ?? []).length === 0) {
             throw new Error(`either ibGib/s or ibGibAddr/s required. (E: b6d08699651f455697f0d05a41edb039)`);
@@ -290,7 +292,7 @@ export async function getDependencyGraph({
             (ibGibs ?? [])
             .filter(x => !isPrimitive({ibGib: x})) // no primitives
             .filter(x => !skipAddrs.includes(h.getIbGibAddr({ibGib: x})));
-        // if we'e passed in a single ibGib, add it to the ibGibs array because
+        // if we're passed in a single ibGib, add it to the ibGibs array because
         // we're going to work off of that.
         if (ibGib &&
             !isPrimitive({ibGib}) &&
@@ -299,7 +301,7 @@ export async function getDependencyGraph({
         ) {
             ibGibs.push(ibGib);
         }
-        // if we'e passed in a single ibGibAddr, add it to the ibGibAddrs array because
+        // if we're passed in a single ibGibAddr, add it to the ibGibAddrs array because
         // we're going to work off of that.
         if (ibGibAddr &&
             !isPrimitive({gib: h.getIbAndGib({ibGibAddr}).gib}) &&
@@ -309,7 +311,77 @@ export async function getDependencyGraph({
             ibGibAddrs.push(ibGibAddr);
         }
 
-        // two different strategies depending on if live or not.
+        // #endregion validate & initialize
+
+        // #region retrieve any associated ibGibs from the space that we don't already have (if any)
+
+        const addrsWeDontHaveAlready_IncomingIbGibAddrs: IbGibAddr[] = [];
+        const gottenAddrs: IbGibAddr[] = Object.keys(gotten); // compute once in this closure
+        const incomingIbGibAddrs = ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
+        const noNeedAddrs = [ ...gottenAddrs, ...incomingIbGibAddrs, ...skipAddrs, ];
+        for (let i = 0; i < ibGibAddrs.length; i++) {
+            if (!noNeedAddrs.includes(ibGibAddrs[i])) {
+                addrsWeDontHaveAlready_IncomingIbGibAddrs.push(ibGibAddrs[i]);
+            }
+        }
+
+        if (addrsWeDontHaveAlready_IncomingIbGibAddrs.length > 0) {
+            // delete this related code when I'm done testing this.
+            // const primaryKeysDebug: { [addr: string]: string } = {};
+            // for (let i = 0; i < addrsWeDontHaveAlready_IncomingIbGibAddrs.length; i++) {
+            //     const addr = addrsWeDontHaveAlready_IncomingIbGibAddrs[i];
+            //     primaryKeysDebug[addr] = await h.hash({s: addr, algorithm: 'SHA-256'});
+            // }
+
+            // get from space those we don't already have, with retries if applicable
+
+            // do multiple retry attempts if necessary and caller sets it.
+            let addrsToGet = addrsWeDontHaveAlready_IncomingIbGibAddrs.concat();
+            let retryCount = 0;
+            maxRetries = maxRetries ?? 0;
+            while (retryCount <= maxRetries && addrsToGet.length > 0) {
+                if (timeLogName && retryCount === 0) { console.timeLog(timeLogName, `${lc} FIRST try starting...`)}
+                if (timeLogName && retryCount > 0) { console.timeLog(timeLogName, `${lc} RETRY starting...`)}
+                // delay if applicable
+                if (retryCount > 0 && msBetweenRetries) {
+                    if (timeLogName) { console.timeLog(timeLogName, `${lc} delaying ${msBetweenRetries}ms for retry`); }
+                    if (logalot) { console.log(`${lc} retrying. addrsToGet (${addrsToGet.length}): ${addrsToGet} (I: 8460694cdd5518472680784c3b96a822)`); }
+                    await h.delay(msBetweenRetries);
+                }
+
+                // do the get
+                if (timeLogName) { console.timeLog(timeLogName, `${lc} getFromSpace (${addrsToGet?.length}) starting...`); }
+                let resGetThese = await getFromSpace({addrs: addrsToGet, space});
+                if (timeLogName) { console.timeLog(timeLogName, `${lc} getFromSpace complete.`); }
+                if (resGetThese.success && resGetThese.ibGibs?.length > 0) {
+                    resGetThese.ibGibs.forEach(x => ibGibs.push(x));
+                    const gottenAddrs = resGetThese.ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
+                    if (gottenAddrs.length === addrsToGet.length) {
+                        if (timeLogName) { console.timeLog(timeLogName, `${lc} got all.`)}
+                        // got them all, so we're done
+                        addrsToGet = [];
+                        break;
+                    } else {
+                        if (timeLogName) { console.timeLog(timeLogName, `${lc} got some.`)}
+                        // got only some, prune addrsToGet for next retry (if any)
+                        addrsToGet = addrsToGet.filter(x => !gottenAddrs.includes(x));
+                    }
+                } else {
+                    // failed, addrsToGet stays the same
+                    if (timeLogName) { console.timeLog(timeLogName, `${lc} failed. addrs: ${addrsToGet?.join(',')}`)}
+                }
+                retryCount++;
+            }
+            if (addrsToGet?.length > 0) {
+                // console.dir(primaryKeysDebug);
+                throw new Error(`unable to retrieve dependency ibgibs from space.\n\nThis is often because downloading failed due to the sync space's server getting temporarily overloaded, OR...it sometimes happens when an ibgib doesn't get fully published to the sync space in the first place.\n\nYou could retry immediately or later, but if the problem persists, then retry from the publishers end (have the publisher sync again). (E: 8413594b6c1b447988781cf3f3e1729d)`);
+            }
+        }
+
+        // #endregion retrieve any associated ibGibs from the space that we don't already have (if any)
+
+        // at this point, there are two different strategies for diving deeper,
+        // depending on if we are building a `live` graph or not.
         if (live) {
             return getDependencyGraph_Live({
                 ibGib, ibGibs, ibGibAddr, ibGibAddrs,
@@ -355,6 +427,8 @@ async function getDependencyGraph_Live({
     const lc = `[${getDependencyGraph_Live.name}]`;
     try {
 
+        // at this point, our incoming ibGibs are fully populated
+
         // live dependency graph searching requires a timeline-centric approach.
         // for each incoming ibGib, we must first determine if it has a
         // timeline.  if it does, then we get the latest in that timeline and
@@ -362,76 +436,132 @@ async function getDependencyGraph_Live({
         // rel8d ibgibs that also have timelines
         // ...leaving off here without implementing this...
 
+        // what we can do is compile our list of ibGib addrs according to each
+        // timeline and then call the nonlive version of the dependency graph.
+        // but we must get the latest in the timeline, then get all associated
+        // timelines and get the latest of those. Then we can call get
+        // dependency graph on the non-live version, passing in all of those
+        // latest ibgibs in the timelines (and everything we've gotten in the
+        // interim so we don't waste time getting more).
+
+        // const {mapWithTjp_NoDna, mapWithTjp_YesDna, mapWithoutTjps} =
+        //     splitPerTjpAndOrDna({ibGibs})
+        // const mapWithTjp: { [addr: IbGibAddr]: IbGib_V1 } = {
+        //     ...mapWithTjp_YesDna,
+        //     ...mapWithTjp_NoDna,
+        // };
+        // const ibGibsWithTjp = Object.values(mapWithTjp);
+        // const ibGibsWithoutTjp = Object.values(mapWithoutTjps);
+        const timelinesPerTjp = getTimelinesGroupedByTjp({
+            ibGibs,
+            // ibGibs: ibGibsWithTjp,
+        });
+        const latestIbGibsInGivenTimelinesThatWeHaventAlreadyGotten: IbGib_V1[] = [];
+        Object.keys(timelinesPerTjp)
+            .filter(tjpAddr => !gottenTjpAddrs.includes(tjpAddr))
+            .forEach(tjpAddr => {
+            const timeline = timelinesPerTjp[tjpAddr];
+            latestIbGibsInGivenTimelinesThatWeHaventAlreadyGotten.push(timeline[timeline.length-1]);
+        });
+        let countOfTimelinesNotYetGotten =
+            Object.keys(latestIbGibsInGivenTimelinesThatWeHaventAlreadyGotten).length;
+
+        if (countOfTimelinesNotYetGotten === 0) {
+            // we have no more timelines that we haven't already gotten, so we
+            // can pass off to the non-live version
+            return await getDependencyGraph_NonLive({
+                ibGibs,
+                ibGibAddrs,
+                gotten,
+                gottenTjpAddrs,
+                skipAddrs,
+                skipRel8nNames,
+                maxRetries,
+                msBetweenRetries,
+                space,
+                timeLogName,
+                live: false,
+            });
+        } else {
+            // we have more timelines still to do. get the latest ibGib in each timeline,
+            // add it
+        }
+
+
+
+        // to do this, we can get each timeline's latest addr get that latest ibGib.
+        // check for timelines again until we have no more additional timelines.
+
         // now we want to load ibGibs from the space, but not unnecessarily. So
         // we will add ibGibs that we have already been provided by the caller
         // that haven't already been added to gotten, and then we will cull the
         // ibGibAddrs to get to only include those we haven't already.
 
-        const addrsWeDontHaveAlready_IncomingIbGibAddrs: IbGibAddr[] = [];
-        const gottenAddrs: IbGibAddr[] = Object.keys(gotten); // compute once in this closure
-        const incomingIbGibAddrs = ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
-        const noNeedAddrs = [ ...gottenAddrs, ...incomingIbGibAddrs, ...skipAddrs, ];
-        for (let i = 0; i < ibGibAddrs.length; i++) {
-            if (!noNeedAddrs.includes(ibGibAddrs[i])) {
-                addrsWeDontHaveAlready_IncomingIbGibAddrs.push(ibGibAddrs[i]);
-            }
-        }
+        // const addrsWeDontHaveAlready_IncomingIbGibAddrs: IbGibAddr[] = [];
+        // const gottenAddrs: IbGibAddr[] = Object.keys(gotten); // compute once in this closure
+        // const incomingIbGibAddrs = ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
+        // const noNeedAddrs = [ ...gottenAddrs, ...incomingIbGibAddrs, ...skipAddrs, ];
+        // for (let i = 0; i < ibGibAddrs.length; i++) {
+        //     if (!noNeedAddrs.includes(ibGibAddrs[i])) {
+        //         addrsWeDontHaveAlready_IncomingIbGibAddrs.push(ibGibAddrs[i]);
+        //     }
+        // }
 
-        // go ahead and retrieve any associated ibGibs from the space that we
-        // don't already have (if any)
-        if (addrsWeDontHaveAlready_IncomingIbGibAddrs.length > 0) {
-            // delete this related code when I'm done testing this.
-            const primaryKeysDebug: { [addr: string]: string } = {};
-            for (let i = 0; i < addrsWeDontHaveAlready_IncomingIbGibAddrs.length; i++) {
-                const addr = addrsWeDontHaveAlready_IncomingIbGibAddrs[i];
-                primaryKeysDebug[addr] = await h.hash({s: addr, algorithm: 'SHA-256'});
-            }
+        // // go ahead and retrieve any associated ibGibs from the space that we
+        // // don't already have (if any)
+        // if (addrsWeDontHaveAlready_IncomingIbGibAddrs.length > 0) {
+        //     // delete this related code when I'm done testing this.
+        //     // const primaryKeysDebug: { [addr: string]: string } = {};
+        //     // for (let i = 0; i < addrsWeDontHaveAlready_IncomingIbGibAddrs.length; i++) {
+        //     //     const addr = addrsWeDontHaveAlready_IncomingIbGibAddrs[i];
+        //     //     primaryKeysDebug[addr] = await h.hash({s: addr, algorithm: 'SHA-256'});
+        //     // }
 
-            // get from space those we don't already have, with retries if applicable
+        //     // get from space those we don't already have, with retries if applicable
 
-            // do multiple retry attempts if necessary and caller sets it.
-            let addrsToGet = addrsWeDontHaveAlready_IncomingIbGibAddrs.concat();
-            let retryCount = 0;
-            maxRetries = maxRetries ?? 0;
-            while (retryCount <= maxRetries && addrsToGet.length > 0) {
-                if (timeLogName && retryCount === 0) { console.timeLog(timeLogName, `${lc} FIRST try starting...`)}
-                if (timeLogName && retryCount > 0) { console.timeLog(timeLogName, `${lc} RETRY starting...`)}
-                // delay if applicable
-                if (retryCount > 0 && msBetweenRetries) {
-                    if (timeLogName) { console.timeLog(timeLogName, `${lc} delaying ${msBetweenRetries}ms for retry`); }
-                    if (logalot) { console.log(`${lc} retrying. addrsToGet (${addrsToGet.length}): ${addrsToGet} (I: 8460694cdd5518472680784c3b96a822)`); }
-                    await h.delay(msBetweenRetries);
-                }
+        //     // do multiple retry attempts if necessary and caller sets it.
+        //     let addrsToGet = addrsWeDontHaveAlready_IncomingIbGibAddrs.concat();
+        //     let retryCount = 0;
+        //     maxRetries = maxRetries ?? 0;
+        //     while (retryCount <= maxRetries && addrsToGet.length > 0) {
+        //         if (timeLogName && retryCount === 0) { console.timeLog(timeLogName, `${lc} FIRST try starting...`)}
+        //         if (timeLogName && retryCount > 0) { console.timeLog(timeLogName, `${lc} RETRY starting...`)}
+        //         // delay if applicable
+        //         if (retryCount > 0 && msBetweenRetries) {
+        //             if (timeLogName) { console.timeLog(timeLogName, `${lc} delaying ${msBetweenRetries}ms for retry`); }
+        //             if (logalot) { console.log(`${lc} retrying. addrsToGet (${addrsToGet.length}): ${addrsToGet} (I: 8460694cdd5518472680784c3b96a822)`); }
+        //             await h.delay(msBetweenRetries);
+        //         }
 
-                // do the get
-                if (timeLogName) { console.timeLog(timeLogName, `${lc} getFromSpace (${addrsToGet?.length}) starting...`); }
-                let resGetThese = await getFromSpace({addrs: addrsToGet, space});
-                if (timeLogName) { console.timeLog(timeLogName, `${lc} getFromSpace complete.`); }
-                if (resGetThese.success && resGetThese.ibGibs?.length > 0) {
-                    resGetThese.ibGibs.forEach(x => ibGibs.push(x));
-                    const gottenAddrs = resGetThese.ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
-                    if (gottenAddrs.length === addrsToGet.length) {
-                        if (timeLogName) { console.timeLog(timeLogName, `${lc} got all.`)}
-                        // got them all, so we're done
-                        addrsToGet = [];
-                        break;
-                    } else {
-                        if (timeLogName) { console.timeLog(timeLogName, `${lc} got some.`)}
-                        // got only some, prune addrsToGet for next retry (if any)
-                        addrsToGet = addrsToGet.filter(x => !gottenAddrs.includes(x));
-                    }
-                } else {
-                    // failed, addrsToGet stays the same
-                    if (timeLogName) { console.timeLog(timeLogName, `${lc} failed. addrs: ${addrsToGet?.join(',')}`)}
-                }
-                retryCount++;
-            }
-            if (addrsToGet?.length > 0) {
-                console.dir(primaryKeysDebug);
-                throw new Error(`unable to retrieve dependency ibgibs from space.\n\nThis is often because downloading failed due to the sync space's server getting temporarily overloaded, OR...it sometimes happens when an ibgib doesn't get fully published to the sync space in the first place.\n\nYou could retry immediately or later, but if the problem persists, then retry from the publishers end (have the publisher sync again). (E: 8413594b6c1b447988781cf3f3e1729d)`);
-            }
+        //         // do the get
+        //         if (timeLogName) { console.timeLog(timeLogName, `${lc} getFromSpace (${addrsToGet?.length}) starting...`); }
+        //         let resGetThese = await getFromSpace({addrs: addrsToGet, space});
+        //         if (timeLogName) { console.timeLog(timeLogName, `${lc} getFromSpace complete.`); }
+        //         if (resGetThese.success && resGetThese.ibGibs?.length > 0) {
+        //             resGetThese.ibGibs.forEach(x => ibGibs.push(x));
+        //             const gottenAddrs = resGetThese.ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
+        //             if (gottenAddrs.length === addrsToGet.length) {
+        //                 if (timeLogName) { console.timeLog(timeLogName, `${lc} got all.`)}
+        //                 // got them all, so we're done
+        //                 addrsToGet = [];
+        //                 break;
+        //             } else {
+        //                 if (timeLogName) { console.timeLog(timeLogName, `${lc} got some.`)}
+        //                 // got only some, prune addrsToGet for next retry (if any)
+        //                 addrsToGet = addrsToGet.filter(x => !gottenAddrs.includes(x));
+        //             }
+        //         } else {
+        //             // failed, addrsToGet stays the same
+        //             if (timeLogName) { console.timeLog(timeLogName, `${lc} failed. addrs: ${addrsToGet?.join(',')}`)}
+        //         }
+        //         retryCount++;
+        //     }
+        //     if (addrsToGet?.length > 0) {
+        //         // console.dir(primaryKeysDebug);
+        //         throw new Error(`unable to retrieve dependency ibgibs from space.\n\nThis is often because downloading failed due to the sync space's server getting temporarily overloaded, OR...it sometimes happens when an ibgib doesn't get fully published to the sync space in the first place.\n\nYou could retry immediately or later, but if the problem persists, then retry from the publishers end (have the publisher sync again). (E: 8413594b6c1b447988781cf3f3e1729d)`);
+        //     }
 
-        }
+        // }
 
         // next, compile what could be a rather large list of rel8d ibgibAddrs
         // which must necessarily be in the past of the futuremost incoming
@@ -617,70 +747,70 @@ async function getDependencyGraph_NonLive({
         // So first, go ahead and do the passed in ibGibAddrs.  These are the
         // addrs that we need to not only get and load if we don't already have
         // them, but we will check their rel8ns as well.
-        const addrsWeDontHaveAlready_IncomingIbGibAddrs: IbGibAddr[] = [];
-        const gottenAddrs: IbGibAddr[] = Object.keys(gotten); // compute once in this closure
-        const incomingIbGibAddrs = ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
-        const noNeedAddrs = [ ...gottenAddrs, ...incomingIbGibAddrs, ...skipAddrs, ];
-        for (let i = 0; i < ibGibAddrs.length; i++) {
-            if (!noNeedAddrs.includes(ibGibAddrs[i])) {
-                addrsWeDontHaveAlready_IncomingIbGibAddrs.push(ibGibAddrs[i]);
-            }
-        }
+        // const addrsWeDontHaveAlready_IncomingIbGibAddrs: IbGibAddr[] = [];
+        // const gottenAddrs: IbGibAddr[] = Object.keys(gotten); // compute once in this closure
+        // const incomingIbGibAddrs = ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
+        // const noNeedAddrs = [ ...gottenAddrs, ...incomingIbGibAddrs, ...skipAddrs, ];
+        // for (let i = 0; i < ibGibAddrs.length; i++) {
+        //     if (!noNeedAddrs.includes(ibGibAddrs[i])) {
+        //         addrsWeDontHaveAlready_IncomingIbGibAddrs.push(ibGibAddrs[i]);
+        //     }
+        // }
 
-        // go ahead and retrieve any associated ibGibs from the space that we
-        // don't already have (if any)
-        if (addrsWeDontHaveAlready_IncomingIbGibAddrs.length > 0) {
-            // delete this related code when I'm done testing this.
-            const primaryKeysDebug: { [addr: string]: string } = {};
-            for (let i = 0; i < addrsWeDontHaveAlready_IncomingIbGibAddrs.length; i++) {
-                const addr = addrsWeDontHaveAlready_IncomingIbGibAddrs[i];
-                primaryKeysDebug[addr] = await h.hash({s: addr, algorithm: 'SHA-256'});
-            }
+        // // go ahead and retrieve any associated ibGibs from the space that we
+        // // don't already have (if any)
+        // if (addrsWeDontHaveAlready_IncomingIbGibAddrs.length > 0) {
+        //     // // delete this related code when I'm done testing this.
+        //     // const primaryKeysDebug: { [addr: string]: string } = {};
+        //     // for (let i = 0; i < addrsWeDontHaveAlready_IncomingIbGibAddrs.length; i++) {
+        //     //     const addr = addrsWeDontHaveAlready_IncomingIbGibAddrs[i];
+        //     //     primaryKeysDebug[addr] = await h.hash({s: addr, algorithm: 'SHA-256'});
+        //     // }
 
-            // get from space those we don't already have, with retries if applicable
+        //     // get from space those we don't already have, with retries if applicable
 
-            // do multiple retry attempts if necessary and caller sets it.
-            let addrsToGet = addrsWeDontHaveAlready_IncomingIbGibAddrs.concat();
-            let retryCount = 0;
-            maxRetries = maxRetries ?? 0;
-            while (retryCount <= maxRetries && addrsToGet.length > 0) {
-                if (timeLogName && retryCount === 0) { console.timeLog(timeLogName, `${lc} FIRST try starting...`)}
-                if (timeLogName && retryCount > 0) { console.timeLog(timeLogName, `${lc} RETRY starting...`)}
-                // delay if applicable
-                if (retryCount > 0 && msBetweenRetries) {
-                    if (timeLogName) { console.timeLog(timeLogName, `${lc} delaying ${msBetweenRetries}ms for retry`); }
-                    if (logalot) { console.log(`${lc} retrying. addrsToGet (${addrsToGet.length}): ${addrsToGet} (I: 8460694cdd5518472680784c3b96a822)`); }
-                    await h.delay(msBetweenRetries);
-                }
+        //     // do multiple retry attempts if necessary and caller sets it.
+        //     let addrsToGet = addrsWeDontHaveAlready_IncomingIbGibAddrs.concat();
+        //     let retryCount = 0;
+        //     maxRetries = maxRetries ?? 0;
+        //     while (retryCount <= maxRetries && addrsToGet.length > 0) {
+        //         if (timeLogName && retryCount === 0) { console.timeLog(timeLogName, `${lc} FIRST try starting...`)}
+        //         if (timeLogName && retryCount > 0) { console.timeLog(timeLogName, `${lc} RETRY starting...`)}
+        //         // delay if applicable
+        //         if (retryCount > 0 && msBetweenRetries) {
+        //             if (timeLogName) { console.timeLog(timeLogName, `${lc} delaying ${msBetweenRetries}ms for retry`); }
+        //             if (logalot) { console.log(`${lc} retrying. addrsToGet (${addrsToGet.length}): ${addrsToGet} (I: 8460694cdd5518472680784c3b96a822)`); }
+        //             await h.delay(msBetweenRetries);
+        //         }
 
-                // do the get
-                if (timeLogName) { console.timeLog(timeLogName, `${lc} getFromSpace (${addrsToGet?.length}) starting...`); }
-                let resGetThese = await getFromSpace({addrs: addrsToGet, space});
-                if (timeLogName) { console.timeLog(timeLogName, `${lc} getFromSpace complete.`); }
-                if (resGetThese.success && resGetThese.ibGibs?.length > 0) {
-                    resGetThese.ibGibs.forEach(x => ibGibs.push(x));
-                    const gottenAddrs = resGetThese.ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
-                    if (gottenAddrs.length === addrsToGet.length) {
-                        if (timeLogName) { console.timeLog(timeLogName, `${lc} got all.`)}
-                        // got them all, so we're done
-                        addrsToGet = [];
-                        break;
-                    } else {
-                        if (timeLogName) { console.timeLog(timeLogName, `${lc} got some.`)}
-                        // got only some, prune addrsToGet for next retry (if any)
-                        addrsToGet = addrsToGet.filter(x => !gottenAddrs.includes(x));
-                    }
-                } else {
-                    // failed, addrsToGet stays the same
-                    if (timeLogName) { console.timeLog(timeLogName, `${lc} failed. addrs: ${addrsToGet?.join(',')}`)}
-                }
-                retryCount++;
-            }
-            if (addrsToGet?.length > 0) {
-                console.dir(primaryKeysDebug);
-                throw new Error(`unable to retrieve dependency ibgibs from space.\n\nThis is often because downloading failed due to the sync space's server getting temporarily overloaded, OR...it sometimes happens when an ibgib doesn't get fully published to the sync space in the first place.\n\nYou could retry immediately or later, but if the problem persists, then retry from the publishers end (have the publisher sync again). (E: 8413594b6c1b447988781cf3f3e1729d)`);
-            }
-        }
+        //         // do the get
+        //         if (timeLogName) { console.timeLog(timeLogName, `${lc} getFromSpace (${addrsToGet?.length}) starting...`); }
+        //         let resGetThese = await getFromSpace({addrs: addrsToGet, space});
+        //         if (timeLogName) { console.timeLog(timeLogName, `${lc} getFromSpace complete.`); }
+        //         if (resGetThese.success && resGetThese.ibGibs?.length > 0) {
+        //             resGetThese.ibGibs.forEach(x => ibGibs.push(x));
+        //             const gottenAddrs = resGetThese.ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
+        //             if (gottenAddrs.length === addrsToGet.length) {
+        //                 if (timeLogName) { console.timeLog(timeLogName, `${lc} got all.`)}
+        //                 // got them all, so we're done
+        //                 addrsToGet = [];
+        //                 break;
+        //             } else {
+        //                 if (timeLogName) { console.timeLog(timeLogName, `${lc} got some.`)}
+        //                 // got only some, prune addrsToGet for next retry (if any)
+        //                 addrsToGet = addrsToGet.filter(x => !gottenAddrs.includes(x));
+        //             }
+        //         } else {
+        //             // failed, addrsToGet stays the same
+        //             if (timeLogName) { console.timeLog(timeLogName, `${lc} failed. addrs: ${addrsToGet?.join(',')}`)}
+        //         }
+        //         retryCount++;
+        //     }
+        //     if (addrsToGet?.length > 0) {
+        //         // console.dir(primaryKeysDebug);
+        //         throw new Error(`unable to retrieve dependency ibgibs from space.\n\nThis is often because downloading failed due to the sync space's server getting temporarily overloaded, OR...it sometimes happens when an ibgib doesn't get fully published to the sync space in the first place.\n\nYou could retry immediately or later, but if the problem persists, then retry from the publishers end (have the publisher sync again). (E: 8413594b6c1b447988781cf3f3e1729d)`);
+        //     }
+        // }
 
         // next, compile what could be a rather large list of rel8d ibgibAddrs
         // which must necessarily be in the past of the futuremost incoming
