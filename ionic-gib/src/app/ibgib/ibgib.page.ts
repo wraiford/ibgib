@@ -524,8 +524,11 @@ export class IbGibPage extends IbgibComponentBase
 
       if (resConfirmDisableAutosync.value) {
         // sync requires the entire dependency graph of the current ibgib
-        const dependencyGraph =
-          await this.common.ibgibs.getDependencyGraph({ibGib: this.ibGib});
+        const dependencyGraph = await this.common.ibgibs.getDependencyGraph({
+          ibGib: this.ibGib,
+          live: true,
+          space: null
+        });
 
         // pull out the tjp ibgibs, for which we will turn on autosync
         const tjpIbGibs =
@@ -584,7 +587,7 @@ export class IbGibPage extends IbgibComponentBase
 
       // sync requires the entire dependency graph of the current ibgib
       const dependencyGraph =
-        await this.common.ibgibs.getDependencyGraph({ibGib: this.ibGib});
+        await this.common.ibgibs.getDependencyGraph({ibGib: this.ibGib, live: true, space: null});
 
       // pull out the tjp ibgibs, for which we will turn on autosync
       const tjpIbGibs =

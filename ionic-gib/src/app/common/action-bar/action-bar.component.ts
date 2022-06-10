@@ -591,6 +591,7 @@ export class ActionBarComponent extends IbgibComponentBase
         // but we may not (probably don't) have the entire dependency graph.
         let graph = await getDependencyGraph({
           ibGib: gotIbGib,
+          live: true,
           maxRetries: c.DEFAULT_MAX_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
           msBetweenRetries: c.DEFAULT_MS_BETWEEN_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
           space,

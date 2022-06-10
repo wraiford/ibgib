@@ -52,7 +52,7 @@ import {
   getConfigAddr, setConfigAddr, setCurrentRoot, rel8ToCurrentRoot,
   rel8ToSpecialIbGib, registerNewIbGib, persistTransformResult, getFromSpace,
   putInSpace, deleteFromSpace, getDependencyGraph, getLatestAddrs, getTjpIbGib,
-  getSpecialIbGib, getSpecialRel8dIbGibs, createRobbotIbGib
+  getSpecialIbGib, getSpecialRel8dIbGibs, createRobbotIbGib, GetDependencyGraphOptions,
 } from '../common/helper/space';
 import { spaceNameIsValid } from '../common/helper/validate';
 import { groupBy } from '../common/helper/utils';
@@ -1076,6 +1076,10 @@ export class IbgibsService {
    *
    * (refactoring!)
    *
+   * ## note on space
+   *
+   * pass in `null` for space if you want to
+   *
    * ## warning
    *
    * This does not (YET) have a flag that gets the latest ibgibs for the graph.
@@ -1086,102 +1090,13 @@ export class IbgibsService {
    *
    * todo: auto-update or better
    */
-  async getDependencyGraph({
-    ibGib,
-    ibGibs,
-    ibGibAddr,
-    ibGibAddrs,
-    gotten,
-    skipAddrs,
-    skipRel8nNames,
-    maxRetries,
-    msBetweenRetries,
-    space,
-  }: {
-    /**
-     * source ibGib to grab dependencies of.
-     *
-     * caller can pass in `ibGib` or `ibGibs` or `ibGibAddr` or `ibGibAddrs`.
-     */
-    ibGib?: IbGib_V1,
-    /**
-     * source ibGibs to grab dependencies of.
-     *
-     * caller can pass in `ibGib` or `ibGibs` or `ibGibAddr` or `ibGibAddrs`.
-     */
-    ibGibs?: IbGib_V1[],
-    /**
-     * source ibGib address to grab dependencies of.
-     *
-     * caller can pass in `ibGib` or `ibGibs` or `ibGibAddr` or `ibGibAddrs`.
-     */
-    ibGibAddr?: IbGibAddr,
-    /**
-     * source ibGib addresses to grab dependencies of.
-     *
-     * caller can pass in `ibGib` or `ibGibs` or `ibGibAddr` or `ibGibAddrs`.
-     */
-    ibGibAddrs?: IbGibAddr[],
-    /**
-     * object that will be populated through recursive calls to this function.
-     *
-     * First caller of this function should not (doesn't need to?) provide this
-     * and I'm not atow coding a separate implementation function to ensure
-     * this.
-     */
-    gotten?: { [addr: string]: IbGib_V1 },
-    /**
-     * NOT IMPLEMENTED ATOW
-     *
-     * List of ibgib addresses to skip not retrive in the dependency graph.
-     *
-     * This will also skip any ibgib addresses that would have occurred in the
-     * past of these ibgibs, as when skipping an ibgib, you are also skipping
-     * its dependencies implicitly as well (unless those others are related via
-     * another ibgib that is not skipped of course).
-     *
-     * ## driving use case
-     *
-     * We don't want to get ibgibs that we already have, and this is
-     * cleaner than using the `gotten` parameter for double-duty.
-     */
-    skipAddrs?: IbGibAddr[],
-    /**
-     * Skip these particular rel8n names.
-     *
-     * ## driving intent
-     *
-     * I'm adding this to be able to skip getting dna ibgibs.
-     */
-    skipRel8nNames?: string[],
-    /**
-     * If not found when getting dependency graph, do we retry? This is the
-     * max number of retries.
-     */
-    maxRetries?: number,
-    /**
-     * If provided and {@link maxRetries} is non-zero, the next retry will be
-     * delayed this amount of time if one or more addrs are not found.
-     */
-    msBetweenRetries?: number,
-    /**
-     * Space within which we should be looking for ibGibs.
-     */
-    space?: IbGibSpaceAny,
-  }): Promise<{ [addr: string]: IbGib_V1 }> {
+  async getDependencyGraph(opts: GetDependencyGraphOptions): Promise<{ [addr: string]: IbGib_V1 }> {
     const lc = `${this.lc}[${this.getDependencyGraph.name}]`;
     try {
-      space = space ?? await this.getLocalUserSpace({});
-      if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: e2a35a23d12d48ebadcfd4f1a396d6c1)`); }
+      opts.space = opts.space ?? await this.getLocalUserSpace({});
+      if (!opts.space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: e2a35a23d12d48ebadcfd4f1a396d6c1)`); }
 
-      return getDependencyGraph({
-        ibGib, ibGibs,
-        ibGibAddr, ibGibAddrs,
-        gotten,
-        skipAddrs, skipRel8nNames,
-        maxRetries, msBetweenRetries,
-        space,
-      });
+      return getDependencyGraph(opts);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -2205,8 +2120,9 @@ export class IbgibsService {
       // #endregion
 
       // get **ALL** ibgibs that we'll need to put/merge
+      debugger;
       const allIbGibsToSync =
-        await this._getAllIbGibsToSyncFromGraph({dependencyGraphIbGibs});
+        await this._getAllIbGibsToSyncFromGraph({dependencyGraphIbGibs, space: localUserSpace});
 
       // _NOW_ we can finally put/merge into sync spaces.
       // this returns to us the most recent versions which we can update
@@ -2505,7 +2421,8 @@ export class IbgibsService {
         console.timeLog(syncTimelogName, `handleWatchTjpUpdates starting...`);
         await this.handleWatchTjpUpdates({
           outerSpace: syncSpace,
-          updates: resStartSync.data.watchTjpUpdateMap
+          updates: resStartSync.data.watchTjpUpdateMap,
+          localUserSpace,
         });
         console.timeLog(syncTimelogName, `handleWatchTjpUpdates complete.`);
       }
@@ -2787,8 +2704,10 @@ export class IbgibsService {
    */
   private async _getAllIbGibsToSyncFromGraph({
     dependencyGraphIbGibs,
+    space,
   }: {
     dependencyGraphIbGibs: IbGib_V1[],
+    space: IbGibSpaceAny,
   }): Promise<IbGib_V1[]> {
     const lc = `${this.lc}[${this._getAllIbGibsToSyncFromGraph.name}]`;
     try {
@@ -2828,9 +2747,11 @@ export class IbgibsService {
         // graph already has been fully traversed, so we put this in `gotten`
         allIbGibsToMergeMap = await this.getDependencyGraph({
           ibGib: latestIbGibWithTjp,
+          live: true,
           gotten: allIbGibsToMergeMap,
           maxRetries: c.DEFAULT_MAX_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
           msBetweenRetries: c.DEFAULT_MS_BETWEEN_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
+          space,
         });
       }
 
@@ -2896,9 +2817,11 @@ export class IbgibsService {
   private async handleWatchTjpUpdates({
     updates,
     outerSpace,
+    localUserSpace,
   }: {
     updates: { [tjpAddr: string]: IbGibAddr; }
     outerSpace: IbGibSpaceAny,
+    localUserSpace: IbGibSpaceAny,
   }): Promise<void> {
     const lc = `${this.lc}[${this.handleWatchTjpUpdates.name}]`;
     if (logalot) { console.log(`${lc} starting...`); }
@@ -2931,8 +2854,10 @@ export class IbgibsService {
        */
       const localDependencyGraphs = await this.getDependencyGraph({
         ibGibAddrs: latestAddrsLocallyWithUpdate,
+        live: true,
         maxRetries: c.DEFAULT_MAX_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
         msBetweenRetries: c.DEFAULT_MS_BETWEEN_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
+        space: localUserSpace,
       });
 
       /** all addrs we already have locally */
@@ -2942,8 +2867,9 @@ export class IbgibsService {
       const newerAddrsFromOuterSpace: IbGibAddr[] = Object.values(updates);
       const newerIbGibDependencyGraphFromOuterSpace = await getDependencyGraph({
         ibGibAddrs: newerAddrsFromOuterSpace,
-        space: outerSpace,
+        live: false,
         skipAddrs: addrsAlreadyStoredLocally,
+        space: outerSpace,
       });
       const newerIbGibsFromOuterSpace: IbGib_V1[] =
         Object.values(newerIbGibDependencyGraphFromOuterSpace);
