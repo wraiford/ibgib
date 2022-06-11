@@ -69,7 +69,7 @@ import {
     StatusCode, getStatusIb, SyncStatusData, ParticipantInfo,
 } from '../../types/outer-space';
 import { IbGibSpaceOptionsCmd } from '../../types/space';
-import { groupBy } from '../../helper/utils';
+import { groupBy, unique } from '../../helper/utils';
 import { isBinary, mergeMapsOrArrays_Naive, splitPerTjpAndOrDna } from '../../helper/ibgib';
 import { execInSpaceWithLocking, getDependencyGraph, throwIfDuplicates } from '../../helper/space';
 import { validateIbGibIntrinsically } from '../../helper/validate';
@@ -2035,7 +2035,8 @@ export class AWSDynamoSpace_V1<
         const lc = `${this.lc}[${this.getLatestIbGibAddrsInStore.name}]`;
         warnings = warnings ?? [];
         errors = errors ?? [];
-        const resLatestMap: { [addr: string]: IbGibAddr | null } = {};
+        let resLatestMap: { [addr: string]: IbGibAddr | null } = {};
+        const resLatestMap_NotFound: { [addr: string]: null } = {};
         try {
             // argibGibs guaranteed at this point to be non-null and > 0
 
@@ -2052,11 +2053,54 @@ export class AWSDynamoSpace_V1<
             const ibGibsWithTjp = Object.values(mapIbGibsWithTjp);
             const ibGibsWithoutTjp = Object.values(mapWithoutTjps);
 
+
+            // build up our list of tjpIbGibs which we'll need in call to
+            // `getLatestIbGibAddrsInStore_Tjp`
             const ibGibsWithTjpGroupedByTjpAddr = groupBy({
                 items: ibGibsWithTjp,
                 keyFn: x => x.data.isTjp ? h.getIbGibAddr({ibGib: x}) : x.rel8ns.tjp[0]
             });
-            const tjpIbGibs = ibGibsWithTjp.filter(x => x.data.isTjp); // ASSUMES ONLY ONE TJP ATOW!
+            const tjpAddrs = Object.keys(ibGibsWithTjpGroupedByTjpAddr);
+            let tjpIbGibs = ibGibsWithTjp.filter(x => x.data.isTjp); // ASSUMES ONLY ONE TJP ATOW!
+
+            // maybe the caller just passed in the ibgib and did not include the
+            // tjpIbGib in its corresponding `tjp` rel8n. if not, get it
+            if (tjpAddrs.length !== tjpIbGibs.length) {
+                // some of the groups do not have the tjpIbGib itself loaded
+                // (just the addr), so we need to get the tjpIbGib
+                const tjpAddrsToGet =
+                    tjpAddrs.filter(tjpAddr => !tjpIbGibs.some(x => h.getIbGibAddr({ibGib: x}) === tjpAddr));
+                const tjpAddrsNotFound: string[] = [];
+                const tjpErrors: string[] = [];
+                const tjpWarnings: string[] = [];
+                const resGetTjpIbGibs = await this.getIbGibs({
+                    client,
+                    ibGibAddrs: tjpAddrsToGet,
+                    addrsNotFound: tjpAddrsNotFound,
+                    errors: tjpErrors,
+                    warnings: tjpWarnings,
+                });
+                if (tjpWarnings.length > 0) { console.warn(`${lc} tjpWarnings: ${tjpWarnings.join('|')} (W: 5c07c7cb6af342fd89be85532c7792c1)`); }
+                if (tjpErrors.length > 0) { throw new Error(`tjpErrors when getting tjpAddrs: ${tjpErrors.join('|')} (E: 2ebc0664ba47952d4a112c1812a9cb22)`); }
+                if (tjpAddrsNotFound.length > 0) {
+                    // tjp not found in space, so we have an invalid timeline.
+                    // Maybe the incoming ibgib is in the space, maybe not. but
+                    // definitely invalid (incomplete) timeline.
+                    console.warn(`${lc} tjpAddrsNotFound (${tjpAddrsNotFound.length}): ${tjpAddrsNotFound.join('\n')} (W: df2ecfd9815a8362c3bcb0e526c13622)`);
+                    // map back from tjpAddr to the incoming ibGib for our result map of null (not found).
+                    tjpAddrsNotFound.forEach(tjpAddr => {
+                        const timelineIbGibs = ibGibsWithTjp.filter(x => x.rel8ns?.tjp?.includes(tjpAddr));
+                        if (timelineIbGibs.length === 0) {
+                            debugger;
+                            throw new Error(`(unexpected) timelineIbGibs.length === 0. something's wrong with my overly defensive programming...eesh. (E: 0fafc8985aae8593a8b7a0bb53f3de22)`);
+                        }
+                        timelineIbGibs.forEach(x => {
+                            resLatestMap_NotFound[h.getIbGibAddr({ibGib: x})] = null
+                        });
+                    });
+                }
+                tjpIbGibs = unique([...tjpIbGibs, ...resGetTjpIbGibs]);
+            }
 
             // Do the tjp part, this mutates resLatestMap
             if (tjpIbGibs?.length > 0) {
@@ -2085,9 +2129,15 @@ export class AWSDynamoSpace_V1<
                 if (logalot) { console.log(`${lc} non-tjp ibgibs complete. (I: 853dda4633adce528c4afdef26963b22)`); }
             }
 
+            resLatestMap = {
+                ...resLatestMap_NotFound,
+                ...resLatestMap,
+            }
+
             // at this point, our resLatestMap should be completely filled for
             // all incoming ibGibs.
             if (Object.keys(resLatestMap).length !== ibGibs.length) {
+                debugger;
                 console.warn(`${lc}(UNEXPECTED) resLatestMap size is not equal to size of tjp ibgibs(?) (W: 9e07d44c527f49b48fb9320422a70481)`);
             }
 
