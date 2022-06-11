@@ -28,7 +28,7 @@ import { SpaceLockScope, IbGibSpaceLockIbGib, BootstrapIbGib, SpaceId, IbGibSpac
 import { isExpired, getExpirationUTCString, getTimestampInTicks } from './utils';
 import { IbGibCacheService, TjpIbGibAddr } from '../types/ibgib';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 
 /**
@@ -220,18 +220,14 @@ export async function deleteFromSpace({
             return { success: true, }
         } else {
             if (result.data?.warnings?.length > 0) {
-                debugger;
                 console.warn(`${lc} warnings with delete (${addr}): ${result.data!.warnings!.join('|')}`);
             }
             if (result.data?.addrs?.length > 0) {
-                debugger;
                 console.warn(`${lc} partial addrs deleted: ${result.data!.addrs!.join('|')}`);
             }
             const errorMsg: string = result.data?.errors?.join('|') || `${lc} something went wrong (E: e397fd09b4a746a3ba3305d6ea0893cb)`;
             if (errorMsg.includes('File does not exist')) {
                 if (logalot) { console.log(`${lc} tried to delete file that does not exist. (I: cb5d1348ccbc58bf0bfc95f3006f1e22)`); }
-            } else {
-                debugger;
             }
             return { errorMsg }
         }
@@ -613,7 +609,6 @@ async function getDependencyGraph_Live({
         }
 
     } catch (error) {
-        debugger;
         const emsg = `${lc} ${error.message}`;
         console.error(emsg);
         if (timeLogName) { console.timeLog(timeLogName, `${lc} error: ${emsg}`); }
@@ -785,10 +780,7 @@ async function getDependencyGraph_NonLive({
                     addr === null ||
                     !addr.includes(IBGIB_DELIMITER)
                 );
-                if (falsyAddrs.length > 0) {
-                    console.warn(`${lc} (UNEXPECTED) has falsyAddrs: ${falsyAddrs} (W: da9505cb0a4db68a4aff7f279ad2d322)`);
-                    debugger;
-                }
+                if (falsyAddrs.length > 0) { console.warn(`${lc} (UNEXPECTED) has falsyAddrs: ${falsyAddrs} (W: da9505cb0a4db68a4aff7f279ad2d322)`); }
                 const rel8dAddrsNotGottenYetThisRel8n =
                     rel8dAddrs
                     .filter(addr => !!addr)
@@ -862,7 +854,6 @@ async function getDependencyGraph_NonLive({
         }
 
     } catch (error) {
-        debugger;
         const emsg = `${lc} ${error.message}`;
         console.error(emsg);
         if (timeLogName) { console.timeLog(timeLogName, `${lc} error: ${emsg}`); }
@@ -3309,7 +3300,6 @@ export async function getLatestAddrs({
             addrs.length === 0 && ibGibs.length === 0 &&
             tjps.length === 0 && tjpAddrs.length === 0
         ) {
-            debugger;
             throw new Error(`Either addrs, ibGibs, tjps, or tjpAddrs required. (E: 7c6ebfbab98d4d21a431b144457fd991)`);
         }
 

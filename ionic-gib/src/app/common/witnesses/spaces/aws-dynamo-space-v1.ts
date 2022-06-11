@@ -76,7 +76,7 @@ import { validateIbGibIntrinsically } from '../../helper/validate';
 
 // #endregion imports
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 // #region AWS related
 
@@ -2090,10 +2090,7 @@ export class AWSDynamoSpace_V1<
                     // map back from tjpAddr to the incoming ibGib for our result map of null (not found).
                     tjpAddrsNotFound.forEach(tjpAddr => {
                         const timelineIbGibs = ibGibsWithTjp.filter(x => x.rel8ns?.tjp?.includes(tjpAddr));
-                        if (timelineIbGibs.length === 0) {
-                            debugger;
-                            throw new Error(`(unexpected) timelineIbGibs.length === 0. something's wrong with my overly defensive programming...eesh. (E: 0fafc8985aae8593a8b7a0bb53f3de22)`);
-                        }
+                        if (timelineIbGibs.length === 0) { throw new Error(`(unexpected) timelineIbGibs.length === 0. something's wrong with my overly defensive programming...eesh. (E: 0fafc8985aae8593a8b7a0bb53f3de22)`); }
                         timelineIbGibs.forEach(x => {
                             resLatestMap_NotFound[h.getIbGibAddr({ibGib: x})] = null
                         });
@@ -2137,7 +2134,6 @@ export class AWSDynamoSpace_V1<
             // at this point, our resLatestMap should be completely filled for
             // all incoming ibGibs.
             if (Object.keys(resLatestMap).length !== ibGibs.length) {
-                debugger;
                 console.warn(`${lc}(UNEXPECTED) resLatestMap size is not equal to size of tjp ibgibs(?) (W: 9e07d44c527f49b48fb9320422a70481)`);
             }
 
@@ -3107,7 +3103,6 @@ export class AWSDynamoSpace_V1<
                 console.dir(resCmd); // debug only
                 resultData.success = true;
             } catch (error) {
-                debugger;
                 console.error(`${lc} error: ${error.message}`);
                 resultData.errors = errors.concat([error.message]);
                 resultData.addrsErrored = [addr];
@@ -3786,7 +3781,6 @@ export class AWSDynamoSpace_V1<
                                 if (latestIbGib_Local_HasDna && latestIbGib_Store_HasDna) {
                                     if (logalot) { console.log(`${lcFn} merge via dna. latestAddr_Local: ${latestAddr_Local}`); }
                                     console.timeLog(timeLogName, 'reconcile_MergeLocalWithStore_ViaDna starting...');
-                                    debugger;
                                     await this.reconcile_MergeLocalWithStore_ViaDna({
                                         client,
                                         tjpAddr,
@@ -4451,13 +4445,6 @@ export class AWSDynamoSpace_V1<
                 if (dna_warningsGetIbGibs.length > 0) { console.warn(`${lc} dna_warningsGetIbGibs: ${dna_warningsGetIbGibs.join('|')} (W: 2e954bd2924b4e7eb5aebd36d677e6bf)`); }
                 if (dnaAddrsNotFound.length > 0) { throw new Error(`Errors getting dna ibgibs. dnaAddrsNotFound: ${dnaAddrsNotFound.join('\n')} (E: e25b73475b4b4c85b268e2a7b07350bf)`)}
                 if (dnaIbGibsOnlyInStore.length !== dnaAddrsOnlyInStore.length) { throw new Error(`dnaIbGibsOnlyInStore.length !== dnaAddrsOnlyInStore.length? (E: f69be0a0d72348989d434aa4878636e1)`); }
-                // #region debug delete this
-                dnaIbGibsOnlyInStore.forEach(x => {
-                    if (x.ib === 'rel8' && x.data?.src) {
-                        debugger;
-                    }
-                });
-                // #endregion debug delete this
                 dnaIbGibsOnlyInStore.forEach(x => ibGibsOnlyInStore.push(x));
             } else {
                 if (logalot) { console.log(`${lc} dnaAddrsOnlyInStore is empty.`); }
@@ -4559,19 +4546,19 @@ export class AWSDynamoSpace_V1<
                         dnaAddrsToApplyToStoreVersion,
                         allLocalIbGibs,
                     });
-                    // debug checking for rel8.data.src/Addr
-                    // debug checking for rel8.data.src/Addr
-                    console.warn(`${lc} debug checking for rel8.data.src/Addr. take out this code`);
-                    console.warn(`${lc} debug checking for rel8.data.src/Addr. take out this code`);
-                    console.warn(`${lc} debug checking for rel8.data.src/Addr. take out this code`);
-                    console.warn(`${lc} debug checking for rel8.data.src/Addr. take out this code`);
-                    createdIbGibs_Running.forEach(x => {
-                        if (x.ib === 'rel8' && x.data?.src) {
-                            debugger;
-                        }
-                    })
-                    // debug checking for rel8.data.src/Addr
-                    // debug checking for rel8.data.src/Addr
+                    // // debug checking for rel8.data.src/Addr
+                    // // debug checking for rel8.data.src/Addr
+                    // console.warn(`${lc} debug checking for rel8.data.src/Addr. take out this code`);
+                    // console.warn(`${lc} debug checking for rel8.data.src/Addr. take out this code`);
+                    // console.warn(`${lc} debug checking for rel8.data.src/Addr. take out this code`);
+                    // console.warn(`${lc} debug checking for rel8.data.src/Addr. take out this code`);
+                    // createdIbGibs_Running.forEach(x => {
+                    //     if (x.ib === 'rel8' && x.data?.src) {
+                    //         de bu gger;
+                    //     }
+                    // })
+                    // // debug checking for rel8.data.src/Addr
+                    // // debug checking for rel8.data.src/Addr
                     createdIbGibs_Running.forEach(x => ibGibsCreated.push(x));
                 }
 
@@ -4702,14 +4689,14 @@ export class AWSDynamoSpace_V1<
                 latestIbGib_Store.data.n ?? -1;
             const nNext = nHighest + 1;
 
-            debugger; // first run check above (still haven't tested this?)
+            // de bugger; // first run check above (still haven't tested this?)
             let d0 = {1: "asdf", 2: "222"};
             let r0 = {1: "fx", c: 'ccccrecessive'};
             let m0 = mergeMapsOrArrays_Naive<{}>({dominant: d0, recessive: r0});
             if (m0[1] !== "asdf") { throw new Error(`doesn't work c7878b8b7d8b4f8b950ce31135e33d6b`); }
             if (m0[2] !== "222") { throw new Error(`doesn't work 1a4f60aae2dc4704ae54cfb95aff7ac3`); }
             if (m0['c'] !== "ccccrecessive") { throw new Error(`doesn't work 1a4f60aae2dc4704ae54cfb95aff7ac3`); }
-            debugger; // first run check above (still haven't tested this?)
+            // d ebugger; // first run check above (still haven't tested this?)
 
             const mergedData = mergeMapsOrArrays_Naive<any>({
                 dominant: latestIbGib_Store.data ?? {},

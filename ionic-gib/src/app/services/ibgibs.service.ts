@@ -651,7 +651,6 @@ export class IbgibsService {
     // }
     // this._latestSubj.next({tjpAddr, latestAddr: ibGibAddr, latestIbGib: ibGib});
     // let gib = h.getIbAndGib({ibGibAddr: info.latestAddr}).gib;
-    // if (!gib.includes('.')) { debugger; }
     this._latestSubj.next(info);
   }
 
@@ -941,7 +940,6 @@ export class IbgibsService {
       if (latestAddr === ibGibAddr) {
         // console.log(`${lc} no (different) latest exists`);
         // let gib = h.getIbAndGib({ibGibAddr: latestAddr}).gib;
-        // if (!gib.includes('.')) { debugger; }
         this._latestSubj.next({
           latestIbGib: ibGib,
           latestAddr: ibGibAddr,
@@ -955,7 +953,6 @@ export class IbgibsService {
         }
         const latestIbGib = resLatestIbGib.ibGibs![0];
         // let gib = h.getIbAndGib({ibGibAddr: latestAddr}).gib;
-        // if (!gib.includes('.')) { debugger; }
         this._latestSubj.next({
           latestIbGib,
           latestAddr,
@@ -2120,7 +2117,6 @@ export class IbgibsService {
       // #endregion
 
       // get **ALL** ibgibs that we'll need to put/merge
-      debugger;
       const allIbGibsToSync =
         await this._getAllIbGibsToSyncFromGraph({dependencyGraphIbGibs, space: localUserSpace});
 

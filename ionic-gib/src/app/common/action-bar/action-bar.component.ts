@@ -579,7 +579,7 @@ export class ActionBarComponent extends IbgibComponentBase
           } else {
             // not found
             if (logalot) { console.log(`${lc} NOT found ibgib (${addr}) in space (${spaceAddr}).`); }
-            let rawResult = <SyncSpaceResultIbGib>resGet.rawResultIbGib;
+            // let rawResult = <SyncSpaceResultIbGib>resGet.rawResultIbGib;
           }
         } else {
           throw new Error(`(UNEXPECTED) resGet.success falsy, but get should not be throwing... addr: (${addr}) in space (${spaceAddr}). (E: b200973da68343b58bddb48c2274a6e1)`);
@@ -782,12 +782,7 @@ export class ActionBarComponent extends IbgibComponentBase
     try {
       if (logalot) { console.log(`${lc} starting... (I: 61bdea9e93f2cc911bc4c0fac2fc5222)`); }
       const textArea = event?.target?.firstChild?.firstChild;
-      if (textArea) {
-        setTimeout(() => textArea.focus());
-      } else {
-        // debugger;
-      }
-      console.dir(event);
+      if (textArea) { setTimeout(() => textArea.focus()); }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

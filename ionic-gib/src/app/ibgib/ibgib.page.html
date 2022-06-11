@@ -120,10 +120,13 @@
   >
 
   <ion-text *ngIf="statusText" color="primary">{{statusText}}</ion-text>
+  <ion-skeleton-text *ngIf="!item?.ibGib || refreshing" animated
+    style="width: 100%;height:100%;border-radius:5%;opacity:0.4;"
+    color="primary">
+  </ion-skeleton-text>
 
   <!-- spinnerwhale -->
-  <div *ngIf="!item?.ibGib || refreshing" class="loading-div">
-    <!-- <p>loading...</p> -->
+  <!-- <div *ngIf="!item?.ibGib || refreshing" class="loading-div">
     <div class="spacer-50"></div>
     <div class="loading-hair">
       <ion-spinner name="lines-small" color="tertiary"></ion-spinner>
@@ -155,7 +158,7 @@
       <ion-spinner class="slant-right" name="dots" color="tertiary"></ion-spinner>
       <ion-spinner color="tertiary"></ion-spinner>
     </div>
-  </div>
+  </div> -->
 
   <!-- main body -->
   <div id="container" *ngIf="item?.ibGib"

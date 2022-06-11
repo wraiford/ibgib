@@ -771,7 +771,6 @@ export class IbGibPage extends IbgibComponentBase
       document.title = this.item?.text ?? this.ibGib?.data?.text ?? this.gib;
       await this.actionBar.reset();
     } catch (error) {
-      debugger;
       this.errorMsg = `${lc} ${error.message}`;
       console.error(this.errorMsg);
       this.errored = true;
