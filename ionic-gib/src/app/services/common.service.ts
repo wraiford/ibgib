@@ -25,7 +25,7 @@ export interface NavInfo {
    * updated address.
    */
   toAddr_TjpGib?: Gib;
-  /** The starting ibgib address from which we're leaving.  */
+  /** The starting ibgib address from which we're navigating away.  */
   fromAddr: IbGibAddr,
   /**
    * tjpGib of the fromAddr.

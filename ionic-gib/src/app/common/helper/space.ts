@@ -31,6 +31,20 @@ import { IbGibCacheService, TjpIbGibAddr } from '../types/ibgib';
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 
+interface GetDependencyGraphOptions_Live extends GetDependencyGraphOptions {
+    /**
+     * When getting the live dependency graph, this is used so we don't
+     * duplicate work in recursive calls.
+     *
+     * IOW, in the first run of{@link getDependencyGraph_Live}, we call
+     * getLatestAddrs which maps some addrs to the latest addrs in the space. So
+     * we now have a reference to the latest and if we need to call the function
+     * {@link getDependencyGraph_Live} recursively, then we can provide this
+     * info to reduce unnecessary computation.
+     */
+    mapTjpAddrToLatestAddrsInSpace?: { [tjpAddr: string]: IbGibAddr }
+}
+
 /**
  * Two spaces can be equivalent if they point to the same area.
  *
@@ -257,7 +271,7 @@ export async function getDependencyGraph({
     ibGibAddrs,
     live,
     gotten,
-    gottenTjpAddrs,
+    tjpAddrsAlreadyAnalyzed,
     skipAddrs,
     skipRel8nNames,
     maxRetries,
@@ -385,7 +399,7 @@ export async function getDependencyGraph({
         if (live) {
             return getDependencyGraph_Live({
                 ibGib, ibGibs, ibGibAddr, ibGibAddrs,
-                live, gotten, gottenTjpAddrs,
+                live, gotten, tjpAddrsAlreadyAnalyzed,
                 skipAddrs, skipRel8nNames,
                 maxRetries, msBetweenRetries,
                 space, timeLogName,
@@ -393,7 +407,7 @@ export async function getDependencyGraph({
         } else {
             return getDependencyGraph_NonLive({
                 ibGib, ibGibs, ibGibAddr, ibGibAddrs,
-                live, gotten, /* gottenTjpAddrs not used becuase NonLive (i think) */
+                live, gotten, /* tjpAddrsAlreadyAnalyzed not used becuase NonLive (i think) */
                 skipAddrs, skipRel8nNames,
                 maxRetries, msBetweenRetries,
                 space, timeLogName,
@@ -416,14 +430,15 @@ async function getDependencyGraph_Live({
     ibGibs,
     ibGibAddrs,
     gotten,
-    gottenTjpAddrs,
+    tjpAddrsAlreadyAnalyzed,
+    mapTjpAddrToLatestAddrsInSpace,
     skipAddrs,
     skipRel8nNames,
     maxRetries,
     msBetweenRetries,
     space,
     timeLogName,
-}: GetDependencyGraphOptions): Promise<{ [addr: string]: IbGib_V1 }> {
+}: GetDependencyGraphOptions_Live): Promise<{ [addr: string]: IbGib_V1 }> {
     const lc = `[${getDependencyGraph_Live.name}]`;
     try {
 
@@ -434,7 +449,6 @@ async function getDependencyGraph_Live({
         // timeline.  if it does, then we get the latest in that timeline and
         // get all ibgibs in that lineage only. we do NOT YET go through any
         // rel8d ibgibs that also have timelines
-        // ...leaving off here without implementing this...
 
         // what we can do is compile our list of ibGib addrs according to each
         // timeline and then call the nonlive version of the dependency graph.
@@ -457,11 +471,22 @@ async function getDependencyGraph_Live({
             // ibGibs: ibGibsWithTjp,
         });
         const latestIbGibsInGivenTimelinesThatWeHaventAlreadyGotten: IbGib_V1[] = [];
+        /**
+         * Convience mapping back from latest addr already gotten back to the tjp addr.
+         * Convenience = not strictly necessary, but makes it easier later.
+         */
+        const mapLatestAddrAlreadyGottenToTjpAddr: { [latestAddrAlreadyGotten: IbGibAddr]: IbGibAddr } = {};
+
         Object.keys(timelinesPerTjp)
-            .filter(tjpAddr => !gottenTjpAddrs.includes(tjpAddr))
+            .filter(tjpAddr => !tjpAddrsAlreadyAnalyzed.includes(tjpAddr))
             .forEach(tjpAddr => {
             const timeline = timelinesPerTjp[tjpAddr];
-            latestIbGibsInGivenTimelinesThatWeHaventAlreadyGotten.push(timeline[timeline.length-1]);
+            // add to the array we'll send below
+            const latestIbGibAlreadyGotten = timeline[timeline.length-1];
+            latestIbGibsInGivenTimelinesThatWeHaventAlreadyGotten.push(latestIbGibAlreadyGotten);
+            // add to mapping back from addr to tjpaddr for convenience below
+            const latestAddrAlreadyGotten = h.getIbGibAddr({ibGib: latestIbGibAlreadyGotten});
+            mapLatestAddrAlreadyGottenToTjpAddr[latestAddrAlreadyGotten] = tjpAddr;
         });
         let countOfTimelinesNotYetGotten =
             Object.keys(latestIbGibsInGivenTimelinesThatWeHaventAlreadyGotten).length;
@@ -473,7 +498,7 @@ async function getDependencyGraph_Live({
                 ibGibs,
                 ibGibAddrs,
                 gotten,
-                gottenTjpAddrs,
+                tjpAddrsAlreadyAnalyzed,
                 skipAddrs,
                 skipRel8nNames,
                 maxRetries,
@@ -484,7 +509,61 @@ async function getDependencyGraph_Live({
             });
         } else {
             // we have more timelines still to do. get the latest ibGib in each timeline,
-            // add it
+            // add it, check for more timelines
+            /** This is result with the map of the latest addrs in the space */
+            const resLatestAddrsMapInEntireSpace = await getLatestAddrs({
+                ibGibs: latestIbGibsInGivenTimelinesThatWeHaventAlreadyGotten,
+                space,
+            });
+            if (!resLatestAddrsMapInEntireSpace?.data?.latestAddrsMap) { throw new Error(`(UNEXPECTED) getLatestAddrs result latestAddrsMap falsy (E: 088caa1fc95fd3b079108ab63ef33422)`); }
+            const { latestAddrsMap } = resLatestAddrsMapInEntireSpace.data;
+            if (Object.keys(latestAddrsMap).length !== countOfTimelinesNotYetGotten) {
+                throw new Error(`(UNEXPECTED) latestAddrsMap is not the same size as the incoming map (E: 666af512bbd44534983bb28ee8d43fed)`);
+            }
+            const newerAddrsFound: IbGibAddr[] = [];
+            latestIbGibsInGivenTimelinesThatWeHaventAlreadyGotten
+                .forEach(latestIbGibAlreadyGotten => {
+                    const latestAddrAlreadyGotten = h.getIbGibAddr({ibGib: latestIbGibAlreadyGotten});
+                    const latestAddrInSpace = latestAddrsMap[latestAddrAlreadyGotten];
+                    if (!latestAddrInSpace) { throw new Error(`(UNEXPECTED) latestAddrInSpace not found in latestAddrsMap (E: 095d2b3f88e3e8a2c3e7d3de4c6d5622)`); }
+                    if (latestAddrInSpace === latestAddrAlreadyGotten) {
+                        // we've already got the latest for this timeline. This
+                        // means that we must have already at least queued all
+                        // timelines possible.
+                        tjpAddrsAlreadyAnalyzed.push(mapLatestAddrAlreadyGottenToTjpAddr[latestAddrAlreadyGotten]);
+                    } else {
+                        // there is a newer "latest" in this timeline that we
+                        // haven't gotten yet, so add that addr to the
+                        newerAddrsFound.push(latestAddrInSpace);
+                    }
+                });
+
+            if (newerAddrsFound.length === 0) {
+                // there were no newer addrs found, necessitating that we have
+                // no additional ibgibs that we don't know about.  can can call
+                // the NonLive version recursively now.
+                return await getDependencyGraph_NonLive({
+                    ibGibs,
+                    ibGibAddrs,
+                    gotten,
+                    tjpAddrsAlreadyAnalyzed,
+                    skipAddrs,
+                    skipRel8nNames,
+                    maxRetries,
+                    msBetweenRetries,
+                    space,
+                    timeLogName,
+                    live: false,
+                });
+            } else {
+                // there were newer ibgibs that must be included in the analysis.
+                // need to call recursively this _Live function, passing in
+                // the already computated latest map in mapTjpAddrToLatestAddrsInSpace
+                // I need to also adjust preceding code to use this map.
+                // leaving off here
+                // getDependencyGraph_Live({...})
+                throw new Error(`not implemented, leaving off here (E: 052b699e7ef24006afbdbda79c698922)`);
+            }
         }
 
 
@@ -3374,7 +3453,7 @@ export async function getLatestAddrs({
             addrs.length === 0 && ibGibs.length === 0 &&
             tjps.length === 0 && tjpAddrs.length === 0
         ) {
-            throw new Error(`Either ibGibAddrs, ibGibs, tjps, or tjpAddrs required. (E: 1a0b92564ba942f1ba91a089ac1a2125)`);
+            throw new Error(`Either addrs, ibGibs, tjps, or tjpAddrs required. (E: 1a0b92564ba942f1ba91a089ac1a2125)`);
         }
 
         /**
@@ -3465,7 +3544,7 @@ export interface GetDependencyGraphOptions {
      * used when doing {@link live} dependency graph gets. Same use as
      * {@link gotten}, but with regards to timelines.
      */
-    gottenTjpAddrs?: TjpIbGibAddr[],
+    tjpAddrsAlreadyAnalyzed?: TjpIbGibAddr[],
     /**
      * List of ibgib addresses to skip not retrive in the dependency graph.
      *

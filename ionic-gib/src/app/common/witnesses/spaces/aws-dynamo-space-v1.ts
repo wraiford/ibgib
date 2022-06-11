@@ -1262,10 +1262,9 @@ export class AWSDynamoSpace_V1<
                 <AWSDynamoWatchSpaceIbGib[]>spaceWatchIbGibs :
                 null;
         } catch (error) {
-            // not overly concerned with errors here I don't _think_...
-            // because we will be overwriting whatever we get anyway.  but
-            // leaving this as error and not info log atm.  definitely not
-            // rethrowing
+            // not overly concerned with errors here I don't _think_...  because
+            // we will be overwriting whatever we get anyway.  but I will leave
+            // this as error and not info log atm.  definitely not rethrowing
             console.error(`${lc} ${error.message}`);
             return null;
         }
@@ -1312,10 +1311,9 @@ export class AWSDynamoSpace_V1<
             if ((errors?.length ?? 0) > 0) { console.error(`${lc} errors: ${errors.join('\n')} (E: 3dfd4d762105416494f9b18c7f83b36e)`); }
             return resGetWatchIbGibs_Tjp.length > 0 ? resGetWatchIbGibs_Tjp : null;
         } catch (error) {
-            // not overly concerned with errors here I don't _think_...
-            // because we will be overwriting whatever we get anyway.  but
-            // leaving this as error and not info log atm.  definitely not
-            // rethrowing
+            // not overly concerned with errors here I don't _think_...  because
+            // we will be overwriting whatever we get anyway.  but I will leave
+            // this as error and not info log atm.  definitely not rethrowing
             console.error(`${lc} ${error.message}`);
             return null;
         }

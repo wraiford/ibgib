@@ -214,9 +214,6 @@ export async function createNewRobbot({
 
         /** this should be the witness class itself at this point. */
         const newRobbot = <IbGibRobbotAny>resRobbot.newIbGib;
-        // const newRobbot = new Robbot...hmm
-        // leaving off here. need to be able to access the factories for the
-        // robbot witness classes from here
 
         let allIbGibs: IbGib_V1[] = [];
         allIbGibs.push(newRobbot);
