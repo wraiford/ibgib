@@ -29,6 +29,7 @@ import { SecretModalFormComponent } from '../common/modals/secret-modal-form/sec
 import { EncryptionModalFormComponent } from '../common/modals/encryption-modal-form/encryption-modal-form.component';
 import { OuterspaceModalFormComponent } from '../common/modals/outerspace-modal-form/outerspace-modal-form.component';
 import { RobbotModalFormComponent } from '../common/modals/robbot-modal-form/robbot-modal-form.component';
+import { SpaceModalFormComponent } from '../common/modals/space-modal-form/space-modal-form.component';
 import { TagModalFormComponent } from '../common/modals/tag-modal-form/tag-modal-form.component';
 import { UpdatePicModalFormComponent } from '../common/modals/update-pic-modal-form/update-pic-modal-form.component';
 import { IbgibFormsModule } from '../ibgib-forms/ibgib-forms.module';
@@ -74,6 +75,7 @@ import { ClickHoldAnimationDirective } from '../common/directives/animations/cli
     OuterspaceModalFormComponent,
     TagModalFormComponent,
     RobbotModalFormComponent,
+    SpaceModalFormComponent,
     UpdatePicModalFormComponent,
   ],
   exports: [

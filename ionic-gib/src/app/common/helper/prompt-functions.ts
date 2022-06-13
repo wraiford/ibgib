@@ -266,7 +266,7 @@ export function getFn_promptUpdatePicIbGib(
 
 /**
  * Creates a function with a single `space` arg. This fn when called shows a
- * modal to mutate a pic ibgib. If the user chooses to save, then the modal will
+ * modal to create a robbot ibgib. If the user chooses to save, then the modal will
  * perform the mutation, save the transform result in the given `space`, and
  * return the new pic ibgib.
  */

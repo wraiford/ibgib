@@ -59,6 +59,7 @@ import { groupBy } from '../common/helper/utils';
 import { RobbotModalResult } from '../common/modals/robbot-modal-form/robbot-modal-form.component';
 import { createNewRobbot } from '../common/helper/robbot';
 import { InMemoryIbgibCacheService } from './in-memory-ibgib-cache.service';
+import { SpaceModalFormComponent, SpaceModalResult } from '../common/modals/space-modal-form/space-modal-form.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -451,6 +452,52 @@ export class IbgibsService {
 
   // #region create functions
 
+  private async editBootstrapGib({
+    bootstrapIbGib,
+    createIfNotFound,
+    zeroSpace,
+  }: {
+    bootstrapIbGib: BootstrapIbGib,
+    createIfNotFound?: boolean,
+    zeroSpace?: IonicSpace_V1,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.editBootstrapGib.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 46e29c053028372429054bdcb5414722)`); }
+      if (!createIfNotFound) { throw new Error(`createIfNotFound must be true. edit not implemented yet... (E: f295ad35737a02358b5f6378bd878c22)`); }
+      if (bootstrapIbGib) { throw new Error(`bootstrapGib must be falsy right now. edit not implemented yet... (E: ecb324f73d08f5d48eb31664136a4a22)`); }
+      zeroSpace = zeroSpace || this.zeroSpace;
+
+      if (!bootstrapIbGib && createIfNotFound) {
+
+      }
+
+      const modal = await this.modalController.create({
+          component: SpaceModalFormComponent,
+          // componentProps: { ibGib, space },
+      });
+      await modal.present();
+      let resModal = await modal.onWillDismiss();
+      if (!resModal.data) {
+        throw new Error(`did not create space (E: ea026d472951453cc18f90c417672322)`);
+          // const [resCreatePic, _resCreateBin] = result;
+          // const addr = h.getIbGibAddr({ibGib: resCreatePic.newIbGib});
+          // if (logalot) { console.log(`${lc} updated pic. addr: ${addr}`); }
+      } else {
+          // didn't create one
+          console.warn(`${lc} didn't create at this time.`);
+          return undefined;
+      }
+      const bootstrapGib = <SpaceModalResult>resModal.data;
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
   private async createNewLocalSpaceAndBootstrapGib({
     zeroSpace,
   }: {
@@ -459,6 +506,14 @@ export class IbgibsService {
     const lc = `${this.lc}[${this.createNewLocalSpaceAndBootstrapGib.name}]`;
     try {
       let spaceName: string;
+
+      await this.editBootstrapGib({
+        bootstrapIbGib: null,
+        createIfNotFound: true,
+        zeroSpace,
+      });
+
+      return; /* <<<< returns early */
 
       const promptName: () => Promise<void> = async () => {
         const fnPrompt = getFnPrompt();
