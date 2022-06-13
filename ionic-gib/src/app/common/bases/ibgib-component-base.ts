@@ -764,11 +764,11 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
                 }
             }
 
-            if (!this.ibGib) { debugger; }
-
             const isNewer = (info_latestIbGib.data?.n ?? -1) > (this.ibGib.data?.n ?? -1);
             if (isNewer) {
                 await this.updateIbGib_NewerTimelineFrame(info);
+            } if (info_latestIbGib.gib === this.gib) {
+                if (logalot) { console.log(`${lc} latest ibgib info is the same as the current. (I: 2e184de2498e205ef692395e2b25d922)`); }
             } else {
                 // if (!this.ibGib) { debugger; }
                 console.warn(`${lc} ignoring "latest" info because it's not newer.\nthis.addr: ${this.addr}\nlatestAddr: ${info.latestAddr} (W: c88d135984c39a2aaefd48620d913b22)`);

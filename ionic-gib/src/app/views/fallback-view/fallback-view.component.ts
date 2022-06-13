@@ -32,11 +32,9 @@ export class FallbackViewComponent extends IbgibComponentBase
    * many fallback component instantiations are just preloads for other actual
    * ibgibs like pics and comments. so delay so we don't waste time/ui on a load
    * that probably won't be used.
-   *
-   *
    */
   @Input()
-  delayMs: number = 4000;
+  delayMs: number = 5000;
 
   /**
    * @see {@link delayMs}
