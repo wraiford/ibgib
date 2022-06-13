@@ -59,7 +59,7 @@ import { groupBy } from '../common/helper/utils';
 import { RobbotModalResult } from '../common/modals/robbot-modal-form/robbot-modal-form.component';
 import { createNewRobbot } from '../common/helper/robbot';
 import { InMemoryIbgibCacheService } from './in-memory-ibgib-cache.service';
-import { SpaceModalFormComponent, SpaceModalResult } from '../common/modals/space-modal-form/space-modal-form.component';
+import { BootstrapModalFormComponent, BootstrapModalResult } from '../common/modals/bootstrap-modal-form/bootstrap-modal-form.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -438,7 +438,7 @@ export class IbgibsService {
         if (logalot) { console.log(`${lc} getting from default space...not found. bootstrap space not found.`); }
         // bootstrap space ibgib not found, so first run probably for user.
         // so create a new bootstrapGib and user space
-        await this.createNewLocalSpaceAndBootstrapGib({zeroSpace});
+        await this.createNewBootstrapGibAndLocalSpace({zeroSpace});
       }
 
     } catch (error) {
@@ -473,22 +473,19 @@ export class IbgibsService {
       }
 
       const modal = await this.modalController.create({
-          component: SpaceModalFormComponent,
+          component: BootstrapModalFormComponent,
           // componentProps: { ibGib, space },
       });
       await modal.present();
       let resModal = await modal.onWillDismiss();
       if (!resModal.data) {
-        throw new Error(`did not create space (E: ea026d472951453cc18f90c417672322)`);
-          // const [resCreatePic, _resCreateBin] = result;
-          // const addr = h.getIbGibAddr({ibGib: resCreatePic.newIbGib});
-          // if (logalot) { console.log(`${lc} updated pic. addr: ${addr}`); }
-      } else {
-          // didn't create one
-          console.warn(`${lc} didn't create at this time.`);
-          return undefined;
+        if (createIfNotFound && !bootstrapIbGib) {
+          throw new Error(`did not create bootstrap (E: ea026d472951453cc18f90c417672322)`);
+        } else {
+          throw new Error(`edit failed (E: d710eb13d441ad949cc9a1bfbd10df22)`);
+        }
       }
-      const bootstrapGib = <SpaceModalResult>resModal.data;
+      const bootstrapGib = <BootstrapModalResult>resModal.data;
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -498,12 +495,12 @@ export class IbgibsService {
     }
   }
 
-  private async createNewLocalSpaceAndBootstrapGib({
+  private async createNewBootstrapGibAndLocalSpace({
     zeroSpace,
   }: {
     zeroSpace: IonicSpace_V1,
   }): Promise<void> {
-    const lc = `${this.lc}[${this.createNewLocalSpaceAndBootstrapGib.name}]`;
+    const lc = `${this.lc}[${this.createNewBootstrapGibAndLocalSpace.name}]`;
     try {
       let spaceName: string;
 

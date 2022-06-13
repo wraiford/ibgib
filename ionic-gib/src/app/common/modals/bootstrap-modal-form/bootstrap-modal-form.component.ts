@@ -19,7 +19,7 @@ import { DynamicFormComponent } from '../../../ibgib-forms/dynamic-form/dynamic-
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
-export type SpaceModalResult = TransformResult<IbGibSpaceAny>;
+export type BootstrapModalResult = TransformResult<IbGibSpaceAny>;
 
 /**
  * Prompts the user for information gathering and generates a new ibGib.
@@ -27,15 +27,15 @@ export type SpaceModalResult = TransformResult<IbGibSpaceAny>;
  * Does NOT save this ibGib in any space(s) at present.
  */
 @Component({
-  selector: 'space-modal-form',
-  templateUrl: './space-modal-form.component.html',
-  styleUrls: ['./space-modal-form.component.scss'],
+  selector: 'bootstrap-modal-form',
+  templateUrl: './bootstrap-modal-form.component.html',
+  styleUrls: ['./bootstrap-modal-form.component.scss'],
 })
-export class SpaceModalFormComponent
-  extends DynamicModalFormComponentBase<SpaceModalResult>
+export class BootstrapModalFormComponent
+  extends DynamicModalFormComponentBase<BootstrapModalResult>
   implements AfterViewInit{
 
-  protected lc: string = `[${SpaceModalFormComponent.name}]`;
+  protected lc: string = `[${BootstrapModalFormComponent.name}]`;
 
   fields: { [name: string]: FormItemInfo } = { }
 
@@ -149,7 +149,7 @@ export class SpaceModalFormComponent
     }
   }
 
-  protected async createImpl(): Promise<SpaceModalResult> {
+  protected async createImpl(): Promise<BootstrapModalResult> {
     const lc = `${this.lc}[${this.createImpl.name}]`;
     try {
       if (logalot) { console.log(`${lc}`); }
