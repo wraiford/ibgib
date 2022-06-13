@@ -4,7 +4,7 @@ import {
 import { ActivatedRoute } from '@angular/router';
 import { Subscription, interval, Observable, Subject, fromEvent } from 'rxjs';
 import { ActionSheetOptionStyle, Capacitor, FilesystemDirectory, FilesystemEncoding, Plugins } from '@capacitor/core';
-const { Modals, Clipboard, Filesystem, Storage } = Plugins;
+const { Modals, Clipboard, Filesystem, Storage, LocalNotifications } = Plugins;
 
 import * as h from 'ts-gib';
 import { IbGibAddr, V1 } from 'ts-gib';
@@ -1256,6 +1256,22 @@ export class IbGibPage extends IbgibComponentBase
           await this.execSync({turnOnAutosyncing: false});
         } else {
           this.tjpUpdatesAvailableCount_Store = runningDiffCountAcrossAllSpaces;
+          if (this.tjpUpdatesAvailableCount_Store > 0) {
+            const _notifs = await LocalNotifications.schedule({
+              notifications: [
+                {
+                  title: 'IbGib',
+                  body: `There are ${this.tjpUpdatesAvailableCount_Store} updates available.`,
+                  id: 1,
+                  schedule: { at: new Date(Date.now() + 200) },
+                  sound: null,
+                  attachments: null,
+                  actionTypeId: '',
+                  extra: null,
+                },
+              ],
+            });
+          }
           setTimeout(() => this.ref.detectChanges());
         }
       }
