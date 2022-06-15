@@ -11,11 +11,13 @@
   <swiper *ngIf='ibGib && item.multiPicSrcs'
     [autoplay]="false" [keyboard]="true" [pagination]="false"
     [navigation]="true"
-    [scrollbar]="true" [zoom]="true" [loop]="true"
+    [scrollbar]="true" [zoom]="true"
+    [loop]="false"
     [slidesPerView]="1"
-    [allowTouchMove]="false"
-    [grabCursor]="true"
+    [allowTouchMove]="true"
+    [grabCursor]="false"
     [mousewheel]="false"
+    [zoom]="true"
     (swiper)="setSwiperInstance($event)"
     effect="cube"
     >
