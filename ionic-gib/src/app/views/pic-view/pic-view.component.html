@@ -5,7 +5,25 @@
   [style.border-style]="debugBorderStyle"
   >
 
-  <img *ngIf='ibGib' [src]='item.picSrc'/>
+  <!-- <img *ngIf='ibGib' [src]='item.picSrc'/> -->
+  <img *ngIf='ibGib && !item.multiPicSrcs' [src]='item.picSrc'/>
+
+  <swiper *ngIf='ibGib && item.multiPicSrcs'
+    [autoplay]="false" [keyboard]="true" [pagination]="false"
+    [navigation]="true"
+    [scrollbar]="true" [zoom]="true" [loop]="true"
+    [slidesPerView]="1"
+    [allowTouchMove]="false"
+    [grabCursor]="true"
+    [mousewheel]="false"
+    (swiper)="setSwiperInstance($event)"
+    effect="cube"
+    >
+    <ng-template *ngFor='let src of item.multiPicSrcs;let i = index' swiperSlide>
+      <img [src]='item.multiPicSrcs[i]'/>
+    </ng-template>
+
+  </swiper>
 
   <!-- placeholder/loading -->
   <ion-card-content *ngIf='!ibGib'>
@@ -20,7 +38,22 @@
 
 <!-- title pic -->
 <div *ngIf='isTitleOrJustSmall'>
-  <img *ngIf='ibGib' [src]='item.picSrc'/>
+  <img *ngIf='ibGib && !item.multiPicSrcs' [src]='item.picSrc'/>
+
+  <swiper *ngIf='ibGib && item.multiPicSrcs'
+    [autoplay]="false" [keyboard]="true" [pagination]="false"
+    [scrollbar]="true" [zoom]="true" [loop]="true"
+    [slidesPerView]="1"
+    [mousewheel]="true"
+    (swiper)="setSwiperInstance($event)"
+    effect="cube"
+    >
+    <ng-template *ngFor='let src of item.multiPicSrcs;let i = index' swiperSlide>
+      <img [src]='item.multiPicSrcs[i]'/>
+    </ng-template>
+
+  </swiper>
+
   <!-- placeholder/loading -->
   <ion-skeleton-text *ngIf='!ibGib' animated
     style="width: 100%;height:300px;border-radius:5px"

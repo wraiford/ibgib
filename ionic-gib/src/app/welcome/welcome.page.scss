@@ -1,19 +1,31 @@
+// :host {
+// }
 
-.swiper-slide, .wakka {
+ion-header {
+    // border: 2px solid var(--ion-color-primary);
+    // border-radius: 5px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-.swiper {
+ion-content {
 
-    .swiper-slide-content {
-        border: 2px solid var(--ion-color-secondary);
+    .swiper {
+        border: 8px solid var(--ion-color-primary);
         border-radius: 5px;
-        padding: 5px;
-        height: 95%;
-        width: 95%;
-    }
-    border: 8px solid var(--ion-color-primary);
-    border-radius: 5px;
-    padding: 5px;
+        // padding: 2px;
+        height: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
 
-    height: 97%;
+        .swiper-slide-content {
+            // border: 2px solid var(--ion-color-secondary);
+            border: 2px solid var(--ion-color-primary);
+            border-radius: 5px;
+            // padding: 5px;
+            height: 95%;
+            width: 95%;
+        }
+    }
+
 }

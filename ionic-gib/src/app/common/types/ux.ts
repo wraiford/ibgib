@@ -90,6 +90,13 @@ export interface IbGibItem {
      */
     filenameWithExt?: string;
     // picSrc?: string;
+    multiPicSrcs?: any[];
+    multiFilenameWithExt?: string[];
+    multiBinId?: string[];
+    multiBinIdThumb?: string[];
+    multiBinExt?: string[];
+
+
     text?: string;
     isMeta?: boolean;
 

@@ -632,11 +632,9 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             const data = <PicData_V1>this.ibGib.data;
             if (logalot) { console.log(`${lc} binHash: ${data.binHash}\nbinExt: ${data.ext}`); }
             const binAddrs = this.ibGib.rel8ns[c.BINARY_REL8N_NAME];
-            const addr = binAddrs[binAddrs.length-1];
-            if (logalot) { console.log(`${lc} getting bin addr: ${addr}`); }
-            const resGet = await this.common.ibgibs.get({addr});
-            // item.timestamp = data.timestamp;
-            if (logalot) { console.log(`${lc} initial item.picSrc.length: ${item?.picSrc?.length}`); }
+            let binAddr = binAddrs[binAddrs.length-1];
+            if (logalot) { console.log(`${lc} getting bin addr: ${binAddr}`); }
+            const resGet = await this.common.ibgibs.get({addr: binAddr});
 
             item.filenameWithExt = `${data.filename || data.binHash}.${data.ext}`;
 
@@ -650,6 +648,36 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
                 console.error(`${lc} Couldn't get pic. ${resGet.errorMsg}`);
             }
             item.text = data.filename ?? `pic ${this.gib.slice(0,5)}...`;
+
+            // load multi pics if applicable, spin off
+            if (binAddrs.length > 1) {
+                if (logalot) { console.log(`${lc} spinning off loading multiple bins (I: d5c61f2de717a7c762d1b89ee3796b22)`); }
+                const picSrcs = [item.picSrc];
+                // item.multiPicSrcs = [item.picSrc];
+                new Promise(async (resolve) => {
+                    console.warn(`${lc} wakka`);
+
+                    // await this.smallDelayToLoadBalanceUI();
+                    await h.delay(Math.ceil(2000*Math.random())); // hack
+                    for (let i = 0; i < binAddrs.length-1; i++) {
+                        binAddr = binAddrs[i];
+                        // let binAddr = binAddrs[binAddrs.length-1];
+                        if (logalot) { console.log(`${lc} getting bin addr: ${binAddr}`); }
+                        const resGet = await this.common.ibgibs.get({addr: binAddr});
+
+                        if (resGet.success && resGet.ibGibs?.length === 1 && resGet.ibGibs[0]!.data) {
+                            let picSrc = `data:image/jpeg;base64,${resGet.ibGibs![0].data!}`;
+                            picSrcs.push(picSrc);
+                            if (logalot) { console.log(`${lc} picSrc.length: ${picSrc.length}`); }
+                            if (logalot) { console.log(`${lc} ref.detectChanges in ${delayRefDetectChangesMs.toString()}`); }
+                        } else {
+                            console.error(`${lc} Couldn't get pic. ${resGet.errorMsg}`);
+                        }
+                    }
+                    item.multiPicSrcs = picSrcs;
+                    setTimeout(() => this.ref.detectChanges());
+                });
+            }
             if (logalot) { console.log(`${lc} loaded.`); }
         } catch (error) {
             console.error(`${lc} ${error.message}`);

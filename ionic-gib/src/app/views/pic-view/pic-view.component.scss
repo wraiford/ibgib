@@ -8,6 +8,10 @@ ion-card {
   flex-direction: column;
   -ms-flex-direction: column;
   align-items: center;
+
+  .swiper {
+    width: 100%;
+  }
 }
 
 ion-card-content {

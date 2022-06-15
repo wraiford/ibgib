@@ -2,14 +2,17 @@ import { ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
 import SwiperCore, {
   // properties
   Autoplay, Keyboard, Pagination, Scrollbar, Zoom,
+  Mousewheel,
+  Parallax,
   // effects
   EffectFade,
   EffectCube,
 } from 'swiper';
 import { IonicSlides } from '@ionic/angular';
 SwiperCore.use([
-  Autoplay, Keyboard, Pagination,
-  Scrollbar, Zoom,
+  Autoplay, Keyboard, Pagination, Scrollbar, Zoom,
+  Mousewheel,
+  Parallax,
   // EffectFade,
   EffectCube,
   IonicSlides,
@@ -18,7 +21,6 @@ import { Observable, Subscription } from 'rxjs';
 import { concatMap, } from 'rxjs/operators';
 
 import * as h from 'ts-gib/dist/helper';
-import { IbGib_V1 } from 'ts-gib/dist/V1/types';
 import { IbGibAddr } from 'ts-gib/dist/types';
 
 import * as c from '../common/constants';
@@ -48,19 +50,19 @@ export class WelcomePage implements OnInit {
   @Input()
   get goText3(): string { return this.goToAddr ? 'go' : 'wait for it...'; }
 
-  subInitialized: Subscription;
+  private _subInitialized: Subscription;
 
+  /**
+   * Reference to the swiper control.
+   *
+   * @link https://ionicframework.com/docs/angular/slides#methods
+   */
   slides: any;
 
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
-    // private activatedRoute: ActivatedRoute,
-    // public routerOutlet: IonRouterOutlet,
   ) {
-    // super(common, ref);
-
-    // this.common.ibgibs.Tag
 
   }
 
@@ -70,21 +72,20 @@ export class WelcomePage implements OnInit {
       if (logalot) { console.log(`${lc} starting... (I: 31919fc7d99af1e29bb4f92907572722)`); }
 
       while (!this.common.ibgibs.initialized$) {
-        debugger;
         console.warn(`${lc} (UNEXPECTED) hacky wait while initializing ibgibs service (I: 4b917090ffb64734a42c3d481e5088fb)`);
         await h.delay(100);
       }
 
       // spins off
-      this.subInitialized = this.common.ibgibs.initialized$.pipe(
+      this._subInitialized = this.common.ibgibs.initialized$.pipe(
         // leaving this here in case we need it. no perf penalty, just was
         // fooling arond with combining a purposeful delay for aesthetics
         concatMap(
           async () => {
             this.initializeGoToAddr();
             await h.delay(2000); // hmmm
-            this.subInitialized.unsubscribe();
-            delete this.subInitialized;
+            this._subInitialized.unsubscribe();
+            delete this._subInitialized;
           },
         )
       ).subscribe();
@@ -145,8 +146,8 @@ export class WelcomePage implements OnInit {
     }
   }
 
-  async handleGo1(): Promise<void> {
-    const lc = `${this.lc}[${this.handleGo1.name}]`;
+  async handleNextSlide(): Promise<void> {
+    const lc = `${this.lc}[${this.handleNextSlide.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 92cfc3686e7b42d5b4c09842b16125b5)`); }
 
@@ -159,20 +160,21 @@ export class WelcomePage implements OnInit {
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
-  async handleGo2(): Promise<void> {
-    const lc = `${this.lc}[${this.handleGo2.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting... (I: 1561fab49c0a4938aa323779f6efe59a)`); }
+  // async handleGo2(): Promise<void> {
+  //   const lc = `${this.lc}[${this.handleGo2.name}]`;
+  //   try {
+  //     if (logalot) { console.log(`${lc} starting... (I: 1561fab49c0a4938aa323779f6efe59a)`); }
 
-      this.slides.slideNext();
+  //     this.slides.slideNext();
 
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
+  //   } catch (error) {
+  //     console.error(`${lc} ${error.message}`);
+  //     throw error;
+  //   } finally {
+  //     if (logalot) { console.log(`${lc} complete.`); }
+  //   }
+  // }
+
   async handleGo3(): Promise<void> {
     const lc = `${this.lc}[${this.handleGo3.name}]`;
     try {

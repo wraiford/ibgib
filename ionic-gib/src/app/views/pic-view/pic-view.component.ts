@@ -1,6 +1,26 @@
 import {
   Component, OnInit, ChangeDetectorRef, Input
 } from '@angular/core';
+import SwiperCore, {
+  // properties
+  Autoplay, Keyboard, Pagination, Scrollbar, Zoom,
+  Navigation,
+  Mousewheel,
+  Parallax,
+  // effects
+  EffectFade,
+  EffectCube,
+} from 'swiper';
+import { IonicSlides } from '@ionic/angular';
+SwiperCore.use([
+  Autoplay, Keyboard, Pagination, Scrollbar, Zoom,
+  Navigation,
+  Mousewheel,
+  Parallax,
+  // EffectFade,
+  EffectCube,
+  IonicSlides,
+]);
 
 import { IbGibAddr } from 'ts-gib';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
@@ -30,6 +50,13 @@ export class PicViewComponent
   @Input()
   get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
   set ibGib_Context(value: IbGib_V1 ) { super.ibGib_Context = value; }
+
+  /**
+   * Reference to the swiper control.
+   *
+   * @link https://ionicframework.com/docs/angular/slides#methods
+   */
+  slides: any;
 
   constructor(
     protected common: CommonService,
@@ -64,6 +91,25 @@ export class PicViewComponent
     } finally {
       this.ref.detectChanges();
       if (logalot) { console.log(`${lc} updated (I: 85b00398f851cc57dc5aeda673ba5222)`); }
+    }
+  }
+
+  setSwiperInstance(swiper: any) {
+    this.slides = swiper;
+  }
+
+  async handleNextSlide(): Promise<void> {
+    const lc = `${this.lc}[${this.handleNextSlide.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 92cfc3686e7b42d5b4c09842b16125b5)`); }
+
+      this.slides.slideNext();
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
