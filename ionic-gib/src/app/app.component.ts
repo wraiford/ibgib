@@ -186,7 +186,6 @@ export class AppComponent extends IbgibComponentBase
 
     this.initializeApp();
 
-
     if (logalot) { console.log(`${lc}[end]${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
   }
 
@@ -275,18 +274,17 @@ export class AppComponent extends IbgibComponentBase
 
       } catch (error) {
         console.error(`${lc} ${error.message}`);
-        console.error(`${lc} debug create here`);
-        // await this.common.ibgibs.promptCreateOuterSpaceIbGib();
-        // await this.promptCreateSecretIbGib();
       } finally {
         this.initializing = false;
         this.splashScreen.hide();
-        if (navToAddr) {
-          await this.go({
-            toAddr: navToAddr,
-            fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
-          });
-        }
+
+        // this is what navigates if not using the welcome page
+        // if (navToAddr) {
+          // await this.go({
+          //   toAddr: navToAddr,
+          //   fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
+          // });
+        // }
       }
     });
 

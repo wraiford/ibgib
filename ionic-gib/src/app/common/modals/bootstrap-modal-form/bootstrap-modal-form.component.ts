@@ -93,6 +93,8 @@ export class BootstrapModalFormComponent
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
+      this.helpText = `The bootstrap ibGib is what tells the app what local space to start in.`;
+
       this.metaformItems = [
         this.selectTypeItem,
       ];

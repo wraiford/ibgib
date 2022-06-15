@@ -1,6 +1,6 @@
 {
   "name": "ionicgib",
-  "version": "0.2.143",
+  "version": "0.2.145",
   "author": "William Raiford",
   "repository": {
     "url": "https://github.com/wraiford/ibgib",
@@ -94,6 +94,7 @@
     "encrypt-gib": "0.1.2",
     "ngx-build-plus": "^13.0.1",
     "rxjs": "~6.5.1",
+    "swiper": "^8.2.4",
     "ts-gib": "^0.3.15",
     "tslib": "^2.0.0",
     "zone.js": "~0.11.4"

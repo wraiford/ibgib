@@ -1,6 +1,6 @@
 <ion-header translucent>
   <ion-toolbar>
-    <ion-title color="primary" title="Create Space Settings...">Create Space...</ion-title>
+    <ion-title color="primary" title="Bootstrap Create/Edit">Bootstrap</ion-title>
     <ion-buttons slot="end">
       <ion-button color="primary" (click)="handleShowHelpClick()">
         <ion-icon name="help-circle-outline"></ion-icon>
@@ -10,6 +10,9 @@
   </ion-toolbar>
 </ion-header>
 <ion-content #modalIonContent fullscreen>
+  <ion-item *ngIf="showHelp && helpText">
+    <ion-note color="primary">{{ helpText }}</ion-note>
+  </ion-item>
   <!-- metaform is a hack until we get real composite pattern forms -->
   <ib-dynamic-form #metaform *ngIf="metaformItems?.length > 0"
     [items]="metaformItems"

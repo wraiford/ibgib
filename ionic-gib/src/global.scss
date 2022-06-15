@@ -56,3 +56,15 @@ ion-input.floating-with-placeholder{
     input::-moz-placeholder { color:transparent; }
     input:-ms-input-placeholder { color:transparent; }
 }
+
+// for swiper, customizing like ion-slides
+// see https://ionicframework.com/docs/angular/slides
+@import '~swiper/scss';
+@import '~swiper/scss/autoplay';
+@import '~swiper/scss/keyboard';
+@import '~swiper/scss/pagination';
+@import '~swiper/scss/scrollbar';
+@import '~swiper/scss/zoom';
+// @import '~swiper/scss/effect-fade';
+@import '~swiper/scss/effect-cube';
+@import '~@ionic/angular/css/ionic-swiper';

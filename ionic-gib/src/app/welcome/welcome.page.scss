@@ -1,0 +1,19 @@
+
+.swiper-slide, .wakka {
+}
+
+.swiper {
+
+    .swiper-slide-content {
+        border: 2px solid var(--ion-color-secondary);
+        border-radius: 5px;
+        padding: 5px;
+        height: 95%;
+        width: 95%;
+    }
+    border: 8px solid var(--ion-color-primary);
+    border-radius: 5px;
+    padding: 5px;
+
+    height: 97%;
+}

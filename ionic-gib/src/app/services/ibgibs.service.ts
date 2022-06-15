@@ -161,6 +161,8 @@ export class IbgibsService {
   private _initialized: boolean;
   get initialized(): boolean { return this._initialized; }
 
+  private _initializedSubj = new ReplaySubject<void>();
+  initialized$ = this._initializedSubj.asObservable();
 
   private _initializing: boolean;
   get initializing(): boolean { return this._initializing; }
@@ -389,11 +391,16 @@ export class IbgibsService {
       }
 
       this._initialized = true;
+      this._initializedSubj.next();
+      // always log when this is initialized (not just logalot)
+      console.log(`${lc} initialized (I: e3b3a9652c09445cb055013166ff089c)`);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
     }
   }
+
+
 
   /**
    * Make sure we have a bootstrapped space. This is like a node...kinda in peer
@@ -504,13 +511,13 @@ export class IbgibsService {
     try {
       let spaceName: string;
 
-      await this.editBootstrapGib({
-        bootstrapIbGib: null,
-        createIfNotFound: true,
-        zeroSpace,
-      });
+      // await this.editBootstrapGib({
+      //   bootstrapIbGib: null,
+      //   createIfNotFound: true,
+      //   zeroSpace,
+      // });
 
-      return; /* <<<< returns early */
+      // return; /* <<<< returns early */
 
       const promptName: () => Promise<void> = async () => {
         const fnPrompt = getFnPrompt();

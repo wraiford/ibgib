@@ -27,6 +27,12 @@ export abstract class DynamicModalFormComponentBase<TDataOut>
   showHelp: boolean;
 
   /**
+   * Optional help text for the entire modal form.
+   */
+  @Input()
+  helpText: string;
+
+  /**
    * Put '#modalIonContent' in your ion-content section to scroll to top
    * when there are validation errors.
    *

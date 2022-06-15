@@ -1,0 +1,34 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>welcome</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+
+  <swiper [autoplay]="false" [keyboard]="true" [pagination]="true"
+    [scrollbar]="true" [zoom]="true" [loop]="false"
+    [slidesPerView]="1"
+    (swiper)="setSwiperInstance($event)"
+    effect="cube"
+    >
+    <ng-template class="wakka" swiperSlide>
+      <ion-card class="swiper-slide-content">
+        <p>Slide 1</p>
+        <ion-button color="primary" (click)="handleGo1()">{{goText1}}</ion-button>
+      </ion-card>
+    </ng-template>
+    <ng-template swiperSlide>
+      <ion-card class="swiper-slide-content">
+        <p>Slide 2</p>
+        <ion-button color="primary" (click)="handleGo2()">{{goText2}}</ion-button>
+      </ion-card>
+    </ng-template>
+    <ng-template swiperSlide>
+      <ion-card class="swiper-slide-content">
+        <p>Slide 3</p>
+        <ion-button color="primary" (click)="handleGo3()">{{goText3}}</ion-button>
+      </ion-card>
+    </ng-template>
+  </swiper>
+</ion-content>
