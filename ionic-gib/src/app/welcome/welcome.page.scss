@@ -1,3 +1,5 @@
+@import '../../theme/size-variables.scss';
+
 // :host {
 // }
 
@@ -11,7 +13,7 @@ ion-header {
 ion-content {
 
     .swiper {
-        border: 8px solid var(--ion-color-primary);
+        border: 0px solid var(--ion-color-primary);
         border-radius: 5px;
         // padding: 2px;
         height: 100%;
@@ -25,7 +27,147 @@ ion-content {
             // padding: 5px;
             height: 95%;
             width: 95%;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            overflow-y: auto;
+
+            ion-card {
+                height: 82%;
+                ion-card-header {
+                    height: 10%;
+                }
+                ion-card-content {
+                    height: 90%;
+                    padding: 0px;
+                    margin: 0px;
+                }
+                canvas {
+                    padding: 0px;
+                    margin: 0px;
+                    width: 100%;
+                }
+            }
+
+            ion-buttons {
+                height: 10%;
+                display: flex;
+                flex-direction: row;
+                justify-content: center;
+
+                ion-button {
+                    border: 2px solid var(--ion-color-primary);
+                    border-radius: 5px;
+                    width: auto;
+                    align-self: center;
+                }
+
+                ion-button:hover {
+                    border-width: 2px;
+                    background-color:rgba(var(--ion-color-primary-rgb), 0.14);
+                }
+            }
+
+            @media (min-height: $xs-height) and (max-height: $sm-height) {
+                ion-card {
+                    height: 82%;
+                    ion-card-header {
+                        height: 10%;
+                        ion-card-title {
+                            font-size: small;
+                        }
+                        ion-card-subtitle {
+                            font-size: x-small;
+                        }
+                    }
+                    ion-card-content {
+                        p {
+                            font-size: x-small;
+                        }
+                        height: 80%;
+                    }
+                }
+
+                ion-buttons {
+                    height: 10%;
+                }
+            }
+            @media (min-height: $sm-height) and (max-height: $md-height) {
+                ion-card {
+                    height: 82%;
+                    ion-card-header {
+                        height: 10%;
+                        ion-card-title {
+                            font-size: medium;
+                        }
+                        ion-card-subtitle {
+                            font-size: small;
+                        }
+                    }
+                    ion-card-content {
+                        p {
+                            font-size: x-small;
+                        }
+                        height: 80%;
+                    }
+                }
+
+                ion-buttons {
+                    height: 10%;
+                }
+            }
+            @media (min-height: $md-height) and (max-height: $lg-height) {
+                ion-card {
+                    height: 82%;
+                    ion-card-header {
+                        height: 10%;
+                        ion-card-title {
+                            font-size: large;
+                        }
+                        ion-card-subtitle {
+                            font-size: medium;
+                        }
+                    }
+                    ion-card-content {
+                        p {
+                            font-size: small;
+                        }
+                        height: 80%;
+                    }
+                }
+
+                ion-buttons {
+                    height: 10%;
+                }
+            }
+            @media (min-height: $lg-height) and (max-height: $xl-height) {
+                ion-card {
+                    height: 82%;
+                    ion-card-header {
+                        height: 10%;
+                        ion-card-title {
+                            font-size: x-large;
+                        }
+                        ion-card-subtitle {
+                            font-size: large;
+                        }
+                    }
+                    ion-card-content {
+                        p {
+                            font-size: medium;
+                        }
+                        height: 80%;
+                    }
+                }
+
+                ion-buttons {
+                    height: 10%;
+                }
+            }
+
+
         }
+
     }
 
 }

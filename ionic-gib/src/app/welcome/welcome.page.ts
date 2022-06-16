@@ -1,4 +1,7 @@
-import { ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
+import {
+  AfterViewInit, ChangeDetectorRef, Component,
+  ElementRef, Input, OnInit, ViewChild,
+} from '@angular/core';
 import SwiperCore, {
   // properties
   Autoplay, Keyboard, Pagination, Scrollbar, Zoom,
@@ -34,7 +37,7 @@ const logalot = c.GLOBAL_LOG_A_LOT || false || true;
   templateUrl: './welcome.page.html',
   styleUrls: ['./welcome.page.scss'],
 })
-export class WelcomePage implements OnInit {
+export class WelcomePage implements OnInit, AfterViewInit {
 
   protected lc: string = `[${WelcomePage.name}]`;
 
@@ -58,6 +61,9 @@ export class WelcomePage implements OnInit {
    * @link https://ionicframework.com/docs/angular/slides#methods
    */
   slides: any;
+
+  @ViewChild('ann')
+  annCanvas: any;
 
   constructor(
     protected common: CommonService,
@@ -89,6 +95,23 @@ export class WelcomePage implements OnInit {
           },
         )
       ).subscribe();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async ngAfterViewInit(): Promise<void> {
+    const lc = `${this.lc}[${this.ngAfterViewInit.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: c5fdaccbe1820defd4879ade33cd6a22)`); }
+
+      setInterval(() => {
+        window.requestAnimationFrame(() => this.draw());
+      }, 16);
+
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -143,6 +166,94 @@ export class WelcomePage implements OnInit {
       throw error;
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  drawCount: number = 0;
+
+  draw() {
+    const lc = `${this.lc}[${this.draw.name}]`;
+    try {
+      // if (logalot) { console.log(`${lc} starting... (I: 04c012e367b8186b243f1422793f5a22)`); }
+
+      // debugger;
+      const canvas = <HTMLCanvasElement>this.annCanvas.nativeElement;
+      const ctx = canvas.getContext('2d');
+
+
+      canvas.height = canvas.width;
+      const {height, width} = canvas;
+      const centerX = Math.floor(width/2);
+      const centerY = Math.floor(height/2);
+
+      // initialize
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.clearRect(0, 0, width, height);
+      // ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      // ctx.strokeStyle = 'rgba(146, 237, 128, 0.6)';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(146, 237, 128, 1)';
+      ctx.save();
+
+      // Earth
+      ctx.translate(centerX, centerY);
+      const time = new Date();
+      ctx.rotate(((2 * Math.PI) / 60) * time.getSeconds() + ((2 * Math.PI) / 60000) * time.getMilliseconds());
+      const earthOrbit = Math.floor(height/3);
+      ctx.translate(earthOrbit, 0);
+      ctx.strokeStyle = 'rgba(146, 237, 128, 0.6)';
+      const radius = Math.floor(height/20);
+      ctx.arc(0, 0, radius, 0, 2 * Math.PI, false);
+      ctx.fillStyle = 'blue';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'red';
+      ctx.stroke();
+      // ctx.fillRect(0, -12, 40, 24); // Shadow
+      // ctx.drawImage(earth, -12, -12);
+
+      // Moon
+      ctx.save();
+      ctx.rotate(((2 * Math.PI) / 6) * time.getSeconds() + ((2 * Math.PI) / 6000) * time.getMilliseconds());
+      ctx.translate(0, 28.5);
+      // ctx.drawImage(moon, -3.5, -3.5);
+      ctx.font = '8px serif';
+      ctx.strokeText('Hello world', 10, 50);
+      ctx.restore();
+
+      ctx.restore();
+
+
+      // earth orbit
+      ctx.beginPath();
+      ctx.arc(150, 150, earthOrbit, 0, Math.PI * 2, false); // Earth orbit
+      ctx.stroke();
+
+      // ctx.drawImage(sun, 0, 0, width, height);
+
+      // window.requestAnimationFrame(this.draw);
+    } catch (error) {
+      debugger;
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    // } finally {
+      // if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  draw_context({
+    canvas, ctx,
+    width, height,
+  }: {
+    canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D,
+    width: number, height: number,
+  }) {
+    const lc = `${this.lc}[${this.draw_context.name}]`;
+    try {
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
     }
   }
 
