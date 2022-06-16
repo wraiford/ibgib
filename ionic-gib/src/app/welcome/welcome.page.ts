@@ -65,6 +65,9 @@ export class WelcomePage implements OnInit, AfterViewInit {
   @ViewChild('ann')
   annCanvas: any;
 
+  @ViewChild('rect')
+  annRect: any;
+
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
@@ -111,6 +114,11 @@ export class WelcomePage implements OnInit, AfterViewInit {
       setInterval(() => {
         window.requestAnimationFrame(() => this.draw());
       }, 16);
+
+      setTimeout(() => {
+        // debugger;
+        // this.annRect.nativeElement.fill = 'pink';
+      }, 1000);
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -170,6 +178,8 @@ export class WelcomePage implements OnInit, AfterViewInit {
   }
 
   drawCount: number = 0;
+  @Input()
+  colorYo: string = 'purple';
 
   draw() {
     const lc = `${this.lc}[${this.draw.name}]`;
@@ -186,11 +196,23 @@ export class WelcomePage implements OnInit, AfterViewInit {
       const centerX = Math.floor(width/2);
       const centerY = Math.floor(height/2);
 
+      const earthRadiusAbs = 3959; // miles
+      const sunRadiusAbs = 432690  ; // miles
+      const earthOrbitAbs = sunRadiusAbs + earthRadiusAbs + 94_434_000;
+
+      const scale = 1000;
+
+      const earthOrbit = Math.floor(width/2.5);
+      const earthRadius = earthRadiusAbs / earthOrbitAbs * earthOrbit;
+      const moonOrbit = Math.ceil(earthRadius / 100);
+      const sunRadius = sunRadiusAbs / earthOrbitAbs * earthOrbit * scale;
+      // const sunRadius = 100 * earthRadius;
+      // const earthRadius = Math.floor(height/100)
+      // const sunRadius = Math.floor(height/3);
+
       // initialize
       ctx.globalCompositeOperation = 'source-over';
       ctx.clearRect(0, 0, width, height);
-      // ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-      // ctx.strokeStyle = 'rgba(146, 237, 128, 0.6)';
       ctx.lineWidth = 3;
       ctx.strokeStyle = 'rgba(146, 237, 128, 1)';
       ctx.save();
@@ -199,37 +221,56 @@ export class WelcomePage implements OnInit, AfterViewInit {
       ctx.translate(centerX, centerY);
       const time = new Date();
       ctx.rotate(((2 * Math.PI) / 60) * time.getSeconds() + ((2 * Math.PI) / 60000) * time.getMilliseconds());
-      const earthOrbit = Math.floor(height/3);
       ctx.translate(earthOrbit, 0);
-      ctx.strokeStyle = 'rgba(146, 237, 128, 0.6)';
-      const radius = Math.floor(height/20);
-      ctx.arc(0, 0, radius, 0, 2 * Math.PI, false);
+      ctx.beginPath();
+      // ctx.strokeStyle = 'rgba(146, 237, 128, 0.6)';
+      ctx.strokeStyle = 'blue';
+      ctx.arc(0, 0, earthRadius * scale, 0, 2 * Math.PI, false);
       ctx.fillStyle = 'blue';
       ctx.fill();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = 'red';
-      ctx.stroke();
+      // ctx.lineWidth = 2;
+      // ctx.strokeStyle = 'blue';
+      // ctx.arc(0, 0, earthRadius, 0, 2 * Math.PI, false);
+      // ctx.stroke();
       // ctx.fillRect(0, -12, 40, 24); // Shadow
       // ctx.drawImage(earth, -12, -12);
 
       // Moon
-      ctx.save();
-      ctx.rotate(((2 * Math.PI) / 6) * time.getSeconds() + ((2 * Math.PI) / 6000) * time.getMilliseconds());
-      ctx.translate(0, 28.5);
+      // ctx.save();
+      // ctx.rotate(((2 * Math.PI) / 6) * time.getSeconds() + ((2 * Math.PI) / 6000) * time.getMilliseconds());
+      ctx.translate(0, moonOrbit);
+      ctx.beginPath();
+      ctx.strokeStyle = 'purple';
+      ctx.fillStyle = 'purple';
       // ctx.drawImage(moon, -3.5, -3.5);
+      ctx.arc(5, 5, 10, 0, 2 * Math.PI, false);
       ctx.font = '8px serif';
-      ctx.strokeText('Hello world', 10, 50);
+      // ctx.strokeText('Hello world', 10, 50);
+      ctx.strokeText('moon', 2, 1);
       ctx.restore();
 
       ctx.restore();
 
 
       // earth orbit
+      // ctx.save();
       ctx.beginPath();
-      ctx.arc(150, 150, earthOrbit, 0, Math.PI * 2, false); // Earth orbit
+      ctx.strokeStyle = 'blue';
+      ctx.lineWidth = 1;
+      ctx.arc(centerX, centerY, earthOrbit, 0, Math.PI * 2, false);
       ctx.stroke();
 
       // ctx.drawImage(sun, 0, 0, width, height);
+      // ctx.restore();
+      // ctx.restore();
+      // ctx.beginPath();
+      // ctx.translate(centerX, centerY);
+      // ctx.fillStyle = 'yellow';
+      // ctx.fill();
+      // ctx.strokeStyle = 'yellow';
+      // ctx.arc(centerX, centerY, sunRadius, 0, Math.PI * 2, false);
+      // ctx.stroke();
+      // ctx.restore();
 
       // window.requestAnimationFrame(this.draw);
     } catch (error) {

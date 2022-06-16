@@ -46,6 +46,7 @@ ion-content {
                     padding: 0px;
                     margin: 0px;
                     width: 100%;
+                    max-width: 300px;
                 }
             }
 
@@ -170,4 +171,13 @@ ion-content {
 
     }
 
+}
+
+.ion-activated:hover {
+    background-color:rgba(var(--ion-color-primary-rgb), 0.14) !important;
+}
+
+#rectyo {
+    fill:rgba(var(--ion-color-primary-rgb), 0.14);
+    fill:rgba(var(--ion-color-primary-rgb), 0.84);
 }
