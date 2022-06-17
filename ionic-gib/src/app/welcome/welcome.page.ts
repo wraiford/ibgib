@@ -28,6 +28,7 @@ import { IbGibAddr } from 'ts-gib/dist/types';
 
 import * as c from '../common/constants';
 import { CommonService } from '../services/common.service';
+import { ibCircle, SVG_NAMESPACE } from '../common/helper/svg';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
@@ -67,6 +68,9 @@ export class WelcomePage implements OnInit, AfterViewInit {
 
   @ViewChild('rect')
   annRect: any;
+
+  @ViewChild('svg1')
+  svg1: ElementRef;
 
   constructor(
     protected common: CommonService,
@@ -118,7 +122,25 @@ export class WelcomePage implements OnInit, AfterViewInit {
       setTimeout(() => {
         // debugger;
         // this.annRect.nativeElement.fill = 'pink';
-      }, 1000);
+        let svg = <SVGElement>this.svg1.nativeElement;
+        svg.setAttribute('fill', 'yellow');
+        const radius = 10;
+        const diam = radius * 2;
+        let circle = ibCircle({ svg, cx: radius, cy: radius, r: radius, fill: 'green'});
+
+                // <!-- <animateMotion
+                //    path="M 250,80 H 50 Q 30,80 30,50 Q 30,20 50,20 H 250 Q 280,20,280,50 Q 280,80,250,80Z"
+                //    dur="3s" repeatCount="indefinite" rotate="auto" /> -->
+        let animation = document.createElementNS(SVG_NAMESPACE, 'animateMotion');
+        const width = svg.clientWidth;
+        const height = svg.clientHeight;
+        let path = `M${radius},${radius} h${width-diam-diam-diam} v${height-diam-diam-diam} h-${width-diam-diam-diam} Z`;
+        animation.setAttribute('path', path);
+        animation.setAttribute('dur', '15s');
+        animation.setAttribute('repeatCount', 'indefinite');
+        // animation.setAttribute('rotate', 'auto');
+        circle.appendChild(animation);
+      });
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
