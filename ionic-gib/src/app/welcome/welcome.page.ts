@@ -115,32 +115,106 @@ export class WelcomePage implements OnInit, AfterViewInit {
     try {
       if (logalot) { console.log(`${lc} starting... (I: c5fdaccbe1820defd4879ade33cd6a22)`); }
 
-      setInterval(() => {
-        window.requestAnimationFrame(() => this.draw());
-      }, 16);
+      // setInterval(() => {
+      //   window.requestAnimationFrame(() => this.draw());
+      // }, 16);
 
-      setTimeout(() => {
+      setTimeout(async () => {
         // debugger;
         // this.annRect.nativeElement.fill = 'pink';
+
+        // first diagram, one scope
         let svg = <SVGElement>this.svg1.nativeElement;
-        svg.setAttribute('fill', 'yellow');
-        const radius = 10;
+        window.requestAnimationFrame(async () => {
+          await this.drawIbGibDiagram({
+            svg,
+            info: {
+              // background/context
+              from: [0,0],
+              pos: [0,0],
+              mode: 'intrinsic',
+              opacity: 0.05,
+              radius: 300,
+              infos: [
+                // testing yo
+                {
+                  from: [0,0],
+                  pos: [50,50],
+                  mode: 'intrinsic',
+                  fill: 'purple',
+                },
+                {
+                  from: [0,0],
+                  pos: [100,100],
+                  mode: 'intrinsic',
+                  fill: 'green',
+                }
+              ]
+            }
+          });
+        });
+      }, 16);
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async drawIbGibDiagram({
+    svg,
+    info,
+  }: {
+    svg: SVGElement,
+    info: IbGibDiagramInfo
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.drawIbGibDiagram.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 063458857311a30ff84d511b32aab722)`); }
+
+      // from = from || {x:0, y:0}; from.x = from.x ?? 0; from.y = from.y ?? 0;
+      // to = to || {x:0, y:0}; to.x = to.x ?? 0; to.y = to.y ?? 0;
+
+      const fill = info.fill ?? 'green';
+      const opacity = info.opacity ?? 1.0;
+      const radius = info.radius ?? 10;
+
+      if (info.mode === 'intrinsic') {
         const diam = radius * 2;
-        let circle = ibCircle({ svg, cx: radius, cy: radius, r: radius, fill: 'green'});
+        const width = svg.clientWidth;
+        const height = svg.clientHeight;
+        const centerX = Math.floor(width/2);
+        const centerY = Math.floor(height/2);
+        let [fromX, fromY] = info.from;
+        let [posX, posY] = info.pos;
+        let circle = ibCircle({ svg, cx: posX, cy: posY, r: radius, fill, opacity });
 
                 // <!-- <animateMotion
                 //    path="M 250,80 H 50 Q 30,80 30,50 Q 30,20 50,20 H 250 Q 280,20,280,50 Q 280,80,250,80Z"
                 //    dur="3s" repeatCount="indefinite" rotate="auto" /> -->
         let animation = document.createElementNS(SVG_NAMESPACE, 'animateMotion');
-        const width = svg.clientWidth;
-        const height = svg.clientHeight;
-        let path = `M${radius},${radius} h${width-diam-diam-diam} v${height-diam-diam-diam} h-${width-diam-diam-diam} Z`;
+        let path = `M0,0 L${posX},${posY} L${centerX},${centerY} L${fromX},${fromY}`;
+        // path="M 250,80 H 50 Q 30,80 30,50 Q 30,20 50,20 H 250 Q 280,20,280,50 Q 280,80,250,80Z"
+        // let path = `M${fromX},${fromY} M${wradiusidth-diam-diam-diam} v${height-diam-diam-diam} h-${width-diam-diam-diam} Z`;
         animation.setAttribute('path', path);
-        animation.setAttribute('dur', '15s');
-        animation.setAttribute('repeatCount', 'indefinite');
+        animation.setAttribute('dur', '2s');
+        // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/additive
+        animation.setAttribute('additive', 'replace');
+        // animation.setAttribute('repeatCount', 'indefinite');
         // animation.setAttribute('rotate', 'auto');
         circle.appendChild(animation);
-      });
+      } else if (info.mode = 'extrinsic') {
+
+      } else {
+        throw new Error(`(UNEXPECTED) unknown info.mode: ${info.mode} (E: 1a203a5a173258a309fcac813ff6c422)`);
+      }
+
+      const childInfos = info.infos ?? [];
+      await Promise.all(
+        childInfos.map(info => this.drawIbGibDiagram({svg, info}))
+      );
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -368,3 +442,74 @@ export class WelcomePage implements OnInit, AfterViewInit {
     }
   }
 }
+
+// interface DiagramPosition {
+//   x?: number,
+//   y?: number,
+// }
+
+type DiagramPosition = [number,number];
+
+type IbGibDiagramMode = 'intrinsic' | 'extrinsic';
+const IbGibDiagramMode = {
+  /**
+   * we're viewing the thing intrinsically as a thing on its own, i.e.,
+   * not as a relationship that connects other things.
+   */
+  intrinsic: 'intrinsic' as IbGibDiagramMode,
+  /**
+   * we're viewing the thing extrinsically as a relationship connecting two
+   * other things.
+   */
+  extrinsic: 'extrinsic' as IbGibDiagramMode,
+}
+
+/**
+ * node, line, hoogle, whatever
+ */
+interface IbGibDiagramInfo {
+  /**
+   * If the mode is {@link IbGibDiagramMode.intrinsic}, then this is where does
+   * the thing START in placement of animation.
+   *
+   * If {@link IbGibDiagramMode.extrinsic}, this is one endpoint position.
+   */
+  from?: DiagramPosition;
+  /**
+   * If the mode is {@link IbGibDiagramMode.intrinsic}, then this is where does
+   * the thing STOP in placement of animation.
+   *
+   * If {@link IbGibDiagramMode.extrinsic}, this is one endpoint position.
+   */
+  pos?: DiagramPosition;
+  /**
+   * Graphs are thought of as nodes and edges (or whatever jargon you use).  But
+   * they "aren't" nodes and edges, we are viewing them as nodes and edges. They
+   * "are" just they, and we are creating proxy "theys" in a heuristic that we
+   * like at the time.
+   */
+  mode?: IbGibDiagramMode;
+  /**
+   * composite "children".
+   */
+  infos?: IbGibDiagramInfo[];
+  /**
+   * fill color, if applicable.
+   *
+   * @optional
+   */
+  fill?: string;
+  /**
+   * If given, will specify opacity of visual thing in diagram.
+   *
+   * @optional
+   */
+  opacity?: number;
+  /**
+   * If given, will set the radius of the thing.
+   *
+   * @optional
+   */
+  radius?: number;
+}
+

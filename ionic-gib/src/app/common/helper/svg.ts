@@ -6,6 +6,7 @@ export function ibCircle({
     r,
     style,
     fill,
+    opacity,
     stroke,
     strokeWidth,
 }: {
@@ -13,6 +14,7 @@ export function ibCircle({
     r: number,
     style?: string,
     fill?: string,
+    opacity?: number,
     stroke?: string,
     strokeWidth?: string,
     /**
@@ -26,15 +28,14 @@ export function ibCircle({
         strokeWidth = strokeWidth || '1px';
         if (!style) {
             style = `stroke:${stroke};stroke-width:${strokeWidth}`;
-            if (fill) {
-                style += `;fill:${fill}`;
-            }
+            if (fill) { style += `;fill:${fill}`; }
         }
 
         const circle = document.createElementNS(SVG_NAMESPACE, 'circle');
         circle.setAttribute('cx', `${cx}`);
         circle.setAttribute('cy', `${cy}`);
         circle.setAttribute('r', `${r}`);
+        if (opacity || opacity == 0) { circle.setAttribute('opacity', opacity.toString()); }
         circle.setAttribute('style', style);
 
         if (svg) { svg.appendChild(circle); }
