@@ -11,10 +11,12 @@ import SwiperCore, {
   EffectFade,
   EffectCube,
   Swiper,
+  Navigation,
 } from 'swiper';
 import { IonicSlides } from '@ionic/angular';
 SwiperCore.use([
   Autoplay, Keyboard, Pagination, Scrollbar, Zoom,
+  Navigation,
   Mousewheel,
   Parallax,
   FreeMode,
@@ -57,7 +59,10 @@ export class WelcomePage implements OnInit, AfterViewInit {
   get goText3(): string { return this.goToAddr ? 'go' : 'wait for it...'; }
 
   @Input()
-  ibgibPosers: string[] = IBGIB_POSERS;
+  posers: string[] = IBGIB_POSERS;
+
+  @Input()
+  rethinks: string[] = IBGIB_RETHINKS;
 
   private _subInitialized: Subscription;
 
@@ -605,11 +610,20 @@ interface IbGibDiagramInfo {
 
 
 const IBGIB_POSERS = [
-  `how can i create a plugin engine wherein the plugin engine itself is pluggable?`,
-  `if i make a single error, any statement i make - including mathematical axioms, corrolaries and "proofs" - have a non-zero probability of being in error.`,
-  `why is the term 'negligible' so ubiquitous in all of my math classes?`,
-  `why does the brain never fall asleep?`,
-  `sock drawer, 2 black, 2 white, 2 red socks, min number in the dark to guarantee matching pair -> can never guarantee absolutely, only against some ruler that can be invalid at any time.`,
-  `how can data be binary when "discrete" sections in space can be corrupted?`,
-  `at the border of "corrupt" fields, different metrics can project different outcomes?`,
+  `requirement: how can i create a plugin engine wherein the plugin engine itself is pluggable?`,
+  `foundational: if i make a single error, any statement i make - including mathematical axioms, corrolaries and "proofs" - have a non-zero probability of being in error.`,
+  `sticky: why is the term 'negligible' so ubiquitous math?`,
+  `sticky: why does the brain never fall asleep?`,
+  `logic: sock drawer, 2 black, 2 white, min number to guarantee matching pair -> can never guarantee absolutely, only against some ruler that can be invalid at any time.`,
+  `rethink: how can data be binary when "discrete" sections in space can be corrupted?`,
+  `rethink: at the border of "corrupt" fields, different metrics can project different outcomes?`,
+];
+
+const IBGIB_RETHINKS = [
+  `what is ibgib?`,
+  `what is money?`,
+  `what is data?`,
+  `what is collaboration?`,
+  `what are apps?`,
+  `what are files & folders?`,
 ];

@@ -16,7 +16,7 @@ ion-content {
         border: 0px solid var(--ion-color-primary);
         border-radius: 5px;
         // padding: 2px;
-        height: 100%;
+        height: 90%;
         box-sizing: border-box;
         overflow: hidden;
 
@@ -34,14 +34,17 @@ ion-content {
 
             ion-card {
                 height: 82%;
+
                 ion-card-header {
                     height: 10%;
                 }
+
                 ion-card-content {
                     height: 90%;
                     padding: 0px;
                     margin: 0px;
                 }
+
                 canvas {
                     padding: 0px;
                     margin: 0px;
@@ -65,26 +68,31 @@ ion-content {
 
                 ion-button:hover {
                     border-width: 2px;
-                    background-color:rgba(var(--ion-color-primary-rgb), 0.14);
+                    background-color: rgba(var(--ion-color-primary-rgb), 0.14);
                 }
             }
 
             @media (min-height: $xs-height) and (max-height: $sm-height) {
                 ion-card {
                     height: 82%;
+
                     ion-card-header {
                         height: 10%;
+
                         ion-card-title {
                             font-size: small;
                         }
+
                         ion-card-subtitle {
                             font-size: x-small;
                         }
                     }
+
                     ion-card-content {
                         p {
                             font-size: x-small;
                         }
+
                         height: 80%;
                     }
                 }
@@ -93,22 +101,28 @@ ion-content {
                     height: 10%;
                 }
             }
+
             @media (min-height: $sm-height) and (max-height: $md-height) {
                 ion-card {
                     height: 82%;
+
                     ion-card-header {
                         height: 10%;
+
                         ion-card-title {
                             font-size: medium;
                         }
+
                         ion-card-subtitle {
                             font-size: small;
                         }
                     }
+
                     ion-card-content {
                         p {
                             font-size: x-small;
                         }
+
                         height: 80%;
                     }
                 }
@@ -117,22 +131,28 @@ ion-content {
                     height: 10%;
                 }
             }
+
             @media (min-height: $md-height) and (max-height: $lg-height) {
                 ion-card {
                     height: 82%;
+
                     ion-card-header {
                         height: 10%;
+
                         ion-card-title {
                             font-size: large;
                         }
+
                         ion-card-subtitle {
                             font-size: medium;
                         }
                     }
+
                     ion-card-content {
                         p {
                             font-size: small;
                         }
+
                         height: 80%;
                     }
                 }
@@ -141,22 +161,28 @@ ion-content {
                     height: 10%;
                 }
             }
+
             @media (min-height: $lg-height) and (max-height: $xl-height) {
                 ion-card {
                     height: 82%;
+
                     ion-card-header {
                         height: 10%;
+
                         ion-card-title {
                             font-size: x-large;
                         }
+
                         ion-card-subtitle {
                             font-size: large;
                         }
                     }
+
                     ion-card-content {
                         p {
                             font-size: medium;
                         }
+
                         height: 80%;
                     }
                 }
@@ -169,15 +195,53 @@ ion-content {
 
         }
 
+        #rethinks-swiper {
+            width: 100%;
+            // border: 1px solid rgba(var(--ion-color-primary-rgb), 0.14);
+            border-radius: 5px;
+
+            .slide-with-border {
+                border: 1px solid rgba(var(--ion-color-primary-rgb), 0.14);
+                border-radius: 5px;
+                width: 90%;
+                padding: 5px;
+            }
+
+            // border: 2px solid var(--ion-color-primary);
+            // border-radius: 5px;
+            // // padding: 5px;
+            // height: 95%;
+            // width: 95%;
+            // display: flex;
+            // flex-direction: column;
+            // align-items: stretch;
+            // overflow-y: auto;
+            // .swiper-slide-content {
+            //     border-width: 1px;
+            //     border-style: solid;
+            //     border-color: rgba(var(--ion-color-primary-rgb), 0.14);
+            // }
+        }
+    }
+
+    ion-footer {
+        height: 10%;
+
+        ion-buttons {
+            height: 100%;
+            width: 97%;
+            justify-content: center;
+            align-items: center;
+        }
     }
 
 }
 
 .ion-activated:hover {
-    background-color:rgba(var(--ion-color-primary-rgb), 0.14) !important;
+    background-color: rgba(var(--ion-color-primary-rgb), 0.14) !important;
 }
 
 #rectyo {
-    fill:rgba(var(--ion-color-primary-rgb), 0.14);
-    fill:rgba(var(--ion-color-primary-rgb), 0.84);
+    fill: rgba(var(--ion-color-primary-rgb), 0.14);
+    fill: rgba(var(--ion-color-primary-rgb), 0.84);
 }

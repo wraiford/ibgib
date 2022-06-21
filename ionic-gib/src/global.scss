@@ -63,8 +63,31 @@ ion-input.floating-with-placeholder{
 @import '~swiper/scss/autoplay';
 @import '~swiper/scss/keyboard';
 @import '~swiper/scss/pagination';
+@import "~swiper/scss/navigation";
 @import '~swiper/scss/scrollbar';
 @import '~swiper/scss/zoom';
 // @import '~swiper/scss/effect-fade';
 @import '~swiper/scss/effect-cube';
 @import '~@ionic/angular/css/ionic-swiper';
+
+// this is required for navigation buttons in vertical swipers.
+.swiper-container-vertical {
+    // background-color: pink !important;
+
+    .swiper-button-next,
+    .swiper-button-prev {
+        left: 50%;
+        transform: rotate(90deg);
+        transform-origin: left center;
+        color: rgba(var(--ion-color-primary-rgb), 0.64);
+    }
+
+    .swiper-button-prev {
+        top: 10px;
+    }
+
+    .swiper-button-next {
+        top: auto;
+        bottom: 10px;
+    }
+}
