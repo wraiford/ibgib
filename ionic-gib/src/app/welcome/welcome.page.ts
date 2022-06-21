@@ -29,7 +29,7 @@ import { IbGibAddr } from 'ts-gib/dist/types';
 
 import * as c from '../common/constants';
 import { CommonService } from '../services/common.service';
-import { ibCircle, ibGroup, SVG_NAMESPACE } from '../common/helper/svg';
+import { ibCircle, ibGroup, ibSvg, SVG_NAMESPACE } from '../common/helper/svg';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
@@ -72,6 +72,9 @@ export class WelcomePage implements OnInit, AfterViewInit {
 
   @ViewChild('svg1')
   svg1: ElementRef;
+
+  @ViewChild('svgContainer')
+  svgContainer: ElementRef;
 
   constructor(
     protected common: CommonService,
@@ -155,7 +158,6 @@ export class WelcomePage implements OnInit, AfterViewInit {
 
       if (svg && g) { console.warn(`${lc} (UNEXPECTED) only svg or g is expected. Using g. (W: 523e10f56b7645b981ed91d59aec50d9)`) }
 
-
       // from = from || {x:0, y:0}; from.x = from.x ?? 0; from.y = from.y ?? 0;
       // to = to || {x:0, y:0}; to.x = to.x ?? 0; to.y = to.y ?? 0;
 
@@ -170,7 +172,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
         const height = svg.clientHeight;
         const centerX = Math.floor(width/2);
         const centerY = Math.floor(height/2);
-        let [fromX, fromY] = info.from;
+        let [xStart, yStart] = info.startPos;
         let [cx, cy] = info.pos;
         let circle: SVGCircleElement;
         if (g) {
@@ -180,13 +182,13 @@ export class WelcomePage implements OnInit, AfterViewInit {
           circle = ibCircle({ parent: svg, cx: centerX + cx, cy: centerY + cy, r: radius, fill, stroke, opacity });
         }
 
-                // <!-- <animateMotion
-                //    path="M 250,80 H 50 Q 30,80 30,50 Q 30,20 50,20 H 250 Q 280,20,280,50 Q 280,80,250,80Z"
-                //    dur="3s" repeatCount="indefinite" rotate="auto" /> -->
-        if (fromX !== cx || fromY !== cy) {
+        // <!-- <animateMotion
+        //    path="M 250,80 H 50 Q 30,80 30,50 Q 30,20 50,20 H 250 Q 280,20,280,50 Q 280,80,250,80Z"
+        //    dur="3s" repeatCount="indefinite" rotate="auto" /> -->
+        if (xStart !== cx || yStart !== cy) {
           let animation = document.createElementNS(SVG_NAMESPACE, 'animateMotion');
           // let path = `M0,0 L${cx},${cy} L${centerX},${centerY} L${fromX},${fromY}`;
-          let path = `M0,0 L${cx},${cy} L${fromX},${fromY}`;
+          let path = `M${xStart-cx},${yStart-cy} L0,0`;
           animation.setAttribute('path', path);
           animation.setAttribute('dur', '2s');
           // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/additive
@@ -282,46 +284,158 @@ export class WelcomePage implements OnInit, AfterViewInit {
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
+  async handleSVGClick(): Promise<void> {
+    const lc = `${this.lc}[${this.handleSVGClick.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: acf063419a78888b3fb2a8ef178d7f22)`); }
+      await this.drawAnimation();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 
   async drawAnimation(): Promise<void> {
     const lc = `${this.lc}[${this.drawAnimation.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: b697fe4240b79a7115f8948861b09122)`); }
       // first diagram, one scope
-      let svg = <SVGElement>this.svg1.nativeElement;
-      let centerX = Math.floor(svg.clientWidth/2);
-      let centerY = Math.floor(svg.clientHeight/2);
+      const div: HTMLDivElement = this.svgContainer.nativeElement;
+
+      // if already has svg, remove it
+      let hadChildren = false;
+      if (div.childNodes?.length === 1) {
+        div.removeChild(div.lastChild);
+        hadChildren = true;
+      }
+
+      let svg = ibSvg({width: 300, height: 300});
+      svg.addEventListener('click', (() => {
+        this.drawAnimation();
+      }))
+      div.appendChild(svg);
+      // svg.parentNode.replaceChild(svg.cloneNode(false), svg);
+
+      // let hadChildren = false;
+      // if (svg.childNodes?.length > 0) {
+      //   while(svg.childNodes?.length > 0) {
+      //     svg.removeChild(svg.lastChild);
+      //   }
+      //   this.ref.detectChanges();
+      //   hadChildren = true;
+      // }
       window.requestAnimationFrame(async () => {
+        let centerX = Math.floor(svg.clientWidth/2);
+        let centerY = Math.floor(svg.clientHeight/2);
+        let mainPositionX = 80;
+        let noise = Math.random() * 0.0001; // force reanimation?
+
         await this.drawIbGibDiagram({
           svg: svg,
           info: {
             // background/context
-            from: [0,0],
+            startPos: [0,0],
             pos: [0,0],
+            fill: 'transparent',
+            stroke: 'transparent',
             // from: [centerX,centerY],
             // pos: [centerX,centerY],
             mode: 'intrinsic',
             // opacity: 0.05,
-            radius: Math.floor(centerX * 0.8),
+            radius: Math.floor(centerX * 0.9),
             infos: [
-              // testing yo
+              // left
               {
-                from: [0,0],
-                pos: [0,0],
+                startPos: [0,0],
+                pos: [-mainPositionX,0],
+                // from: [centerX,centerY],
+                // pos: [centerX,centerY],
                 mode: 'intrinsic',
+                // opacity: 0.05,
                 fill: 'blue',
-                opacity: 1,
+                radius: Math.floor(centerX * 0.5),
+                infos: [
+                  // testing yo
+                  {
+                    startPos: [0,0],
+                    pos: [-50,-50],
+                    mode: 'intrinsic',
+                    fill: 'red',
+                    opacity: 1,
+                  },
+                  {
+                    startPos: [0,0],
+                    pos: [-50,0],
+                    mode: 'intrinsic',
+                    fill: 'blue',
+                    opacity: 1,
+                  },
+                  {
+                    startPos: [0,0],
+                    pos: [-50,50],
+                    mode: 'intrinsic',
+                    fill: 'green',
+                    opacity: 1,
+                  },
+                  // {
+                  //   from: [0,0],
+                  //   pos: [100,100],
+                  //   mode: 'intrinsic',
+                  //   fill: 'pink',
+                  //   opacity: 1,
+                  //   stroke: 'white',
+                  // }
+                ]
               },
-              // {
-              //   from: [0,0],
-              //   pos: [100,100],
-              //   mode: 'intrinsic',
-              //   fill: 'pink',
-              //   opacity: 1,
-              //   stroke: 'white',
-              // }
+
+              // right
+              {
+                startPos: [0,0],
+                pos: [mainPositionX,0],
+                // from: [centerX,centerY],
+                // pos: [centerX,centerY],
+                mode: 'intrinsic',
+                fill: hadChildren ? 'red' : 'yellow',
+                // opacity: 0.05,
+                radius: Math.floor(centerX * 0.5),
+                infos: [
+                  // testing yo
+                  {
+                    startPos: [0,0],
+                    pos: [-50,-50],
+                    mode: 'intrinsic',
+                    fill: 'red',
+                    opacity: 1,
+                  },
+                  {
+                    startPos: [0,0],
+                    pos: [-50,0],
+                    mode: 'intrinsic',
+                    fill: 'blue',
+                    opacity: 1,
+                  },
+                  {
+                    startPos: [0,0],
+                    pos: [-50,50],
+                    mode: 'intrinsic',
+                    fill: 'green',
+                    opacity: 1,
+                  },
+                  // {
+                  //   from: [0,0],
+                  //   pos: [100,100],
+                  //   mode: 'intrinsic',
+                  //   fill: 'pink',
+                  //   opacity: 1,
+                  //   stroke: 'white',
+                  // }
+                ]
+              }
             ]
           }
+
         });
       });
 
@@ -339,6 +453,21 @@ export class WelcomePage implements OnInit, AfterViewInit {
       if (logalot) { console.log(`${lc} starting... (I: 92cfc3686e7b42d5b4c09842b16125b5)`); }
 
       this.slides.slidePrev();
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleCheers(): Promise<void> {
+    const lc = `${this.lc}[${this.handleCheers.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 92cfc3686e7b42d5b4c09842b16125b5)`); }
+
+      await this.drawAnimation();
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -368,6 +497,8 @@ export class WelcomePage implements OnInit, AfterViewInit {
     try {
       if (logalot) { console.log(`${lc} starting... (I: aa2fd63301d972d9775962e4b97d3422)`); }
 
+      await this.drawAnimation();
+
       console.log(`${lc} this.slides.activeIndex: ${this.slides.activeIndex}`);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -376,23 +507,9 @@ export class WelcomePage implements OnInit, AfterViewInit {
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
-  // async handleGo2(): Promise<void> {
-  //   const lc = `${this.lc}[${this.handleGo2.name}]`;
-  //   try {
-  //     if (logalot) { console.log(`${lc} starting... (I: 1561fab49c0a4938aa323779f6efe59a)`); }
 
-  //     this.slides.slideNext();
-
-  //   } catch (error) {
-  //     console.error(`${lc} ${error.message}`);
-  //     throw error;
-  //   } finally {
-  //     if (logalot) { console.log(`${lc} complete.`); }
-  //   }
-  // }
-
-  async handleGo3(): Promise<void> {
-    const lc = `${this.lc}[${this.handleGo3.name}]`;
+  async handleGo(): Promise<void> {
+    const lc = `${this.lc}[${this.handleGo.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: edb23b7355c97d364a6e89d91a024322)`); }
 
@@ -410,11 +527,6 @@ export class WelcomePage implements OnInit, AfterViewInit {
     }
   }
 }
-
-// interface DiagramPosition {
-//   x?: number,
-//   y?: number,
-// }
 
 type DiagramPosition = [number,number];
 
@@ -442,7 +554,7 @@ interface IbGibDiagramInfo {
    *
    * If {@link IbGibDiagramMode.extrinsic}, this is one endpoint position.
    */
-  from?: DiagramPosition;
+  startPos?: DiagramPosition;
   /**
    * If the mode is {@link IbGibDiagramMode.intrinsic}, then this is where does
    * the thing STOP in placement of animation.

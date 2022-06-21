@@ -1,5 +1,23 @@
 export const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
+export function ibSvg({
+    width, height,
+}: {
+    width: number, height: number,
+}): SVGElement {
+    const lc = `[${ibSvg.name}]`;
+    try {
+        const svg = document.createElementNS(SVG_NAMESPACE, 'svg');
+        svg.setAttribute('width', `${width}`);
+        svg.setAttribute('height', `${height}`);
+
+        return svg;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
+
 export function ibGroup({
     parent,
     x, y,
