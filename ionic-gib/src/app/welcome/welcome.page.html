@@ -10,7 +10,6 @@
     [navigation]="true"
     [scrollbar]="true" [zoom]="true" [loop]="false"
     [slidesPerView]="1"
-    [mousewheel]="true"
     [scrollbar]="false"
     (swiper)="setSwiperInstance($event)"
     effect="cube"
@@ -47,6 +46,42 @@
         <ion-buttons>
           <ion-button title="root beer...cheers!" color="primary" (click)="handleCheers()">
             <ion-icon name="beer-outline"></ion-icon>
+          </ion-button>
+          <ion-button color="primary" (click)="handleNextSlide()">
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </div>
+    </ng-template>
+    <ng-template swiperSlide>
+      <div class="swiper-slide-content">
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>collaboration</ion-card-title>
+            <ion-card-subtitle>within humans</ion-card-subtitle>
+          </ion-card-header>
+
+          <ion-card-content>
+            <swiper [autoplay]="true"
+              [speed]="3000"
+              [navigation]="true"
+              [direction]="'vertical'"
+              [spaceBetween]="0"
+              [loop]="true"
+              [freeMode]="true"
+              [slidesPerView]="5"
+              >
+            <ng-template *ngFor="let poser of ibgibPosers" swiperSlide>
+              <p>{{poser}}...</p>
+            </ng-template>
+            </swiper>
+            <!-- <canvas #ann></canvas> -->
+
+          </ion-card-content>
+        </ion-card>
+        <ion-buttons>
+          <ion-button color="primary" (click)="handlePrevSlide()">
+            <ion-icon name="chevron-back-outline"></ion-icon>
           </ion-button>
           <ion-button color="primary" (click)="handleNextSlide()">
             <ion-icon name="chevron-forward-outline"></ion-icon>
