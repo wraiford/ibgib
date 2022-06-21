@@ -14,6 +14,7 @@
     [scrollbar]="false"
     (swiper)="setSwiperInstance($event)"
     effect="cube"
+    (slideChange)="handleSlideChange()"
     >
     <ng-template swiperSlide>
       <div class="swiper-slide-content">
@@ -62,6 +63,9 @@
           </ion-card-content>
         </ion-card>
         <ion-buttons>
+          <ion-button color="primary" (click)="handlePrevSlide()">
+            <ion-icon name="chevron-back-outline"></ion-icon>
+          </ion-button>
           <ion-button color="primary" (click)="handleNextSlide()">
             <ion-icon name="chevron-forward-outline"></ion-icon>
           </ion-button>
@@ -82,6 +86,9 @@
           </ion-card-content>
         </ion-card>
         <ion-buttons>
+          <ion-button color="primary" (click)="handlePrevSlide()">
+            <ion-icon name="chevron-back-outline"></ion-icon>
+          </ion-button>
           <ion-button color="primary" (click)="handleNextSlide()">
             <ion-icon name="chevron-forward-outline"></ion-icon>
           </ion-button>
@@ -101,6 +108,9 @@
           </ion-card-content>
         </ion-card>
         <ion-buttons>
+          <ion-button color="primary" (click)="handlePrevSlide()">
+            <ion-icon name="chevron-back-outline"></ion-icon>
+          </ion-button>
           <ion-button color="primary" (click)="handleNextSlide()">
             <ion-icon name="chevron-forward-outline"></ion-icon>
           </ion-button>
@@ -123,6 +133,9 @@
           </ion-card-content>
         </ion-card>
         <ion-buttons>
+          <ion-button color="primary" (click)="handlePrevSlide()">
+            <ion-icon name="chevron-back-outline"></ion-icon>
+          </ion-button>
           <ion-button color="primary" (click)="handleNextSlide()">
             <ion-icon name="chevron-forward-outline"></ion-icon>
           </ion-button>
@@ -159,6 +172,9 @@
           </ion-item>
         </ion-card>
         <ion-buttons>
+          <ion-button color="primary" (click)="handlePrevSlide()">
+            <ion-icon name="chevron-back-outline"></ion-icon>
+          </ion-button>
           <ion-button color="primary" (click)="handleGo3()">{{goText3}}</ion-button>
           <!-- <ion-button color="primary" (click)="handleNextSlide()">
             <ion-icon name="chevron-forward-outline"></ion-icon>

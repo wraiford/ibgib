@@ -10,6 +10,7 @@ import SwiperCore, {
   // effects
   EffectFade,
   EffectCube,
+  Swiper,
 } from 'swiper';
 import { IonicSlides } from '@ionic/angular';
 SwiperCore.use([
@@ -28,7 +29,7 @@ import { IbGibAddr } from 'ts-gib/dist/types';
 
 import * as c from '../common/constants';
 import { CommonService } from '../services/common.service';
-import { ibCircle, SVG_NAMESPACE } from '../common/helper/svg';
+import { ibCircle, ibGroup, SVG_NAMESPACE } from '../common/helper/svg';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
@@ -61,7 +62,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
    *
    * @link https://ionicframework.com/docs/angular/slides#methods
    */
-  slides: any;
+  slides: Swiper;
 
   @ViewChild('ann')
   annCanvas: any;
@@ -123,36 +124,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
         // debugger;
         // this.annRect.nativeElement.fill = 'pink';
 
-        // first diagram, one scope
-        let svg = <SVGElement>this.svg1.nativeElement;
-        window.requestAnimationFrame(async () => {
-          await this.drawIbGibDiagram({
-            svg,
-            info: {
-              // background/context
-              from: [0,0],
-              pos: [0,0],
-              mode: 'intrinsic',
-              opacity: 0.05,
-              radius: 300,
-              infos: [
-                // testing yo
-                {
-                  from: [0,0],
-                  pos: [50,50],
-                  mode: 'intrinsic',
-                  fill: 'purple',
-                },
-                {
-                  from: [0,0],
-                  pos: [100,100],
-                  mode: 'intrinsic',
-                  fill: 'green',
-                }
-              ]
-            }
-          });
-        });
+        await this.drawAnimation();
       }, 16);
 
     } catch (error) {
@@ -163,23 +135,34 @@ export class WelcomePage implements OnInit, AfterViewInit {
     }
   }
 
+  /**
+   * Unlike SVG positioning, the origin here is in the center.
+   */
   async drawIbGibDiagram({
     svg,
+    g,
     info,
   }: {
-    svg: SVGElement,
+    svg?: SVGElement,
+    g?: SVGGElement,
     info: IbGibDiagramInfo
   }): Promise<void> {
     const lc = `${this.lc}[${this.drawIbGibDiagram.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 063458857311a30ff84d511b32aab722)`); }
 
+      if (!svg && !g) {throw new Error(`either svg or g required. (E: c350ceba1d542d642fc61e47d7f76422)`); }
+
+      if (svg && g) { console.warn(`${lc} (UNEXPECTED) only svg or g is expected. Using g. (W: 523e10f56b7645b981ed91d59aec50d9)`) }
+
+
       // from = from || {x:0, y:0}; from.x = from.x ?? 0; from.y = from.y ?? 0;
       // to = to || {x:0, y:0}; to.x = to.x ?? 0; to.y = to.y ?? 0;
 
-      const fill = info.fill ?? 'green';
+      const fill = info.fill ?? 'green'; // arbitrary
+      const stroke = info.stroke ?? 'black'; // arbitrary
       const opacity = info.opacity ?? 1.0;
-      const radius = info.radius ?? 10;
+      const radius = info.radius ?? 10; // arbitrary
 
       if (info.mode === 'intrinsic') {
         const diam = radius * 2;
@@ -188,33 +171,60 @@ export class WelcomePage implements OnInit, AfterViewInit {
         const centerX = Math.floor(width/2);
         const centerY = Math.floor(height/2);
         let [fromX, fromY] = info.from;
-        let [posX, posY] = info.pos;
-        let circle = ibCircle({ svg, cx: posX, cy: posY, r: radius, fill, opacity });
+        let [cx, cy] = info.pos;
+        let circle: SVGCircleElement;
+        if (g) {
+          circle = ibCircle({ parent: g, cx, cy, r: radius, fill, stroke, opacity });
+        } else {
+          // translate to center-based coordinates
+          circle = ibCircle({ parent: svg, cx: centerX + cx, cy: centerY + cy, r: radius, fill, stroke, opacity });
+        }
 
                 // <!-- <animateMotion
                 //    path="M 250,80 H 50 Q 30,80 30,50 Q 30,20 50,20 H 250 Q 280,20,280,50 Q 280,80,250,80Z"
                 //    dur="3s" repeatCount="indefinite" rotate="auto" /> -->
-        let animation = document.createElementNS(SVG_NAMESPACE, 'animateMotion');
-        let path = `M0,0 L${posX},${posY} L${centerX},${centerY} L${fromX},${fromY}`;
-        // path="M 250,80 H 50 Q 30,80 30,50 Q 30,20 50,20 H 250 Q 280,20,280,50 Q 280,80,250,80Z"
-        // let path = `M${fromX},${fromY} M${wradiusidth-diam-diam-diam} v${height-diam-diam-diam} h-${width-diam-diam-diam} Z`;
-        animation.setAttribute('path', path);
-        animation.setAttribute('dur', '2s');
-        // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/additive
-        animation.setAttribute('additive', 'replace');
-        // animation.setAttribute('repeatCount', 'indefinite');
-        // animation.setAttribute('rotate', 'auto');
-        circle.appendChild(animation);
+        if (fromX !== cx || fromY !== cy) {
+          let animation = document.createElementNS(SVG_NAMESPACE, 'animateMotion');
+          // let path = `M0,0 L${cx},${cy} L${centerX},${centerY} L${fromX},${fromY}`;
+          let path = `M0,0 L${cx},${cy} L${fromX},${fromY}`;
+          animation.setAttribute('path', path);
+          animation.setAttribute('dur', '2s');
+          // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/additive
+          animation.setAttribute('additive', 'replace');
+          // animation.setAttribute('repeatCount', 'indefinite');
+          // animation.setAttribute('rotate', 'auto');
+          circle.appendChild(animation);
+        }
+
+        if (info.infos?.length > 0) {
+          let group: SVGGElement;
+          if (g) {
+            group = ibGroup({
+              parent: g ?? svg,
+              x: cx, y: cy,
+              width: 2*radius, height: 2*radius,
+              fill, opacity,
+            });
+          } else {
+            group = ibGroup({
+              parent: g ?? svg,
+              x: cx + centerX, y: cy + centerY,
+              width: 2*radius, height: 2*radius,
+              fill, opacity,
+            });
+          }
+          await Promise.all(
+            info.infos.map(info => this.drawIbGibDiagram({svg: group, info})),
+          );
+        }
+
+
       } else if (info.mode = 'extrinsic') {
 
       } else {
         throw new Error(`(UNEXPECTED) unknown info.mode: ${info.mode} (E: 1a203a5a173258a309fcac813ff6c422)`);
       }
 
-      const childInfos = info.infos ?? [];
-      await Promise.all(
-        childInfos.map(info => this.drawIbGibDiagram({svg, info}))
-      );
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -273,124 +283,68 @@ export class WelcomePage implements OnInit, AfterViewInit {
     }
   }
 
-  drawCount: number = 0;
-  @Input()
-  colorYo: string = 'purple';
-
-  draw() {
-    const lc = `${this.lc}[${this.draw.name}]`;
+  async drawAnimation(): Promise<void> {
+    const lc = `${this.lc}[${this.drawAnimation.name}]`;
     try {
-      // if (logalot) { console.log(`${lc} starting... (I: 04c012e367b8186b243f1422793f5a22)`); }
+      if (logalot) { console.log(`${lc} starting... (I: b697fe4240b79a7115f8948861b09122)`); }
+      // first diagram, one scope
+      let svg = <SVGElement>this.svg1.nativeElement;
+      let centerX = Math.floor(svg.clientWidth/2);
+      let centerY = Math.floor(svg.clientHeight/2);
+      window.requestAnimationFrame(async () => {
+        await this.drawIbGibDiagram({
+          svg: svg,
+          info: {
+            // background/context
+            from: [0,0],
+            pos: [0,0],
+            // from: [centerX,centerY],
+            // pos: [centerX,centerY],
+            mode: 'intrinsic',
+            // opacity: 0.05,
+            radius: Math.floor(centerX * 0.8),
+            infos: [
+              // testing yo
+              {
+                from: [0,0],
+                pos: [0,0],
+                mode: 'intrinsic',
+                fill: 'blue',
+                opacity: 1,
+              },
+              // {
+              //   from: [0,0],
+              //   pos: [100,100],
+              //   mode: 'intrinsic',
+              //   fill: 'pink',
+              //   opacity: 1,
+              //   stroke: 'white',
+              // }
+            ]
+          }
+        });
+      });
 
-      // debugger;
-      const canvas = <HTMLCanvasElement>this.annCanvas.nativeElement;
-      const ctx = canvas.getContext('2d');
-
-
-      canvas.height = canvas.width;
-      const {height, width} = canvas;
-      const centerX = Math.floor(width/2);
-      const centerY = Math.floor(height/2);
-
-      const earthRadiusAbs = 3959; // miles
-      const sunRadiusAbs = 432690  ; // miles
-      const earthOrbitAbs = sunRadiusAbs + earthRadiusAbs + 94_434_000;
-
-      const scale = 1000;
-
-      const earthOrbit = Math.floor(width/2.5);
-      const earthRadius = earthRadiusAbs / earthOrbitAbs * earthOrbit;
-      const moonOrbit = Math.ceil(earthRadius / 100);
-      const sunRadius = sunRadiusAbs / earthOrbitAbs * earthOrbit * scale;
-      // const sunRadius = 100 * earthRadius;
-      // const earthRadius = Math.floor(height/100)
-      // const sunRadius = Math.floor(height/3);
-
-      // initialize
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.clearRect(0, 0, width, height);
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = 'rgba(146, 237, 128, 1)';
-      ctx.save();
-
-      // Earth
-      ctx.translate(centerX, centerY);
-      const time = new Date();
-      ctx.rotate(((2 * Math.PI) / 60) * time.getSeconds() + ((2 * Math.PI) / 60000) * time.getMilliseconds());
-      ctx.translate(earthOrbit, 0);
-      ctx.beginPath();
-      // ctx.strokeStyle = 'rgba(146, 237, 128, 0.6)';
-      ctx.strokeStyle = 'blue';
-      ctx.arc(0, 0, earthRadius * scale, 0, 2 * Math.PI, false);
-      ctx.fillStyle = 'blue';
-      ctx.fill();
-      // ctx.lineWidth = 2;
-      // ctx.strokeStyle = 'blue';
-      // ctx.arc(0, 0, earthRadius, 0, 2 * Math.PI, false);
-      // ctx.stroke();
-      // ctx.fillRect(0, -12, 40, 24); // Shadow
-      // ctx.drawImage(earth, -12, -12);
-
-      // Moon
-      // ctx.save();
-      // ctx.rotate(((2 * Math.PI) / 6) * time.getSeconds() + ((2 * Math.PI) / 6000) * time.getMilliseconds());
-      ctx.translate(0, moonOrbit);
-      ctx.beginPath();
-      ctx.strokeStyle = 'purple';
-      ctx.fillStyle = 'purple';
-      // ctx.drawImage(moon, -3.5, -3.5);
-      ctx.arc(5, 5, 10, 0, 2 * Math.PI, false);
-      ctx.font = '8px serif';
-      // ctx.strokeText('Hello world', 10, 50);
-      ctx.strokeText('moon', 2, 1);
-      ctx.restore();
-
-      ctx.restore();
-
-
-      // earth orbit
-      // ctx.save();
-      ctx.beginPath();
-      ctx.strokeStyle = 'blue';
-      ctx.lineWidth = 1;
-      ctx.arc(centerX, centerY, earthOrbit, 0, Math.PI * 2, false);
-      ctx.stroke();
-
-      // ctx.drawImage(sun, 0, 0, width, height);
-      // ctx.restore();
-      // ctx.restore();
-      // ctx.beginPath();
-      // ctx.translate(centerX, centerY);
-      // ctx.fillStyle = 'yellow';
-      // ctx.fill();
-      // ctx.strokeStyle = 'yellow';
-      // ctx.arc(centerX, centerY, sunRadius, 0, Math.PI * 2, false);
-      // ctx.stroke();
-      // ctx.restore();
-
-      // window.requestAnimationFrame(this.draw);
     } catch (error) {
-      debugger;
       console.error(`${lc} ${error.message}`);
       throw error;
-    // } finally {
-      // if (logalot) { console.log(`${lc} complete.`); }
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
-  draw_context({
-    canvas, ctx,
-    width, height,
-  }: {
-    canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D,
-    width: number, height: number,
-  }) {
-    const lc = `${this.lc}[${this.draw_context.name}]`;
+  async handlePrevSlide(): Promise<void> {
+    const lc = `${this.lc}[${this.handleNextSlide.name}]`;
     try {
+      if (logalot) { console.log(`${lc} starting... (I: 92cfc3686e7b42d5b4c09842b16125b5)`); }
+
+      this.slides.slidePrev();
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
@@ -401,6 +355,20 @@ export class WelcomePage implements OnInit, AfterViewInit {
 
       this.slides.slideNext();
 
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleSlideChange(): Promise<void> {
+    const lc = `${this.lc}[${this.handleSlideChange.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: aa2fd63301d972d9775962e4b97d3422)`); }
+
+      console.log(`${lc} this.slides.activeIndex: ${this.slides.activeIndex}`);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -499,6 +467,12 @@ interface IbGibDiagramInfo {
    * @optional
    */
   fill?: string;
+  /**
+   * stroke color, if applicable.
+   *
+   * @optional
+   */
+  stroke?: string;
   /**
    * If given, will specify opacity of visual thing in diagram.
    *
