@@ -14,6 +14,7 @@
     [scrollbar]="false"
     (swiper)="setSwiperInstance($event)"
     effect="cube"
+    [cubeEffect]="{shadow: false}"
     (slideChange)="handleSlideChange()"
     >
     <!-- <ng-template swiperSlide>
@@ -42,22 +43,20 @@
 
           <ion-card-content>
             <swiper id="rethinks-swiper" class="swiper-container-vertical"
-              [grabCursor]="true"
-              [autoplay]="false"
-              [speed]="500"
-              [navigation]="true"
-              [direction]="'vertical'"
-              [spaceBetween]="0"
-              [loop]="true"
-              [freeMode]="false"
-              [slidesPerView]="3"
-              [loopPreventsSlide]="false"
-              [mousewheel]="true"
+              [autoplay]="false" [speed]="500"
+              [navigation]="true" [direction]="'vertical'" [spaceBetween]="0"
+              [loop]="true" [freeMode]="false" [slidesPerView]="3"
+              [loopPreventsSlide]="false" [mousewheel]="true"
+              [allowTouchMove]="true" [grabCursor]="true"
               (slideChange)="handleRethinksSlideChange($event[0])"
               >
             <ng-template *ngFor="let x of rethinks" swiperSlide>
-              <div class="slide-with-border">
-                <h2 class="tidbit-title">{{x.title}}</h2>
+              <div class="slide-with-border tidbit">
+
+                <h2 *ngIf="!x.focused" class="tidbit-title" ibFadeOutAnimation
+                  >{{x.title}}</h2>
+                <h2 *ngIf="x.focused" class="tidbit-title" ibFadeInAnimation
+                  >{{x.title}}</h2>
                 <p *ngIf="x.focused" class="tidbit-body"
                   ibChildAddedAnimation
                   >{{x.body}}</p>

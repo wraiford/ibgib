@@ -15,7 +15,6 @@ ion-content {
     .swiper {
         border: 0px solid var(--ion-color-primary);
         border-radius: 5px;
-        // padding: 2px;
         height: 90%;
         box-sizing: border-box;
         overflow: hidden;
@@ -24,7 +23,7 @@ ion-content {
             // border: 2px solid var(--ion-color-secondary);
             border: 2px solid var(--ion-color-primary);
             border-radius: 5px;
-            // padding: 5px;
+            padding-bottom: 5px;
             height: 95%;
             width: 95%;
             display: flex;
@@ -201,7 +200,7 @@ ion-content {
             border-radius: 5px;
 
             .slide-with-border {
-                border: 1px solid rgba(var(--ion-color-primary-rgb), 0.14);
+                border: 1px solid rgba(var(--ion-color-primary-rgb), 0.03);
                 border-radius: 5px;
                 width: 90%;
                 padding: 5px;
@@ -213,6 +212,17 @@ ion-content {
             //         transform: none;
             //     }
             // }
+
+            .tidbit {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            .tidbit-title {
+                font-weight: bolder;
+                border-bottom: 1px solid rgba(var(--ion-color-primary-rgb), 0.168);
+                // width: 33%;
+            }
 
             // .tidbit-body {
                 // background-color: pink;
