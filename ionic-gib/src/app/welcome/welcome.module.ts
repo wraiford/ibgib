@@ -7,6 +7,7 @@ import { SwiperModule } from 'swiper/angular';
 
 import { WelcomePageRoutingModule } from './welcome-routing.module';
 import { WelcomePage } from './welcome.page';
+import { ChildAddedAnimationDirective } from '../common/directives/animations/child-added-animation.directive';
 
 
 @NgModule({
@@ -17,6 +18,9 @@ import { WelcomePage } from './welcome.page';
     SwiperModule,
     WelcomePageRoutingModule
   ],
-  declarations: [WelcomePage]
+  declarations: [
+    ChildAddedAnimationDirective,
+    WelcomePage,
+  ]
 })
 export class WelcomePageModule {}

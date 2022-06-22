@@ -7,14 +7,14 @@ import * as h from 'ts-gib/dist/helper';
 
 import * as c from '../../constants';
 import { ListItemViewComponent } from '../../../views/list-item-view/list-item-view.component';
-import { AnimationDirectiveBase } from '../../bases/animation-directive-base';
+import { AnimationWithGestureDirectiveBase } from '../../bases/animation-with-gesture-directive-base';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 @Directive({
     selector: '[ibClickHoldAnimation]'
 })
-export class ClickHoldAnimationDirective extends AnimationDirectiveBase {
+export class ClickHoldAnimationDirective extends AnimationWithGestureDirectiveBase {
 
     protected lc: string = `[${ClickHoldAnimationDirective.name}]`;
 

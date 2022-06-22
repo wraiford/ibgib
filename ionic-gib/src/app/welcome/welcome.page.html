@@ -16,7 +16,7 @@
     effect="cube"
     (slideChange)="handleSlideChange()"
     >
-    <ng-template swiperSlide>
+    <!-- <ng-template swiperSlide>
       <div class="swiper-slide-content">
         <ion-card>
           <ion-card-header>
@@ -25,33 +25,13 @@
           </ion-card-header>
 
           <ion-card-content>
-            <div #svgContainer>
-              <!-- <svg #svg1 width="400" height="400" (click)="drawAnimation()">
-                <title>ibGib SVG</title> -->
-                <!-- <rect x="0" y="0" width="300" height="100" stroke="black" stroke-width="1" /> -->
-                <!-- <rect #rect x="0" y="0" width="20" height="20" fill="green" stroke="black" stroke-width="1"> -->
-                <!-- <rect id='rectyo' #rect x="0" y="0" width="20" height="20" stroke="black" stroke-width="1"> -->
-                  <!-- <animateMotion
-                    path="M 250,80 H 50 Q 30,80 30,50 Q 30,20 50,20 H 250 Q 280,20,280,50 Q 280,80,250,80Z"
-                    dur="3s" repeatCount="indefinite" rotate="auto" /> -->
-                <!-- </rect> -->
-              <!-- </svg> -->
-            </div>
-
+            <div #svgContainer></div>
             <p>ibgib was born over 20 years ago with the aim to maximize learning.</p>
             <p>as it turned out, learning can be thought of...</p>
           </ion-card-content>
         </ion-card>
-        <!-- <ion-buttons>
-          <ion-button title="root beer...cheers!" color="primary" (click)="handleCheers()">
-            <ion-icon name="beer-outline"></ion-icon>
-          </ion-button>
-          <ion-button color="primary" (click)="handleNextSlide()">
-            <ion-icon name="chevron-forward-outline"></ion-icon>
-          </ion-button>
-        </ion-buttons> -->
       </div>
-    </ng-template>
+    </ng-template> -->
     <ng-template swiperSlide>
       <div class="swiper-slide-content">
         <ion-card>
@@ -69,28 +49,24 @@
               [direction]="'vertical'"
               [spaceBetween]="0"
               [loop]="true"
-              [freeMode]="true"
+              [freeMode]="false"
               [slidesPerView]="3"
               [loopPreventsSlide]="false"
+              [mousewheel]="true"
+              (slideChange)="handleRethinksSlideChange($event[0])"
               >
             <ng-template *ngFor="let x of rethinks" swiperSlide>
               <div class="slide-with-border">
-                <p>{{x}}<p>
+                <h2 class="tidbit-title">{{x.title}}</h2>
+                <p *ngIf="x.focused" class="tidbit-body"
+                  ibChildAddedAnimation
+                  >{{x.body}}</p>
               </div>
             </ng-template>
             </swiper>
-            <!-- <canvas #ann></canvas> -->
 
           </ion-card-content>
         </ion-card>
-        <!-- <ion-buttons>
-          <ion-button color="primary" (click)="handlePrevSlide()">
-            <ion-icon name="chevron-back-outline"></ion-icon>
-          </ion-button>
-          <ion-button color="primary" (click)="handleNextSlide()">
-            <ion-icon name="chevron-forward-outline"></ion-icon>
-          </ion-button>
-        </ion-buttons> -->
       </div>
     </ng-template>
     <ng-template swiperSlide>
@@ -108,14 +84,6 @@
             <p>among organizations, economies create collaboration contexts, using money as the weighting.</p>
           </ion-card-content>
         </ion-card>
-        <!-- <ion-buttons>
-          <ion-button color="primary" (click)="handlePrevSlide()">
-            <ion-icon name="chevron-back-outline"></ion-icon>
-          </ion-button>
-          <ion-button color="primary" (click)="handleNextSlide()">
-            <ion-icon name="chevron-forward-outline"></ion-icon>
-          </ion-button>
-        </ion-buttons> -->
       </div>
     </ng-template>
     <ng-template swiperSlide>
@@ -131,14 +99,6 @@
             <p>among organizations, economies create collaboration contexts, using money as the weighting.</p>
           </ion-card-content>
         </ion-card>
-        <!-- <ion-buttons>
-          <ion-button color="primary" (click)="handlePrevSlide()">
-            <ion-icon name="chevron-back-outline"></ion-icon>
-          </ion-button>
-          <ion-button color="primary" (click)="handleNextSlide()">
-            <ion-icon name="chevron-forward-outline"></ion-icon>
-          </ion-button>
-        </ion-buttons> -->
       </div>
     </ng-template>
     <ng-template swiperSlide>
@@ -153,14 +113,6 @@
             <p>among organizations, economies create collaboration contexts, using money as the weighting.</p>
           </ion-card-content>
         </ion-card>
-        <!-- <ion-buttons>
-          <ion-button color="primary" (click)="handlePrevSlide()">
-            <ion-icon name="chevron-back-outline"></ion-icon>
-          </ion-button>
-          <ion-button color="primary" (click)="handleNextSlide()">
-            <ion-icon name="chevron-forward-outline"></ion-icon>
-          </ion-button>
-        </ion-buttons> -->
       </div>
     </ng-template>
     <ng-template swiperSlide>
@@ -178,14 +130,6 @@
             within an ion-card-content element.
           </ion-card-content>
         </ion-card>
-        <!-- <ion-buttons>
-          <ion-button color="primary" (click)="handlePrevSlide()">
-            <ion-icon name="chevron-back-outline"></ion-icon>
-          </ion-button>
-          <ion-button color="primary" (click)="handleNextSlide()">
-            <ion-icon name="chevron-forward-outline"></ion-icon>
-          </ion-button>
-        </ion-buttons> -->
       </div>
     </ng-template>
 

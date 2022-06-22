@@ -62,7 +62,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
   posers: string[] = IBGIB_POSERS;
 
   @Input()
-  rethinks: string[] = IBGIB_RETHINKS;
+  rethinks: VerticalSwiperTidbit[] = IBGIB_RETHINKS;
 
   private _subInitialized: Subscription;
 
@@ -535,6 +535,29 @@ export class WelcomePage implements OnInit, AfterViewInit {
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
+
+  async handleRethinksSlideChange(event: Swiper): Promise<void> {
+    const lc = `${this.lc}[${this.handleRethinksSlideChange.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: cc3ee923b3f64ea23629da8383667b22)`); }
+
+      event.activeIndex
+      this.rethinks.forEach(x => x.focused = false);
+      /** dunno what swiper thinks of as activeIndex. Probably complicated. */
+      const mappedIndex = (event.activeIndex - 2) % this.rethinks.length;
+      if (mappedIndex >= 0 && mappedIndex < this.rethinks.length) {
+        this.rethinks[mappedIndex].focused = true;
+      }
+      // console.dir(event);
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      setTimeout(() => this.ref.detectChanges());
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 }
 
 type DiagramPosition = [number,number];
@@ -619,11 +642,40 @@ const IBGIB_POSERS = [
   `rethink: at the border of "corrupt" fields, different metrics can project different outcomes?`,
 ];
 
-const IBGIB_RETHINKS = [
-  `what is ibgib?`,
-  `what is money?`,
-  `what is data?`,
-  `what is collaboration?`,
-  `what are apps?`,
-  `what are files & folders?`,
+/**
+ * swiper activeIndex is index here + 2 (??)
+ * dunno wth, i'm sure there is a good reason.
+ */
+const IBGIB_RETHINKS: VerticalSwiperTidbit[] = [
+  {
+    title: `what are files & folders?`,
+    body: `we were taught files & folders to help understand them newfangled computers. but now we can rethink this paradigm to grow beyond these training wheels.`,
+  },
+  {
+    focused: true,
+    title: `what is ibgib?`,
+    body: `with no single definition possible, ibgib is a distributed computation architecture to "answer" its own definition as well as these other seemingly unrelated questions.`,
+  },
+  {
+    title: `what is money?`,
+    body: `a rethink is required to understand just wth bitcoin and other crypto technologies teach us about money, collaboration & us as individuals. in ibgib we focus on "money" as precisely analogous to voltage bias in neural networks in superhuman networks.`,
+  },
+  {
+    title: `what is data?`,
+    body: `my data, your data, centralized & decentralized...in ibgib, we rethink data itself from the naive finite Shannon information perspective to living, sovereign & infinite entities.`,
+  },
+  {
+    title: `what are apps?`,
+    body: `just as we rethink our data, so too we rethink apps. no longer silos of activity, apps become living views into living data ecosystems.`,
+  },
+  {
+    title: `what is collaboration?`,
+    body: `within each of our minds lives a thriving informational ecosystem which we experience & interact with via our thoughts & feelings. in ibgib, we rethink collaboration in terms of evolving ideas & concepts over time t.`,
+  },
 ];
+
+interface VerticalSwiperTidbit {
+  focused?: boolean;
+  title: string;
+  body: string;
+}
