@@ -59,10 +59,12 @@ export class WelcomePage implements OnInit, AfterViewInit {
   get goText3(): string { return this.goToAddr ? 'go' : 'wait for it...'; }
 
   @Input()
-  posers: string[] = IBGIB_POSERS;
-
-  @Input()
-  rethinks: VerticalSwiperTidbit[] = IBGIB_RETHINKS;
+  verticalSwiperTidbits: { [name: string]: VerticalSwiperTidbit[] } = {
+    intro: IBGIB_APP_INTRO,
+    protocol: IBGIB_PROTOCOL_FEATURES,
+    app: IBGIB_APP_FEATURES,
+    rethinks: IBGIB_RETHINKS,
+  };
 
   private _subInitialized: Subscription;
 
@@ -84,6 +86,15 @@ export class WelcomePage implements OnInit, AfterViewInit {
 
   @ViewChild('svgContainer')
   svgContainer: ElementRef;
+
+  /**
+   * swipers indexed by swiperName
+   */
+  swipers: {[name: string]: Swiper} = {};
+  // swiperIntro: Swiper;
+  // swiperProtocol: Swiper;
+  // swiperApp: Swiper;
+  // swiperRethinks: Swiper;
 
   constructor(
     protected common: CommonService,
@@ -137,7 +148,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
         // this.annRect.nativeElement.fill = 'pink';
 
         await this.drawAnimation();
-      }, 16);
+      }, 100);
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -310,6 +321,9 @@ export class WelcomePage implements OnInit, AfterViewInit {
     const lc = `${this.lc}[${this.drawAnimation.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: b697fe4240b79a7115f8948861b09122)`); }
+      if (!this.svgContainer) {
+        return;
+      }
       // first diagram, one scope
       const div: HTMLDivElement = this.svgContainer.nativeElement;
 
@@ -325,16 +339,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
         this.drawAnimation();
       }))
       div.appendChild(svg);
-      // svg.parentNode.replaceChild(svg.cloneNode(false), svg);
 
-      // let hadChildren = false;
-      // if (svg.childNodes?.length > 0) {
-      //   while(svg.childNodes?.length > 0) {
-      //     svg.removeChild(svg.lastChild);
-      //   }
-      //   this.ref.detectChanges();
-      //   hadChildren = true;
-      // }
       window.requestAnimationFrame(async () => {
         let centerX = Math.floor(svg.clientWidth/2);
         let centerY = Math.floor(svg.clientHeight/2);
@@ -349,8 +354,6 @@ export class WelcomePage implements OnInit, AfterViewInit {
             pos: [0,0],
             fill: 'transparent',
             stroke: 'transparent',
-            // from: [centerX,centerY],
-            // pos: [centerX,centerY],
             mode: 'intrinsic',
             // opacity: 0.05,
             radius: Math.floor(centerX * 0.9),
@@ -359,8 +362,6 @@ export class WelcomePage implements OnInit, AfterViewInit {
               {
                 startPos: [0,0],
                 pos: [-mainPositionX,0],
-                // from: [centerX,centerY],
-                // pos: [centerX,centerY],
                 mode: 'intrinsic',
                 // opacity: 0.05,
                 fill: 'blue',
@@ -388,14 +389,6 @@ export class WelcomePage implements OnInit, AfterViewInit {
                     fill: 'green',
                     opacity: 1,
                   },
-                  // {
-                  //   from: [0,0],
-                  //   pos: [100,100],
-                  //   mode: 'intrinsic',
-                  //   fill: 'pink',
-                  //   opacity: 1,
-                  //   stroke: 'white',
-                  // }
                 ]
               },
 
@@ -403,11 +396,8 @@ export class WelcomePage implements OnInit, AfterViewInit {
               {
                 startPos: [0,0],
                 pos: [mainPositionX,0],
-                // from: [centerX,centerY],
-                // pos: [centerX,centerY],
                 mode: 'intrinsic',
                 fill: hadChildren ? 'red' : 'yellow',
-                // opacity: 0.05,
                 radius: Math.floor(centerX * 0.5),
                 infos: [
                   // testing yo
@@ -432,14 +422,6 @@ export class WelcomePage implements OnInit, AfterViewInit {
                     fill: 'green',
                     opacity: 1,
                   },
-                  // {
-                  //   from: [0,0],
-                  //   pos: [100,100],
-                  //   mode: 'intrinsic',
-                  //   fill: 'pink',
-                  //   opacity: 1,
-                  //   stroke: 'white',
-                  // }
                 ]
               }
             ]
@@ -536,17 +518,57 @@ export class WelcomePage implements OnInit, AfterViewInit {
     }
   }
 
-  async handleRethinksSlideChange(event: Swiper): Promise<void> {
-    const lc = `${this.lc}[${this.handleRethinksSlideChange.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting... (I: cc3ee923b3f64ea23629da8383667b22)`); }
+  @Input()
+  get mappedIndex_SwiperRethinks(): number {
+      // const mappedIndex = (event.activeIndex - 2) % this.rethinks.length;
+      const mappedIndex =
+        this.swiperRethinks ?
+        (this.swiperRethinks.activeIndex - 2) % this.rethinks.length :
+        0;
+      return mappedIndex;
+  }
 
-      event.activeIndex
+  getAdjustedActiveIndex(swiperName: SwiperName): number {
+    const lc = `${this.lc}[${this.getAdjustedActiveIndex.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: aa74e8efab4b1e38e6248b9ffc152c22)`); }
+
+      const swiper = this.swipers[swiperName];
+      const tidbits =
+      const mappedIndex =this.verticalSwiperTidbits[swiperName];
+        swiper ?
+        (swiper.activeIndex - 2) % .length :
+        0;
+      return mappedIndex;
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  // handleSwiperRethinksSet(swiper: Swiper): void {
+  //   this.swiperRethinks = swiper;
+  //   this.handleRethinksSlideChange(swiper);
+  // }
+  handleSwiper(swiper: Swiper, swiperName: SwiperName): void {
+    this.handleRethinksSlideChange(swiper, swiperName);
+    this.swipers[swiperName] = swiper;
+  }
+
+  handleVertSlideChange(swiper: Swiper, name: SwiperName): void {
+    const lc = `${this.lc}[${this.handleVertSlideChange.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 4b0c5cdf25a14dec9c64c196ee790ce3)`); }
+
+
+
       this.rethinks.forEach(x => x.focused = false);
       /** dunno what swiper thinks of as activeIndex. Probably complicated. */
-      const mappedIndex = (event.activeIndex - 2) % this.rethinks.length;
-      if (mappedIndex >= 0 && mappedIndex < this.rethinks.length) {
-        this.rethinks[mappedIndex].focused = true;
+      if (this.mappedIndex_SwiperRethinks >= 0 && this.mappedIndex_SwiperRethinks < this.rethinks.length) {
+        this.rethinks[this.mappedIndex_SwiperRethinks].focused = true;
       }
       // console.dir(event);
 
@@ -631,16 +653,43 @@ interface IbGibDiagramInfo {
   radius?: number;
 }
 
-
-const IBGIB_POSERS = [
-  `requirement: how can i create a plugin engine wherein the plugin engine itself is pluggable?`,
-  `foundational: if i make a single error, any statement i make - including mathematical axioms, corrolaries and "proofs" - have a non-zero probability of being in error.`,
-  `sticky: why is the term 'negligible' so ubiquitous math?`,
-  `sticky: why does the brain never fall asleep?`,
-  `logic: sock drawer, 2 black, 2 white, min number to guarantee matching pair -> can never guarantee absolutely, only against some ruler that can be invalid at any time.`,
-  `rethink: how can data be binary when "discrete" sections in space can be corrupted?`,
-  `rethink: at the border of "corrupt" fields, different metrics can project different outcomes?`,
+const IBGIB_APP_INTRO: VerticalSwiperTidbit[] = [
+  {
+    focused: true,
+    title: `decentralized collaboration`,
+    body: `ibgib enables distributed computation. with humans, this means collaboration; with microservices, interop; with ais and ml models, the future - a biological approach for meta-evolutionary models.`,
+  },
+  {
+    title: `focus on time, repo of repos`,
+    body: `ibgib is a dlt protocol that focuses on Time as a first-class citizen. it utilizes both blockchain-style linked lists of named merkle links, as well as dag-style merkle hash trees, with two key relationships: "past" and "ancestor". this enables "on-chain" version-controlled data. think meta-git for anything, including its own self-bootstrapping metadata (configuration).`,
+  },
+  {
+    title: `this app...`,
+    body: `this app is only a prototype leveraging the unique architecture of the ibgib protocol. it is a swiss-army knife of apps, already able to do some pretty cool stuff, like synchronization via a branch timeline merging strategy. but it's the _approach_ that will enable truly decentralized apps.`,
+  },
 ];
+
+const IBGIB_PROTOCOL_FEATURES: VerticalSwiperTidbit[] = [
+  {
+    focused: true,
+    title: `enabling monotonically increasing data AND disconnected data slices`,
+    body: ``,
+  },
+  {
+    title: ``,
+    body: ``,
+  },
+];
+
+const IBGIB_APP_FEATURES: VerticalSwiperTidbit[] = [
+  {
+    focused: true,
+    title: `comments within comments, pics within pics`,
+    body: ``,
+  },
+];
+
+
 
 /**
  * swiper activeIndex is index here + 2 (??)
@@ -648,17 +697,17 @@ const IBGIB_POSERS = [
  */
 const IBGIB_RETHINKS: VerticalSwiperTidbit[] = [
   {
-    title: `what are files & folders?`,
-    body: `we were taught files & folders to help understand them newfangled computers. but now we can rethink this paradigm to grow beyond these training wheels.`,
-  },
-  {
-    focused: true,
-    title: `what is ibgib?`,
-    body: `with no single definition possible, ibgib is a distributed computation architecture to "answer" its own definition as well as these other seemingly unrelated questions.`,
-  },
-  {
     title: `what is money?`,
     body: `a rethink is required to understand just wth bitcoin and other crypto technologies teach us about money, collaboration & us as individuals. in ibgib we focus on "money" as precisely analogous to voltage bias in neural networks in superhuman networks.`,
+  },
+  {
+    title: `wth is or are ibgib(s)?`,
+    body: `moving away from a absolute knowledge-based paradigm, an ibgib can be thought of as a snapshot of some pov's belief which inevitably evolves over time. this fundamentally requires a Rethink of truths many of us may take for granted, or if you prefer, an extremely strict adherence to science as being fluidly best-effort heuristics. more tersely, you can think of an ibgib as a fundamental unit of science.`,
+  },
+  {
+    focused: false,
+    title: `what are files & folders?`,
+    body: `in the early days of computing, we were taught about files & folders. with ibgib, we rethink this paradigm, remove the training wheels & grow .`,
   },
   {
     title: `what is data?`,
@@ -668,10 +717,6 @@ const IBGIB_RETHINKS: VerticalSwiperTidbit[] = [
     title: `what are apps?`,
     body: `just as we rethink our data, so too we rethink apps. no longer silos of activity, apps become living views into living data ecosystems.`,
   },
-  {
-    title: `what is collaboration?`,
-    body: `within each of our minds lives a thriving informational ecosystem which we experience & interact with via our thoughts & feelings. in ibgib, we rethink collaboration in terms of evolving ideas & concepts over time t.`,
-  },
 ];
 
 interface VerticalSwiperTidbit {
@@ -679,3 +724,5 @@ interface VerticalSwiperTidbit {
   title: string;
   body: string;
 }
+
+type SwiperName = 'intro' | 'rethinks';

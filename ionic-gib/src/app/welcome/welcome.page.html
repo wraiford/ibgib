@@ -6,33 +6,67 @@
 
 <ion-content>
 
-  <swiper [autoplay]="false" [keyboard]="true"
-    [pagination]="{clickable: true}"
-    [navigation]="false"
+  <swiper
+    [autoplay]="false" [keyboard]="true"
+    [pagination]="{clickable: true}" [navigation]="false"
     [scrollbar]="true" [zoom]="true" [loop]="false"
-    [slidesPerView]="1"
-    [scrollbar]="false"
+    [slidesPerView]="1" [scrollbar]="false"
+    effect="cube" [cubeEffect]="{shadow: false}"
     (swiper)="setSwiperInstance($event)"
-    effect="cube"
-    [cubeEffect]="{shadow: false}"
     (slideChange)="handleSlideChange()"
     >
-    <!-- <ng-template swiperSlide>
+    <ng-template swiperSlide>
       <div class="swiper-slide-content">
         <ion-card>
           <ion-card-header>
             <ion-card-title>ibgib</ion-card-title>
-            <ion-card-subtitle>(...?)</ion-card-subtitle>
+            <ion-card-subtitle>i believe</ion-card-subtitle>
           </ion-card-header>
 
           <ion-card-content>
             <div #svgContainer></div>
-            <p>ibgib was born over 20 years ago with the aim to maximize learning.</p>
-            <p>as it turned out, learning can be thought of...</p>
+            <p>this ibgib implementation is a cryptographically-based DLT protocol.</p>
           </ion-card-content>
         </ion-card>
       </div>
-    </ng-template> -->
+    </ng-template>
+    <ng-template swiperSlide>
+      <div class="swiper-slide-content">
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>ibgib</ion-card-title>
+            <ion-card-subtitle>intro...</ion-card-subtitle>
+          </ion-card-header>
+
+          <ion-card-content>
+            <swiper class="swiper-container-vertical"
+              [autoplay]="false" [speed]="500"
+              [navigation]="true" [direction]="'vertical'" [spaceBetween]="0"
+              [loop]="true" [freeMode]="false" [slidesPerView]="3"
+              [loopPreventsSlide]="false" [mousewheel]="true"
+              [keyboard]="true"
+              [allowTouchMove]="true" [grabCursor]="true"
+              (swiper)="handleSwiper($event, 'intro')"
+              (slideChange)="handleVertSlideChange($event[0], 'intro')"
+              >
+            <ng-template *ngFor="let x of verticalSwiperTidbits.intro" swiperSlide>
+              <div class="slide-with-border tidbit">
+
+                <h2 *ngIf="!x.focused" class="tidbit-title" ibFadeOutAnimation
+                  >{{x.title}}</h2>
+                <h2 *ngIf="x.focused" class="tidbit-title" ibFadeInAnimation
+                  >{{x.title}}</h2>
+                <p *ngIf="x.focused" class="tidbit-body"
+                  ibChildAddedAnimation
+                  >{{x.body}}</p>
+              </div>
+            </ng-template>
+            </swiper>
+
+          </ion-card-content>
+        </ion-card>
+      </div>
+    </ng-template>
     <ng-template swiperSlide>
       <div class="swiper-slide-content">
         <ion-card>
@@ -42,15 +76,17 @@
           </ion-card-header>
 
           <ion-card-content>
-            <swiper id="rethinks-swiper" class="swiper-container-vertical"
+            <swiper class="swiper-container-vertical"
               [autoplay]="false" [speed]="500"
               [navigation]="true" [direction]="'vertical'" [spaceBetween]="0"
               [loop]="true" [freeMode]="false" [slidesPerView]="3"
               [loopPreventsSlide]="false" [mousewheel]="true"
+              [keyboard]="true"
               [allowTouchMove]="true" [grabCursor]="true"
-              (slideChange)="handleRethinksSlideChange($event[0])"
+              (swiper)="handleSwiper($event, 'rethinks')"
+              (slideChange)="handleVertSlideChange($event[0], 'rethinks')"
               >
-            <ng-template *ngFor="let x of rethinks" swiperSlide>
+            <ng-template *ngFor="let x of verticalSwiperTidbits.rethinks" swiperSlide>
               <div class="slide-with-border tidbit">
 
                 <h2 *ngIf="!x.focused" class="tidbit-title" ibFadeOutAnimation
