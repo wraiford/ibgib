@@ -11,9 +11,9 @@
     [pagination]="{clickable: true}" [navigation]="false"
     [scrollbar]="true" [zoom]="true" [loop]="false"
     [slidesPerView]="1" [scrollbar]="false"
+    (swiper)="setMainSwiperInstance($event)"
+    (slideChange)="handleMainSwiperSlideChange()"
     effect="cube" [cubeEffect]="{shadow: false}"
-    (swiper)="setSwiperInstance($event)"
-    (slideChange)="handleSlideChange()"
     >
     <ng-template swiperSlide>
       <div class="swiper-slide-content">
@@ -30,6 +30,8 @@
         </ion-card>
       </div>
     </ng-template>
+
+    <!-- intro vertical slide -->
     <ng-template swiperSlide>
       <div class="swiper-slide-content">
         <ion-card>
@@ -51,7 +53,6 @@
               >
             <ng-template *ngFor="let x of verticalSwiperTidbits.intro" swiperSlide>
               <div class="slide-with-border tidbit">
-
                 <h2 *ngIf="!x.focused" class="tidbit-title" ibFadeOutAnimation
                   >{{x.title}}</h2>
                 <h2 *ngIf="x.focused" class="tidbit-title" ibFadeInAnimation
@@ -67,6 +68,84 @@
         </ion-card>
       </div>
     </ng-template>
+
+    <!-- protocol features vertical slide -->
+    <ng-template swiperSlide>
+      <div class="swiper-slide-content">
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>ibgib</ion-card-title>
+            <ion-card-subtitle>the protocol</ion-card-subtitle>
+          </ion-card-header>
+
+          <ion-card-content>
+            <swiper class="swiper-container-vertical"
+              [autoplay]="false" [speed]="500"
+              [navigation]="true" [direction]="'vertical'" [spaceBetween]="0"
+              [loop]="true" [freeMode]="false" [slidesPerView]="3"
+              [loopPreventsSlide]="false" [mousewheel]="true"
+              [keyboard]="true"
+              [allowTouchMove]="true" [grabCursor]="true"
+              (swiper)="handleSwiper($event, 'protocol')"
+              (slideChange)="handleVertSlideChange($event[0], 'protocol')"
+              >
+            <ng-template *ngFor="let x of verticalSwiperTidbits.protocol" swiperSlide>
+              <div class="slide-with-border tidbit">
+                <h2 *ngIf="!x.focused" class="tidbit-title" ibFadeOutAnimation
+                  >{{x.title}}</h2>
+                <h2 *ngIf="x.focused" class="tidbit-title" ibFadeInAnimation
+                  >{{x.title}}</h2>
+                <p *ngIf="x.focused" class="tidbit-body"
+                  ibChildAddedAnimation
+                  >{{x.body}}</p>
+              </div>
+            </ng-template>
+            </swiper>
+
+          </ion-card-content>
+        </ion-card>
+      </div>
+    </ng-template>
+
+    <!-- app features vertical slide -->
+    <ng-template swiperSlide>
+      <div class="swiper-slide-content">
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>ibgib</ion-card-title>
+            <ion-card-subtitle>the app</ion-card-subtitle>
+          </ion-card-header>
+
+          <ion-card-content>
+            <swiper class="swiper-container-vertical"
+              [autoplay]="false" [speed]="500"
+              [navigation]="true" [direction]="'vertical'" [spaceBetween]="0"
+              [loop]="true" [freeMode]="false" [slidesPerView]="3"
+              [loopPreventsSlide]="false" [mousewheel]="true"
+              [keyboard]="true"
+              [allowTouchMove]="true" [grabCursor]="true"
+              (swiper)="handleSwiper($event, 'app')"
+              (slideChange)="handleVertSlideChange($event[0], 'app')"
+              >
+            <ng-template *ngFor="let x of verticalSwiperTidbits.app" swiperSlide>
+              <div class="slide-with-border tidbit">
+                <h2 *ngIf="!x.focused" class="tidbit-title" ibFadeOutAnimation
+                  >{{x.title}}</h2>
+                <h2 *ngIf="x.focused" class="tidbit-title" ibFadeInAnimation
+                  >{{x.title}}</h2>
+                <p *ngIf="x.focused" class="tidbit-body"
+                  ibChildAddedAnimation
+                  >{{x.body}}</p>
+              </div>
+            </ng-template>
+            </swiper>
+
+          </ion-card-content>
+        </ion-card>
+      </div>
+    </ng-template>
+
+    <!-- rethinks vertical slide -->
     <ng-template swiperSlide>
       <div class="swiper-slide-content">
         <ion-card>
@@ -104,7 +183,8 @@
         </ion-card>
       </div>
     </ng-template>
-    <ng-template swiperSlide>
+
+    <!-- <ng-template swiperSlide>
       <div class="swiper-slide-content">
         <ion-card>
           <ion-card-header>
@@ -120,8 +200,9 @@
           </ion-card-content>
         </ion-card>
       </div>
-    </ng-template>
-    <ng-template swiperSlide>
+    </ng-template> -->
+
+    <!-- <ng-template swiperSlide>
       <div class="swiper-slide-content">
         <ion-card>
           <ion-card-header>
@@ -135,22 +216,9 @@
           </ion-card-content>
         </ion-card>
       </div>
-    </ng-template>
-    <ng-template swiperSlide>
-      <div class="swiper-slide-content">
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>collaboration...</ion-card-title>
-            <ion-card-subtitle>among superhumans</ion-card-subtitle>
-          </ion-card-header>
+    </ng-template> -->
 
-          <ion-card-content>
-            <p>among organizations, economies create collaboration contexts, using money as the weighting.</p>
-          </ion-card-content>
-        </ion-card>
-      </div>
-    </ng-template>
-    <ng-template swiperSlide>
+    <!-- <ng-template swiperSlide>
       <div class="swiper-slide-content">
         <ion-card>
           <ion-card-header>
@@ -166,10 +234,10 @@
           </ion-card-content>
         </ion-card>
       </div>
-    </ng-template>
+    </ng-template> -->
 
     <!-- test item with buttons -->
-    <ng-template swiperSlide>
+    <!-- <ng-template swiperSlide>
       <div class="swiper-slide-content">
         <ion-card>
           <ion-item href="#" class="ion-activated">
@@ -197,8 +265,10 @@
           </ion-item>
         </ion-card>
       </div>
-    </ng-template>
+    </ng-template> -->
+
   </swiper>
+
   <ion-footer>
     <ion-buttons>
       <ion-button title="root beer...cheers!" color="primary" (click)="handleCheers()">

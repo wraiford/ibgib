@@ -50,13 +50,16 @@ export class WelcomePage implements OnInit, AfterViewInit {
   goToAddr: IbGibAddr;
 
   @Input()
-  get goText1(): string { return 'mm...'; }
+  get goText3(): string {
+    const tldrLabel = 'tl;dr';
+    const goLabel = this.goToAddr ? 'go' : 'wait for it...';
+    // return 'go';
+    return this.mainSwiper?.realIndex < this.mainSwiper?.slides?.length - 1 ?
+      tldrLabel :
+      goLabel;
+  }
 
-  @Input()
-  get goText2(): string { return 'mhmm...'; }
-
-  @Input()
-  get goText3(): string { return this.goToAddr ? 'go' : 'wait for it...'; }
+  swipers: {[name: string]: Swiper} = {};
 
   @Input()
   verticalSwiperTidbits: { [name: string]: VerticalSwiperTidbit[] } = {
@@ -69,11 +72,11 @@ export class WelcomePage implements OnInit, AfterViewInit {
   private _subInitialized: Subscription;
 
   /**
-   * Reference to the swiper control.
+   * Reference to the primary horizontal swiper control.
    *
    * @link https://ionicframework.com/docs/angular/slides#methods
    */
-  slides: Swiper;
+  mainSwiper: Swiper;
 
   @ViewChild('ann')
   annCanvas: any;
@@ -86,15 +89,6 @@ export class WelcomePage implements OnInit, AfterViewInit {
 
   @ViewChild('svgContainer')
   svgContainer: ElementRef;
-
-  /**
-   * swipers indexed by swiperName
-   */
-  swipers: {[name: string]: Swiper} = {};
-  // swiperIntro: Swiper;
-  // swiperProtocol: Swiper;
-  // swiperApp: Swiper;
-  // swiperRethinks: Swiper;
 
   constructor(
     protected common: CommonService,
@@ -256,9 +250,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
     }
   }
 
-  setSwiperInstance(swiper: any) {
-    this.slides = swiper;
-  }
+  setMainSwiperInstance(swiper: any) { this.mainSwiper = swiper; }
 
   /**
    * Initializes app components properties, NOT the actual special ibgib
@@ -443,7 +435,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
     try {
       if (logalot) { console.log(`${lc} starting... (I: 92cfc3686e7b42d5b4c09842b16125b5)`); }
 
-      this.slides.slidePrev();
+      this.mainSwiper.slidePrev();
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -473,7 +465,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
     try {
       if (logalot) { console.log(`${lc} starting... (I: 92cfc3686e7b42d5b4c09842b16125b5)`); }
 
-      this.slides.slideNext();
+      this.mainSwiper.slideNext();
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -483,19 +475,20 @@ export class WelcomePage implements OnInit, AfterViewInit {
     }
   }
 
-  async handleSlideChange(): Promise<void> {
-    const lc = `${this.lc}[${this.handleSlideChange.name}]`;
+  async handleMainSwiperSlideChange(): Promise<void> {
+    const lc = `${this.lc}[${this.handleMainSwiperSlideChange.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: aa2fd63301d972d9775962e4b97d3422)`); }
 
       await this.drawAnimation();
 
-      console.log(`${lc} this.slides.activeIndex: ${this.slides.activeIndex}`);
+      console.log(`${lc} this.slides.realIndex: ${this.mainSwiper.realIndex}`);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
+      setTimeout(() => this.ref.detectChanges());
     }
   }
 
@@ -518,29 +511,13 @@ export class WelcomePage implements OnInit, AfterViewInit {
     }
   }
 
-  @Input()
-  get mappedIndex_SwiperRethinks(): number {
-      // const mappedIndex = (event.activeIndex - 2) % this.rethinks.length;
-      const mappedIndex =
-        this.swiperRethinks ?
-        (this.swiperRethinks.activeIndex - 2) % this.rethinks.length :
-        0;
-      return mappedIndex;
-  }
-
-  getAdjustedActiveIndex(swiperName: SwiperName): number {
-    const lc = `${this.lc}[${this.getAdjustedActiveIndex.name}]`;
+  handleSwiper(swiper: Swiper, name: SwiperName): void {
+    const lc = `${this.lc}[${this.handleSwiper.name}]`;
     try {
-      if (logalot) { console.log(`${lc} starting... (I: aa74e8efab4b1e38e6248b9ffc152c22)`); }
+      if (logalot) { console.log(`${lc} starting... (I: 4d902363fd616dd0c880935e3f321e22)`); }
 
-      const swiper = this.swipers[swiperName];
-      const tidbits =
-      const mappedIndex =this.verticalSwiperTidbits[swiperName];
-        swiper ?
-        (swiper.activeIndex - 2) % .length :
-        0;
-      return mappedIndex;
-
+      this.swipers[name] = swiper;
+      // this.handleVertSlideChange(swiper, name);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -549,28 +526,21 @@ export class WelcomePage implements OnInit, AfterViewInit {
     }
   }
 
-  // handleSwiperRethinksSet(swiper: Swiper): void {
-  //   this.swiperRethinks = swiper;
-  //   this.handleRethinksSlideChange(swiper);
-  // }
-  handleSwiper(swiper: Swiper, swiperName: SwiperName): void {
-    this.handleRethinksSlideChange(swiper, swiperName);
-    this.swipers[swiperName] = swiper;
-  }
-
   handleVertSlideChange(swiper: Swiper, name: SwiperName): void {
     const lc = `${this.lc}[${this.handleVertSlideChange.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 4b0c5cdf25a14dec9c64c196ee790ce3)`); }
 
-
-
-      this.rethinks.forEach(x => x.focused = false);
-      /** dunno what swiper thinks of as activeIndex. Probably complicated. */
-      if (this.mappedIndex_SwiperRethinks >= 0 && this.mappedIndex_SwiperRethinks < this.rethinks.length) {
-        this.rethinks[this.mappedIndex_SwiperRethinks].focused = true;
+      if (!this.swipers[name]) {
+        if (logalot) { console.log(`${lc} this.swipers[${name}] falsy. returning (I: b0a3640e47390b617bbdd3b56003cc22)`); }
+        return;
       }
-      // console.dir(event);
+
+      const tidbits = this.verticalSwiperTidbits[name];
+      tidbits.forEach(x => x.focused = false);
+
+      const i = (swiper.realIndex ?? 0) + 1 < tidbits.length ? (swiper.realIndex ?? 0) + 1 : 0;
+      tidbits[i].focused = true;
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -655,54 +625,63 @@ interface IbGibDiagramInfo {
 
 const IBGIB_APP_INTRO: VerticalSwiperTidbit[] = [
   {
-    focused: true,
-    title: `decentralized collaboration`,
-    body: `ibgib enables distributed computation. with humans, this means collaboration; with microservices, interop; with ais and ml models, the future - a biological approach for meta-evolutionary models.`,
-  },
-  {
     title: `focus on time, repo of repos`,
     body: `ibgib is a dlt protocol that focuses on Time as a first-class citizen. it utilizes both blockchain-style linked lists of named merkle links, as well as dag-style merkle hash trees, with two key relationships: "past" and "ancestor". this enables "on-chain" version-controlled data. think meta-git for anything, including its own self-bootstrapping metadata (configuration).`,
   },
   {
+    focused: true,
     title: `this app...`,
-    body: `this app is only a prototype leveraging the unique architecture of the ibgib protocol. it is a swiss-army knife of apps, already able to do some pretty cool stuff, like synchronization via a branch timeline merging strategy. but it's the _approach_ that will enable truly decentralized apps.`,
+    body: `this app is only a prototype leveraging the unique architecture of the ibgib protocol. it is a general-purpose dapp, already able to do some pretty cool stuff, like synchronization via a branch timeline merging strategy. but it's the _approach_ that will enable truly distributed computation.`,
+  },
+  {
+    title: `decentralized collaboration`,
+    body: `with humans, this distributed computation means collaboration; with microservices, streamlined interop; with ais and ml models, the future - a biological approach for meta-evolutionary models.`,
   },
 ];
 
 const IBGIB_PROTOCOL_FEATURES: VerticalSwiperTidbit[] = [
   {
-    focused: true,
-    title: `enabling monotonically increasing data AND disconnected data slices`,
-    body: ``,
+    title: `monotonically increasing data AND sovereign data boundaries`,
+    body: `blockchains inherently do not scale because it is assumed to keep around all data as absolute, objective truths. as such, in most protocols there is little-to-no architecture to enable necessary projection decoupling. ibgib however enables aspects such as hard links for cryptographically-verifiable integrity AND soft links for looser coupling as needed.`,
   },
   {
-    title: ``,
-    body: ``,
+    focused: true,
+    title: `a protocol apart`,
+    body: `ibgib is unique on this earth. born apart from bitcoin, the protocol does not inherit its technical debt. `,
+  },
+  {
+    title: `currency is attention`,
+    body: `currency/money, admittedly a domain i'm no expert in, is only one part in a larger architecture. in ibgib it is understood to be isomorphic to interneuronal weights in ANNs.`,
   },
 ];
 
 const IBGIB_APP_FEATURES: VerticalSwiperTidbit[] = [
   {
+    title: `wakka 333333`,
+    body: ` yadawakka w333333akka yada`,
+  },
+  {
     focused: true,
     title: `comments within comments, pics within pics`,
-    body: ``,
+    body: ` yada yada`,
+  },
+  {
+    title: `wakka`,
+    body: ` yadawakka wakka yada`,
   },
 ];
 
 
 
-/**
- * swiper activeIndex is index here + 2 (??)
- * dunno wth, i'm sure there is a good reason.
- */
 const IBGIB_RETHINKS: VerticalSwiperTidbit[] = [
   {
     title: `what is money?`,
     body: `a rethink is required to understand just wth bitcoin and other crypto technologies teach us about money, collaboration & us as individuals. in ibgib we focus on "money" as precisely analogous to voltage bias in neural networks in superhuman networks.`,
   },
   {
+    focused: true,
     title: `wth is or are ibgib(s)?`,
-    body: `moving away from a absolute knowledge-based paradigm, an ibgib can be thought of as a snapshot of some pov's belief which inevitably evolves over time. this fundamentally requires a Rethink of truths many of us may take for granted, or if you prefer, an extremely strict adherence to science as being fluidly best-effort heuristics. more tersely, you can think of an ibgib as a fundamental unit of science.`,
+    body: `moving away from an absolute knowledge, an ibgib can be thought of as a snapshot of some pov's belief which inevitably evolves over time. this fundamentally requires a Rethink of truths many of us may take for granted.`,
   },
   {
     focused: false,
@@ -725,4 +704,4 @@ interface VerticalSwiperTidbit {
   body: string;
 }
 
-type SwiperName = 'intro' | 'rethinks';
+type SwiperName = 'intro' | 'protocol' | 'app' | 'rethinks';
