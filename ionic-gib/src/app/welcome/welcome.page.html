@@ -11,7 +11,7 @@
     [pagination]="{clickable: true}" [navigation]="false"
     [scrollbar]="true" [zoom]="true" [loop]="false"
     [slidesPerView]="1" [scrollbar]="false"
-    (swiper)="setMainSwiperInstance($event)"
+    (swiper)="this.mainSwiper = $event"
     (slideChange)="handleMainSwiperSlideChange()"
     effect="cube" [cubeEffect]="{shadow: false}"
     >
@@ -25,7 +25,7 @@
 
           <ion-card-content>
             <div #svgContainer></div>
-            <p>this ibgib implementation is a cryptographically-based DLT protocol.</p>
+            <p>this ibgib implementation is a hopeful cryptographically-based DLT protocol.</p>
           </ion-card-content>
         </ion-card>
       </div>
@@ -71,7 +71,8 @@
 
     <!-- protocol features vertical slide -->
     <ng-template swiperSlide>
-      <div class="swiper-slide-content">
+      <!-- note on ngIf: there is some kind of visual bug overlapping nested slides after some threshold with cube effect -->
+      <div *ngIf="mainSwiper?.realIndex === 2" class="swiper-slide-content">
         <ion-card>
           <ion-card-header>
             <ion-card-title>ibgib</ion-card-title>
@@ -109,7 +110,8 @@
 
     <!-- app features vertical slide -->
     <ng-template swiperSlide>
-      <div class="swiper-slide-content">
+      <!-- note on ngIf: there is some kind of visual bug overlapping nested slides after some threshold with cube effect -->
+      <div *ngIf="mainSwiper?.realIndex === 3" class="swiper-slide-content">
         <ion-card>
           <ion-card-header>
             <ion-card-title>ibgib</ion-card-title>
@@ -147,7 +149,8 @@
 
     <!-- rethinks vertical slide -->
     <ng-template swiperSlide>
-      <div class="swiper-slide-content">
+      <div *ngIf="mainSwiper?.realIndex === 4" class="swiper-slide-content">
+      <!-- note on ngIf: there is some kind of visual bug overlapping nested slides after some threshold with cube effect -->
         <ion-card>
           <ion-card-header>
             <ion-card-title>rethinks</ion-card-title>
@@ -183,40 +186,6 @@
         </ion-card>
       </div>
     </ng-template>
-
-    <!-- <ng-template swiperSlide>
-      <div class="swiper-slide-content">
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>collaboration</ion-card-title>
-            <ion-card-subtitle>within humans</ion-card-subtitle>
-          </ion-card-header>
-
-          <ion-card-content>
-            <canvas #ann></canvas>
-            <p>inside a human's head, there is a living ecosystem that collaborates. </p>
-            <p>inside an organization, from couples to a companies, there is collaboration.</p>
-            <p>among organizations, economies create collaboration contexts, using money as the weighting.</p>
-          </ion-card-content>
-        </ion-card>
-      </div>
-    </ng-template> -->
-
-    <!-- <ng-template swiperSlide>
-      <div class="swiper-slide-content">
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>collaboration</ion-card-title>
-            <ion-card-subtitle>among humans</ion-card-subtitle>
-          </ion-card-header>
-
-          <ion-card-content>
-            <p>inside an organization, from couples to a companies, there is collaboration.</p>
-            <p>among organizations, economies create collaboration contexts, using money as the weighting.</p>
-          </ion-card-content>
-        </ion-card>
-      </div>
-    </ng-template> -->
 
     <!-- <ng-template swiperSlide>
       <div class="swiper-slide-content">

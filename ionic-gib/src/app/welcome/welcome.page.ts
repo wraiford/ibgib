@@ -32,7 +32,7 @@ import { IbGibAddr } from 'ts-gib/dist/types';
 
 import * as c from '../common/constants';
 import { CommonService } from '../services/common.service';
-import { ibCircle, ibGroup, ibSvg, SVG_NAMESPACE } from '../common/helper/svg';
+import { ibCircle, ibGroup, ibLine, ibSvg, SVG_NAMESPACE } from '../common/helper/svg';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
@@ -177,11 +177,12 @@ export class WelcomePage implements OnInit, AfterViewInit {
 
       const fill = info.fill ?? 'green'; // arbitrary
       const stroke = info.stroke ?? 'black'; // arbitrary
+      const strokeWidth = info.strokeWidth ?? '1px';
       const opacity = info.opacity ?? 1.0;
       const radius = info.radius ?? 10; // arbitrary
 
       if (info.mode === 'intrinsic') {
-        const diam = radius * 2;
+        // const diam = radius * 2;
         const width = svg.clientWidth;
         const height = svg.clientHeight;
         const centerX = Math.floor(width/2);
@@ -190,10 +191,10 @@ export class WelcomePage implements OnInit, AfterViewInit {
         let [cx, cy] = info.pos;
         let circle: SVGCircleElement;
         if (g) {
-          circle = ibCircle({ parent: g, cx, cy, r: radius, fill, stroke, opacity });
+          circle = ibCircle({ parent: g, cx, cy, r: radius, fill, stroke, strokeWidth, opacity });
         } else {
           // translate to center-based coordinates
-          circle = ibCircle({ parent: svg, cx: centerX + cx, cy: centerY + cy, r: radius, fill, stroke, opacity });
+          circle = ibCircle({ parent: svg, cx: centerX + cx, cy: centerY + cy, r: radius, fill, stroke, strokeWidth, opacity });
         }
 
         // <!-- <animateMotion
@@ -235,13 +236,111 @@ export class WelcomePage implements OnInit, AfterViewInit {
         }
 
 
+        // this.addWobble(circle);
       } else if (info.mode = 'extrinsic') {
+        // const diam = radius * 2;
+        const width = svg.clientWidth;
+        const height = svg.clientHeight;
+        const centerX = Math.floor(width/2);
+        const centerY = Math.floor(height/2);
+        let [x1, y1] = info.startPos;
+        let [x2, y2] = info.pos;
+        let line: SVGLineElement;
+        if (g) {
+          line = ibLine({ parent: g, x1y1: [x1, y1], x2y2: [x2, y2], stroke, strokeWidth, opacity });
+        } else {
+          // translate to center-based coordinates
+          line = ibLine({ parent: svg, x1y1: [centerX + x1, centerY + y1], x2y2: [centerX + x2, centerY + y2], stroke, strokeWidth, opacity });
+        }
 
+        // <!-- <animateMotion
+        //    path="M 250,80 H 50 Q 30,80 30,50 Q 30,20 50,20 H 250 Q 280,20,280,50 Q 280,80,250,80Z"
+        //    dur="3s" repeatCount="indefinite" rotate="auto" /> -->
+        if (x1 !== x2 || y1 !== y2) {
+          let animation = document.createElementNS(SVG_NAMESPACE, 'animateMotion');
+          // let path = `M0,0 L${x2},${y2} L${centerX},${centerY} L${fromX},${fromY}`;
+          let path = `M${x1-x2},${y1-y2} L0,0`;
+          animation.setAttribute('path', path);
+          animation.setAttribute('dur', '2s');
+          // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/additive
+          animation.setAttribute('additive', 'replace');
+          // animation.setAttribute('repeatCount', 'indefinite');
+          // animation.setAttribute('rotate', 'auto');
+          line.appendChild(animation);
+        }
+
+        if (info.infos?.length > 0) {
+          // doesn't throw
+          console.error(`${lc} (UNEXPECTED) children infos ignored for extrinsic rel8ns atm (E: db61f073cf884a0ca69509f1640f5790)`);
+        }
+
+        // this.addWobble(line);
       } else {
         throw new Error(`(UNEXPECTED) unknown info.mode: ${info.mode} (E: 1a203a5a173258a309fcac813ff6c422)`);
       }
 
+      // <animateTransform attributeName="transform"
+      //                     attributeType="XML"
+      //                     type="rotate"
+      //                     from="0 60 70"
+      //                     to="360 60 70"
+      //                     dur="10s"
+      //                     repeatCount="indefinite"/>
 
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      // doesn't rethrow
+      // throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  addWobble(svgElement: any): void {
+    const lc = `${this.lc}[${this.addWobble.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 6c2264ba2a7161a90c0bc7f55de71f22)`); }
+
+      const durIncrementMs = 200;
+      const delayMs = 0;
+
+      let wobbleSkew = document.createElementNS(SVG_NAMESPACE, 'animateTransform');
+      wobbleSkew.setAttribute('attributeName', "transform");
+      wobbleSkew.setAttribute('attributeType', "XML");
+      wobbleSkew.setAttribute('type', 'skewX');
+      wobbleSkew.setAttribute('from', '0');
+      wobbleSkew.setAttribute('to', '-10');
+      wobbleSkew.setAttribute('dur', `${durIncrementMs}ms`);
+      wobbleSkew.setAttribute('begin', `${delayMs}ms`);
+
+      let wobbleScale = document.createElementNS(SVG_NAMESPACE, 'animateTransform');
+      wobbleScale.setAttribute('attributeName', "transform");
+      wobbleScale.setAttribute('attributeType', "XML");
+      wobbleScale.setAttribute('type', 'scale');
+      wobbleScale.setAttribute('from', '1');
+      wobbleScale.setAttribute('to', '1.03');
+      wobbleScale.setAttribute('dur', `${durIncrementMs}ms`);
+      wobbleScale.setAttribute('begin', `${delayMs}ms`);
+      // wobble.setAttribute('additive', 'replace');
+      // wobble.setAttribute('repeatCount', 'indefinite');
+
+      // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/additive
+      // wobble.setAttribute('repeatCount', 'indefinite');
+      // wobble.setAttribute('rotate', 'auto');
+
+      let wobbleRotate = document.createElementNS(SVG_NAMESPACE, 'animateTransform');
+      wobbleRotate.setAttribute('attributeName', "transform");
+      wobbleRotate.setAttribute('attributeType', "XML");
+      wobbleRotate.setAttribute('type', 'rotate');
+      wobbleRotate.setAttribute('from', '0');
+      wobbleRotate.setAttribute('to', '360');
+      wobbleRotate.setAttribute('dur', `${durIncrementMs}ms`);
+      wobbleRotate.setAttribute('begin', `${delayMs}ms`);
+
+      svgElement.appendChild(wobbleSkew);
+      svgElement.appendChild(wobbleScale);
+      svgElement.appendChild(wobbleRotate);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -337,89 +436,158 @@ export class WelcomePage implements OnInit, AfterViewInit {
         let centerY = Math.floor(svg.clientHeight/2);
         let mainPositionX = 80;
         let noise = Math.random() * 0.0001; // force reanimation?
+        let g_radius = Math.floor(centerX * 0.99);
 
-        await this.drawIbGibDiagram({
-          svg: svg,
-          info: {
-            // background/context
-            startPos: [0,0],
-            pos: [0,0],
-            fill: 'transparent',
-            stroke: 'transparent',
-            mode: 'intrinsic',
-            // opacity: 0.05,
-            radius: Math.floor(centerX * 0.9),
-            infos: [
-              // left
-              {
-                startPos: [0,0],
-                pos: [-mainPositionX,0],
-                mode: 'intrinsic',
-                // opacity: 0.05,
-                fill: 'blue',
-                radius: Math.floor(centerX * 0.5),
-                infos: [
-                  // testing yo
-                  {
-                    startPos: [0,0],
-                    pos: [-50,-50],
-                    mode: 'intrinsic',
-                    fill: 'red',
-                    opacity: 1,
-                  },
-                  {
-                    startPos: [0,0],
-                    pos: [-50,0],
-                    mode: 'intrinsic',
-                    fill: 'blue',
-                    opacity: 1,
-                  },
-                  {
-                    startPos: [0,0],
-                    pos: [-50,50],
-                    mode: 'intrinsic',
-                    fill: 'green',
-                    opacity: 1,
-                  },
-                ]
-              },
+        const greenish = '#47a135';
+        const purplish = '#53118e';
 
-              // right
-              {
-                startPos: [0,0],
-                pos: [mainPositionX,0],
-                mode: 'intrinsic',
-                fill: hadChildren ? 'red' : 'yellow',
-                radius: Math.floor(centerX * 0.5),
-                infos: [
-                  // testing yo
-                  {
-                    startPos: [0,0],
-                    pos: [-50,-50],
-                    mode: 'intrinsic',
-                    fill: 'red',
-                    opacity: 1,
-                  },
-                  {
-                    startPos: [0,0],
-                    pos: [-50,0],
-                    mode: 'intrinsic',
-                    fill: 'blue',
-                    opacity: 1,
-                  },
-                  {
-                    startPos: [0,0],
-                    pos: [-50,50],
-                    mode: 'intrinsic',
-                    fill: 'green',
-                    opacity: 1,
-                  },
-                ]
-              }
-            ]
-          }
+        const primaryColor_left = greenish;
+        const secondaryColor_left = purplish;
+        const tertiaryColor_left = 'white';
+        const primaryColor_right = secondaryColor_left;
+        const secondaryColor_right = primaryColor_left;
+        const tertiaryColor_right = 'black';
 
-        });
+        /**
+         * If I draw the background in the same group, then its
+         * opacity will carry over and I want separate opacities.
+         */
+        const gTranslucent: IbGibDiagramInfo = {
+          // background/context
+          startPos: [0,0],
+          pos: [0,0],
+          fill: primaryColor_left,
+          stroke: '#53118e',
+          mode: 'intrinsic',
+          opacity: 0.16,
+          radius: g_radius,
+        };
+        /**
+         * this g contains the other ibgib infos and has full opacity.
+         */
+        const gTransparent: IbGibDiagramInfo = h.clone(gTranslucent);
+        gTransparent.fill = 'transparent';
+        delete gTransparent.opacity;
+
+
+        const ib_distanceX = Math.floor(g_radius * 0.37);
+        const ib_distanceY = -Math.floor(g_radius * 0.37);
+        const ib_radius = Math.floor(g_radius * 0.42);
+        const i_distanceX = (Math.floor(ib_radius * 0.37));
+        const i_distanceY = Math.floor(ib_radius * 0.3);
+        const i_radius = Math.floor(ib_radius * 0.2);
+        // const b_distanceX = -(Math.floor(i_distanceX * 0.99));
+        const b_distanceX = -Math.floor(i_radius* 1.2);
+        const b_distanceY = -Math.floor(i_distanceY * 0.99);
+        const b_radius = Math.floor(ib_radius * 0.4);
+
+        // left
+        const i_left: IbGibDiagramInfo = {
+          startPos: [0,0],
+          pos: [-i_distanceX,-i_distanceY],
+          mode: 'intrinsic',
+          fill: primaryColor_left,
+          stroke: tertiaryColor_left,
+          radius: i_radius,
+        };
+        const b_left: IbGibDiagramInfo = {
+          startPos: [0,0],
+          pos: [-b_distanceX,-b_distanceY],
+          mode: 'intrinsic',
+          fill: primaryColor_left,
+          stroke: tertiaryColor_left,
+          radius: b_radius,
+        };
+        const i_line_left: IbGibDiagramInfo = {
+          startPos: [i_left.pos[0], i_left.pos[1]+i_radius],
+          pos: [i_left.pos[0],b_left.pos[1]],
+          mode: 'extrinsic',
+          stroke: tertiaryColor_left,
+        };
+        const b_line_left: IbGibDiagramInfo = {
+          startPos: [b_left.pos[0]-b_radius, b_left.pos[1]],
+          pos: [b_left.pos[0]-b_radius,i_left.pos[1]],
+          mode: 'extrinsic',
+          stroke: tertiaryColor_left,
+        };
+        const ib_left: IbGibDiagramInfo = {
+          startPos: [0,0],
+          pos: [-ib_distanceX,-ib_distanceY],
+          mode: 'intrinsic',
+          stroke: primaryColor_left,
+          // fill: 'transparent',
+          fill: secondaryColor_left,
+          radius: ib_radius,
+          infos: [ i_left, b_left, i_line_left, b_line_left ],
+        }
+
+        // right
+        const i_right: IbGibDiagramInfo = {
+          startPos: [0,0],
+          pos: [-i_distanceX,-i_distanceY],
+          mode: 'intrinsic',
+          fill: primaryColor_right,
+          radius: i_radius,
+        };
+        const b_right: IbGibDiagramInfo = {
+          startPos: [0,0],
+          pos: [-b_distanceX,-b_distanceY],
+          mode: 'intrinsic',
+          fill: primaryColor_right,
+          radius: b_radius,
+        };
+        const i_line_right: IbGibDiagramInfo = {
+          startPos: [i_right.pos[0], i_right.pos[1]+i_radius],
+          pos: [i_right.pos[0],b_right.pos[1]],
+          mode: 'extrinsic',
+          stroke: tertiaryColor_right,
+        };
+        const b_line_right: IbGibDiagramInfo = {
+          startPos: [b_right.pos[0]-b_radius, b_right.pos[1]],
+          pos: [b_right.pos[0]-b_radius,i_right.pos[1]],
+          mode: 'extrinsic',
+          stroke: tertiaryColor_right,
+        };
+        const ib_right: IbGibDiagramInfo = {
+          startPos: [0,0],
+          pos: [ib_distanceX,ib_distanceY],
+          mode: 'intrinsic',
+          // fill: 'blue',
+          radius: ib_radius,
+          stroke: primaryColor_right,
+          // fill: 'transparent',
+          fill: secondaryColor_right,
+          // infos: [ i_right, b_right ],
+          infos: [ i_right, b_right, i_line_right, b_line_right ],
+        }
+
+
+        const g_line_theta = Math.atan(ib_distanceY/ib_distanceX);
+        const g_line: IbGibDiagramInfo = {
+          // bottom left edge of right ib
+          startPos: [
+            ib_right.pos[0]-(ib_radius * Math.cos(g_line_theta)),
+            ib_right.pos[1]+(ib_radius * Math.cos(g_line_theta))
+          ],
+          // top right edge of left ib
+          pos: [
+            ib_left.pos[0]-(ib_radius * Math.sin(g_line_theta)),
+            ib_left.pos[1]+(ib_radius * Math.sin(g_line_theta))
+          ],
+          mode: 'extrinsic',
+          stroke: primaryColor_left,
+          strokeWidth: '5px',
+        };
+
+        gTransparent.infos = [
+          ib_left,
+          ib_right,
+          g_line,
+        ];
+
+        await this.drawIbGibDiagram({ svg: svg, info: gTranslucent, });
+        await this.drawIbGibDiagram({ svg: svg, info: gTransparent, });
+        this.addWobble(svg);
       });
 
     } catch (error) {
@@ -609,6 +777,12 @@ interface IbGibDiagramInfo {
    * @optional
    */
   stroke?: string;
+  /**
+   * width of the stroke
+   *
+   * @optional
+   */
+  strokeWidth?: string;
   /**
    * If given, will specify opacity of visual thing in diagram.
    *

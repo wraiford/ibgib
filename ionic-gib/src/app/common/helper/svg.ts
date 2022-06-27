@@ -114,6 +114,50 @@ export function ibCircle({
     }
 }
 
+export function ibLine({
+    parent,
+    x1y1, x2y2,
+    style,
+    opacity,
+    stroke,
+    strokeWidth,
+}: {
+    /**
+     * If provided, will append created element to this
+     */
+    parent?: SVGElement,
+    x1y1: [number, number],
+    x2y2: [number, number],
+    style?: string,
+    opacity?: number,
+    stroke?: string,
+    strokeWidth?: string,
+}): SVGLineElement {
+    const lc = `[${ibLine.name}]`;
+    try {
+        stroke = stroke || 'black';
+        strokeWidth = strokeWidth || '1px';
+        if (!style) {
+            style = `stroke:${stroke};stroke-width:${strokeWidth}`;
+        }
+
+        const line = document.createElementNS(SVG_NAMESPACE, 'line');
+        line.setAttribute('x1', `${x1y1[0]}`);
+        line.setAttribute('y1', `${x1y1[1]}`);
+        line.setAttribute('x2', `${x2y2[0]}`);
+        line.setAttribute('y2', `${x2y2[1]}`);
+        if (opacity || opacity == 0) { line.setAttribute('opacity', opacity.toString()); }
+        line.setAttribute('style', style);
+
+        if (parent) { parent.appendChild(line); }
+
+        return line;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
+
 export function ibAnimate({
 
 }): SVGAnimateElement {
