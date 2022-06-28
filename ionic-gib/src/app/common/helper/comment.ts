@@ -37,7 +37,7 @@ export function getCommentIb(commentText: string): string {
             ibCommentText = saferText;
         } else {
             // comment text only has characters/nonalphanumerics.
-            ibCommentText = c.COMMENT_ONLY_HAS_NON_ALPHANUMERICS;
+            ibCommentText = c.ONLY_HAS_NON_ALPHANUMERICS;
         }
 
         return `comment ${ibCommentText}`;

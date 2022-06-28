@@ -12,6 +12,7 @@ import * as c from '../../common/constants';
 import { CommonService, NavInfo } from 'src/app/services/common.service';
 import { Capacitor } from '@capacitor/core';
 import { CommentData_V1 } from '../types/comment';
+import { LinkData_V1 } from '../types/link';
 import { PicData_V1 } from '../types/pic';
 import { IbGibItem, IbGibTimelineUpdateInfo } from '../types/ux';
 
@@ -120,13 +121,15 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     get isPic(): boolean { return this.ib?.startsWith('pic ') || false; }
     @Input()
     get isComment(): boolean { return this.ib?.startsWith('comment ') || false; }
+    @Input()
+    get isLink(): boolean { return this.ib?.startsWith('link ') || false; }
 
     /**
      * Hack because ngSwitchCase doesn't seem to work properly. Probably my fault...hmmm
      *
      * this is used in the fallback case.
      */
-    get itemTypes(): string[] { return ['pic', 'comment', 'tag', 'root']; }
+    get itemTypes(): string[] { return ['pic', 'comment', 'link', 'tag', 'root']; }
 
     /**
      * Set this to true if you don't want updates to this
@@ -156,6 +159,8 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             return this.ib.split(' ').slice(1).join(' ');
         } else if (this.isComment) {
             return this.item?.text || this.ib || '[comment]';
+        } else if (this.isLink) {
+            return this.item?.text || this.ib || '[link]';
         } else if (this.ib?.startsWith(`meta special `)) {
             return this.ib.substring(`meta special `.length);
         } else if (this.isRoot) {
@@ -199,6 +204,13 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
 
     @Input()
     get hasChildren(): boolean { return this.item?.hasChildren; }
+
+    /**
+     * If a comment/link/pic/whatever sets this to true, then a click will not
+     * bubble up and nav/whatever.
+     */
+    @Input()
+    stopClickPropagation: boolean;
 
     constructor(
         protected common: CommonService,
@@ -575,6 +587,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
         await this.loadTimestamp(item);
         if (item.type === 'pic') { await this.loadPic(item); }
         if (item.type === 'comment') { await this.loadComment(item); }
+        if (item.type === 'link') { await this.loadLink(item); }
     }
 
     async loadType(item?: TItem): Promise<void> {
@@ -592,6 +605,8 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             this.item.type = 'pic';
         } else if (this.isComment) {
             this.item.type = 'comment';
+        } else if (this.isLink) {
+            this.item.type = 'link';
         }
     }
 
@@ -711,10 +726,30 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
         item.text = data.text;
     }
 
+    async loadLink(item?: TItem): Promise<void> {
+        const lc = `${this.lc}[${this.loadLink.name}]`;
+        item = item || this.item;
+        if (!this.isLink) {
+            if (logalot) { console.log(`${lc} !this.isLink (I: 7214b1a1f2df431fbb682014b7e652a6)`); }
+            return; /* <<<< returns early */
+        }
+        if (!this.ibGib?.data?.text) {
+            if (logalot) { console.log(`${lc} !this.ibGib?.data?.text (I: 132ee2d88e6e4bf887e96d5f1e5da938)`); }
+            return; /* <<<< returns early */
+        }
+        if (item.text) {
+            if (logalot) { console.log(`${lc} item.text already loaded (I: fb07c4c955b24d049d6b972e8f901415)`); }
+            return; /* <<<< returns early */
+        }
+
+        const data = <LinkData_V1>this.ibGib.data;
+        item.text = data.text;
+    }
+
     async loadTimestamp(item?: TItem): Promise<void> {
         if (!this.ibGib?.data) { return; }
         if (item.timestamp) { return; }
-        if (this.isComment) {
+        if (this.isComment || this.isLink) {
             item.timestamp = this.ibGib?.data.textTimestamp || this.ibGib?.data.timestamp;
         } else {
             item.timestamp = this.ibGib?.data?.timestamp;

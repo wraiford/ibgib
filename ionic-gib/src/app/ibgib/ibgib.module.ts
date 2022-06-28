@@ -14,6 +14,7 @@ import { FallbackViewComponent } from '../views/fallback-view/fallback-view.comp
 import { TagViewComponent } from '../views/tag-view/tag-view.component';
 import { CommentViewComponent } from '../views/comment-view/comment-view.component';
 import { PicViewComponent } from '../views/pic-view/pic-view.component';
+import { LinkViewComponent } from '../views/link-view/link-view.component';
 import { RootViewComponent } from '../views/root-view/root-view.component';
 
 import { ListItemViewComponent } from '../views/list-item-view/list-item-view.component';
@@ -60,6 +61,7 @@ import { ClickHoldAnimationDirective } from '../common/directives/animations/cli
     TagViewComponent,
     CommentViewComponent,
     PicViewComponent,
+    LinkViewComponent,
     RootViewComponent,
 
     ListItemViewComponent,

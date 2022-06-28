@@ -1,0 +1,23 @@
+<!-- non-title link -->
+<ion-card *ngIf='ibGib && !isTitleOrJustSmall' [title]="item?.text || item?.ib || '[html title binding error!]'"
+  [style.border-color]="debugBorderColor"
+  [style.border-width]="debugBorderWidth"
+  [style.border-style]="debugBorderStyle"
+  >
+  <!-- <pre class="link-text">{{ item?.text }}</pre> -->
+  <a [style.maxHeight]="'100px'" class="link-text" [href]="item?.text" target="_blank">{{item?.text}}</a>
+  <!-- <ion-card-content *ngIf='!isTitle'> </ion-card-content> -->
+  <ion-card-subtitle class='timestamp'>{{ item?.timestamp }}</ion-card-subtitle>
+</ion-card>
+
+<!-- title link -->
+<div *ngIf='ibGib && isTitleOrJustSmall' [title]="item?.text || item?.ib || '[html title binding error!]'"
+  >
+  <a [style.maxHeight]="'100px'" class="is-title" [href]="item?.text">{{item?.text}}</a>
+</div>
+
+<!-- placeholder/loading -->
+<ion-skeleton-text *ngIf='!ibGib' animated
+  style="width: 100%;height:70px;border-radius:5px"
+  color="primary">
+</ion-skeleton-text>

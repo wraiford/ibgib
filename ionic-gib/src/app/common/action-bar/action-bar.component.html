@@ -1,4 +1,4 @@
-<!-- action buttons (comment, pic, import) at the top of the bar -->
+<!-- action buttons (comment, pic, link, import) at the top of the bar -->
 <!-- NOTE: does not use segment quite correctly atm, using (click) instead of (ionChange) on segment -->
 <ion-segment id="action-buttons" value="comment" color="secondary"
   [style.height]="actionDetailVisible ? '30%' : '99%'"
@@ -87,9 +87,29 @@
     </ion-button>
   </div>
 
+  <!-- link -->
+  <div *ngIf="actionDetailMode === 'link'" class="detail-container" >
+    <ion-textarea #textareaLink id="inputLinkId" class="detail-content"
+      (ionChange)="handleLinkDetailChange($event)"
+      (keypress)="handleLinkDetailInput($event)"
+      autoGrow="true" autocomplete="true" autocapitalize="sentences"
+      spellcheck="true" enterkeyhint="'send'" inputmode="'text'"
+      [debounce]="debounceMs"
+      (click)="handleTextAreaClick($event)"
+      >
+    </ion-textarea>
+    <ion-button class="detail-send-btn" color="primary"
+      [disabled]="!canSend"
+      (click)="send_AddLink()">
+      <!-- <ion-icon name="chatbox-outline"></ion-icon> -->
+      <ion-icon *ngIf="!sending" name="arrow-forward-outline"></ion-icon>
+      <ion-spinner *ngIf="sending" name="circles" color="tertiary"></ion-spinner>
+    </ion-button>
+  </div>
+
   <!-- import -->
   <div *ngIf="actionDetailMode === 'import'" class="detail-container" [disabled]="sending">
-    <ion-textarea #inputImport id="textareaImportId" class="detail-content"
+    <ion-textarea #inputImport id="inputImportId" class="detail-content"
       (ionChange)="handleImportDetailChange($event)"
       [debounce]="debounceMs"
       spellcheck="false"

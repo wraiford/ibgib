@@ -1,7 +1,5 @@
-<!-- <p>item here</p>
-<p>addr: {{addr || "falsy"}}</p> -->
-<!-- pic -->
-<root-view
+<!-- root -->
+<root-view #rootView
   *ngIf='item?.type === "root"'
   class='root-item'
   [addr]='addr'
@@ -14,7 +12,9 @@
   [style.border-left-width]="hasChildren ? '2px' : '0px'"
   >
 </root-view>
-<pic-view
+
+<!-- pic -->
+<pic-view #picView
   *ngIf='item?.type === "pic"'
   class='pic-item'
   [addr]='addr'
@@ -30,8 +30,7 @@
 </pic-view>
 
 <!-- comment -->
-  <!-- [style.border-width]="debugBorderWidth" -->
-<comment-view
+<comment-view #commentView
   *ngIf='item?.type === "comment"'
   class='comment-item'
   [addr]='addr'
@@ -45,8 +44,24 @@
   >
 </comment-view>
 
+<!-- link -->
+<link-view #linkView
+  *ngIf='item?.type === "link"'
+  class='link-item'
+  [addr]='addr'
+  [stopClickPropagation]="true"
+  (click)='handleClicked(item)'
+  [style.border-color]="debugBorderColor"
+  [style.border-width]="debugBorderWidth"
+  [style.border-style]="debugBorderStyle"
+  [style.border-left-color]="debugBorderColor"
+  [style.border-left-style]="'solid'"
+  [style.border-left-width]="hasChildren ? '2px' : '0px'"
+  >
+</link-view>
+
 <!-- tag -->
-<tag-view
+<tag-view #tagView
   *ngIf='item?.type === "tag"'
   class='list-item tag-item'
   [addr]='addr'
@@ -61,7 +76,7 @@
 </tag-view>
 
 <!-- fallback for none of the above -->
-<fallback-view
+<fallback-view #fallbackView
   *ngIf='!itemTypes.includes(item?.type)'
   class='list-item'
   [addr]='addr'
@@ -74,6 +89,3 @@
   [style.border-left-width]="hasChildren ? '4px' : '0px'"
   >
 </fallback-view>
-
-<!-- <ion-button *ngIf="hasChildren">
-</ion-button> -->

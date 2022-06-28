@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, Output, EventEmitter, Input, ElementRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, Output, EventEmitter, Input, ElementRef, ViewChild } from '@angular/core';
 
 import { IbGibAddr } from 'ts-gib';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
@@ -8,6 +8,12 @@ import { CommonService } from '../../services/common.service';
 import { IbGibItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
 import * as c from '../../common/constants';
 import { AnimationController } from '@ionic/angular';
+import { RootViewComponent } from '../root-view/root-view.component';
+import { CommentViewComponent } from '../comment-view/comment-view.component';
+import { PicViewComponent } from '../pic-view/pic-view.component';
+import { LinkViewComponent } from '../link-view/link-view.component';
+import { TagViewComponent } from '../tag-view/tag-view.component';
+import { FallbackViewComponent } from '../fallback-view/fallback-view.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -30,11 +36,39 @@ export class ListItemViewComponent extends IbgibComponentBase {
   set ibGib_Context(value: IbGib_V1 ) { super.ibGib_Context = value; }
 
   @Output()
-  clicked: EventEmitter<IbGibItem> = new EventEmitter();
+  ibclicked: EventEmitter<IbGibItem> = new EventEmitter();
 
   public debugBorderWidth: string = debugBorder ? "2px" : "0px"
   public debugBorderColor: string = "#92ed80";
   public debugBorderStyle: string = "solid";
+
+  /**
+   * redeclared
+   */
+  @Input()
+  stopClickPropagation: boolean;
+
+  @ViewChild('rootView')
+  rootView: RootViewComponent;
+  @ViewChild('commentView')
+  commentView: CommentViewComponent;
+  @ViewChild('picView')
+  picView: PicViewComponent;
+  @ViewChild('linkView')
+  linkView: LinkViewComponent;
+  @ViewChild('TagView')
+  tagView: TagViewComponent;
+  @ViewChild('fallbackView')
+  fallbackView: FallbackViewComponent;
+
+  get childComponent(): IbgibComponentBase {
+    return this.commentView ??
+      this.picView ??
+      this.linkView ??
+      this.tagView ??
+      this.rootView ??
+      this.fallbackView;
+  }
 
   constructor(
     protected common: CommonService,
@@ -70,7 +104,6 @@ export class ListItemViewComponent extends IbgibComponentBase {
       if (logalot) { console.log(`${lc} starting... (I: 2c15f733144ced6f19bbbdb378adae22)`); }
       return super.updateIbGib_NewerTimelineFrame({latestAddr, latestIbGib, tjpAddr });
     } catch (error) {
-      debugger;
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
@@ -83,7 +116,9 @@ export class ListItemViewComponent extends IbgibComponentBase {
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       if (logalot) { console.log(`${lc} item: ${JSON.stringify(item, null, 2)}`); }
-      this.clicked.emit(item);
+      if (!this.childComponent) { throw new Error(`this.childComponent falsy (E: 7f11dc3ce9a5bdc0b8da033b53d41822)`); }
+
+      if (!this.childComponent.stopClickPropagation) { this.ibclicked.emit(item); }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

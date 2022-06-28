@@ -133,16 +133,18 @@ export class WelcomePage implements OnInit, AfterViewInit {
     try {
       if (logalot) { console.log(`${lc} starting... (I: c5fdaccbe1820defd4879ade33cd6a22)`); }
 
-      // setInterval(() => {
-      //   window.requestAnimationFrame(() => this.draw());
-      // }, 16);
-
-      setTimeout(async () => {
-        // debugger;
-        // this.annRect.nativeElement.fill = 'pink';
-
-        await this.drawAnimation();
-      }, 100);
+      // hack because the animation doesn't seem to draw first time on my
+      // android phone.
+      let hackyDelayMs = 100;
+      const longerWait: any = ['android', 'ios'];
+      for (let i = 0; i < longerWait.length; i++) {
+        const x = longerWait[i];
+        if (this.common.platform.is(x)) {
+          hackyDelayMs = 500;
+          break;
+        }
+      }
+      setTimeout(async () => { await this.drawAnimation(); }, hackyDelayMs);
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);

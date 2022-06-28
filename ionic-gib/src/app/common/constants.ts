@@ -283,6 +283,7 @@ export const MENU_ITEM_IB_SUBSTRING_LENGTH = 15;
  * comment ibs atow are comment [commentText substring]
  */
 export const DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH = 10;
+export const DEFAULT_LINK_TEXT_IB_SUBSTRING_LENGTH = 10;
 
 /**
  * Used in ErrorIbGib_V1.ib
@@ -300,9 +301,9 @@ export const ERROR_MSG_WITH_ID_CAPTURE_GROUPS_REGEXP = /^(\[.+\])?\s?(\(UNEXPECT
 export const ERROR_MSG_LOCATION_ONLY_REGEXP = /^(\[.+\]).+$/;
 
 /**
- * If a comment has only alphanumerics, this is used in the ib.
+ * If a comment/link/whatever has only alphanumerics, this is used in the ib.
  */
-export const COMMENT_ONLY_HAS_NON_ALPHANUMERICS = '_non-alphanumerics_';
+export const ONLY_HAS_NON_ALPHANUMERICS = '_non-alphanumerics_';
 
 /**
  * Default icon when creating a tag.

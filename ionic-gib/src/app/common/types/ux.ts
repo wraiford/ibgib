@@ -179,7 +179,7 @@ export interface LatestData {
 }
 
 export type ActionItemName =
-    'comment' | 'camera' | 'file' | 'tag' | 'import' | 'info';
+    'comment' | 'link' | 'camera' | 'file' | 'tag' | 'import' | 'info';
 export const ActionItemName = {
     comment: 'comment' as ActionItemName,
     camera: 'camera' as ActionItemName,

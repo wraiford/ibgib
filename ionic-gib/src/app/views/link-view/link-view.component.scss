@@ -1,0 +1,48 @@
+:host {
+  width: 100%;
+  color: var(--ion-color-primary);
+}
+
+.is-title {
+  font-size: small;
+}
+
+ion-card {
+  width: 96%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+pre {
+  // thanks https://stackoverflow.com/questions/248011/how-do-i-wrap-text-in-a-pre-tag
+  white-space: pre-wrap;       /* Since CSS 2.1 */
+  white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+  white-space: -pre-wrap;      /* Opera 4-6 */
+  white-space: -o-pre-wrap;    /* Opera 7 */
+  word-wrap: break-word;       /* Internet Explorer 5.5+ */
+  color: var(--ion-color-primary);
+}
+
+.link-text {
+  height: 85%;
+  width: 100%;
+  font-family: monospace;
+  padding: 2px 5px 10px 5px;
+}
+
+// card content in link atm contains only the timestamp
+ion-card-subtitle {
+  height: 15%;
+}
+
+.timestamp {
+  width: 99%;
+  font-size: small !important;
+  font-style: italic !important;
+  text-align: right;
+}
+
+a {
+  overflow-y: auto;
+}

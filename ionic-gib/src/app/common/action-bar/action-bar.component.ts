@@ -14,10 +14,10 @@ import * as c from '../constants';
 import { CommonService } from '../../services/common.service';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { IbgibComponentBase } from '../bases/ibgib-component-base';
-import { SyncSpaceResultIbGib } from '../types/outer-space';
 import { ActionItem, ActionItemName } from '../types/ux';
 import { createPicAndBinIbGibsFromInputFilePickedEvent } from '../helper/pic';
 import { createCommentIbGib } from '../helper/comment';
+import { createLinkIbGib } from '../helper/link';
 import { getFnAlert, getFnPrompt } from '../helper/prompt-functions';
 import { getFromSpace, getDependencyGraph } from '../helper/space';
 import { validateIbGibAddr } from '../helper/validate';
@@ -68,6 +68,13 @@ export class ActionBarComponent extends IbgibComponentBase
       handler: async (event) => await this.actionAddImage(event),
     },
     {
+      name: 'link',
+      type: 'button',
+      text: 'link',
+      icons: ['link-outline'],
+      handler: async (event) => await this.actionAddLink(event),
+    },
+    {
       name: 'import',
       type: 'button',
       text: 'add from space',
@@ -98,6 +105,11 @@ export class ActionBarComponent extends IbgibComponentBase
   @Input()
   actionDetailCommentText: string;
   /**
+   * Text bound do link text detail.
+   */
+  @Input()
+  actionDetailLinkText: string;
+  /**
    * Text bound do import ibgib addr detail.
    */
   @Input()
@@ -105,6 +117,9 @@ export class ActionBarComponent extends IbgibComponentBase
 
   @ViewChild('textareaComment')
   textareaComment: IonTextarea;
+
+  @ViewChild('inputLink')
+  inputLink: IonInput;
 
   @ViewChild('inputImport')
   inputImport: IonInput;
@@ -170,31 +185,57 @@ export class ActionBarComponent extends IbgibComponentBase
     this.items = this.DEFAULT_ACTIONS.concat(); // dev only
   }
 
-  async promptForCommentText(): Promise<string> {
-    const lc = `${this.lc}[${this.promptForCommentText.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting...`); }
+  // async promptForCommentText(): Promise<string> {
+  //   const lc = `${this.lc}[${this.promptForCommentText.name}]`;
+  //   try {
+  //     if (logalot) { console.log(`${lc} starting...`); }
 
-      const resComment = await Modals.prompt({
-        title: 'comment',
-        message: 'add text',
-        inputPlaceholder: 'text here',
-      });
-      if (resComment.cancelled || !resComment.value) { return; } // <<<< returns early
-      const text = resComment.value.trim();
-      if (logalot) { console.log(`${lc} text: ${text}`); }
-      if (text === '') {
-        return;
-      } else {
-        return text;
-      }
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
+  //     const resComment = await Modals.prompt({
+  //       title: 'comment',
+  //       message: 'add text',
+  //       inputPlaceholder: 'text here',
+  //     });
+  //     if (resComment.cancelled || !resComment.value) { return; } // <<<< returns early
+  //     const text = resComment.value.trim();
+  //     if (logalot) { console.log(`${lc} text: ${text}`); }
+  //     if (text === '') {
+  //       return;
+  //     } else {
+  //       return text;
+  //     }
+  //   } catch (error) {
+  //     console.error(`${lc} ${error.message}`);
+  //     throw error;
+  //   } finally {
+  //     if (logalot) { console.log(`${lc} complete.`); }
+  //   }
+  // }
+
+  // async promptForLinkText(): Promise<string> {
+  //   const lc = `${this.lc}[${this.promptForLinkText.name}]`;
+  //   try {
+  //     if (logalot) { console.log(`${lc} starting...`); }
+
+  //     const resLink = await Modals.prompt({
+  //       title: 'link',
+  //       message: 'add text',
+  //       inputPlaceholder: 'text here',
+  //     });
+  //     if (resLink.cancelled || !resLink.value) { return; } // <<<< returns early
+  //     const text = resLink.value.trim();
+  //     if (logalot) { console.log(`${lc} text: ${text}`); }
+  //     if (text === '') {
+  //       return;
+  //     } else {
+  //       return text;
+  //     }
+  //   } catch (error) {
+  //     console.error(`${lc} ${error.message}`);
+  //     throw error;
+  //   } finally {
+  //     if (logalot) { console.log(`${lc} complete.`); }
+  //   }
+  // }
 
   async actionAddComment(_event: MouseEvent): Promise<void> {
     const lc = `${this.lc}[${this.actionAddComment.name}]`;
@@ -213,6 +254,33 @@ export class ActionBarComponent extends IbgibComponentBase
         this.focusDetail({force: true});
         // setTimeout(() => this.textareaComment.setFocus());
       } else if (this.actionDetailMode === 'comment') {
+        this.actionDetailVisible = false;
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async actionAddLink(_event: MouseEvent): Promise<void> {
+    const lc = `${this.lc}[${this.actionAddLink.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      if (!this.actionDetailVisible) {
+        this.actionDetailMode = 'link';
+        this.actionDetailVisible = true;
+        this.focusDetail({force: true});
+        // setTimeout(() => this.textareaLink.setFocus());
+      } else if (this.actionDetailMode !== 'link') {
+        this.actionDetailMode = 'link';
+        // this.ref.detectChanges();
+        // while (!this.textareaLink) { await h.delay(100); }
+        this.focusDetail({force: true});
+        // setTimeout(() => this.textareaLink.setFocus());
+      } else if (this.actionDetailMode === 'link') {
         this.actionDetailVisible = false;
       }
     } catch (error) {
@@ -267,6 +335,56 @@ export class ActionBarComponent extends IbgibComponentBase
     } finally {
       this.sending = false;
       this.actionDetailCommentText = '';
+      this.focusDetail();
+      if (actionItem) { actionItem.busy = false; }
+      this.ref.detectChanges();
+    }
+  }
+
+  async send_AddLink(): Promise<void> {
+    const lc = `${this.lc}[${this.send_AddLink.name}]`;
+    let actionItem: ActionItem;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      this.sending = true;
+
+      // they've clicked the link button and there is text in the link
+      // text area.
+
+      actionItem = this.items.filter(x => x.name === 'link')[0];
+      actionItem.busy = true;
+
+      await h.delay(this.debounceMs + 50); // to allow for debounce in binding
+      const text = this.actionDetailLinkText; // already trimmed
+
+      const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
+      const resLinkIbGib = await createLinkIbGib({
+        text,
+        saveInSpace: true,
+        space,
+      });
+
+      const { newIbGib: newLink } = resLinkIbGib;
+      const newLinkAddr = h.getIbGibAddr({ibGib: newLink});
+      await this.common.ibgibs.registerNewIbGib({ibGib: newLink});
+
+      if (!this.ibGib) {
+        await this.loadIbGib();
+        await this.loadTjp();
+      }
+      const rel8nsToAddByAddr = { link: [newLinkAddr] };
+      const resRel8ToContext =
+        await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
+      await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToContext});
+      const { newIbGib: newContext } = resRel8ToContext;
+      await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
+
+      this.actionDetailVisible = true;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`)
+    } finally {
+      this.sending = false;
+      this.actionDetailLinkText = '';
       this.focusDetail();
       if (actionItem) { actionItem.busy = false; }
       this.ref.detectChanges();
@@ -655,8 +773,22 @@ export class ActionBarComponent extends IbgibComponentBase
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
+
+  async handleLinkDetailChange(event: any): Promise<void> {
+    const lc = `${this.lc}[${this.handleLinkDetailChange.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      const text: string = event.target.textContent || '';
+      this.actionDetailLinkText = text.trim();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
   async handleImportDetailChange(event: any): Promise<void> {
-    const lc = `${this.lc}[${this.handleCommentDetailChange.name}]`;
+    const lc = `${this.lc}[${this.handleImportDetailChange.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       const text: string = event.detail.value || '';
@@ -683,6 +815,20 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
+  async handleLinkDetailInput(event: KeyboardEvent): Promise<void> {
+    const lc = `${this.lc}[${this.handleLinkDetailInput}]`;
+    if (!this.actionDetailVisible) { this.actionDetailVisible = true; }
+    if ((!event.shiftKey) &&
+      this.platform === 'web' &&
+      event.key === 'Enter' &&
+      this.actionDetailLinkText
+    ) {
+      event.stopPropagation(); // doesn't work
+      event.stopImmediatePropagation(); // doesn't work
+      await this.send_AddLink();
+    }
+  }
+
   /**
    * Focuses the action bar detail, deciding if it's
    * comment/import or whatever.
@@ -703,12 +849,13 @@ export class ActionBarComponent extends IbgibComponentBase
 
     if (this.actionDetailMode === 'comment') {
       setTimeout(() => this.textareaComment.setFocus());
+    } else if (this.actionDetailMode === 'link') {
+      setTimeout(() => this.inputLink.setFocus());
     } else if (this.actionDetailMode === 'import') {
       setTimeout(() => this.inputImport.setFocus());
     }
-    if (!this.actionDetailVisible) {
-      this.actionDetailVisible = true;
-    }
+
+    if (!this.actionDetailVisible) { this.actionDetailVisible = true; }
   }
 
   async reset(): Promise<void> {
@@ -716,8 +863,10 @@ export class ActionBarComponent extends IbgibComponentBase
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       if (this.textareaComment) { this.textareaComment.value = ''; }
+      if (this.inputLink) { this.inputLink.value = ''; }
       if (this.inputImport) { this.inputImport.value = ''; }
       this.actionDetailCommentText = '';
+      this.actionDetailLinkText = '';
       this.actionDetailImportText = '';
       setTimeout(() => this.ref.detectChanges());
     } catch (error) {
