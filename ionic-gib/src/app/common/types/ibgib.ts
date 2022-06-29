@@ -42,6 +42,8 @@ export interface IbGibCacheInfo {
    * property.
    */
   other?: any;
+  tjpAddr?: IbGibAddr;
+  tjpIbGib?: IbGib_V1;
 }
 
 /**

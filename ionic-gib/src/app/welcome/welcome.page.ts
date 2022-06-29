@@ -817,33 +817,40 @@ const IBGIB_APP_INTRO: VerticalSwiperTidbit[] = [
 
 const IBGIB_PROTOCOL_FEATURES: VerticalSwiperTidbit[] = [
   {
-    title: `monotonically increasing data AND sovereign data boundaries`,
-    body: `blockchains inherently do not scale because it is assumed to keep around all data as absolute, objective truths. as such, in most protocols there is little-to-no architecture to enable necessary projection decoupling. ibgib however enables aspects such as hard links for cryptographically-verifiable integrity AND soft links for looser coupling as needed.`,
+    title: `currency is attention`,
+    body: `currency/money, admittedly a domain i'm no expert in, is only one part in a larger architecture. in ibgib it is understood to be isomorphic to interneuronal weights in ANNs.`,
   },
   {
-    focused: true,
     title: `a protocol apart`,
     body: `ibgib is unique on this earth. born apart from bitcoin, the protocol does not inherit its technical debt. `,
   },
   {
-    title: `currency is attention`,
-    body: `currency/money, admittedly a domain i'm no expert in, is only one part in a larger architecture. in ibgib it is understood to be isomorphic to interneuronal weights in ANNs.`,
+    title: `monotonically increasing...`,
+    body: `blockchains tries to keep around all data forever as absolute, objective truths. this is both inaccurate and intractable.`,
   },
+  {
+    title: `...but severable data`,
+    body: `ibgib protocol empowers projected timeline dynamics. like dna, which can both fork and evolve, so can ibgib data (hint: it uses dna).`,
+  },
+  {
+    title: `other dlts try to hard-code consensus`,
+    body: `consensus is as consensus does. ibgib's protocol enables ad-hoc consensus architecture, with the configuration itself being "on-chain".`
+  }
 ];
 
 const IBGIB_APP_FEATURES: VerticalSwiperTidbit[] = [
   {
-    title: `wakka 333333`,
-    body: ` yadawakka w333333akka yada`,
+    title: `"chat"`,
+    body: `not really great for chat atm, but it can limp along...`,
   },
   {
     focused: true,
-    title: `comments within comments, pics within pics`,
-    body: ` yada yada`,
+    title: `notes, pics & links`,
+    body: `take notes, pics. store links. You can add pics inside pics, notes inside notes, pics inside notes, links inside pics...`,
   },
   {
-    title: `wakka`,
-    body: ` yadawakka wakka yada`,
+    title: `data synchronization`,
+    body: `currently the prototype has an adapter implemented to utilize the user's aws infrastructure: dynamodb & s3. once configured, you can sync among spaces.`,
   },
 ];
 
@@ -852,7 +859,7 @@ const IBGIB_APP_FEATURES: VerticalSwiperTidbit[] = [
 const IBGIB_RETHINKS: VerticalSwiperTidbit[] = [
   {
     title: `what is money?`,
-    body: `a rethink is required to understand just wth bitcoin and other crypto technologies teach us about money, collaboration & us as individuals. in ibgib we focus on "money" as precisely analogous to voltage bias in neural networks in superhuman networks.`,
+    body: `we must rethink money to understand how bitcoin/dlt fit into our future. not being a token, ibgib focuses on "money" as precisely analogous to voltage bias in neural networks in superhuman networks.`,
   },
   {
     focused: true,

@@ -60,6 +60,7 @@ import { RobbotModalResult } from '../common/modals/robbot-modal-form/robbot-mod
 import { createNewRobbot } from '../common/helper/robbot';
 import { InMemoryIbgibCacheService } from './in-memory-ibgib-cache.service';
 import { BootstrapModalFormComponent, BootstrapModalResult } from '../common/modals/bootstrap-modal-form/bootstrap-modal-form.component';
+import { IonicStorageLatestIbgibCacheService } from './ionic-storage-latest-ibgib-cache.service';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -318,6 +319,7 @@ export class IbgibsService {
     public modalController: ModalController,
     public alertController: AlertController,
     private cacheSvc: InMemoryIbgibCacheService,
+    private latestCacheSvc: IonicStorageLatestIbgibCacheService,
   ) {
     const lc = `${this.lc}[ctor]`;
     if (logalot) { console.log(`${lc} doodle `); }
@@ -960,10 +962,16 @@ export class IbgibsService {
     ibGib,
     tjp,
     space,
+    useCache,
   }: {
     ibGib: IbGib_V1<any>,
     tjp: IbGib_V1<any>,
     space?: IbGibSpaceAny,
+    /**
+     * If true, then will check the latest ibgib cache first. if found, will
+     * just return that.
+     */
+    useCache?: boolean,
   }): Promise<void> {
     let lc = `${this.lc}[${this.pingLatest_Local.name}]`;
     if (logalot) { console.log(`${lc} starting...`); }
@@ -982,41 +990,53 @@ export class IbgibsService {
         return;
       }
 
-      let latestAddr = await this.getLatestAddr({ibGib, tjp, space});
+      let latestIbGib: IbGib_V1;
+      let latestAddr: IbGibAddr;
       let ibGibAddr = h.getIbGibAddr({ibGib});
-
-      // // get the tjp for the rel8nName mapping, and also for some checking logic
-      if (!tjp) {
-        tjp = await this.getTjpIbGib({ibGib, space});
-        if (!tjp) {
-          console.warn(`${lc} tjp not found for ${ibGibAddr}? Should at least just be the ibGib's address itself.`);
-          tjp = ibGib;
+      if (useCache) {
+        // check the cache...(may not be there though)
+        let info = await this.latestCacheSvc.get({addr: ibGibAddr});
+        if (info?.ibGib) {
+          latestIbGib = info.ibGib;
+          latestAddr = h.getIbGibAddr({ibGib: latestIbGib});
         }
       }
-      let tjpAddr = h.getIbGibAddr({ibGib: tjp});
 
-      // console.log(`${lc} ping it out`);
-      if (latestAddr === ibGibAddr) {
-        // console.log(`${lc} no (different) latest exists`);
-        // let gib = h.getIbAndGib({ibGibAddr: latestAddr}).gib;
-        this._latestSubj.next({
-          latestIbGib: ibGib,
-          latestAddr: ibGibAddr,
-          tjpAddr,
-        });
-      } else {
-        // console.log(`${lc} there is a later version`);
-        let resLatestIbGib = await this.get({addr: latestAddr, space});
-        if (!resLatestIbGib.success || resLatestIbGib.ibGibs?.length !== 1) {
-          throw new Error('latest not found');
+      if (!latestIbGib || !latestAddr) {
+        // not found in cache or caller didn't allow using the cache
+        latestAddr = await this.getLatestAddr({ibGib, tjp, space});
+
+        // get the tjp for the rel8nName mapping, and also for some checking logic
+        if (!tjp) {
+          tjp = await this.getTjpIbGib({ibGib, space});
+          if (!tjp) {
+            console.warn(`${lc} tjp not found for ${ibGibAddr}? Should at least just be the ibGib's address itself. (W: 15d9c6daca7e442e968af36b4c18b8f7)`);
+            tjp = ibGib;
+          }
         }
-        const latestIbGib = resLatestIbGib.ibGibs![0];
-        // let gib = h.getIbAndGib({ibGibAddr: latestAddr}).gib;
-        this._latestSubj.next({
-          latestIbGib,
-          latestAddr,
-          tjpAddr
-        });
+        const tjpAddr = h.getIbGibAddr({ibGib: tjp});
+
+        // console.log(`${lc} ping it out`);
+        if (latestAddr === ibGibAddr) {
+          // console.log(`${lc} no (different) latest exists`);
+          // let gib = h.getIbAndGib({ibGibAddr: latestAddr}).gib;
+          this._latestSubj.next({
+            latestIbGib: ibGib,
+            latestAddr: ibGibAddr,
+            tjpAddr,
+          });
+        } else {
+          // console.log(`${lc} there is a later version`);
+          let resLatestIbGib = await this.get({addr: latestAddr, space});
+          if (!resLatestIbGib.success || resLatestIbGib.ibGibs?.length !== 1) { throw new Error(`latest not found (E: bc54e433573a5a89c6436dc6a3b60922)`); }
+          const latestIbGib = resLatestIbGib.ibGibs![0];
+          // let gib = h.getIbAndGib({ibGibAddr: latestAddr}).gib;
+          this._latestSubj.next({
+            latestIbGib,
+            latestAddr,
+            tjpAddr
+          });
+        }
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
