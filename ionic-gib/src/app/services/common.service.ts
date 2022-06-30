@@ -7,6 +7,7 @@ import { IbgibsService } from './ibgibs.service';
 import { WitnessFactoriesService } from './witness-factories.service';
 import { InMemoryIbgibCacheService } from './in-memory-ibgib-cache.service';
 import { IbGibItem } from '../common/types/ux';
+import { IonicStorageLatestIbgibCacheService } from './ionic-storage-latest-ibgib-cache.service';
 
 export interface NavInfo {
   /** The ibgib address we're going to.  */
@@ -87,6 +88,7 @@ export class CommonService {
     public factories: WitnessFactoriesService,
     public alertController: AlertController,
     public cache: InMemoryIbgibCacheService,
+    public getLatestCache: IonicStorageLatestIbgibCacheService,
   ) {
 
   }

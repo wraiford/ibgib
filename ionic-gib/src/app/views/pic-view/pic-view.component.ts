@@ -82,7 +82,7 @@ export class PicViewComponent
       if (!this.paused) {
         this.item.refreshing = true;
         setTimeout(async () => {
-          await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjpIbGib: this.tjp});
+          await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjpIbGib: this.tjp, useCache: true});
         });
       }
     } catch (error) {

@@ -66,7 +66,7 @@ export class LinkViewComponent
       if (!this.paused) {
         setTimeout(async () => {
           await this.smallDelayToLoadBalanceUI();
-          await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjpIbGib: this.tjp});
+          await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjpIbGib: this.tjp, useCache: true});
         });
       }
     } catch (error) {

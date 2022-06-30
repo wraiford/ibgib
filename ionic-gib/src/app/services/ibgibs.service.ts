@@ -983,7 +983,7 @@ export class IbgibsService {
      * If true, then will check the latest ibgib cache first. if found, will
      * just return that.
      */
-    useCache?: boolean,
+    useCache: boolean,
   }): Promise<void> {
     let lc = `${this.lc}[${this.pingLatest_Local.name}]`;
     if (logalot) { console.log(`${lc} starting...`); }
@@ -1012,7 +1012,7 @@ export class IbgibsService {
         if (info?.ibGib) {
           latestIbGib = info.ibGib;
           latestAddr = h.getIbGibAddr({ibGib: latestIbGib});
-          [tjpAddr] = [info.tjpAddr] ?? getTjpAddrs({ibGibs: [info.ibGib]});
+          [tjpAddr] = info.tjpAddr ? [info.tjpAddr] : getTjpAddrs({ibGibs: [info.ibGib]});
         }
       }
 
@@ -1041,6 +1041,9 @@ export class IbgibsService {
 
           if (useCache) {
             // we tried to use cache but it wasn't there, so put it for the next time.
+            if (logalot) { console.log(`${lc} putting in getLatest cache (I: 5f264edf03940a0f7e72252fd6fe0d22)`); }
+            console.log(`${lc} putting in getLatest cache (I: 5f264edf03940a0f7e72252fd6fe0d22)`);
+            // debugger;
             setTimeout(async () => {
               await this.latestCacheSvc.put({
                 addr: latestAddr,

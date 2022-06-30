@@ -337,9 +337,23 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
                         newItem = cached?.other;
                         if (logalot) { console.log(`${lc} found item in cache (I: d61f38fbed6042f98518e47a4edd6f67)`); }
                     } else {
-                        newItem = <TItem>{ addr: addrToAdd };
-                        if (logalot) { console.log(`${lc} queueing item to cache (${addrToAdd}) (I: 0fe55669bfdd74f0cc9714ae96e4a622)`); }
-                        itemsToCache.push(newItem);
+                        // hack: just implemented ionic storage and am reusing it here maybe unnecessarily
+                        // if (!this.paused) {
+                        //     let latestcached = await this.common.getLatestCache.get({addr: addrToAdd});
+                        //     if (latestcached?.ibGib) {
+                        //         newItem = <TItem>{ addr: h.getIbGibAddr({ibGib: latestcached.ibGib}) };
+                        //         if (logalot) { console.log(`${lc} in get latest cache, but queueing item to cache (${addrToAdd}) (I: 1c5486bb2830400dbd7e59ced7c9d6af)`); }
+                        //         itemsToCache.push(newItem);
+                        //     } else {
+                        //         newItem = <TItem>{ addr: addrToAdd };
+                        //         if (logalot) { console.log(`${lc} queueing item to cache (${addrToAdd}) (I: 0fe55669bfdd74f0cc9714ae96e4a622)`); }
+                        //         itemsToCache.push(newItem);
+                        //     }
+                        // } else {
+                            newItem = <TItem>{ addr: addrToAdd };
+                            if (logalot) { console.log(`${lc} queueing item to cache (${addrToAdd}) (I: 0fe55669bfdd74f0cc9714ae96e4a622)`); }
+                            itemsToCache.push(newItem);
+                        // }
                     }
                     itemsToAdd.push(newItem);
                 }
@@ -362,7 +376,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
             for (let i = 0; i < itemsToCache.length; i++) {
                 const item = itemsToCache[i];
                 setTimeout(async () => {
-                    await h.delay(100);
+                    await h.delay(Math.ceil(Math.random() * 7000));
                     if (logalot) { console.log(`${lc} caching item: ${item.addr} (I: 672fc975b7547191e72e0034a03de422)`); }
                     await this.common.cache.put({ addr: item.addr, addrScope: this.lc, ibGib: item.ibGib, other: item });
                 });

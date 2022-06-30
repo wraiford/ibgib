@@ -3,6 +3,8 @@
   display: flex;
   flex-direction: column;
   padding: 2px;
+  // for pics, which is most common use case I think...
+  min-height: 290px;
 }
 
 .is-title {
@@ -16,4 +18,8 @@
   font-size: small;
   font-style: italic !important;
   text-align: right;
+}
+
+ion-skeleton-text {
+  height: 290px;
 }
