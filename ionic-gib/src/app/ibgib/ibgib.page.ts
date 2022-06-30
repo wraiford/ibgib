@@ -244,7 +244,7 @@ export class IbGibPage extends IbgibComponentBase
         this.item.refreshing = true;
         setTimeout(async () => {
           await this.smallDelayToLoadBalanceUI();
-          await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjp: this.tjp});
+          await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjpIbGib: this.tjp, useCache: true});
         });
       }
 
@@ -696,7 +696,7 @@ export class IbGibPage extends IbgibComponentBase
         });
       }
       if (this.item) { this.item.refreshing = true; }
-      await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjp: this.tjp});
+      await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjpIbGib: this.tjp, useCache: false});
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     }

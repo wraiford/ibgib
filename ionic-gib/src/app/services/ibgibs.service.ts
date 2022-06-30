@@ -44,7 +44,7 @@ import {
   SecretData_V1, SecretIbGib_V1, SecretInfo_Password
 } from '../common/types/encryption';
 import { RobbotData_V1, RobbotIbGib_V1 } from '../common/types/robbot';
-import { hasTjp, getTimelinesGroupedByTjp } from '../common/helper/ibgib';
+import { hasTjp, getTimelinesGroupedByTjp, getTjpAddrs } from '../common/helper/ibgib';
 import { getFnPrompt, getFnAlert, getFnPromptPassword_AlertController } from '../common/helper/prompt-functions';
 import {
   getValidatedBootstrapIbGib, getLocalSpace, execInSpaceWithLocking,
@@ -938,6 +938,18 @@ export class IbgibsService {
 
       if (logalot) { console.log(`${lc} starting...`); }
 
+        // we tried to use cache but it wasn't there, so put it for the next time.
+      setTimeout(async () => {
+        if (ibGib) {
+          const [tjpAddr] = getTjpAddrs({ibGibs: [ibGib]});
+          await this.latestCacheSvc.put({
+            addr: tjpAddr,
+            ibGib: ibGib,
+            tjpAddr,
+          });
+        }
+      }, Math.ceil(Math.random() * 10000));
+
       return registerNewIbGib({
         ibGib,
         space,
@@ -960,12 +972,12 @@ export class IbgibsService {
    */
   async pingLatest_Local({
     ibGib,
-    tjp,
+    tjpIbGib,
     space,
     useCache,
   }: {
     ibGib: IbGib_V1<any>,
-    tjp: IbGib_V1<any>,
+    tjpIbGib: IbGib_V1<any>,
     space?: IbGibSpaceAny,
     /**
      * If true, then will check the latest ibgib cache first. if found, will
@@ -993,50 +1005,63 @@ export class IbgibsService {
       let latestIbGib: IbGib_V1;
       let latestAddr: IbGibAddr;
       let ibGibAddr = h.getIbGibAddr({ibGib});
+      let tjpAddr: IbGibAddr;
       if (useCache) {
         // check the cache...(may not be there though)
         let info = await this.latestCacheSvc.get({addr: ibGibAddr});
         if (info?.ibGib) {
           latestIbGib = info.ibGib;
           latestAddr = h.getIbGibAddr({ibGib: latestIbGib});
+          [tjpAddr] = [info.tjpAddr] ?? getTjpAddrs({ibGibs: [info.ibGib]});
         }
       }
 
       if (!latestIbGib || !latestAddr) {
         // not found in cache or caller didn't allow using the cache
-        latestAddr = await this.getLatestAddr({ibGib, tjp, space});
+        latestAddr = await this.getLatestAddr({ibGib, tjp: tjpIbGib, space});
 
         // get the tjp for the rel8nName mapping, and also for some checking logic
-        if (!tjp) {
-          tjp = await this.getTjpIbGib({ibGib, space});
-          if (!tjp) {
+        if (!tjpAddr && !tjpIbGib) {
+          tjpIbGib = await this.getTjpIbGib({ibGib, space});
+          if (!tjpIbGib) {
             console.warn(`${lc} tjp not found for ${ibGibAddr}? Should at least just be the ibGib's address itself. (W: 15d9c6daca7e442e968af36b4c18b8f7)`);
-            tjp = ibGib;
+            tjpIbGib = ibGib;
           }
         }
-        const tjpAddr = h.getIbGibAddr({ibGib: tjp});
+        tjpAddr = h.getIbGibAddr({ibGib: tjpIbGib});
 
-        // console.log(`${lc} ping it out`);
         if (latestAddr === ibGibAddr) {
-          // console.log(`${lc} no (different) latest exists`);
-          // let gib = h.getIbAndGib({ibGibAddr: latestAddr}).gib;
-          this._latestSubj.next({
-            latestIbGib: ibGib,
-            latestAddr: ibGibAddr,
-            tjpAddr,
-          });
+          if (logalot) { console.log(`${lc} latestAddr === ibGibAddr (I: f38042421fcc3d148a26ed56651c2522)`); }
+          latestIbGib = ibGib;
         } else {
-          // console.log(`${lc} there is a later version`);
+          if (logalot) { console.log(`${lc} later version found. ibGibAddr: ${ibGibAddr}\nlatestAddr: ${latestAddr} (I: 53cabd1643df7d43635af642e4c90922)`); }
           let resLatestIbGib = await this.get({addr: latestAddr, space});
           if (!resLatestIbGib.success || resLatestIbGib.ibGibs?.length !== 1) { throw new Error(`latest not found (E: bc54e433573a5a89c6436dc6a3b60922)`); }
-          const latestIbGib = resLatestIbGib.ibGibs![0];
-          // let gib = h.getIbAndGib({ibGibAddr: latestAddr}).gib;
-          this._latestSubj.next({
-            latestIbGib,
-            latestAddr,
-            tjpAddr
-          });
+          latestIbGib = resLatestIbGib.ibGibs![0];
+
+          if (useCache) {
+            // we tried to use cache but it wasn't there, so put it for the next time.
+            setTimeout(async () => {
+              await this.latestCacheSvc.put({
+                addr: latestAddr,
+                ibGib: latestIbGib,
+                tjpAddr,
+                tjpIbGib: tjpIbGib,
+              });
+            }, Math.ceil(Math.random() * 10000));
+          }
         }
+      }
+
+      if (latestIbGib && latestAddr && tjpAddr) {
+        this._latestSubj.next({
+          latestIbGib,
+          latestAddr,
+          tjpAddr
+        });
+      } else {
+        debugger;
+        throw new Error(`(UNEXPECTED) latestIbGib, latestAddr and tjpAddr should all be truthy. (E: 20e71fa1a72c45deb1dc5083903a8622)`);
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);

@@ -56,7 +56,7 @@ export class ListItemViewComponent extends IbgibComponentBase {
   picView: PicViewComponent;
   @ViewChild('linkView')
   linkView: LinkViewComponent;
-  @ViewChild('TagView')
+  @ViewChild('tagView')
   tagView: TagViewComponent;
   @ViewChild('fallbackView')
   fallbackView: FallbackViewComponent;

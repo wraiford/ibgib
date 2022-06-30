@@ -90,7 +90,7 @@ export class FallbackViewComponent extends IbgibComponentBase
         setTimeout(async () => {
           if (!this.destroyed) {
             await this.smallDelayToLoadBalanceUI();
-            await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjp: this.tjp});
+            await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjpIbGib: this.tjp});
           }
         }, 2000);
       }
