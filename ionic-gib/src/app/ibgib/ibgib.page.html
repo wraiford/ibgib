@@ -35,8 +35,7 @@
   <!-- ibgib context buttons -->
   <ion-toolbar color="background">
     <ion-buttons id="context-btns" slot="end">
-      <!-- leaving these in for future testing of download the d*$! pic -->
-      <!-- <ion-button *ngIf="item?.type === 'pic' && (ios || android)" class="toolbar-title-btn" -->
+      <!-- leaving these in for future testing of download the da!n pic -->
       <ion-button *ngIf="item?.type === 'pic'" class="toolbar-title-btn"
         [disabled]="syncing || refreshing" (click)="handleUpdatePicClick()">
         <ion-icon name="camera-reverse-outline"></ion-icon>
@@ -124,41 +123,6 @@
     style="width: 100%;height:100%;border-radius:5%;opacity:0.4;"
     color="primary">
   </ion-skeleton-text>
-
-  <!-- spinnerwhale -->
-  <!-- <div *ngIf="!item?.ibGib || refreshing" class="loading-div">
-    <div class="spacer-50"></div>
-    <div class="loading-hair">
-      <ion-spinner name="lines-small" color="tertiary"></ion-spinner>
-      <ion-spinner class="slant-left" name="dots" color="tertiary"></ion-spinner>
-      <ion-spinner class="slant-right" name="dots" color="tertiary"></ion-spinner>
-      <ion-spinner name="lines-small" color="tertiary"></ion-spinner>
-    </div>
-    <div class="loading-hair">
-      <ion-spinner class="slant-left" name="dots" color="tertiary"></ion-spinner>
-      <ion-spinner class="move-up" name="dots" color="tertiary"></ion-spinner>
-      <ion-spinner class="move-up" name="dots" color="tertiary"></ion-spinner>
-      <ion-spinner class="slant-right" name="dots" color="tertiary"></ion-spinner>
-    </div>
-    <div class="loading-eyes">
-      <ion-spinner class="slant-left" name="dots" color="tertiary"></ion-spinner>
-      <ion-spinner class="move-up" name="bubbles" color="tertiary"></ion-spinner>
-      <ion-spinner class="move-up" name="bubbles" color="tertiary"></ion-spinner>
-      <ion-spinner class="slant-right" name="dots" color="tertiary"></ion-spinner>
-    </div>
-    <div class="loading-hair">
-      <ion-spinner color="tertiary"></ion-spinner>
-      <ion-spinner class="slant-right" name="dots" color="tertiary"></ion-spinner>
-      <ion-spinner class="slant-left" name="dots" color="tertiary"></ion-spinner>
-      <ion-spinner color="tertiary"></ion-spinner>
-    </div>
-    <div class="loading-hair">
-      <ion-spinner color="tertiary"></ion-spinner>
-      <ion-spinner class="slant-left" name="dots" color="tertiary"></ion-spinner>
-      <ion-spinner class="slant-right" name="dots" color="tertiary"></ion-spinner>
-      <ion-spinner color="tertiary"></ion-spinner>
-    </div>
-  </div> -->
 
   <!-- main body -->
   <div id="container" *ngIf="item?.ibGib"

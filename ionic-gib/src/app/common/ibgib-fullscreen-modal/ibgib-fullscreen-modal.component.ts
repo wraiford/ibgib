@@ -1,5 +1,16 @@
-import { ChangeDetectorRef, Component, Input, OnDestroy, OnInit } from '@angular/core';
-import { ModalController } from '@ionic/angular';
+import { ChangeDetectorRef, Component, Input, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
+import SwiperCore, {
+  // properties
+  Zoom,
+  Swiper,
+} from 'swiper';
+import { IonicSlides } from '@ionic/angular';
+SwiperCore.use([
+  Zoom,
+  IonicSlides,
+]);
+
+
 import { IbGibAddr } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 
@@ -14,6 +25,7 @@ const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
   selector: 'ib-ibgib-fullscreen-modal',
   templateUrl: './ibgib-fullscreen-modal.component.html',
   styleUrls: ['./ibgib-fullscreen-modal.component.scss'],
+  encapsulation: ViewEncapsulation.None,
 })
 export class IbgibFullscreenModalComponent
   extends IbgibComponentBase
@@ -29,6 +41,13 @@ export class IbgibFullscreenModalComponent
   get itemJson(): string {
     return this.item ? h.pretty(this.item) : "item falsy";
   }
+
+  /**
+   * Reference to the primary horizontal swiper control.
+   *
+   * @link https://ionicframework.com/docs/angular/slides#methods
+   */
+  mainSwiper: Swiper;
 
   constructor(
     protected common: CommonService,

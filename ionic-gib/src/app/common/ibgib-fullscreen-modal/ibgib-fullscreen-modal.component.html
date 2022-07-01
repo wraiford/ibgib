@@ -8,7 +8,15 @@
     </ion-toolbar>
   </ion-header>
   <ion-content fullscreen>
-    <!-- <p>item: {{ itemJson }}</p> -->
-    <ion-img [src]="item?.picSrc"></ion-img>
-    <!-- <img [src]="item?.picSrc" /> -->
+    <!-- <ion-img [src]="item?.picSrc"></ion-img> -->
+    <swiper
+      [zoom]="true"
+      (swiper)="this.mainSwiper = $event"
+      >
+      <ng-template swiperSlide>
+        <div class="swiper-zoom-container">
+          <img [src]="item?.picSrc" />
+        </div>
+      </ng-template>
+    </swiper>
   </ion-content>

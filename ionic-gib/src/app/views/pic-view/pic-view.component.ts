@@ -6,7 +6,7 @@ import SwiperCore, {
   Autoplay, Keyboard, Pagination, Scrollbar, Zoom,
   Navigation,
   Mousewheel,
-  Parallax,
+  // Parallax,
   // effects
   EffectFade,
   EffectCube,
@@ -16,7 +16,7 @@ SwiperCore.use([
   Autoplay, Keyboard, Pagination, Scrollbar, Zoom,
   Navigation,
   Mousewheel,
-  Parallax,
+  // Parallax,
   // EffectFade,
   EffectCube,
   IonicSlides,

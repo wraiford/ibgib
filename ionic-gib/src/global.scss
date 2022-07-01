@@ -62,10 +62,10 @@ ion-input.floating-with-placeholder{
 @import '~swiper/scss';
 @import '~swiper/scss/autoplay';
 @import '~swiper/scss/keyboard';
-@import '~swiper/scss/pagination';
-@import "~swiper/scss/navigation";
-@import '~swiper/scss/scrollbar';
 @import '~swiper/scss/zoom';
+@import "~swiper/scss/navigation";
+@import '~swiper/scss/pagination';
+@import '~swiper/scss/scrollbar';
 // @import '~swiper/scss/effect-fade';
 @import '~swiper/scss/effect-cube';
 @import '~@ionic/angular/css/ionic-swiper';
