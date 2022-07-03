@@ -1,0 +1,19 @@
+:host {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+}
+
+ion-list {
+  background-color: transparent;
+}
+
+.md :host {
+  display: flex;
+  flex-direction: column;
+}
+
+list-item {
+  height: auto;
+  border-radius: 15px;
+}

@@ -125,6 +125,8 @@ export class IonicStorageLatestIbgibCacheService implements IbGibCacheService {
       if (!addr) { throw new Error(`addr required (E: f7ec60c717d8461cb759e599d5038dca)`); }
 
       const key = this.getKey({addr, addrScope});
+      console.warn(`${lc} not using the cache atm darnit (W: 4dad875a39e5441490f77fe96a4d69df)`);
+      return Promise.resolve(undefined);
 
       let cached = this.infos[key];
       if (!cached) {

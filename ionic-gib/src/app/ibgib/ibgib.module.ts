@@ -19,6 +19,7 @@ import { RootViewComponent } from '../views/root-view/root-view.component';
 
 import { ListItemViewComponent } from '../views/list-item-view/list-item-view.component';
 import { ListViewComponent } from '../views/list-view/list-view.component';
+import { SvgViewComponent } from '../views/svg-view/svg-view.component';
 import { TagListViewComponent } from '../views/tag-list-view/tag-list-view.component';
 import { RootListViewComponent } from '../views/root-list-view/root-list-view.component';
 import { ChatViewComponent } from '../views/chat-view/chat-view.component';
@@ -66,6 +67,7 @@ import { ClickHoldAnimationDirective } from '../common/directives/animations/cli
 
     ListItemViewComponent,
     ListViewComponent,
+    SvgViewComponent,
     TagListViewComponent,
     RootListViewComponent,
     ChatViewComponent,

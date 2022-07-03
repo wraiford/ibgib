@@ -10,6 +10,7 @@ import { IbGibItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
 import { IbgibListComponentBase } from '../../common/bases/ibgib-list-component-base';
 import { CommonService } from '../../services/common.service';
 import { IonContent, IonInfiniteScroll } from '@ionic/angular';
+import { IbgibScrollingListComponentBase } from 'src/app/common/bases/ibgib-scrolling-list-component-base';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -18,7 +19,7 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
   templateUrl: './list-view.component.html',
   styleUrls: ['./list-view.component.scss'],
 })
-export class ListViewComponent extends IbgibListComponentBase {
+export class ListViewComponent extends IbgibScrollingListComponentBase {
 
   protected lc: string = `[${ListViewComponent.name}]`;
 

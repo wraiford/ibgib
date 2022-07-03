@@ -32,7 +32,8 @@ import { IbGibAddr } from 'ts-gib/dist/types';
 
 import * as c from '../common/constants';
 import { CommonService } from '../services/common.service';
-import { ibCircle, ibGroup, ibLine, ibSvg, SVG_NAMESPACE } from '../common/helper/svg';
+import { ibCircle, ibGroup, ibLine, ibSvg, } from '../common/helper/svg';
+import { SVG_NAMESPACE, DiagramPosition, IbGibDiagramInfo, IbGibDiagramMode } from '../common/types/svg';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
@@ -722,92 +723,104 @@ export class WelcomePage implements OnInit, AfterViewInit {
   }
 }
 
-type DiagramPosition = [number,number];
+// type DiagramPosition = [number,number];
 
-type IbGibDiagramMode = 'intrinsic' | 'extrinsic';
-const IbGibDiagramMode = {
-  /**
-   * we're viewing the thing intrinsically as a thing on its own, i.e.,
-   * not as a relationship that connects other things.
-   */
-  intrinsic: 'intrinsic' as IbGibDiagramMode,
-  /**
-   * we're viewing the thing extrinsically as a relationship connecting two
-   * other things.
-   */
-  extrinsic: 'extrinsic' as IbGibDiagramMode,
-}
+// type IbGibDiagramMode = 'intrinsic' | 'extrinsic';
+// const IbGibDiagramMode = {
+//   /**
+//    * we're viewing the thing intrinsically as a thing on its own, i.e.,
+//    * not as a relationship that connects other things.
+//    */
+//   intrinsic: 'intrinsic' as IbGibDiagramMode,
+//   /**
+//    * we're viewing the thing extrinsically as a relationship connecting two
+//    * other things.
+//    */
+//   extrinsic: 'extrinsic' as IbGibDiagramMode,
+// }
 
-/**
- * node, line, hoogle, whatever
- */
-interface IbGibDiagramInfo {
-  /**
-   * If the mode is {@link IbGibDiagramMode.intrinsic}, then this is where does
-   * the thing START in placement of animation.
-   *
-   * If {@link IbGibDiagramMode.extrinsic}, this is one endpoint position.
-   */
-  startPos?: DiagramPosition;
-  /**
-   * If the mode is {@link IbGibDiagramMode.intrinsic}, then this is where does
-   * the thing STOP in placement of animation.
-   *
-   * If {@link IbGibDiagramMode.extrinsic}, this is one endpoint position.
-   */
-  pos?: DiagramPosition;
-  /**
-   * Graphs are thought of as nodes and edges (or whatever jargon you use).  But
-   * they "aren't" nodes and edges, we are viewing them as nodes and edges. They
-   * "are" just they, and we are creating proxy "theys" in a heuristic that we
-   * like at the time.
-   */
-  mode?: IbGibDiagramMode;
-  /**
-   * composite "children".
-   */
-  infos?: IbGibDiagramInfo[];
-  /**
-   * fill color, if applicable.
-   *
-   * @optional
-   */
-  fill?: string;
-  /**
-   * stroke color, if applicable.
-   *
-   * @optional
-   */
-  stroke?: string;
-  /**
-   * width of the stroke
-   *
-   * @optional
-   */
-  strokeWidth?: string;
-  /**
-   * If given, will specify opacity of visual thing in diagram.
-   *
-   * @optional
-   */
-  opacity?: number;
-  /**
-   * If given, will set the radius of the thing.
-   *
-   * @optional
-   */
-  radius?: number;
-}
+// /**
+//  * node, line, hoogle, whatever
+//  */
+// interface IbGibDiagramInfo {
+//   /**
+//    * If the mode is {@link IbGibDiagramMode.intrinsic}, then this is where does
+//    * the thing START in placement of animation.
+//    *
+//    * If {@link IbGibDiagramMode.extrinsic}, this is one endpoint position.
+//    */
+//   startPos?: DiagramPosition;
+//   /**
+//    * If the mode is {@link IbGibDiagramMode.intrinsic}, then this is where does
+//    * the thing STOP in placement of animation.
+//    *
+//    * If {@link IbGibDiagramMode.extrinsic}, this is one endpoint position.
+//    */
+//   pos?: DiagramPosition;
+//   /**
+//    * Graphs are thought of as nodes and edges (or whatever jargon you use).  But
+//    * they "aren't" nodes and edges, we are viewing them as nodes and edges. They
+//    * "are" just they, and we are creating proxy "theys" in a heuristic that we
+//    * like at the time.
+//    */
+//   mode?: IbGibDiagramMode;
+//   /**
+//    * composite "children".
+//    */
+//   infos?: IbGibDiagramInfo[];
+//   /**
+//    * fill color, if applicable.
+//    *
+//    * @optional
+//    */
+//   fill?: string;
+//   /**
+//    * stroke color, if applicable.
+//    *
+//    * @optional
+//    */
+//   stroke?: string;
+//   /**
+//    * width of the stroke
+//    *
+//    * @optional
+//    */
+//   strokeWidth?: string;
+//   /**
+//    * If given, will specify opacity of visual thing in diagram.
+//    *
+//    * @optional
+//    */
+//   opacity?: number;
+//   /**
+//    * If given, will set the radius of the thing.
+//    *
+//    * @optional
+//    */
+//   radius?: number;
+// }
 
 const IBGIB_APP_INTRO: VerticalSwiperTidbit[] = [
   {
-    title: `focus on time, repo of repos`,
-    body: `ibgib is a dlt protocol that focuses on Time as a first-class citizen. it utilizes both blockchain-style linked lists of named merkle links, as well as dag-style merkle hash trees, with two key relationships: "past" and "ancestor". this enables "on-chain" version-controlled data. think meta-git for anything, including its own self-bootstrapping metadata (configuration).`,
-  },
-  {
     focused: true,
     title: `this app...`,
-    body: `this app is only a prototype leveraging the unique architecture of the ibgib protocol. it is a general-purpose dapp, already able to do some pretty cool stuff, like synchronization via a branch timeline merging strategy. but it's the _approach_ that will enable truly distributed computation.`,
+    body: `this app is only a prototype leveraging the unique architecture of the ibgib protocol. it is a general-purpose dapp, already able to do some pretty cool stuff, like synchronization via a branch Timeline merging strategy. but it's the _approach_ that will enable truly distributed computation.`,
+  },
+  {
+    title: `purpose of protocol`,
+    body: ``,
+  },
+  {
+    title: `purpose of prototype`,
+    body: ``,
+  },
+  {
+    title: `unified use cases`,
+    body: ``,
+  },
+  {
+    title: `this protocol...`,
+    body: ``,
   },
   {
     title: `decentralized collaboration`,
@@ -825,12 +838,20 @@ const IBGIB_PROTOCOL_FEATURES: VerticalSwiperTidbit[] = [
     body: `ibgib is unique on this earth. born apart from bitcoin, the protocol does not inherit its technical debt. `,
   },
   {
+    title: `ibgibs over files`,
+    body: `each piece of data is stored in `,
+  },
+  {
+    title: `Time is a first-class citizen`,
+    body: `each datum is a node with two Time-based relationships: "ancestor" & "past". it's these two relations that enable Timelines to evolve both extrinsically (branch) and intrinsically (evolve).`,
+  },
+  {
     title: `monotonically increasing...`,
     body: `blockchains tries to keep around all data forever as absolute, objective truths. this is both inaccurate and intractable.`,
   },
   {
     title: `...but severable data`,
-    body: `ibgib protocol empowers projected timeline dynamics. like dna, which can both fork and evolve, so can ibgib data (hint: it uses dna).`,
+    body: `ibgib protocol empowers projected Timeline dynamics. like dna, which can both fork and evolve, so can ibgib data (hint: it uses dna).`,
   },
   {
     title: `other dlts try to hard-code consensus`,
@@ -864,7 +885,7 @@ const IBGIB_RETHINKS: VerticalSwiperTidbit[] = [
   {
     focused: true,
     title: `wth is or are ibgib(s)?`,
-    body: `moving away from an absolute knowledge, an ibgib can be thought of as a snapshot of some pov's belief which inevitably evolves over time. this fundamentally requires a Rethink of truths many of us may take for granted.`,
+    body: `moving away from an absolute knowledge, an ibgib can be thought of as a snapshot of some pov's belief which inevitably evolves over Time. this fundamentally requires a Rethink of truths many of us may take for granted.`,
   },
   {
     focused: false,

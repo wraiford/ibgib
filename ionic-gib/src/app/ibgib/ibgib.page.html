@@ -144,13 +144,18 @@
       (scroll)="scrollSubject.next($event)"
       >
     </root-list>
-    <chat-view #chatView *ngIf='!(isTags || isRoots)'
+    <!-- <chat-view #chatView *ngIf='!(isTags || isRoots)'
       [addr]='addr'
       [ibGib_Context]='ibGib'
       (scroll)="scrollSubject.next($event)"
       (chatItemsAdded)="handleChatItemsAdded()"
       >
-    </chat-view>
+    </chat-view> -->
+    <svg-view #ibgibpageSvgView *ngIf='!(isTags || isRoots)'
+      [addr]='addr'
+      [ibGib_Context]='ibGib'
+      >
+    </svg-view>
 
     <ion-modal [isOpen]="showModal_PromptForTag">
       <ng-template>
