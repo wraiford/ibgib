@@ -57,10 +57,10 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
         } else {
             if (logalot) { console.log(`${lc} updating ibgib ${value}`); }
             this._updatingIbGib = true;
-            const statusId = this.addStatusText({text: 'updating...'});
+            const statusId = this.addStatusText({ text: 'updating...' });
             setTimeout(() => this.ref.detectChanges());
             this.updateIbGib(value).finally(() => {
-                this.removeStatusText({statusId: statusId})
+                this.removeStatusText({ statusId: statusId })
                 this._updatingIbGib = false;
                 setTimeout(() => { this.ref.detectChanges(); }, 500)
                 if (logalot) { console.log(`${lc}[end]${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
@@ -109,6 +109,20 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
         }
     }
 
+    // @Input()
+    // get isRoot(): boolean { return isRootItem(this.item); }
+    // @Input()
+    // get isRoots(): boolean { return isRootsItem(this.item); }
+    // @Input()
+    // get isTag(): boolean { return isTagItem(this.item); }
+    // @Input()
+    // get isTags(): boolean { return isTagsItem(this.item); }
+    // @Input()
+    // get isPic(): boolean { return isPicItem(this.item); }
+    // @Input()
+    // get isComment(): boolean { return isCommentItem(this.item); }
+    // @Input()
+    // get isLink(): boolean { return isLinkItem(this.item); }
     @Input()
     get isRoot(): boolean { return this.ib?.startsWith('root ') || false; }
     @Input()
@@ -284,7 +298,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
         const lc = `${this.lc}[${this.cleanAndCacheCurrentItem.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            if (!this.addr || !this.item || !this.ibGib || !isPrimitive({gib: this.gib}))  {
+            if (!this.addr || !this.item || !this.ibGib || !isPrimitive({ gib: this.gib })) {
                 if (logalot) { console.log(`${lc} skipping this (I: 97001b8238b423b5619fa297a942cb22)`); }
                 return; /* <<<< returns early */
             }
@@ -331,7 +345,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
      * Otherwise, angular tends to freeze a bit afaict.
      */
     async smallDelayToLoadBalanceUI(): Promise<void> {
-        await h.delay(Math.ceil(Math.random()*32));
+        await h.delay(Math.ceil(Math.random() * 32));
     }
 
     protected async updateIbGib(addr: IbGibAddr): Promise<void> {
@@ -351,7 +365,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
 
                 // first try from item cache
                 if (this.lc) {
-                    const cached = await this.common.cache.get({addr: addr + this.lc});
+                    const cached = await this.common.cache.get({ addr: addr + this.lc });
                     if (cached?.other) {
                         // first clean other flags
                         const cachedItem = <TItem>cached.other;
@@ -389,7 +403,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             if (!item) {
                 debugger;
             }
-            const{ ib, gib } = h.getIbAndGib({ibGibAddr: addr});
+            const { ib, gib } = h.getIbAndGib({ ibGibAddr: addr });
             item.ib = ib;
             item.gib = gib;
             item.addr = addr;
@@ -458,8 +472,8 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
         item: TItem,
         force?: boolean,
     } = {
-        item: this.item,
-    }): Promise<void> {
+            item: this.item,
+        }): Promise<void> {
         const lc = `${this.lc}[${this.loadIbGib.name}]`;
         if (!item) {
             item = this.item;
@@ -473,14 +487,14 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             return; /* <<<< returns early */
         }
         if (item.addr) {
-            const {ib, gib} = h.getIbAndGib({ibGibAddr: item.addr});
-            if (!force && item.ibGib && h.getIbGibAddr({ibGib: item.ibGib}) === item.addr) {
+            const { ib, gib } = h.getIbAndGib({ ibGibAddr: item.addr });
+            if (!force && item.ibGib && h.getIbGibAddr({ ibGib: item.ibGib }) === item.addr) {
                 // do nothing, because we already have loaded this address.
                 if (logalot) { console.log(`${lc} already loaded item.ibGib and force flag is falsy (I: dde55ba695fb2aa0e20caadb1ef83922)`); }
             } else {
                 if (gib === GIB) {
                     // primitive, just build
-                    item.ibGib = Factory_V1.primitive({ib});
+                    item.ibGib = Factory_V1.primitive({ ib });
                 } else {
                     // these components often try a little too soon when
                     // starting up the app...so delay
@@ -491,7 +505,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
                     }
                     //
                     // get the full ibgib record from the ibgibs service (local space)
-                    const resGet = await this.common.ibgibs.get({addr: item.addr, isMeta: item.isMeta });
+                    const resGet = await this.common.ibgibs.get({ addr: item.addr, isMeta: item.isMeta });
                     if (resGet.success && resGet.ibGibs?.length === 1) {
                         item.ibGib = resGet.ibGibs![0];
 
@@ -520,16 +534,16 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
 
     tjp: IbGib_V1<any>;
     get tjpAddr(): string {
-        return this.tjp ? h.getIbGibAddr({ibGib: this.tjp}) : "";
+        return this.tjp ? h.getIbGibAddr({ ibGib: this.tjp }) : "";
     }
 
     async loadTjp(): Promise<void> {
         const tjpAlreadySet =
             this.ibGib && this.tjp && this.tjpAddr &&
-            getGibInfo({ibGibAddr: this.addr}).tjpGib === this.tjp.gib;
+            getGibInfo({ ibGibAddr: this.addr }).tjpGib === this.tjp.gib;
 
         if (!tjpAlreadySet && this.ibGib && this.gib !== GIB && !this.ib.startsWith('bin.')) {
-            let tjp = await this.common.ibgibs.getTjpIbGib({ibGib: this.ibGib, naive: true});
+            let tjp = await this.common.ibgibs.getTjpIbGib({ ibGib: this.ibGib, naive: true });
             this.tjp = tjp;
         } else if (tjpAlreadySet) {
             // do nothing
@@ -552,10 +566,10 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             if (logalot) { console.log(`starting`); }
 
             if (!toAddr) { throw new Error(`toAddr required. (E: 963988b52c9047a6bfd3adc87db8d99b)`); }
-            const toAddr_TjpGib = getGibInfo({ibGibAddr: toAddr}).tjpGib;
+            const toAddr_TjpGib = getGibInfo({ ibGibAddr: toAddr }).tjpGib;
 
             fromAddr = fromAddr ?? this.addr ?? undefined;
-            const fromAddr_TjpGib = this.addr ? getGibInfo({ibGibAddr: this.addr}).tjpGib : undefined;
+            const fromAddr_TjpGib = this.addr ? getGibInfo({ ibGibAddr: this.addr }).tjpGib : undefined;
 
             await this.common.nav.go({
                 toAddr, toAddr_TjpGib,
@@ -591,22 +605,23 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     }
 
     async loadType(item?: TItem): Promise<void> {
-        if (item.type) { return; }
         item = item || this.item;
-        if (this.isTag) {
-            this.item.type = 'tag';
-        } else if (this.isTags) {
-            this.item.type = 'tags';
-        } else if (this.isRoot) {
-            this.item.type = 'root';
-        } else if (this.isRoots) {
-            this.item.type = 'roots';
-        } else if (this.isPic) {
-            this.item.type = 'pic';
-        } else if (this.isComment) {
-            this.item.type = 'comment';
-        } else if (this.isLink) {
-            this.item.type = 'link';
+        if (item.type) { return; }
+
+        if (isTagItem(item)) {
+            item.type = 'tag';
+        } else if (isTagsItem(item)) {
+            item.type = 'tags';
+        } else if (isRootItem(item)) {
+            item.type = 'root';
+        } else if (isRootsItem(item)) {
+            item.type = 'roots';
+        } else if (isPicItem(item)) {
+            item.type = 'pic';
+        } else if (isCommentItem(item)) {
+            item.type = 'comment';
+        } else if (isLinkItem(item)) {
+            item.type = 'link';
         }
     }
 
@@ -618,38 +633,34 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
      */
     async loadPic(item?: TItem): Promise<void> {
         const lc = `${this.lc}[${this.loadPic.name}]`;
-        if (!this.isPic) {
-            return; /* <<<< returns early */
-        }
+        item = item || this.item;
+        if (!isPicItem(item)) { return; /* <<<< returns early */ }
         if (logalot) { console.log(`${lc} starting...`); }
         try {
-            item = item || this.item;
-            // item = this.item;
-
             if (item.picSrc) {
                 if (logalot) { console.log(`${lc} item.picSrc already loaded pic (I: a1ea6c6e4feec51d849e86877b033122)`); }
                 return; /* <<<< returns early */
             }
 
-            if (!this.ibGib?.data?.binHash) {
+            if (!item.ibGib?.data?.binHash) {
                 if (logalot) { console.log(`${lc} no data.binHash`); }
                 return; /* <<<< returns early */
             }
-            if (!this.ibGib!.data!.ext) {
+            if (!item.ibGib!.data!.ext) {
                 if (logalot) { console.log(`${lc} no data.ext`); }
                 return; /* <<<< returns early */
             }
-            if (!this.ibGib.rel8ns || this.ibGib.rel8ns['bin'].length === 0) {
+            if (!item.ibGib.rel8ns || item.ibGib.rel8ns['bin'].length === 0) {
                 if (logalot) { console.log(`${lc} no rel8ns.bin`); }
                 return; /* <<<< returns early */
             }
 
-            const data = <PicData_V1>this.ibGib.data;
+            const data = <PicData_V1>item.ibGib.data;
             if (logalot) { console.log(`${lc} binHash: ${data.binHash}\nbinExt: ${data.ext}`); }
-            const binAddrs = this.ibGib.rel8ns[c.BINARY_REL8N_NAME];
-            let binAddr = binAddrs[binAddrs.length-1];
+            const binAddrs = item.ibGib.rel8ns[c.BINARY_REL8N_NAME];
+            let binAddr = binAddrs[binAddrs.length - 1];
             if (logalot) { console.log(`${lc} getting bin addr: ${binAddr}`); }
-            const resGet = await this.common.ibgibs.get({addr: binAddr});
+            const resGet = await this.common.ibgibs.get({ addr: binAddr });
 
             item.filenameWithExt = `${data.filename || data.binHash}.${data.ext}`;
 
@@ -662,7 +673,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             } else {
                 console.error(`${lc} Couldn't get pic. ${resGet.errorMsg}`);
             }
-            item.text = data.filename ?? `pic ${this.gib.slice(0,5)}...`;
+            item.text = data.filename ?? `pic ${item.gib.slice(0, 5)}...`;
 
             // load multi pics if applicable, spin off
             if (binAddrs.length > 1) {
@@ -673,12 +684,12 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
                     console.warn(`${lc} wakka`);
 
                     // await this.smallDelayToLoadBalanceUI();
-                    await h.delay(Math.ceil(2000*Math.random())); // hack
-                    for (let i = 0; i < binAddrs.length-1; i++) {
+                    await h.delay(Math.ceil(2000 * Math.random())); // hack
+                    for (let i = 0; i < binAddrs.length - 1; i++) {
                         binAddr = binAddrs[i];
                         // let binAddr = binAddrs[binAddrs.length-1];
                         if (logalot) { console.log(`${lc} getting bin addr: ${binAddr}`); }
-                        const resGet = await this.common.ibgibs.get({addr: binAddr});
+                        const resGet = await this.common.ibgibs.get({ addr: binAddr });
 
                         if (resGet.success && resGet.ibGibs?.length === 1 && resGet.ibGibs[0]!.data) {
                             let picSrc = `data:image/jpeg;base64,${resGet.ibGibs![0].data!}`;
@@ -766,7 +777,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     async handleIbGib_NewLatest(info: IbGibTimelineUpdateInfo): Promise<void> {
         const lc = `${this.lc}[${this.handleIbGib_NewLatest.name}]`;
         try {
-            if (logalot) { console.log(`${lc} starting...`)}
+            if (logalot) { console.log(`${lc} starting...`) }
 
             if (!this.ibGib) {
                 if (logalot) { console.log(`${lc} this.ibGib is falsy, returning early. (I: b75c97830164f4b08c658717a3b20122)`); }
@@ -817,7 +828,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\nlatest info: ${JSON.stringify(info, null, 2)}`); }
             let info_latestIbGib = info.latestIbGib;
             if (!info_latestIbGib) {
-                let resGet = await this.common.ibgibs.get({addr: info.latestAddr});
+                let resGet = await this.common.ibgibs.get({ addr: info.latestAddr });
                 if (resGet.success && resGet.ibGibs?.length === 1) {
                     info_latestIbGib = resGet.ibGibs[0];
                     info.latestIbGib = info_latestIbGib;
@@ -833,18 +844,17 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             } if (info_latestIbGib.gib === this.gib) {
                 if (logalot) { console.log(`${lc} latest ibgib info is the same as the current. (I: 2e184de2498e205ef692395e2b25d922)`); }
             } else {
-                // if (!this.ibGib) { debugger; }
                 console.warn(`${lc} ignoring "latest" info because it's not newer.\nthis.addr: ${this.addr}\nlatestAddr: ${info.latestAddr} (W: c88d135984c39a2aaefd48620d913b22)`);
                 if (logalot) { console.log(`${lc} current: ${h.pretty(this.ibGib)}, "latest": ${h.pretty(info_latestIbGib)} (I: c89622ffc6ca1be7f668940c26fb5b22)`); }
                 // the following call is idempotent, so okay here in base class.
-                await this.common.ibgibs.registerNewIbGib({ibGib: this.ibGib});
+                await this.common.ibgibs.registerNewIbGib({ ibGib: this.ibGib });
             }
         } catch (error) {
             debugger;
             console.error(`${lc} ${error.message}`);
             this.errored = true;
         } finally {
-            if (logalot) { console.log(`${lc} complete.`)}
+            if (logalot) { console.log(`${lc} complete.`) }
         }
     }
 
@@ -976,3 +986,11 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
         }
     }
 }
+
+function isRootItem(item: IbGibItem): boolean { return item.ib?.startsWith('root ') || false; }
+function isRootsItem(item: IbGibItem): boolean { return item.ib?.startsWith('meta special roots') || false; }
+function isTagItem(item: IbGibItem): boolean { return item.ib?.startsWith('tag ') || false; }
+function isTagsItem(item: IbGibItem): boolean { return item.ib?.startsWith('meta special tags') || false; }
+function isPicItem(item: IbGibItem): boolean { return item.ib?.startsWith('pic ') || false; }
+function isCommentItem(item: IbGibItem): boolean { return item.ib?.startsWith('comment ') || false; }
+function isLinkItem(item: IbGibItem): boolean { return item.ib?.startsWith('link ') || false; }

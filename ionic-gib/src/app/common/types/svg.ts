@@ -1,6 +1,6 @@
 export const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
-export type DiagramPosition = [number,number];
+export type DiagramPosition = [number, number];
 
 export type IbGibDiagramMode = 'intrinsic' | 'extrinsic';
 export const IbGibDiagramMode = {
@@ -75,4 +75,9 @@ export interface IbGibDiagramInfo {
    * @optional
    */
   radius?: number;
+  /**
+   * lambda to get the src. if true, will fill the svg element with picture
+   */
+  picSrcFn?: () => string;
+  commentTextFn?: () => string;
 }

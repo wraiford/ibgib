@@ -76,6 +76,7 @@ export function ibCircle({
     opacity,
     stroke,
     strokeWidth,
+    picSrcFn,
 }: {
     /**
      * If provided, will append created element to this
@@ -88,6 +89,8 @@ export function ibCircle({
     opacity?: number,
     stroke?: string,
     strokeWidth?: string,
+    picSrcFn?: () => string,
+    commentTextFn?: () => string,
 }): SVGCircleElement {
     const lc = `[${ibCircle.name}]`;
     try {
@@ -104,6 +107,14 @@ export function ibCircle({
         circle.setAttribute('r', `${r}`);
         if (opacity || opacity == 0) { circle.setAttribute('opacity', opacity.toString()); }
         circle.setAttribute('style', style);
+
+        if (picSrcFn) {
+            let image: SVGImageElement = document.createElementNS(SVG_NAMESPACE, 'image');
+            let src = picSrcFn();
+            image.setAttribute('href', src);
+            circle.appendChild(image);
+            // https://blog.idrsolutions.com/how-to-embed-base64-images-in-svg/
+        }
 
         if (parent) { parent.appendChild(circle); }
 
