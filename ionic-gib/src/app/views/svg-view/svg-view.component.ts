@@ -16,6 +16,10 @@ import { IbGibDiagramInfo, SVG_NAMESPACE } from '../../common/types/svg';
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 interface SvgIbgibItem extends IbGibItem {
+  /**
+   * I need this to find the item uniquely
+   */
+  instanceId: string;
   diagramInfo: IbGibDiagramInfo;
 }
 
@@ -73,6 +77,8 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
     if (logalot) { console.log(`${lc} called (I: )`); }
 
     if (logalot) { console.log(`${lc}${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
+
+    this.batchSize = -1;
 
     setTimeout(() => { this.ref.detectChanges(); }, 5000); // no idea
   }
@@ -396,6 +402,7 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
       const strokeWidth = info.strokeWidth ?? '1px';
       const opacity = info.opacity ?? 1.0;
       const radius = info.radius ?? 10; // arbitrary
+      const id = (await h.getUUID()).slice(0, 16);
 
       if (info.mode === 'intrinsic') {
         // const diam = radius * 2;
@@ -409,14 +416,16 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
         if (g) {
           circle = ibCircle({
             parent: g,
+            id,
             cx, cy, r: radius,
             fill, stroke, strokeWidth, opacity,
-            picSrcFn: info.picSrcFn
+            picSrcFn: info.picSrcFn,
           });
         } else {
           // translate to center-based coordinates
           circle = ibCircle({
             parent: svg,
+            id,
             cx: centerX + cx, cy: centerY + cy, r: radius,
             fill, stroke, strokeWidth, opacity,
             picSrcFn: info.picSrcFn
@@ -426,12 +435,13 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
         // <!-- <animateMotion
         //    path="M 250,80 H 50 Q 30,80 30,50 Q 30,20 50,20 H 250 Q 280,20,280,50 Q 280,80,250,80Z"
         //    dur="3s" repeatCount="indefinite" rotate="auto" /> -->
+        // debugger;
         if (xStart !== cx || yStart !== cy) {
           let animation = document.createElementNS(SVG_NAMESPACE, 'animateMotion');
           // let path = `M0,0 L${cx},${cy} L${centerX},${centerY} L${fromX},${fromY}`;
-          let path = `M${xStart - cx},${yStart - cy} L0,0`;
+          let path = `M${xStart - cx},${yStart - cy} l25,25 L0,0`;
           animation.setAttribute('path', path);
-          animation.setAttribute('dur', '2s');
+          animation.setAttribute('dur', '8s');
           // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/additive
           animation.setAttribute('additive', 'replace');
           // animation.setAttribute('repeatCount', 'indefinite');
@@ -625,11 +635,17 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
     const lc = `${this.lc}[${this.addItems.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: c6af613bbff2d12379c0a933c8d08e22)`); }
+      for (let i = 0; i < itemsToAdd.length; i++) {
+        const item = itemsToAdd[i];
+        await h.delay(2);
+        item.instanceId = (await h.getUUID()).slice(0, 16);
+      }
 
       await super.addItems({ itemsToAdd, direction });
 
-      const itemWidth = 50;
-      const itemHeight = 50;
+      const columnCount = 8;
+      const itemWidth = Math.ceil(this.svgInfo?.width / columnCount * 0.9);
+      const itemHeight = itemWidth;
       const minItemWidth = 50;
       const minItemHeight = 50;
       const itemPadding = 5;
@@ -643,6 +659,14 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
       const secondaryColor_right = primaryColor_left;
       const tertiaryColor_right = 'black';
 
+      const getRealIndex = (x: SvgIbgibItem) => {
+        for (let i = 0; i < this.items.length; i++) {
+          const item = this.items[i];
+          if (x.instanceId === item.instanceId) { return i; }
+        }
+        return undefined;
+      }
+
       if (itemsToAdd?.length > 0) {
         window.requestAnimationFrame(async () => {
           for (let i = 0; i < itemsToAdd.length; i++) {
@@ -650,20 +674,24 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
             /**
              * index in this.items (not in itemsToAdd).
              */
-            let realIndex = this.items.indexOf(item);
-            let itemX = (realIndex * itemWidth) + itemPadding;
-            let itemY = (realIndex * itemHeight) + itemPadding;
+            // let realIndex = this.items.indexOf(item);
+            let realIndex = getRealIndex(item);
+            let itemCount = this.items.length;
+            let row = Math.floor((realIndex + 1) / columnCount);
+            let col = ((realIndex + 1) % columnCount) - 1;
+            // debugger;
+            let itemX = (col * itemWidth) + itemPadding - this.svgInfo.centerX + itemRadius;
+            let itemY = (row * itemHeight) + itemPadding - this.svgInfo.centerY + itemRadius;
             await this.loadItemPrimaryProperties(item.addr, item);
             await this.loadType(item);
-            const isPic = item.ib?.startsWith('pic ') || false;
-            if (isPic) {
-              await this.loadPic(item);
-            }
+            const isPic = item.type === 'pic';
+            if (isPic) { await this.loadPic(item); }
             const info: IbGibDiagramInfo = {
               fill: isPic ? 'transparent' : 'pink',
               mode: 'intrinsic',
               radius: itemRadius,
               stroke: 'red',
+              startPos: [0, 0],
               pos: [itemX, itemY],
               picSrcFn: item.picSrc ? () => item.picSrc : undefined,
             }

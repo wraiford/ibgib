@@ -11,6 +11,9 @@ export function ibSvg({
         svg.setAttribute('width', `${width}`);
         svg.setAttribute('height', `${height}`);
 
+        const defs: SVGDefsElement = document.createElementNS(SVG_NAMESPACE, 'defs');
+        svg.append(defs);
+
         return svg;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
@@ -69,6 +72,7 @@ export function ibGroup({
 
 export function ibCircle({
     parent,
+    id,
     cx, cy,
     r,
     style,
@@ -82,6 +86,7 @@ export function ibCircle({
      * If provided, will append created element to this
      */
     parent?: SVGElement,
+    id?: string,
     cx: number, cy: number,
     r: number,
     style?: string,
@@ -98,21 +103,53 @@ export function ibCircle({
         strokeWidth = strokeWidth || '1px';
         if (!style) {
             style = `stroke:${stroke};stroke-width:${strokeWidth}`;
-            if (fill) { style += `;fill:${fill}`; }
         }
 
         const circle = document.createElementNS(SVG_NAMESPACE, 'circle');
         circle.setAttribute('cx', `${cx}`);
         circle.setAttribute('cy', `${cy}`);
         circle.setAttribute('r', `${r}`);
+        if (fill) { circle.setAttribute('fill', fill); }
         if (opacity || opacity == 0) { circle.setAttribute('opacity', opacity.toString()); }
         circle.setAttribute('style', style);
 
         if (picSrcFn) {
+            const widthHeight = `${2 * r}`;
+            let defs: SVGDefsElement;
+            parent.childNodes.forEach((child: any) => {
+                if (child.nodeName === 'defs') { defs = child; }
+            });
+            if (!defs) {
+                defs = document.createElementNS(SVG_NAMESPACE, 'defs');
+                parent.appendChild(defs);
+            }
+
+
+
+
+            let pattern: SVGPatternElement = document.createElementNS(SVG_NAMESPACE, 'pattern');
+            if (!id) { throw new Error(`id required for pics (E: a179adeb6d2998af0ebea19b7a81b722)`); }
+            pattern.setAttribute('id', `id_${id}`);
+            pattern.setAttribute('patternUnits', 'userSpaceOnUse');
+            pattern.setAttribute('width', widthHeight);
+            pattern.setAttribute('height', widthHeight);
+            // pattern.setAttribute('patternUnits', 'objectBoundingBox');
+            // pattern.setAttribute('width', '1');
+            // pattern.setAttribute('height', '1');
+            defs.appendChild(pattern);
+
             let image: SVGImageElement = document.createElementNS(SVG_NAMESPACE, 'image');
             let src = picSrcFn();
             image.setAttribute('href', src);
-            circle.appendChild(image);
+            image.setAttribute('x', '0');
+            image.setAttribute('y', '0');
+            image.setAttribute('width', widthHeight);
+            image.setAttribute('height', widthHeight);
+            pattern.appendChild(image);
+
+            // fill="url(#image)"
+            circle.setAttribute('fill', `url(#id_${id})`);
+            // circle.appendChild(image);
             // https://blog.idrsolutions.com/how-to-embed-base64-images-in-svg/
         }
 
@@ -120,6 +157,7 @@ export function ibCircle({
 
         return circle;
     } catch (error) {
+        debugger;
         console.error(`${lc} ${error.message}`);
         throw error;
     }

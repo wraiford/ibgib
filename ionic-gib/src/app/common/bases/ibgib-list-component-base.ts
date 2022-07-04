@@ -49,6 +49,9 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
     @Input()
     skeletonItemsCount: number = 0;
 
+    @Input()
+    batchSize: number = 3;
+
     /**
      * trying this out to let consumer know when items have been added to effect
      * scrolling.
@@ -209,10 +212,10 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
          */
         scrollAfter?: boolean,
     } = {
-        reloadAll: false,
-        direction: 'append',
-        scrollAfter: true,
-    }): Promise<void> {
+            reloadAll: false,
+            direction: 'append',
+            scrollAfter: true,
+        }): Promise<void> {
         const lc = `${this.lc}[${this.updateItems.name}]`;
         if (logalot) { console.log(`${lc} updating...`); }
         let updatingCheckCount = 0;
@@ -283,7 +286,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
             }
 
             if (addrsToRemove.length > 0) {
-                await this.removeAddrs({addrs: addrsToRemove});
+                await this.removeAddrs({ addrs: addrsToRemove });
                 this.sortItems(this.items);
             }
 
@@ -304,7 +307,8 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
                 addrsToAdd = unique(addrsToAdd);
 
                 // we want to add only the last [batch size] number of items
-                const batchSize = 3;
+                let batchSize = this.batchSize;
+                if (batchSize <= 0 || !batchSize) { batchSize = Number.MAX_SAFE_INTEGER; }
                 if (addrsToAdd.length > batchSize) {
                     addrsToAdd = addrsToAdd.slice(addrsToAdd.length - batchSize);
                 } else {
@@ -335,9 +339,9 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
                         //         itemsToCache.push(newItem);
                         //     }
                         // } else {
-                            newItem = <TItem>{ addr: addrToAdd };
-                            if (logalot) { console.log(`${lc} queueing item to cache (${addrToAdd}) (I: 0fe55669bfdd74f0cc9714ae96e4a622)`); }
-                            itemsToCache.push(newItem);
+                        newItem = <TItem>{ addr: addrToAdd };
+                        if (logalot) { console.log(`${lc} queueing item to cache (${addrToAdd}) (I: 0fe55669bfdd74f0cc9714ae96e4a622)`); }
+                        itemsToCache.push(newItem);
                         // }
                     }
                     itemsToAdd.push(newItem);
@@ -375,7 +379,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
 
             // add the items to the list, which will change our bound view
 
-            await this.addItems({itemsToAdd, direction});
+            await this.addItems({ itemsToAdd, direction });
 
             if (logalot) { console.log(`${lc} this.items.length: ${this.items?.length} (I: 094cb3faac89df7d53aaa34fb538b522)`); }
             const thisItemsAddrs = (this.items ?? []).map(x => x.addr);
@@ -397,7 +401,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
         }
     }
 
-            // sorts by timestamp
+    // sorts by timestamp
     sortItems(x: TItem[]): TItem[] {
         const lc = `${this.lc}[${this.sortItems.name}]`;
         return x.sort((a, b) => {
