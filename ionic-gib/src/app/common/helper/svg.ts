@@ -152,6 +152,8 @@ export function ibCircle({
             pattern.setAttribute('patternUnits', 'userSpaceOnUse');
             pattern.setAttribute('width', widthHeight);
             pattern.setAttribute('height', widthHeight);
+            pattern.setAttribute('x', `-${r}`);
+            pattern.setAttribute('y', `-${r}`);
             // pattern.setAttribute('patternUnits', 'objectBoundingBox');
             // pattern.setAttribute('width', '1');
             // pattern.setAttribute('height', '1');

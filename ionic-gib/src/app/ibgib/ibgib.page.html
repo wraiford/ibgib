@@ -4,15 +4,12 @@
   <ion-toolbar id="top-title-bar">
     <ion-buttons slot="start">
       <ion-menu-button slot="icon-only"></ion-menu-button>
-      <ion-button *ngIf="showBackChevronBtn"
-        class="back-btn"
-        (click)="handleBackButtonClick()"
-        >
+      <ion-button *ngIf="showBackChevronBtn" class="back-btn" (click)="handleBackButtonClick()">
         <ion-icon name="chevron-back-outline" slot="icon-only"></ion-icon>
       </ion-button>
     </ion-buttons>
 
-      <!-- atow, i am doing selective titles in ibgib-component-base.ts title property  -->
+    <!-- atow, i am doing selective titles in ibgib-component-base.ts title property  -->
     <ion-title *ngIf='isTag' class='toolbar-title-yo'>
       <tag-view [addr]='item.addr'> </tag-view>
     </ion-title>
@@ -22,7 +19,7 @@
       </ion-thumbnail>
     </ion-title>
     <ion-title *ngIf='isComment' class='comment-title toolbar-title-yo' (click)="handleTitleClick()">
-        <comment-view [addr]='item.addr' [isTitleOrJustSmall]='true'></comment-view>
+      <comment-view [addr]='item.addr' [isTitleOrJustSmall]='true'></comment-view>
     </ion-title>
     <ion-title *ngIf='isRoot' class='toolbar-title-yo'>
       <root-view [addr]='item.addr'> </root-view>
@@ -35,9 +32,13 @@
   <!-- ibgib context buttons -->
   <ion-toolbar color="background">
     <ion-buttons id="context-btns" slot="end">
+      <ion-button class="toolbar-title-btn" [disabled]="syncing || refreshing" [ngClass]="{'active-btn':showHeart}"
+        (click)="showHeart = !showHeart">
+        <ion-icon name="heart-outline"></ion-icon>
+      </ion-button>
       <!-- leaving these in for future testing of download the da!n pic -->
-      <ion-button *ngIf="item?.type === 'pic'" class="toolbar-title-btn"
-        [disabled]="syncing || refreshing" (click)="handleUpdatePicClick()">
+      <ion-button *ngIf="item?.type === 'pic'" class="toolbar-title-btn" [disabled]="syncing || refreshing"
+        (click)="handleUpdatePicClick()">
         <ion-icon name="camera-reverse-outline"></ion-icon>
         <ion-spinner *ngIf="updatingPic" name="circles" color="tertiary"></ion-spinner>
       </ion-button>
@@ -54,28 +55,18 @@
           <ion-icon name="image-outline"></ion-icon>
         </ion-button>
       </a>
-      <ion-button *ngIf="ibGib"
-        class="toolbar-title-btn"
-        (click)="handleShareClick()">
+      <ion-button *ngIf="ibGib" class="toolbar-title-btn" (click)="handleShareClick()">
         <ion-icon name="share-social-outline" ios="share-outline"></ion-icon>
       </ion-button>
-      <ion-button *ngIf="ibGib" [disabled]="refreshing"
-        class="toolbar-title-btn"
-        (click)="handleRobbotClick()"
-        [ngClass]="{'active-btn':robbotBarIsVisible}"
-        >
+      <ion-button *ngIf="ibGib" [disabled]="refreshing" class="toolbar-title-btn" (click)="handleRobbotClick()"
+        [ngClass]="{'active-btn':robbotBarIsVisible}">
         <ion-icon name="body-outline"></ion-icon>
       </ion-button>
-      <ion-button *ngIf="tjp" [disabled]="syncing || refreshing"
-        [ngClass]="{'active-btn': autosync}"
-        class="toolbar-title-btn"
-        (click)="handleSpaceClick()">
+      <ion-button *ngIf="tjp" [disabled]="syncing || refreshing" [ngClass]="{'active-btn': autosync}"
+        class="toolbar-title-btn" (click)="handleSpaceClick()">
         <ion-icon name="sparkles-outline"></ion-icon>
       </ion-button>
-      <ion-button *ngIf="tjp"
-        [disabled]="syncing || refreshing"
-        class="toolbar-title-btn"
-        (click)="handleSyncClick()">
+      <ion-button *ngIf="tjp" [disabled]="syncing || refreshing" class="toolbar-title-btn" (click)="handleSyncClick()">
         <ion-badge *ngIf="syncErrored" color="danger" slot="start">
           <ion-icon name="alert-circle-outline"></ion-icon>
         </ion-badge>
@@ -88,73 +79,48 @@
           {{ tjpUpdatesAvailableCount_Store }}
         </ion-badge>
       </ion-button>
-      <ion-button [disabled]="syncing || refreshing || paused || tagging"
-        class="toolbar-title-btn"
+      <ion-button [disabled]="syncing || refreshing || paused || tagging" class="toolbar-title-btn"
         (click)="handleTagClick($event)">
         <ion-icon name="pricetag-outline"></ion-icon>
         <ion-spinner *ngIf="tagging" name="bubbles" color="tertiary"></ion-spinner>
       </ion-button>
-      <ion-button *ngIf="gib !== 'gib'"
-        [disabled]="refreshing"
-        [ngClass]="{'active-btn':!paused}"
-        class="toolbar-title-btn"
-        (click)="handleRefreshClick()">
+      <ion-button *ngIf="gib !== 'gib'" [disabled]="refreshing" [ngClass]="{'active-btn':!paused}"
+        class="toolbar-title-btn" (click)="handleRefreshClick()">
         <ion-icon *ngIf="!refreshing" name="refresh"></ion-icon>
         <ion-spinner *ngIf="refreshing" name="bubbles" color="tertiary"></ion-spinner>
         <ion-badge *ngIf="tjpUpdatesAvailableCount_Local" color="primary" slot="end">
           {{ tjpUpdatesAvailableCount_Local }}
         </ion-badge>
       </ion-button>
-      <ion-button [disabled]="refreshing"
-        class="toolbar-title-btn"
-        (click)="handleInfoClick($event)">
+      <ion-button [disabled]="refreshing" class="toolbar-title-btn" (click)="handleInfoClick($event)">
         <ion-icon name="information-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content #ibgibPageContent
-  [fullscreen]="false" [forceOverscroll]="false"
-  >
+<ion-content #ibgibPageContent [fullscreen]="false" [forceOverscroll]="false">
 
   <ion-text *ngIf="statusText" color="primary">{{statusText}}</ion-text>
   <ion-skeleton-text *ngIf="!item?.ibGib || refreshing" animated
-    style="width: 100%;height:100%;border-radius:5%;opacity:0.4;"
-    color="primary">
+    style="width: 100%;height:100%;border-radius:5%;opacity:0.4;" color="primary">
   </ion-skeleton-text>
 
   <!-- main body -->
-  <div id="container" *ngIf="item?.ibGib"
-    [style.border-color]="debugBorderColor"
-    [style.border-width]="debugBorderWidth"
-    [style.border-style]="debugBorderStyle"
-    >
+  <div id="container" *ngIf="item?.ibGib" [style.border-color]="debugBorderColor"
+    [style.border-width]="debugBorderWidth" [style.border-style]="debugBorderStyle">
 
-    <ib-robbot-bar #robbotBar *ngIf="robbotBarIsVisible" [addr]='addr'
-      [selectedRobbotAddr]="selectedRobbotAddr"
-      (robbotSelected)="handleRobbotSelected($event)"
-      ></ib-robbot-bar>
+    <ib-robbot-bar #robbotBar *ngIf="robbotBarIsVisible" [addr]='addr' [selectedRobbotAddr]="selectedRobbotAddr"
+      (robbotSelected)="handleRobbotSelected($event)"></ib-robbot-bar>
 
-    <tag-list *ngIf='isTags' [addr]='addr' [ibGib_Context]='ibGib'
-      (scroll)="scrollSubject.next($event)"
-      >
+    <tag-list *ngIf='isTags' [addr]='addr' [ibGib_Context]='ibGib' (scroll)="scrollSubject.next($event)">
     </tag-list>
-    <root-list *ngIf='isRoots' [addr]='addr' [ibGib_Context]='ibGib'
-      (scroll)="scrollSubject.next($event)"
-      >
+    <root-list *ngIf='isRoots' [addr]='addr' [ibGib_Context]='ibGib' (scroll)="scrollSubject.next($event)">
     </root-list>
-    <!-- <chat-view #chatView *ngIf='!(isTags || isRoots)'
-      [addr]='addr'
-      [ibGib_Context]='ibGib'
-      (scroll)="scrollSubject.next($event)"
-      (chatItemsAdded)="handleChatItemsAdded()"
-      >
-    </chat-view> -->
-    <svg-view #ibgibpageSvgView *ngIf='!(isTags || isRoots)'
-      [addr]='addr'
-      [ibGib_Context]='ibGib'
-      >
+    <chat-view #chatView *ngIf='!(isTags || isRoots) && !showHeart' [addr]='addr' [ibGib_Context]='ibGib'
+      (scroll)="scrollSubject.next($event)" (chatItemsAdded)="handleChatItemsAdded()">
+    </chat-view>
+    <svg-view #ibgibpageSvgView *ngIf='!(isTags || isRoots) && showHeart' [addr]='addr' [ibGib_Context]='ibGib'>
     </svg-view>
 
     <ion-modal [isOpen]="showModal_PromptForTag">
@@ -162,23 +128,18 @@
         <ion-content id="select-tag-content">
           <ion-title id="select-tag-title">Select tag...</ion-title>
           <ion-buttons id="select-tag-btns">
-            <ion-button *ngFor="let tag of tagIbGibs"
-              class="select-tag-btn"
-              (click)="handleSelectTag_ExistingTag(tag)"
-              color="primary"
-              >
+            <ion-button *ngFor="let tag of tagIbGibs" class="select-tag-btn" (click)="handleSelectTag_ExistingTag(tag)"
+              color="primary">
               <ion-icon [name]="tag.data?.icon || 'help-outline'"></ion-icon>
               <ion-label>{{ tag.data?.text || '[tag text missing?]' }} </ion-label>
             </ion-button>
           </ion-buttons>
           <ion-buttons id="select-tag-btns-special">
-            <ion-button (click)="handleSelectTag_New()"
-              color="secondary">
+            <ion-button (click)="handleSelectTag_New()" color="secondary">
               <ion-icon name="add-outline"></ion-icon>
               <ion-label>new tag...</ion-label>
             </ion-button>
-            <ion-button (click)="handleSelectTag_Cancel()"
-              color="danger">
+            <ion-button (click)="handleSelectTag_Cancel()" color="danger">
               <ion-icon name="close-outline"></ion-icon>
               <ion-label>cancel</ion-label>
             </ion-button>

@@ -67,6 +67,9 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
 
   get svgContainerDiv(): HTMLDivElement { return this.svgContainerRef?.nativeElement; }
 
+
+  private circles: SVGCircleElement[] = [];
+
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
@@ -179,25 +182,34 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
 
       this.svgContainerDiv.appendChild(svg);
 
-      // add we love you
-      //     <style>
-      //   .small { font: italic 13px sans-serif; }
-      //   .heavy { font: bold 30px sans-serif; }
-
-      //   /* Note that the color of the text is set with the    *
-      //    * fill property, the color property is for HTML only */
-      //   .Rrrrr { font: italic 40px serif; fill: red; }
-      // </style>
+      // add we love you text
       let style = document.createElementNS(SVG_NAMESPACE, 'style');
       style.setAttribute('x', `${centerX}`);
       let text = document.createElementNS(SVG_NAMESPACE, 'text');
       text.setAttribute('x', `${width * 0.2}`);
       text.setAttribute('y', `${height * 0.7}`);
-      text.setAttribute('stroke', `green`);
-      text.setAttribute('fill', `blue`);
+      text.setAttribute('stroke', `pink`);
+      text.setAttribute('fill', `pink`);
       text.innerHTML = `Happy Birthday! We Love You!!!`;
       svg.appendChild(text);
 
+      // draw the heart path, same as animation path per circle
+      const scaleKluge = 3.8;
+      const tx = (n: number) => { return (n * scaleKluge); }
+      const ty = (n: number) => { return (n * scaleKluge); }
+      const path = `
+        M${tx(10)},${ty(30)}
+        A ${tx(20)},${ty(20)} ${0},${0},${1} ${tx(50)},${ty(30)}
+        A ${tx(20)},${ty(20)} ${0},${0},${1} ${tx(90)},${ty(30)}
+        Q ${tx(90)},${ty(60)} ${tx(50)},${ty(80)}
+        Q ${tx(10)},${ty(60)} ${tx(10)},${ty(30)}
+        z`;
+      const pathEl = document.createElementNS(SVG_NAMESPACE, 'path');
+      pathEl.setAttribute('stroke', 'pink');
+      pathEl.setAttribute('strokeWidth', '1px');
+      pathEl.setAttribute('d', path);
+      pathEl.setAttribute('fill', 'transparent');
+      svg.appendChild(pathEl);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -238,9 +250,6 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
       if (!svg && !g) { throw new Error(`either svg or g required. (E: c350ceba1d542d642fc61e47d7f76422)`); }
 
       if (svg && g) { console.warn(`${lc} (UNEXPECTED) only svg or g is expected. Using g. (W: 523e10f56b7645b981ed91d59aec50d9)`) }
-
-      // from = from || {x:0, y:0}; from.x = from.x ?? 0; from.y = from.y ?? 0;
-      // to = to || {x:0, y:0}; to.x = to.x ?? 0; to.y = to.y ?? 0;
 
       const fill = info.fill ?? 'green'; // arbitrary
       const stroke = info.stroke ?? 'black'; // arbitrary
@@ -285,28 +294,16 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
           let animation = document.createElementNS(SVG_NAMESPACE, 'animateMotion');
           const animationId = `animation_${id}`;
           animation.setAttribute('id', animationId);
-          // let path = `M0,0 L${cx},${cy} L${centerX},${centerY} L${fromX},${fromY}`;
           let path = `M${xStart - cx},${yStart - cy} l25,25 L0,0`;
-          // path = "M0 200 v-200 h200 a100,100 90 0,1 0,200 a100,100 90 0,1 -200,0 z";
 
+          // heart shape that we'll scale */
+          // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform
           path = `M 10,30 A 20,20 0,0,1 50,30 A 20,20 0,0,1 90,30 Q 90,60 50,90 Q 10,60 10,30 z`; // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform
-          let s = 3.8;
-          let tx = (n: number) => {
-            // return ((n) * s) - cx;
-            return (n * s);
-          }
-          let ty = (n: number) => {
-            return (n * s);
-            // return ((n) * s) - cy;
-          }
+          /** I use this to kluge the size */
+          let scale = 3.8;
+          let tx = (n: number) => { return (n * scale); }
+          let ty = (n: number) => { return (n * scale); }
 
-          // path = `
-          //   M${tx(10)},${ty(30)}
-          //   A ${tx(20)},${ty(20)} ${0},${0},${1} ${tx(50)},${ty(30)}
-          //   A ${tx(20)},${ty(20)} ${0},${0},${1} ${tx(90)},${ty(30)}
-          //   Q ${tx(90)},${ty(60)} ${tx(50)},${ty(80)}
-          //   Q ${tx(10)},${ty(60)} ${tx(10)},${ty(30)}
-          //   z`;
           path = `
             M${tx(10)},${ty(30)}
             A ${tx(20)},${ty(20)} ${0},${0},${1} ${tx(50)},${ty(30)}
@@ -316,38 +313,47 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
             z`;
           animation.setAttribute('path', path);
 
-          let duration = Math.ceil(Math.random() * 57) + 10;
+          let duration = Math.ceil(Math.random() * 37) + 10;
           animation.setAttribute('dur', `${duration}s`);
           let delay = Math.ceil(Math.random() * 20);
           animation.setAttribute('delay', `${duration}s`);
-          // animation.setAttribute('transform')
           // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/additive
-          // animation.setAttribute('additive', 'replace');
-          // animation.beginElement();
           animation.setAttribute('repeatCount', 'indefinite');
           animation.setAttribute('transform', `translate(50 -50)`);
-          // let mpath = document.createElementNS(SVG_NAMESPACE, 'mpath');
-          // mpath.setAttribute('xlink:href', '#path1');
-          // animation.innerHTML = `<mpath xlink:href="#path1"></mpath>`;
-          // animation.setAttribute('rotate', 'auto');
-          // const animationId = `mainsvgHeartAnimation`;
-          // animation = <SVGAnimateMotionElement><any>document.getElementById('mainsvgHeartAnimation');
           circle.appendChild(animation);
-          // setTimeout(() => {
-          //   const el = <SVGAnimateMotionElement><any>document.getElementById(animationId);
-          //   animation.setAttribute('dur', '20s');
-          //   // animation.appendChild(mpath);
-          //   animation.beginElement();
-          // }, 100);
-
-          let pathEl = document.createElementNS(SVG_NAMESPACE, 'path');
-          pathEl.setAttribute('stroke', 'pink');
-          pathEl.setAttribute('strokeWidth', '1px');
-          pathEl.setAttribute('d', path);
-          pathEl.setAttribute('fill', 'transparent');
-          svg.appendChild(pathEl);
           circle.setAttribute('cx', '0');
           circle.setAttribute('cy', '0');
+
+
+          circle.addEventListener('click', (_: any) => {
+            // animation.setAttribute('dur', '99s'); // freezes it
+            // animation.beginElement();
+            svg.removeChild(circle);
+            if (!(<any>circle).clicked) {
+              // first time clicking it
+              svg.appendChild(circle);
+              this.circles.forEach((c: any) => {
+                c.setAttribute('transform', `scale(1)`);
+                c.clicked = false;
+              });
+              circle.setAttribute('transform', `scale(1.5)`);
+              (<any>circle).clicked = true;
+            } else {
+              // clicked twice
+              (<any>circle).removed = true;
+              (<any>circle).clicked = false;
+              if (this.circles.every(x => (<any>x).removed)) {
+                this.circles.forEach((c: any) => {
+                  c.setAttribute('transform', `scale(1)`);
+                  c.clicked = false;
+                  c.removed = false;
+                  svg.appendChild(c);
+                });
+              }
+            }
+          });
+
+          this.circles.push(circle);
         }
 
         if (info.infos?.length > 0) {
@@ -593,7 +599,8 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
     try {
       if (logalot) { console.log(`${lc} starting... (I: d82566e6f20a396ddec23b750e0ddd22)`); }
       const columnCount = 8;
-      const itemWidth = Math.ceil(this.svgInfo?.width / columnCount * 0.9);
+      // const itemWidth = Math.ceil(this.svgInfo?.width / columnCount * 0.9);
+      const itemWidth = Math.ceil(this.svgInfo?.width / 2 * 0.9);
       const itemHeight = itemWidth;
       const minItemWidth = 50;
       const minItemHeight = 50;

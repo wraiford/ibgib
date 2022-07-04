@@ -137,6 +137,11 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     get isComment(): boolean { return this.ib?.startsWith('comment ') || false; }
     @Input()
     get isLink(): boolean { return this.ib?.startsWith('link ') || false; }
+    /**
+     * temporary...
+     */
+    @Input()
+    showHeart: boolean = false;
 
     /**
      * Hack because ngSwitchCase doesn't seem to work properly. Probably my fault...hmmm
