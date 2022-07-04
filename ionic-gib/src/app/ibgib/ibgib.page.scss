@@ -9,17 +9,23 @@
   cursor: zoom-in;
 }
 
-ion-menu-button, ion-button, .back-btn, ion-title {
+ion-menu-button,
+ion-button,
+.back-btn,
+ion-title {
   color: var(--ion-color-primary);
 }
-ion-button, ion-menu-button {
+
+ion-button,
+ion-menu-button {
   border-color: var(--ion-color-primary);
   border-width: 1px;
   border-style: solid;
   border-radius: 5px;
 }
 
-ion-button:hover, ion-menu-button:hover {
+ion-button:hover,
+ion-menu-button:hover {
   border-width: 2px;
 }
 
@@ -81,16 +87,19 @@ ion-footer {
     height: 22% !important;
   }
 }
+
 @media (min-height: $sm-height) and (max-height: $md-height) {
   ion-footer {
     height: 17% !important;
   }
 }
+
 @media (min-height: $md-height) and (max-height: $lg-height) {
   ion-footer {
     height: 13% !important;
   }
 }
+
 @media (min-height: $lg-height) and (max-height: $xl-height) {
   ion-footer {
     height: 10% !important;
@@ -114,13 +123,28 @@ ion-footer {
   animation-iteration-count: infinite;
   animation-timing-function: linear;
 }
+
 @keyframes wakka {
-  0% {transform: rotate(0deg) translateX(0px);}
-  50% {transform: rotate(180deg) translateX(50px);}
-  100% {transform: rotate(360deg) translateX(0px);}
+  0% {
+    transform: rotate(0deg) translateX(0px);
+  }
+
+  50% {
+    transform: rotate(180deg) translateX(50px);
+  }
+
+  100% {
+    transform: rotate(360deg) translateX(0px);
+  }
 }
 
-.loading-hair, .loading-brows, .loading-eyes, .loading-cheeks, .loading-nose, .loading-mouth, .loading-chin {
+.loading-hair,
+.loading-brows,
+.loading-eyes,
+.loading-cheeks,
+.loading-nose,
+.loading-mouth,
+.loading-chin {
   height: 50px;
   width: 100%;
   display: flex;
@@ -129,12 +153,15 @@ ion-footer {
   align-items: stretch;
 }
 
-.spacer, .spacer-10 {
+.spacer,
+.spacer-10 {
   width: 10px;
 }
+
 .spacer-50 {
   width: 50px;
 }
+
 .spacer-100 {
   width: 100px;
 }
@@ -142,9 +169,11 @@ ion-footer {
 .slant-right {
   transform: rotate(45deg);
 }
+
 .slant-left {
   transform: rotate(135deg);
 }
+
 .rotate-90 {
   transform: rotate(90deg);
 }
@@ -169,8 +198,10 @@ ion-badge {
   $primarycolorNotDry: #47a135;
   background-color: rgba(red($primarycolorNotDry), green($primarycolorNotDry), blue($primarycolorNotDry), 0.5);
 }
+
 @media (prefers-color-scheme: dark) {
   $primarycolorNotDry: #213b23;
+
   .active-btn {
     // can't convert css to scss variable here...i'm a terrible ui person
     // $color: #213b23;
@@ -179,9 +210,11 @@ ion-badge {
   }
 }
 
-ion-button:hover, ion-menu-button:hover, #robbot-name:hover {
+ion-button:hover,
+ion-menu-button:hover,
+#robbot-name:hover {
   border-width: 2px;
-  background-color:rgba(var(--ion-color-primary-rgb), 0.14);
+  background-color: rgba(var(--ion-color-primary-rgb), 0.14);
 }
 
 // select tag modal
@@ -244,3 +277,7 @@ ion-button:hover, ion-menu-button:hover, #robbot-name:hover {
 //   }
 // }
 
+
+svg-view {
+  width: 100%;
+}

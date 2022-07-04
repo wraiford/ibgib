@@ -21,6 +21,25 @@ export function ibSvg({
     }
 }
 
+export function ibGetDefs({
+    svg,
+}: {
+    svg: SVGElement,
+}): SVGDefsElement {
+    const lc = `[${ibGetDefs.name}]`;
+    try {
+        let defs: SVGDefsElement;
+        svg.childNodes.forEach(x => {
+            if (x.nodeName === 'defs') { defs = <SVGDefsElement>x; }
+        });
+        return defs ?? undefined;
+    } catch (error) {
+        debugger;
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
+
 export function ibGroup({
     parent,
     x, y,
