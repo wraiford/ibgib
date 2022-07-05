@@ -1,6 +1,7 @@
 import {
   Component, OnInit, OnDestroy,
-  ChangeDetectorRef, ChangeDetectionStrategy, Input, ViewChild} from '@angular/core';
+  ChangeDetectorRef, ChangeDetectionStrategy, Input, ViewChild
+} from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription, interval, Observable, Subject, fromEvent } from 'rxjs';
 import { ActionSheetOptionStyle, Capacitor, FilesystemDirectory, FilesystemEncoding, Plugins } from '@capacitor/core';
@@ -140,6 +141,9 @@ export class IbGibPage extends IbgibComponentBase
   @ViewChild('chatView')
   chatView: ChatViewComponent;
 
+  @ViewChild('chatViewHeart')
+  chatViewHeart: ChatViewComponent;
+
   /**
    * atow, this contains the robbot bar. So there are two containers
    * that must be scrolled to scroll to the bottom: this
@@ -153,6 +157,9 @@ export class IbGibPage extends IbgibComponentBase
 
   @Input()
   showModal_PromptForTag: boolean;
+
+  @Input()
+  chatViewRel8nNamesNoPics = c.DEFAULT_LIST_REL8N_NAMES.filter(x => x !== 'pic');
 
   constructor(
     protected common: CommonService,
@@ -212,7 +219,7 @@ export class IbGibPage extends IbgibComponentBase
       }
 
       // initialize/cleanup
-      statusId = this.addStatusText({text: 'updating ibgib...'})
+      statusId = this.addStatusText({ text: 'updating ibgib...' })
       this.stopPollLatest_Local();
       this.stopPollLatest_Store();
 
@@ -230,7 +237,7 @@ export class IbGibPage extends IbgibComponentBase
       // poll if there is a timeline/tjp involved
       if (this.tjp) {
         this.startPollLatest_Local();
-        this.autosync = this.common.ibgibs.autosyncIsEnabled({tjp: this.tjp});
+        this.autosync = this.common.ibgibs.autosyncIsEnabled({ tjp: this.tjp });
       } else {
         this.autosync = false;
       }
@@ -240,11 +247,11 @@ export class IbGibPage extends IbgibComponentBase
       this.updateIbGib_Paused();
 
       // trigger an initial ping to check for newer ibgibs
-      if (!this.paused && !this.ib.startsWith('bin.') && !isPrimitive({gib: this.gib})) {
+      if (!this.paused && !this.ib.startsWith('bin.') && !isPrimitive({ gib: this.gib })) {
         this.item.refreshing = true;
         setTimeout(async () => {
           await this.smallDelayToLoadBalanceUI();
-          await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjpIbGib: this.tjp, useCache: true});
+          await this.common.ibgibs.pingLatest_Local({ ibGib: this.ibGib, tjpIbGib: this.tjp, useCache: true });
         });
       }
 
@@ -257,7 +264,7 @@ export class IbGibPage extends IbgibComponentBase
       console.error(`${lc} error: ${error.message}`);
       this.clearItem();
     } finally {
-      this.removeStatusText({statusId});
+      this.removeStatusText({ statusId });
       this.ref.detectChanges();
       if (logalot) { console.log(`${lc} updated.`); }
     }
@@ -294,8 +301,8 @@ export class IbGibPage extends IbgibComponentBase
           if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 936911af9f942cbdde7de4bf65fef822)`); }
           await h.delay(50);
         }
-        const tagsIbGib = await this.common.ibgibs.getSpecialIbGib({type: "tags"});
-        let tagsAddr = h.getIbGibAddr({ibGib: tagsIbGib});
+        const tagsIbGib = await this.common.ibgibs.getSpecialIbGib({ type: "tags" });
+        let tagsAddr = h.getIbGibAddr({ ibGib: tagsIbGib });
         console.warn(`${lc} special url entered, so defaulting nav to tags ibGib (tagsAddr: ${tagsAddr}) (W: bcc8a669f4f44cbb837080615c3db51a)`);
         await this.go({ toAddr: tagsAddr, fromAddr: this.addr });
       }
@@ -328,7 +335,7 @@ export class IbGibPage extends IbgibComponentBase
       });
 
       if (!resConfirm) {
-        await alert({title: 'K', msg: 'Cancelled'});
+        await alert({ title: 'K', msg: 'Cancelled' });
         return; /* <<<< returns early */
       }
 
@@ -342,7 +349,7 @@ export class IbGibPage extends IbgibComponentBase
         data.filename ||
         await prompt({
           title: `file name?`,
-          msg: `What's the filename? ${data.filename ? `Leave blank to default to ${data.filename}`: ''}`,
+          msg: `What's the filename? ${data.filename ? `Leave blank to default to ${data.filename}` : ''}`,
         }) ||
         data.binHash;
 
@@ -366,7 +373,7 @@ export class IbGibPage extends IbgibComponentBase
       // check to see if file already exists existing file
       let path: string;
       let dirPath: string = `${c.IBGIB_BASE_SUBPATH}/${c.IBGIB_DOWNLOADED_PICS_SUBPATH}`;
-      await ensureDirPath({dirPath, directory});
+      await ensureDirPath({ dirPath, directory });
       let suffixNum: number = 0;
       let pathAlreadyExists: boolean;
       let attempts = 0;
@@ -391,13 +398,13 @@ export class IbGibPage extends IbgibComponentBase
       // string, but on my android testing this does not show the picture. I've
       // wasted enough time on this for now.
 
-      await writeFile({path, data: dataToWrite, directory: FilesystemDirectory.Documents});
+      await writeFile({ path, data: dataToWrite, directory: FilesystemDirectory.Documents });
 
       await h.delay(100); // so user can see visually that write happened
-      await getFnAlert()({title: 'file downloaded', msg: `Successfully downloaded to ${path} in ${directory}.`});
+      await getFnAlert()({ title: 'file downloaded', msg: `Successfully downloaded to ${path} in ${directory}.` });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-      await alert({title: 'download pic...', msg: `hmm, something went wrong. error: ${error.message}`});
+      await alert({ title: 'download pic...', msg: `hmm, something went wrong. error: ${error.message}` });
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
       this.downloadingPic = false;
@@ -436,8 +443,9 @@ export class IbGibPage extends IbgibComponentBase
     try {
       await Clipboard.write({ string: this.addr });
 
-      await alert({title: 'ibgib address copied', msg:
-        `Copied to clipboard!
+      await alert({
+        title: 'ibgib address copied', msg:
+          `Copied to clipboard!
 
         "${this.addr}"
 
@@ -445,7 +453,7 @@ export class IbGibPage extends IbgibComponentBase
         `
       });
     } catch (error) {
-      await alert({title: 'ibgib address copied', msg: `clipboard failed...`});
+      await alert({ title: 'ibgib address copied', msg: `clipboard failed...` });
     }
   }
 
@@ -458,7 +466,7 @@ export class IbGibPage extends IbgibComponentBase
       if (logalot) { console.log(`${lc} starting...`); }
 
       this.robbotBarIsVisible = !this.robbotBarIsVisible;
-      await Storage.set({key: c.SIMPLE_CONFIG_KEY_ROBBOT_VISIBLE, value: this.robbotBarIsVisible ? 'true' : 'false'});
+      await Storage.set({ key: c.SIMPLE_CONFIG_KEY_ROBBOT_VISIBLE, value: this.robbotBarIsVisible ? 'true' : 'false' });
       setTimeout(() => this.ref.detectChanges());
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -477,10 +485,10 @@ export class IbGibPage extends IbgibComponentBase
       if (robbot) {
         await Storage.set({
           key: c.SIMPLE_CONFIG_KEY_ROBBOT_SELECTED_ADDR,
-          value: h.getIbGibAddr({ibGib: robbot}),
+          value: h.getIbGibAddr({ ibGib: robbot }),
         })
       } else {
-        await Storage.remove({key: c.SIMPLE_CONFIG_KEY_ROBBOT_SELECTED_ADDR});
+        await Storage.remove({ key: c.SIMPLE_CONFIG_KEY_ROBBOT_SELECTED_ADDR });
       }
 
     } catch (error) {
@@ -494,14 +502,14 @@ export class IbGibPage extends IbgibComponentBase
   async handleSpaceClick(): Promise<void> {
     if (!this.autosync) {
       // autosync is not set yet, so prompt to turn it on and sync
-      await this.execSync({turnOnAutosyncing: true});
+      await this.execSync({ turnOnAutosyncing: true });
     } else {
       // no updates and autosync is already on, so prompt to disable autosyncing
       await this.handleSyncClick_DisableAutoSyncing();
     }
   }
   async handleSyncClick(): Promise<void> {
-    await this.execSync({turnOnAutosyncing: false});
+    await this.execSync({ turnOnAutosyncing: false });
   }
 
   async handleSyncClick_DisableAutoSyncing(): Promise<void> {
@@ -513,7 +521,7 @@ export class IbGibPage extends IbgibComponentBase
       if (!this.tjp) {
         await this.loadTjp();
         if (!this.tjp) {
-          await Modals.alert({title: `No timeline`, message: `Hmm, we can't turn off syncing because this ibgib does not have a timeline to sync. We shouldn't have even asked you to stop syncing! Sorry about that.`});
+          await Modals.alert({ title: `No timeline`, message: `Hmm, we can't turn off syncing because this ibgib does not have a timeline to sync. We shouldn't have even asked you to stop syncing! Sorry about that.` });
           throw new Error(`tried to turn off syncing for non-tjp ibgib (E: 50f8354976e3ae3867126e7d02b34d22)`);
         }
       }
@@ -534,10 +542,10 @@ export class IbGibPage extends IbgibComponentBase
         const tjpIbGibs =
           Object.values(dependencyGraph).filter(x => x.data.isTjp);
 
-        await this.common.ibgibs.disableAutosync({tjpIbGibs});
+        await this.common.ibgibs.disableAutosync({ tjpIbGibs });
       } else {
         if (logalot) { console.log(`${lc} disable autosync cancelled. continuing to sync. (I: 61b9de6368cc45ef6825d831f6628722)`); }
-        await Modals.alert({title: `Cancelled`, message: `Turn OFF autosync CANCELLED.`});
+        await Modals.alert({ title: `Cancelled`, message: `Turn OFF autosync CANCELLED.` });
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -587,7 +595,7 @@ export class IbGibPage extends IbgibComponentBase
 
       // sync requires the entire dependency graph of the current ibgib
       const dependencyGraph =
-        await this.common.ibgibs.getDependencyGraph({ibGib: this.ibGib, live: true, space: null});
+        await this.common.ibgibs.getDependencyGraph({ ibGib: this.ibGib, live: true, space: null });
 
       // pull out the tjp ibgibs, for which we will turn on autosync
       const tjpIbGibs =
@@ -605,7 +613,7 @@ export class IbGibPage extends IbgibComponentBase
           message: `${body}\n\nProceed?\n\n${note}\n\n${listTjpIbs}`,
         });
         if (!resConfirmSync.value) {
-          await Modals.alert({title: 'Sync cancelled.', message: 'Sync has been cancelled.'});
+          await Modals.alert({ title: 'Sync cancelled.', message: 'Sync has been cancelled.' });
           this.item.syncing = false;
           setTimeout(() => this.ref.detectChanges());
           setTimeout(() => this.ref.detectChanges());
@@ -617,7 +625,7 @@ export class IbGibPage extends IbgibComponentBase
 
         // enable autosync for regardless of first-run success, but do not start
         // polling or turn on this.autosync until success
-        await this.common.ibgibs.enableAutosync({tjpIbGibs});
+        await this.common.ibgibs.enableAutosync({ tjpIbGibs });
       }
 
       // initiate syncing
@@ -634,22 +642,22 @@ export class IbGibPage extends IbgibComponentBase
               // do nothing atm as this is handled in ibgibs.service
               if (logalot) { console.log(`${lc} status update, code: ${status?.data?.statusCode} (I: 1d26927edd789353bf9350f436d29922)`); }
             },
-            error => {
-              const emsg = typeof error === 'string' ?
-                `${lc} Sync failed: ${error}` :
-                `${lc} Sync failed: ${error?.message ?? 'some error(?) (UNEXPECTED)'}`;
-              console.error(emsg);
-              reject(new Error(emsg));
-            },
-            () => {
-              if (logalot) { console.log(`${lc} syncStatus$ complete handler (I: 7a99f3f44476e0b46892e53cc39d8322)`); }
-              sagaCompleteOrErroredCount++;
-              if (sagaCompleteOrErroredCount === sagaInfos.length) {
-                this.item.syncing = false;
-                setTimeout(() => { this.ref.detectChanges(); })
-                resolve();
-              }
-            });
+              error => {
+                const emsg = typeof error === 'string' ?
+                  `${lc} Sync failed: ${error}` :
+                  `${lc} Sync failed: ${error?.message ?? 'some error(?) (UNEXPECTED)'}`;
+                console.error(emsg);
+                reject(new Error(emsg));
+              },
+              () => {
+                if (logalot) { console.log(`${lc} syncStatus$ complete handler (I: 7a99f3f44476e0b46892e53cc39d8322)`); }
+                sagaCompleteOrErroredCount++;
+                if (sagaCompleteOrErroredCount === sagaInfos.length) {
+                  this.item.syncing = false;
+                  setTimeout(() => { this.ref.detectChanges(); })
+                  resolve();
+                }
+              });
           }
         });
       } else {
@@ -679,7 +687,7 @@ export class IbGibPage extends IbgibComponentBase
     const lc = `${this.lc}[${this.handleRefreshClick.name}]`;
     try {
       if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
-      if (isPrimitive({ibGib: this.ibGib})) {
+      if (isPrimitive({ ibGib: this.ibGib })) {
         if (logalot) { console.log(`${lc} refresh clicked for primitive. returning early. (I: af3e72b0a6288fd815a30f251f943f22)`); }
         return; /* <<<< returns early */
       }
@@ -696,7 +704,7 @@ export class IbGibPage extends IbgibComponentBase
         });
       }
       if (this.item) { this.item.refreshing = true; }
-      await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjpIbGib: this.tjp, useCache: false});
+      await this.common.ibgibs.pingLatest_Local({ ibGib: this.ibGib, tjpIbGib: this.tjp, useCache: false });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     }
@@ -830,7 +838,7 @@ export class IbGibPage extends IbgibComponentBase
 
       // robbot bar visibility
       this.robbotBarIsVisible =
-        (await Storage.get({key: c.SIMPLE_CONFIG_KEY_ROBBOT_VISIBLE}))?.value === 'true' ?? false;
+        (await Storage.get({ key: c.SIMPLE_CONFIG_KEY_ROBBOT_VISIBLE }))?.value === 'true' ?? false;
 
       // which robbot was selected last
       const selectedAddrSetting =
@@ -848,10 +856,11 @@ export class IbGibPage extends IbgibComponentBase
   }
 
   // #endregion scrolling
+
   async showFullscreenModal(): Promise<void> {
     const lc = `${this.lc}[${this.showFullscreenModal.name}]`;
     try {
-      const addr = h.getIbGibAddr({ibGib: this.ibGib});
+      const addr = h.getIbGibAddr({ ibGib: this.ibGib });
       const modal = await this.common.modalController.create({
         component: IbgibFullscreenModalComponent,
         componentProps: {
@@ -897,7 +906,7 @@ export class IbGibPage extends IbgibComponentBase
       return; /* <<<< returns early */
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-      await Modals.alert({title: 'something went awry...', message: error.message});
+      await Modals.alert({ title: 'something went awry...', message: error.message });
     } finally {
       this.ref.detectChanges();
     }
@@ -914,14 +923,14 @@ export class IbGibPage extends IbgibComponentBase
 
       const rel8nsToAddByAddr = { [c.TAGGED_REL8N_NAME]: [this.addr] };
       const resRel8ToTag =
-        await V1.rel8({src: tagIbGib, rel8nsToAddByAddr, dna: true, nCounter: true});
-      await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToTag});
+        await V1.rel8({ src: tagIbGib, rel8nsToAddByAddr, dna: true, nCounter: true });
+      await this.common.ibgibs.persistTransformResult({ resTransform: resRel8ToTag });
       const { newIbGib: newTag } = resRel8ToTag;
-      await this.common.ibgibs.rel8ToCurrentRoot({ibGib: newTag, linked: true});
-      await this.common.ibgibs.registerNewIbGib({ibGib: newTag});
+      await this.common.ibgibs.rel8ToCurrentRoot({ ibGib: newTag, linked: true });
+      await this.common.ibgibs.registerNewIbGib({ ibGib: newTag });
 
       if (logalot) { console.log(`${lc} tag successful.`); }
-      await Modals.alert({title: 'yess', message: `Tagged.`});
+      await Modals.alert({ title: 'yess', message: `Tagged.` });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -939,15 +948,15 @@ export class IbGibPage extends IbgibComponentBase
       setTimeout(() => this.ref.detectChanges());
 
       if (logalot) { console.log(`${lc} tag with existing tag, but may not be latest addr`); }
-      const rel8dTagIbGibAddr = h.getIbGibAddr({ibGib: tagIbGib});
+      const rel8dTagIbGibAddr = h.getIbGibAddr({ ibGib: tagIbGib });
       if (logalot) { console.log(`${lc} the rel8d tag may not be the latest: ${rel8dTagIbGibAddr}`); }
-      const latestTagAddr = await this.common.ibgibs.getLatestAddr({ibGib: tagIbGib});
+      const latestTagAddr = await this.common.ibgibs.getLatestAddr({ ibGib: tagIbGib });
       if (logalot) { console.log(`${lc} latestTagAddr: ${latestTagAddr}`); }
       if (rel8dTagIbGibAddr === latestTagAddr) {
         if (logalot) { console.log(`${lc} tag is already the latest (I: b98f190c9d6bc2f5575606ad0b7ff122)`); }
       } else {
         if (logalot) { console.log(`${lc} tag is NOT the latest (I: 1a8d0849cdb5b0fc652529146d81db22)`); }
-        const resTagIbGibLatest = await this.common.ibgibs.get({addr: latestTagAddr});
+        const resTagIbGibLatest = await this.common.ibgibs.get({ addr: latestTagAddr });
         if (resTagIbGibLatest.success && resTagIbGibLatest.ibGibs?.length === 1) {
           if (logalot) { console.log(`${lc} tag is NOT the latest and we got a new ibgib (I: 9391166b53577630697da4ff810b1b22)`); }
           tagIbGib = <TagIbGib_V1>resTagIbGibLatest.ibGibs![0];
@@ -1021,8 +1030,8 @@ export class IbGibPage extends IbgibComponentBase
       // let info = JSON.stringify(this.ibGib_Context, null, 2);
       // let addr = h.getIbGibAddr({ibGib: this.ibGib_Context});
       let info = JSON.stringify(this.ibGib, null, 2);
-      let addr = h.getIbGibAddr({ibGib: this.ibGib});
-      await Modals.alert({title: addr, message: info});
+      let addr = h.getIbGibAddr({ ibGib: this.ibGib });
+      await Modals.alert({ title: addr, message: info });
       console.log(info);
     } catch (error) {
       console.error(`${lc} ${error.message}`)
@@ -1077,10 +1086,10 @@ export class IbGibPage extends IbgibComponentBase
       if (this.tjpAddr) {
         if (logalot) { console.log(`${lc} this.tjpAddr: ${this.tjpAddr}`); }
         const latestAddr =
-          await this.common.ibgibs.getLatestAddr({tjpAddr: this.tjpAddr});
+          await this.common.ibgibs.getLatestAddr({ tjpAddr: this.tjpAddr });
         if (latestAddr !== this.addr) {
           if (logalot) { console.log(`${lc} there is a new latest addr: ${latestAddr}`); }
-          const resLatestIbGib = await this.common.ibgibs.get({addr: latestAddr});
+          const resLatestIbGib = await this.common.ibgibs.get({ addr: latestAddr });
           if (resLatestIbGib.success && resLatestIbGib.ibGibs?.length > 0) {
             const latestIbGib = resLatestIbGib.ibGibs[0];
             const currentPastLength = this.ibGib.rel8ns?.past?.length ?? 0;
@@ -1134,10 +1143,10 @@ export class IbGibPage extends IbgibComponentBase
         if (logalot) { console.log(`${lc} subscribing to polling... (I: ec9ddb3d270d4cc3a9a94dd3bf4bf952)`); }
         this._subPollLatest_Store =
           interval(c.DEFAULT_OUTER_SPACE_POLLING_INTERVAL_MS).pipe(
-          // interval(15_000).pipe( // for debugging only!!!! DO NOT PUT IN PRODUCTION
+            // interval(15_000).pipe( // for debugging only!!!! DO NOT PUT IN PRODUCTION
             concatMap(async (_) => { await this.execPollLatest_Store(); })
           ).subscribe();
-      // }, 5_000); // for debugging only!!!! DO NOT PUT IN PRODUCTION
+        // }, 5_000); // for debugging only!!!! DO NOT PUT IN PRODUCTION
       }, c.DEFAULT_OUTER_SPACE_POLLING_DELAY_FIRST_RUN_MS);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -1196,7 +1205,7 @@ export class IbGibPage extends IbgibComponentBase
           // the space
           syncSpace,
           // the promise
-          this.common.ibgibs.getLatestAddr({tjpAddr: this.tjpAddr, space: syncSpace}),
+          this.common.ibgibs.getLatestAddr({ tjpAddr: this.tjpAddr, space: syncSpace }),
         ];
       });
       /** This will track the updates across all sync spaces. */
@@ -1216,7 +1225,7 @@ export class IbGibPage extends IbgibComponentBase
             // get the latest but don't save it, we're just going to see how many
             // iterations we're behind.
             const resLatestIbGib =
-              await this.common.ibgibs.get({addr: latestAddr, space: syncSpace});
+              await this.common.ibgibs.get({ addr: latestAddr, space: syncSpace });
             if (resLatestIbGib.success && resLatestIbGib.ibGibs?.length > 0) {
               const latestIbGib = resLatestIbGib.ibGibs[0];
               const currentPastLength = this.ibGib.rel8ns?.past?.length ?? 0;
@@ -1229,7 +1238,7 @@ export class IbGibPage extends IbgibComponentBase
                 if (this.autosync) {
                   if (!this.syncing) {
                     if (logalot) { console.log(`${lc} starting execSync automatically because local is newer than store latest ibgib... (I: d92f5c7a9bec749c4b4bd1b61a4a3e22)`); }
-                    await this.execSync({turnOnAutosyncing: false});
+                    await this.execSync({ turnOnAutosyncing: false });
                     if (logalot) { console.log(`${lc} executed sync, so aborting this poll call. (I: 9aa1a4dcba06bb6eee7db686a31ce822)`); }
                   } else {
                     if (logalot) { console.log(`${lc} local latestIbGib is newer than store, but already syncing in progress... (I: 029f69c149d614fb26412696efbcd122)`); }
@@ -1253,7 +1262,7 @@ export class IbGibPage extends IbgibComponentBase
       }
       if (runningDiffCountAcrossAllSpaces > 0) {
         if (this.autosync) {
-          await this.execSync({turnOnAutosyncing: false});
+          await this.execSync({ turnOnAutosyncing: false });
         } else {
           this.tjpUpdatesAvailableCount_Store = runningDiffCountAcrossAllSpaces;
           if (this.tjpUpdatesAvailableCount_Store > 0) {

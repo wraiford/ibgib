@@ -1,5 +1,5 @@
 import {
-    OnInit, OnDestroy, Input, ChangeDetectorRef, Injectable,
+    OnInit, OnDestroy, Input, ChangeDetectorRef, Injectable, Directive,
 } from '@angular/core';
 import { Subscription } from 'rxjs';
 
@@ -19,7 +19,8 @@ import { IbGibItem, IbGibTimelineUpdateInfo } from '../types/ux';
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
-@Injectable()
+// @Injectable()
+@Directive()
 export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     implements OnInit, OnDestroy {
 

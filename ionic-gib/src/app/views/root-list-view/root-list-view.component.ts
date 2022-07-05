@@ -29,7 +29,7 @@ export class RootListViewComponent
 
   @Input()
   get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
-  set ibGib_Context(value: IbGib_V1 ) { super.ibGib_Context = value; }
+  set ibGib_Context(value: IbGib_V1) { super.ibGib_Context = value; }
 
   constructor(
     protected common: CommonService,
@@ -38,6 +38,7 @@ export class RootListViewComponent
     super(common, ref);
     const lc = `${this.lc}[ctor]`
     console.log(`${lc} created`);
+    this.rel8nNames = [c.ROOT_REL8N_NAME, c.DEFAULT_ROOT_REL8N_NAME, ...c.DEFAULT_LIST_REL8N_NAMES];
   }
 
   async ngOnInit(): Promise<void> {
@@ -50,15 +51,6 @@ export class RootListViewComponent
     return super.updateIbGib(addr);
   }
 
-
-  async updateItems(): Promise<void> {
-    this.rel8nNames = [c.ROOT_REL8N_NAME, c.DEFAULT_ROOT_REL8N_NAME, ...c.DEFAULT_LIST_REL8N_NAMES];
-    await super.updateItems();
-    // setTimeout(() => {
-    //   this.ref.detectChanges();
-    // }, 1000);
-  }
-
   async rootClicked(item: IbGibItem): Promise<void> {
     const lc = `${this.lc}[${this.rootClicked.name}]`;
     try {
@@ -66,7 +58,7 @@ export class RootListViewComponent
       if (logalot) { console.log(`${lc} item: ${JSON.stringify(item, null, 2)}`); }
       await this.go({
         toAddr: item.addr,
-        fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
+        fromAddr: h.getIbGibAddr({ ibGib: this.ibGib_Context }),
       });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -75,4 +67,5 @@ export class RootListViewComponent
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
+
 }

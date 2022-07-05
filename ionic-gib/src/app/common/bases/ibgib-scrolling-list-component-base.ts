@@ -1,6 +1,6 @@
 import {
     OnInit, OnDestroy, Input, ChangeDetectorRef, Output,
-    EventEmitter, ViewChild,
+    EventEmitter, ViewChild, Directive,
 } from '@angular/core';
 import { Injectable } from '@angular/core';
 
@@ -21,7 +21,8 @@ import { IbgibListComponentBase } from './ibgib-list-component-base';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
-@Injectable({ providedIn: "root" })
+// @Injectable({ providedIn: "root" })
+@Directive()
 export abstract class IbgibScrollingListComponentBase<TItem extends IbgibListItem = IbgibListItem>
     extends IbgibListComponentBase<TItem>
     implements OnInit, OnDestroy {
@@ -39,8 +40,8 @@ export abstract class IbgibScrollingListComponentBase<TItem extends IbgibListIte
     @Input()
     items: TItem[] = [];
 
-    @Input()
-    rel8nNames: string[] = c.DEFAULT_LIST_REL8N_NAMES;
+    // @Input()
+    // rel8nNames: string[] = c.DEFAULT_LIST_REL8N_NAMES;
 
     /**
      * How many items we're going to be adding when doing differential udpate.
@@ -123,10 +124,10 @@ export abstract class IbgibScrollingListComponentBase<TItem extends IbgibListIte
          */
         scrollAfter?: boolean,
     } = {
-        reloadAll: false,
-        direction: 'append',
-        scrollAfter: true,
-    }): Promise<void> {
+            reloadAll: false,
+            direction: 'append',
+            scrollAfter: true,
+        }): Promise<void> {
         const lc = `${this.lc}[${this.updateItems.name}]`;
         if (logalot) { console.log(`${lc} updating...`); }
         let updatingCheckCount = 0;
@@ -156,7 +157,7 @@ export abstract class IbgibScrollingListComponentBase<TItem extends IbgibListIte
         try {
             if (logalot) { console.log(`${lc}${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
 
-            await super.updateItems({reloadAll, direction, scrollAfter});
+            await super.updateItems({ reloadAll, direction, scrollAfter });
 
             if (logalot) { console.log(`${lc} this.items count: ${this.items.length}`); }
         } catch (error) {

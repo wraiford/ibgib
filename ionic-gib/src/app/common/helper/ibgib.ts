@@ -72,7 +72,7 @@ export async function constantIbGib<
         // validation
         // parentPrimitiveIb
         if (!parentPrimitiveIb) { throw new Error(`parentPrimitiveIb required. (E: 88ddf188cc5a4340b597abefba1481e2)`); }
-        if (validateIb({ib: parentPrimitiveIb}) !== null) { throw new Error(`Invalid parentPrimitiveIb: ${parentPrimitiveIb}. (E:5aec0320956d492ebeeaca41eb1fe1c6)`); }
+        if (validateIb({ ib: parentPrimitiveIb }) !== null) { throw new Error(`Invalid parentPrimitiveIb: ${parentPrimitiveIb}. (E:5aec0320956d492ebeeaca41eb1fe1c6)`); }
 
         // ib
         if (!ib) { throw new Error(`ib required. (E: 7bbc88f4f2e842d6b00126e55b1783e4)`); }
@@ -92,7 +92,7 @@ export async function constantIbGib<
         // create the constant
         const resFirstGen = await factory.firstGen({
             ib,
-            parentIbGib: factory.primitive({ib: parentPrimitiveIb}),
+            parentIbGib: factory.primitive({ ib: parentPrimitiveIb }),
             data,
             rel8ns,
             dna: false,
@@ -133,14 +133,14 @@ export async function constantIbGib<
  *
  * @returns string in expected template for binaries in this app.
  */
-export function getBinIb({binHash, binExt}: {binHash: string, binExt: string}): IbGibAddr {
+export function getBinIb({ binHash, binExt }: { binHash: string, binExt: string }): IbGibAddr {
     return `bin ${binHash} ${binExt}`;
 }
-export function getBinHashAndExt({addr}: {addr: IbGibAddr}): { binHash: string, binExt: string } {
+export function getBinHashAndExt({ addr }: { addr: IbGibAddr }): { binHash: string, binExt: string } {
     const lc = `[${getBinHashAndExt.name}]`;
     try {
-        if (!isBinary({addr})) { throw new Error(`not a bin address (E: df0804d129bc4888bd6939cb76c5e0f6)`); }
-        const { ib } = h.getIbAndGib({ibGibAddr: addr});
+        if (!isBinary({ addr })) { throw new Error(`not a bin address (E: df0804d129bc4888bd6939cb76c5e0f6)`); }
+        const { ib } = h.getIbAndGib({ ibGibAddr: addr });
         const ibPieces = ib.split(' ');
         const binHash = ibPieces[1];
         const binExt = ibPieces[2];
@@ -162,8 +162,8 @@ export function isBinary({
     try {
         // probably overkill here, but...
         if (!ibGib && !addr) { throw new Error(`either ibGib or addr required. (E: c935b51e773f41a2a547c556e9dc16c6)`); }
-        addr = addr || h.getIbGibAddr({ibGib});
-        const {ib,gib} = h.getIbAndGib({ibGibAddr: addr});
+        addr = addr || h.getIbGibAddr({ ibGib });
+        const { ib, gib } = h.getIbAndGib({ ibGibAddr: addr });
         if (!ib) { return false; }
         if (!gib) { return false; }
         if (!ib.startsWith('bin ')) { return false; }
@@ -192,7 +192,7 @@ export async function hash16816({
     try {
         let hash: string;
         for (let i = 0; i < 168; i++) {
-            hash = await h.hash({s, algorithm});
+            hash = await h.hash({ s, algorithm });
         }
         return hash.slice(0, 16);
     } catch (error) {
@@ -201,17 +201,17 @@ export async function hash16816({
     }
 }
 
-export function getSpecialIbGibIb({type}: {type: SpecialIbGibType}): Ib {
+export function getSpecialIbGibIb({ type }: { type: SpecialIbGibType }): Ib {
     return `meta special ${type}`;
 }
 
-export function getSpecialIbGibAddr({type}: {type: SpecialIbGibType}): string {
-    const ib = getSpecialIbGibIb({type});
+export function getSpecialIbGibAddr({ type }: { type: SpecialIbGibType }): string {
+    const ib = getSpecialIbGibIb({ type });
     return `${ib}^${GIB}`;
 }
 
-export function getSpecialConfigKey({type}: {type: SpecialIbGibType}): string {
-    return `config_key ${getSpecialIbGibAddr({type})}`;
+export function getSpecialConfigKey({ type }: { type: SpecialIbGibType }): string {
+    return `config_key ${getSpecialIbGibAddr({ type })}`;
 }
 
 /**
@@ -221,7 +221,7 @@ export function getSpecialConfigKey({type}: {type: SpecialIbGibType}): string {
  */
 export function getRootIb(rootText: string): string {
     const lc = `[${getRootIb.name}]`;
-    if (!rootText) { throw new Error(`${lc} text required.`)}
+    if (!rootText) { throw new Error(`${lc} text required.`) }
     return `root ${rootText}`;
 }
 
@@ -235,7 +235,7 @@ export function getRootIb(rootText: string): string {
  */
 export function tagTextToIb(tagText: string): string {
     const lc = `[${tagTextToIb.name}]`;
-    if (!tagText) { throw new Error(`${lc} tag required.`)}
+    if (!tagText) { throw new Error(`${lc} tag required.`) }
     return `tag ${tagText}`;
 }
 
@@ -280,7 +280,7 @@ export function splitPerTjpAndOrDna({
             ibGibs.filter(ibGib => ibGib.gib ?? ibGib.gib !== GIB) :
             ibGibs;
         ibGibsTodo.forEach(ibGib => {
-            if (hasTjp({ibGib}) ) {
+            if (hasTjp({ ibGib })) {
                 if ((ibGib.rel8ns?.dna ?? []).length > 0) {
                     mapWithTjp_YesDna[ibGib.gib] = ibGib;
                 } else {
@@ -290,7 +290,7 @@ export function splitPerTjpAndOrDna({
                 mapWithoutTjps[ibGib.gib] = ibGib;
             }
         });
-        return {mapWithTjp_YesDna, mapWithTjp_NoDna, mapWithoutTjps};
+        return { mapWithTjp_YesDna, mapWithTjp_NoDna, mapWithoutTjps };
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -319,20 +319,20 @@ export function getTimelinesGroupedByTjp({
      * group of source ibGibs to filter/group/sort by tjp.
      */
     ibGibs: IbGib_V1[],
-}): { [tjpAddr: string] : IbGib_V1[] } {
+}): { [tjpAddr: string]: IbGib_V1[] } {
     const lc = `[${getTimelinesGroupedByTjp.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting...`); }
 
         // pull out only the ibgibs in timelines (either is tjp or has tjp)
-        let {mapWithTjp_YesDna, mapWithTjp_NoDna} =
-            splitPerTjpAndOrDna({ibGibs, filterPrimitives: true});
+        let { mapWithTjp_YesDna, mapWithTjp_NoDna } =
+            splitPerTjpAndOrDna({ ibGibs, filterPrimitives: true });
         const mapIbGibsWithTjp = { ...mapWithTjp_YesDna, ...mapWithTjp_NoDna };
         const ibGibsWithTjp = Object.values(mapIbGibsWithTjp);
 
         const mapTjpTimelines_Ascending = groupBy({
             items: ibGibsWithTjp,
-            keyFn: x => x.data.isTjp ? h.getIbGibAddr({ibGib: x}) : x.rel8ns.tjp[0]
+            keyFn: x => x.data.isTjp ? h.getIbGibAddr({ ibGib: x }) : x.rel8ns.tjp[0]
         });
 
         if (logalot) { console.log(`${lc} sorting (ascending) ibGibsWithTjpGroupedByTjpAddr: ${h.pretty(mapTjpTimelines_Ascending)} (I: 9b9fff5ce61444a6cb06d62db9a99422)`); }
@@ -377,7 +377,7 @@ export function getTimelinesGroupedByTjp({
  *
  * @returns true if the ibGib has/is a tjp, else false
  */
-export function hasTjp({ibGib}: {ibGib: IbGib_V1}): boolean {
+export function hasTjp({ ibGib }: { ibGib: IbGib_V1 }): boolean {
     const lc = `[${hasTjp.name}]`;
 
     if (!ibGib) {
@@ -411,11 +411,11 @@ export function hasTjp({ibGib}: {ibGib: IbGib_V1}): boolean {
     // use more expensive getGibInfo call.
     // could possibly just return false at this point, but since gib info
     // would change if we change our standards for gib, this is nicer.
-    const gibInfo = getGibInfo({ibGibAddr: h.getIbGibAddr({ibGib})});
+    const gibInfo = getGibInfo({ ibGibAddr: h.getIbGibAddr({ ibGib }) });
     return gibInfo.tjpGib ? true : false;
 }
 
-export function hasDna({ibGib}: {ibGib: IbGib_V1}): boolean {
+export function hasDna({ ibGib }: { ibGib: IbGib_V1 }): boolean {
     const lc = `[${hasDna.name}]`;
 
     if (!ibGib) {
@@ -437,14 +437,14 @@ export function getTjpAddrs({
         let tjpIbGibsByTjpGib =
             groupBy({
                 items: ibGibs,
-                keyFn: x => x.data!.isTjp ?  x.gib : getGibInfo({gib: x.gib}).tjpGib,
+                keyFn: x => x.data!.isTjp ? x.gib : getGibInfo({ gib: x.gib }).tjpGib,
             });
         let tjpAddrs: IbGibAddr[] = [];
         Object.keys(tjpIbGibsByTjpGib).forEach(tjpGib => {
             let groupIbGibs = tjpIbGibsByTjpGib[tjpGib]; // guaranteed to be at least one member
             let x = groupIbGibs[0];
-            let tjpAddr = x.data.isTjp ?
-                h.getIbGibAddr({ibGib: x}) :
+            let tjpAddr = x.data.isTjp || (x.rel8ns?.tjp ?? []).length === 0 ?
+                h.getIbGibAddr({ ibGib: x }) :
                 x.rel8ns.tjp[x.rel8ns.tjp.length - 1];
             tjpAddrs.push(tjpAddr);
         });
@@ -469,7 +469,7 @@ export function getTjpAddrs({
  * specific about mergers, we can always rel8 a merge strategy ibgib to be
  * referred to when performing merger.
  */
-export function mergeMapsOrArrays_Naive<T extends {}|any[]>({
+export function mergeMapsOrArrays_Naive<T extends {} | any[]>({
     dominant,
     recessive,
 }: {
@@ -491,7 +491,7 @@ export function mergeMapsOrArrays_Naive<T extends {}|any[]>({
             let output: any[] = <any[]>h.clone(<any[]>dominant);
             let warned = false;
             (<[]>recessive).forEach((recessiveItem: any) => {
-                if (typeof(recessiveItem) === 'string') {
+                if (typeof (recessiveItem) === 'string') {
                     if (!output.includes(recessiveItem)) { output.push(recessiveItem); }
                 } else {
                     if (!warned) {
@@ -507,7 +507,7 @@ export function mergeMapsOrArrays_Naive<T extends {}|any[]>({
                 }
             });
             return <T>output;
-        } else if (typeof(dominant) === 'object' && typeof(recessive) === 'object') {
+        } else if (typeof (dominant) === 'object' && typeof (recessive) === 'object') {
             // maps
             let output: {} = {};
             let dominantKeys = Object.keys(dominant);
@@ -523,8 +523,8 @@ export function mergeMapsOrArrays_Naive<T extends {}|any[]>({
                             recessive: recessive[key],
                         });
                     } else if (
-                        !!dominant[key] && !Array.isArray(dominant[key]) && typeof(dominant[key]) === 'object' &&
-                        !!recessive[key] && !!Array.isArray(recessive[key]) && typeof(recessive[key]) === 'object'
+                        !!dominant[key] && !Array.isArray(dominant[key]) && typeof (dominant[key]) === 'object' &&
+                        !!recessive[key] && !!Array.isArray(recessive[key]) && typeof (recessive[key]) === 'object'
                     ) {
                         // recursive call if both objects
                         output[key] = mergeMapsOrArrays_Naive<{}>({

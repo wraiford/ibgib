@@ -33,7 +33,18 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
 
   @Input()
   get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
-  set ibGib_Context(value: IbGib_V1 ) { super.ibGib_Context = value; }
+  set ibGib_Context(value: IbGib_V1) { super.ibGib_Context = value; }
+
+  // set rel8nNames(value: string[]) {
+  //   const lc = `${this.lc}[set rel8nNames]`;
+  //   if (logalot) { console.log(`${lc} value: ${value} (I: bfd0a0312c2c414d99414d2163b227a7)`); }
+  //   this._rel8nNames = value;
+  // }
+  // /**
+  //  * should determine which rel8ns are showed by the list component.
+  //  */
+  // @Input()
+  // get rel8nNames(): string[] { return this._rel8nNames; }
 
   @Output()
   scroll: EventEmitter<ScrollBaseCustomEvent> = new EventEmitter();
@@ -73,40 +84,6 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
     }
   }
 
-  async updateItems(): Promise<void> {
-    const lc = `${this.lc}[${this.updateItems.name}]`;
-    try {
-      this.rel8nNames = [...c.DEFAULT_LIST_REL8N_NAMES];
-      await super.updateItems();
-
-      // // hack for demo purposes
-      // let scrollDelayMs: number;
-      // const platform = Capacitor.getPlatform();
-      // switch (platform) {
-      //   case 'android':
-      //     scrollDelayMs = c.DEFAULT_SCROLL_DELAY_MS_ANDROID_HACK;
-      //     break;
-      //   case 'ios':
-      //     scrollDelayMs = c.DEFAULT_SCROLL_DELAY_MS_IOS_HACK;
-      //     break;
-      //   default:
-      //     scrollDelayMs = c.DEFAULT_SCROLL_DELAY_MS_WEB_HACK;
-      //     break;
-      // }
-      // setTimeout(() => { this.scrollToBottom(); });
-      // setTimeout(() => { this.scrollToBottom(); }, Math.floor(scrollDelayMs/4));
-      // setTimeout(() => { this.scrollToBottom(); }, Math.floor(scrollDelayMs/3));
-      // setTimeout(() => { this.scrollToBottom(); }, Math.floor(scrollDelayMs/2));
-      // setTimeout(() => { this.scrollToBottom(); }, scrollDelayMs);
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      // throw error; // don't rethrow atm
-    } finally {
-      setTimeout(() => this.ref.detectChanges());
-    }
-
-  }
-
   async itemClicked(item: IbGibItem): Promise<void> {
     const lc = `${this.lc}[${this.itemClicked.name}]`;
     try {
@@ -114,7 +91,7 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
       await this.go({
         toAddr: item.addr,
-        fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
+        fromAddr: h.getIbGibAddr({ ibGib: this.ibGib_Context }),
       });
     } catch (error) {
       console.error(`${lc} ${error.message}`);

@@ -31,13 +31,7 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
 
   @Input()
   get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
-  set ibGib_Context(value: IbGib_V1 ) { super.ibGib_Context = value; }
-
-  /**
-   * Rel8n names to show in the list by default.
-   */
-  @Input()
-  rel8nNames: string[] = c.DEFAULT_LIST_REL8N_NAMES;
+  set ibGib_Context(value: IbGib_V1) { super.ibGib_Context = value; }
 
   @Output()
   clicked: EventEmitter<IbGibItem> = new EventEmitter();

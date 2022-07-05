@@ -120,8 +120,15 @@
     <chat-view #chatView *ngIf='!(isTags || isRoots) && !showHeart' [addr]='addr' [ibGib_Context]='ibGib'
       (scroll)="scrollSubject.next($event)" (chatItemsAdded)="handleChatItemsAdded()">
     </chat-view>
-    <svg-view #ibgibpageSvgView *ngIf='!(isTags || isRoots) && showHeart' [addr]='addr' [ibGib_Context]='ibGib'>
-    </svg-view>
+    <div id="heart-div" *ngIf='!(isTags || isRoots) && showHeart'>
+      <!-- show pics in svg view -->
+      <svg-view #ibgibpageSvgView [addr]='addr' [ibGib_Context]='ibGib'>
+      </svg-view>
+      <!-- everything else linear chat -->
+      <chat-view #chatViewHeart [addr]='addr' [ibGib_Context]='ibGib' [rel8nNames]="chatViewRel8nNamesNoPics"
+        (scroll)="scrollSubject.next($event)" (chatItemsAdded)="handleChatItemsAdded()">
+      </chat-view>
+    </div>
 
     <ion-modal [isOpen]="showModal_PromptForTag">
       <ng-template>

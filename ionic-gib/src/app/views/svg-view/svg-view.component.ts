@@ -44,8 +44,8 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
   /**
    * Rel8n names to show in the list by default.
    */
-  @Input()
-  rel8nNames: string[] = c.DEFAULT_LIST_REL8N_NAMES;
+  // @Input()
+  // rel8nNames: string[] = c.DEFAULT_LIST_REL8N_NAMES;
 
   @Input()
   svgInfo: SVGInfo;
@@ -69,6 +69,8 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
 
 
   private circles: SVGCircleElement[] = [];
+
+  private heartScaleKluge = 3.2;
 
   constructor(
     protected common: CommonService,
@@ -169,8 +171,9 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
 
       const componentWidth = this.elementRef.nativeElement.clientWidth;
       const componentHeight = this.elementRef.nativeElement.clientHeight;
-      const width = Math.ceil(componentWidth * 0.99);
-      const height = Math.ceil(componentHeight * 0.99);
+      let width = Math.ceil(componentWidth * 0.91);
+      const height = Math.ceil(componentHeight * 0.91);
+      if (width > 375) { width = 375; }
       const centerX = Math.floor(width / 2);
       const centerY = Math.floor(height / 2);
       const svg = ibSvg({ width, height });
@@ -186,15 +189,15 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
       let style = document.createElementNS(SVG_NAMESPACE, 'style');
       style.setAttribute('x', `${centerX}`);
       let text = document.createElementNS(SVG_NAMESPACE, 'text');
-      text.setAttribute('x', `${width * 0.2}`);
-      text.setAttribute('y', `${height * 0.7}`);
+      text.setAttribute('x', `${centerX - width * 0.4}`);
+      text.setAttribute('y', `${centerY - height * 0.7}`);
       text.setAttribute('stroke', `pink`);
       text.setAttribute('fill', `pink`);
       text.innerHTML = `Happy Birthday! We Love You!!!`;
       svg.appendChild(text);
 
       // draw the heart path, same as animation path per circle
-      const scaleKluge = 3.8;
+      let scaleKluge = this.heartScaleKluge;
       const tx = (n: number) => { return (n * scaleKluge); }
       const ty = (n: number) => { return (n * scaleKluge); }
       const path = `
@@ -289,7 +292,6 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
         // <!-- <animateMotion
         //    path="M 250,80 H 50 Q 30,80 30,50 Q 30,20 50,20 H 250 Q 280,20,280,50 Q 280,80,250,80Z"
         //    dur="3s" repeatCount="indefinite" rotate="auto" /> -->
-        // debugger;
         if (xStart !== cx || yStart !== cy) {
           let animation = document.createElementNS(SVG_NAMESPACE, 'animateMotion');
           const animationId = `animation_${id}`;
@@ -300,7 +302,7 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
           // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform
           path = `M 10,30 A 20,20 0,0,1 50,30 A 20,20 0,0,1 90,30 Q 90,60 50,90 Q 10,60 10,30 z`; // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform
           /** I use this to kluge the size */
-          let scale = 3.8;
+          const scale = this.heartScaleKluge;
           let tx = (n: number) => { return (n * scale); }
           let ty = (n: number) => { return (n * scale); }
 
@@ -562,7 +564,13 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
           await this.loadType(item);
           let { pos, startPos, radius } = this.getItemPositionInfo({ item });
           const isPic = item.type === 'pic';
-          if (isPic) { await this.loadPic(item); }
+          if (isPic) {
+            await this.loadPic(item);
+          } else {
+            // only load pics
+            // we can change this to a flag on an Input prop.
+            continue;
+          }
           const info: IbGibDiagramInfo = {
             fill: isPic ? 'transparent' : 'pink',
             mode: 'intrinsic',
@@ -598,9 +606,16 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
     const lc = `${this.lc}[${this.getItemPositionInfo.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: d82566e6f20a396ddec23b750e0ddd22)`); }
+      if (!this.svgInfo) {
+        console.warn(`${lc} (UNEXPECTED) this.svgInfo falsy. returning... (W: b5e8d3b46a2c463797d2aa2bfe4dbf31)`);
+        return; /* <<<< returns early */
+      }
+      const svg = this.svgInfo;
       const columnCount = 8;
       // const itemWidth = Math.ceil(this.svgInfo?.width / columnCount * 0.9);
-      const itemWidth = Math.ceil(this.svgInfo?.width / 2 * 0.9);
+      // const itemWidth = Math.ceil(this.svgInfo?.width / 2 * 0.9);
+      const smallEdge = svg.width < svg.height ? svg.width : svg.height;
+      const itemWidth = Math.ceil(smallEdge / 2 * 0.9);
       const itemHeight = itemWidth;
       const minItemWidth = 50;
       const minItemHeight = 50;

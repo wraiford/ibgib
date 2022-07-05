@@ -1,6 +1,6 @@
 import {
     OnInit, OnDestroy, Input, ChangeDetectorRef, Output,
-    EventEmitter, ViewChild,
+    EventEmitter, ViewChild, Directive,
 } from '@angular/core';
 import { Injectable } from '@angular/core';
 
@@ -20,7 +20,8 @@ import { debounceTime } from 'rxjs/internal/operators/debounceTime';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
-@Injectable({ providedIn: "root" })
+// @Injectable({ providedIn: "root" })
+@Directive()
 export abstract class IbgibListComponentBase<TItem extends IbgibListItem = IbgibListItem>
     extends IbgibComponentBase<TItem>
     implements OnInit, OnDestroy {
@@ -40,8 +41,22 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
     @Input()
     items: TItem[] = [];
 
+    protected _rel8nNames = c.DEFAULT_LIST_REL8N_NAMES;
+    set rel8nNames(value: string[]) {
+        const lc = `${this.lc}[set rel8nNames]`;
+        if (logalot) { console.log(`${lc} value: ${value} (I: 15708e5febab6d3684b5667d9918fb22)`); }
+        // if (this.lc === '[ListViewComponent]') {
+        //     debugger;
+        // } else {
+        //     debugger;
+        // }
+        this._rel8nNames = value;
+    }
+    /**
+     * should determine which rel8ns are showed by the list component.
+     */
     @Input()
-    rel8nNames: string[] = c.DEFAULT_LIST_REL8N_NAMES;
+    get rel8nNames(): string[] { return this._rel8nNames; }
 
     /**
      * How many items we're going to be adding when doing differential udpate.
@@ -218,6 +233,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
         }): Promise<void> {
         const lc = `${this.lc}[${this.updateItems.name}]`;
         if (logalot) { console.log(`${lc} updating...`); }
+
         let updatingCheckCount = 0;
         while (this._updatingItems) {
             if (logalot) { console.log(`${lc} already _updatingItems. delaying... (I: 176913fc1e18d619838b8abdf6be1222)`); }

@@ -26,5 +26,8 @@
         "titleBar.inactiveForeground": "#15202b99"
     },
     "editor.formatOnSave": true,
-    "files.insertFinalNewline": true
+    "files.insertFinalNewline": true,
+    "[html]": {
+        "editor.formatOnSave": false
+    }
 }

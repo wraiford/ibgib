@@ -31,9 +31,6 @@ ion-menu-button:hover {
 
 #context-btns {
   overflow-x: auto;
-  // scrollbar-color: pink !important;
-  // scrollbar-gutter: 10px;
-  // background-color: blue;
 }
 
 #container {
@@ -41,22 +38,44 @@ ion-menu-button:hover {
   width: 100%;
   display: flex;
   flex-direction: column;
-}
 
-#container strong {
-  font-size: 20px;
-  line-height: 26px;
-}
+  strong {
+    font-size: 20px;
+    line-height: 26px;
+  }
 
-#container p {
-  font-size: 16px;
-  line-height: 22px;
-  color: #8c8c8c;
-  margin: 0;
-}
+  p {
+    font-size: 16px;
+    line-height: 22px;
+    color: #8c8c8c;
+    margin: 0;
+  }
 
-#container a {
-  text-decoration: none;
+  a {
+    text-decoration: none;
+  }
+
+  #heart-div {
+    height: 100%;
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    $svg-pct: 55;
+
+    svg-view {
+      // height: 75%;
+      height: $svg-pct * 100%;
+      width: 100%;
+    }
+
+    chat-view {
+      height: (100 - $svg-pct) * 100%;
+      width: 100%;
+    }
+  }
 }
 
 pre {
@@ -77,9 +96,6 @@ pre {
 
 ion-footer {
   height: 25%;
-  // height: 300px;
-  // display: flex;
-  // flex-direction: row;
 }
 
 @media (min-height: $xs-height) and (max-height: $sm-height) {
@@ -260,24 +276,4 @@ ion-menu-button:hover,
 .select-tag-btn {
   height: 20%;
   width: 77%;
-}
-
-// #bottom-sheet-modal {
-
-//   // width: 100%;
-//   --height: 55%;
-
-//   ion-content {
-//     height: 95%;
-//   }
-
-//   action-bar {
-//     height: 100%;
-//     width: 100%;
-//   }
-// }
-
-
-svg-view {
-  width: 100%;
 }

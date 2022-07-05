@@ -51,8 +51,8 @@ export function isSameSpace({
 }): boolean {
     const lc = `[${isSameSpace.name}]`;
 
-    if (!a) { throw new Error(`${lc} a is falsy`)};
-    if (!b) { throw new Error(`${lc} b is falsy`)};
+    if (!a) { throw new Error(`${lc} a is falsy`) };
+    if (!b) { throw new Error(`${lc} b is falsy`) };
 
     // try by data
     if (a.data && JSON.stringify(a.data) === JSON.stringify(b.data)) {
@@ -105,7 +105,7 @@ export async function getFromSpace({
         addrs = (addrs ?? []).length > 0 ? addrs : [addr];
 
         const argGet = await space.argy({
-            ibMetadata: getSpaceArgMetadata({space}),
+            ibMetadata: getSpaceArgMetadata({ space }),
             argData: {
                 cmd: 'get',
                 ibGibAddrs: addrs,
@@ -164,12 +164,12 @@ export async function putInSpace({
         }
         ibGibs = ibGibs ?? [ibGib];
 
-        if (logalot) { console.log(`${lc} ibGibs.length: ${ibGibs.length}`)}
+        if (logalot) { console.log(`${lc} ibGibs.length: ${ibGibs.length}`) }
         const argPutIbGibs = await space.argy({
-            ibMetadata: getSpaceArgMetadata({space}),
+            ibMetadata: getSpaceArgMetadata({ space }),
             argData: {
                 cmd: 'put', isMeta, force, isDna,
-                ibGibAddrs: ibGibs.map(x => h.getIbGibAddr({ibGib: x})),
+                ibGibAddrs: ibGibs.map(x => h.getIbGibAddr({ ibGib: x })),
             },
             ibGibs: ibGibs.concat(),
         });
@@ -191,9 +191,9 @@ export async function putInSpace({
     }
 }
 
-  /**
-   * Wrapper for removing ibgib from the a given space, else the current space.
-   */
+/**
+ * Wrapper for removing ibgib from the a given space, else the current space.
+ */
 export async function deleteFromSpace({
     addr,
     isMeta,
@@ -207,7 +207,7 @@ export async function deleteFromSpace({
         lc = `${lc}[${space.data.name || 'noname?'}][${space.data.uuid || 'nouuid?'}]`;
 
         const argDel = await space.argy({
-            ibMetadata: getSpaceArgMetadata({space}),
+            ibMetadata: getSpaceArgMetadata({ space }),
             argData: {
                 cmd: 'delete',
                 ibGibAddrs: [addr],
@@ -272,7 +272,7 @@ export async function getDependencyGraph({
         if (!ibGib && !ibGibAddr && (ibGibs ?? []).length === 0 && (ibGibAddrs ?? []).length === 0) {
             throw new Error(`either ibGib/s or ibGibAddr/s required. (E: b6d08699651f455697f0d05a41edb039)`);
         }
-        if (timeLogName) { console.timeLog(timeLogName, `${lc} starting...`)}
+        if (timeLogName) { console.timeLog(timeLogName, `${lc} starting...`) }
 
         skipRel8nNames = skipRel8nNames || [];
         skipAddrs = skipAddrs || [];
@@ -284,25 +284,25 @@ export async function getDependencyGraph({
         // copy here, so we won't mutate the incoming arrays. (The ibgibs and
         // addrs themselves are immutable).
         ibGibAddrs = (ibGibAddrs ?? [])
-            .filter(x => !isPrimitive({gib: h.getIbAndGib({ibGibAddr: x}).gib})) // no primitives
+            .filter(x => !isPrimitive({ gib: h.getIbAndGib({ ibGibAddr: x }).gib })) // no primitives
             .filter(x => !skipAddrs.includes(x));
         ibGibs =
             (ibGibs ?? [])
-            .filter(x => !isPrimitive({ibGib: x})) // no primitives
-            .filter(x => !skipAddrs.includes(h.getIbGibAddr({ibGib: x})));
+                .filter(x => !isPrimitive({ ibGib: x })) // no primitives
+                .filter(x => !skipAddrs.includes(h.getIbGibAddr({ ibGib: x })));
         // if we're passed in a single ibGib, add it to the ibGibs array because
         // we're going to work off of that.
         if (ibGib &&
-            !isPrimitive({ibGib}) &&
+            !isPrimitive({ ibGib }) &&
             !ibGibs.some(x => x.gib === ibGib.gib) &&
-            !skipAddrs.includes(h.getIbGibAddr({ibGib}))
+            !skipAddrs.includes(h.getIbGibAddr({ ibGib }))
         ) {
             ibGibs.push(ibGib);
         }
         // if we're passed in a single ibGibAddr, add it to the ibGibAddrs array because
         // we're going to work off of that.
         if (ibGibAddr &&
-            !isPrimitive({gib: h.getIbAndGib({ibGibAddr}).gib}) &&
+            !isPrimitive({ gib: h.getIbAndGib({ ibGibAddr }).gib }) &&
             !ibGibAddrs.includes(ibGibAddr) &&
             !skipAddrs.includes(ibGibAddr)
         ) {
@@ -315,8 +315,8 @@ export async function getDependencyGraph({
 
         const addrsWeDontHaveAlready_IncomingIbGibAddrs: IbGibAddr[] = [];
         const gottenAddrs: IbGibAddr[] = Object.keys(gotten); // compute once in this closure
-        const incomingIbGibAddrs = ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
-        const noNeedAddrs = [ ...gottenAddrs, ...incomingIbGibAddrs, ...skipAddrs, ];
+        const incomingIbGibAddrs = ibGibs.map(x => h.getIbGibAddr({ ibGib: x }));
+        const noNeedAddrs = [...gottenAddrs, ...incomingIbGibAddrs, ...skipAddrs,];
         for (let i = 0; i < ibGibAddrs.length; i++) {
             if (!noNeedAddrs.includes(ibGibAddrs[i])) {
                 addrsWeDontHaveAlready_IncomingIbGibAddrs.push(ibGibAddrs[i]);
@@ -338,8 +338,8 @@ export async function getDependencyGraph({
             let retryCount = 0;
             maxRetries = maxRetries ?? 0;
             while (retryCount <= maxRetries && addrsToGet.length > 0) {
-                if (timeLogName && retryCount === 0) { console.timeLog(timeLogName, `${lc} FIRST try starting...`)}
-                if (timeLogName && retryCount > 0) { console.timeLog(timeLogName, `${lc} RETRY starting...`)}
+                if (timeLogName && retryCount === 0) { console.timeLog(timeLogName, `${lc} FIRST try starting...`) }
+                if (timeLogName && retryCount > 0) { console.timeLog(timeLogName, `${lc} RETRY starting...`) }
                 // delay if applicable
                 if (retryCount > 0 && msBetweenRetries) {
                     if (timeLogName) { console.timeLog(timeLogName, `${lc} delaying ${msBetweenRetries}ms for retry`); }
@@ -349,24 +349,24 @@ export async function getDependencyGraph({
 
                 // do the get
                 if (timeLogName) { console.timeLog(timeLogName, `${lc} getFromSpace (${addrsToGet?.length}) starting...`); }
-                let resGetThese = await getFromSpace({addrs: addrsToGet, space});
+                let resGetThese = await getFromSpace({ addrs: addrsToGet, space });
                 if (timeLogName) { console.timeLog(timeLogName, `${lc} getFromSpace complete.`); }
                 if (resGetThese.success && resGetThese.ibGibs?.length > 0) {
                     resGetThese.ibGibs.forEach(x => ibGibs.push(x));
-                    const gottenAddrs = resGetThese.ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
+                    const gottenAddrs = resGetThese.ibGibs.map(x => h.getIbGibAddr({ ibGib: x }));
                     if (gottenAddrs.length === addrsToGet.length) {
-                        if (timeLogName) { console.timeLog(timeLogName, `${lc} got all.`)}
+                        if (timeLogName) { console.timeLog(timeLogName, `${lc} got all.`) }
                         // got them all, so we're done
                         addrsToGet = [];
                         break;
                     } else {
-                        if (timeLogName) { console.timeLog(timeLogName, `${lc} got some.`)}
+                        if (timeLogName) { console.timeLog(timeLogName, `${lc} got some.`) }
                         // got only some, prune addrsToGet for next retry (if any)
                         addrsToGet = addrsToGet.filter(x => !gottenAddrs.includes(x));
                     }
                 } else {
                     // failed, addrsToGet stays the same
-                    if (timeLogName) { console.timeLog(timeLogName, `${lc} failed. addrs: ${addrsToGet?.join(',')}`)}
+                    if (timeLogName) { console.timeLog(timeLogName, `${lc} failed. addrs: ${addrsToGet?.join(',')}`) }
                 }
                 retryCount++;
             }
@@ -469,14 +469,14 @@ async function getDependencyGraph_Live({
         Object.keys(timelinesPerTjp)
             .filter(tjpAddr => !tjpAddrsAlreadyAnalyzed.includes(tjpAddr))
             .forEach(tjpAddr => {
-            const timeline = timelinesPerTjp[tjpAddr];
-            // add to the array we'll send below
-            const latestIbGibAlreadyGotten = timeline[timeline.length-1];
-            mapTjpAddrToLatestIbGibInTimelineThatWeHaventAlreadyGotten[tjpAddr] = latestIbGibAlreadyGotten;
-            // add to mapping back from addr to tjpaddr for convenience below
-            const latestAddrAlreadyGotten = h.getIbGibAddr({ibGib: latestIbGibAlreadyGotten});
-            mapLatestAddrAlreadyGottenToTjpAddr[latestAddrAlreadyGotten] = tjpAddr;
-        });
+                const timeline = timelinesPerTjp[tjpAddr];
+                // add to the array we'll send below
+                const latestIbGibAlreadyGotten = timeline[timeline.length - 1];
+                mapTjpAddrToLatestIbGibInTimelineThatWeHaventAlreadyGotten[tjpAddr] = latestIbGibAlreadyGotten;
+                // add to mapping back from addr to tjpaddr for convenience below
+                const latestAddrAlreadyGotten = h.getIbGibAddr({ ibGib: latestIbGibAlreadyGotten });
+                mapLatestAddrAlreadyGottenToTjpAddr[latestAddrAlreadyGotten] = tjpAddr;
+            });
         let countOfTimelinesNotYetGotten =
             Object.keys(mapTjpAddrToLatestIbGibInTimelineThatWeHaventAlreadyGotten).length;
 
@@ -496,14 +496,14 @@ async function getDependencyGraph_Live({
                 const latestIbGibCorrespondingToTjpAddr =
                     mapTjpAddrToLatestIbGibInTimelineThatWeHaventAlreadyGotten[tjpAddr];
                 const latestAddrCorrespondingToTjpAddr =
-                    h.getIbGibAddr({ibGib: latestIbGibCorrespondingToTjpAddr});
+                    h.getIbGibAddr({ ibGib: latestIbGibCorrespondingToTjpAddr });
 
                 latestAddrsMap[latestAddrCorrespondingToTjpAddr] = mapTjpAddrToLatestAddrsInSpace[tjpAddr];
             });
             if (logalot) { console.log(`${lc} latestAddrsMap *before* getLatestAddrs: ${h.pretty(latestAddrsMap)} (I: 427b4bb78595e9e521ecf2c5e5c80722)`); }
             const ibGibsToQuery =
                 Object.values(mapTjpAddrToLatestIbGibInTimelineThatWeHaventAlreadyGotten)
-                    .filter(x => !Object.keys(latestAddrsMap).includes(h.getIbGibAddr({ibGib: x})));
+                    .filter(x => !Object.keys(latestAddrsMap).includes(h.getIbGibAddr({ ibGib: x })));
 
             let queriedLatestAddrsMap: { [addr: string]: IbGibAddr | null } = {};
             if (ibGibsToQuery.length > 0) {
@@ -529,7 +529,7 @@ async function getDependencyGraph_Live({
             const newerAddrsFound: IbGibAddr[] = [];
             Object.values(mapTjpAddrToLatestIbGibInTimelineThatWeHaventAlreadyGotten)
                 .forEach(latestIbGibAlreadyGotten => {
-                    const latestAddrAlreadyGotten = h.getIbGibAddr({ibGib: latestIbGibAlreadyGotten});
+                    const latestAddrAlreadyGotten = h.getIbGibAddr({ ibGib: latestIbGibAlreadyGotten });
                     const tjpAddr = mapLatestAddrAlreadyGottenToTjpAddr[latestAddrAlreadyGotten];
                     const latestAddrInSpace = latestAddrsMap[latestAddrAlreadyGotten];
                     if (!latestAddrInSpace) { throw new Error(`(UNEXPECTED) latestAddrInSpace not found in latestAddrsMap (E: 095d2b3f88e3e8a2c3e7d3de4c6d5622)`); }
@@ -614,7 +614,7 @@ async function getDependencyGraph_Live({
         if (timeLogName) { console.timeLog(timeLogName, `${lc} error: ${emsg}`); }
         throw error;
     } finally {
-        if (timeLogName) { console.timeLog(timeLogName, `${lc} complete.`)}
+        if (timeLogName) { console.timeLog(timeLogName, `${lc} complete.`) }
     }
 }
 
@@ -754,10 +754,10 @@ async function getDependencyGraph_NonLive({
         if (timeLogName) { console.timeLog(timeLogName, `${lc} analyzing next step starting...`); }
         for (let i = 0; i < ibGibs.length; i++) {
             const ibGib = ibGibs[i];
-            const ibGibAddr = h.getIbGibAddr({ibGib});
+            const ibGibAddr = h.getIbGibAddr({ ibGib });
 
             // do i need this?
-            const { gib } = h.getIbAndGib({ibGib});
+            const { gib } = h.getIbAndGib({ ibGib });
             if (gib === GIB) { throw new Error(`cannot get dependency graph of primitive.`); }
 
             // ?
@@ -783,13 +783,13 @@ async function getDependencyGraph_NonLive({
                 if (falsyAddrs.length > 0) { console.warn(`${lc} (UNEXPECTED) has falsyAddrs: ${falsyAddrs} (W: da9505cb0a4db68a4aff7f279ad2d322)`); }
                 const rel8dAddrsNotGottenYetThisRel8n =
                     rel8dAddrs
-                    .filter(addr => !!addr)
-                    .filter(addr => !gottenKeys.includes(addr))
-                    .filter(addr => !skipAddrs.includes(addr))
-                    .filter(addr => h.getIbAndGib({ibGibAddr: addr}).gib !== GIB)
-                    .filter(addr => !addrsWeDontHaveAlready_Rel8dAddrs.includes(addr));
+                        .filter(addr => !!addr)
+                        .filter(addr => !gottenKeys.includes(addr))
+                        .filter(addr => !skipAddrs.includes(addr))
+                        .filter(addr => h.getIbAndGib({ ibGibAddr: addr }).gib !== GIB)
+                        .filter(addr => !addrsWeDontHaveAlready_Rel8dAddrs.includes(addr));
                 rel8dAddrsNotGottenYetThisRel8n.forEach(rel8dAddr => {
-                    const validationErrors = validateIbGibAddr({addr: rel8dAddr});
+                    const validationErrors = validateIbGibAddr({ addr: rel8dAddr });
                     if ((validationErrors || []).length === 0) {
                         // valid addr. add it if we haven't gotten/queued it yet
                         addrsWeDontHaveAlready_Rel8dAddrs.push(rel8dAddr);
@@ -809,12 +809,12 @@ async function getDependencyGraph_NonLive({
         if (addrsWeDontHaveAlready_Rel8dAddrs.length > 0) {
             if (timeLogName) { console.timeLog(timeLogName, `${lc} get addrsWeDontHaveAlready_Rel8dAddrs starting...`); }
             // execute the get on those addrs
-            const resGet = await getFromSpace({addrs: addrsWeDontHaveAlready_Rel8dAddrs, space});
+            const resGet = await getFromSpace({ addrs: addrsWeDontHaveAlready_Rel8dAddrs, space });
             if (timeLogName) { console.timeLog(timeLogName, `${lc} get addrsWeDontHaveAlready_Rel8dAddrs complete.`); }
             if (resGet.success) {
                 if (resGet.ibGibs?.length === addrsWeDontHaveAlready_Rel8dAddrs.length) {
                     if (logalot) { console.log(`${lc} got ALL of them (happy path)`); }
-                    resGet.ibGibs.forEach(x => gotten[h.getIbGibAddr({ibGib: x})] = x);
+                    resGet.ibGibs.forEach(x => gotten[h.getIbGibAddr({ ibGib: x })] = x);
                     // return a recursive call for the newly-gotten ibgibs'
                     // dependencies, passing in the now-larger accumulating
                     // `gotten` map of ibgibs already processed.
@@ -859,7 +859,7 @@ async function getDependencyGraph_NonLive({
         if (timeLogName) { console.timeLog(timeLogName, `${lc} error: ${emsg}`); }
         throw error;
     } finally {
-        if (timeLogName) { console.timeLog(timeLogName, `${lc} complete.`)}
+        if (timeLogName) { console.timeLog(timeLogName, `${lc} complete.`) }
     }
 }
 
@@ -887,10 +887,10 @@ export async function persistTransformResult({
         const { newIbGib, intermediateIbGibs, dnas } = resTransform;
         const ibGibs = [newIbGib, ...(intermediateIbGibs || [])];
         const argPutIbGibs = await space.argy({
-            ibMetadata: getSpaceArgMetadata({space}),
+            ibMetadata: getSpaceArgMetadata({ space }),
             argData: {
                 cmd: 'put', isMeta, force,
-                ibGibAddrs: ibGibs.map(x => h.getIbGibAddr({ibGib: x})),
+                ibGibAddrs: ibGibs.map(x => h.getIbGibAddr({ ibGib: x })),
             },
             ibGibs: ibGibs.concat(),
         });
@@ -908,10 +908,10 @@ export async function persistTransformResult({
 
         if (dnas?.length > 0) {
             const argPutDnas = await space.argy({
-                ibMetadata: getSpaceArgMetadata({space}),
+                ibMetadata: getSpaceArgMetadata({ space }),
                 argData: {
                     cmd: 'put', isDna: true, force,
-                    ibGibAddrs: dnas.map(x => h.getIbGibAddr({ibGib: x})),
+                    ibGibAddrs: dnas.map(x => h.getIbGibAddr({ ibGib: x })),
                 },
                 ibGibs: dnas.concat(),
             });
@@ -922,8 +922,8 @@ export async function persistTransformResult({
                 }
             } else {
                 const errorMsg = resPutDnas?.data?.errors?.length > 0 ?
-                resPutDnas.data.errors.join('\n') :
-                'unknown error putting dna ibGibs';
+                    resPutDnas.data.errors.join('\n') :
+                    'unknown error putting dna ibGibs';
                 throw new Error(errorMsg);
             }
         }
@@ -966,13 +966,13 @@ export async function getSpecialRel8dIbGibs<TIbGib extends IbGib_V1 = IbGib_V1>(
     try {
         if (!space) { throw new Error(`space required. (E: f73868a952ac4181a4f90ee6d86cacf3)`); }
 
-        let special = await getSpecialIbGib({type, space});
+        let special = await getSpecialIbGib({ type, space });
         if (!special) { throw new Error(`couldn't get special (${type})`) };
         const rel8dAddrs = special.rel8ns[rel8nName] || [];
         const rel8dIbgibs = [];
         for (let i = 0; i < rel8dAddrs.length; i++) {
             const addr = rel8dAddrs[i];
-            let resGet = await getFromSpace({addr, space});
+            let resGet = await getFromSpace({ addr, space });
             if (resGet.success && resGet.ibGibs?.length === 1) {
                 rel8dIbgibs.push(resGet.ibGibs[0]);
             } else {
@@ -1038,15 +1038,15 @@ export async function getSpecialIbGib({
     try {
         if (!space) { throw new Error(`space required. (E: d454b31d58764a9bb9c4e47fb5ef38b5)`); }
 
-        let key = getSpecialConfigKey({type});
-        let addr = await getConfigAddr({key, space});
+        let key = getSpecialConfigKey({ type });
+        let addr = await getConfigAddr({ key, space });
 
         if (!addr) {
             if (initialize && !(fnGetInitializing || fnSetInitializing)) { throw new Error(`if initialize, you must provide fnGetInitializeLock & fnSetInitializeLock. (E: 8eb322625d0c4538be089800882487de)`); }
             if (initialize && !fnGetInitializing()) {
                 fnSetInitializing(true);
                 try {
-                    addr = await createSpecial({type, space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
+                    addr = await createSpecial({ type, space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
                 } catch (error) {
                     console.error(`${lc} error initializing: ${error.message}`);
                 } finally {
@@ -1074,7 +1074,7 @@ export async function getSpecialIbGib({
 
         if (logalot) { console.log(`addr: ${addr}`); }
 
-        let resSpecial = await getFromSpace({addr: addr, isMeta: true, space});
+        let resSpecial = await getFromSpace({ addr: addr, isMeta: true, space });
         if (!resSpecial.success) { throw new Error(resSpecial.errorMsg); }
         if (resSpecial.ibGibs?.length !== 1) { throw new Error(`no ibGib in result`); }
         return resSpecial.ibGibs![0];
@@ -1181,10 +1181,10 @@ export async function setConfigAddr({
 
         // witness in the default zero space
         // in refactoring, may have to make this optional...hmm
-        await persistTransformResult({isMeta: true, resTransform: resNewSpace, space: zeroSpace});
+        await persistTransformResult({ isMeta: true, resTransform: resNewSpace, space: zeroSpace });
 
         // witness in the given space
-        await persistTransformResult({isMeta: true, resTransform: resNewSpace, space});
+        await persistTransformResult({ isMeta: true, resTransform: resNewSpace, space });
 
         // going to update the bootstrap^gib with the new space address, but first...
         const newSpace = <IbGibSpaceAny>resNewSpace.newIbGib;
@@ -1217,7 +1217,7 @@ export async function getCurrentRoot({
     try {
         if (!space) { throw new Error(`space required. (E: f0d546101fba4c169256158114ab3c56)`); }
 
-        const roots = await getSpecialIbGib({type: "roots", space});
+        const roots = await getSpecialIbGib({ type: "roots", space });
         if (!roots) { throw new Error(`Roots not initialized. (E: 89b1ba12ed12416aac41cef9fdaf1fc2)`); }
         if (!roots.rel8ns) { throw new Error(`Roots not initialized properly. No rel8ns. (E: 8513a07cf530484db9521a2a3a27b7f6)`); }
         if (!roots.rel8ns.current) { throw new Error(`Roots not initialized properly. No current root. (E: 459c3a007a30486d96fb8d83f696e239)`); }
@@ -1226,7 +1226,7 @@ export async function getCurrentRoot({
 
         const currentRootAddr = roots.rel8ns.current[0]!;
         const resCurrentRoot =
-        await getFromSpace({addr: currentRootAddr, isMeta: true, space});
+            await getFromSpace({ addr: currentRootAddr, isMeta: true, space });
         if (resCurrentRoot.ibGibs?.length === 1) {
             return <IbGib_V1<RootData>>resCurrentRoot.ibGibs![0];
         } else {
@@ -1257,10 +1257,10 @@ export async function setCurrentRoot({
 
         if (!space) { throw new Error(`space required. (E: 186af2731c5342a78b063a0a4346f3db)`); }
 
-        const rootAddr = h.getIbGibAddr({ibGib: root});
+        const rootAddr = h.getIbGibAddr({ ibGib: root });
 
         // get the roots and update its "current" rel8n
-        const roots = await getSpecialIbGib({type: "roots", space});
+        const roots = await getSpecialIbGib({ type: "roots", space });
         if (!roots) { throw new Error(`Roots not initialized.`); }
 
         // we'll rel8 current with a linkedRel8n, thus ensuring a maximum of only
@@ -1273,11 +1273,11 @@ export async function setCurrentRoot({
             rel8nsToAddByAddr,
             nCounter: true,
         });
-        await persistTransformResult({isMeta: true, resTransform: resNewRoots, space});
+        await persistTransformResult({ isMeta: true, resTransform: resNewRoots, space });
 
-        const configKey = getSpecialConfigKey({type: "roots"});
-        let newRootsAddr = h.getIbGibAddr({ibGib: resNewRoots.newIbGib});
-        await setConfigAddr({key: configKey, addr: newRootsAddr, space, zeroSpace, fnUpdateBootstrap});
+        const configKey = getSpecialConfigKey({ type: "roots" });
+        let newRootsAddr = h.getIbGibAddr({ ibGib: resNewRoots.newIbGib });
+        await setConfigAddr({ key: configKey, addr: newRootsAddr, space, zeroSpace, fnUpdateBootstrap });
 
         // how to let others know roots has changed?
     } catch (error) {
@@ -1313,11 +1313,11 @@ export async function rel8ToCurrentRoot({
     try {
         if (!space) { throw new Error(`space required. (E: f2758eab3bb844d2b749515672d9e392)`); }
 
-        let currentRoot = await getCurrentRoot({space});
+        let currentRoot = await getCurrentRoot({ space });
         if (!currentRoot) { throw new Error('currentRoot undefined'); }
 
         // todo: change this to only rel8 if the tjp doesn't already exist on the root
-        let ibGibAddr = h.getIbGibAddr({ibGib});
+        let ibGibAddr = h.getIbGibAddr({ ibGib });
 
         // check to see if it's already rel8d. If so, we're done.
         // NOTE: (very) naive!
@@ -1338,12 +1338,12 @@ export async function rel8ToCurrentRoot({
             rel8nsToAddByAddr: { [rel8nName]: [ibGibAddr] },
             nCounter: true,
         });
-        await persistTransformResult({isMeta: true, resTransform: resNewRoot, space});
+        await persistTransformResult({ isMeta: true, resTransform: resNewRoot, space });
         const newRoot = <IbGib_V1<RootData>>resNewRoot.newIbGib;
-        const newRootAddr = h.getIbGibAddr({ibGib: newRoot});
+        const newRootAddr = h.getIbGibAddr({ ibGib: newRoot });
         if (logalot) { console.log(`${lc} updating _currentRoot root. newRootAddr: ${newRootAddr}`); }
-        await registerNewIbGib({ibGib: newRoot, space, fnBroadcast, zeroSpace, fnUpdateBootstrap});
-        await setCurrentRoot({root: newRoot, space, zeroSpace, fnUpdateBootstrap, fnBroadcast});
+        await registerNewIbGib({ ibGib: newRoot, space, fnBroadcast, zeroSpace, fnUpdateBootstrap });
+        await setCurrentRoot({ root: newRoot, space, zeroSpace, fnUpdateBootstrap, fnBroadcast });
 
     } catch (error) {
         console.error(`${lc} ${error.message}`);
@@ -1374,7 +1374,7 @@ export async function registerNewIbGib({
 }): Promise<void> {
     let lc = `[${registerNewIbGib.name}]`;
     try {
-        const ibGibAddr: IbGibAddr = h.getIbGibAddr({ibGib});
+        const ibGibAddr: IbGibAddr = h.getIbGibAddr({ ibGib });
         lc = `${lc}[${ibGibAddr}]`;
 
         if (!space) { throw new Error(`space required. (E: ea0c03256f8a4062b460aa4de11f1e3e)`); }
@@ -1384,16 +1384,16 @@ export async function registerNewIbGib({
         // this is the latest index ibGib. It's just the mapping of tjp -> latestAddr.
         // Other refs to "latest" in this function
         // will refer to the actual/attempted latest of the ibGib arg.
-        let specialLatest = await getSpecialIbGib({type: "latest", space});
+        let specialLatest = await getSpecialIbGib({ type: "latest", space });
         if (!specialLatest.rel8ns) { specialLatest.rel8ns = {}; }
 
         // get the tjp for the rel8nName mapping, and also for some checking logic
-        let tjp = await getTjpIbGib({ibGib, space});
+        let tjp = await getTjpIbGib({ ibGib, space });
         if (!tjp) {
             console.warn(`${lc} tjp not found for ${ibGibAddr}? Should at least just be the ibGib's address itself.`);
             tjp = ibGib;
         }
-        let tjpAddr = h.getIbGibAddr({ibGib: tjp});
+        let tjpAddr = h.getIbGibAddr({ ibGib: tjp });
 
         // either we're adding the given ibGib, replacing the existing with the ibGib,
         // or doing nothing. We can do this with our current vars in a closure at this point.
@@ -1413,7 +1413,7 @@ export async function registerNewIbGib({
                 fnBroadcast,
             });
             if (fnBroadcast) {
-                fnBroadcast({tjpAddr, latestAddr: ibGibAddr, latestIbGib: ibGib});
+                fnBroadcast({ tjpAddr, latestAddr: ibGibAddr, latestIbGib: ibGib });
             }
         }
 
@@ -1430,7 +1430,7 @@ export async function registerNewIbGib({
 
             // not the latest or not registered, so get the full existing latest
             // ibgib analyze to see if the incoming ibgib is indeed newer
-            let resExistingLatest = await getFromSpace({addr: existingLatestAddr, space});
+            let resExistingLatest = await getFromSpace({ addr: existingLatestAddr, space });
             if (!resExistingLatest.success || resExistingLatest.ibGibs?.length !== 1) {
                 console.error(`Didn't find existing latest ibGib (${existingLatestAddr}). I haven't implemented more robust multi-node/distributed strategies for this scenario yet. User chose YES to replace.`);
                 await replaceLatest();
@@ -1606,14 +1606,14 @@ export async function rel8ToSpecialIbGib({
             throw new Error(`either ibGibsToRel8 or ibGibsToUnRel8 required. (E: 5add49c8e46a54e2c6b057c22646a822)`);
         }
 
-        const addrsToRel8 = ibGibsToRel8?.map(ibGib => h.getIbGibAddr({ibGib}));
-        const addrsToUnRel8 = ibGibsToUnRel8?.map(ibGib => h.getIbGibAddr({ibGib}));
+        const addrsToRel8 = ibGibsToRel8?.map(ibGib => h.getIbGibAddr({ ibGib }));
+        const addrsToUnRel8 = ibGibsToUnRel8?.map(ibGib => h.getIbGibAddr({ ibGib }));
 
         // get the special ibgib
-        const configKey = getSpecialConfigKey({type});
-        let specialAddr = await getConfigAddr({key: configKey, space});
+        const configKey = getSpecialConfigKey({ type });
+        let specialAddr = await getConfigAddr({ key: configKey, space });
         if (!specialAddr) { throw new Error(`specialAddr not found`) };
-        let resGetSpecial = await getFromSpace({addr: specialAddr, isMeta: true, space});
+        let resGetSpecial = await getFromSpace({ addr: specialAddr, isMeta: true, space });
         if (!resGetSpecial.success) { throw new Error(`couldn't get special`) }
         if (!resGetSpecial.ibGibs) { throw new Error(`resGetSpecial.ibGibs falsy`) }
         if (resGetSpecial.ibGibs!.length !== 1) { throw new Error(`resGetSpecial.ibGibs count is not 1 (${resGetSpecial.ibGibs!.length})`) }
@@ -1633,23 +1633,23 @@ export async function rel8ToSpecialIbGib({
         if (severPast) {
             if (resNewSpecial.intermediateIbGibs) { throw new Error('new special creates intermediate ibgibs. so severing past is harder. (E: b580c0c56253494192e9c62212ee187d)'); }
             newSpecialIbGib.rel8ns.past = [];
-            newSpecialIbGib.gib = await getGib({ibGib: newSpecialIbGib});
+            newSpecialIbGib.gib = await getGib({ ibGib: newSpecialIbGib });
         }
 
         // persist
-        await persistTransformResult({resTransform: resNewSpecial, isMeta: true, space});
+        await persistTransformResult({ resTransform: resNewSpecial, isMeta: true, space });
 
         // return the new special address (not the incoming new ibGib)
-        const newSpecialAddr = h.getIbGibAddr({ibGib: newSpecialIbGib});
-        const specialTjpAddrs = getTjpAddrs({ibGibs: [newSpecialIbGib]});
+        const newSpecialAddr = h.getIbGibAddr({ ibGib: newSpecialIbGib });
+        const specialTjpAddrs = getTjpAddrs({ ibGibs: [newSpecialIbGib] });
         const specialTjpAddr = specialTjpAddrs?.length > 0 ? specialTjpAddrs[0] : null;
 
         // update the space ibgib which contains the special/config information
-        await setConfigAddr({key: configKey, addr: newSpecialAddr, space, zeroSpace, fnUpdateBootstrap});
+        await setConfigAddr({ key: configKey, addr: newSpecialAddr, space, zeroSpace, fnUpdateBootstrap });
 
         // delete if required, only after updating config with the new special addr.
         if (deletePreviousSpecialIbGib) {
-            await deleteFromSpace({addr: specialAddr, isMeta: true, space});
+            await deleteFromSpace({ addr: specialAddr, isMeta: true, space });
         }
 
         // I'm thinking we also want to register the special ibgib in the latest index...
@@ -1694,17 +1694,17 @@ export async function getTjpIbGib({
     ibGib: IbGib_V1<any>,
     naive?: boolean,
     space: IbGibSpaceAny,
-}): Promise<IbGib_V1<any>|undefined> {
+}): Promise<IbGib_V1<any> | undefined> {
     const lc = `[${getTjpIbGib.name}]`;
 
     try {
         if (!space) { throw new Error(`space required. (E: 941f973d50e84415b58724af173f52c2)`); }
         if (!ibGib) { throw new Error('ibGib required.'); }
 
-        let ibGibAddr = h.getIbGibAddr({ibGib});
-        const {gib} = h.getIbAndGib({ibGibAddr});
+        let ibGibAddr = h.getIbGibAddr({ ibGib });
+        const { gib } = h.getIbAndGib({ ibGibAddr });
         if (gib === GIB) { return ibGib; }
-        let isTjp = await isTjp_Naive({ibGib, naive});
+        let isTjp = await isTjp_Naive({ ibGib, naive });
         if (isTjp) { return ibGib; }
 
         // the given ibGib arg isn't itself the tjp
@@ -1719,7 +1719,7 @@ export async function getTjpIbGib({
         // check explicitly listed tjp in rel8ns
         if (ibGib.rel8ns!.tjp && ibGib.rel8ns!.tjp.length > 0) {
             let firstTjpAddr = ibGib.rel8ns!.tjp[0];
-            let resGetTjpIbGib = await getFromSpace({addr: firstTjpAddr, space});
+            let resGetTjpIbGib = await getFromSpace({ addr: firstTjpAddr, space });
             if (resGetTjpIbGib.success && resGetTjpIbGib.ibGibs?.length === 1) {
                 return resGetTjpIbGib.ibGibs[0]
             } else {
@@ -1739,13 +1739,13 @@ export async function getTjpIbGib({
             if (logalot) { console.log(`${lc} ibgib is not tjp in data, not in tjp rel8n, and past is empty. so tjp is undefined (I: bf06f664917dcf4492fb9c4c106a6222)`); }
             return undefined; // <<<< returns early
         }
-        const pastIbGibAddr = past[past.length-1];
-        const resGetPastIbGib = await getFromSpace({addr: pastIbGibAddr, space});
+        const pastIbGibAddr = past[past.length - 1];
+        const resGetPastIbGib = await getFromSpace({ addr: pastIbGibAddr, space });
         if (!resGetPastIbGib.success || resGetPastIbGib.ibGibs?.length !== 1) { throw new Error(`get past failed. addr: ${pastIbGibAddr}`); }
         const pastIbGib = resGetPastIbGib.ibGibs![0];
 
         // call this method recursively!
-        return await getTjpIbGib({ibGib: pastIbGib, naive, space});
+        return await getTjpIbGib({ ibGib: pastIbGib, naive, space });
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -1777,32 +1777,32 @@ export async function createSpecial({
         if (!space) { throw new Error(`space falsy and localUserSpace not initialized.`); }
 
         switch (type) {
-        case "roots":
-            return createRootsIbGib({space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
+            case "roots":
+                return createRootsIbGib({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
 
-        case "tags":
-            return createTags({space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
+            case "tags":
+                return createTags({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
 
-        case "latest":
-            return createLatest({space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
+            case "latest":
+                return createLatest({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
 
-        case "secrets":
-            return createSecrets({space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
+            case "secrets":
+                return createSecrets({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
 
-        case "encryptions":
-            return createEncryptions({space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
+            case "encryptions":
+                return createEncryptions({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
 
-        case "outerspaces":
-            return createOuterSpaces({space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
+            case "outerspaces":
+                return createOuterSpaces({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
 
-        case "autosyncs":
-            return createAutosyncs({space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
+            case "autosyncs":
+                return createAutosyncs({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
 
-        case "robbots":
-            return createRobbots({space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
+            case "robbots":
+                return createRobbots({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
 
-        default:
-            throw new Error(`not implemented. type: ${type}`);
+            default:
+                throw new Error(`not implemented. type: ${type}`);
         }
     } catch (error) {
         console.error(`${lc} ${error.message}`);
@@ -1833,8 +1833,8 @@ export async function createSpecialIbGib({
     const lc = `[${createSpecialIbGib.name}][${type || 'falsy type?'}]`;
     try {
         if (logalot) { console.log(`${lc} starting...`); }
-        const specialIb = getSpecialIbGibIb({type});
-        const src = factory.primitive({ib: specialIb});
+        const specialIb = getSpecialIbGibIb({ type });
+        const src = factory.primitive({ ib: specialIb });
         const resNewSpecial = await V1.fork({
             src,
             destIb: specialIb,
@@ -1843,7 +1843,7 @@ export async function createSpecialIbGib({
             dna: false,
             nCounter: true,
         });
-        await persistTransformResult({resTransform: resNewSpecial, isMeta: true, space});
+        await persistTransformResult({ resTransform: resNewSpecial, isMeta: true, space });
         if (type !== 'roots' && !skipRel8ToRoot) {
             await rel8ToCurrentRoot({
                 ibGib: resNewSpecial.newIbGib,
@@ -1884,7 +1884,7 @@ export async function createTags({
     try {
         if (!space) { throw new Error(`space required. (E: 9c05b9bd355943a39ca47afef67a50eb)`); }
 
-        const configKey = getSpecialConfigKey({type: "tags"});
+        const configKey = getSpecialConfigKey({ type: "tags" });
         const special = await createSpecialIbGib({
             type: "tags",
             space,
@@ -1892,8 +1892,8 @@ export async function createTags({
             fnBroadcast,
             fnUpdateBootstrap,
         });
-        let addr = h.getIbGibAddr({ibGib: special});
-        await setConfigAddr({key: configKey, addr: addr, space, zeroSpace, fnUpdateBootstrap});
+        let addr = h.getIbGibAddr({ ibGib: special });
+        await setConfigAddr({ key: configKey, addr: addr, space, zeroSpace, fnUpdateBootstrap });
 
         // at this point, our tags ibGib has no associated tag ibGibs.
         // add home, favorite tags
@@ -1902,9 +1902,9 @@ export async function createTags({
             { text: 'favorite', icon: 'heart-outline' },
         ];
         for (const data of initialTagDatas) {
-            const resCreate = await createTagIbGibAndSundry({...data, space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
+            const resCreate = await createTagIbGibAndSundry({ ...data, space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
             addr = resCreate.newTagsAddr;
-            await setConfigAddr({key: configKey, addr: addr, space, zeroSpace, fnUpdateBootstrap});
+            await setConfigAddr({ key: configKey, addr: addr, space, zeroSpace, fnUpdateBootstrap });
         }
 
         return addr;
@@ -1939,7 +1939,7 @@ export async function createTagIbGibAndSundry({
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
-}): Promise<{newTagIbGib: TagIbGib_V1, newTagsAddr: string}> {
+}): Promise<{ newTagIbGib: TagIbGib_V1, newTagsAddr: string }> {
     const lc = `[${createTagIbGibAndSundry.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting...`); }
@@ -1949,19 +1949,19 @@ export async function createTagIbGibAndSundry({
         icon = icon || c.DEFAULT_TAG_ICON;
         description = description || c.DEFAULT_TAG_DESCRIPTION;
         const tagIb = tagTextToIb(text);
-        const tagPrimitive = factory.primitive({ib: "tag"});
+        const tagPrimitive = factory.primitive({ ib: "tag" });
         const resNewTag = await factory.firstGen({
             parentIbGib: tagPrimitive,
             ib: tagIb,
             data: { text, icon, description },
-            linkedRel8ns: [ Rel8n.past, Rel8n.ancestor ],
+            linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
             tjp: { uuid: true, timestamp: true },
             dna: true,
             nCounter: true,
         });
         const newTag = <TagIbGib_V1>resNewTag.newIbGib;
-        await persistTransformResult({resTransform: resNewTag, isMeta: true, space});
-        await registerNewIbGib({ibGib: newTag, space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
+        await persistTransformResult({ resTransform: resNewTag, isMeta: true, space });
+        await registerNewIbGib({ ibGib: newTag, space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
         const newTagsAddr = await rel8TagToTagsIbGib({
             tagIbGib: newTag, space, zeroSpace, fnUpdateBootstrap, fnBroadcast,
         });
@@ -1989,7 +1989,7 @@ export async function createRootsIbGib({
     try {
         if (!space) { throw new Error(`space required. (E: d12a8ea31163429fb6e53ff8e7579c57)`); }
 
-        const configKey = getSpecialConfigKey({type: "roots"});
+        const configKey = getSpecialConfigKey({ type: "roots" });
         // const rootsIbGib = await createSpecialIbGib({type: "roots", space});
         const rootsIbGib = await createSpecialIbGib({
             type: "roots",
@@ -1998,8 +1998,8 @@ export async function createRootsIbGib({
             fnBroadcast,
             fnUpdateBootstrap,
         });
-        let rootsAddr = h.getIbGibAddr({ibGib: rootsIbGib});
-        await setConfigAddr({key: configKey, addr: rootsAddr, space, zeroSpace, fnUpdateBootstrap});
+        let rootsAddr = h.getIbGibAddr({ ibGib: rootsIbGib });
+        await setConfigAddr({ key: configKey, addr: rootsAddr, space, zeroSpace, fnUpdateBootstrap });
 
         // at this point, our ibGib has no associated ibGibs.
         // so we add initial roots
@@ -2026,14 +2026,14 @@ export async function createRootsIbGib({
             rootsAddr = resCreate.newRootsAddr;
             // update the config for the updated **roots** ibgib.
             // that roots ibgib is what points to the just created new root.
-            await setConfigAddr({key: configKey, addr: rootsAddr, space, zeroSpace, fnUpdateBootstrap});
+            await setConfigAddr({ key: configKey, addr: rootsAddr, space, zeroSpace, fnUpdateBootstrap });
         }
 
         // initialize current root
-        await setCurrentRoot({root: firstRoot, space, zeroSpace, fnUpdateBootstrap, fnBroadcast});
+        await setCurrentRoot({ root: firstRoot, space, zeroSpace, fnUpdateBootstrap, fnBroadcast });
         // hack: the above line updates the roots in config. so get **that** addr.
 
-        rootsAddr = await getConfigAddr({key: configKey, space});
+        rootsAddr = await getConfigAddr({ key: configKey, space });
         if (!rootsAddr) { throw new Error('no roots address in config?'); }
         return rootsAddr;
     } catch (error) {
@@ -2058,7 +2058,7 @@ async function createRootIbGib({
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
-}): Promise<{newRootIbGib: IbGib_V1<RootData>, newRootsAddr: string}> {
+}): Promise<{ newRootIbGib: IbGib_V1<RootData>, newRootsAddr: string }> {
     const lc = `[${createRootIbGib.name}]`;
     try {
         if (!space) { throw new Error(`space required. (E: cfa876e5c8c64a53a463ca7a645571c8)`); }
@@ -2067,12 +2067,12 @@ async function createRootIbGib({
         icon = icon || c.DEFAULT_ROOT_ICON;
         description = description || c.DEFAULT_ROOT_DESCRIPTION;
         const ib = getRootIb(text);
-        const parentIbGib = factory.primitive({ib: "root"});
+        const parentIbGib = factory.primitive({ ib: "root" });
         const resNewIbGib = await factory.firstGen({
             parentIbGib,
             ib,
             data: { text, icon, description },
-            linkedRel8ns: [ Rel8n.past, Rel8n.ancestor ],
+            linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
             tjp: { uuid: true, timestamp: true },
             dna: true,
         });
@@ -2114,7 +2114,7 @@ async function createLatest({
     try {
         if (!space) { throw new Error(`space required. (E: 173b08d7eb114238b32280c3efce9d1a)`); }
 
-        const configKey = getSpecialConfigKey({type: "latest"});
+        const configKey = getSpecialConfigKey({ type: "latest" });
         // const special =
         //     await createSpecialIbGib({type: "latest", skipRel8ToRoot: true, space});
         const special = await createSpecialIbGib({
@@ -2125,8 +2125,8 @@ async function createLatest({
             fnBroadcast,
             fnUpdateBootstrap,
         });
-        let specialAddr = h.getIbGibAddr({ibGib: special});
-        await setConfigAddr({key: configKey, addr: specialAddr, space, zeroSpace, fnUpdateBootstrap});
+        let specialAddr = h.getIbGibAddr({ ibGib: special });
+        await setConfigAddr({ key: configKey, addr: specialAddr, space, zeroSpace, fnUpdateBootstrap });
 
         // right now, the latest ibgib doesn't have any more initialization,
         // since it is supposed to be as ephemeral and non-tracked as possible.
@@ -2154,7 +2154,7 @@ async function createSecrets({
         if (!space) { throw new Error(`space required. (E: 340960cd5ad24addb300b23d9722e30a)`); }
 
         let secretsAddr: IbGibAddr;
-        const configKey = getSpecialConfigKey({type: "secrets"});
+        const configKey = getSpecialConfigKey({ type: "secrets" });
 
         // special ibgib doesn't exist, so create it (empty)
         // const secretsIbgib = await createSpecialIbGib({type: "secrets", space});
@@ -2165,8 +2165,8 @@ async function createSecrets({
             fnBroadcast,
             fnUpdateBootstrap,
         });
-        secretsAddr = h.getIbGibAddr({ibGib: secretsIbgib});
-        await setConfigAddr({key: configKey, addr: secretsAddr, space, zeroSpace, fnUpdateBootstrap});
+        secretsAddr = h.getIbGibAddr({ ibGib: secretsIbgib });
+        await setConfigAddr({ key: configKey, addr: secretsAddr, space, zeroSpace, fnUpdateBootstrap });
 
         return secretsAddr;
     } catch (error) {
@@ -2191,7 +2191,7 @@ async function createEncryptions({
         if (!space) { throw new Error(`space required. (E: 5084e698b6924e7090697ca50075ca59)`); }
 
         let addr: IbGibAddr;
-        const configKey = getSpecialConfigKey({type: "encryptions"});
+        const configKey = getSpecialConfigKey({ type: "encryptions" });
 
         // special ibgib doesn't exist, so create it (empty)
         // const encryptionsIbgib = await createSpecialIbGib({type: "encryptions", space});
@@ -2202,8 +2202,8 @@ async function createEncryptions({
             fnBroadcast,
             fnUpdateBootstrap,
         });
-        addr = h.getIbGibAddr({ibGib: encryptionsIbgib});
-        await setConfigAddr({key: configKey, addr: addr, space, zeroSpace, fnUpdateBootstrap});
+        addr = h.getIbGibAddr({ ibGib: encryptionsIbgib });
+        await setConfigAddr({ key: configKey, addr: addr, space, zeroSpace, fnUpdateBootstrap });
 
         return addr;
     } catch (error) {
@@ -2228,7 +2228,7 @@ async function createOuterSpaces({
         if (!space) { throw new Error(`space required. (E: 99dd9e92535c470482eb9f6625a33831)`); }
 
         let outerSpacesAddr: IbGibAddr;
-        const configKey = getSpecialConfigKey({type: "outerspaces"});
+        const configKey = getSpecialConfigKey({ type: "outerspaces" });
 
         // special outerspaces ibgib doesn't exist, so create it (empty)
         // const outerSpacesIbGib = await createSpecialIbGib({type: "outerspaces", space});
@@ -2239,8 +2239,8 @@ async function createOuterSpaces({
             fnBroadcast,
             fnUpdateBootstrap,
         });
-        outerSpacesAddr = h.getIbGibAddr({ibGib: outerSpacesIbGib});
-        await setConfigAddr({key: configKey, addr: outerSpacesAddr, space, zeroSpace, fnUpdateBootstrap});
+        outerSpacesAddr = h.getIbGibAddr({ ibGib: outerSpacesIbGib });
+        await setConfigAddr({ key: configKey, addr: outerSpacesAddr, space, zeroSpace, fnUpdateBootstrap });
 
         return outerSpacesAddr;
     } catch (error) {
@@ -2265,7 +2265,7 @@ async function createAutosyncs({
         if (!space) { throw new Error(`space required. (E: f01cf6a4a460486796e16d505d629522)`); }
 
         let autosyncsAddr: IbGibAddr;
-        const configKey = getSpecialConfigKey({type: "autosyncs"});
+        const configKey = getSpecialConfigKey({ type: "autosyncs" });
 
         const autosyncsIbGib = await createSpecialIbGib({
             type: "autosyncs",
@@ -2274,8 +2274,8 @@ async function createAutosyncs({
             fnBroadcast,
             fnUpdateBootstrap,
         });
-        autosyncsAddr = h.getIbGibAddr({ibGib: autosyncsIbGib});
-        await setConfigAddr({key: configKey, addr: autosyncsAddr, space, zeroSpace, fnUpdateBootstrap});
+        autosyncsAddr = h.getIbGibAddr({ ibGib: autosyncsIbGib });
+        await setConfigAddr({ key: configKey, addr: autosyncsAddr, space, zeroSpace, fnUpdateBootstrap });
 
         return autosyncsAddr;
     } catch (error) {
@@ -2300,7 +2300,7 @@ export async function createRobbots({
         if (!space) { throw new Error(`space required. (E: f01cf6a4a460486796e16d505d629522)`); }
 
         let robbotsAddr: IbGibAddr;
-        const configKey = getSpecialConfigKey({type: "robbots"});
+        const configKey = getSpecialConfigKey({ type: "robbots" });
 
         const robbotsIbGib = await createSpecialIbGib({
             type: "robbots",
@@ -2309,8 +2309,8 @@ export async function createRobbots({
             fnBroadcast,
             fnUpdateBootstrap,
         });
-        robbotsAddr = h.getIbGibAddr({ibGib: robbotsIbGib});
-        await setConfigAddr({key: configKey, addr: robbotsAddr, space, zeroSpace, fnUpdateBootstrap});
+        robbotsAddr = h.getIbGibAddr({ ibGib: robbotsIbGib });
+        await setConfigAddr({ key: configKey, addr: robbotsAddr, space, zeroSpace, fnUpdateBootstrap });
 
         return robbotsAddr;
     } catch (error) {
@@ -2340,7 +2340,7 @@ export async function createRobbotIbGib({
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
-}): Promise<{newRobbotIbGib: RobbotIbGib_V1, newRobbotsAddr: string}> {
+}): Promise<{ newRobbotIbGib: RobbotIbGib_V1, newRobbotsAddr: string }> {
     const lc = `[${createRobbotIbGib.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting...`); }
@@ -2349,17 +2349,17 @@ export async function createRobbotIbGib({
 
         const ib = getRobbotIb({ robbotData });
         const resNewRobbot = await factory.firstGen({
-            parentIbGib: factory.primitive({ib: "robbot"}),
+            parentIbGib: factory.primitive({ ib: "robbot" }),
             ib,
             data: robbotData,
-            linkedRel8ns: [ Rel8n.past, Rel8n.ancestor ],
+            linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
             tjp: { uuid: true, timestamp: true },
             dna: true,
             nCounter: true,
         });
         const newRobbot = <RobbotIbGib_V1>resNewRobbot.newIbGib;
-        await persistTransformResult({resTransform: resNewRobbot, isMeta: true, space});
-        await registerNewIbGib({ibGib: newRobbot, space, zeroSpace, fnBroadcast, fnUpdateBootstrap});
+        await persistTransformResult({ resTransform: resNewRobbot, isMeta: true, space });
+        await registerNewIbGib({ ibGib: newRobbot, space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
         const newRobbotsAddr = await rel8ToSpecialIbGib({
             type: "robbots",
             rel8nName: c.ROBBOT_REL8N_NAME,
@@ -2453,7 +2453,7 @@ async function getLatestAddr_Brute({
                 let xPast = x.rel8ns?.past || [];
                 if (xPast.includes(otherAddr)) {
                     // no need to proceed further, since the other is found in the past of x, so x is newer
-                    newerAddr = h.getIbGibAddr({ibGib: x});
+                    newerAddr = h.getIbGibAddr({ ibGib: x });
                     return -1;
                 }
                 if (xPast.length === 0) { return n; } // no more past to increment
@@ -2461,11 +2461,11 @@ async function getLatestAddr_Brute({
                 if (firstIterationCount !== -1 && newCount > firstIterationCount) {
                     // we've determined that the second iteration has a longer past,
                     // so we don't need to look further
-                    newerAddr = h.getIbGibAddr({ibGib: x});
+                    newerAddr = h.getIbGibAddr({ ibGib: x });
                     return -1;
                 }
                 // load up the earliest one and call recursively
-                let resNextX = await getFromSpace({addr: xPast[0], space});
+                let resNextX = await getFromSpace({ addr: xPast[0], space });
                 if (!resNextX.success || resNextX.ibGibs?.length !== 1) { throw new Error(`Couldn't load past addr (xPast[0]): ${xPast[0]}`); }
                 return getPastCount(resNextX.ibGibs![0], n + xPast.length, otherAddr);
             }
@@ -2553,7 +2553,7 @@ export function throwIfDuplicates({
         if (!ibGibs && !ibGibAddrs) { throw new Error(`either ibGibs or ibGibAddrs required. (E: 37776788620f4966b0964945ce181fc6)`); }
         if (ibGibs && ibGibAddrs) { console.warn(`${lc} both ibGibs and ibGibAddrs provided. You should only provide one. Only ibGibAddrs will be checked. (W: dc13f9e197834e2daaba3bcfd08418db)`); }
 
-        const addrs = ibGibAddrs ? ibGibAddrs.concat() : ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
+        const addrs = ibGibAddrs ? ibGibAddrs.concat() : ibGibs.map(x => h.getIbGibAddr({ ibGib: x }));
         for (let i = 0; i < addrs.length; i++) {
             const addr = addrs[i];
             if (addrs.filter(x => x === addr).length > 1) { throw new Error(`duplicate addr found: ${addr} (E: 70fbef040dd449c38c667d53b8092053)`); }
@@ -2586,7 +2586,7 @@ export function getSpaceLockAddr({
         const spaceId = space.data!.uuid;
         const ib = `${c.SPACE_LOCK_IB_TERM} ${spaceId} ${scope}`;
         const gib = GIB;
-        return h.getIbGibAddr({ib, gib});
+        return h.getIbGibAddr({ ib, gib });
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -2658,8 +2658,8 @@ export async function execInSpaceWithLocking<TResult>({
         let attempts = 0;
         maxLockAttempts =
             maxLockAttempts > 0 ?
-            maxLockAttempts :
-            c.DEFAULT_MAX_DELAY_RETRY_LOCK_ACQUIRE_ATTEMPTS;
+                maxLockAttempts :
+                c.DEFAULT_MAX_DELAY_RETRY_LOCK_ACQUIRE_ATTEMPTS;
         do {
             lockIbGib = await lockSpace({
                 space,
@@ -2689,7 +2689,7 @@ export async function execInSpaceWithLocking<TResult>({
             throw error;
         } finally {
             if (logalot) { console.log(`${lc2} unlocking space with scope: ${scope} (I: 21034d9c3395499756e9000e40417d22)`); }
-            await unlockSpace({space: space, scope: scope, instanceId: callerInstanceId});
+            await unlockSpace({ space: space, scope: scope, instanceId: callerInstanceId });
             if (logalot) { console.log(`${lc2} complete. (I: 79d8ac03714a4d429c7e6c2ac6e18d22)`); }
         }
 
@@ -2711,18 +2711,18 @@ export async function getValidatedBootstrapIbGib({
     zeroSpace,
 }: {
     zeroSpace: IbGibSpaceAny,
-}): Promise<BootstrapIbGib|null> {
+}): Promise<BootstrapIbGib | null> {
     const lc = `[${getValidatedBootstrapIbGib.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting...`); }
 
-        if (!zeroSpace) {throw new Error(`zeroSpace required. (E: 66fd8f21a5b2b572d18cdeb9472a7722)`); }
+        if (!zeroSpace) { throw new Error(`zeroSpace required. (E: 66fd8f21a5b2b572d18cdeb9472a7722)`); }
 
         const bootstrapAddr = c.BOOTSTRAP_IBGIB_ADDR;
 
         if (logalot) { console.log(`${lc} getting from zeroSpace...`); }
         const argGet = await zeroSpace.argy({
-            ibMetadata: getSpaceArgMetadata({space: zeroSpace}),
+            ibMetadata: getSpaceArgMetadata({ space: zeroSpace }),
             argData: {
                 cmd: 'get',
                 ibGibAddrs: [bootstrapAddr],
@@ -2834,13 +2834,13 @@ export async function getLocalSpace<TSpace extends IbGibSpaceAny>({
                 bootstrapIbGib = await execInSpaceWithLocking<BootstrapIbGib>({
                     space: zeroSpace,
                     scope: bootstrapAddr,
-                    fn: () => { return getValidatedBootstrapIbGib({zeroSpace}); },
+                    fn: () => { return getValidatedBootstrapIbGib({ zeroSpace }); },
                     callerInstanceId,
                     secondsValid: c.DEFAULT_SECONDS_VALID_LOCAL,
                 });
             } else {
                 if (logalot) { console.log(`${lc} lock is false, so just getting the bootstrap ibgib (I: 49d55e5a824510bb3ee0ccd9f5ec3322)`); }
-                bootstrapIbGib = await getValidatedBootstrapIbGib({zeroSpace});
+                bootstrapIbGib = await getValidatedBootstrapIbGib({ zeroSpace });
             }
         }
 
@@ -2852,7 +2852,7 @@ export async function getLocalSpace<TSpace extends IbGibSpaceAny>({
         const fnGet: () => Promise<TSpace> = async () => {
 
             const argGet = await zeroSpace.argy({
-                ibMetadata: getSpaceArgMetadata({space: zeroSpace}),
+                ibMetadata: getSpaceArgMetadata({ space: zeroSpace }),
                 argData: {
                     cmd: 'get',
                     ibGibAddrs: [localSpaceAddr],
@@ -2866,7 +2866,7 @@ export async function getLocalSpace<TSpace extends IbGibSpaceAny>({
                 if (localSpaceCacheSvc) { localSpace.cacheSvc = localSpaceCacheSvc; }
                 return localSpace;
             } else {
-                throw new Error(`Could not get local space addr (${localSpaceAddr}) specified in bootstrap space (${h.getIbGibAddr({ibGib: bootstrapIbGib})}). (E: 6d6b45e7eae4472697ddc971438e4922)`);
+                throw new Error(`Could not get local space addr (${localSpaceAddr}) specified in bootstrap space (${h.getIbGibAddr({ ibGib: bootstrapIbGib })}). (E: 6d6b45e7eae4472697ddc971438e4922)`);
             }
         }
 
@@ -2909,7 +2909,7 @@ export async function lockSpace({
         let resLockIbGib: IbGibSpaceLockIbGib;
 
         /** space lock address is deterministic ibgib primitive (gib === 'gib') */
-        const spaceLockAddr = getSpaceLockAddr({space, scope});
+        const spaceLockAddr = getSpaceLockAddr({ space, scope });
 
         // check for existing lock...
         let existingLock: IbGibSpaceLockIbGib;
@@ -2921,7 +2921,7 @@ export async function lockSpace({
         });
         if (getLock.success && getLock.ibGibs?.length === 1) {
             existingLock = <IbGibSpaceLockIbGib>getLock.ibGibs[0];
-            if (isExpired({expirationTimestampUTC: existingLock.data.expirationUTC})) {
+            if (isExpired({ expirationTimestampUTC: existingLock.data.expirationUTC })) {
                 // lock expired, so log only. skipping delete atow because should be overwritten
                 // when the new lock is in place.
                 if (logalot) { console.log(`${lc} ignoring expired existing lock in space at ${spaceLockAddr}. Should be overwritten (I: 7421c5b051724b189f88cecbbd449b22)`); }
@@ -2941,17 +2941,17 @@ export async function lockSpace({
         } else {
             // not yet locked so immediately lock in memory for space, then via
             // `space.put(lock)`
-            const {ib, gib} = h.getIbAndGib({ibGibAddr: spaceLockAddr});
+            const { ib, gib } = h.getIbAndGib({ ibGibAddr: spaceLockAddr });
             resLockIbGib = <IbGibSpaceLockIbGib>{
                 ib, gib,
                 data: {
                     scope,
                     secondsValid,
                     instanceId,
-                    expirationUTC: getExpirationUTCString({seconds: secondsValid}),
+                    expirationUTC: getExpirationUTCString({ seconds: secondsValid }),
                 }
             };
-            const resPut = await putInSpace({ibGib: resLockIbGib, isMeta: true, force: true, space});
+            const resPut = await putInSpace({ ibGib: resLockIbGib, isMeta: true, force: true, space });
             if (resPut.success) {
                 resLockIbGib.data.success = true;
             } else {
@@ -2984,12 +2984,12 @@ export async function unlockSpace({
         if (!scope) { throw new Error(`scope required. (E: c7f1dde9570f4df3b450faa2c2f85122)`); }
 
         /** space lock address is deterministic ibgib primitive (gib === 'gib') */
-        const spaceLockAddr = getSpaceLockAddr({space, scope});
+        const spaceLockAddr = getSpaceLockAddr({ space, scope });
 
         // delete in file if it exists
-        let resDelete = await deleteFromSpace({addr: spaceLockAddr, isMeta: true, space, force: true});
+        let resDelete = await deleteFromSpace({ addr: spaceLockAddr, isMeta: true, space, force: true });
         if (resDelete.success) {
-            const {ib,gib} = h.getIbAndGib({ibGibAddr: spaceLockAddr});
+            const { ib, gib } = h.getIbAndGib({ ibGibAddr: spaceLockAddr });
             return <IbGibSpaceLockIbGib>{
                 ib, gib,
                 data: {
@@ -3012,7 +3012,7 @@ export async function unlockSpace({
             ) {
                 // don't want to warn if just file didn't exist
                 if (logalot) { console.log(`${lc} ${emsg} (I: b647916fd0f3e5366e9387131be21c22)`); }
-                const {ib,gib} = h.getIbAndGib({ibGibAddr: spaceLockAddr});
+                const { ib, gib } = h.getIbAndGib({ ibGibAddr: spaceLockAddr });
                 return <IbGibSpaceLockIbGib>{
                     ib, gib,
                     data: {
@@ -3086,10 +3086,10 @@ export async function updateBootstrapIbGib({
         if (!zeroSpace) { throw new Error(`zeroSpace required. (E: abbf156e18b1018d96273e22a260f122)`); }
 
         const spaceId = space.data.uuid;
-        const newSpaceAddr = h.getIbGibAddr({ibGib: space});
+        const newSpaceAddr = h.getIbGibAddr({ ibGib: space });
 
         /** validated bootstrap ibgib or null */
-        let bootstrapIbGib = await getValidatedBootstrapIbGib({zeroSpace});
+        let bootstrapIbGib = await getValidatedBootstrapIbGib({ zeroSpace });
         if (!bootstrapIbGib) {
             if (!createIfNotFound) {
                 if (logalot) { console.log(`${lc} bootstrapIbGib not found but createIfNotFound falsy, so returning early. (I: 5c67d85a8599a5ba4a6780f26a66ea22)`); }
@@ -3098,8 +3098,8 @@ export async function updateBootstrapIbGib({
 
             // create the bootstrap^gib space that points to user space
             if (logalot) { console.log(`${lc} creating new bootstrap ibgib for spaceId (${spaceId}) with address of (${newSpaceAddr}) (I: 651959c27bf2ebc5be1f7f44e2b9e422)`); }
-            const { ib: bootstrapIb, gib } = h.getIbAndGib({ibGibAddr: c.BOOTSTRAP_IBGIB_ADDR});
-            bootstrapIbGib = <any>factory.primitive({ib: bootstrapIb});
+            const { ib: bootstrapIb, gib } = h.getIbAndGib({ ibGibAddr: c.BOOTSTRAP_IBGIB_ADDR });
+            bootstrapIbGib = <any>factory.primitive({ ib: bootstrapIb });
             bootstrapIbGib.gib = gib;
             bootstrapIbGib.data = <BootstrapData>{
                 /**
@@ -3148,7 +3148,7 @@ export async function updateBootstrapIbGib({
             ibMetadata: bootstrapIbGib.ib,
             argData: {
                 cmd: 'put', isMeta: true, force: true,
-                ibGibAddrs: [h.getIbGibAddr({ibGib: bootstrapIbGib})],
+                ibGibAddrs: [h.getIbGibAddr({ ibGib: bootstrapIbGib })],
             },
             ibGibs: [bootstrapIbGib],
         });
@@ -3167,11 +3167,11 @@ export async function updateBootstrapIbGib({
 
 }
 
-export function getSpaceArgMetadata({space}: {space: IbGibSpaceAny}): string {
+export function getSpaceArgMetadata({ space }: { space: IbGibSpaceAny }): string {
     return `${space.ib} ${getTimestampInTicks()}`;
 }
 
-export function getSpaceResultMetadata({space}: {space: IbGibSpaceAny}): string {
+export function getSpaceResultMetadata({ space }: { space: IbGibSpaceAny }): string {
     return `${space.ib} ${getTimestampInTicks()}`;
 }
 
@@ -3279,13 +3279,13 @@ export async function getLatestAddrs({
     tjps,
     tjpAddrs,
     space,
-  }: {
+}: {
     ibGibs?: IbGib_V1[],
     addrs?: IbGibAddr[],
     tjps?: IbGib_V1[],
     tjpAddrs?: IbGibAddr[],
     space?: SpaceBase_V1<IbGib_V1>,
-  }): Promise<IbGibSpaceResultIbGib<IbGib_V1, IbGibSpaceResultData, IbGibSpaceResultRel8ns>> {
+}): Promise<IbGibSpaceResultIbGib<IbGib_V1, IbGibSpaceResultData, IbGibSpaceResultRel8ns>> {
     let lc = `[${getLatestAddrs.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting...`); }
@@ -3310,18 +3310,18 @@ export async function getLatestAddrs({
          * being queried.
          * */
         const addrsToQuery = new Set<IbGibAddr>(
-            tjpAddrs.concat(tjps.map(ibGib => h.getIbGibAddr({ibGib})))
+            tjpAddrs.concat(tjps.map(ibGib => h.getIbGibAddr({ ibGib })))
         );
 
         // add ibgibs/addrs only if they do not already have their corresponding
         // tjpAddr in the query addrs. We can do this by checking if the tjpGib
         // is located in the ibGibAddr.gib, which has the form
         // [punctiliarHash].[tjpGib]
-        const tjpGibs = Array.from(addrsToQuery).map(x => h.getIbAndGib({ibGibAddr: x}).gib);
-        ibGibs.map(ibGib => h.getIbGibAddr({ibGib}))
+        const tjpGibs = Array.from(addrsToQuery).map(x => h.getIbAndGib({ ibGibAddr: x }).gib);
+        ibGibs.map(ibGib => h.getIbGibAddr({ ibGib }))
             .concat(addrs)
             .forEach(ibGibAddr => {
-                const { gib } = h.getIbAndGib({ibGibAddr});
+                const { gib } = h.getIbAndGib({ ibGibAddr });
                 const addrHasExistingTjpGib =
                     tjpGibs.some(tjpGib => gib.includes(tjpGib));
                 if (!addrHasExistingTjpGib) { addrsToQuery.add(ibGibAddr); }
@@ -3331,7 +3331,7 @@ export async function getLatestAddrs({
 
         // construct the arg and execute
         const argGet = await space.argy({
-            ibMetadata: getSpaceArgMetadata({space}),
+            ibMetadata: getSpaceArgMetadata({ space }),
             argData: {
                 cmd: 'get',
                 cmdModifiers: ['latest', 'addrs'],

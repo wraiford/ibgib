@@ -28,10 +28,7 @@ export class TagListViewComponent
 
   @Input()
   get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
-  set ibGib_Context(value: IbGib_V1 ) { super.ibGib_Context = value; }
-
-  @Input()
-  rel8nNames: string[] = ['target', 'tag', ...c.DEFAULT_LIST_REL8N_NAMES];
+  set ibGib_Context(value: IbGib_V1) { super.ibGib_Context = value; }
 
   constructor(
     protected common: CommonService,
@@ -40,6 +37,7 @@ export class TagListViewComponent
     super(common, ref);
     const lc = `${this.lc}[ctor]`
     if (logalot) { console.log(`${lc} created`); }
+    this.rel8nNames = ['target', 'tag', ...c.DEFAULT_LIST_REL8N_NAMES];
   }
 
   async ngOnInit(): Promise<void> {
@@ -52,15 +50,6 @@ export class TagListViewComponent
     return super.updateIbGib(addr);
   }
 
-
-  // async updateItems(): Promise<void> {
-    // this.rel8nNames = ['target', 'tag', ...c.DEFAULT_LIST_REL8N_NAMES];
-    // await super.updateItems();
-    // setTimeout(() => {
-    //   this.ref.detectChanges();
-    // }, 1000);
-  // }
-
   async tagClicked(item: IbGibItem): Promise<void> {
     const lc = `${this.lc}[${this.tagClicked.name}]`;
     try {
@@ -68,7 +57,7 @@ export class TagListViewComponent
       if (logalot) { console.log(`item: ${JSON.stringify(item, null, 2)}`); }
       await this.go({
         toAddr: item.addr,
-        fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
+        fromAddr: h.getIbGibAddr({ ibGib: this.ibGib_Context }),
       });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -76,6 +65,6 @@ export class TagListViewComponent
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
     }
-    // this.clicked.emit(item);
   }
+
 }
