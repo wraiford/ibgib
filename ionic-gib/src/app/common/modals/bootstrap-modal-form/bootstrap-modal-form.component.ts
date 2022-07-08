@@ -3,6 +3,9 @@ import {
   ViewChild,
 } from '@angular/core';
 
+import { Capacitor, FilesystemDirectory, Plugins } from '@capacitor/core';
+const { Filesystem } = Plugins;
+
 import { TransformResult } from 'ts-gib';
 
 import * as c from '../../constants';
@@ -16,6 +19,7 @@ import { IbGibSpaceAny, } from '../../witnesses/spaces/space-base-v1';
 import { DynamicModalFormComponentBase } from '../../bases/dynamic-modal-form-component-base';
 import { WitnessFactoriesService } from '../../../services/witness-factories.service';
 import { DynamicFormComponent } from '../../../ibgib-forms/dynamic-form/dynamic-form.component';
+import { IonicSpace_V1 } from '../../witnesses/spaces/ionic-space-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -33,24 +37,24 @@ export type BootstrapModalResult = TransformResult<IbGibSpaceAny>;
 })
 export class BootstrapModalFormComponent
   extends DynamicModalFormComponentBase<BootstrapModalResult>
-  implements AfterViewInit{
+  implements AfterViewInit {
 
   protected lc: string = `[${BootstrapModalFormComponent.name}]`;
 
-  fields: { [name: string]: FormItemInfo } = { }
+  fields: { [name: string]: FormItemInfo } = {}
 
   @Input()
   spaceProviderNames: string[] = [];
 
   selectTypeItem: FormItemInfo = {
-      name: "type",
-      description: `Type of space`,
-      label: "Type",
-      regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
-      dataType: 'select',
-      multiple: false,
-      required: true,
-    };
+    name: "type",
+    description: `Type of space`,
+    label: "Type",
+    regexp: getRegExp({ min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS }),
+    dataType: 'select',
+    multiple: false,
+    required: true,
+  };
 
   /**
    * The item that is currently selected in the metaform. (hack)
@@ -83,6 +87,9 @@ export class BootstrapModalFormComponent
   @Input()
   metaformItems: FormItemInfo[];
 
+  @Input()
+  zeroSpace: IonicSpace_V1;
+
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
@@ -93,6 +100,7 @@ export class BootstrapModalFormComponent
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
+      this.initializeImpl
       this.helpText = `The bootstrap ibGib is what tells the app what local space to start in.`;
 
       this.metaformItems = [
@@ -124,6 +132,21 @@ export class BootstrapModalFormComponent
     const lc = `${this.lc}[${this.initialize.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
+
+      try {
+        let zeroSpace = this.zeroSpace;
+        let resRead = await Filesystem.readdir({
+          path: zeroSpace.data.baseSubPath,
+          directory: zeroSpace.data.baseDir,
+        });
+        debugger;
+        let files = resRead?.files
+        debugger;
+        // exists = true;
+        // this.pathExistsMap[pathExistsKey] = true;
+      } catch (error) {
+        debugger;
+      }
 
       this.spaceFactories = [
         // add our list of space classnames here,
@@ -157,10 +180,10 @@ export class BootstrapModalFormComponent
       if (logalot) { console.log(`${lc}`); }
 
       // get the relevant factory
-      const factory = this.getFactory({item: this.selectedItem});
+      const factory = this.getFactory({ item: this.selectedItem });
 
       // convert the form to a new space witness
-      const resNewIbGib = await factory.formToWitness({form: this.form});
+      const resNewIbGib = await factory.formToWitness({ form: this.form });
 
       // check...
       if (!resNewIbGib) { throw new Error(`creation failed... (E: ddc73faeb9d74eeca5f415d4b9e3f425)`); }
@@ -180,13 +203,13 @@ export class BootstrapModalFormComponent
       this.selectedItem = item;
 
       // get the coresponding factory to...
-      const factory = this.getFactory({item});
+      const factory = this.getFactory({ item });
 
       // ...new up a blank
       const resSpace = await factory.newUp({});
 
       // convert the blank to the form
-      const subform = await factory.witnessToForm({witness: resSpace.newIbGib});
+      const subform = await factory.witnessToForm({ witness: resSpace.newIbGib });
 
       // update the ux
       this.formItems = subform.items;
@@ -225,6 +248,19 @@ export class BootstrapModalFormComponent
   handleValidatedSubform(event: any): void {
     const lc = `${this.lc}[${this.handleValidatedSubform.name}]`;
     console.log(`${lc}`);
+  }
+
+  handleFileSelected(event: any): void {
+    const lc = `${this.lc}[${this.handleFileSelected.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 505439871216b1945742ec1499cd3122)`); }
+      debugger;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
 }

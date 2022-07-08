@@ -5,7 +5,7 @@
 
 import { Injectable } from '@angular/core';
 import { AlertController, ModalController } from '@ionic/angular';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, } from '@capacitor/core';
 import { Observable, ReplaySubject, Subject, Subscription, } from 'rxjs';
 
 import { IbGib_V1, GIB, GIB_DELIMITER, } from 'ts-gib/dist/V1';
@@ -151,7 +151,7 @@ interface TempCacheEntry {
  * perspective, the latest is mapped. But really, apps can't view slices of ibGib graphs in all sorts
  * of interesting ways and still be productive & beneficial to the ecosystem as a whole.
  */
-@Injectable({providedIn: 'root'})
+@Injectable({ providedIn: 'root' })
 export class IbgibsService {
 
   // we won't get an object back, only a DTO ibGib essentially
@@ -218,6 +218,104 @@ export class IbgibsService {
     }
   }
 
+
+  /**
+   * gets all local user spaces known in bootstrap ibgib, according to
+   * spaceIds property
+   *
+   * (`bootstrapIbGib.data[c.BOOTSTRAP_DATA_KNOWN_SPACE_IDS_KEY]` atow)
+   *
+   * ## example bootstrap ibgib atow
+   *
+    ```json
+    {
+        "ib":"bootstrap",
+        "gib":"gib",
+        "data":{
+            "defaultSpaceId":"d455d9a72807617634ccbf1e532b71037c45762f824ec85fcd9a4c2275562f33",
+            "spaceIds":["d455d9a72807617634ccbf1e532b71037c45762f824ec85fcd9a4c2275562f33"]
+        },
+        "rel8ns":{
+            "d455d9a72807617634ccbf1e532b71037c45762f824ec85fcd9a4c2275562f33":[
+                "witness space IonicSpace_V1 oij d455d9a72807617634ccbf1e532b71037c45762f824ec85fcd9a4c2275562f33^B336251655E8C56B38E9E86F20E0E42E6C153785F1A0A798ADE6916E71CF055B"
+            ]
+        }
+    }
+    ```
+   *
+   * so this enumerates `data.spaceIds` and gets the corresponding addrs in the `rel8ns`.
+   * it then gets the space ibgibs themselves via the local zero space.
+   *
+   * @returns array of known local user spaces
+   *
+   * @throws if no local user spaces found (there should be at least one atow i think)
+   */
+  async getLocalUserSpaces({
+    lock,
+  }: {
+    /**
+     * If true, then we lock by bootstrap/spaceId before trying to retrieve.
+     *
+     * @default false if platform is 'web', else true
+     */
+    lock?: boolean,
+  }): Promise<IonicSpace_V1<AppSpaceData, AppSpaceRel8ns>[]> {
+    const lc = `${this.lc}[${this.getLocalUserSpaces.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      const localSpaces: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns>[] = [];
+
+      // if we're not explicit with skipLock, go by platform
+      // we only need to lock when doing the web, because we could
+      // have multiple tabs open.
+      if (lock === undefined) {
+        if (!this._platform) { this._platform = Capacitor.getPlatform(); }
+        if (logalot) { console.log(`${this.lc} platform: ${this._platform}`); }
+        lock = this._platform === 'web';
+      }
+
+      const bootstrapIbGib =
+        await getValidatedBootstrapIbGib({ zeroSpace: this.zeroSpace });
+
+      // #region validate bootstrapIbGib
+      if (!bootstrapIbGib) { throw new Error(`(UNEXPECTED) bootstrapIbGib falsy (E: fff2de921a3ee56a1d70e4ac320e4122)`); }
+      if (!bootstrapIbGib.data) { throw new Error(`(UNEXPECTED) bootstrapIbGib data falsy (E: 7f9d08050f214078b2f85dd2ed47e005)`); }
+      if (bootstrapIbGib.data[c.BOOTSTRAP_DATA_KNOWN_SPACE_IDS_KEY]) { throw new Error(`(UNEXPECTED) bootstrapIbGib data invalid. data[${c.BOOTSTRAP_DATA_KNOWN_SPACE_IDS_KEY}] falsy (E: 37614e2e8f914d6ab7c605cf064a80d2)`); }
+      if (bootstrapIbGib.data[c.BOOTSTRAP_DATA_KNOWN_SPACE_IDS_KEY].length === 0) { throw new Error(`(UNEXPECTED) bootstrapIbGib data invalid. data[${c.BOOTSTRAP_DATA_KNOWN_SPACE_IDS_KEY}] length === 0 (E: d57691d17e6b4d7ea3a8fed36c0f47e5)`); }
+      // #endregion validate bootstrapIbGib
+
+      const localSpaceIds = bootstrapIbGib.data[c.BOOTSTRAP_DATA_KNOWN_SPACE_IDS_KEY];
+
+      for (let i = 0; i < localSpaceIds.length; i++) {
+        const localSpaceId = localSpaceIds[i];
+        if (!localSpaceId) { throw new Error(`(UNEXPECTED) localSpaceId falsy (E: 582c520897f5355d642229eae122ac22)`); }
+
+        const localSpace =
+          await getLocalSpace<IonicSpace_V1<AppSpaceData, AppSpaceRel8ns>>({
+            zeroSpace: this.zeroSpace,
+            bootstrapIbGib,
+            lock,
+            localSpaceId,
+            callerInstanceId: this._instanceId,
+            fnDtoToSpace: (spaceDto: IbGib_V1<AppSpaceData, AppSpaceRel8ns>) => {
+              return Promise.resolve(IonicSpace_V1.createFromDto(spaceDto));
+            },
+            localSpaceCacheSvc: this.cacheSvc,
+          });
+
+        localSpaces.push(localSpace);
+      }
+
+      return localSpaces;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
   // private _zeroSpace: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> | undefined;
   get zeroSpace(): IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> {
     const zeroSpace = new IonicSpace_V1(/*initialData*/ null, /*initialRel8ns*/ null);
@@ -231,7 +329,7 @@ export class IbgibsService {
    * Just to prevent plaintext passwords from just sitting in memory,
    * this is a slight layer of indirection for caching.
    */
-  private passwordCache: {[addr: string]: TempCacheEntry } = {};
+  private passwordCache: { [addr: string]: TempCacheEntry } = {};
 
   private fnPromptSecret: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>;
   private fnPromptEncryption: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>;
@@ -359,29 +457,29 @@ export class IbgibsService {
       await this.initializeLocalSpaces();
       if (logalot) { console.timeLog(timerName); }
 
-      await this.getSpecialIbGib({type: "latest", initialize: true});
+      await this.getSpecialIbGib({ type: "latest", initialize: true });
       if (logalot) { console.timeLog(timerName); }
 
-      await this.getSpecialIbGib({type: "roots", initialize: true});
+      await this.getSpecialIbGib({ type: "roots", initialize: true });
       if (logalot) { console.timeLog(timerName); }
 
-      await this.getSpecialIbGib({type: "tags", initialize: true});
+      await this.getSpecialIbGib({ type: "tags", initialize: true });
       if (logalot) { console.timeLog(timerName); }
 
-      await this.getSpecialIbGib({type: "secrets", initialize: true});
+      await this.getSpecialIbGib({ type: "secrets", initialize: true });
       if (logalot) { console.timeLog(timerName); }
 
-      await this.getSpecialIbGib({type: "encryptions", initialize: true});
+      await this.getSpecialIbGib({ type: "encryptions", initialize: true });
       if (logalot) { console.timeLog(timerName); }
 
-      await this.getSpecialIbGib({type: "outerspaces", initialize: true});
+      await this.getSpecialIbGib({ type: "outerspaces", initialize: true });
       if (logalot) { console.timeLog(timerName); }
 
-      await this.getSpecialIbGib({type: "autosyncs", initialize: true});
+      await this.getSpecialIbGib({ type: "autosyncs", initialize: true });
       if (logalot) { console.timeLog(timerName); }
       await this.loadAutoSyncs();
 
-      await this.getSpecialIbGib({type: "robbots", initialize: true});
+      await this.getSpecialIbGib({ type: "robbots", initialize: true });
       if (logalot) { console.timeLog(timerName); }
 
       await this.precalculateSomeUUIDsPlease();
@@ -424,30 +522,30 @@ export class IbgibsService {
       // we're going to use the default space first to find/load the actual user's space (if it exists)
       let zeroSpace = this.zeroSpace;
       if (!zeroSpace.gib) {
-        zeroSpace.gib = await getGib({ibGib: zeroSpace, hasTjp: false});
+        zeroSpace.gib = await getGib({ ibGib: zeroSpace, hasTjp: false });
       }
 
       if (logalot) { console.log(`${lc} getting bootstrap ibgib (I: a4ad1cfd5c6f895e879d9e6a5f607b22)`); }
       // first call without locking, because we just want to see if it exists.
       // note that because of race conditions, this may be out of date though.
       const bootstrapAddr = c.BOOTSTRAP_IBGIB_ADDR;
-      let bootstrapIbGib = await getValidatedBootstrapIbGib({zeroSpace});
+      let bootstrapIbGib = await getValidatedBootstrapIbGib({ zeroSpace });
       if (bootstrapIbGib) {
         // re-get it using locking to ensure we've gotten the correct one.
-        if (logalot) { console.log(`${lc} getting bootstrap ibgib with locking from zero space...`)}
+        if (logalot) { console.log(`${lc} getting bootstrap ibgib with locking from zero space...`) }
         bootstrapIbGib = await execInSpaceWithLocking<BootstrapIbGib>({
           space: zeroSpace,
           scope: bootstrapAddr,
           secondsValid: c.DEFAULT_SECONDS_VALID_LOCAL,
-          fn: () => { return getValidatedBootstrapIbGib({zeroSpace}); },
+          fn: () => { return getValidatedBootstrapIbGib({ zeroSpace }); },
           callerInstanceId: this._instanceId,
         });
-        if (logalot) { console.log(`${lc} got bootstrap ibgib with locking from zero space.`)}
+        if (logalot) { console.log(`${lc} got bootstrap ibgib with locking from zero space.`) }
       } else {
         if (logalot) { console.log(`${lc} getting from default space...not found. bootstrap space not found.`); }
         // bootstrap space ibgib not found, so first run probably for user.
         // so create a new bootstrapGib and user space
-        await this.createNewBootstrapGibAndLocalSpace({zeroSpace});
+        await this.createNewBootstrapGibAndLocalSpace({ zeroSpace });
       }
 
     } catch (error) {
@@ -482,8 +580,8 @@ export class IbgibsService {
       }
 
       const modal = await this.modalController.create({
-          component: BootstrapModalFormComponent,
-          // componentProps: { ibGib, space },
+        component: BootstrapModalFormComponent,
+        componentProps: { zeroSpace, },
       });
       await modal.present();
       let resModal = await modal.onWillDismiss();
@@ -513,6 +611,7 @@ export class IbgibsService {
     try {
       let spaceName: string;
 
+
       // await this.editBootstrapGib({
       //   bootstrapIbGib: null,
       //   createIfNotFound: true,
@@ -523,7 +622,8 @@ export class IbgibsService {
 
       const promptName: () => Promise<void> = async () => {
         const fnPrompt = getFnPrompt();
-        const resName = await fnPrompt({title: 'Enter a Name...', msg: `
+        const resName = await fnPrompt({
+          title: 'Enter a Name...', msg: `
         We need to create a local space for you.
 
         Spaces are kinda like usernames, but they dont need to be unique and in the future you will have more than one.
@@ -569,7 +669,7 @@ export class IbgibsService {
       if (logalot) { console.log(`${lc} localSpace.gib: ${newLocalSpace.gib} (before sha256v1)`); }
       if (logalot) { console.log(`${lc} localSpace.data: ${h.pretty(newLocalSpace.data || 'falsy')}`); }
       if (logalot) { console.log(`${lc} localSpace.rel8ns: ${h.pretty(newLocalSpace.rel8ns || 'falsy')}`); }
-      newLocalSpace.gib = await getGib({ibGib: newLocalSpace, hasTjp: false});
+      newLocalSpace.gib = await getGib({ ibGib: newLocalSpace, hasTjp: false });
       if (newLocalSpace.gib === GIB) { throw new Error(`localSpace.gib not updated correctly.`); }
       if (logalot) { console.log(`${lc} localSpace.gib: ${newLocalSpace.gib} (after sha256v1)`); }
 
@@ -585,11 +685,11 @@ export class IbgibsService {
       });
 
       const argPutUserSpace = await zeroSpace.argy({
-        ibMetadata: getSpaceArgMetadata({space: newLocalSpace}),
+        ibMetadata: getSpaceArgMetadata({ space: newLocalSpace }),
         argData: {
           cmd: 'put',
           isMeta: true,
-          ibGibAddrs: [h.getIbGibAddr({ibGib: newLocalSpace})],
+          ibGibAddrs: [h.getIbGibAddr({ ibGib: newLocalSpace })],
         },
         ibGibs: [newLocalSpace],
       });
@@ -616,11 +716,11 @@ export class IbgibsService {
       }
 
       // update the bootstrap ibgib to point to the new local space
-      await updateBootstrapIbGib({space: newLocalSpace, zeroSpace: this.zeroSpace});
+      await updateBootstrapIbGib({ space: newLocalSpace, zeroSpace: this.zeroSpace });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       const alert = getFnAlert();
-      alert({title: 'failed', msg: `failed to initialize the local space. error: ${error.message}`});
+      alert({ title: 'failed', msg: `failed to initialize the local space. error: ${error.message}` });
       throw error;
     }
   }
@@ -635,7 +735,7 @@ export class IbgibsService {
     icon?: string,
     description?: string,
     space?: IbGibSpaceAny,
-  }): Promise<{newTagIbGib: TagIbGib_V1, newTagsAddr: string}> {
+  }): Promise<{ newTagIbGib: TagIbGib_V1, newTagsAddr: string }> {
     const lc = `${this.lc}[${this.createTagIbGib.name}]`;
     try {
       space = space ?? await this.getLocalUserSpace({});
@@ -693,7 +793,7 @@ export class IbgibsService {
       space = space ?? await this.getLocalUserSpace({});
       if (!space) { throw new Error(`space falsy and could not get local space. (E: b6e7fcc09c6244b99b2e6e6ece398db0)`); }
 
-      return getConfigAddr({key, space});
+      return getConfigAddr({ key, space });
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -703,7 +803,7 @@ export class IbgibsService {
 
   fnUpdateBootstrap = async (newSpace: IbGibSpaceAny) => {
     const space = await this.getLocalUserSpace({});
-    await updateBootstrapIbGib({space: newSpace, zeroSpace: this.zeroSpace});
+    await updateBootstrapIbGib({ space: newSpace, zeroSpace: this.zeroSpace });
   }
 
   fnBroadcast = (info: IbGibTimelineUpdateInfo) => {
@@ -755,7 +855,7 @@ export class IbgibsService {
         if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 5fd759510e584cb69b232259b891cca1)`); }
         await h.delay(100);
       }
-      const roots = await this.getSpecialIbGib({type: "roots", space});
+      const roots = await this.getSpecialIbGib({ type: "roots", space });
       if (!roots) {
         throw new Error(`Roots not initialized. (E: e7712dc3d183487e98cd44a2b4324bc2)`);
       }
@@ -766,7 +866,7 @@ export class IbgibsService {
 
       const currentRootAddr = roots.rel8ns.current[0]!;
       const resCurrentRoot =
-        await this.get({addr: currentRootAddr, isMeta: true, space});
+        await this.get({ addr: currentRootAddr, isMeta: true, space });
       if (resCurrentRoot.ibGibs?.length === 1) {
         return <IbGib_V1<RootData>>resCurrentRoot.ibGibs![0];
       } else {
@@ -930,7 +1030,7 @@ export class IbgibsService {
   }): Promise<void> {
     let lc = `${this.lc}[${this.registerNewIbGib.name}]`;
     try {
-      const ibGibAddr: IbGibAddr = h.getIbGibAddr({ibGib});
+      const ibGibAddr: IbGibAddr = h.getIbGibAddr({ ibGib });
       lc = `${lc}[${ibGibAddr}]`;
 
       space = space ?? await this.getLocalUserSpace({});
@@ -938,10 +1038,10 @@ export class IbgibsService {
 
       if (logalot) { console.log(`${lc} starting...`); }
 
-        // we tried to use cache but it wasn't there, so put it for the next time.
+      // we tried to use cache but it wasn't there, so put it for the next time.
       setTimeout(async () => {
         if (ibGib) {
-          const [tjpAddr] = getTjpAddrs({ibGibs: [ibGib]});
+          const [tjpAddr] = getTjpAddrs({ ibGibs: [ibGib] });
           await this.latestCacheSvc.put({
             addr: tjpAddr,
             ibGib: ibGib,
@@ -992,7 +1092,7 @@ export class IbgibsService {
         if (logalot) { console.log(`${lc} ibGib falsy.`); }
         return; /* <<<< returns early */
       }
-      if (isPrimitive({ibGib})) {
+      if (isPrimitive({ ibGib })) {
         console.warn(`${lc} tried to ping latest for primitive. returning early... (W: 06c50cfe028cc04cca67e97a48e6fe22)`);
         return; /* <<<< returns early */
       }
@@ -1004,38 +1104,38 @@ export class IbgibsService {
 
       let latestIbGib: IbGib_V1;
       let latestAddr: IbGibAddr;
-      let ibGibAddr = h.getIbGibAddr({ibGib});
+      let ibGibAddr = h.getIbGibAddr({ ibGib });
       let tjpAddr: IbGibAddr;
       if (useCache) {
         // check the cache...(may not be there though)
-        let info = await this.latestCacheSvc.get({addr: ibGibAddr});
+        let info = await this.latestCacheSvc.get({ addr: ibGibAddr });
         if (info?.ibGib) {
           latestIbGib = info.ibGib;
-          latestAddr = h.getIbGibAddr({ibGib: latestIbGib});
-          [tjpAddr] = info.tjpAddr ? [info.tjpAddr] : getTjpAddrs({ibGibs: [info.ibGib]});
+          latestAddr = h.getIbGibAddr({ ibGib: latestIbGib });
+          [tjpAddr] = info.tjpAddr ? [info.tjpAddr] : getTjpAddrs({ ibGibs: [info.ibGib] });
         }
       }
 
       if (!latestIbGib || !latestAddr) {
         // not found in cache or caller didn't allow using the cache
-        latestAddr = await this.getLatestAddr({ibGib, tjp: tjpIbGib, space});
+        latestAddr = await this.getLatestAddr({ ibGib, tjp: tjpIbGib, space });
 
         // get the tjp for the rel8nName mapping, and also for some checking logic
         if (!tjpAddr && !tjpIbGib) {
-          tjpIbGib = await this.getTjpIbGib({ibGib, space});
+          tjpIbGib = await this.getTjpIbGib({ ibGib, space });
           if (!tjpIbGib) {
             console.warn(`${lc} tjp not found for ${ibGibAddr}? Should at least just be the ibGib's address itself. (W: 15d9c6daca7e442e968af36b4c18b8f7)`);
             tjpIbGib = ibGib;
           }
         }
-        tjpAddr = h.getIbGibAddr({ibGib: tjpIbGib});
+        tjpAddr = h.getIbGibAddr({ ibGib: tjpIbGib });
 
         if (latestAddr === ibGibAddr) {
           if (logalot) { console.log(`${lc} latestAddr === ibGibAddr (I: f38042421fcc3d148a26ed56651c2522)`); }
           latestIbGib = ibGib;
         } else {
           if (logalot) { console.log(`${lc} later version found. ibGibAddr: ${ibGibAddr}\nlatestAddr: ${latestAddr} (I: 53cabd1643df7d43635af642e4c90922)`); }
-          let resLatestIbGib = await this.get({addr: latestAddr, space});
+          let resLatestIbGib = await this.get({ addr: latestAddr, space });
           if (!resLatestIbGib.success || resLatestIbGib.ibGibs?.length !== 1) { throw new Error(`latest not found (E: bc54e433573a5a89c6436dc6a3b60922)`); }
           latestIbGib = resLatestIbGib.ibGibs![0];
 
@@ -1227,7 +1327,7 @@ export class IbgibsService {
     tjpAddr?: IbGibAddr,
     tjp?: IbGib_V1<any>,
     space?: IbGibSpaceAny,
-  }): Promise<IbGibAddr|undefined> {
+  }): Promise<IbGibAddr | undefined> {
     let lc = `${this.lc}[${this.getLatestAddr.name}]`;
     if (logalot) { console.log(`${lc} starting...`); }
     try {
@@ -1296,7 +1396,7 @@ export class IbgibsService {
         console.warn(`${lc} space falsy and localUserSpace not initialized.`);
         return ibGib;
       }
-      return getTjpIbGib({ibGib, naive, space});
+      return getTjpIbGib({ ibGib, naive, space });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -1328,7 +1428,7 @@ export class IbgibsService {
   }): Promise<IbGib_V1 | null> {
     const lc = `${this.lc}[${this.getSpecialIbGib.name}]`;
     try {
-      space = space ?? await this.getLocalUserSpace({lock});
+      space = space ?? await this.getLocalUserSpace({ lock });
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: e08e85d8422e479f9d101194fd26cbda)`); }
 
       while (this.initializing) {
@@ -1385,10 +1485,10 @@ export class IbgibsService {
     cacheAfter,
   }: {
     secretIbGibs: IbGib_V1<SecretData_V1>[],
-    fnPromptPassword: (title: string, msg: string) => Promise<string|null>,
+    fnPromptPassword: (title: string, msg: string) => Promise<string | null>,
     checkCacheFirst?: boolean,
     cacheAfter?: boolean,
-  }): Promise<string|null> {
+  }): Promise<string | null> {
     const lc = `${this.lc}[${this.promptForSecrets.name}]`;
     /** Flag that we'll check in finally clause */
     let erroredDueToPromptTimeout = false;
@@ -1408,11 +1508,11 @@ export class IbgibsService {
 
       // used if we `checkCacheFirst` AND/OR if we `cacheAfter`
       const secretsCacheKey =
-        secretIbGibs.map(ibGib => h.getIbGibAddr({ibGib})).join('');
+        secretIbGibs.map(ibGib => h.getIbGibAddr({ ibGib })).join('');
 
       if (checkCacheFirst) {
         const cachedPassword =
-          await this.getCachedSecretPassword({cacheKey: secretsCacheKey});
+          await this.getCachedSecretPassword({ cacheKey: secretsCacheKey });
 
         if (cachedPassword) {
           // do NOT log the actual cachedPassword!!
@@ -1549,12 +1649,12 @@ export class IbgibsService {
       if (publicMetadata) { data.metadata = publicMetadata; }
 
       const rel8ns: CiphertextRel8ns = {
-        encryption: [h.getIbGibAddr({ibGib: encryptionIbGib})],
+        encryption: [h.getIbGibAddr({ ibGib: encryptionIbGib })],
       }
 
       const resCiphertext = <TransformResult<CiphertextIbGib_V1>>(
         await factory.firstGen({
-          parentIbGib: factory.primitive({ib: ibRoot || 'ciphertext'}),
+          parentIbGib: factory.primitive({ ib: ibRoot || 'ciphertext' }),
           ib:
             publicIbMetadata ?
               `${ibRoot || 'ciphertext'} ${publicIbMetadata}` :
@@ -1570,7 +1670,7 @@ export class IbgibsService {
       if (!resCiphertext.newIbGib) { throw new Error('Error creating ciphertext ibgib.'); }
 
       if (persist) {
-        await this.persistTransformResult({resTransform: resCiphertext});
+        await this.persistTransformResult({ resTransform: resCiphertext });
       }
 
       return resCiphertext;
@@ -1594,7 +1694,7 @@ export class IbgibsService {
   }: {
     ciphertextIbGib: CiphertextIbGib_V1,
     secretIbGibs: SecretIbGib_V1[],
-    fnPromptPassword: (title: string, msg: string) => Promise<string|null>,
+    fnPromptPassword: (title: string, msg: string) => Promise<string | null>,
     space: IbGibSpaceAny,
   }): Promise<string> {
     const lc = `${this.lc}[${this.getPlaintextString.name}]`;
@@ -1606,7 +1706,7 @@ export class IbgibsService {
 
       // get corresponding encryption ibgib for encryption settings
       const encryptionAddr = ciphertextIbGib.rel8ns!.encryption![0];
-      const resEncryption = await this.get({addr: encryptionAddr, space});
+      const resEncryption = await this.get({ addr: encryptionAddr, space });
       if (!resEncryption.success) { throw new Error(`get encryption failed`); }
       if ((resEncryption.ibGibs || []).length !== 1) { throw new Error(`get encryption retrieved non-1 length (eesh)`); }
       const encryptionIbGib = <IbGib_V1<EncryptionData_V1>>resEncryption.ibGibs[0];
@@ -1665,7 +1765,7 @@ export class IbgibsService {
     space,
   }: {
     encryptedSpace: IbGibSpaceAny,
-    fnPromptPassword: (title: string, msg: string) => Promise<string|null>,
+    fnPromptPassword: (title: string, msg: string) => Promise<string | null>,
     space?: IbGibSpaceAny,
   }): Promise<IbGibSpaceAny> {
     const lc = `${this.lc}[${this.unwrapEncryptedSyncSpace.name}]`;
@@ -1676,7 +1776,7 @@ export class IbgibsService {
 
       // get ciphertext ibgib
       const ciphertextAddr = encryptedSpace.rel8ns!.ciphertext![0];
-      const resCiphertext = await this.get({addr: ciphertextAddr, space});
+      const resCiphertext = await this.get({ addr: ciphertextAddr, space });
       if (!resCiphertext.success) { throw new Error(`get ciphertext failed`); }
       if ((resCiphertext.ibGibs || []).length !== 1) { throw new Error(`get ciphertext retrieved non-1 length (eesh)`); }
       const ciphertextIbGib = <CiphertextIbGib_V1>resCiphertext.ibGibs[0];
@@ -1689,7 +1789,7 @@ export class IbgibsService {
         argData: { ibGibAddrs: secretAddrs, cmd: 'get', }
       });
       const resSecrets = await localUserSpace.witness(argGetSecrets);
-      if (!resSecrets.data?.success || (resSecrets.ibGibs || []).length === 0)  {
+      if (!resSecrets.data?.success || (resSecrets.ibGibs || []).length === 0) {
         throw new Error(`couldn't get secret ibgibs`);
       }
       const secretIbGibs = <IbGib_V1<SecretData_V1>[]>resSecrets.ibGibs.concat();
@@ -1709,7 +1809,7 @@ export class IbgibsService {
       // so we have a syncspace data (only aws-dynamodb space right now).
       // load this data into a space class with behavior (not just the dto).
       const awsSpace = new AWSDynamoSpace_V1(syncSpaceData, null);
-      awsSpace.gib = await getGib({ibGib: awsSpace, hasTjp: false});
+      awsSpace.gib = await getGib({ ibGib: awsSpace, hasTjp: false });
       if (logalot) { console.log(`awsSpace.gib: ${awsSpace.gib}`); }
       return awsSpace;
     } catch (error) {
@@ -1820,11 +1920,11 @@ export class IbgibsService {
   private async _createOuterspaceAndRequiredIbGibs(space: IbGibSpaceAny): Promise<boolean> {
     const lc = `${this.lc}[${this._createOuterspaceAndRequiredIbGibs.name}]`;
     try {
-      const createdSecret = await this._createSecret({space});
+      const createdSecret = await this._createSecret({ space });
       if (logalot) { console.log(`${lc} createdSecret: ${createdSecret} (I: 9fc011d8ecb1e10c86c86025be4d5c22)`); }
       if (!createdSecret) { return false; } // <<<< returns early
 
-      const createdEncryption = await this._createEncryption({space});
+      const createdEncryption = await this._createEncryption({ space });
       if (logalot) { console.log(`${lc} createdEncryption: ${createdEncryption} (I: 6796bbeb7338471e965cf1806d0dea9c)`); }
       if (!createdEncryption) { return false; } // <<<< returns early
 
@@ -1862,7 +1962,7 @@ export class IbgibsService {
       while (secretIbGibs.length === 0) {
         let secretIbGib = await this.fnPromptSecret(space);
         if (secretIbGib === undefined) {
-          await alert({title: 'cancelled', msg: 'Cancelled.'});
+          await alert({ title: 'cancelled', msg: 'Cancelled.' });
           return false;
         }
         await this.registerNewIbGib({ ibGib: secretIbGib, });
@@ -1911,7 +2011,7 @@ export class IbgibsService {
       while (encryptionIbGibs.length === 0) {
         let encryptionIbGib = await this.fnPromptEncryption(space);
         if (encryptionIbGib === undefined) {
-          await getFnAlert()({title: 'cancelled', msg: 'Cancelled.'});
+          await getFnAlert()({ title: 'cancelled', msg: 'Cancelled.' });
           return false;
         }
         await this.registerNewIbGib({ ibGib: encryptionIbGib, space });
@@ -1954,7 +2054,7 @@ export class IbgibsService {
       while (outerspaceIbGibs.length === 0) {
         let outerspaceIbGib = await this.fnPromptOuterSpace(space);
         if (outerspaceIbGib === undefined) { break; }
-        await this.registerNewIbGib({ ibGib: outerspaceIbGib, space});
+        await this.registerNewIbGib({ ibGib: outerspaceIbGib, space });
         await this.rel8ToSpecialIbGib({
           type: "outerspaces",
           rel8nName: c.SYNC_SPACE_REL8N_NAME,
@@ -1974,7 +2074,7 @@ export class IbgibsService {
       if (outerspaceIbGibs.length > 0) {
         return true;
       } else {
-        await alert({title: 'cancelled', msg: 'Cancelled.'});
+        await alert({ title: 'cancelled', msg: 'Cancelled.' });
         return false;
       }
     } catch (error) {
@@ -2053,7 +2153,7 @@ export class IbgibsService {
   }: {
     robbotData: RobbotData_V1,
     space?: IbGibSpaceAny,
-  }): Promise<{newRobbotIbGib: RobbotIbGib_V1, newRobbotsAddr: string}> {
+  }): Promise<{ newRobbotIbGib: RobbotIbGib_V1, newRobbotsAddr: string }> {
     const lc = `${this.lc}[${this.createRobbotIbGib.name}]`;
     try {
       space = space ?? await this.getLocalUserSpace({});
@@ -2097,11 +2197,11 @@ export class IbgibsService {
       let appRobbots: RobbotIbGib_V1[] = [];
       for (let i = 0; i < appRobbots_MaybeOutOfDate.length; i++) {
         const robbotIbGib = appRobbots_MaybeOutOfDate[i];
-        const robbotAddr = h.getIbGibAddr({ibGib: robbotIbGib});
-        const latestAddr = await this.getLatestAddr({ibGib: robbotIbGib});
+        const robbotAddr = h.getIbGibAddr({ ibGib: robbotIbGib });
+        const latestAddr = await this.getLatestAddr({ ibGib: robbotIbGib });
         if (latestAddr && latestAddr !== robbotAddr) {
           // robbot has a newer ibgib in its timeline
-          let resGet = await this.get({addr: latestAddr});
+          let resGet = await this.get({ addr: latestAddr });
           if (!resGet || !resGet?.success || (resGet?.ibGibs ?? []).length === 0) {
             throw new Error(`could not get newer robbot ibgib (E: 15fa346c8ac17edb96e4b0870104c122)`);
           }
@@ -2114,7 +2214,7 @@ export class IbgibsService {
 
       // create if applicable
       if (appRobbots.length === 0 && createIfNone) {
-        let robbot = await createNewRobbot({ibgibs: this, space});
+        let robbot = await createNewRobbot({ ibgibs: this, space });
         if (robbot) {
           appRobbots = await this.getSpecialRel8dIbGibs<RobbotIbGib_V1>({
             type: "robbots",
@@ -2148,7 +2248,7 @@ export class IbgibsService {
      * (tjps).
      */
     watch?: boolean,
-  }): Promise<SyncSagaInfo[]|undefined> {
+  }): Promise<SyncSagaInfo[] | undefined> {
     const lc = `${this.lc}[${this.syncIbGibs.name}]`;
     // map of saga infos across all spaces
     // const sagaInfoMap: { [spaceGib: string]: SyncSagaInfo } = {};
@@ -2162,7 +2262,7 @@ export class IbgibsService {
       this._syncing = true;
 
       // have to make sagaId and syncStatus$ early to enable timeLog calls
-      const sagaId = (await h.getUUID()).slice(0,24);
+      const sagaId = (await h.getUUID()).slice(0, 24);
       const syncStatus$ = new ReplaySubject<SyncStatusIbGib>();
       const syncTimelogName = `sync_log ${sagaId}`;
       console.time(syncTimelogName);
@@ -2202,7 +2302,7 @@ export class IbgibsService {
         const msg = `Can't sync without sync spaces...wrong password? Cancelling. Restart app to retry password (I know it sucks!...just me coding this thing right now)`;
         if (logalot) { console.log(`${lc} ${msg}`) };
         const fnAlert = getFnAlert();
-        await fnAlert({title: "Cancelled", msg});
+        await fnAlert({ title: "Cancelled", msg });
         this._syncing = false;
         console.timeLog(syncTimelogName, 'cancelled');
         console.timeEnd(syncTimelogName);
@@ -2225,7 +2325,7 @@ export class IbgibsService {
 
       // get **ALL** ibgibs that we'll need to put/merge
       const allIbGibsToSync =
-        await this._getAllIbGibsToSyncFromGraph({dependencyGraphIbGibs, space: localUserSpace});
+        await this._getAllIbGibsToSyncFromGraph({ dependencyGraphIbGibs, space: localUserSpace });
 
       // _NOW_ we can finally put/merge into sync spaces.
       // this returns to us the most recent versions which we can update
@@ -2255,7 +2355,7 @@ export class IbgibsService {
           // on the status updates throughout the sync saga. We can handle
           // updating our own local space based on those status updates.
           // await this._startSync({syncSagaInfo: sagaInfo, confirm});
-          await this._startSync({syncSagaInfo: sagaInfo, watch, syncTimelogName});
+          await this._startSync({ syncSagaInfo: sagaInfo, watch, syncTimelogName });
         } catch (error) {
           // if this throws, then that is unexpected. The above result should
           // always be returned, and if it's errored then it should indicate as
@@ -2280,7 +2380,7 @@ export class IbgibsService {
       return allSagaInfos;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-      this.finalizeAllSyncSagas_NoThrow({error});
+      this.finalizeAllSyncSagas_NoThrow({ error });
       throw error;
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
@@ -2301,7 +2401,7 @@ export class IbgibsService {
       if (!sagaInfo.syncStatus$.closed) {
         if (error) {
           const emsg =
-            typeof(error) === 'string' ?  error : error.message ??
+            typeof (error) === 'string' ? error : error.message ??
               `${lc} something went wrong (E: d7db873d9e8b4f14b5b490cadd9730f4)`;
           console.error(emsg);
           sagaInfo.syncStatus$.error(emsg);
@@ -2339,7 +2439,7 @@ export class IbgibsService {
         Object.values(this.sagaInfoMap).filter(x => !x.complete);
       for (let i = 0; i < syncSagaInfos_NotComplete.length; i++) {
         const sagaInfo = syncSagaInfos_NotComplete[i];
-        this.finalizeSyncSaga({sagaInfo, error});
+        this.finalizeSyncSaga({ sagaInfo, error });
       }
     } catch (error) {
       console.error(`${lc}(UNEXPECTED) ${error.message}`);
@@ -2403,13 +2503,13 @@ export class IbgibsService {
       if (!multiSpaceOpId) { throw new Error(`multiSpaceOpId required. (E: a7e228dbd63948d784a67ddbb342e4f7)`); }
 
       // do the addrs outside of info initializer
-      const syncAddrs_All = allIbGibsToSync.map(x => h.getIbGibAddr({ibGib: x}));
+      const syncAddrs_All = allIbGibsToSync.map(x => h.getIbGibAddr({ ibGib: x }));
       const syncAddrs_All_WithTjps = allIbGibsToSync
-        .filter(x => hasTjp({ibGib: x}))
-        .map(x => h.getIbGibAddr({ibGib: x}));
+        .filter(x => hasTjp({ ibGib: x }))
+        .map(x => h.getIbGibAddr({ ibGib: x }));
       const syncAddrs_All_AreTjps = allIbGibsToSync
         .filter(x => x.gib !== GIB && x.data?.isTjp === true)
-        .map(x => h.getIbGibAddr({ibGib: x}));
+        .map(x => h.getIbGibAddr({ ibGib: x }));
       const syncAddrs_All_WithoutTjps =
         syncAddrs_All.filter(addr => !syncAddrs_All_WithTjps.includes(addr));
 
@@ -2421,7 +2521,7 @@ export class IbgibsService {
         spaceId: outerSpace.data.uuid,
         sagaId,
         participants,
-        witnessFnArgsAndResults$: new ReplaySubject<SyncSpaceOptionsIbGib|SyncSpaceResultIbGib>(),
+        witnessFnArgsAndResults$: new ReplaySubject<SyncSpaceOptionsIbGib | SyncSpaceResultIbGib>(),
 
         // syncStatus$: new ReplaySubject<SyncStatusIbGib>(),
         syncStatus$,
@@ -2584,8 +2684,8 @@ export class IbgibsService {
         let sub = sagaInfo.syncStatus$
           .pipe(
             concatMap(async (status: SyncStatusIbGib) => {
-              if (logalot) { console.log(`${lc}(sagaId: ${sagaInfo.sagaId}) status received. ${status?.data?.statusCode ?? 'no status'}`)}
-              await this._handleSyncStatusIbGib({status, sagaInfo});
+              if (logalot) { console.log(`${lc}(sagaId: ${sagaInfo.sagaId}) status received. ${status?.data?.statusCode ?? 'no status'}`) }
+              await this._handleSyncStatusIbGib({ status, sagaInfo });
               return status;
             })
           ).subscribe(
@@ -2596,14 +2696,14 @@ export class IbgibsService {
               const emsg = `${lc}(sagaId: ${sagaInfo.sagaId}) syncStatus$.error: ${error}`;
               console.error(emsg);
               // await getFnAlert()({title: 'couldnt this.syncIbGibs...', msg: emsg});
-              this.finalizeSyncSaga({sagaInfo, error: emsg});
+              this.finalizeSyncSaga({ sagaInfo, error: emsg });
             },
-            /*complete*/ () => {
+            /*complete*/() => {
               if (logalot) { console.log(`${lc}(sagaId: ${sagaInfo.sagaId}) syncStatus$.complete.`); }
             }
           );
         // if (sagaInfo.syncStatusSubscriptions) { sagaInfo.syncStatusSubscriptions.push(sub); }
-        if (!sagaInfo.syncStatusSubscriptions) { throw new Error(`sagaInfo.syncStatusSubscriptions array falsy? (E: f6d834beaa164c6ea1073d35b9fecd01)`)}
+        if (!sagaInfo.syncStatusSubscriptions) { throw new Error(`sagaInfo.syncStatusSubscriptions array falsy? (E: f6d834beaa164c6ea1073d35b9fecd01)`) }
         sagaInfo.syncStatusSubscriptions.push(sub);
       }
 
@@ -2630,7 +2730,7 @@ export class IbgibsService {
       // #endregion validate
 
       let resStoreStatusLocally =
-        await this.put({ibGibs: status.statusIbGibGraph, isMeta: true});
+        await this.put({ ibGibs: status.statusIbGibGraph, isMeta: true });
       if (!resStoreStatusLocally.success) {
         // just log for now...the saving is supposed to the the log in the first place.
         console.error(`${lc}(UNEXPECTED) couldn't save status graph locally? sagaId: ${sagaInfo.sagaId} (E: b472101897824195b96b658c441dfb55)`);
@@ -2654,11 +2754,11 @@ export class IbgibsService {
           break;
 
         case StatusCode.merged_dna:
-          await this.handleSyncStatus_Merged({status});
+          await this.handleSyncStatus_Merged({ status });
           break;
 
         case StatusCode.merged_state:
-          await this.handleSyncStatus_Merged({status});
+          await this.handleSyncStatus_Merged({ status });
           break;
 
         case StatusCode.already_synced:
@@ -2667,7 +2767,7 @@ export class IbgibsService {
           break;
 
         case StatusCode.completed:
-          await this.handleSyncStatus_Complete({sagaInfo});
+          await this.handleSyncStatus_Complete({ sagaInfo });
           break;
 
         case StatusCode.undefined:
@@ -2698,7 +2798,7 @@ export class IbgibsService {
 
       // not necessarily the case, if we only have changes on the store side, we apply no dna and create no side effects
       if ((status.createdIbGibs ?? []).length === 0 &&
-          (status.storeOnlyIbGibs ?? []).length === 0
+        (status.storeOnlyIbGibs ?? []).length === 0
       ) { throw new Error('status.createdIbGibs and/or status.storeOnlyIbGibs required when merging. (E: d118bde47fb9434fa95d747f8e4f6b33)'); }
 
       if (Object.keys(status.ibGibsMergeMap ?? {}).length === 0) { throw new Error('status.ibGibsMergeMap required when merging. (E: 0f06238e5535408f8980e0f9f82cf564)'); }
@@ -2722,13 +2822,13 @@ export class IbgibsService {
        */
       const registerLatestInTimelines = async (ibGibsToRegister: IbGib_V1[]) => {
         const timelines =
-          getTimelinesGroupedByTjp({ibGibs: ibGibsToRegister});
+          getTimelinesGroupedByTjp({ ibGibs: ibGibsToRegister });
         for (let i = 0; i < Object.keys(timelines).length; i++) {
           const tjpAddr = Object.keys(timelines)[i];
           const timeline = timelines[tjpAddr];
-          const latestIbGibInTimeline = timeline[timeline.length-1];
+          const latestIbGibInTimeline = timeline[timeline.length - 1];
           // registerNewIbGib is idempotent if already registered as latest
-          await this.registerNewIbGib({ibGib: latestIbGibInTimeline});
+          await this.registerNewIbGib({ ibGib: latestIbGibInTimeline });
         }
       };
 
@@ -2736,8 +2836,8 @@ export class IbgibsService {
       // created ibgibs may not exist if only the sync space branch has changed.
       // meanwhile, we must collect all ibgib timelines (with tjps) to register
       if (status.createdIbGibs?.length > 0) {
-        if (logalot) { console.log(`${lc} putting createdIbGibs (${status.createdIbGibs.length}): ${status.createdIbGibs.map(x => h.getIbGibAddr({ibGib: x})).join('\n')}.`); }
-        const resPutCreated = await this.put({ibGibs: status.createdIbGibs});
+        if (logalot) { console.log(`${lc} putting createdIbGibs (${status.createdIbGibs.length}): ${status.createdIbGibs.map(x => h.getIbGibAddr({ ibGib: x })).join('\n')}.`); }
+        const resPutCreated = await this.put({ ibGibs: status.createdIbGibs });
         if (!resPutCreated.success) { throw new Error(`Couldn't save created ibGibs locally? (E: f8bc91259c5043d589cd2e7ad2220c1f)`); }
         await registerLatestInTimelines(status.storeOnlyIbGibs)
       } else {
@@ -2746,9 +2846,9 @@ export class IbgibsService {
 
 
       if (status.storeOnlyIbGibs?.length > 0) {
-        if (logalot) { console.log(`${lc} putting storeOnlyIbGibs (${status.storeOnlyIbGibs.length}): ${status.storeOnlyIbGibs.map(x => h.getIbGibAddr({ibGib: x})).join('\n')}.`); }
-        console.warn(`${lc} putting storeOnlyIbGibs (${status.storeOnlyIbGibs.length}): ${status.storeOnlyIbGibs.map(x => h.getIbGibAddr({ibGib: x})).join('\n')}.`);
-        const resPutStoreOnly = await this.put({ibGibs: status.storeOnlyIbGibs});
+        if (logalot) { console.log(`${lc} putting storeOnlyIbGibs (${status.storeOnlyIbGibs.length}): ${status.storeOnlyIbGibs.map(x => h.getIbGibAddr({ ibGib: x })).join('\n')}.`); }
+        console.warn(`${lc} putting storeOnlyIbGibs (${status.storeOnlyIbGibs.length}): ${status.storeOnlyIbGibs.map(x => h.getIbGibAddr({ ibGib: x })).join('\n')}.`);
+        const resPutStoreOnly = await this.put({ ibGibs: status.storeOnlyIbGibs });
         if (!resPutStoreOnly.success) { throw new Error(`Couldn't save storeonly ibGibs locally? (E: c5ab044718ab42bba27f5852149b7ddc)`); }
         await registerLatestInTimelines(status.storeOnlyIbGibs)
       } else {
@@ -2762,8 +2862,8 @@ export class IbgibsService {
       let newLatestIbGibs = Object.values(status.ibGibsMergeMap);
       for (let i = 0; i < newLatestIbGibs.length; i++) {
         const latestIbGib = newLatestIbGibs[i];
-        if (logalot) { console.log(`${lc} registering latestIbGib in localUserSpace: ${h.getIbGibAddr({ibGib: latestIbGib})}`); }
-        await this.registerNewIbGib({ibGib: latestIbGib});
+        if (logalot) { console.log(`${lc} registering latestIbGib in localUserSpace: ${h.getIbGibAddr({ ibGib: latestIbGib })}`); }
+        await this.registerNewIbGib({ ibGib: latestIbGib });
       }
 
       if (logalot) { console.log(`${lc} complete.`); }
@@ -2781,7 +2881,7 @@ export class IbgibsService {
     const lc = `${this.lc}[${this.handleSyncStatus_Complete.name}]`;
     try {
       // cleanup just this saga, which corresponds to a single sync space.
-      this.finalizeSyncSaga({sagaInfo});
+      this.finalizeSyncSaga({ sagaInfo });
 
       // if this is the last saga across all spaces, clean up the rest.
       const allSagaInfos = Object.values(this.sagaInfoMap);
@@ -2790,7 +2890,7 @@ export class IbgibsService {
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-      this.finalizeAllSyncSagas_NoThrow({error});
+      this.finalizeAllSyncSagas_NoThrow({ error });
     }
   }
 
@@ -2818,7 +2918,7 @@ export class IbgibsService {
       // need to get the ibgibs with tjps,
       // then filter these to just the latest of given dependency graph ibgibs
       // then get the latest for each of these in the local space.
-      let latestIbGibsWithTjps = await this._getLatestIbGibsWithTjps({ibGibs: dependencyGraphIbGibs});
+      let latestIbGibsWithTjps = await this._getLatestIbGibsWithTjps({ ibGibs: dependencyGraphIbGibs });
       if (latestIbGibsWithTjps.length === 0) {
         // we have no ibgib timelines, so the incoming dependency graph is complete.
         return dependencyGraphIbGibs;
@@ -2827,11 +2927,11 @@ export class IbgibsService {
       // An issue arises that each time we get updates to tjp ibgibs, then there is the
       // possibility of having additional tjps that weren't in the original graph.
       // So we need to call multiple times until we get the same number in as out.
-      let latestIbGibsWithTjps_CHECK = await this._getLatestIbGibsWithTjps({ibGibs: latestIbGibsWithTjps});
+      let latestIbGibsWithTjps_CHECK = await this._getLatestIbGibsWithTjps({ ibGibs: latestIbGibsWithTjps });
       while (latestIbGibsWithTjps_CHECK.length > latestIbGibsWithTjps.length) {
         console.warn(`${lc} another tjp found. calling getLatestIbGibsWithTjps again to check for more. (W: 9735c4194d1243269d4fe4a4ed93cf59)`);
         latestIbGibsWithTjps = latestIbGibsWithTjps_CHECK;
-        latestIbGibsWithTjps_CHECK = await this._getLatestIbGibsWithTjps({ibGibs: latestIbGibsWithTjps});
+        latestIbGibsWithTjps_CHECK = await this._getLatestIbGibsWithTjps({ ibGibs: latestIbGibsWithTjps });
       }
 
       // at this point, we have all of the latest tjp ibgibs, but not their
@@ -2886,7 +2986,7 @@ export class IbgibsService {
       );
       // group them by tjp
       const ibGibsWithTjp_GroupedByTjpGib =
-        groupBy({items: ibGibsWithTjp_Ungrouped, keyFn: x => getGibInfo({gib: x.gib}).tjpGib});
+        groupBy({ items: ibGibsWithTjp_Ungrouped, keyFn: x => getGibInfo({ gib: x.gib }).tjpGib });
       const tjpGibs = Object.keys(ibGibsWithTjp_GroupedByTjpGib);
       for (let i = 0; i < tjpGibs.length; i++) {
         const group = ibGibsWithTjp_GroupedByTjpGib[tjpGibs[i]];
@@ -2905,7 +3005,7 @@ export class IbgibsService {
 
         // sort by n (ascending) and then grab the latest one
         const latestIbGibInGroup =
-          group.sort((a, b) => a.data.n > b.data.n ? 1 : -1)[group.length-1];
+          group.sort((a, b) => a.data.n > b.data.n ? 1 : -1)[group.length - 1];
         result.push(latestIbGibInGroup);
 
         // we're done
@@ -2939,7 +3039,7 @@ export class IbgibsService {
       for (let i = 0; i < tjpAddrs.length; i++) {
         const tjpAddr = tjpAddrs[i];
         if (logalot) { console.log(`${lc} tjpAddr: ${tjpAddr}`); }
-        const latestAddrLocally = await this.getLatestAddr({tjpAddr});
+        const latestAddrLocally = await this.getLatestAddr({ tjpAddr });
         if (
           !latestAddrs_Store.includes(latestAddrLocally) &&
           !latestAddrsLocallyWithUpdate.includes(latestAddrLocally)
@@ -2982,7 +3082,7 @@ export class IbgibsService {
       // save locally
       if (logalot) { console.log(`${lc} saving new ibgibs from outerspace in local space...`); }
       if (newerIbGibsFromOuterSpace.length > 0) {
-        await this.put({ibGibs: newerIbGibsFromOuterSpace});
+        await this.put({ ibGibs: newerIbGibsFromOuterSpace });
 
         // register the newest tjp ibGibs locally
         if (logalot) { console.log(`${lc} registering "new" updated tjp ibgibs locally...`); }
@@ -2994,7 +3094,7 @@ export class IbgibsService {
             if (!updatedIbGib) {
               throw new Error(`did not get updatedIbGib (${updatedAddr}) from outerspace (${outerSpace.data.uuid}) (E: 818de70f5b444a3ba198ba6480a15b04)`);
             }
-            await this.registerNewIbGib({ibGib: updatedIbGib});
+            await this.registerNewIbGib({ ibGib: updatedIbGib });
           }
         }
       }
@@ -3026,12 +3126,12 @@ export class IbgibsService {
         const wonkyTjpAddrs =
           tjpIbGibs
             .filter(tjp => !tjp.data?.isTjp)
-            .map(x => h.getIbGibAddr({ibGib: x}));
+            .map(x => h.getIbGibAddr({ ibGib: x }));
         console.warn(`${lc} unrelating tjp whose data.isTjp is false. tjpAddrs: ${wonkyTjpAddrs.join('|')} (W: 03b3d7a94e6d4ccaace3df4657a82322)`);
       }
 
       // we'll use addrs to compare to cache and autosync special ibgib
-      let tjpAddrs = tjpIbGibs.map(tjp => h.getIbGibAddr({ibGib: tjp}));
+      let tjpAddrs = tjpIbGibs.map(tjp => h.getIbGibAddr({ ibGib: tjp }));
 
       // if we're already autosyncing all tjps, warn and return early check
       // locally since this is very fast/cheap
@@ -3043,7 +3143,7 @@ export class IbgibsService {
       }
 
       // ...and double check in autosyncs itself, more expensive though
-      const autosyncsIbGib = await this.getSpecialIbGib({type: "autosyncs"});
+      const autosyncsIbGib = await this.getSpecialIbGib({ type: "autosyncs" });
       const alreadySyncing = autosyncsIbGib.rel8ns[c.AUTOSYNC_ALWAYS_REL8N_NAME] ?? [];
       notAlreadySyncingTjpAddrs = tjpAddrs.filter(tjpAddr => !alreadySyncing.includes(tjpAddr));
       if (notAlreadySyncingTjpAddrs.length === 0) {
@@ -3053,7 +3153,7 @@ export class IbgibsService {
 
       // map back from tjp addrs to the tjp ibgibs
       const notAlreadySyncingTjps = notAlreadySyncingTjpAddrs.map(tjpAddr => {
-        return tjpIbGibs.filter(tjp => h.getIbGibAddr({ibGib: tjp}) === tjpAddr)[0];
+        return tjpIbGibs.filter(tjp => h.getIbGibAddr({ ibGib: tjp }) === tjpAddr)[0];
       });
 
       // execute rel8 transform and plumbing
@@ -3089,15 +3189,15 @@ export class IbgibsService {
         const wonkyTjpAddrs =
           tjpIbGibs
             .filter(tjp => !tjp.data?.isTjp)
-            .map(x => h.getIbGibAddr({ibGib: x}));
+            .map(x => h.getIbGibAddr({ ibGib: x }));
         console.warn(`${lc} unrelating tjp whose data.isTjp is false. tjpAddrs: ${wonkyTjpAddrs.join('|')} (W: 7babdf67dda54a2a9905c6c45ef36522)`);
       }
-      let tjpAddrs = tjpIbGibs.map(tjp => h.getIbGibAddr({ibGib: tjp}));
+      let tjpAddrs = tjpIbGibs.map(tjp => h.getIbGibAddr({ ibGib: tjp }));
 
       // if we're already autosyncing this tjp, warn and return early
       // check locally...
       // ...and double check in autosyncs itself.
-      const autosyncsIbGib = await this.getSpecialIbGib({type: "autosyncs"});
+      const autosyncsIbGib = await this.getSpecialIbGib({ type: "autosyncs" });
       if (!autosyncsIbGib.rel8ns) { throw new Error(`(UNEXPECTED) invalid autosyncIbGibs. rel8ns falsy. (E: 5f6211c8a41896003db8bfc40230af22)`); }
       const alreadySyncing = autosyncsIbGib.rel8ns[c.AUTOSYNC_ALWAYS_REL8N_NAME] ?? [];
       const tjpAddrsToRemove: TjpIbGibAddr[] = [];
@@ -3116,7 +3216,7 @@ export class IbgibsService {
 
       const uniqueTjpAddrsToRemove = Array.from(new Set(tjpAddrsToRemove));
       const tjpsToRemove = uniqueTjpAddrsToRemove.map(tjpAddr => {
-        return tjpIbGibs.filter(tjp => h.getIbGibAddr({ibGib: tjp}) === tjpAddr)[0];
+        return tjpIbGibs.filter(tjp => h.getIbGibAddr({ ibGib: tjp }) === tjpAddr)[0];
       });
 
 
@@ -3143,7 +3243,7 @@ export class IbgibsService {
     const lc = `${this.lc}[${this.loadAutoSyncs.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
-      const autosyncsIbGib = await this.getSpecialIbGib({type: "autosyncs"});
+      const autosyncsIbGib = await this.getSpecialIbGib({ type: "autosyncs" });
       if (autosyncsIbGib.rel8ns) {
         this._alwaysAutosyncTjpAddrsCache =
           new Set(autosyncsIbGib.rel8ns[c.AUTOSYNC_ALWAYS_REL8N_NAME]);
@@ -3171,7 +3271,7 @@ export class IbgibsService {
     const lc = `${this.lc}[${this.autosyncIsEnabled.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
-      return this._alwaysAutosyncTjpAddrsCache.has(h.getIbGibAddr({ibGib: tjp}));
+      return this._alwaysAutosyncTjpAddrsCache.has(h.getIbGibAddr({ ibGib: tjp }));
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -3208,7 +3308,7 @@ export class IbgibsService {
       if (logalot) { console.log(`${lc} starting...`); }
       if (this.isPrompting) { throw new Error(`(UNEXPECTED) already prompting (E: 284a32506ede7aa51b17fe07b9619722)`); }
 
-      space = space ?? await this.getLocalUserSpace({lock: true});
+      space = space ?? await this.getLocalUserSpace({ lock: true });
       if (!space) { throw new Error(`(UNEXPECTED) space falsy and localUserSpace not initialized (E: c1c0611e158b400daf07e9cb69dd8c8d)`); }
 
       let resUpdatePic = await this.fnPromptUpdatePic(space, picIbGib);
@@ -3216,13 +3316,13 @@ export class IbgibsService {
         const [resCreatePic, resCreateBin] = resUpdatePic;
 
         // save the ibgibs
-        await this.persistTransformResult({resTransform: resCreatePic, space});
-        await this.persistTransformResult({resTransform: resCreateBin, space});
+        await this.persistTransformResult({ resTransform: resCreatePic, space });
+        await this.persistTransformResult({ resTransform: resCreateBin, space });
 
         // register the new pic ibgib (should be the only created ibgib with a timeline)
-        await this.registerNewIbGib({ ibGib: resCreatePic.newIbGib, space});
+        await this.registerNewIbGib({ ibGib: resCreatePic.newIbGib, space });
       } else {
-        await getFnAlert()({title: 'k', msg: 'update pic cancelled.'});
+        await getFnAlert()({ title: 'k', msg: 'update pic cancelled.' });
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);

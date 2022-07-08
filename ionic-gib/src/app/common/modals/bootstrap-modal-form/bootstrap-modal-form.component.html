@@ -13,6 +13,14 @@
   <ion-item *ngIf="showHelp && helpText">
     <ion-note color="primary">{{ helpText }}</ion-note>
   </ion-item>
+  <ion-item>
+    <ion-label>existing space on filesystem</ion-label>
+    <input type="file" #filepicker (change)="handleFileSelected($event)" />
+  </ion-item>
+  <ion-item>
+    <ion-label>existing space in app storage (documents)</ion-label>
+    <input type="file" #filepicker (change)="handleFileSelected($event)" />
+  </ion-item>
   <!-- metaform is a hack until we get real composite pattern forms -->
   <ib-dynamic-form #metaform *ngIf="metaformItems?.length > 0"
     [items]="metaformItems"

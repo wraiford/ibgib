@@ -52,15 +52,18 @@ export class WelcomePage implements OnInit, AfterViewInit {
 
   @Input()
   get goText3(): string {
-    const tldrLabel = 'tl;dr';
-    const goLabel = this.goToAddr ? 'go' : 'wait for it...';
-    // return 'go';
+    const waitLabel = 'wait for it...';
+    const tldrLabel = this.goToAddr ? 'tl;dr' : waitLabel;
+    const goLabel = this.goToAddr ? 'go' : waitLabel;
+
+    // while the app starts/initializes, show waitLabel. after which, if it's
+    // the last slide, say "go". previous slides are "tl;dr"
     return this.mainSwiper?.realIndex < this.mainSwiper?.slides?.length - 1 ?
       tldrLabel :
       goLabel;
   }
 
-  swipers: {[name: string]: Swiper} = {};
+  swipers: { [name: string]: Swiper } = {};
 
   @Input()
   verticalSwiperTidbits: { [name: string]: VerticalSwiperTidbit[] } = {
@@ -171,7 +174,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
     try {
       if (logalot) { console.log(`${lc} starting... (I: 063458857311a30ff84d511b32aab722)`); }
 
-      if (!svg && !g) {throw new Error(`either svg or g required. (E: c350ceba1d542d642fc61e47d7f76422)`); }
+      if (!svg && !g) { throw new Error(`either svg or g required. (E: c350ceba1d542d642fc61e47d7f76422)`); }
 
       if (svg && g) { console.warn(`${lc} (UNEXPECTED) only svg or g is expected. Using g. (W: 523e10f56b7645b981ed91d59aec50d9)`) }
 
@@ -188,8 +191,8 @@ export class WelcomePage implements OnInit, AfterViewInit {
         // const diam = radius * 2;
         const width = svg.clientWidth;
         const height = svg.clientHeight;
-        const centerX = Math.floor(width/2);
-        const centerY = Math.floor(height/2);
+        const centerX = Math.floor(width / 2);
+        const centerY = Math.floor(height / 2);
         let [xStart, yStart] = info.startPos;
         let [cx, cy] = info.pos;
         let circle: SVGCircleElement;
@@ -206,7 +209,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
         if (xStart !== cx || yStart !== cy) {
           let animation = document.createElementNS(SVG_NAMESPACE, 'animateMotion');
           // let path = `M0,0 L${cx},${cy} L${centerX},${centerY} L${fromX},${fromY}`;
-          let path = `M${xStart-cx},${yStart-cy} L0,0`;
+          let path = `M${xStart - cx},${yStart - cy} L0,0`;
           animation.setAttribute('path', path);
           animation.setAttribute('dur', '2s');
           // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/additive
@@ -222,19 +225,19 @@ export class WelcomePage implements OnInit, AfterViewInit {
             group = ibGroup({
               parent: g ?? svg,
               x: cx, y: cy,
-              width: 2*radius, height: 2*radius,
+              width: 2 * radius, height: 2 * radius,
               fill, opacity,
             });
           } else {
             group = ibGroup({
               parent: g ?? svg,
               x: cx + centerX, y: cy + centerY,
-              width: 2*radius, height: 2*radius,
+              width: 2 * radius, height: 2 * radius,
               fill, opacity,
             });
           }
           await Promise.all(
-            info.infos.map(info => this.drawIbGibDiagram({svg: group, info})),
+            info.infos.map(info => this.drawIbGibDiagram({ svg: group, info })),
           );
         }
 
@@ -244,8 +247,8 @@ export class WelcomePage implements OnInit, AfterViewInit {
         // const diam = radius * 2;
         const width = svg.clientWidth;
         const height = svg.clientHeight;
-        const centerX = Math.floor(width/2);
-        const centerY = Math.floor(height/2);
+        const centerX = Math.floor(width / 2);
+        const centerY = Math.floor(height / 2);
         let [x1, y1] = info.startPos;
         let [x2, y2] = info.pos;
         let line: SVGLineElement;
@@ -262,7 +265,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
         if (x1 !== x2 || y1 !== y2) {
           let animation = document.createElementNS(SVG_NAMESPACE, 'animateMotion');
           // let path = `M0,0 L${x2},${y2} L${centerX},${centerY} L${fromX},${fromY}`;
-          let path = `M${x1-x2},${y1-y2} L0,0`;
+          let path = `M${x1 - x2},${y1 - y2} L0,0`;
           animation.setAttribute('path', path);
           animation.setAttribute('dur', '2s');
           // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/additive
@@ -363,11 +366,11 @@ export class WelcomePage implements OnInit, AfterViewInit {
     if (logalot) { console.log(`${lc} starting...`); }
     try {
 
-      const tagsIbGib = await this.common.ibgibs.getSpecialIbGib({type: "tags"});
+      const tagsIbGib = await this.common.ibgibs.getSpecialIbGib({ type: "tags" });
       if (!tagsIbGib) { throw new Error(`tagsIbGib falsy. (E: f6d840cddd3c4880943cb562e217cec7)`); }
 
       /** pointer to the special tags index ibgib */
-      const tagsAddr = h.getIbGibAddr({ibGib: tagsIbGib});
+      const tagsAddr = h.getIbGibAddr({ ibGib: tagsIbGib });
 
       /**
        * we want to get to the home tag, or at least any tag.
@@ -428,15 +431,15 @@ export class WelcomePage implements OnInit, AfterViewInit {
         hadChildren = true;
       }
 
-      let svg = ibSvg({width: 300, height: 300});
+      let svg = ibSvg({ width: 300, height: 300 });
       svg.addEventListener('click', (() => {
         this.drawAnimation();
       }))
       div.appendChild(svg);
 
       window.requestAnimationFrame(async () => {
-        let centerX = Math.floor(svg.clientWidth/2);
-        let centerY = Math.floor(svg.clientHeight/2);
+        let centerX = Math.floor(svg.clientWidth / 2);
+        let centerY = Math.floor(svg.clientHeight / 2);
         let mainPositionX = 80;
         let noise = Math.random() * 0.0001; // force reanimation?
         let g_radius = Math.floor(centerX * 0.99);
@@ -457,8 +460,8 @@ export class WelcomePage implements OnInit, AfterViewInit {
          */
         const gTranslucent: IbGibDiagramInfo = {
           // background/context
-          startPos: [0,0],
-          pos: [0,0],
+          startPos: [0, 0],
+          pos: [0, 0],
           fill: primaryColor_left,
           stroke: '#53118e',
           mode: 'intrinsic',
@@ -480,80 +483,80 @@ export class WelcomePage implements OnInit, AfterViewInit {
         const i_distanceY = Math.floor(ib_radius * 0.3);
         const i_radius = Math.floor(ib_radius * 0.2);
         // const b_distanceX = -(Math.floor(i_distanceX * 0.99));
-        const b_distanceX = -Math.floor(i_radius* 1.2);
+        const b_distanceX = -Math.floor(i_radius * 1.2);
         const b_distanceY = -Math.floor(i_distanceY * 0.99);
         const b_radius = Math.floor(ib_radius * 0.4);
 
         // left
         const i_left: IbGibDiagramInfo = {
-          startPos: [0,0],
-          pos: [-i_distanceX,-i_distanceY],
+          startPos: [0, 0],
+          pos: [-i_distanceX, -i_distanceY],
           mode: 'intrinsic',
           fill: primaryColor_left,
           stroke: tertiaryColor_left,
           radius: i_radius,
         };
         const b_left: IbGibDiagramInfo = {
-          startPos: [0,0],
-          pos: [-b_distanceX,-b_distanceY],
+          startPos: [0, 0],
+          pos: [-b_distanceX, -b_distanceY],
           mode: 'intrinsic',
           fill: primaryColor_left,
           stroke: tertiaryColor_left,
           radius: b_radius,
         };
         const i_line_left: IbGibDiagramInfo = {
-          startPos: [i_left.pos[0], i_left.pos[1]+i_radius],
-          pos: [i_left.pos[0],b_left.pos[1]],
+          startPos: [i_left.pos[0], i_left.pos[1] + i_radius],
+          pos: [i_left.pos[0], b_left.pos[1]],
           mode: 'extrinsic',
           stroke: tertiaryColor_left,
         };
         const b_line_left: IbGibDiagramInfo = {
-          startPos: [b_left.pos[0]-b_radius, b_left.pos[1]],
-          pos: [b_left.pos[0]-b_radius,i_left.pos[1]],
+          startPos: [b_left.pos[0] - b_radius, b_left.pos[1]],
+          pos: [b_left.pos[0] - b_radius, i_left.pos[1]],
           mode: 'extrinsic',
           stroke: tertiaryColor_left,
         };
         const ib_left: IbGibDiagramInfo = {
-          startPos: [0,0],
-          pos: [-ib_distanceX,-ib_distanceY],
+          startPos: [0, 0],
+          pos: [-ib_distanceX, -ib_distanceY],
           mode: 'intrinsic',
           stroke: primaryColor_left,
           // fill: 'transparent',
           fill: secondaryColor_left,
           radius: ib_radius,
-          infos: [ i_left, b_left, i_line_left, b_line_left ],
+          infos: [i_left, b_left, i_line_left, b_line_left],
         }
 
         // right
         const i_right: IbGibDiagramInfo = {
-          startPos: [0,0],
-          pos: [-i_distanceX,-i_distanceY],
+          startPos: [0, 0],
+          pos: [-i_distanceX, -i_distanceY],
           mode: 'intrinsic',
           fill: primaryColor_right,
           radius: i_radius,
         };
         const b_right: IbGibDiagramInfo = {
-          startPos: [0,0],
-          pos: [-b_distanceX,-b_distanceY],
+          startPos: [0, 0],
+          pos: [-b_distanceX, -b_distanceY],
           mode: 'intrinsic',
           fill: primaryColor_right,
           radius: b_radius,
         };
         const i_line_right: IbGibDiagramInfo = {
-          startPos: [i_right.pos[0], i_right.pos[1]+i_radius],
-          pos: [i_right.pos[0],b_right.pos[1]],
+          startPos: [i_right.pos[0], i_right.pos[1] + i_radius],
+          pos: [i_right.pos[0], b_right.pos[1]],
           mode: 'extrinsic',
           stroke: tertiaryColor_right,
         };
         const b_line_right: IbGibDiagramInfo = {
-          startPos: [b_right.pos[0]-b_radius, b_right.pos[1]],
-          pos: [b_right.pos[0]-b_radius,i_right.pos[1]],
+          startPos: [b_right.pos[0] - b_radius, b_right.pos[1]],
+          pos: [b_right.pos[0] - b_radius, i_right.pos[1]],
           mode: 'extrinsic',
           stroke: tertiaryColor_right,
         };
         const ib_right: IbGibDiagramInfo = {
-          startPos: [0,0],
-          pos: [ib_distanceX,ib_distanceY],
+          startPos: [0, 0],
+          pos: [ib_distanceX, ib_distanceY],
           mode: 'intrinsic',
           // fill: 'blue',
           radius: ib_radius,
@@ -561,21 +564,21 @@ export class WelcomePage implements OnInit, AfterViewInit {
           // fill: 'transparent',
           fill: secondaryColor_right,
           // infos: [ i_right, b_right ],
-          infos: [ i_right, b_right, i_line_right, b_line_right ],
+          infos: [i_right, b_right, i_line_right, b_line_right],
         }
 
 
-        const g_line_theta = Math.atan(ib_distanceY/ib_distanceX);
+        const g_line_theta = Math.atan(ib_distanceY / ib_distanceX);
         const g_line: IbGibDiagramInfo = {
           // bottom left edge of right ib
           startPos: [
-            ib_right.pos[0]-(ib_radius * Math.cos(g_line_theta)),
-            ib_right.pos[1]+(ib_radius * Math.cos(g_line_theta))
+            ib_right.pos[0] - (ib_radius * Math.cos(g_line_theta)),
+            ib_right.pos[1] + (ib_radius * Math.cos(g_line_theta))
           ],
           // top right edge of left ib
           pos: [
-            ib_left.pos[0]-(ib_radius * Math.sin(g_line_theta)),
-            ib_left.pos[1]+(ib_radius * Math.sin(g_line_theta))
+            ib_left.pos[0] - (ib_radius * Math.sin(g_line_theta)),
+            ib_left.pos[1] + (ib_radius * Math.sin(g_line_theta))
           ],
           mode: 'extrinsic',
           stroke: primaryColor_left,
