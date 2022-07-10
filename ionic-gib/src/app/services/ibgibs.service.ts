@@ -545,7 +545,11 @@ export class IbgibsService {
         if (logalot) { console.log(`${lc} getting from default space...not found. bootstrap space not found.`); }
         // bootstrap space ibgib not found, so first run probably for user.
         // so create a new bootstrapGib and user space
-        await this.createNewBootstrapGibAndLocalSpace({ zeroSpace });
+        await this.createLocalSpaceAndUpdateBootstrap({
+          zeroSpace,
+          allowCancel: false,
+          createBootstrap: true
+        });
       }
 
     } catch (error) {
@@ -602,23 +606,12 @@ export class IbgibsService {
     }
   }
 
-  private async createNewBootstrapGibAndLocalSpace({
-    zeroSpace,
-  }: {
-    zeroSpace: IonicSpace_V1,
-  }): Promise<void> {
-    const lc = `${this.lc}[${this.createNewBootstrapGibAndLocalSpace.name}]`;
+  async createNewLocalSpace(): Promise<IonicSpace_V1> {
+    const lc = `${this.lc}[${this.createNewLocalSpace.name}]`;
     try {
+      if (logalot) { console.log(`${lc} starting... (I: 15bcc16f4f3f9e40e743931a3965ff22)`); }
+
       let spaceName: string;
-
-
-      // await this.editBootstrapGib({
-      //   bootstrapIbGib: null,
-      //   createIfNotFound: true,
-      //   zeroSpace,
-      // });
-
-      // return; /* <<<< returns early */
 
       const promptName: () => Promise<void> = async () => {
         const fnPrompt = getFnPrompt();
@@ -639,10 +632,10 @@ export class IbgibsService {
         }
       };
 
-      // #region create a new user space...
-
       // ...prompt for name
-      while (!spaceName) { await promptName(); }
+      await promptName();
+
+      if (!spaceName) { return undefined; /* <<<< returns early */ }
 
       // ...create in memory with defaults
       const newLocalSpace = new IonicSpace_V1(/*initialData*/ <IonicSpaceData_V1>{
@@ -673,17 +666,60 @@ export class IbgibsService {
       if (newLocalSpace.gib === GIB) { throw new Error(`localSpace.gib not updated correctly.`); }
       if (logalot) { console.log(`${lc} localSpace.gib: ${newLocalSpace.gib} (after sha256v1)`); }
 
-      // #endregion create a new user space...
+      return newLocalSpace;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 
-      // create bootstrap
-      if (logalot) { console.log(`${lc} creating new bootstrap ibgib (I: ecc58dd4af21a0c69a16b3d71dad9c22)`); }
-      await updateBootstrapIbGib({
-        space: newLocalSpace,
-        zeroSpace,
-        setSpaceAsDefault: true,
-        createIfNotFound: true,
-      });
+  async createLocalSpaceAndUpdateBootstrap({
+    zeroSpace,
+    allowCancel,
+    createBootstrap,
+  }: {
+    zeroSpace: IonicSpace_V1,
+    allowCancel: boolean,
+    createBootstrap: boolean,
+  }): Promise<IonicSpace_V1 | undefined> {
+    const lc = `${this.lc}[${this.createLocalSpaceAndUpdateBootstrap.name}]`;
+    try {
 
+      // await this.editBootstrapGib({
+      //   bootstrapIbGib: null,
+      //   createIfNotFound: true,
+      //   zeroSpace,
+      // });
+
+      // return; /* <<<< returns early */
+
+      let newLocalSpace: IonicSpace_V1;
+
+      if (allowCancel) {
+        newLocalSpace = await this.createNewLocalSpace();
+        if (!newLocalSpace) {
+          // cancelled
+          return undefined; /* <<<< returns early */
+        }
+      } else {
+        // can't cancel (probably first run of app)
+        while (!newLocalSpace) { newLocalSpace = await this.createNewLocalSpace(); }
+      }
+
+      // create bootstrap if needed
+      if (createBootstrap) {
+        if (logalot) { console.log(`${lc} creating new bootstrap ibgib (I: ecc58dd4af21a0c69a16b3d71dad9c22)`); }
+        await updateBootstrapIbGib({
+          space: newLocalSpace,
+          zeroSpace,
+          setSpaceAsDefault: true,
+          createIfNotFound: true,
+        });
+      }
+
+      /** put arg used in both put calls to zero space and new local space. */
       const argPutUserSpace = await zeroSpace.argy({
         ibMetadata: getSpaceArgMetadata({ space: newLocalSpace }),
         argData: {
@@ -695,16 +731,16 @@ export class IbgibsService {
       });
 
       // save the localSpace in default space
-      if (logalot) { console.log(`${lc} save the localSpace in default space`); }
-      const resDefaultSpace = await zeroSpace.witness(argPutUserSpace);
-      if (resDefaultSpace?.data?.success) {
-        if (logalot) { console.log(`${lc} default space witnessed the user space`); }
+      if (logalot) { console.log(`${lc} save the localSpace in default zero space (I: 1b34fb9f548042ab9d9ae0619377e370)`); }
+      const resZeroSpace = await zeroSpace.witness(argPutUserSpace);
+      if (resZeroSpace?.data?.success) {
+        if (logalot) { console.log(`${lc} default zero space witnessed the user space (I: b6314ea887d34609904db3bb76ae2f9b)`); }
       } else {
-        throw new Error(`${resDefaultSpace?.data?.errors?.join('|') || "There was a problem with zeroSpace witnessing the new localSpace"}`);
+        throw new Error(`${resZeroSpace?.data?.errors?.join('|') || "There was a problem with zeroSpace witnessing the new localSpace (E: b952e888a4954cc5b671034b8384e750)"}`);
       }
 
-      // save the localSpace in its own space?
-      if (logalot) { console.log(`${lc} save the localSpace in its own space`); }
+      // save the localSpace in its own space(?)
+      if (logalot) { console.log(`${lc} save the new localSpace in its own space (I: e1f520f2cc614b1fa9c1ebd1c4dd6957)`); }
       const resPutUserSpaceInUserSpace = await newLocalSpace.witness(argPutUserSpace);
       if (resPutUserSpaceInUserSpace?.data?.success) {
         // we now have saved the localSpace ibgib "in" its own space.
@@ -716,7 +752,12 @@ export class IbgibsService {
       }
 
       // update the bootstrap ibgib to point to the new local space
-      await updateBootstrapIbGib({ space: newLocalSpace, zeroSpace: this.zeroSpace });
+      await updateBootstrapIbGib({
+        space: newLocalSpace,
+        zeroSpace: this.zeroSpace,
+      });
+
+      return newLocalSpace;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       const alert = getFnAlert();

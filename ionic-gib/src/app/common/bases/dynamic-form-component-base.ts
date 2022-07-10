@@ -99,6 +99,7 @@ export abstract class DynamicFormComponentBase<TDataOut>
       console.error(`${lc} ${error.message}`);
     } finally {
       this.initializing = false;
+      setTimeout(() => this.ref.detectChanges());
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }

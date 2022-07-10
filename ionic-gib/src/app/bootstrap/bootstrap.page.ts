@@ -1,13 +1,16 @@
 import { ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
 import { CommonService } from '../services/common.service';
+import { Plugins } from '@capacitor/core';
+const { Modals } = Plugins;
 
 import * as c from '../common/constants';
-import { getValidatedBootstrapIbGib } from '../common/helper/space';
+import { getValidatedBootstrapIbGib, updateBootstrapIbGib } from '../common/helper/space';
 import { BootstrapIbGib } from '../common/types/space';
 import { IbGibSpaceAny } from '../common/witnesses/spaces/space-base-v1';
 import { IonicSpace_V1 } from '../common/witnesses/spaces/ionic-space-v1';
 import { DynamicFormComponentBase } from '../common/bases/dynamic-form-component-base';
 import { DynamicFormComponent } from '../ibgib-forms/dynamic-form/dynamic-form.component';
+import { DynamicFormBuilder } from '../common/helper/form';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -43,8 +46,23 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
   @Input()
   defaultSpace: IonicSpace_V1;
 
+  /**
+   * If a user selects a new space, this will be set for when submitted...
+   * probably not doing this correctly.
+   */
+  @Input()
+  newlySelectedDefaultSpace: IonicSpace_V1;
+
   @Input()
   defaultSpaceNotFound: boolean;
+
+  @Input()
+  newDefaultSpaceSelected: boolean;
+
+  @Input()
+  get showSubmit(): boolean {
+    return this.newDefaultSpaceSelected;
+  }
 
   constructor(
     protected common: CommonService,
@@ -57,11 +75,27 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 850f2df6992f1f931cd3c24c4c32e222)`); }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  /**
+   * Initializes to default space values.
+   */
+  protected async initializeImpl(): Promise<void> {
+    const lc = `${this.lc}[${this.initialize.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
       this.bootstrapIbGib =
         await getValidatedBootstrapIbGib({ zeroSpace: this.common.ibgibs.zeroSpace });
-
       await this.initLocalSpaces();
       await this.initDefaultSpace();
+      await this.initFormItems();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -111,22 +145,99 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
     }
   }
 
+  async initFormItems(): Promise<void> {
+    const lc = `${this.lc}[${this.initFormItems.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: da88afd88b5d133e377fba68ccffaf22)`); }
+
+      const getSelectText = (x: IonicSpace_V1) => {
+        return `${x.data.name} (${x.data.uuid?.slice(0, 10)})`;
+      }
+
+      this.formItems = [];
+      this.ref.detectChanges();
+      this.formItems = new DynamicFormBuilder()
+        .forA({ what: 'Bootstrap' })
+        .with({})
+        .customItem({
+          name: 'defaultSpaceId',
+          label: 'Default Space',
+          dataType: 'select',
+          description: 'This is the local space in use (when the app starts).',
+          required: true,
+          selectOptions: [
+            ...this.localSpaces.map(x => getSelectText(x))
+          ],
+          value: getSelectText(this.defaultSpace),
+          onSelect: async (e, info) => {
+            this.newDefaultSpaceSelected =
+              info.value !== getSelectText(this.defaultSpace);
+            this.newlySelectedDefaultSpace =
+              this.localSpaces.filter(x => getSelectText(x) === info.value)[0];
+          },
+        })
+        .outputItems();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
   async handleBackButtonClick(): Promise<void> {
     await this.common.nav.back();
   }
 
-  protected initializeImpl(): Promise<void> {
-    throw new Error('Method not implemented.');
-  }
+  async handleDynamicSubmit_Validated(form: DynamicFormComponent): Promise<void> {
+    const lc = `${this.lc}[${this.handleDynamicSubmit_Validated.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: c6539c42ebfa1d197a6a4e035d8f5422)`); }
+      // update the selected default
+      if (this.newlySelectedDefaultSpace) {
+        await updateBootstrapIbGib({
+          space: this.newlySelectedDefaultSpace,
+          zeroSpace: this.common.ibgibs.zeroSpace,
+          setSpaceAsDefault: true,
+        });
+      }
 
-  handleDynamicSubmit(form: DynamicFormComponent): Promise<void> {
-    throw new Error('Method not implemented.');
-  }
-  handleDynamicSubmit_Validated(form: DynamicFormComponent): Promise<void> {
-    throw new Error('Method not implemented.');
+      // await this.initialize();
+      window.location.reload();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
   handleDynamicSubmit_ErrorThrown(form: DynamicFormComponent): Promise<void> {
     throw new Error('Method not implemented.');
+  }
+
+  async handleClick_AddSpace(): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_AddSpace.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 53938b8ea30d7ff55fc4ba9d98c5bb22)`); }
+      const newLocalSpace = await this.common.ibgibs.createLocalSpaceAndUpdateBootstrap({
+        zeroSpace: this.common.ibgibs.zeroSpace,
+        allowCancel: true,
+        createBootstrap: false,
+      });
+      if (!newLocalSpace) {
+        await Modals.alert({ title: 'canceled...', message: 'add space canceled.' });
+        return; /* <<<< returns early */
+      }
+
+      // reinitialize, because we have a new bootstrap with a new space.
+      await this.initialize();
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
 }

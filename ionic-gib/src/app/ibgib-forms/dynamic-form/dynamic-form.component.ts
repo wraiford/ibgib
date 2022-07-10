@@ -225,11 +225,12 @@ export class DynamicFormComponent
   async handleSelectChange(e: any, item: FormItemInfo): Promise<void> {
     const lc = `${this.lc}[${this.handleSelectChange.name}]`;
     try {
-      if (logalot) { console.log(`${lc} started...`)};
+      if (logalot) { console.log(`${lc} started...`) };
       if (!e.detail?.value) { throw new Error(`e.detail.value (item selected) falsy (E: 97fe80e7ae2948b69de3f350584d57d3)`) }
       let value: any = e.detail.value;
       item.value = value;
       this.itemSelect.emit(item);
+      if (item.onSelect) { item.onSelect(e, item); }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     } finally {
@@ -270,7 +271,7 @@ export class DynamicFormComponent
     setTimeout(() => this.ref)
   }
 
-  validationSubscriptions: {[key: string]: Subscription} = { }
+  validationSubscriptions: { [key: string]: Subscription } = {}
 
   async updateForm(): Promise<void> {
     const lc = `${this.lc}[${this.updateForm.name}]`;
@@ -307,10 +308,10 @@ export class DynamicFormComponent
         } else {
           if (logalot) { console.log(`${lc} adding standard control (I: aafdaadf4b4e0e659bd6a53d52924622)`); }
           control = this.fb.control({
-              value: item.value || item.defaultValue || '',
-              // disabled: ['toggle', 'select'].includes(item.dataType) ? item.readonly ?? false : false,
-              disabled: item.readonly ?? false,
-            },
+            value: item.value || item.defaultValue || '',
+            // disabled: ['toggle', 'select'].includes(item.dataType) ? item.readonly ?? false : false,
+            disabled: item.readonly ?? false,
+          },
             validators
           );
         }
@@ -336,7 +337,7 @@ export class DynamicFormComponent
       // add entries for each form item info
       for (let i = 0; i < this._items.length; i++) {
         const item = this._items[i];
-        const validators = await this.getValidators({item});
+        const validators = await this.getValidators({ item });
         const control = await newControl(item, validators);
         if (item.items) {
           throw new Error(`not impl (E: 505be7ec1284ec23e3049b58c6880822)`);
@@ -384,9 +385,9 @@ export class DynamicFormComponent
         if (item.fnValid) {
           // convert the fnValid to an Angular ValidatorFn
           const fnValid_Angular: ValidatorFn = (control) => {
-            return item.fnValid(<string|number>control.value) ?
+            return item.fnValid(<string | number>control.value) ?
               null :
-              {[item.uuid]: true};
+              { [item.uuid]: true };
           };
           validators.push(fnValid_Angular);
         }
@@ -471,8 +472,8 @@ export class DynamicFormComponent
       // get the control based on the uuid
       const controlNames = Object.keys(this.rootFormGroup.controls);
       const controlMaybe = controlNames
-          .filter(controlName => controlName === item.uuid)
-          .map(controlName => this.rootFormGroup.controls[controlName]);
+        .filter(controlName => controlName === item.uuid)
+        .map(controlName => this.rootFormGroup.controls[controlName]);
 
       if (controlMaybe.length === 0) {
         throw new Error(`(UNEXPECTED) no control found for item (${item.name}, ${item.uuid}) (E: 1eb112f17981a08e09c928eed929a922)`);
@@ -530,6 +531,6 @@ export class DynamicFormComponent
    * @param val
    * @returns value casted as any
    */
-  castToAny(val: any) : any { return val; }
+  castToAny(val: any): any { return val; }
 
 }

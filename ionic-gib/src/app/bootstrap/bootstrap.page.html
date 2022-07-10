@@ -27,14 +27,26 @@
 
   <div>
     <ion-item *ngFor="let space of localSpaces">{{space.data.name}}</ion-item>
+    <ion-item>
+      <ion-button fill="outline" (click)="handleClick_AddSpace()">add space
+      </ion-button>
+    </ion-item>
   </div>
+
+  <ion-item *ngIf="showSubmit">
+    <ion-note *ngIf="showSubmit" slot="helper" color="primary">will require restart...</ion-note>
+  </ion-item>
 
   <ib-dynamic-form #form *ngIf="formItems?.length > 0"
     [items]="formItems"
     (dynamicSubmit)="handleDynamicSubmit($event)"
     [showHelp]="showHelp"
-    (itemSelect)="handleItemSelected($event)"
+    [showSubmit]="showSubmit"
     >
+    <!-- (itemSelect)="handleItemSelected($event)" -->
   </ib-dynamic-form>
+  <ion-item *ngIf="showSubmit">
+    <ion-text color="primary">will require restart...</ion-text>
+  </ion-item>
 
 </ion-content>

@@ -127,6 +127,10 @@ export interface FormItemInfo {
    */
   selectOptionsWithIcons?: SelectOptionWithIcon[];
   /**
+   * If set, this will trigger when the item is selected.
+   */
+  onSelect?: (event: any, info: FormItemInfo) => Promise<void>;
+  /**
    * If given, should be the min of the field for validation.
    *
    * If the dataType is some kind of text, then this refers to the length of string.
@@ -169,7 +173,7 @@ export interface FormItemInfo {
 
 // /** @see {@link FormItemDataType} */
 export type FormItemDataType =
-    'text' | 'textarea' | 'select' | 'toggle' | 'number' | 'form';
+  'text' | 'textarea' | 'select' | 'toggle' | 'number' | 'form';
 /**
  * Type of the data, to drive what kind of control will be used for data.
  *
