@@ -9,7 +9,7 @@
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
-<ion-content #modalIonContent fullscreen>
+<ion-content #formContainer fullscreen>
   <ion-item *ngIf="showHelp && helpText">
     <ion-note color="primary">{{ helpText }}</ion-note>
   </ion-item>
@@ -32,7 +32,7 @@
   <!-- form that corresponds to the space we will create/edit -->
   <ib-dynamic-form #form *ngIf="formItems?.length > 0"
     [items]="formItems"
-    (dynamicSubmit)="handleSubmit_DynamicModal($event)"
+    (dynamicSubmit)="handleDynamicSubmit($event)"
     [showHelp]="showHelp"
     >
   </ib-dynamic-form>

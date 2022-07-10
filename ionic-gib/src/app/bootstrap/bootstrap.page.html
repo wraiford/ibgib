@@ -1,0 +1,40 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>bootstrap</ion-title>
+    <ion-buttons slot="start">
+      <ion-menu-button slot="icon-only"></ion-menu-button>
+      <ion-button *ngIf="common.platform.is('ios')" class="back-btn"
+        (click)="handleBackButtonClick()">
+        <ion-icon name="chevron-back-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+      <ion-button class="back-btn"
+        (click)="handleBackButtonClick()">
+        <ion-icon name="chevron-back-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+
+  <pre>{{bootstrapIbGib | json}}</pre>
+
+  <ion-item>
+    <ion-label>default space: </ion-label>
+    <ion-text *ngIf="defaultSpace">{{defaultSpace.data.name}}</ion-text>
+    <ion-text *ngIf="defaultSpaceNotFound" color="danger">default space not found</ion-text>
+  </ion-item>
+
+  <div>
+    <ion-item *ngFor="let space of localSpaces">{{space.data.name}}</ion-item>
+  </div>
+
+  <ib-dynamic-form #form *ngIf="formItems?.length > 0"
+    [items]="formItems"
+    (dynamicSubmit)="handleDynamicSubmit($event)"
+    [showHelp]="showHelp"
+    (itemSelect)="handleItemSelected($event)"
+    >
+  </ib-dynamic-form>
+
+</ion-content>

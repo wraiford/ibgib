@@ -16,7 +16,7 @@ import { CommonService } from '../../../services/common.service';
 import { getRegExp } from '../../helper/utils';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
 import { IbGibSpaceAny, } from '../../witnesses/spaces/space-base-v1';
-import { DynamicModalFormComponentBase } from '../../bases/dynamic-modal-form-component-base';
+import { ModalDynamicFormComponentBase } from '../../bases/modal-dynamic-form-component-base';
 import { WitnessFactoriesService } from '../../../services/witness-factories.service';
 import { DynamicFormComponent } from '../../../ibgib-forms/dynamic-form/dynamic-form.component';
 import { IonicSpace_V1 } from '../../witnesses/spaces/ionic-space-v1';
@@ -36,7 +36,7 @@ export type BootstrapModalResult = TransformResult<IbGibSpaceAny>;
   styleUrls: ['./bootstrap-modal-form.component.scss'],
 })
 export class BootstrapModalFormComponent
-  extends DynamicModalFormComponentBase<BootstrapModalResult>
+  extends ModalDynamicFormComponentBase<BootstrapModalResult>
   implements AfterViewInit {
 
   protected lc: string = `[${BootstrapModalFormComponent.name}]`;

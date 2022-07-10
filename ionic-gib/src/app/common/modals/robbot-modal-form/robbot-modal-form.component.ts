@@ -13,7 +13,7 @@ import { RandomRobbot_V1, } from '../../witnesses/robbots/random-robbot-v1';
 import { getRegExp } from '../../helper/utils';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
 import { IbGibRobbotAny, } from '../../witnesses/robbots/robbot-base-v1';
-import { DynamicModalFormComponentBase } from '../../bases/dynamic-modal-form-component-base';
+import { ModalDynamicFormComponentBase } from '../../bases/modal-dynamic-form-component-base';
 import { WitnessFactoriesService } from '../../../services/witness-factories.service';
 import { DynamicFormComponent } from '../../../ibgib-forms/dynamic-form/dynamic-form.component';
 
@@ -32,25 +32,25 @@ export type RobbotModalResult = TransformResult<IbGibRobbotAny>;
   styleUrls: ['./robbot-modal-form.component.scss'],
 })
 export class RobbotModalFormComponent
-  extends DynamicModalFormComponentBase<RobbotModalResult>
-  implements AfterViewInit{
+  extends ModalDynamicFormComponentBase<RobbotModalResult>
+  implements AfterViewInit {
 
   protected lc: string = `[${RobbotModalFormComponent.name}]`;
 
-  fields: { [name: string]: FormItemInfo } = { }
+  fields: { [name: string]: FormItemInfo } = {}
 
   @Input()
   robbotProviderNames: string[] = [];
 
   selectTypeItem: FormItemInfo = {
-      name: "type",
-      description: `Type of robbot`,
-      label: "Type",
-      regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
-      dataType: 'select',
-      multiple: false,
-      required: true,
-    };
+    name: "type",
+    description: `Type of robbot`,
+    label: "Type",
+    regexp: getRegExp({ min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS }),
+    dataType: 'select',
+    multiple: false,
+    required: true,
+  };
 
   /**
    * The item that is currently selected in the metaform. (hack)
@@ -155,10 +155,10 @@ export class RobbotModalFormComponent
       if (logalot) { console.log(`${lc}`); }
 
       // get the relevant factory
-      const factory = this.getFactory({item: this.selectedItem});
+      const factory = this.getFactory({ item: this.selectedItem });
 
       // convert the form to a new robbot witness
-      const resNewIbGib = await factory.formToWitness({form: this.form});
+      const resNewIbGib = await factory.formToWitness({ form: this.form });
 
       // check...
       if (!resNewIbGib) { throw new Error(`creation failed... (E: ddc73faeb9d74eeca5f415d4b9e3f425)`); }
@@ -178,13 +178,13 @@ export class RobbotModalFormComponent
       this.selectedItem = item;
 
       // get the coresponding factory to...
-      const factory = this.getFactory({item});
+      const factory = this.getFactory({ item });
 
       // ...new up a blank
       const resRobbot = await factory.newUp({});
 
       // convert the blank to the form
-      const subform = await factory.witnessToForm({witness: resRobbot.newIbGib});
+      const subform = await factory.witnessToForm({ witness: resRobbot.newIbGib });
 
       // update the ux
       this.formItems = subform.items;

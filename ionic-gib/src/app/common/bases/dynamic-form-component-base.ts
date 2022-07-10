@@ -1,4 +1,4 @@
-import { AfterViewInit, ChangeDetectorRef, Injectable, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Directive, Injectable, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { IonContent } from '@ionic/angular';
 
 import * as c from '../constants';
@@ -8,20 +8,14 @@ import { DynamicFormComponent } from '../../ibgib-forms/dynamic-form/dynamic-for
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
-export type ModalContext = 'create' | 'edit';
-
 /**
- * Prompts the user for information gathering and generates a new ibGib.
- *
- * Does NOT save this ibGib in any space(s) at present.
+ * Base class for a component centered around a dynamic form.
  */
-@Injectable()
-export abstract class DynamicModalFormComponentBase<TDataOut>
+@Directive()
+export abstract class DynamicFormComponentBase<TDataOut>
   implements OnInit, AfterViewInit, OnDestroy {
 
-  protected lc: string = `[${DynamicModalFormComponentBase.name}]`;
-
-  protected modalContext: ModalContext = 'create';
+  protected lc: string = `[${DynamicFormComponentBase.name}]`;
 
   @Input()
   showHelp: boolean;
@@ -33,14 +27,14 @@ export abstract class DynamicModalFormComponentBase<TDataOut>
   helpText: string;
 
   /**
-   * Put '#modalIonContent' in your ion-content section to scroll to top
+   * Put '#formContainer' in your ion-content section to scroll to top
    * when there are validation errors.
    *
    * Or, you can override implementation of `scrollToTopToShowValidationErrors`.
    *
-   * @example <ion-content #modalIonContent fullscreen>
+   * @example <ion-content #formContainer fullscreen>
    */
-  @ViewChild('modalIonContent')
+  @ViewChild('formContainer')
   ionContent: IonContent;
 
   /**
@@ -66,19 +60,6 @@ export abstract class DynamicModalFormComponentBase<TDataOut>
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
   ) { }
-
-  /**
-   * Using this in binding to the modal's ion-title.
-   *
-   * Override this in descending classes.
-   */
-  getTitleText(): string { return 'Form'; }
-  /**
-   * Using this in binding to the modal's ion-title.
-   *
-   * Override this in descending classes.
-   */
-  getTitleHint(): string { return 'Fill this out why doncha...'; }
 
   async ngOnInit(): Promise<void> {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
@@ -117,44 +98,11 @@ export abstract class DynamicModalFormComponentBase<TDataOut>
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     } finally {
-      this.initializing = true;
+      this.initializing = false;
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
   protected abstract initializeImpl(): Promise<void>;
-
-  async handleSubmit_DynamicModal(form: DynamicFormComponent): Promise<void> {
-    const lc = `${this.lc}[${this.handleSubmit_DynamicModal.name}]`;
-    try {
-      if (logalot) { console.log(`${lc}`); }
-      this.showHelp = false;
-
-      if (this.form.hasErrors) {
-        this.form.showErrorSummary = true;
-        setTimeout(() => this.ref.detectChanges());
-        console.warn(`${lc} Cannot submit form, as there are validation errors. ${this.form.validationErrors.join('|')} (I: 0d4bba36dde74552a93b94bc2c300fec)`);
-        return;
-      } else {
-        this.form.showErrorSummary = false;
-      }
-
-      // no validation errors, so create the thing.
-
-      const data = await this.createImpl();
-      await this.common.modalController.dismiss(data);
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      await this.common.modalController.dismiss(undefined);
-    }
-  }
-
-  protected abstract createImpl(): Promise<TDataOut>;
-
-  async handleCancelClick(): Promise<void> {
-    const lc = `${this.lc}[${this.handleCancelClick.name}]`;
-    if (logalot) { console.log(`${lc}`); }
-    await this.common.modalController.dismiss();
-  }
 
   scrollToTopToShowValidationErrors(): void {
     const lc = `${this.lc}[${this.scrollToTopToShowValidationErrors.name}]`;
@@ -169,6 +117,40 @@ export abstract class DynamicModalFormComponentBase<TDataOut>
 
   handleShowHelpClick(): void {
     this.showHelp = !this.showHelp;
+  }
+
+  async handleDynamicSubmit(form: DynamicFormComponent): Promise<void> {
+    const lc = `${this.lc}[${this.handleDynamicSubmit.name}]`;
+    try {
+      if (logalot) { console.log(`${lc}`); }
+      this.showHelp = false;
+
+      if (this.form.hasErrors) {
+        this.form.showErrorSummary = true;
+        setTimeout(() => this.ref.detectChanges());
+        await this.handleDynamicSubmit_Invalid(form);
+      } else {
+        this.form.showErrorSummary = false;
+        await this.handleDynamicSubmit_Validated(form);
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      await this.handleDynamicSubmit_ErrorThrown(form);
+    }
+  }
+  abstract handleDynamicSubmit_Validated(form: DynamicFormComponent): Promise<void>;
+  abstract handleDynamicSubmit_ErrorThrown(form: DynamicFormComponent): Promise<void>;
+  async handleDynamicSubmit_Invalid(form: DynamicFormComponent): Promise<void> {
+    const lc = `${this.lc}[${this.handleDynamicSubmit_Invalid.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: d4e7078be34b36c335b472d507c3cf22)`); }
+      console.warn(`${lc} Cannot submit form, as there are validation errors. ${this.form.validationErrors.join('|')} (I: 2a47bdab464140d39af9d5d0cba35cf3)`);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
 }

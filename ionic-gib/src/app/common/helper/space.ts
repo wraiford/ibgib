@@ -2705,6 +2705,24 @@ export async function execInSpaceWithLocking<TResult>({
 /**
  * Gets the bootstrap ibgib in the given `zeroSpace`.
  *
+ * @example
+ *
+ * ```json
+ * {
+ *     "ib":"bootstrap",
+ *     "gib":"gib",
+ *     "data":{
+ *         "defaultSpaceId":"d455d9a72807617634ccbf1e532b71037c45762f824ec85fcd9a4c2275562f33",
+ *         "spaceIds":["d455d9a72807617634ccbf1e532b71037c45762f824ec85fcd9a4c2275562f33"]
+ *     },
+ *     "rel8ns":{
+ *         "d455d9a72807617634ccbf1e532b71037c45762f824ec85fcd9a4c2275562f33":[
+ *             "witness space IonicSpace_V1 oij d455d9a72807617634ccbf1e532b71037c45762f824ec85fcd9a4c2275562f33^B336251655E8C56B38E9E86F20E0E42E6C153785F1A0A798ADE6916E71CF055B"
+ *         ]
+ *     }
+ * }
+ * ```
+ *
  * @returns bootstrapIbGib if found
  */
 export async function getValidatedBootstrapIbGib({

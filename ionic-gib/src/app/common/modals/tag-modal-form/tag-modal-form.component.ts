@@ -14,7 +14,7 @@ import * as c from '../../constants';
 import { FormItemInfo, SelectOptionWithIcon } from '../../../ibgib-forms/types/form-items';
 import { CommonService } from '../../../services/common.service';
 import { getRegExp } from '../../helper/utils';
-import { DynamicModalFormComponentBase } from '../../bases/dynamic-modal-form-component-base';
+import { ModalDynamicFormComponentBase } from '../../bases/modal-dynamic-form-component-base';
 import { TagData_V1, TagIbGib_V1 } from '../../types/tag';
 import { DynamicFormBuilder } from '../../helper/form';
 
@@ -33,8 +33,8 @@ export type TagModalResult = TagData_V1;
   styleUrls: ['./tag-modal-form.component.scss'],
 })
 export class TagModalFormComponent
-  extends DynamicModalFormComponentBase<TagModalResult>
-  implements AfterViewInit{
+  extends ModalDynamicFormComponentBase<TagModalResult>
+  implements AfterViewInit {
 
   protected lc: string = `[${TagModalFormComponent.name}]`;
 
@@ -70,7 +70,7 @@ export class TagModalFormComponent
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       this.formItems = new DynamicFormBuilder()
-        .forA({what: 'Tag'})
+        .forA({ what: 'Tag' })
         .with({})
         .customItem({
           name: 'text',
@@ -88,7 +88,7 @@ export class TagModalFormComponent
           description: 'This is the icon part of your tag',
           required: true,
           selectOptionsWithIcons: [
-            ...c.IONICONS.map(x => { return <SelectOptionWithIcon>{label: x, icon: x, value: x}; })
+            ...c.IONICONS.map(x => { return <SelectOptionWithIcon>{ label: x, icon: x, value: x }; })
           ],
         })
         .description({
@@ -115,8 +115,8 @@ export class TagModalFormComponent
       }
       const description =
         <string>this.formItems.filter(x => x.name === 'description')[0].value ?
-        <string>this.formItems.filter(x => x.name === 'description')[0].value :
-        undefined;
+          <string>this.formItems.filter(x => x.name === 'description')[0].value :
+          undefined;
       if (description) { data.description = description; }
 
       return data;

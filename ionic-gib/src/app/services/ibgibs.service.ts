@@ -281,7 +281,7 @@ export class IbgibsService {
       // #region validate bootstrapIbGib
       if (!bootstrapIbGib) { throw new Error(`(UNEXPECTED) bootstrapIbGib falsy (E: fff2de921a3ee56a1d70e4ac320e4122)`); }
       if (!bootstrapIbGib.data) { throw new Error(`(UNEXPECTED) bootstrapIbGib data falsy (E: 7f9d08050f214078b2f85dd2ed47e005)`); }
-      if (bootstrapIbGib.data[c.BOOTSTRAP_DATA_KNOWN_SPACE_IDS_KEY]) { throw new Error(`(UNEXPECTED) bootstrapIbGib data invalid. data[${c.BOOTSTRAP_DATA_KNOWN_SPACE_IDS_KEY}] falsy (E: 37614e2e8f914d6ab7c605cf064a80d2)`); }
+      if (!bootstrapIbGib.data[c.BOOTSTRAP_DATA_KNOWN_SPACE_IDS_KEY]) { throw new Error(`(UNEXPECTED) bootstrapIbGib data invalid. data[${c.BOOTSTRAP_DATA_KNOWN_SPACE_IDS_KEY}] falsy (E: 37614e2e8f914d6ab7c605cf064a80d2)`); }
       if (bootstrapIbGib.data[c.BOOTSTRAP_DATA_KNOWN_SPACE_IDS_KEY].length === 0) { throw new Error(`(UNEXPECTED) bootstrapIbGib data invalid. data[${c.BOOTSTRAP_DATA_KNOWN_SPACE_IDS_KEY}] length === 0 (E: d57691d17e6b4d7ea3a8fed36c0f47e5)`); }
       // #endregion validate bootstrapIbGib
 

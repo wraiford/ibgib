@@ -9,13 +9,17 @@ const routes: Routes = [
     pathMatch: 'full'
   },
   {
+    path: 'ibgib/bootstrap^gib',
+    loadChildren: () => import('./bootstrap/bootstrap.module').then(m => m.BootstrapPageModule)
+  },
+  {
     path: 'ibgib/:addr',
-    loadChildren: () => import('./ibgib/ibgib.module').then( m => m.IbGibPageModule)
+    loadChildren: () => import('./ibgib/ibgib.module').then(m => m.IbGibPageModule)
   },
   {
     path: 'welcome',
-    loadChildren: () => import('./welcome/welcome.module').then( m => m.WelcomePageModule)
-  }
+    loadChildren: () => import('./welcome/welcome.module').then(m => m.WelcomePageModule)
+  },
 ];
 
 @NgModule({
@@ -24,4 +28,4 @@ const routes: Routes = [
   ],
   exports: [RouterModule]
 })
-export class AppRoutingModule {}
+export class AppRoutingModule { }

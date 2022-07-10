@@ -17,7 +17,7 @@ export type ModalContext = 'create' | 'edit';
 @Injectable()
 export abstract class ModalFormComponentBase<TDataOut> implements OnInit, OnDestroy {
 
-  protected lc: string = `[${ModalFormComponentBase .name}]`;
+  protected lc: string = `[${ModalFormComponentBase.name}]`;
 
   protected modalContext: ModalContext = 'create';
 
@@ -34,14 +34,14 @@ export abstract class ModalFormComponentBase<TDataOut> implements OnInit, OnDest
   showHelp: boolean;
 
   /**
-   * Put '#modalIonContent' in your ion-content section to scroll to top
+   * Put '#formContainer' in your ion-content section to scroll to top
    * when there are validation errors.
    *
    * Or, you can override implementation of `scrollToTopToShowValidationErrors`.
    *
-   * @example <ion-content #modalIonContent fullscreen>
+   * @example <ion-content #formContainer fullscreen>
    */
-  @ViewChild('modalIonContent')
+  @ViewChild('formContainer')
   ionContent: IonContent;
 
   /**
@@ -171,5 +171,5 @@ export abstract class ModalFormComponentBase<TDataOut> implements OnInit, OnDest
    * @param val
    * @returns value casted as any
    */
-  castToAny(val: any) : any { return val; }
+  castToAny(val: any): any { return val; }
 }

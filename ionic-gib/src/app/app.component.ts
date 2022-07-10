@@ -69,6 +69,9 @@ export class AppComponent extends IbgibComponentBase
   rootItems: MenuItem[] = [];
 
   @Input()
+  localSpaceItems: MenuItem[] = [];
+
+  @Input()
   spaceItems: MenuItem[] = [];
 
   @Input()
@@ -1128,12 +1131,19 @@ export class AppComponent extends IbgibComponentBase
   }
 
 
-  async handleGotoSpecial(type: SpecialIbGibType): Promise<void> {
+  async handleGotoSpecial(type: SpecialIbGibType | 'bootstrap'): Promise<void> {
     const lc = `${this.lc}[${this.handleGotoSpecial.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
-      const specialIbGib = await this.common.ibgibs.getSpecialIbGib({ type });
-      const specialAddr = h.getIbGibAddr({ ibGib: specialIbGib });
+
+      let specialAddr: IbGibAddr;
+      if (type === 'bootstrap') {
+        specialAddr = c.BOOTSTRAP_IBGIB_ADDR;
+      } else {
+        // other special ibgib
+        const specialIbGib = await this.common.ibgibs.getSpecialIbGib({ type });
+        specialAddr = h.getIbGibAddr({ ibGib: specialIbGib });
+      }
       if (specialAddr !== this.addr) {
         await this.menu.close();
         await this.go({

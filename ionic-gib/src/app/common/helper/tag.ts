@@ -9,7 +9,7 @@ import * as c from '../constants';
 import { IconItem } from '../types/ux';
 import { TagData_V1, TagIbGib_V1 } from '../types/tag';
 import { CommonService } from '../../services/common.service';
-import { TagModalFormComponent } from '../modals/tag-modal-form/tag-modal-form.component';
+// import { TagModalFormComponent } from '../modals/tag-modal-form/tag-modal-form.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -65,28 +65,28 @@ async function chooseTagText(): Promise<string | undefined> {
     let tagText: string;
     try {
         for (let i = 0; i < 10; i++) {
-        let resTagText = await Modals.prompt({
-            title: 'Tag Text?',
-            message: `What's the tag called?`,
-            cancelButtonTitle: 'Cancel',
-            okButtonTitle: 'Next...',
-        });
-
-        if (resTagText.cancelled || !resTagText.value) {
-            if (logalot) { console.log(`${lc} cancelled? no value?`) }
-            return;
-        }
-
-        if (c.ILLEGAL_TAG_TEXT_CHARS.some(x => resTagText.value.includes(x))) {
-            await Modals.alert({
-            title: 'Nope...',
-            message: `Tag Text can't contain spaces or ${c.ILLEGAL_TAG_TEXT_CHARS}`,
+            let resTagText = await Modals.prompt({
+                title: 'Tag Text?',
+                message: `What's the tag called?`,
+                cancelButtonTitle: 'Cancel',
+                okButtonTitle: 'Next...',
             });
-        } else {
-            tagText = resTagText.value;
-            if (logalot) { console.log(`${lc} tagText: ${tagText}`); }
-            break;
-        }
+
+            if (resTagText.cancelled || !resTagText.value) {
+                if (logalot) { console.log(`${lc} cancelled? no value?`) }
+                return;
+            }
+
+            if (c.ILLEGAL_TAG_TEXT_CHARS.some(x => resTagText.value.includes(x))) {
+                await Modals.alert({
+                    title: 'Nope...',
+                    message: `Tag Text can't contain spaces or ${c.ILLEGAL_TAG_TEXT_CHARS}`,
+                });
+            } else {
+                tagText = resTagText.value;
+                if (logalot) { console.log(`${lc} tagText: ${tagText}`); }
+                break;
+            }
         }
     } catch (error) {
         console.error(`${lc} ${error.message}`);
@@ -106,7 +106,7 @@ async function chooseTagIcon(common: CommonService): Promise<string | undefined>
         let resModal = await modal.onWillDismiss();
         const iconItem: IconItem = resModal.data;
         if (!iconItem) {
-        if (logalot) { console.log(`${lc} cancelled.`) }
+            if (logalot) { console.log(`${lc} cancelled.`) }
             return;
         }
         if (logalot) { console.log(`${lc} icon: ${iconItem.icon}`); }

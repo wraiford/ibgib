@@ -9,11 +9,11 @@
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
-<ion-content #modalIonContent fullscreen>
+<ion-content #formContainer fullscreen>
   <!-- form that corresponds to the tag we will create/edit -->
   <ib-dynamic-form #form *ngIf="formItems?.length > 0"
     [items]="formItems"
-    (dynamicSubmit)="handleSubmit_DynamicModal($event)"
+    (dynamicSubmit)="handleDynamicSubmit($event)"
     [showHelp]="showHelp"
     (itemSelect)="handleItemSelected($event)"
     >

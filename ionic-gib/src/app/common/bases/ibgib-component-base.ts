@@ -370,7 +370,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
                 if (logalot) { console.log(`${lc} setting new address`); }
 
                 // first try from item cache
-                if (this.lc) {
+                if (this.lc && addr !== c.BOOTSTRAP_IBGIB_ADDR) {
                     const cached = await this.common.cache.get({ addr: addr + this.lc });
                     if (cached?.other) {
                         // first clean other flags
@@ -499,8 +499,13 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
                 if (logalot) { console.log(`${lc} already loaded item.ibGib and force flag is falsy (I: dde55ba695fb2aa0e20caadb1ef83922)`); }
             } else {
                 if (gib === GIB) {
+                    // if (item.addr === c.BOOTSTRAP_IBGIB_ADDR) {
+                    //     let bootstrapIbGib =
+                    //         getValidatedBootstrapIbGib({zeroSpace: this.common.ibgibs.zeroSpace});
+                    // } else {
                     // primitive, just build
                     item.ibGib = Factory_V1.primitive({ ib });
+                    // }
                 } else {
                     // these components often try a little too soon when
                     // starting up the app...so delay
@@ -544,6 +549,12 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     }
 
     async loadTjp(): Promise<void> {
+        const lc = `${this.lc}[${this.loadTjp.name}]`;
+        if (this.gib === GIB) {
+            if (logalot) { console.log(`${lc} this.gib is gib so no tjp (I: 3057523be835c71305a2622cce811922)`); }
+            return; /* <<<< returns early */
+        }
+
         const tjpAlreadySet =
             this.ibGib && this.tjp && this.tjpAddr &&
             getGibInfo({ ibGibAddr: this.addr }).tjpGib === this.tjp.gib;

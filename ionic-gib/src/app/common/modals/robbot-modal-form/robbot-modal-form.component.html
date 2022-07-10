@@ -9,7 +9,7 @@
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
-<ion-content #modalIonContent fullscreen>
+<ion-content #formContainer fullscreen>
   <!-- metaform is a hack until we get real composite pattern forms -->
   <ib-dynamic-form #metaform *ngIf="metaformItems?.length > 0"
     [items]="metaformItems"
@@ -21,7 +21,7 @@
   <!-- form that corresponds to the robbot we will create/edit -->
   <ib-dynamic-form #form *ngIf="formItems?.length > 0"
     [items]="formItems"
-    (dynamicSubmit)="handleSubmit_DynamicModal($event)"
+    (dynamicSubmit)="handleDynamicSubmit($event)"
     [showHelp]="showHelp"
     >
   </ib-dynamic-form>

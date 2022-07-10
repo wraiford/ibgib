@@ -9,22 +9,19 @@
         <!-- main menu accordion group -->
         <ion-accordion-group value="tags">
 
-          <!-- localspaces -->
-          <ion-accordion value="localspaces">
-            <ion-item slot="header" [title]="'local space ' + localSpaceName">
+          <!-- localspaces/bootstrap -->
+          <ion-accordion value="bootstrap">
+            <ion-item slot="header" [title]="'\ncurrent local space: ' + localSpaceName">
               <ion-label class="header" expand="block">
-                <!-- <ion-button (click)="handleSpaceClick()"> -->
-                  <ion-icon slot="start" name="earth-outline" title="local space"
-                    ></ion-icon>
-                  <ion-text>{{ localSpaceName ?? 'where are we...' }}</ion-text>
-                <!-- </ion-button> -->
+                <ion-icon slot="start" name="earth-outline"></ion-icon>
+                <ion-text>{{ localSpaceName ?? 'where are we...' }}</ion-text>
               </ion-label>
             </ion-item>
             <ion-list slot="content" class="accordion-item-list">
               <ion-item *ngFor="let spaceItem of localSpaceItems"
                 class="accordion-item"
                 lines="none"
-                [title]="getSpaceTooltip('outerspace', spaceItem)"
+                [title]="getSpaceTooltip('localspace', spaceItem)"
                 >
                 <ion-button (click)="spaceItem.clickHandler(spaceItem)">
                   <ion-icon slot="start" [name]="spaceItem.icon"></ion-icon>
@@ -33,10 +30,11 @@
               </ion-item>
               <ion-item lines="none">
                 <ion-buttons class="special-menu-btns">
+                  <!-- goto button for localspaces is bootstrap -->
                   <ion-button
                     title="goto spaces ibgib where all of your individual space ibgibs are"
                     color="secondary"
-                    (click)="handleGotoSpecial('outerspaces')">
+                    (click)="handleGotoSpecial('bootstrap')">
                     <ion-icon slot="start" name="navigate-outline" color="primary"></ion-icon>
                     <ion-label>goto</ion-label>
                   </ion-button>
@@ -51,14 +49,15 @@
               </ion-item>
             </ion-list>
           </ion-accordion>
+
           <!-- outerspaces -->
           <ion-accordion value="outerspaces">
-            <ion-item slot="header" [title]="'local space ' + localSpaceName">
+            <ion-item slot="header" title="outerspaces like sync spaces">
               <ion-label class="header" expand="block">
                 <!-- <ion-button (click)="handleSpaceClick()"> -->
-                  <ion-icon slot="start" name="earth-outline" title="local space"
+                  <ion-icon slot="start" name="sparkles-outline" title="local space"
                     ></ion-icon>
-                  <ion-text>{{ localSpaceName ?? 'where are we...' }}</ion-text>
+                  <ion-text>outerspaces</ion-text>
                 <!-- </ion-button> -->
               </ion-label>
             </ion-item>
