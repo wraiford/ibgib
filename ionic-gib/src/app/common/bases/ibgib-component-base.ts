@@ -370,7 +370,8 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
                 if (logalot) { console.log(`${lc} setting new address`); }
 
                 // first try from item cache
-                if (this.lc && addr !== c.BOOTSTRAP_IBGIB_ADDR) {
+                let addrGib = h.getIbAndGib({ ibGibAddr: addr }).gib;
+                if (this.lc && !isPrimitive({ gib: addrGib })) {
                     const cached = await this.common.cache.get({ addr: addr + this.lc });
                     if (cached?.other) {
                         // first clean other flags
@@ -378,8 +379,6 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
                         this.cleanItem(cachedItem);
                         this.item = cachedItem;
                     }
-                } else {
-                    console.warn(`${lc} (UNEXPECTED) this.lc is undefined? (W: bd14ef72b8214bdfa109ee39b08cba32)`);
                 }
 
                 if (!this.item) {

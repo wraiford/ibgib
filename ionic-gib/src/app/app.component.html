@@ -143,17 +143,14 @@
           <ion-accordion value="robbots">
             <ion-item slot="header" title="our helpers...">
               <ion-label class="header" expand="block">
-                <!-- <ion-button (click)="handleRobbotsClick()"> -->
-                  <ion-icon title="robbots" slot="start" name="body-outline"></ion-icon>
-                  <ion-text>robbots</ion-text>
-                <!-- </ion-button> -->
+                <ion-icon title="robbots" slot="start" name="body-outline"></ion-icon>
+                <ion-text>robbots</ion-text>
               </ion-label>
             </ion-item>
             <ion-list slot="content" class="accordion-item-list">
               <ion-item *ngFor="let robbotItem of robbotItems"
                 lines="none"
                 >
-                <!-- [title]="getrobbotTooltip('robbot', robbotItem)" -->
                 <ion-button (click)="robbotItem.clickHandler(robbotItem)">
                   <ion-icon slot="start" [name]="robbotItem.icon"></ion-icon>
                   <ion-label>{{ robbotItem.title }}</ion-label>
@@ -191,7 +188,6 @@
               <ion-label class="header" expand="block">
                 <ion-icon slot="start" name="analytics-outline"></ion-icon>
                 <ion-text>roots {{currentRoot ? '('+currentRoot?.title+')' : ''}}</ion-text>
-                <!-- <ion-text>roots</ion-text> -->
               </ion-label>
             </ion-item>
             <ion-list slot="content" class="accordion-item-list">
@@ -227,13 +223,6 @@
                     <ion-icon slot="start" name="navigate-outline" color="primary"></ion-icon>
                     <ion-label>goto</ion-label>
                   </ion-button>
-                  <!-- <ion-button [disabled]="addingRoot"
-                    color="secondary"
-                    (click)="handleAddRoot()">
-                    <ion-spinner *ngIf="addingRoot" name="circles" color="primary"></ion-spinner>
-                    <ion-icon slot="start" name="add-outline" color="primary"></ion-icon>
-                    <ion-label>add</ion-label>
-                  </ion-button> -->
                 </ion-buttons>
               </ion-item>
 

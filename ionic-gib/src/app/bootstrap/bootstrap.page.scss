@@ -1,0 +1,31 @@
+#local-spaces-content {
+    display: flex;
+    flex-direction: column;
+    width: 99%;
+    align-items: stretch;
+}
+
+ion-accordion {
+    border: var(--ion-color-primary) 1px solid;
+    margin: 2px;
+    width: 98%;
+}
+
+.file-folder-item {
+    padding-left: 5%;
+    cursor: pointer;
+
+    border: var(--ion-color-primary) 1px solid;
+    margin: 2%;
+    overflow-x: auto;
+
+    ion-icon {
+        // width: 10%;
+    }
+
+    ion-text {
+        // width: 89%;
+        padding-left: 5%;
+
+    }
+}

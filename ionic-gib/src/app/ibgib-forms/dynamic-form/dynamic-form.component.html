@@ -14,7 +14,10 @@
     <ion-item *ngFor="let item of items"
       class="input-item" fill="outline"
       [title]="item.description">
+      <!-- label -->
       <ion-label position="stacked"><strong>{{item.required ? '*' : ''}}{{item.label}}: </strong></ion-label>
+
+      <!-- text input -->
       <ion-input *ngIf="['text'].includes(item.dataType)"
         [formControlName]="item.uuid"
         [placeholder]="item?.placeholder"
@@ -24,6 +27,8 @@
         [readonly]="item.readonly"
         debounce="1000"
       ></ion-input>
+
+      <!-- textarea input -->
       <ion-textarea *ngIf="['textarea'].includes(item.dataType)"
         [formControlName]="item.uuid"
         [placeholder]="item?.placeholder"
@@ -33,6 +38,8 @@
         debounce="1000"
       ></ion-textarea>
         <!-- [disabled]="item.readonly" -->
+
+      <!-- select WITHOUT icons -->
       <ion-select *ngIf="['select'].includes(item.dataType) && item.selectOptions?.length > 0"
         [formControlName]="item.uuid"
         okText="Select"
@@ -44,6 +51,7 @@
           <ion-label>{{ option }}</ion-label>
         </ion-select-option>
       </ion-select>
+      <!-- select WITH icons -->
       <ion-select *ngIf="['select'].includes(item.dataType) && item.selectOptionsWithIcons?.length > 0"
         [formControlName]="item.uuid"
         okText="Select"
@@ -56,19 +64,22 @@
           <ion-label>{{ option.label }}</ion-label>
         </ion-select-option>
       </ion-select>
-        <!-- [disabled]="!!item.readonly" -->
+
+      <!-- toggle -->
       <ion-toggle *ngIf="['toggle'].includes(item.dataType)"
         [formControlName]="item.uuid"
         [checked]="item.value"
         >
       </ion-toggle>
-      <!-- <ib-dynamic-form *ngIf="item.dataType === 'form'"
+
+      <ib-dynamic-form *ngIf="item.dataType === 'form'"
         [parentFormGroup]="rootFormGroup"
         [formControlName]="item.uuid"
         [showSubmit]="false"
         [items]="item.items"
         >
-      </ib-dynamic-form> -->
+      </ib-dynamic-form>
+
       <ion-note *ngIf="item.errored && !getControl(item).pristine"
         slot="error">{{item.label}}: {{getError(item)}}</ion-note>
       <ion-note *ngIf="showHelp" slot="helper" color="primary">

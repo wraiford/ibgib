@@ -1,13 +1,15 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>bootstrap</ion-title>
+    <ion-title color="primary">bootstrap</ion-title>
     <ion-buttons slot="start">
-      <ion-menu-button slot="icon-only"></ion-menu-button>
+      <ion-menu-button slot="icon-only" color="primary"></ion-menu-button>
       <ion-button *ngIf="common.platform.is('ios')" class="back-btn"
+        color="primary"
         (click)="handleBackButtonClick()">
         <ion-icon name="chevron-back-outline" slot="icon-only"></ion-icon>
       </ion-button>
       <ion-button class="back-btn"
+        color="primary"
         (click)="handleBackButtonClick()">
         <ion-icon name="chevron-back-outline" slot="icon-only"></ion-icon>
       </ion-button>
@@ -17,59 +19,98 @@
 
 <ion-content>
 
-  <ion-accordion-group multiple>
+  <ion-accordion-group multiple value="import_space">
 
     <ion-accordion value="raw">
       <ion-item slot="header">
         <ion-label>
-          <ion-text>raw</ion-text>
+          <ion-text color="primary">raw</ion-text>
         </ion-label>
+      </ion-item>
+      <ion-item slot="content">
+        <pre>{{bootstrapIbGib | json}}</pre>
       </ion-item>
     </ion-accordion>
 
-    <ion-accordion>
+    <ion-accordion value="form">
       <ion-item slot="header">
         <ion-label>
-          <ion-text>default space</ion-text>
+          <ion-text color="primary">default space</ion-text>
         </ion-label>
+      </ion-item>
+      <ion-item slot="content">
+        <!-- <ion-item *ngIf="showSubmit"> -->
+          <ion-note *ngIf="showSubmit" slot="helper" color="primary">will require restart...</ion-note>
+        <!-- </ion-item> -->
+        <ib-dynamic-form #form *ngIf="formItems?.length > 0"
+          [items]="formItems"
+          (dynamicSubmit)="handleDynamicSubmit($event)"
+          [showHelp]="showHelp"
+          [showSubmit]="showSubmit"
+          >
+          <!-- (itemSelect)="handleItemSelected($event)" -->
+        </ib-dynamic-form>
+        <ion-item *ngIf="showSubmit">
+          <ion-text color="primary">will require restart...</ion-text>
+        </ion-item>
       </ion-item>
 
     </ion-accordion>
-    <ion-accordion>
 
+    <ion-accordion value="spaces">
+      <ion-item slot="header">
+        <ion-label>
+          <ion-text color="primary">local spaces</ion-text>
+        </ion-label>
+      </ion-item>
+      <ion-list slot="content" id="local-spaces-content" class="accordion-item-list">
+          <ion-item *ngFor="let space of localSpaces">
+            <ion-text color="primary">{{space.data.name}}</ion-text>
+            <!-- <ion-text color="primary">asdfasdfasdf</ion-text> -->
+          </ion-item>
+          <ion-item>
+            <ion-buttons>
+              <ion-button color="primary" fill="outline" (click)="handleClick_AddSpace()">add space</ion-button>
+              <ion-button *ngIf="platform !== 'web'" color="primary" fill="outline" (click)="filepicker.click()">import space</ion-button>
+              <ion-button *ngIf="platform === 'web'" color="primary" fill="outline" (click)="handleClick_ImportSpace_Web()">import space</ion-button>
+            </ion-buttons>
+            <input type="file" #filepicker hidden (change)="handleFileSelected_Import($event)" />
+          </ion-item>
+      </ion-list>
+    </ion-accordion>
+
+    <ion-accordion value="import_space">
+      <ion-item slot="header">
+        <ion-label>
+          <ion-text color="primary">import space</ion-text>
+        </ion-label>
+      </ion-item>
+      <ion-list slot="content" class="accordion-item-list">
+          <ion-item *ngFor="let info of fileOrFolderInfos" class="file-folder-item" (click)="handleClickFileFolderInfo(info)">
+            <ion-icon *ngIf="info.isDirectory" name="folder-outline" color="primary" slot="start"></ion-icon>
+            <ion-icon *ngIf="info.isSpace" name="earth-outline" color="primary" slot="start"></ion-icon>
+            <ion-icon *ngIf="info.isBootstrap" name="footsteps-outline" color="primary" slot="start"></ion-icon>
+            <ion-text color="primary">{{info.name}}</ion-text>
+          </ion-item>
+          <ion-item>
+            <ion-buttons>
+              <ion-button color="primary" fill="outline" (click)="refreshFileFolderInfos()">refresh</ion-button>
+              <ion-button color="primary" fill="outline" (click)="handleClick_AddSpace()">add space</ion-button>
+              <ion-button *ngIf="platform !== 'web'" color="primary" fill="outline" (click)="filepicker.click()">import space</ion-button>
+              <ion-button *ngIf="platform === 'web'" color="primary" fill="outline" (click)="handleClick_ImportSpace_Web()">import space</ion-button>
+            </ion-buttons>
+            <input type="file" #filepicker hidden (change)="handleFileSelected_Import($event)" />
+          </ion-item>
+      </ion-list>
     </ion-accordion>
 
   </ion-accordion-group>
-  <pre>{{bootstrapIbGib | json}}</pre>
 
-  <ion-item>
+  <!-- <ion-item>
     <ion-label>default space: </ion-label>
     <ion-text *ngIf="defaultSpace">{{defaultSpace.data.name}}</ion-text>
     <ion-text *ngIf="defaultSpaceNotFound" color="danger">default space not found</ion-text>
-  </ion-item>
+  </ion-item> -->
 
-  <div>
-    <ion-item *ngFor="let space of localSpaces">{{space.data.name}}</ion-item>
-    <ion-item>
-      <ion-button fill="outline" (click)="handleClick_AddSpace()">add space
-      </ion-button>
-    </ion-item>
-  </div>
-
-  <ion-item *ngIf="showSubmit">
-    <ion-note *ngIf="showSubmit" slot="helper" color="primary">will require restart...</ion-note>
-  </ion-item>
-
-  <ib-dynamic-form #form *ngIf="formItems?.length > 0"
-    [items]="formItems"
-    (dynamicSubmit)="handleDynamicSubmit($event)"
-    [showHelp]="showHelp"
-    [showSubmit]="showSubmit"
-    >
-    <!-- (itemSelect)="handleItemSelected($event)" -->
-  </ib-dynamic-form>
-  <ion-item *ngIf="showSubmit">
-    <ion-text color="primary">will require restart...</ion-text>
-  </ion-item>
 
 </ion-content>

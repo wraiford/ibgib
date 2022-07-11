@@ -301,7 +301,14 @@ export class DynamicFormComponent
         }
         this._items.forEach(x => addItemById(x));
         if (item.items) {
-          throw new Error(`control with children items not implemented yet (E: e502388413bcf4c74926b186d9265c22)`);
+          throw new Error(`control with children items not implemented yet (if every sheesh) (E: e502388413bcf4c74926b186d9265c22)`);
+          const childControls: AbstractControl[] = [];
+          for (let i = 0; i < item.items.length; i++) {
+            const childItem: FormItemInfo = item.items[i];
+            let childControl = await newControl(childItem, await this.getValidators({ item: childItem }));
+            childControls.push(childControl);
+          };
+          control = this.fb.group(childControls);
           // control = this.fb.array([
           //   ...item.items.map(x => getControl(x))
           // ]);
@@ -340,8 +347,10 @@ export class DynamicFormComponent
         const validators = await this.getValidators({ item });
         const control = await newControl(item, validators);
         if (item.items) {
-          throw new Error(`not impl (E: 505be7ec1284ec23e3049b58c6880822)`);
-          let formArray = <FormArray>control;
+          // throw new Error(`not impl (E: 505be7ec1284ec23e3049b58c6880822)`);
+          // let formArray = <FormArray>control;
+          debugger;
+          this.rootFormGroup.addControl(item.uuid, control);
         } else {
           this.rootFormGroup.addControl(item.uuid, control);
         }
@@ -373,7 +382,6 @@ export class DynamicFormComponent
         console.error(`${lc} (UNEXPECTED) subform not implemented yet...? (E: 7db42a26e80543c5bb2a7f71b37553d4)`);
       } else {
         // it's a leaf node concrete control
-
         if (item.required) { validators.push(Validators.required); }
         if (item.dataType === 'number') {
           if (item.min || item.min === 0) { validators.push(Validators.min(item.min)); }

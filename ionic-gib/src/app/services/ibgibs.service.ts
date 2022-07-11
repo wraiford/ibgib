@@ -606,7 +606,11 @@ export class IbgibsService {
     }
   }
 
-  async createNewLocalSpace(): Promise<IonicSpace_V1> {
+  async createNewLocalSpace({
+    allowCancel,
+  }: {
+    allowCancel: boolean,
+  }): Promise<IonicSpace_V1> {
     const lc = `${this.lc}[${this.createNewLocalSpace.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 15bcc16f4f3f9e40e743931a3965ff22)`); }
@@ -616,14 +620,14 @@ export class IbgibsService {
       const promptName: () => Promise<void> = async () => {
         const fnPrompt = getFnPrompt();
         const resName = await fnPrompt({
-          title: 'Enter a Name...', msg: `
-        We need to create a local space for you.
+          title: 'Enter a Name...', msg: `We need to create a local space for you.
 
         Spaces are kinda like usernames, but they dont need to be unique and in the future you will have more than one.
 
-        So enter a name for your space and choose OK to get started. Or if you just want a random bunch of letters, hit Cancel.`});
+        So enter a name for your space and choose OK to get started. ${allowCancel ? '' : '\n\n\tOr if you just want a random bunch of letters, hit Cancel.'}`
+        });
 
-        if (resName === null) {
+        if (resName === null && !allowCancel) {
           spaceName = (await h.getUUID()).slice(10);
         } else {
           if (resName && spaceNameIsValid(resName)) {
@@ -698,14 +702,14 @@ export class IbgibsService {
       let newLocalSpace: IonicSpace_V1;
 
       if (allowCancel) {
-        newLocalSpace = await this.createNewLocalSpace();
+        newLocalSpace = await this.createNewLocalSpace({ allowCancel });
         if (!newLocalSpace) {
           // cancelled
           return undefined; /* <<<< returns early */
         }
       } else {
         // can't cancel (probably first run of app)
-        while (!newLocalSpace) { newLocalSpace = await this.createNewLocalSpace(); }
+        while (!newLocalSpace) { newLocalSpace = await this.createNewLocalSpace({ allowCancel }); }
       }
 
       // create bootstrap if needed

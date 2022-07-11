@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
 import { CommonService } from '../services/common.service';
-import { Plugins } from '@capacitor/core';
-const { Modals } = Plugins;
+import { Capacitor, Plugins } from '@capacitor/core';
+const { Modals, Filesystem } = Plugins;
 
 import * as c from '../common/constants';
 import { getValidatedBootstrapIbGib, updateBootstrapIbGib } from '../common/helper/space';
@@ -11,6 +11,9 @@ import { IonicSpace_V1 } from '../common/witnesses/spaces/ionic-space-v1';
 import { DynamicFormComponentBase } from '../common/bases/dynamic-form-component-base';
 import { DynamicFormComponent } from '../ibgib-forms/dynamic-form/dynamic-form.component';
 import { DynamicFormBuilder } from '../common/helper/form';
+import { FormItemInfo } from '../ibgib-forms/types/form-items';
+import { IBGIB_DELIMITER } from 'ts-gib/dist/V1';
+import { Gib } from 'ts-gib/dist/types';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -64,6 +67,12 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
     return this.newDefaultSpaceSelected;
   }
 
+  @Input()
+  platform: string = Capacitor.getPlatform();
+
+  @Input()
+  fileOrFolderInfos: FileOrFolderInfo[] = [];
+
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
@@ -90,12 +99,12 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
     const lc = `${this.lc}[${this.initialize.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
-
       this.bootstrapIbGib =
         await getValidatedBootstrapIbGib({ zeroSpace: this.common.ibgibs.zeroSpace });
       await this.initLocalSpaces();
       await this.initDefaultSpace();
       await this.initFormItems();
+      await this.refreshFileFolderInfos();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -176,6 +185,28 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
               this.localSpaces.filter(x => getSelectText(x) === info.value)[0];
           },
         })
+        // unfortunately i'm not able to do it this way atm...
+        // .customItem({
+        //   name: 'spaces',
+        //   dataType: 'form',
+        //   items: [
+        //     ...this.localSpaces.map(space => {
+        //       return <FormItemInfo>{
+        //         name: 'space',
+        //         dataType: 'form',
+        //         items: [
+        //           {
+        //             name: 'name',
+        //             dataType: 'text',
+        //             description: 'name of the space',
+        //             label: 'Name',
+        //             regexp: c.SPACE_NAME_REGEXP,
+        //           }
+        //         ]
+        //       };
+        //     })
+        //   ]
+        // })
         .outputItems();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -240,4 +271,141 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
     }
   }
 
+  handleFileSelected_Import(event: any): void {
+    const lc = `${this.lc}[${this.handleFileSelected_Import.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 505439871216b1945742ec1499cd3122)`); }
+      debugger;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleClick_ImportSpace_Web(): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_ImportSpace_Web.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: d0f5dda9f57adfabfc9ad8f74e121f22)`); }
+      debugger;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  @Input()
+  currentPath: string;
+
+  async refreshFileFolderInfos(): Promise<void> {
+    const lc = `${this.lc}[${this.refreshFileFolderInfos.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: fd403ea9dc642680b138e27d12340a22)`); }
+      this.fileOrFolderInfos = [];
+
+      let path = this.currentPath || '';
+      let directory = c.IBGIB_BASE_DIR;
+      let contents = await Filesystem.readdir({
+        path,
+        directory: c.IBGIB_BASE_DIR,
+      });
+      if ((contents?.files?.length || []) === 0) {
+        if (logalot) { console.log(`${lc} (contents?.files?.length || []) === 0 ...returning early. (I: 3de075820f26f3834a9d6e8132028722)`); }
+        this.fileOrFolderInfos = [];
+        return; /* <<<< returns early */
+      }
+      for (let i = 0; i < contents.files.length; i++) {
+        /**
+         * could be a file or directory, we don't know yet...
+         */
+        const name = contents.files[i];
+        const status = await Filesystem.stat({ path: path + '/' + name, directory });
+        if (logalot) { console.log(`${lc} status: ${JSON.stringify(status, null, 2)} (I: 35c88b340c3c1344d6a89a72ccd5a522)`); }
+        if (status.type === 'directory') {
+          this.fileOrFolderInfos.push({ name: name, isDirectory: true });
+        } else if (
+          name.includes(IBGIB_DELIMITER) &&
+          name.endsWith('.json') &&
+          // has ib ^ gib.json form
+          name.split(IBGIB_DELIMITER).length === 2 &&
+          // `witness space ${classname} ${name} ${id}`;
+          name.split(IBGIB_DELIMITER)[0].startsWith(`witness space`)
+        ) {
+          let [ib, gib] = name.split(IBGIB_DELIMITER);
+
+          let existingFilter = this.fileOrFolderInfos.filter(x => x.name === ib);
+          if (existingFilter.length === 0) {
+            this.fileOrFolderInfos.push({ name: ib, isSpace: true, gibs: [gib] });
+          } else {
+            let existing = existingFilter[0];
+            existing.gibs.push(gib);
+          }
+        } else if (name === `${c.BOOTSTRAP_IBGIB_ADDR}.json`) {
+          this.fileOrFolderInfos.push({ name, isBootstrap: true });
+        } else {
+          if (logalot) { console.log(`${lc} ignoring name: ${name} (I: dca3ebb1dc28d59beef340512e968622)`); }
+        }
+      }
+      if (logalot) { console.log(`${lc} contents: ${contents} (I: cc7d3fa29eabb1088624101f42ec7722)`); }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleClickFileFolderInfo(info: FileOrFolderInfo): Promise<void> {
+    const lc = `${this.lc}[${this.handleClickFileFolderInfo.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: a112d422a8efddbd2fd227e56c299622)`); }
+
+      if (info.isDirectory) {
+        this.currentPath = this.currentPath ?
+          this.currentPath + '/' + info.name :
+          info.name;
+        this.fileOrFolderInfos = [];
+        await this.refreshFileFolderInfos();
+      } else {
+        debugger;
+      }
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+}
+
+/**
+ * I'm looking for browsing in indexeddb and am interested in just spaces,
+ * directories and bootstraps.
+ */
+interface FileOrFolderInfo {
+  /**
+   * filename or directory/folder name
+   */
+  name: string;
+  /**
+   * true if the info is a directory
+   */
+  isDirectory?: boolean;
+  /**
+   * true if the info is a space file, e.g. `witness space IonicSpace_V1 my_space_name 123spaceidabc^30003832eab84b28a732a8e03824a5fb.json`.
+   */
+  isSpace?: boolean;
+  /**
+   * true if the file is a bootstrap^gib.json file.
+   */
+  isBootstrap?: boolean;
+  /**
+   * If it's a space, then this is a list of the gibs found.
+   */
+  gibs?: Gib[];
 }

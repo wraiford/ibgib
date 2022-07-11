@@ -1,3 +1,8 @@
+/**
+ * @module big_mess of constants...eesh.
+ */
+
+
 import { FilesystemDirectory, FilesystemEncoding } from '@capacitor/core';
 
 import { GIB } from 'ts-gib/dist/V1';
@@ -68,6 +73,7 @@ export const BOOTSTRAP_DATA_KNOWN_SPACE_IDS_KEY = `spaceIds`;
  * rel8n name in a space ibgib to the config ibgib(s?)
  */
 export const SPACE_REL8N_NAME_CONFIG = `config`;
+export const SPACE_NAME_REGEXP = /^[a-zA-Z][\w\-]{0,62}[a-zA-Z]$/;
 
 
 /**

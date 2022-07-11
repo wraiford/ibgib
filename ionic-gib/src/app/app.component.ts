@@ -58,9 +58,8 @@ interface MenuItem {
 })
 export class AppComponent extends IbgibComponentBase
   implements OnInit, OnDestroy {
+
   protected lc: string = `[${AppComponent.name}]`;
-
-
 
   @Input()
   tagItems: MenuItem[] = [];
