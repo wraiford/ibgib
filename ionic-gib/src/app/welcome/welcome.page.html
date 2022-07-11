@@ -15,6 +15,8 @@
     (slideChange)="handleMainSwiperSlideChange()"
     effect="cube" [cubeEffect]="{shadow: false}"
     >
+
+    <!-- logoesque slide -->
     <ng-template swiperSlide>
       <div class="swiper-slide-content">
         <ion-card>
@@ -25,15 +27,15 @@
 
           <ion-card-content>
             <div #svgContainer></div>
-            <p>this prototype flaunts the most hopeful crypto DLT protocol: ibgib</p>
-            <p>(it is not a token)</p>
+            <p>this prototype humbly flaunts the most hopeful crypto DLT protocol</p>
+            <p>(note: it is not a token)</p>
           </ion-card-content>
         </ion-card>
       </div>
     </ng-template>
 
     <!-- intro vertical slide -->
-    <ng-template swiperSlide>
+    <!-- <ng-template swiperSlide>
       <div class="swiper-slide-content">
         <ion-card>
           <ion-card-header>
@@ -68,12 +70,12 @@
           </ion-card-content>
         </ion-card>
       </div>
-    </ng-template>
+    </ng-template> -->
 
     <!-- protocol features vertical slide -->
     <ng-template swiperSlide>
       <!-- note on ngIf: there is some kind of visual bug overlapping nested slides after some threshold with cube effect -->
-      <div *ngIf="mainSwiper?.realIndex === 2" class="swiper-slide-content">
+      <div *ngIf="mainSwiper?.realIndex === 1" class="swiper-slide-content">
         <ion-card>
           <ion-card-header>
             <ion-card-title>ibgib</ion-card-title>
@@ -112,11 +114,11 @@
     <!-- app features vertical slide -->
     <ng-template swiperSlide>
       <!-- note on ngIf: there is some kind of visual bug overlapping nested slides after some threshold with cube effect -->
-      <div *ngIf="mainSwiper?.realIndex === 3" class="swiper-slide-content">
+      <div *ngIf="mainSwiper?.realIndex === 2" class="swiper-slide-content">
         <ion-card>
           <ion-card-header>
             <ion-card-title>ibgib</ion-card-title>
-            <ion-card-subtitle>the app</ion-card-subtitle>
+            <ion-card-subtitle>this prototype</ion-card-subtitle>
           </ion-card-header>
 
           <ion-card-content>
@@ -136,9 +138,11 @@
                   >{{x.title}}</h2>
                 <h2 *ngIf="x.focused" class="tidbit-title" ibFadeInAnimation
                   >{{x.title}}</h2>
-                <p *ngIf="x.focused" class="tidbit-body"
+                <div *ngIf="x.focused" class="tidbit-body"
                   ibChildAddedAnimation
-                  >{{x.body}}</p>
+                  >
+                  <p *ngFor="let line of x.body">{{line}}</p>
+                </div>
               </div>
             </ng-template>
             </swiper>
@@ -149,9 +153,9 @@
     </ng-template>
 
     <!-- rethinks vertical slide -->
-    <ng-template swiperSlide>
-      <div *ngIf="mainSwiper?.realIndex === 4" class="swiper-slide-content">
-      <!-- note on ngIf: there is some kind of visual bug overlapping nested slides after some threshold with cube effect -->
+    <!-- note on ngIf: there is some kind of visual bug overlapping nested slides after some threshold with cube effect -->
+    <!-- <ng-template swiperSlide>
+      <div *ngIf="mainSwiper?.realIndex === 3" class="swiper-slide-content">
         <ion-card>
           <ion-card-header>
             <ion-card-title>rethinks</ion-card-title>
@@ -186,7 +190,7 @@
           </ion-card-content>
         </ion-card>
       </div>
-    </ng-template>
+    </ng-template> -->
 
     <!-- <ng-template swiperSlide>
       <div class="swiper-slide-content">

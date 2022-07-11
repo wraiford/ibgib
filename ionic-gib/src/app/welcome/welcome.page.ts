@@ -24,7 +24,7 @@ SwiperCore.use([
   EffectCube,
   IonicSlides,
 ]);
-import { Observable, Subscription } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { concatMap, } from 'rxjs/operators';
 
 import * as h from 'ts-gib/dist/helper';
@@ -33,7 +33,7 @@ import { IbGibAddr } from 'ts-gib/dist/types';
 import * as c from '../common/constants';
 import { CommonService } from '../services/common.service';
 import { ibCircle, ibGroup, ibLine, ibSvg, } from '../common/helper/svg';
-import { SVG_NAMESPACE, DiagramPosition, IbGibDiagramInfo, IbGibDiagramMode } from '../common/types/svg';
+import { SVG_NAMESPACE, IbGibDiagramInfo, } from '../common/types/svg';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
@@ -67,10 +67,9 @@ export class WelcomePage implements OnInit, AfterViewInit {
 
   @Input()
   verticalSwiperTidbits: { [name: string]: VerticalSwiperTidbit[] } = {
-    intro: IBGIB_APP_INTRO,
     protocol: IBGIB_PROTOCOL_FEATURES,
     app: IBGIB_APP_FEATURES,
-    rethinks: IBGIB_RETHINKS,
+    // rethinks: IBGIB_RETHINKS,
   };
 
   private _subInitialized: Subscription;
@@ -604,12 +603,15 @@ export class WelcomePage implements OnInit, AfterViewInit {
     }
   }
 
-  async handlePrevSlide(): Promise<void> {
-    const lc = `${this.lc}[${this.handleNextSlide.name}]`;
+  async handleCheers(): Promise<void> {
+    const lc = `${this.lc}[${this.handleCheers.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 92cfc3686e7b42d5b4c09842b16125b5)`); }
 
-      this.mainSwiper.slidePrev();
+      while (this.mainSwiper.realIndex > 0) {
+        this.mainSwiper.slidePrev();
+      }
+      await this.drawAnimation();
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -619,12 +621,42 @@ export class WelcomePage implements OnInit, AfterViewInit {
     }
   }
 
-  async handleCheers(): Promise<void> {
-    const lc = `${this.lc}[${this.handleCheers.name}]`;
+  /**
+   * Which tidbits are focused reset here.
+   */
+  initSlideFocuses(): void {
+    const lc = `${this.lc}[${this.initSlideFocuses.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: fba1992008c1cf448ae721a121a7bc22)`); }
+
+      for (let i = 0; i < Object.keys(this.verticalSwiperTidbits).length; i++) {
+        const key = Object.keys(this.verticalSwiperTidbits)[i];
+        const group = this.verticalSwiperTidbits[key];
+        for (let j = 0; j < group.length; j++) {
+          const tidbit = group[j];
+          tidbit.focused = j === 1;
+        }
+      }
+      // this.verticalSwiperTidbits.protocol[1].focused = true;
+      // this.verticalSwiperTidbits.app[1].focused = true;
+      // this.verticalSwiperTidbits.rethinks[1].focused = true;
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handlePrevSlide(): Promise<void> {
+    const lc = `${this.lc}[${this.handlePrevSlide.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 92cfc3686e7b42d5b4c09842b16125b5)`); }
 
-      await this.drawAnimation();
+      this.mainSwiper.slidePrev();
+
+      setTimeout(() => { this.initSlideFocuses() }, 100);
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -640,6 +672,8 @@ export class WelcomePage implements OnInit, AfterViewInit {
       if (logalot) { console.log(`${lc} starting... (I: 92cfc3686e7b42d5b4c09842b16125b5)`); }
 
       this.mainSwiper.slideNext();
+
+      setTimeout(() => { this.initSlideFocuses() }, 100);
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -726,189 +760,119 @@ export class WelcomePage implements OnInit, AfterViewInit {
   }
 }
 
-// type DiagramPosition = [number,number];
-
-// type IbGibDiagramMode = 'intrinsic' | 'extrinsic';
-// const IbGibDiagramMode = {
-//   /**
-//    * we're viewing the thing intrinsically as a thing on its own, i.e.,
-//    * not as a relationship that connects other things.
-//    */
-//   intrinsic: 'intrinsic' as IbGibDiagramMode,
-//   /**
-//    * we're viewing the thing extrinsically as a relationship connecting two
-//    * other things.
-//    */
-//   extrinsic: 'extrinsic' as IbGibDiagramMode,
-// }
-
-// /**
-//  * node, line, hoogle, whatever
-//  */
-// interface IbGibDiagramInfo {
-//   /**
-//    * If the mode is {@link IbGibDiagramMode.intrinsic}, then this is where does
-//    * the thing START in placement of animation.
-//    *
-//    * If {@link IbGibDiagramMode.extrinsic}, this is one endpoint position.
-//    */
-//   startPos?: DiagramPosition;
-//   /**
-//    * If the mode is {@link IbGibDiagramMode.intrinsic}, then this is where does
-//    * the thing STOP in placement of animation.
-//    *
-//    * If {@link IbGibDiagramMode.extrinsic}, this is one endpoint position.
-//    */
-//   pos?: DiagramPosition;
-//   /**
-//    * Graphs are thought of as nodes and edges (or whatever jargon you use).  But
-//    * they "aren't" nodes and edges, we are viewing them as nodes and edges. They
-//    * "are" just they, and we are creating proxy "theys" in a heuristic that we
-//    * like at the time.
-//    */
-//   mode?: IbGibDiagramMode;
-//   /**
-//    * composite "children".
-//    */
-//   infos?: IbGibDiagramInfo[];
-//   /**
-//    * fill color, if applicable.
-//    *
-//    * @optional
-//    */
-//   fill?: string;
-//   /**
-//    * stroke color, if applicable.
-//    *
-//    * @optional
-//    */
-//   stroke?: string;
-//   /**
-//    * width of the stroke
-//    *
-//    * @optional
-//    */
-//   strokeWidth?: string;
-//   /**
-//    * If given, will specify opacity of visual thing in diagram.
-//    *
-//    * @optional
-//    */
-//   opacity?: number;
-//   /**
-//    * If given, will set the radius of the thing.
-//    *
-//    * @optional
-//    */
-//   radius?: number;
-// }
-
-const IBGIB_APP_INTRO: VerticalSwiperTidbit[] = [
-  {
-    focused: true,
-    title: `this app...`,
-    body: `this app is only a prototype leveraging the unique architecture of the ibgib protocol. it is a general-purpose dapp, already able to do some pretty cool stuff, like synchronization via a branch Timeline merging strategy. but it's the _approach_ that will enable truly distributed computation.`,
-  },
-  {
-    title: `purpose of protocol`,
-    body: ``,
-  },
-  {
-    title: `purpose of prototype`,
-    body: ``,
-  },
-  {
-    title: `unified use cases`,
-    body: ``,
-  },
-  {
-    title: `this protocol...`,
-    body: ``,
-  },
-  {
-    title: `decentralized collaboration`,
-    body: `with humans, this distributed computation means collaboration; with microservices, streamlined interop; with ais and ml models, the future - a biological approach for meta-evolutionary models.`,
-  },
-];
-
 const IBGIB_PROTOCOL_FEATURES: VerticalSwiperTidbit[] = [
   {
-    title: `currency is attention`,
-    body: `currency/money, admittedly a domain i'm no expert in, is only one part in a larger architecture. in ibgib it is understood to be isomorphic to interneuronal weights in ANNs.`,
+    title: `ibgib is not a token`,
+    body: [`money, isomorphic to interneuronal weights, is enabled via interspatial attention. a sovereign space decides what data it "attends", i.e. receives, sends & processes. but ibgib empowers both more autonomous crypto-based decisions, as well as human-centric ones.`],
   },
   {
+    focused: true,
     title: `a protocol apart`,
-    body: `ibgib is unique on this earth. born apart from bitcoin, the protocol does not inherit its technical debt. `,
+    body: [`ibgib is unique on this earth. born apart from those other DLTs and blockchains, the protocol does not inherit their assumptions, nor their technical debt.`],
   },
   {
-    title: `ibgibs over files`,
-    body: `each piece of data is stored in `,
+    title: `uniquely content addressed`,
+    body: [`most protocols address by just the hash, some with hard-coded metadata. we address with the most flexible per-use case metadata^hash (called the ib^gib).`],
   },
   {
-    title: `Time is a first-class citizen`,
-    body: `each datum is a node with two Time-based relationships: "ancestor" & "past". it's these two relations that enable Timelines to evolve both extrinsically (branch) and intrinsically (evolve).`,
+    title: `uniquely linked, more biological data`,
+    body: [`each discrete ibgib frame has two time relations: "ancestor" & "past". these enable ibgib timelines to evolve. think multiple inheritance for both code and data - plus granular version control - all via crdt-like dna.`],
+  },
+  {
+    title: `no single source of truth`,
+    body: [`blockchains try to keep data forever as absolute, objective truths. this is both inaccurate and intractable, as it is never true nor eternal. `],
   },
   {
     title: `monotonically increasing...`,
-    body: `blockchains tries to keep around all data forever as absolute, objective truths. this is both inaccurate and intractable.`,
+    body: [`ibgib does enable append-only data, but always from a humble POV. data will always be out-of-date, incomplete and inevitably inaccessible, and the protocol accounts for this.`],
   },
   {
     title: `...but severable data`,
-    body: `ibgib protocol empowers projected Timeline dynamics. like dna, which can both fork and evolve, so can ibgib data (hint: it uses dna).`,
+    body: [`ibgib gives us tools to handle sovereign microcosms of time. think granular git, but at both the function and data level, interweaving data and metadata for repos of repos.`],
   },
   {
-    title: `other dlts try to hard-code consensus`,
-    body: `consensus is as consensus does. ibgib's protocol enables ad-hoc consensus architecture, with the configuration itself being "on-chain".`
-  }
+    title: `pre hoc and ad hoc consensus`,
+    body: [`ibgib's uniquely self-similar data enables consensus specs to be specified on-chain - just one of the many examples of metadata living alongside data.`],
+  },
 ];
 
 const IBGIB_APP_FEATURES: VerticalSwiperTidbit[] = [
+  // {
+  //   title: `time is collaboration`,
+  //   body: [
+  //     `n: those pics, comments, link, robbots & more...each evolves over time using the same underlying structure. collaboration emerges from sharing our timelines.`,
+  //     `f: more flexible options on timelines, .`
+  //   ],
+  // },
   {
-    title: `"chat"`,
-    body: `not really great for chat atm, but it can limp along...`,
+    title: `robbots`,
+    body: [
+      `n: rudimentary robbot (chatbot) architecture already in place.`,
+      `f: more powerful integration of robbots with ar/vr.`
+    ],
   },
   {
     focused: true,
-    title: `notes, pics & links`,
-    body: `take notes, pics. store links. You can add pics inside pics, notes inside notes, pics inside notes, links inside pics...`,
+    title: `just a prototype`,
+    body: [
+      `(n)ow: we can do some things...`,
+      `(f)uture: we will do all teh things.`,
+    ],
+  },
+  {
+    title: `offline-first notes, pics & links`,
+    body: [
+      `n: keep track of notes, pics & links locally, with full history/audit log, synchronize with the cloud.`,
+      `f: more complex schemas, enabling collaboration on a level unseen on this planet by humans.`,
+    ],
+  },
+  {
+    title: `files are folders`,
+    body: [
+      `n: take a pic of a garden. go "inside" that pic. take a pic of a plant. add a comment. add a link. hexx, go inside that comment and add another pic.`,
+      `f: ar. vr. the metaverse.`
+    ],
   },
   {
     title: `data synchronization`,
-    body: `currently the prototype has an adapter implemented to utilize the user's aws infrastructure: dynamodb & s3. once configured, you can sync among spaces.`,
+    body: [
+      `n: crappy cloud adapter built with user-owned dynamodb, s3, prayers, hopes & dreams (and duct tape)`,
+      `f: self-configuring, self-healing ad hoc replication architectures (with the only protocol that can enable it).`
+    ],
   },
 ];
 
 
 
-const IBGIB_RETHINKS: VerticalSwiperTidbit[] = [
-  {
-    title: `what is money?`,
-    body: `we must rethink money to understand how bitcoin/dlt fit into our future. not being a token, ibgib focuses on "money" as precisely analogous to voltage bias in neural networks in superhuman networks.`,
-  },
-  {
-    focused: true,
-    title: `wth is or are ibgib(s)?`,
-    body: `moving away from an absolute knowledge, an ibgib can be thought of as a snapshot of some pov's belief which inevitably evolves over Time. this fundamentally requires a Rethink of truths many of us may take for granted.`,
-  },
-  {
-    focused: false,
-    title: `what are files & folders?`,
-    body: `in the early days of computing, we were taught about files & folders. with ibgib, we rethink this paradigm, remove the training wheels & grow .`,
-  },
-  {
-    title: `what is data?`,
-    body: `my data, your data, centralized & decentralized...in ibgib, we rethink data itself from the naive finite Shannon information perspective to living, sovereign & infinite entities.`,
-  },
-  {
-    title: `what are apps?`,
-    body: `just as we rethink our data, so too we rethink apps. no longer silos of activity, apps become living views into living data ecosystems.`,
-  },
-];
+// const IBGIB_RETHINKS: VerticalSwiperTidbit[] = [
+//   {
+//     title: `what is money?`,
+//     body: [`we must rethink money to understand how bitcoin/DLT fit into our future. not being a token, ibgib focuses on "money" as precisely analogous to voltage bias in neural networks in superhuman networks.`],
+//   },
+//   {
+//     focused: true,
+//     title: `wth is or are ibgib(s)?`,
+//     body: [`moving away from an absolute knowledge, an ibgib can be thought of as a snapshot of some pov's belief which inevitably evolves over time. this fundamentally requires a Rethink of truths many of us may take for granted.`],
+//   },
+//   {
+//     focused: false,
+//     title: `what are files & folders?`,
+//     body: [`in the early days of computing, we were taught about files & folders. with ibgib, we rethink this paradigm, remove the training wheels & grow.`],
+//   },
+//   {
+//     title: `what is data?`,
+//     body: [`my data, your data, centralized & decentralized...in ibgib, we rethink data itself from the naive finite Shannon information perspective to living, sovereign & infinite entities.`],
+//   },
+//   {
+//     title: `what are apps?`,
+//     body: [`just as we rethink our data, so too we rethink apps. no longer silos of activity, apps become living views into living data ecosystems.`],
+//   },
+// ];
 
 interface VerticalSwiperTidbit {
   focused?: boolean;
   title: string;
-  body: string;
+  body: string[];
 }
 
 type SwiperName = 'intro' | 'protocol' | 'app' | 'rethinks';
