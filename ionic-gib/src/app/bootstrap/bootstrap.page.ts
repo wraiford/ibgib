@@ -4,7 +4,7 @@ import { Capacitor, Plugins } from '@capacitor/core';
 const { Modals, Filesystem } = Plugins;
 
 import * as c from '../common/constants';
-import { getValidatedBootstrapIbGib, updateBootstrapIbGib } from '../common/helper/space';
+import { getInfoFromSpaceIb, getValidatedBootstrapIbGib, updateBootstrapIbGib } from '../common/helper/space';
 import { BootstrapIbGib } from '../common/types/space';
 import { IbGibSpaceAny } from '../common/witnesses/spaces/space-base-v1';
 import { IonicSpace_V1 } from '../common/witnesses/spaces/ionic-space-v1';
@@ -72,6 +72,12 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
 
   @Input()
   fileOrFolderInfos: FileOrFolderInfo[] = [];
+
+  @Input()
+  isBusy: boolean;
+
+  @Input()
+  selectedSpaceToImport: FileOrFolderInfo;
 
   constructor(
     protected common: CommonService,
@@ -317,6 +323,16 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
         this.fileOrFolderInfos = [];
         return; /* <<<< returns early */
       }
+
+      // add navigate up/back directory if we're not at the root
+      if (this.currentPath) {
+        this.fileOrFolderInfos.push({
+          name: '..',
+          isDirectory: true,
+        });
+      }
+
+      // add fileFolder infos for each folder, space and bootstrap file found.
       for (let i = 0; i < contents.files.length; i++) {
         /**
          * could be a file or directory, we don't know yet...
@@ -334,14 +350,18 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
           // `witness space ${classname} ${name} ${id}`;
           name.split(IBGIB_DELIMITER)[0].startsWith(`witness space`)
         ) {
-          let [ib, gib] = name.split(IBGIB_DELIMITER);
-
-          let existingFilter = this.fileOrFolderInfos.filter(x => x.name === ib);
+          // it's a local space ibgib
+          const [spaceIb, spaceGib] = name.split(IBGIB_DELIMITER);
+          const { spaceId } = getInfoFromSpaceIb({ spaceIb });
+          // check to see if we already have this space's timeline
+          let existingFilter = this.fileOrFolderInfos.filter(x => x.spaceId === spaceId);
           if (existingFilter.length === 0) {
-            this.fileOrFolderInfos.push({ name: ib, isSpace: true, gibs: [gib] });
+            // first frame in ibgib timeline that we've found
+            this.fileOrFolderInfos.push({ name: spaceIb, isSpace: true, gibs: [spaceGib], spaceId });
           } else {
-            let existing = existingFilter[0];
-            existing.gibs.push(gib);
+            // already have this space, add this gib to it.
+            const existing = existingFilter[0];
+            existing.gibs.push(spaceGib);
           }
         } else if (name === `${c.BOOTSTRAP_IBGIB_ADDR}.json`) {
           this.fileOrFolderInfos.push({ name, isBootstrap: true });
@@ -364,9 +384,19 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
       if (logalot) { console.log(`${lc} starting... (I: a112d422a8efddbd2fd227e56c299622)`); }
 
       if (info.isDirectory) {
-        this.currentPath = this.currentPath ?
-          this.currentPath + '/' + info.name :
-          info.name;
+        if (info.name === '..') {
+          if (this.currentPath) {
+            const pieces = this.currentPath.split('/');
+            pieces.pop();
+            this.currentPath = pieces.join('/');
+          } else {
+            console.warn(`${lc} (UNEXPECTED) back (..) dir clicked, but currentPath is falsy? (W: 1ae39dc2bc4046dc96eb0915245a2ccd)`)
+          }
+        } else {
+          this.currentPath = this.currentPath ?
+            this.currentPath + '/' + info.name :
+            info.name;
+        }
         this.fileOrFolderInfos = [];
         await this.refreshFileFolderInfos();
       } else {
@@ -400,6 +430,10 @@ interface FileOrFolderInfo {
    * true if the info is a space file, e.g. `witness space IonicSpace_V1 my_space_name 123spaceidabc^30003832eab84b28a732a8e03824a5fb.json`.
    */
   isSpace?: boolean;
+  /**
+   * If the info is a space, this is its uuid.
+   */
+  spaceId?: string;
   /**
    * true if the file is a bootstrap^gib.json file.
    */

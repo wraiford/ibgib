@@ -70,19 +70,21 @@
           </ion-item>
           <ion-item>
             <ion-buttons>
-              <ion-button color="primary" fill="outline" (click)="handleClick_AddSpace()">add space</ion-button>
-              <ion-button *ngIf="platform !== 'web'" color="primary" fill="outline" (click)="filepicker.click()">import space</ion-button>
-              <ion-button *ngIf="platform === 'web'" color="primary" fill="outline" (click)="handleClick_ImportSpace_Web()">import space</ion-button>
+              <ion-button color="primary" fill="outline" [disabled]="isBusy"
+                (click)="handleClick_AddSpace()">add space</ion-button>
+              <ion-button *ngIf="platform !== 'web'" color="primary" fill="outline" [disabled]="isBusy"
+                (click)="filepicker.click()">import from file...</ion-button>
+              <!-- <ion-button *ngIf="platform === 'web'" color="primary" fill="outline" (click)="handleClick_ImportSpace_Web()">import space</ion-button> -->
             </ion-buttons>
             <input type="file" #filepicker hidden (change)="handleFileSelected_Import($event)" />
           </ion-item>
       </ion-list>
     </ion-accordion>
 
-    <ion-accordion value="import_space">
+    <ion-accordion *ngIf="platform === 'web'" value="import_space">
       <ion-item slot="header">
         <ion-label>
-          <ion-text color="primary">import space</ion-text>
+          <ion-text color="primary">import space from storage</ion-text>
         </ion-label>
       </ion-item>
       <ion-list slot="content" class="accordion-item-list">
@@ -94,10 +96,12 @@
           </ion-item>
           <ion-item>
             <ion-buttons>
-              <ion-button color="primary" fill="outline" (click)="refreshFileFolderInfos()">refresh</ion-button>
-              <ion-button color="primary" fill="outline" (click)="handleClick_AddSpace()">add space</ion-button>
-              <ion-button *ngIf="platform !== 'web'" color="primary" fill="outline" (click)="filepicker.click()">import space</ion-button>
-              <ion-button *ngIf="platform === 'web'" color="primary" fill="outline" (click)="handleClick_ImportSpace_Web()">import space</ion-button>
+              <ion-button color="primary" fill="outline" [disabled]="isBusy"
+                (click)="refreshFileFolderInfos()">refresh</ion-button>
+              <ion-button *ngIf="platform !== 'web'" color="primary" fill="outline" [disabled]="isBusy"
+                (click)="filepicker.click()">import space</ion-button>
+              <ion-button *ngIf="platform === 'web'" disabled color="primary" fill="outline" [disabled]="isBusy"
+                (click)="handleClick_ImportSpace_Web()">import space</ion-button>
             </ion-buttons>
             <input type="file" #filepicker hidden (change)="handleFileSelected_Import($event)" />
           </ion-item>
