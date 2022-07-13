@@ -3,7 +3,7 @@
     <ion-title color="primary">bootstrap</ion-title>
     <ion-buttons slot="start">
       <ion-menu-button slot="icon-only" color="primary"></ion-menu-button>
-      <ion-button *ngIf="common.platform.is('ios')" class="back-btn"
+      <ion-button *ngIf="platform === 'ios'" class="back-btn"
         color="primary"
         (click)="handleBackButtonClick()">
         <ion-icon name="chevron-back-outline" slot="icon-only"></ion-icon>
@@ -54,7 +54,6 @@
           <ion-text color="primary">will require restart...</ion-text>
         </ion-item>
       </ion-item>
-
     </ion-accordion>
 
     <ion-accordion value="spaces">

@@ -122,17 +122,17 @@
                     <ion-icon slot="start" name="navigate-outline" color="primary"></ion-icon>
                     <ion-label>goto</ion-label>
                   </ion-button>
-                  <ion-button [disabled]="refreshing || addingTag || !ibGib"
+                  <ion-button [disabled]="initializing || refreshing || addingTag"
                     title="add tag"
                     color="secondary"
                     (click)="handleAddTag()">
-                    <ion-spinner *ngIf="refreshing || addingTag || !ibGib" name="circles" color="primary"></ion-spinner>
+                    <ion-spinner *ngIf="initializing || refreshing || addingTag" name="circles" color="primary"></ion-spinner>
                     <ion-icon slot="start" name="add-outline" color="primary"></ion-icon>
                     <ion-label>add</ion-label>
                   </ion-button>
                 </ion-buttons>
               </ion-item>
-              <ion-item *ngIf="!ibGib">
+              <ion-item *ngIf="initializing">
                 <ion-label color="primary">i believe...</ion-label>
                 <ion-spinner name="circles" color="tertiary"></ion-spinner>
               </ion-item>
@@ -159,23 +159,21 @@
               <ion-item lines="none">
                 <ion-buttons class="special-menu-btns">
                   <ion-button [disabled]="addingRobbot"
-                    title="goto robbots ibgib where all of your robbots are"
-                    color="secondary"
+                    title="goto robbots ibgib where all of your robbots are" color="secondary"
                     (click)="handleGotoSpecial('robbots')">
                     <ion-spinner *ngIf="addingRobbot" name="circles" color="primary"></ion-spinner>
                     <ion-icon slot="start" name="navigate-outline" color="primary"></ion-icon>
                     <ion-label>goto</ion-label>
                   </ion-button>
-                  <ion-button [disabled]="refreshing || addingRobbot || !ibGib"
-                    color="secondary"
+                  <ion-button [disabled]="initializing || refreshing || addingRobbot" color="secondary"
                     (click)="handleAddRobbot()">
-                    <ion-spinner *ngIf="refreshing || addingRobbot || !ibGib" name="circles" color="primary"></ion-spinner>
+                    <ion-spinner *ngIf="initializing || refreshing || addingRobbot" name="circles" color="primary"></ion-spinner>
                     <ion-icon slot="start" name="add-outline" color="primary"></ion-icon>
                     <ion-label>add</ion-label>
                   </ion-button>
                 </ion-buttons>
               </ion-item>
-              <ion-item *ngIf="!ibGib">
+              <ion-item *ngIf="initializing || refreshing || addingRobbot || !robbotsAddr">
                 <ion-label color="primary">i believe...</ion-label>
                 <ion-spinner name="circles" color="tertiary"></ion-spinner>
               </ion-item>

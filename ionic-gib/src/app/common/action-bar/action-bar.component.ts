@@ -47,7 +47,7 @@ export class ActionBarComponent extends IbgibComponentBase
 
   @Input()
   get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
-  set ibGib_Context(value: IbGib_V1 ) { super.ibGib_Context = value; }
+  set ibGib_Context(value: IbGib_V1) { super.ibGib_Context = value; }
 
   /**
    * temporary hack
@@ -245,13 +245,13 @@ export class ActionBarComponent extends IbgibComponentBase
       if (!this.actionDetailVisible) {
         this.actionDetailMode = 'comment';
         this.actionDetailVisible = true;
-        this.focusDetail({force: true});
+        this.focusDetail({ force: true });
         // setTimeout(() => this.textareaComment.setFocus());
       } else if (this.actionDetailMode !== 'comment') {
         this.actionDetailMode = 'comment';
         // this.ref.detectChanges();
         // while (!this.textareaComment) { await h.delay(100); }
-        this.focusDetail({force: true});
+        this.focusDetail({ force: true });
         // setTimeout(() => this.textareaComment.setFocus());
       } else if (this.actionDetailMode === 'comment') {
         this.actionDetailVisible = false;
@@ -272,13 +272,13 @@ export class ActionBarComponent extends IbgibComponentBase
       if (!this.actionDetailVisible) {
         this.actionDetailMode = 'link';
         this.actionDetailVisible = true;
-        this.focusDetail({force: true});
+        this.focusDetail({ force: true });
         // setTimeout(() => this.textareaLink.setFocus());
       } else if (this.actionDetailMode !== 'link') {
         this.actionDetailMode = 'link';
         // this.ref.detectChanges();
         // while (!this.textareaLink) { await h.delay(100); }
-        this.focusDetail({force: true});
+        this.focusDetail({ force: true });
         // setTimeout(() => this.textareaLink.setFocus());
       } else if (this.actionDetailMode === 'link') {
         this.actionDetailVisible = false;
@@ -307,7 +307,7 @@ export class ActionBarComponent extends IbgibComponentBase
       await h.delay(this.debounceMs + 50); // to allow for debounce in binding
       const text = this.actionDetailCommentText; // already trimmed
 
-      const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
+      const space = await this.common.ibgibs.getLocalUserSpace({ lock: true });
       const resCommentIbGib = await createCommentIbGib({
         text,
         saveInSpace: true,
@@ -315,8 +315,8 @@ export class ActionBarComponent extends IbgibComponentBase
       });
 
       const { newIbGib: newComment } = resCommentIbGib;
-      const newCommentAddr = h.getIbGibAddr({ibGib: newComment});
-      await this.common.ibgibs.registerNewIbGib({ibGib: newComment});
+      const newCommentAddr = h.getIbGibAddr({ ibGib: newComment });
+      await this.common.ibgibs.registerNewIbGib({ ibGib: newComment });
 
       if (!this.ibGib) {
         await this.loadIbGib();
@@ -324,10 +324,10 @@ export class ActionBarComponent extends IbgibComponentBase
       }
       const rel8nsToAddByAddr = { comment: [newCommentAddr] };
       const resRel8ToContext =
-        await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
-      await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToContext});
+        await V1.rel8({ src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true });
+      await this.common.ibgibs.persistTransformResult({ resTransform: resRel8ToContext });
       const { newIbGib: newContext } = resRel8ToContext;
-      await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
+      await this.common.ibgibs.registerNewIbGib({ ibGib: newContext });
 
       this.actionDetailVisible = true;
     } catch (error) {
@@ -357,7 +357,7 @@ export class ActionBarComponent extends IbgibComponentBase
       await h.delay(this.debounceMs + 50); // to allow for debounce in binding
       const text = this.actionDetailLinkText; // already trimmed
 
-      const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
+      const space = await this.common.ibgibs.getLocalUserSpace({ lock: true });
       const resLinkIbGib = await createLinkIbGib({
         text,
         saveInSpace: true,
@@ -365,8 +365,8 @@ export class ActionBarComponent extends IbgibComponentBase
       });
 
       const { newIbGib: newLink } = resLinkIbGib;
-      const newLinkAddr = h.getIbGibAddr({ibGib: newLink});
-      await this.common.ibgibs.registerNewIbGib({ibGib: newLink});
+      const newLinkAddr = h.getIbGibAddr({ ibGib: newLink });
+      await this.common.ibgibs.registerNewIbGib({ ibGib: newLink });
 
       if (!this.ibGib) {
         await this.loadIbGib();
@@ -374,10 +374,10 @@ export class ActionBarComponent extends IbgibComponentBase
       }
       const rel8nsToAddByAddr = { link: [newLinkAddr] };
       const resRel8ToContext =
-        await V1.rel8({src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true});
-      await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToContext});
+        await V1.rel8({ src: this.ibGib, rel8nsToAddByAddr, dna: true, nCounter: true });
+      await this.common.ibgibs.persistTransformResult({ resTransform: resRel8ToContext });
       const { newIbGib: newContext } = resRel8ToContext;
-      await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
+      await this.common.ibgibs.registerNewIbGib({ ibGib: newContext });
 
       this.actionDetailVisible = true;
     } catch (error) {
@@ -407,7 +407,7 @@ export class ActionBarComponent extends IbgibComponentBase
 
       // set up the rel8ns to add
       const rel8nsToAddByAddr: IbGibRel8ns_V1 = {};
-      const ibGibToRel8Addr = h.getIbGibAddr({ibGib: ibGibToRel8});
+      const ibGibToRel8Addr = h.getIbGibAddr({ ibGib: ibGibToRel8 });
       rel8nNames.forEach((rel8nName) => {
         rel8nsToAddByAddr[rel8nName] = [ibGibToRel8Addr];
       });
@@ -422,12 +422,12 @@ export class ActionBarComponent extends IbgibComponentBase
         });
 
       // ...persist it...
-      await this.common.ibgibs.persistTransformResult({resTransform: resRel8ToContext});
+      await this.common.ibgibs.persistTransformResult({ resTransform: resRel8ToContext });
 
       // ...register the context.
       // if (registerNewContext) {
-        const { newIbGib: newContext } = resRel8ToContext;
-        await this.common.ibgibs.registerNewIbGib({ibGib: newContext});
+      const { newIbGib: newContext } = resRel8ToContext;
+      await this.common.ibgibs.registerNewIbGib({ ibGib: newContext });
       // }
 
     } catch (error) {
@@ -467,7 +467,7 @@ export class ActionBarComponent extends IbgibComponentBase
       actionItem.busy = true;
       this._addingPicRefCount++;
 
-      const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
+      const space = await this.common.ibgibs.getLocalUserSpace({ lock: true });
 
       await h.delay(100);
 
@@ -511,14 +511,14 @@ export class ActionBarComponent extends IbgibComponentBase
       this.sending = true;
 
       // do i need to get the space every iteration? hmm...
-      const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
+      const space = await this.common.ibgibs.getLocalUserSpace({ lock: true });
 
       for (let i = 0; i < this.resCreatePicCandidates.length; i++) {
 
         if (i > 0) { await h.delay(50); } // helps process messages/UI thread
 
         // get our transform results and manually save/register them
-        const {resCreatePic, resCreateBin} = this.resCreatePicCandidates[i];
+        const { resCreatePic, resCreateBin } = this.resCreatePicCandidates[i];
 
         // do the bin first
         // persist...
@@ -584,10 +584,10 @@ export class ActionBarComponent extends IbgibComponentBase
       if (!this.actionDetailVisible) {
         this.actionDetailMode = 'import';
         this.actionDetailVisible = true;
-        this.focusDetail({force: true});
+        this.focusDetail({ force: true });
       } else if (this.actionDetailMode !== 'import') {
         this.actionDetailMode = 'import';
-        this.focusDetail({force: true});
+        this.focusDetail({ force: true });
       } else if (this.actionDetailMode === 'import') {
         this.actionDetailVisible = false;
       }
@@ -641,17 +641,17 @@ export class ActionBarComponent extends IbgibComponentBase
 
       const addr = this.actionDetailImportText;
 
-      const validationErrors = validateIbGibAddr({addr});
+      const validationErrors = validateIbGibAddr({ addr });
       if ((validationErrors ?? []).length > 0) { throw new Error(`Invalid address: ${validationErrors.join('\n')} (E: 343823cb6ab04e6e9a8f7e6de1cd12c8)`); }
 
       // now we have a valid address, but maybe we have this locally?  if we do,
       // add to the current context and go ahead and return because we should
       // already have the entire dependency graph
       if (logalot) { console.log(`${lc} checking locally.`); }
-      let resGet_Local = await this.common.ibgibs.get({addr});
+      let resGet_Local = await this.common.ibgibs.get({ addr });
       if (resGet_Local.success && resGet_Local.ibGibs?.length === 1) {
         if (logalot) { console.log(`${lc} found ibgib locally with addr: ${addr}.`); }
-        await fnAlert({title: "We have it locally!", msg: "We have it locally! We'll relate it to the current ibgib..."});
+        await fnAlert({ title: "We have it locally!", msg: "We have it locally! We'll relate it to the current ibgib..." });
         await this._rel8ToCurrentContext({
           ibGibToRel8: resGet_Local.ibGibs[0],
           rel8nNames: ['import'],
@@ -672,7 +672,7 @@ export class ActionBarComponent extends IbgibComponentBase
         const msg = `Can't sync without sync spaces...wrong password? Cancelling. Restart app to retry password (I know it sucks!...just me coding this thing right now)`;
         if (logalot) { console.log(`${lc} ${msg}`) };
         const fnAlert = getFnAlert();
-        await fnAlert({title: "Cancelled", msg});
+        await fnAlert({ title: "Cancelled", msg });
         return; /* <<<< returns early */
       }
 
@@ -682,11 +682,11 @@ export class ActionBarComponent extends IbgibComponentBase
       let spaceAddr: IbGibAddr;
       for (let i = 0; i < appSyncSpaces.length; i++) {
         space = appSyncSpaces[i];
-        spaceAddr = h.getIbGibAddr({ibGib: space});
+        spaceAddr = h.getIbGibAddr({ ibGib: space });
 
         if (logalot) { console.log(`${lc} Checking space (${spaceAddr}) for ibgib (${addr}).`); }
 
-        let resGet = await getFromSpace({addr, space});
+        let resGet = await getFromSpace({ addr, space });
         if (resGet.success) {
           if (resGet.ibGibs?.length === 1) {
             if (logalot) { console.log(`${lc} found ibgib (${addr}) in space (${spaceAddr}).`); }
@@ -715,9 +715,9 @@ export class ActionBarComponent extends IbgibComponentBase
           space,
         });
         let resPutGraph =
-          await this.common.ibgibs.put({ibGibs: Object.values(graph)});
+          await this.common.ibgibs.put({ ibGibs: Object.values(graph) });
         if (resPutGraph.success) {
-          await this.common.ibgibs.registerNewIbGib({ibGib: gotIbGib});
+          await this.common.ibgibs.registerNewIbGib({ ibGib: gotIbGib });
           // now that we've stored the dependency graph, we can rel8 the import
           // to the current context
           await this._rel8ToCurrentContext({
@@ -752,7 +752,7 @@ export class ActionBarComponent extends IbgibComponentBase
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`)
-      await Modals.alert({title: 'something went awry...', message: error.message});
+      await Modals.alert({ title: 'something went awry...', message: error.message });
     } finally {
       actionItem.busy = false;
       this.sending = false;
@@ -901,7 +901,7 @@ export class ActionBarComponent extends IbgibComponentBase
     return item.picSrc;
   }
 
-  protected async handleActionBtnClick(event: any, item: ActionItem): Promise<void> {
+  async handleActionBtnClick(event: any, item: ActionItem): Promise<void> {
     const lc = `${this.lc}[${this.handleActionBtnClick.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: d78a9b3d3e2eefe29a13551ea6210222)`); }
@@ -926,7 +926,7 @@ export class ActionBarComponent extends IbgibComponentBase
    * So this is a hack to focus the inner text area
    * @param event
    */
-  protected handleTextAreaClick(event: any): void {
+  handleTextAreaClick(event: any): void {
     const lc = `${this.lc}[${this.handleTextAreaClick.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 61bdea9e93f2cc911bc4c0fac2fc5222)`); }

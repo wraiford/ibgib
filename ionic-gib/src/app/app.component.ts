@@ -261,6 +261,7 @@ export class AppComponent extends IbgibComponentBase
           navToAddr = this.tagsAddr;
         } else {
           this.initializing = false;
+          setTimeout(() => this.ref.detectChanges());
           await this.updateIbGib(addr);
         }
 
@@ -281,6 +282,7 @@ export class AppComponent extends IbgibComponentBase
         console.error(`${lc} ${error.message}`);
       } finally {
         this.initializing = false;
+        setTimeout(() => this.ref.detectChanges());
         this.splashScreen.hide();
 
         // this is what navigates if not using the welcome page
@@ -545,9 +547,7 @@ export class AppComponent extends IbgibComponentBase
       if (!robbotsIbGib) { throw new Error(`(UNEXPECTED) robbotsIbGib falsy (E: 098f213f34cf44629e2d0cca8345d4f7)`); }
       if (!robbotsIbGib.data) { throw new Error(`(UNEXPECTED) localUserSpace.data falsy (E: e24f2a249ad445da97109f8ecc581f77)`); }
 
-      if (this._subRobbotsUpdate) {
-        this._subRobbotsUpdate.unsubscribe();
-      }
+      if (this._subRobbotsUpdate) { this._subRobbotsUpdate.unsubscribe(); }
 
       this._subRobbotsUpdate = this.common.ibgibs.latestObs.pipe(
         concatMap(async (latestEvent) => {
@@ -560,7 +560,8 @@ export class AppComponent extends IbgibComponentBase
             // existing code is just to clear out the exising robbotsAddr
             // and run updateMenu_Robbots
             if (logalot) { console.log(`${lc} triggering robbots menu update... (I: 4ba9f51fddae41408d7c03ad6eab81b2)`); }
-            this._robbotsAddr = null;
+            this.robbotsAddr = null;
+
             await this.updateMenu_Robbots();
             setTimeout(() => { this.ref.detectChanges(); })
           } else {
@@ -571,10 +572,12 @@ export class AppComponent extends IbgibComponentBase
           }
         })
       ).subscribe();
+      await this.updateMenu_Robbots();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
+      setTimeout(() => this.ref.detectChanges());
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
@@ -1039,13 +1042,12 @@ export class AppComponent extends IbgibComponentBase
 
       // "load" them into the bound property and detect the changes
       this.robbotItems = robbotMenuItems;
-      this.ref.detectChanges();
-
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       this.robbotItems = [];
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
+      setTimeout(() => this.ref.detectChanges());
     }
 
   }
