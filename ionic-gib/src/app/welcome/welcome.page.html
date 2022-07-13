@@ -1,6 +1,12 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>welcome</ion-title>
+    <ion-buttons slot="start">
+      <ion-menu-button slot="icon-only" color="primary"></ion-menu-button>
+      <ion-button *ngIf="showBackChevronBtn" class="back-btn" (click)="handleBackButtonClick()">
+        <ion-icon name="chevron-back-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title color="primary">welcome</ion-title>
   </ion-toolbar>
 </ion-header>
 
@@ -21,8 +27,8 @@
       <div class="swiper-slide-content">
         <ion-card>
           <ion-card-header>
-            <ion-card-title>ibgib</ion-card-title>
-            <ion-card-subtitle>i believe</ion-card-subtitle>
+            <ion-card-title color="primary">ibgib</ion-card-title>
+            <ion-card-subtitle color="primary">i believe</ion-card-subtitle>
           </ion-card-header>
 
           <ion-card-content>
@@ -254,7 +260,7 @@
       <ion-button color="primary" (click)="handleNextSlide()">
         <ion-icon name="chevron-forward-outline"></ion-icon>
       </ion-button>
-      <ion-button color="primary" (click)="handleGo()">{{goText3}}</ion-button>
+      <ion-button color="primary" (click)="handleGo()">{{goText}}</ion-button>
       <!-- <ion-button color="primary" (click)="handleNextSlide()">
         <ion-icon name="chevron-forward-outline"></ion-icon>
       </ion-button> -->

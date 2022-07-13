@@ -26,6 +26,8 @@ SwiperCore.use([
 ]);
 import { Subscription } from 'rxjs';
 import { concatMap, } from 'rxjs/operators';
+import { Capacitor, Plugins } from '@capacitor/core';
+const { Storage } = Plugins;
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib/dist/types';
@@ -51,7 +53,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
   goToAddr: IbGibAddr;
 
   @Input()
-  get goText3(): string {
+  get goText(): string {
     const waitLabel = 'wait for it...';
     const tldrLabel = this.goToAddr ? 'tl;dr' : waitLabel;
     const goLabel = this.goToAddr ? 'go' : waitLabel;
@@ -93,6 +95,16 @@ export class WelcomePage implements OnInit, AfterViewInit {
   @ViewChild('svgContainer')
   svgContainer: ElementRef;
 
+  @Input()
+  get showBackChevronBtn(): boolean {
+    const lc = `${this.lc}[get showBackChevronBtn]`;
+    const platform = Capacitor.getPlatform();
+    if (logalot) { console.log(`${lc} platform: ${platform}`); }
+
+    // temporary hack is to always show the chevron if it's ios
+    return platform === 'ios';
+  }
+
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
@@ -110,14 +122,24 @@ export class WelcomePage implements OnInit, AfterViewInit {
         await h.delay(100);
       }
 
+      // update the title! woohoo!
+      document.title = 'welcome';
+
       // spins off
       this._subInitialized = this.common.ibgibs.initialized$.pipe(
-        // leaving this here in case we need it. no perf penalty, just was
-        // fooling arond with combining a purposeful delay for aesthetics
         concatMap(
           async () => {
-            this.initializeGoToAddr();
-            await h.delay(2000); // hmmm
+
+            const result = await Storage.get({ key: 'welcomeShown' });
+            if (result?.value === 'true') {
+              // already shown welcome, so nav to home
+              await this.initializeGoToAddr();
+              await this.handleGo();
+            } else {
+              // haven't shown welcome, so stay here
+              this.initializeGoToAddr();
+              await h.delay(2000); // hmmm
+            }
             this._subInitialized.unsubscribe();
             delete this._subInitialized;
           },
@@ -705,7 +727,12 @@ export class WelcomePage implements OnInit, AfterViewInit {
     try {
       if (logalot) { console.log(`${lc} starting... (I: edb23b7355c97d364a6e89d91a024322)`); }
 
-      this.common.nav.go({
+      if (this.goText?.toLowerCase() === 'go') {
+        // we've gone through the entire welcome screen (not tl;dr skipping)
+        await Storage.set({ key: 'welcomeShown', value: 'true' });
+      }
+
+      await this.common.nav.go({
         toAddr: this.goToAddr,
         fromAddr: undefined,
         force: true,
@@ -758,6 +785,11 @@ export class WelcomePage implements OnInit, AfterViewInit {
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
+
+  async handleBackButtonClick(): Promise<void> {
+    await this.common.nav.back();
+  }
+
 }
 
 const IBGIB_PROTOCOL_FEATURES: VerticalSwiperTidbit[] = [

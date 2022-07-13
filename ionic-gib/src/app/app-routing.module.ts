@@ -13,6 +13,12 @@ const routes: Routes = [
     loadChildren: () => import('./bootstrap/bootstrap.module').then(m => m.BootstrapPageModule)
   },
   {
+    path: 'ibgib',
+    redirectTo: 'welcome',
+    // redirectTo: 'ibgib/ib^gib',
+    pathMatch: 'full'
+  },
+  {
     path: 'ibgib/:addr',
     loadChildren: () => import('./ibgib/ibgib.module').then(m => m.IbGibPageModule)
   },

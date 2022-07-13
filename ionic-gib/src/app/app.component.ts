@@ -5,6 +5,8 @@ import { NavigationEnd, Router, } from '@angular/router';
 import { MenuController, } from '@ionic/angular';
 import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
+import { Capacitor, Plugins } from '@capacitor/core';
+const { Storage } = Plugins;
 import { Subscription } from 'rxjs';
 import { concatMap, filter } from 'rxjs/operators';
 
@@ -1195,4 +1197,37 @@ export class AppComponent extends IbgibComponentBase
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
+
+  async handleClick_Welcome(): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_Welcome.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 609d93f81c2caeae934c488e6bd86622)`); }
+
+      await this.menu.close();
+
+      // we've gone through the entire welcome screen (not tl;dr skipping)
+      await Storage.remove({ key: 'welcomeShown' });
+
+      // const
+      let fromRawLocation: string;
+      let url = new URL(window.location.toString());
+      let currentRawLocation = url.pathname.split('/');
+      if (currentRawLocation.length > 0) {
+        if (currentRawLocation[0] === '') { currentRawLocation = currentRawLocation.slice(1); }
+      } else {
+        currentRawLocation = ['welcome'];
+      }
+      this.common.nav.go({
+        toRawLocation: ['welcome'],
+        fromRawLocation: currentRawLocation,
+      });
+      console.log(url.pathname);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
 }

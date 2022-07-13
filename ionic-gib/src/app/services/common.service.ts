@@ -11,7 +11,7 @@ import { IonicStorageLatestIbgibCacheService } from './ionic-storage-latest-ibgi
 
 export interface NavInfo {
   /** The ibgib address we're going to.  */
-  toAddr: IbGibAddr,
+  toAddr?: IbGibAddr,
   /**
    * tjpGib of the toAddr.
    *
@@ -27,7 +27,7 @@ export interface NavInfo {
    */
   toAddr_TjpGib?: Gib;
   /** The starting ibgib address from which we're navigating away.  */
-  fromAddr: IbGibAddr,
+  fromAddr?: IbGibAddr,
   /**
    * tjpGib of the fromAddr.
    *
@@ -42,6 +42,14 @@ export interface NavInfo {
    * updated address.
    */
   fromAddr_TjpGib?: Gib;
+  /**
+   * Use this instead of setting window.location
+   */
+  toRawLocation?: string[];
+  /**
+   * Use this instead of setting window.location
+   */
+  fromRawLocation?: string[];
   /** New query params for the navigation. */
   queryParams?: { [key: string]: any },
   /** How to reconcile existing query params with the new ones. */
@@ -56,6 +64,7 @@ export interface NavInfo {
    * explicitly skip the navigation stack
    */
   skipStack?: boolean;
+
 }
 
 export interface IbgibNav {
@@ -76,7 +85,7 @@ export interface IbgibNav {
  * Some things do not go here that is specific to the descendant class,
  * e.g., ChangeDetectorRef.
  */
-@Injectable({providedIn: 'root'})
+@Injectable({ providedIn: 'root' })
 export class CommonService {
 
   constructor(
