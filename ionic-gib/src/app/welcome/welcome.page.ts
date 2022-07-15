@@ -38,7 +38,7 @@ import { ibCircle, ibGroup, ibLine, ibSvg, } from '../common/helper/svg';
 import { SVG_NAMESPACE, IbGibDiagramInfo, } from '../common/types/svg';
 
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 @Component({
   selector: 'ib-welcome',
@@ -306,13 +306,6 @@ export class WelcomePage implements OnInit, AfterViewInit {
         throw new Error(`(UNEXPECTED) unknown info.mode: ${info.mode} (E: 1a203a5a173258a309fcac813ff6c422)`);
       }
 
-      // <animateTransform attributeName="transform"
-      //                     attributeType="XML"
-      //                     type="rotate"
-      //                     from="0 60 70"
-      //                     to="360 60 70"
-      //                     dur="10s"
-      //                     repeatCount="indefinite"/>
 
 
     } catch (error) {

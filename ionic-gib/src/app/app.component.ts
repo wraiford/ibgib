@@ -1209,10 +1209,10 @@ export class AppComponent extends IbgibComponentBase
       await Storage.remove({ key: 'welcomeShown' });
 
       // const
-      let fromRawLocation: string;
       let url = new URL(window.location.toString());
       let currentRawLocation = url.pathname.split('/');
       if (currentRawLocation.length > 0) {
+        // if the first bit is an empty string, drop it.
         if (currentRawLocation[0] === '') { currentRawLocation = currentRawLocation.slice(1); }
       } else {
         currentRawLocation = ['welcome'];
@@ -1221,7 +1221,6 @@ export class AppComponent extends IbgibComponentBase
         toRawLocation: ['welcome'],
         fromRawLocation: currentRawLocation,
       });
-      console.log(url.pathname);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

@@ -10,7 +10,7 @@ import { IbGibCacheInfo, IbGibCacheService } from '../common/types/ibgib';
 import { getTjpAddrs } from '../common/helper/ibgib';
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 /**
  * simple caching service for getting the latest ibgib for a given address.
@@ -35,12 +35,12 @@ export class IonicStorageLatestIbgibCacheService implements IbGibCacheService {
 
   constructor() { }
 
-  async has({addr, addrScope}: { addr: IbGibAddr, addrScope?: string }): Promise<boolean> {
+  async has({ addr, addrScope }: { addr: IbGibAddr, addrScope?: string }): Promise<boolean> {
     const lc = `${this.lc}[${this.has.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 36dc566e78b04fa2afc03b98e45e048e)`); }
       // return Promise.resolve(!!this.infos[addr]);
-      const key = this.getKey({addr, addrScope});
+      const key = this.getKey({ addr, addrScope });
 
       if (this.infos[key]) { return true; /* <<<< returns early */ }
 
@@ -63,9 +63,9 @@ export class IonicStorageLatestIbgibCacheService implements IbGibCacheService {
     addr: IbGibAddr,
     addrScope?: string,
   }): string {
-    let tjpGibOrAddr = getGibInfo({ibGibAddr: addr}).tjpGib ?? addr;
+    let tjpGibOrAddr = getGibInfo({ ibGibAddr: addr }).tjpGib ?? addr;
 
-    return addrScope ?  `${this.lc}__${tjpGibOrAddr}^${addrScope}` : `${this.lc}__${tjpGibOrAddr}`;
+    return addrScope ? `${this.lc}__${tjpGibOrAddr}^${addrScope}` : `${this.lc}__${tjpGibOrAddr}`;
   }
 
   async put({
@@ -84,10 +84,10 @@ export class IonicStorageLatestIbgibCacheService implements IbGibCacheService {
       if (!ibGib) { throw new Error(`ibGib required (E: 1e05d46831ce4d93b351b572d8b04633)`); }
 
       if (!tjpAddr) {
-        [tjpAddr] = getTjpAddrs({ibGibs: [ibGib]});
+        [tjpAddr] = getTjpAddrs({ ibGibs: [ibGib] });
         if (!tjpAddr) {
           if (logalot) { console.warn(`${lc} putting ibgib in getlatest with no tjp addr? (W: 233224682577331c5c45440e9ca4c222)`); }
-          tjpAddr = h.getIbGibAddr({ibGib});
+          tjpAddr = h.getIbGibAddr({ ibGib });
         }
       }
 
@@ -104,10 +104,10 @@ export class IonicStorageLatestIbgibCacheService implements IbGibCacheService {
         return; /* <<<< returns early */
       }
 
-      const key = this.getKey({addr, addrScope});
+      const key = this.getKey({ addr, addrScope });
       const jsonString = JSON.stringify(info);
 
-      await Storage.set({key, value: jsonString});
+      await Storage.set({ key, value: jsonString });
       this.infos[key] = h.clone(info);
     } catch (error) {
       debugger;
@@ -118,19 +118,19 @@ export class IonicStorageLatestIbgibCacheService implements IbGibCacheService {
     }
   }
 
-  async get({addr, addrScope}: { addr: IbGibAddr, addrScope?: string }): Promise<IbGibCacheInfo | undefined> {
+  async get({ addr, addrScope }: { addr: IbGibAddr, addrScope?: string }): Promise<IbGibCacheInfo | undefined> {
     const lc = `${this.lc}[${this.get.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       if (!addr) { throw new Error(`addr required (E: f7ec60c717d8461cb759e599d5038dca)`); }
 
-      const key = this.getKey({addr, addrScope});
+      const key = this.getKey({ addr, addrScope });
       console.warn(`${lc} not using the cache atm darnit (W: 4dad875a39e5441490f77fe96a4d69df)`);
       return Promise.resolve(undefined);
 
       let cached = this.infos[key];
       if (!cached) {
-        let resGet = await Storage.get({key});
+        let resGet = await Storage.get({ key });
         if (resGet?.value) { cached = <IbGibCacheInfo>JSON.parse(resGet.value); }
       }
 

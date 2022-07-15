@@ -39,9 +39,7 @@
         </ion-label>
       </ion-item>
       <ion-item slot="content">
-        <!-- <ion-item *ngIf="showSubmit"> -->
           <ion-note *ngIf="showSubmit" slot="helper" color="primary">will require restart...</ion-note>
-        <!-- </ion-item> -->
         <ib-dynamic-form #form *ngIf="formItems?.length > 0"
           [items]="formItems"
           (dynamicSubmit)="handleDynamicSubmit($event)"

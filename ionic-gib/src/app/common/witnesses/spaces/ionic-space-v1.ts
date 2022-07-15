@@ -16,8 +16,9 @@ import {
 } from '../../types/space';
 import { isBinary, getBinHashAndExt } from '../../helper/ibgib';
 import { tryRead } from '../../helper/ionic';
-import { getSpaceIb, getTjpIbGib, getSpecialIbGib } from '../../helper/space';
+import { getSpaceIb, getTjpIbGib, getSpecialIbGib, getInfoFromSpaceIb } from '../../helper/space';
 import { argy_ } from '../witness-helper';
+import { validateIbGibIntrinsically } from '../../helper/validate';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -39,6 +40,8 @@ export interface IonicSpaceData_V1 extends IbGibSpaceData {
     metaSubPath: string;
     binSubPath: string;
     dnaSubPath: string;
+    n?: number;
+    timestamp?: string;
 }
 
 /**
@@ -70,7 +73,7 @@ const DEFAULT_IONIC_SPACE_DATA_V1: IonicSpaceData_V1 = {
 }
 
 /** Marker interface atm */
-export interface IonicSpaceRel8ns_V1 extends IbGibRel8ns_V1 {}
+export interface IonicSpaceRel8ns_V1 extends IbGibRel8ns_V1 { }
 
 /**
  * Space options involve whether we're getting/putting ibgibs categorized as
@@ -117,52 +120,52 @@ export interface IonicSpaceResultIbGib
 // #region get/put files related (re-using from files service)
 
 interface FileResult {
-  success?: boolean;
-  /**
-   * If errored, this will contain the errorMsg.
-   */
-  errorMsg?: string;
+    success?: boolean;
+    /**
+     * If errored, this will contain the errorMsg.
+     */
+    errorMsg?: string;
 }
 
 /**
  * Options for retrieving data from the file system.
  */
 interface GetIbGibFileOpts {
-  /**
-   * If getting ibGib object, this is its address.
-   */
-  addr?: IbGibAddr;
-  /**
-   * If truthy, will look in the meta subpath first, then the regular if not found.
-   */
-  isMeta?: boolean;
-  /**
-   * Are we looking for a DNA ibgib?
-   */
-  isDna?: boolean;
+    /**
+     * If getting ibGib object, this is its address.
+     */
+    addr?: IbGibAddr;
+    /**
+     * If truthy, will look in the meta subpath first, then the regular if not found.
+     */
+    isMeta?: boolean;
+    /**
+     * Are we looking for a DNA ibgib?
+     */
+    isDna?: boolean;
 }
 /**
  * Result for retrieving an ibGib from the file system.
  */
 interface GetIbGibFileResult extends FileResult {
-  /**
-   * ibGib if retrieving a "regular" ibGib.
-   *
-   * This is used when you're not getting a pic, e.g.
-   */
-  ibGib?: IbGib_V1;
+    /**
+     * ibGib if retrieving a "regular" ibGib.
+     *
+     * This is used when you're not getting a pic, e.g.
+     */
+    ibGib?: IbGib_V1;
 }
 
 interface PutIbGibFileOpts {
-  ibGib?: IbGib_V1;
-  /**
-   * If true, will store with metas.
-   */
-  isMeta?: boolean;
-  /**
-   * If true, will store in a different folder.
-   */
-  isDna?: boolean;
+    ibGib?: IbGib_V1;
+    /**
+     * If true, will store with metas.
+     */
+    isMeta?: boolean;
+    /**
+     * If true, will store in a different folder.
+     */
+    isDna?: boolean;
 }
 interface PutIbGibFileResult extends FileResult { }
 
@@ -171,6 +174,90 @@ interface DeleteIbGibFilesResult extends FileResult { }
 
 // #endregion
 
+
+/**
+ * basic validation for an ionic space
+ */
+export async function validateIonicSpace_V1Intrinsically({ space }: { space: IonicSpace_V1 }): Promise<string[] | null> {
+    const lc = `${this.lc}[${validateIonicSpace_V1Intrinsically.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: fcfe57145426ab4a5a0e961e87001922)`); }
+        const errors: string[] = (await validateIbGibIntrinsically({ ibGib: this })) ?? [];
+
+        const { ib, gib, data, rel8ns } = space;
+
+        if (!ib) { errors.push('ib required.'); }
+        if (!gib) { errors.push('gib required.'); }
+        if (gib === GIB) { errors.push('gib cannot be primitive.'); }
+        if (!data) { errors.push('data required.'); }
+
+        if (!data.name) { errors.push('space name required.') }
+        if (!data.classname) { errors.push('classname required.') }
+        if (data.classname !== IonicSpace_V1.name) {
+            errors.push(`unknown classname (${data.classname}). data.classname !== IonicSpace_V1.name`);
+        }
+        if (!data.baseDir) { errors.push(`data.baseDir required.`) }
+        if (!data.baseSubPath) { errors.push(`data.baseSubPath required.`) }
+        if (!data.binSubPath) { errors.push(`data.binSubPath required.`) }
+        if (!data.dnaSubPath) { errors.push(`data.dnaSubPath required.`) }
+        if (!data.ibgibsSubPath) { errors.push(`data.ibgibsSubPath required.`) }
+        if (!data.metaSubPath) { errors.push(`data.metaSubPath required.`) }
+        if (typeof data.n !== 'number') { errors.push(`data.n required and must be a number.`) }
+        if (!data.spaceSubPath) { errors.push(`data.spaceSubPath required.`) }
+        if (!data.uuid) { errors.push(`data.uuid required.`) }
+        if (!data.encoding) { errors.push(`data.encoding required.`) }
+        /** should probably get this from Capacitor... */
+        const validEncodings = ["utf8", "ascii", "utf16"];
+        if (!validEncodings.includes(data.encoding)) {
+            errors.push(`invalid encoding: ${data.encoding}. validEncodings: ${validEncodings.join(', ')}`);
+        }
+
+        // ensure ib matches up with internal data
+        const { spaceClassname, spaceId, spaceName } = getInfoFromSpaceIb({ spaceIb: ib });
+        if (spaceClassname !== data.classname) {
+            errors.push(`ib's spaceClassname (${spaceClassname}) must match data.classname (${data.classname})`);
+        }
+        if (spaceId !== data.uuid) {
+            errors.push(`ib's spaceId (${spaceId}) must match data.uuid (${data.uuid})`);
+        }
+        if (spaceName !== data.name) {
+            errors.push(`ib's spaceName (${spaceName}) must match data.name (${data.name})`);
+        }
+
+        // ensure rel8ns make sense
+        if (data.n !== 0 && (rel8ns.past ?? []).length === 0) {
+            errors.push(`"past" rel8n required when data.n > 0`);
+        }
+        if (data.n === 0 && (rel8ns.past ?? []).length > 0) {
+            errors.push(`"past" rel8n cannot be populated if data.n === 0`);
+        }
+        if (rel8ns?.past?.length > 0) {
+            const pastAddrs = <IbGibAddr[]>rel8ns.past;
+            pastAddrs.forEach(x => {
+                const { ib: pastIb } = h.getIbAndGib({ ibGibAddr: x });
+                const pastIbInfo = getInfoFromSpaceIb({ spaceIb: pastIb });
+                if (pastIbInfo.spaceClassname !== spaceClassname) {
+                    errors.push(`rel8ns.past address classname (${pastIbInfo.spaceClassname}) must match current spaceClassname (${spaceClassname})`);
+                }
+                if (pastIbInfo.spaceId !== spaceId) {
+                    errors.push(`rel8ns.past address spaceId (${pastIbInfo.spaceId}) must match current spaceId (${spaceId})`);
+                }
+                // i want to allow this, but for now we're going to require not changing the name...
+                if (pastIbInfo.spaceName !== spaceName) {
+                    errors.push(`rel8ns.past address spaceName (${pastIbInfo.spaceName}) must match current spaceName (${spaceName})`);
+                }
+            });
+        }
+
+        return errors;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
 /**
  * Base class convenience for a local space with V1 ibgibs.
  *
@@ -178,18 +265,18 @@ interface DeleteIbGibFilesResult extends FileResult { }
  * will looks in files using Ionic `FileSystem`.
  */
 export class IonicSpace_V1<
-        TData extends IonicSpaceData_V1 = IonicSpaceData_V1,
-        TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
+    TData extends IonicSpaceData_V1 = IonicSpaceData_V1,
+    TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
     > extends SpaceBase_V1<
-        IbGib_V1,
-        IonicSpaceOptionsData,
-        IonicSpaceOptionsRel8ns,
-        IonicSpaceOptionsIbGib,
-        IonicSpaceResultData,
-        IonicSpaceResultRel8ns,
-        IonicSpaceResultIbGib,
-        TData,
-        TRel8ns
+    IbGib_V1,
+    IonicSpaceOptionsData,
+    IonicSpaceOptionsRel8ns,
+    IonicSpaceOptionsIbGib,
+    IonicSpaceResultData,
+    IonicSpaceResultRel8ns,
+    IonicSpaceResultIbGib,
+    TData,
+    TRel8ns
     > {
 
     /**
@@ -258,9 +345,9 @@ export class IonicSpace_V1<
      * @returns newly created space built upon `dto`
      */
     static async createFromDto<
-            TData extends IonicSpaceData_V1 = IonicSpaceData_V1,
-            TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
-        >(dto: IbGib_V1<TData, TRel8ns>): Promise<IonicSpace_V1<TData, TRel8ns>> {
+        TData extends IonicSpaceData_V1 = IonicSpaceData_V1,
+        TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
+    >(dto: IbGib_V1<TData, TRel8ns>): Promise<IonicSpace_V1<TData, TRel8ns>> {
         const lc = `[${IonicSpace_V1.name}][${this.createFromDto.name}]`;
         if (logalot) { console.log(`${lc}`); }
         const space = new IonicSpace_V1<TData, TRel8ns>(null, null);
@@ -306,7 +393,7 @@ export class IonicSpace_V1<
             if (!this.data.binSubPath) { this.data.binSubPath = c.IBGIB_BIN_SUBPATH; }
             if (!this.data.dnaSubPath) { this.data.dnaSubPath = c.IBGIB_DNA_SUBPATH; }
 
-            this.ib = getSpaceIb({space: this, classname: IonicSpace_V1.name});
+            this.ib = getSpaceIb({ space: this, classname: IonicSpace_V1.name });
         } catch (error) {
             console.error(`${lc} ${error.message}`);
         } finally {
@@ -314,8 +401,8 @@ export class IonicSpace_V1<
         }
     }
 
-    private hasInCache({addr}: {addr: IbGibAddr}): Promise<boolean> {
-        if (isPrimitive({gib: h.getIbAndGib({ibGibAddr: addr}).gib})) {
+    private hasInCache({ addr }: { addr: IbGibAddr }): Promise<boolean> {
+        if (isPrimitive({ gib: h.getIbAndGib({ ibGibAddr: addr }).gib })) {
             // primitives never cached
             return Promise.resolve(false);
         } else if (Object.keys(this.ibGibs).includes(addr)) {
@@ -323,19 +410,19 @@ export class IonicSpace_V1<
             return Promise.resolve(true);
         } else if (this.cacheSvc) {
             // not local so delegate to cache svc
-            return this.cacheSvc.has({addr});
+            return this.cacheSvc.has({ addr });
         } else {
             // no external cache svc and not in local instance cache
             return Promise.resolve(false);
         }
     }
-    private async putInCache({addr, ibGib}: { addr: IbGibAddr, ibGib: IbGib_V1 }): Promise<void> {
+    private async putInCache({ addr, ibGib }: { addr: IbGibAddr, ibGib: IbGib_V1 }): Promise<void> {
         const lc = `${this.lc}[${this.putInCache.name}][${addr}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
             if (!ibGib) { throw new Error(`ibGib required (E: 993e26fe40894bab9feccac3938f37df)`); }
 
-            if (isPrimitive({ibGib})) {
+            if (isPrimitive({ ibGib })) {
                 if (logalot) { console.log(`${lc} skipping caching primitive (I: a04dfb691582a4db8a0bfecfefe5e622)`); }
                 return;
             } else {
@@ -346,7 +433,7 @@ export class IonicSpace_V1<
             this.ibGibs[addr] = ibGib;
 
             // cache svc
-            if (this.cacheSvc) { await this.cacheSvc.put({addr, ibGib}); }
+            if (this.cacheSvc) { await this.cacheSvc.put({ addr, ibGib }); }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -354,13 +441,13 @@ export class IonicSpace_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
-    private async getFromCache({addr}: { addr: IbGibAddr }): Promise<IbGib_V1 | undefined> {
+    private async getFromCache({ addr }: { addr: IbGibAddr }): Promise<IbGib_V1 | undefined> {
         const lc = `${this.lc}[${this.getFromCache.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
             let cached = this.ibGibs[addr];
             if (!cached && this.cacheSvc) {
-                const info = await this.cacheSvc.get({addr});
+                const info = await this.cacheSvc.get({ addr });
                 cached = info.ibGib;
             }
             return cached;
@@ -372,7 +459,7 @@ export class IonicSpace_V1<
         }
     }
 
-    private deleteFromCache({addr}: { addr: IbGibAddr }): Promise<void> {
+    private deleteFromCache({ addr }: { addr: IbGibAddr }): Promise<void> {
         const lc = `${this.lc}[${this.getFromCache.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
@@ -390,35 +477,35 @@ export class IonicSpace_V1<
         Promise<IonicSpaceResultIbGib> {
         const lc = `${this.lc}[${this.getImpl.name}]`;
         const resultIbGibs: IbGib_V1[] = [];
-        const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ ibGib: arg }), }
         let notFoundIbGibAddrs: IbGibAddr[] = undefined;
         try {
             if (!arg.data) { throw new Error('arg.data is falsy'); }
             const { ibGibAddrs, isMeta, isDna, } = arg.data!;
 
-            const binAddrs = (ibGibAddrs || []).filter(addr => isBinary({addr}));
+            const binAddrs = (ibGibAddrs || []).filter(addr => isBinary({ addr }));
 
             let ibGibAddrsNonBin = ibGibAddrs.filter(addr => !binAddrs.includes(addr));
 
             if (logalot) { console.log(`${lc} getting non-bin ibgibs. ibGibAddrsNonBin: ${ibGibAddrsNonBin}`); }
             for (let i = 0; i < ibGibAddrsNonBin.length; i++) {
                 const addr = ibGibAddrsNonBin[i];
-                if (!arg.data.force && await this.hasInCache({addr})) {
+                if (!arg.data.force && await this.hasInCache({ addr })) {
                     if (logalot) { console.log(`${lc} YES found in naive cache. (I: 0b23f394fd944c2a96df3543dd0a59c5)`); }
                     // console.log(`${lc} YES found in naive cache.  ${addr} TESTING REMOVE THIS YO (I: 55344e9fa3984bc9bf3f7a8aa3b4cbf5)`);
                     // console.log(`${lc} YES found in naive cache. TESTING REMOVE THIS YO (I: 55344e9fa3984bc9bf3f7a8aa3b4cbf5)`);
-                    const cached = await this.getFromCache({addr});
+                    const cached = await this.getFromCache({ addr });
                     if (!cached) { throw new Error(`(UNEXPECTED) we had in cache but failed to retrieve? (E: 4af334f7a90cb22ffa3b549d0db19a22)`); }
                     resultIbGibs.push(cached);
                 } else {
                     // not found in memory, so look in files
-                    if (!isPrimitive({gib: h.getIbAndGib({ibGibAddr: addr}).gib}) && this.cacheSvc) {
+                    if (!isPrimitive({ gib: h.getIbAndGib({ ibGibAddr: addr }).gib }) && this.cacheSvc) {
                         if (logalot) { console.log(`${lc} NOT found in naive cache. Expensive(r) loading of file... TESTING REMOVE THIS YO (I: 7983e6afb9bf440a83b90de64c487be3)`); }
                     }
-                    const getResult = await this.getFile({addr, isMeta, isDna, });
+                    const getResult = await this.getFile({ addr, isMeta, isDna, });
                     if (getResult?.success && getResult.ibGib) {
                         if (logalot) { console.log(`${lc} ${addr} PUTTING IN in naive cache. Expensive(r) loading of file... TESTING REMOVE THIS YO (I: fe0612406c334aa88bcc51bb35150de3)`); }
-                        await this.putInCache({addr, ibGib: getResult.ibGib})
+                        await this.putInCache({ addr, ibGib: getResult.ibGib })
                         resultIbGibs.push(getResult.ibGib!);
                     } else {
                         // not found in memory or in files
@@ -430,11 +517,11 @@ export class IonicSpace_V1<
 
             for (let i = 0; i < binAddrs.length; i++) {
                 const addr = binAddrs[i];
-                const { binHash, binExt } = getBinHashAndExt({addr});
+                const { binHash, binExt } = getBinHashAndExt({ addr });
 
                 // getting binary, not a regular ibGib via addr
                 if (logalot) { console.log(`${lc} getting binHash.binExt: ${binHash}.${binExt}`); }
-                const getResult = await this.getFile({addr});
+                const getResult = await this.getFile({ addr });
                 if (getResult?.success && getResult.ibGib?.data) {
                     if (logalot) { console.log(`${lc} getResult.success. ibGib.data.length: ${getResult.ibGib!.data!.length}`); }
                     resultIbGibs.push(getResult.ibGib);
@@ -456,7 +543,7 @@ export class IonicSpace_V1<
             resultData.errors = [error.message];
         }
         try {
-            const result = await this.resulty({resultData});
+            const result = await this.resulty({ resultData });
             if (resultIbGibs.length > 0) {
                 result.ibGibs = resultIbGibs;
             }
@@ -469,7 +556,7 @@ export class IonicSpace_V1<
 
     protected async putImpl(arg: IonicSpaceOptionsIbGib): Promise<IonicSpaceResultIbGib> {
         const lc = `${this.lc}[${this.putImpl.name}]`;
-        const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ ibGib: arg }), }
         const errors: string[] = [];
         try {
 
@@ -498,13 +585,13 @@ export class IonicSpace_V1<
             resultData.success = false;
         }
         // only executes if there is an error.
-        const result = await this.resulty({resultData});
+        const result = await this.resulty({ resultData });
         return result;
     }
 
     protected async putIbGibsImpl(arg: IonicSpaceOptionsIbGib): Promise<IonicSpaceResultIbGib> {
         const lc = `${this.lc}[${this.putIbGibsImpl.name}]`;
-        const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ ibGib: arg }), }
         const errors: string[] = [];
         const warnings: string[] = [];
         const addrsErrored: IbGibAddr[] = [];
@@ -516,9 +603,9 @@ export class IonicSpace_V1<
 
             for (let i = 0; i < ibGibs.length; i++) {
                 const ibGib = ibGibs[i];
-                const addr = getIbGibAddr({ibGib});
+                const addr = getIbGibAddr({ ibGib });
                 if (logalot) { console.log(`${lc} checking to see if already exists...`); }
-                const getResult = await this.getFile({addr, isMeta, isDna});
+                const getResult = await this.getFile({ addr, isMeta, isDna });
                 // const getResult: any = null; // testing performance
                 if (getResult?.success && getResult.ibGib) {
                     // already exists...
@@ -526,11 +613,11 @@ export class IonicSpace_V1<
                     if (force) {
                         // ...but save anyway.
                         if (logalot) { console.log(`${lc} Forcing save of already put addr: ${addr} (I: 325f363e5d438b43c24b810c150e4e22)`); }
-                        const putResult = await this.putFile({ibGib, isMeta, isDna});
+                        const putResult = await this.putFile({ ibGib, isMeta, isDna });
                         if (putResult.success) {
                             if (!isDna) {
                                 // naive cache will cause "memory leak" eventually
-                                await this.putInCache({addr, ibGib});
+                                await this.putInCache({ addr, ibGib });
                             }
                         } else {
                             errors.push(putResult.errorMsg || `${lc} error putting ${addr}`);
@@ -545,9 +632,9 @@ export class IonicSpace_V1<
                 } else {
                     // does not already exist.
                     if (logalot) { console.log(`${lc} does NOT already exist...`); }
-                    const putResult = await this.putFile({ibGib, isMeta, isDna, });
+                    const putResult = await this.putFile({ ibGib, isMeta, isDna, });
                     if (putResult.success) {
-                        if (!isDna) { await this.putInCache({addr, ibGib}); }
+                        if (!isDna) { await this.putInCache({ addr, ibGib }); }
                     } else {
                         errors.push(putResult.errorMsg || `${lc} error putting ${addr}`);
                         addrsErrored.push(addr);
@@ -569,14 +656,14 @@ export class IonicSpace_V1<
             resultData.addrsErrored = addrsErrored;
             resultData.success = false;
         }
-        const result = await this.resulty({resultData});
+        const result = await this.resulty({ resultData });
         return result;
     }
 
     protected async deleteImpl(arg: IonicSpaceOptionsIbGib):
         Promise<IonicSpaceResultIbGib> {
         const lc = `${this.lc}[${this.deleteImpl.name}]`;
-        const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ ibGib: arg }), }
         const errors: string[] = [];
         const warnings: string[] = [];
         const addrsDeleted: IbGibAddr[] = [];
@@ -595,8 +682,8 @@ export class IonicSpace_V1<
             // iterate through ibGibs, but this may be an empty array if we're doing binData.
             for (let i = 0; i < ibGibAddrs.length; i++) {
                 const addr = ibGibAddrs[i];
-                await this.deleteFromCache({addr});
-                const deleteResult = await this.deleteFile({addr, isMeta, isDna, });
+                await this.deleteFromCache({ addr });
+                const deleteResult = await this.deleteFile({ addr, isMeta, isDna, });
                 if (deleteResult?.success) {
                     addrsDeleted.push(addr);
                 } else {
@@ -623,7 +710,7 @@ export class IonicSpace_V1<
             resultData.addrsErrored = addrsErrored;
             resultData.success = false;
         }
-        const result = await this.resulty({resultData});
+        const result = await this.resulty({ resultData });
         return result;
     }
 
@@ -651,7 +738,7 @@ export class IonicSpace_V1<
     protected async canGetImpl(arg: IonicSpaceOptionsIbGib):
         Promise<IonicSpaceResultIbGib> {
         const lc = `${this.lc}[${this.canGetImpl.name}]`;
-        const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ ibGib: arg }), }
         try {
             throw new Error(`not implemented (E: 2a45977c584c6bbbc4f164c16106bd22)`);
             // const { ibGibAddrs } = arg.data!;
@@ -674,13 +761,13 @@ export class IonicSpace_V1<
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];
         }
-        const result = await this.resulty({resultData});
+        const result = await this.resulty({ resultData });
         return result;
     }
     protected async canPutImpl(arg: IonicSpaceOptionsIbGib):
         Promise<IonicSpaceResultIbGib> {
         const lc = `${this.lc}[${this.canPutImpl.name}]`;
-        const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ ibGib: arg }), }
         try {
             throw new Error(`not implemented (E: 25a005d496efc69faefdec155ffb4a22)`);
             // const ibGibs = arg.ibGibs || [];
@@ -702,7 +789,7 @@ export class IonicSpace_V1<
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];
         }
-        const result = await this.resulty({resultData});
+        const result = await this.resulty({ resultData });
         return result;
     }
 
@@ -715,7 +802,7 @@ export class IonicSpace_V1<
     protected async getLatestAddrsImpl(arg: IonicSpaceOptionsIbGib):
         Promise<IonicSpaceResultIbGib> {
         const lc = `${this.lc}[${this.getLatestAddrsImpl.name}]`;
-        const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ibGib: arg}), }
+        const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ ibGib: arg }), }
         try {
             if (logalot) { console.log(`${lc} starting...`); }
 
@@ -729,10 +816,10 @@ export class IonicSpace_V1<
             // `getLatestAddr` function
             for (let i = 0; i < arg.data.ibGibAddrs.length; i++) {
                 const addr = arg.data.ibGibAddrs[i];
-                const getResult = await this.getFile({addr});
+                const getResult = await this.getFile({ addr });
                 if (getResult?.success && getResult.ibGib) {
                     const ibGib = getResult.ibGib!;
-                    const latestAddr = await this.getLatestAddr_Yo({ibGib});
+                    const latestAddr = await this.getLatestAddr_Yo({ ibGib });
                     if (latestAddr) {
                         latestAddrs.add(latestAddr);
                         resultData.latestAddrsMap[addr] = latestAddr;
@@ -762,7 +849,7 @@ export class IonicSpace_V1<
             resultData.errors = [emsg];
         }
         try {
-            let result = await this.resulty({resultData});
+            let result = await this.resulty({ resultData });
             return result;
         } catch (error) {
             console.error(`${lc}[resulty] ${error.message}`);
@@ -787,22 +874,22 @@ export class IonicSpace_V1<
             if (!ibGib) { throw new Error(`ibGib required (E: 1f8f0cb61d1b4c708b06762048735c22)`); }
 
             // latest addr is indexed by tjpAddr, so we need to get this first...
-            let ibGibAddr = h.getIbGibAddr({ibGib});
+            let ibGibAddr = h.getIbGibAddr({ ibGib });
             if (ibGib.gib === GIB) { return ibGibAddr; }
 
             // get the tjp for the rel8nName mapping, and also for some checking logic
-            let tjp = await getTjpIbGib({ibGib, space: this});
+            let tjp = await getTjpIbGib({ ibGib, space: this });
             if (!tjp) {
                 console.warn(`${lc} tjp not found for ${ibGibAddr}? Should at least just be the ibGib's address itself. (W: 860bdcaaf80548feb6b61b4cde21a722)`);
                 tjp = ibGib;
             }
-            const tjpAddr = h.getIbGibAddr({ibGib: tjp});
+            const tjpAddr = h.getIbGibAddr({ ibGib: tjp });
             if (logalot) { console.log(`${lc} tjp (${tjpAddr}) (I: 5245a2ec85a943f98479e93a32d67f22)`); }
 
-            const specialLatest = await getSpecialIbGib({type: "latest", space: this});
+            const specialLatest = await getSpecialIbGib({ type: "latest", space: this });
             if (!specialLatest) { throw new Error(`(UNEXPECTED) specialLatest falsy. Not initialized? (E: 3f475efb6b1b4447a0b002461304bbce)`); }
             if (!specialLatest.rel8ns) { specialLatest.rel8ns = {}; }
-            if (logalot) { console.log(`${lc} specialLatest addr: ${h.getIbGibAddr({ibGib: specialLatest})}`); }
+            if (logalot) { console.log(`${lc} specialLatest addr: ${h.getIbGibAddr({ ibGib: specialLatest })}`); }
 
             const latestAddr = specialLatest.rel8ns[tjpAddr]?.length > 0 ?
                 specialLatest.rel8ns[tjpAddr][0] :
@@ -843,7 +930,7 @@ export class IonicSpace_V1<
                 cmd: 'put',
                 isMeta: true,
                 catchAllErrors: true,
-                ibGibAddrs: ibGibs.map(x => h.getIbGibAddr({ibGib: x})),
+                ibGibAddrs: ibGibs.map(x => h.getIbGibAddr({ ibGib: x })),
             },
         });
         argPersist.ibGibs = ibGibs;
@@ -876,10 +963,10 @@ export class IonicSpace_V1<
             let filename: string = "";
             let data: any = "";
             if (ibGib) {
-                const addr = getIbGibAddr({ibGib});
-                filename = this.getFilename({addr});
-                const isBin = isBinary({addr});
-                path = this.buildPath({filename, isMeta, isDna, isBin});
+                const addr = getIbGibAddr({ ibGib });
+                filename = this.getFilename({ addr });
+                const isBin = isBinary({ addr });
+                path = this.buildPath({ filename, isMeta, isDna, isBin });
 
                 if (!isBin) {
                     // we only want to persist the ibGib protocol
@@ -939,12 +1026,12 @@ export class IonicSpace_V1<
             const data = this.data;
             let path: string = "";
             let filename: string = "";
-            if (!isBinary({addr})) {
-                filename = this.getFilename({addr});
-                path = this.buildPath({filename, isMeta, isDna});
+            if (!isBinary({ addr })) {
+                filename = this.getFilename({ addr });
+                path = this.buildPath({ filename, isMeta, isDna });
             } else {
-                filename = this.getFilename({addr});
-                path = this.buildPath({filename, isMeta: false, isDna: false, isBin: true});
+                filename = this.getFilename({ addr });
+                path = this.buildPath({ filename, isMeta: false, isDna: false, isBin: true });
             }
             if (logalot) { console.log(`${lc} path: ${path}, directory: ${data.baseDir}`); }
             const _ = await Filesystem.deleteFile({
@@ -979,37 +1066,37 @@ export class IonicSpace_V1<
 
             const data = this.data!;
 
-            const addrIsBin = isBinary({addr});
+            const addrIsBin = isBinary({ addr });
             let path: string = "";
             let filename: string = "";
             let paths: string[] = [];
             if (!addrIsBin) {
-                filename = this.getFilename({addr});
+                filename = this.getFilename({ addr });
 
                 if (isMeta) {
                     // explicitly stating meta, so only look in meta
-                    paths = [ this.buildPath({filename, isMeta: true, isDna: false}), ];
+                    paths = [this.buildPath({ filename, isMeta: true, isDna: false }),];
                 } else if (isDna) {
                     // explicitly stating dna, so only look in dna
-                    paths = [ this.buildPath({filename, isMeta: false, isDna: true}), ];
+                    paths = [this.buildPath({ filename, isMeta: false, isDna: true }),];
                 } else {
                     // could be regular, meta or dna, so we'll search everywhere, but first regular.
                     paths = [
-                        this.buildPath({filename, isMeta: false, isDna: false}),
-                        this.buildPath({filename, isMeta: true, isDna: false}),
-                        this.buildPath({filename, isMeta: false, isDna: true}),
+                        this.buildPath({ filename, isMeta: false, isDna: false }),
+                        this.buildPath({ filename, isMeta: true, isDna: false }),
+                        this.buildPath({ filename, isMeta: false, isDna: true }),
                     ];
                 }
             } else {
                 // const addr = getBinAddr({binHash, binExt});
-                filename = this.getFilename({addr});
+                filename = this.getFilename({ addr });
                 // filename = this.getFilename({binHash, binExt});
-                path = this.buildPath({filename, isDna: false, isMeta: false, isBin: true})
+                path = this.buildPath({ filename, isDna: false, isMeta: false, isBin: true })
                 paths = [path];
             }
             let resRead: any = null;
             for (const tryPath of paths) {
-                let x = await tryRead({path: tryPath, directory: data.baseDir, encoding: data.encoding});
+                let x = await tryRead({ path: tryPath, directory: data.baseDir, encoding: data.encoding });
                 if (x?.data) { resRead = x; break; }
             }
             if (resRead) {
@@ -1018,7 +1105,7 @@ export class IonicSpace_V1<
                     result.ibGib = <IbGib_V1>JSON.parse(resRead.data);
                 } else {
                     // bin
-                    const { ib, gib } = h.getIbAndGib({ibGibAddr: addr});
+                    const { ib, gib } = h.getIbAndGib({ ibGibAddr: addr });
                     result.ibGib = { ib, gib, data: resRead.data, };
                 }
             } else {
@@ -1163,7 +1250,7 @@ export class IonicSpace_V1<
         isBin?: boolean
     }): string {
         const { data } = this;
-        if (isMeta){
+        if (isMeta) {
             return `${data.baseSubPath}/${data.spaceSubPath}/${data.metaSubPath}/${filename}`;
         } else if (isBin) {
             return `${data.baseSubPath}/${data.spaceSubPath}/${data.binSubPath}/${filename}`;
@@ -1184,8 +1271,8 @@ export class IonicSpace_V1<
     }: {
         addr: string,
     }): string {
-        if (isBinary({addr})) {
-            const { binExt } = getBinHashAndExt({addr});
+        if (isBinary({ addr })) {
+            const { binExt } = getBinHashAndExt({ addr });
             return `${addr}.${binExt}`;
         } else {
             return `${addr}.json`;
