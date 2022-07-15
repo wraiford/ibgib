@@ -179,10 +179,10 @@ interface DeleteIbGibFilesResult extends FileResult { }
  * basic validation for an ionic space
  */
 export async function validateIonicSpace_V1Intrinsically({ space }: { space: IonicSpace_V1 }): Promise<string[] | null> {
-    const lc = `${this.lc}[${validateIonicSpace_V1Intrinsically.name}]`;
+    const lc = `[${validateIonicSpace_V1Intrinsically.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: fcfe57145426ab4a5a0e961e87001922)`); }
-        const errors: string[] = (await validateIbGibIntrinsically({ ibGib: this })) ?? [];
+        const errors: string[] = (await validateIbGibIntrinsically({ ibGib: space })) ?? [];
 
         const { ib, gib, data, rel8ns } = space;
 
@@ -192,8 +192,8 @@ export async function validateIonicSpace_V1Intrinsically({ space }: { space: Ion
         if (!data) { errors.push('data required.'); }
 
         if (!data.name) { errors.push('space name required.') }
-        if (!data.classname) { errors.push('classname required.') }
-        if (data.classname !== IonicSpace_V1.name) {
+        // if (!data.classname) { errors.push('classname required.') }
+        if (data.classname && data.classname !== IonicSpace_V1.name) {
             errors.push(`unknown classname (${data.classname}). data.classname !== IonicSpace_V1.name`);
         }
         if (!data.baseDir) { errors.push(`data.baseDir required.`) }
@@ -214,7 +214,7 @@ export async function validateIonicSpace_V1Intrinsically({ space }: { space: Ion
 
         // ensure ib matches up with internal data
         const { spaceClassname, spaceId, spaceName } = getInfoFromSpaceIb({ spaceIb: ib });
-        if (spaceClassname !== data.classname) {
+        if (data.classname && (spaceClassname !== data.classname)) {
             errors.push(`ib's spaceClassname (${spaceClassname}) must match data.classname (${data.classname})`);
         }
         if (spaceId !== data.uuid) {
@@ -236,7 +236,7 @@ export async function validateIonicSpace_V1Intrinsically({ space }: { space: Ion
             pastAddrs.forEach(x => {
                 const { ib: pastIb } = h.getIbAndGib({ ibGibAddr: x });
                 const pastIbInfo = getInfoFromSpaceIb({ spaceIb: pastIb });
-                if (pastIbInfo.spaceClassname !== spaceClassname) {
+                if (pastIbInfo.spaceClassname && (pastIbInfo.spaceClassname !== spaceClassname)) {
                     errors.push(`rel8ns.past address classname (${pastIbInfo.spaceClassname}) must match current spaceClassname (${spaceClassname})`);
                 }
                 if (pastIbInfo.spaceId !== spaceId) {

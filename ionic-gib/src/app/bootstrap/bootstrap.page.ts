@@ -74,7 +74,7 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
   platform: string = Capacitor.getPlatform();
 
   @Input()
-  fileOrFolderInfos: IndexedDBBrowseInfo[] = [];
+  browseInfos: IndexedDBBrowseInfo[] = [];
 
   @Input()
   isBusy: boolean;
@@ -280,10 +280,11 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
     }
   }
 
-  handleFileSelected_Import(event: any): void {
+  async handleFileSelected_Import(event: any): Promise<void> {
     const lc = `${this.lc}[${this.handleFileSelected_Import.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 505439871216b1945742ec1499cd3122)`); }
+
       debugger;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -297,6 +298,16 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
     const lc = `${this.lc}[${this.handleClick_ImportSpace_Web.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: d0f5dda9f57adfabfc9ad8f74e121f22)`); }
+      const spaceInfos = this.browseInfos.filter(x => x.selected);
+      for (let i = 0; i < spaceInfos.length; i++) {
+        const info = spaceInfos[i];
+        if (!info.isSpace) {
+          debugger;
+          throw new Error(`(UNEXPECTED) !spaceInfo.isSpace..? only spaces expected to be selected. (E: 783a3f8e3ecbca10c4e592097ed6ec22)`);
+        }
+
+        await this.importSpace({ info });
+      }
       debugger;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -313,7 +324,7 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
     const lc = `${this.lc}[${this.refreshFileFolderInfos.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: fd403ea9dc642680b138e27d12340a22)`); }
-      this.fileOrFolderInfos = [];
+      this.browseInfos = [];
 
       let path = this.currentPath || '';
       let directory = c.IBGIB_BASE_DIR;
@@ -323,13 +334,13 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
       });
       if ((contents?.files?.length || []) === 0) {
         if (logalot) { console.log(`${lc} (contents?.files?.length || []) === 0 ...returning early. (I: 3de075820f26f3834a9d6e8132028722)`); }
-        this.fileOrFolderInfos = [];
+        this.browseInfos = [];
         return; /* <<<< returns early */
       }
 
       // add navigate up/back directory if we're not at the root
       if (path) {
-        this.fileOrFolderInfos.push({ name: '..', isDirectory: true, path, });
+        this.browseInfos.push({ name: '..', isDirectory: true, path, });
       }
 
       // add fileFolder infos for each folder, space and bootstrap file found.
@@ -341,7 +352,7 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
         const status = await Filesystem.stat({ path: path + '/' + name, directory });
         if (logalot) { console.log(`${lc} status: ${JSON.stringify(status, null, 2)} (I: 35c88b340c3c1344d6a89a72ccd5a522)`); }
         if (status.type === 'directory') {
-          this.fileOrFolderInfos.push({ name: name, path, isDirectory: true });
+          this.browseInfos.push({ name: name, path, isDirectory: true });
         } else if (
           name.includes(IBGIB_DELIMITER) &&
           name.endsWith('.json') &&
@@ -354,11 +365,11 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
           const [spaceIb, spaceGib] = name.split(IBGIB_DELIMITER);
           const { spaceId } = getInfoFromSpaceIb({ spaceIb });
           // check to see if we already have this space's timeline
-          let existingFilter = this.fileOrFolderInfos.filter(x => x.spaceId === spaceId);
+          let existingFilter = this.browseInfos.filter(x => x.spaceId === spaceId);
           if (existingFilter.length === 0) {
             // first frame in ibgib timeline that we've found
             // for spaces, we use the spaceId as the name
-            this.fileOrFolderInfos.push({
+            this.browseInfos.push({
               name: spaceId,
               path,
               label: spaceIb,
@@ -372,7 +383,7 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
             existing.spaceFilenames.push(name);
           }
         } else if (name === `${c.BOOTSTRAP_IBGIB_ADDR}.json`) {
-          this.fileOrFolderInfos.push({ name, path, isBootstrap: true });
+          this.browseInfos.push({ name, path, isBootstrap: true });
         } else {
           if (logalot) { console.log(`${lc} ignoring name: ${name} (path: ${path}) (I: dca3ebb1dc28d59beef340512e968622)`); }
         }
@@ -405,10 +416,11 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
             this.currentPath + '/' + info.name :
             info.name;
         }
-        this.fileOrFolderInfos = [];
+        this.browseInfos = [];
         await this.refreshFileFolderInfos();
       } else if (info.isSpace) {
-        await this.importSpace({ info });
+        info.selected = !info.selected;
+        // await this.importSpace({ info });
       } else if (info.isBootstrap) {
         // display spaces contained in bootstrap
       } else {
@@ -444,21 +456,11 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
       for (let i = 0; i < info.spaceFilenames.length; i++) {
         const spaceFilename = info.spaceFilenames[i];
         const addr = spaceFilename.substring(0, spaceFilename.length - '.json'.length);
-        debugger;
         const resGet = await this.common.ibgibs.get({
           addr,
           space: zeroSpace,
           isMeta: true
         });
-        // const fullSpacePath = info.path + '/' + spaceFilename;
-        // let resRead = await Filesystem.readFile({
-        //   path: fullSpacePath,
-        //   directory: c.IBGIB_BASE_DIR,
-        // });
-        // maybe too defensive
-        // if (!resRead) { throw new Error(`(UNEXPECTED) resRead falsy (E: bae1af83d97ccdb26557e0bf3f0a8c22)`); }
-        // if (!resRead.data) { throw new Error(`(UNEXPECTED) resRead.data falsy (E: 2fcecc5b75c12deb09f6886d967aa922)`); }
-        // maybe too defensive
         if (!resGet) { throw new Error(`(UNEXPECTED) resGet falsy (E: 3950b9546587f5e22a6d89847e9c9822)`); }
         if (!resGet.success) { throw new Error(`resGet.success is falsy (E: 23dcfa06d525ee441942a918e8964722)`); }
         if (resGet.ibGibs?.length !== 1) { throw new Error(`resGet.ibGibs?.length !== 1 (E: c8b7724fa4efc28a73eb4f2424462f22)`); }
@@ -480,9 +482,33 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
         ibGibs.push(ibGib);
       }
 
-      // validate all ibGibs
+      // validate all ibGibs as a whole
       // ensure no duplicate n counter values.
+
+      ibGibs.sort((a, b) => (a.data.n ?? 0) < (b.data.n ?? 0) ? -1 : 1);
+      if (logalot) {
+        ibGibs.forEach(x => {
+          console.log(`${lc} ${h.pretty(x)} (I: e2f5d518ec624c6a9d0df2544570a5c0)`);
+          console.log(`${lc} ${h.pretty(x.data)} (I: db1bc4b2f17e47ceb7ffd7bd1e95b304)`);
+        });
+      }
+      let latestSpaceIbGib: IonicSpace_V1 = ibGibs[ibGibs.length - 1];
+      debugger;
+      if (logalot) { console.log(`${lc} latestSpaceIbGib.data.n: ${latestSpaceIbGib.data.n} (I: d1e4313dfc5e1b597fe04f2743eb8f22)`); }
+      // let highestN = -1;
+      // let latestSpaceIbGib: IonicSpace_V1;
+      // ibGibs.forEach(x => {
+      //   if (!x.data.n) { debugger; throw new Error(`(UNEXPECTED) x.data.n falsy ? (E: 39e71788c78d60040760fbf56fecb522)`); }
+      //   if (x.data.n > highestN) {
+      //     highestN = x.data.n;
+      //     latestSpaceIbGib = x;
+      //   }
+      // });
+
+      // attach to the bootstrap
+      // attach the most recent
     } catch (error) {
+      debugger;
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
@@ -528,4 +554,8 @@ interface IndexedDBBrowseInfo {
    * The thing is that a space's ib may change if the space's name changes.
    */
   spaceFilenames?: string[];
+  /**
+   * if the info is a space, this indicates if the space is selected or not.
+   */
+  selected?: boolean;
 }

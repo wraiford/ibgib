@@ -63,7 +63,6 @@
       <ion-list slot="content" id="local-spaces-content" class="accordion-item-list">
           <ion-item *ngFor="let space of localSpaces">
             <ion-text color="primary">{{space.data.name}}</ion-text>
-            <!-- <ion-text color="primary">asdfasdfasdf</ion-text> -->
           </ion-item>
           <ion-item>
             <ion-buttons>
@@ -71,7 +70,6 @@
                 (click)="handleClick_AddSpace()">add space</ion-button>
               <ion-button *ngIf="platform !== 'web'" color="primary" fill="outline" [disabled]="isBusy"
                 (click)="filepicker.click()">import from file...</ion-button>
-              <!-- <ion-button *ngIf="platform === 'web'" color="primary" fill="outline" (click)="handleClick_ImportSpace_Web()">import space</ion-button> -->
             </ion-buttons>
             <input type="file" #filepicker hidden (change)="handleFileSelected_Import($event)" />
           </ion-item>
@@ -85,11 +83,13 @@
         </ion-label>
       </ion-item>
       <ion-list slot="content" class="accordion-item-list">
-          <ion-item *ngFor="let info of fileOrFolderInfos" class="file-folder-item" (click)="handleClickFileFolderInfo(info)">
+          <ion-item *ngFor="let info of browseInfos" class="file-folder-item"
+            [ngClass]="{'active-btn':info.selected}"
+            (click)="handleClickFileFolderInfo(info)">
             <ion-icon *ngIf="info.isDirectory" name="folder-outline" color="primary" slot="start"></ion-icon>
             <ion-icon *ngIf="info.isSpace" name="earth-outline" color="primary" slot="start"></ion-icon>
             <ion-icon *ngIf="info.isBootstrap" name="footsteps-outline" color="primary" slot="start"></ion-icon>
-            <ion-text color="primary">{{info.name}}</ion-text>
+            <ion-text color="primary">{{info.label || info.name}}</ion-text>
           </ion-item>
           <ion-item>
             <ion-buttons>
