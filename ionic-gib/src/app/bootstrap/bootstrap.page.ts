@@ -77,6 +77,9 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
   browseInfos: IndexedDBBrowseInfo[] = [];
 
   @Input()
+  get spacesAreSelectedToImport(): boolean { return this.browseInfos.some(x => !!x.selected); }
+
+  @Input()
   isBusy: boolean;
 
   @Input()
@@ -298,7 +301,28 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
     const lc = `${this.lc}[${this.handleClick_ImportSpace_Web.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: d0f5dda9f57adfabfc9ad8f74e121f22)`); }
+
+      const resConfirmImport = await Modals.confirm({
+        title: `attach ${this.browseInfos.filter(x => x.selected).length === 1 ? 'space' : 'spaces'} to bootstrap?`,
+        message: `Importing these spaces will attach them to the bootstrap so that they will be available as local spaces.
+
+        ATOW this only does some light verification of the space ibGibs themselves and does not confirm that all constituent ibgibs are present in the space.
+
+        This assumes that the directory structure is intact.
+
+        NOTE! When you want to use this space as your local space, you must select it as your default space in a separate step. This step only imports it.
+
+        Do you wish to proceed with the import?`,
+        okButtonTitle: 'YES, import',
+        cancelButtonTitle: 'NO, cancel'
+      });
+      if (!resConfirmImport.value) {
+        await Modals.alert({ title: 'canceled...', message: 'import canceled. ' })
+        return; /* <<<< returns early */
+      }
+
       const spaceInfos = this.browseInfos.filter(x => x.selected);
+      let importCount = 0;
       for (let i = 0; i < spaceInfos.length; i++) {
         const info = spaceInfos[i];
         if (!info.isSpace) {
@@ -306,9 +330,18 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
           throw new Error(`(UNEXPECTED) !spaceInfo.isSpace..? only spaces expected to be selected. (E: 783a3f8e3ecbca10c4e592097ed6ec22)`);
         }
 
-        await this.importSpace({ info });
+        if (!this.bootstrapIbGib.data.spaceIds.includes(info.spaceId)) {
+          await this.importSpace({ info });
+          importCount++;
+        } else {
+          await Modals.alert({ title: 'space already imported', message: `The space (${info.name}) has already been imported. Skipping... (full info: ${h.pretty(info)})` });
+        }
       }
-      debugger;
+
+      if (importCount > 0) {
+        await Modals.alert({ title: `import complete`, message: `We imported ${importCount} ${importCount > 1 ? 'spaces' : 'space'}. We will now reload the page.` })
+        window.location.reload();
+      }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -451,6 +484,7 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
       const zeroSpace = this.common.ibgibs.zeroSpace;
 
       const ibGibs: IonicSpace_V1[] = [];
+      let totalValidationErrors: string[];
 
       // load all the files, verifying each ibgib intrinsically
       for (let i = 0; i < info.spaceFilenames.length; i++) {
@@ -474,7 +508,6 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
         // do some custom space validation
         const otherAddrsWithSameN = ibGibs.filter(x => x.data.n === ibGib.data.n).map(x => h.getIbGibAddr({ ibGib: x }));
         if (otherAddrsWithSameN.length > 0) {
-          debugger;
           validationErrors.push(`duplicate ibGib.data.n (${ibGib.data.n}). addr: ${addr}. otherAddrs:\n${otherAddrsWithSameN.join('\n')}`);
         }
 
@@ -482,10 +515,11 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
         ibGibs.push(ibGib);
       }
 
-      // validate all ibGibs as a whole
-      // ensure no duplicate n counter values.
+      // still validating!... validate ibGibs as a whole
 
-      ibGibs.sort((a, b) => (a.data.n ?? 0) < (b.data.n ?? 0) ? -1 : 1);
+      // sort ascending, where [data.n=undefined, data.n=0, data.n=1 ... data.n=latest]
+      // and then do some more validation
+      ibGibs.sort((a, b) => (a.data.n ?? -1) < (b.data.n ?? -1) ? -1 : 1);
       if (logalot) {
         ibGibs.forEach(x => {
           console.log(`${lc} ${h.pretty(x)} (I: e2f5d518ec624c6a9d0df2544570a5c0)`);
@@ -493,20 +527,32 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
         });
       }
       let latestSpaceIbGib: IonicSpace_V1 = ibGibs[ibGibs.length - 1];
-      debugger;
       if (logalot) { console.log(`${lc} latestSpaceIbGib.data.n: ${latestSpaceIbGib.data.n} (I: d1e4313dfc5e1b597fe04f2743eb8f22)`); }
-      // let highestN = -1;
-      // let latestSpaceIbGib: IonicSpace_V1;
-      // ibGibs.forEach(x => {
-      //   if (!x.data.n) { debugger; throw new Error(`(UNEXPECTED) x.data.n falsy ? (E: 39e71788c78d60040760fbf56fecb522)`); }
-      //   if (x.data.n > highestN) {
-      //     highestN = x.data.n;
-      //     latestSpaceIbGib = x;
-      //   }
-      // });
+
+      // ensure no missing n counter values, i.e. no gaps.
+      if (latestSpaceIbGib.data.n !== undefined && latestSpaceIbGib.data.n !== ibGibs.length - 2) {
+        debugger;
+        throw new Error(`unexpected number of space ibGibs found. The latest is n=${latestSpaceIbGib.data.n} but the ibGibs.length === ${ibGibs.length}. We expect the latest n to equal the length - 2, because it's 0-indexed, as well as the very first space has an undefined data.n. (E: 700b4d237c883054cde6ce8b2b851822)`);
+      }
+
+      // (except the first one which is expected to be undefined)
+      for (let j = 0; j < ibGibs.length; j++) {
+        const spaceIbGib = ibGibs[j];
+
+        // ensure no duplicate n counter values.
+        const nFiltered = ibGibs.filter(x => x.data.n === spaceIbGib.data.n);
+        if (nFiltered.length !== 1) {
+          debugger;
+          throw new Error(`duplicate spaceIbGib.data.n (${spaceIbGib.data.n}) in space (${spaceIbGib.data.uuid}) (E: c8fb8d3b218398283a2410f272d1eb22)`);
+        }
+
+        // todo: validate import space - ensure past rel8n points to n-1.
+      }
+
+      // all validation passed
 
       // attach to the bootstrap
-      // attach the most recent
+      await updateBootstrapIbGib({ space: latestSpaceIbGib, zeroSpace });
     } catch (error) {
       debugger;
       console.error(`${lc} ${error.message}`);

@@ -202,7 +202,11 @@ export async function validateIonicSpace_V1Intrinsically({ space }: { space: Ion
         if (!data.dnaSubPath) { errors.push(`data.dnaSubPath required.`) }
         if (!data.ibgibsSubPath) { errors.push(`data.ibgibsSubPath required.`) }
         if (!data.metaSubPath) { errors.push(`data.metaSubPath required.`) }
-        if (typeof data.n !== 'number') { errors.push(`data.n required and must be a number.`) }
+        if (data.n && typeof data.n !== 'number') { errors.push(`data.n must be a number.`) }
+        if (data.n === undefined) {
+            // the very first space record (tjp) has an undefined n and no rel8ns
+            if (rel8ns) { errors.push(`rel8ns not expected when data.n is falsy (custom temporal junction point indicator I suppose...)`); }
+        }
         if (!data.spaceSubPath) { errors.push(`data.spaceSubPath required.`) }
         if (!data.uuid) { errors.push(`data.uuid required.`) }
         if (!data.encoding) { errors.push(`data.encoding required.`) }
@@ -225,11 +229,14 @@ export async function validateIonicSpace_V1Intrinsically({ space }: { space: Ion
         }
 
         // ensure rel8ns make sense
-        if (data.n !== 0 && (rel8ns.past ?? []).length === 0) {
-            errors.push(`"past" rel8n required when data.n > 0`);
+        if (data.n === undefined && (rel8ns?.past ?? []).length > 0) {
+            errors.push(`"past" rel8n not expected when data.n is falsy`);
         }
-        if (data.n === 0 && (rel8ns.past ?? []).length > 0) {
-            errors.push(`"past" rel8n cannot be populated if data.n === 0`);
+        if (data.n && (rel8ns?.past ?? []).length === 0) {
+            errors.push(`"past" rel8n required when data.n is truthy`);
+        }
+        if (data.n === 0 && (rel8ns?.past ?? []).length !== 1) {
+            errors.push(`"past" rel8n expected to have a single record when data.n === 0`);
         }
         if (rel8ns?.past?.length > 0) {
             const pastAddrs = <IbGibAddr[]>rel8ns.past;
