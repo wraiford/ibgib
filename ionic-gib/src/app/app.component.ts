@@ -802,7 +802,7 @@ export class AppComponent extends IbgibComponentBase
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       // getFnAlert()({title: 'testing', msg: 'handleTagsClick triggered'});
-      this.menu.close();
+      await this.menu.close();
       await this.go({
         toAddr: this.tagsAddr,
         fromAddr: h.getIbGibAddr({ ibGib: this.ibGib_Context }),
@@ -819,7 +819,7 @@ export class AppComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.handleSpaceClick.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
-      this.menu.close();
+      await this.menu.close();
       const localUserSpace = await this.common.ibgibs.getLocalUserSpace({ lock: true });
       await this.go({
         toAddr: h.getIbGibAddr({ ibGib: localUserSpace.toIbGibDto() }),
@@ -838,7 +838,7 @@ export class AppComponent extends IbgibComponentBase
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       // getFnAlert()({title: 'testing', msg: 'handleTagsClick triggered'});
-      this.menu.close();
+      await this.menu.close();
       await this.go({
         toAddr: this.rootsAddr,
         fromAddr: h.getIbGibAddr({ ibGib: this.ibGib_Context }),
@@ -1058,7 +1058,7 @@ export class AppComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.handleRobbotsClick.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
-      this.menu.close();
+      await this.menu.close();
       const ibGib =
         await this.common.ibgibs.getSpecialIbGib({ type: 'robbots' });
       await this.go({
@@ -1154,7 +1154,7 @@ export class AppComponent extends IbgibComponentBase
         title: text.substring(0, c.MENU_ITEM_IB_SUBSTRING_LENGTH),
         icon,
         clickHandler: async (item: MenuItem) => {
-          this.menu.close();
+          await this.menu.close();
           await this.go({
             toAddr: item.addr,
             fromAddr: h.getIbGibAddr({ ibGib: this.ibGib_Context }),
