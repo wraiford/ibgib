@@ -15,6 +15,7 @@ import { CommentData_V1 } from '../types/comment';
 import { LinkData_V1 } from '../types/link';
 import { PicData_V1 } from '../types/pic';
 import { IbGibItem, IbGibTimelineUpdateInfo } from '../types/ux';
+import { isSpaceIb } from '../helper/space';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -515,7 +516,12 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
                     }
                     //
                     // get the full ibgib record from the ibgibs service (local space)
-                    const resGet = await this.common.ibgibs.get({ addr: item.addr, isMeta: item.isMeta });
+                    const resGet = await this.common.ibgibs.get({
+                        addr: item.addr,
+                        isMeta: item.isMeta,
+                        /** if we're getting a space, then it will be found in zero space */
+                        space: isSpaceIb({ ib }) ? this.common.ibgibs.zeroSpace : undefined,
+                    });
                     if (resGet.success && resGet.ibGibs?.length === 1) {
                         item.ibGib = resGet.ibGibs![0];
 

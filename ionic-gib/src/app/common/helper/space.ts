@@ -3216,34 +3216,89 @@ export function getSpaceIb({
     }
 }
 
+export function isSpaceIb({
+    ib
+}: {
+    ib: Ib
+}): boolean {
+    const lc = `[${isSpaceIb.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 53ad337f8148616a77caca5dff0f8722)`); }
+        return ib.startsWith('witness space ') || ib.startsWith('outerspace sync ');
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
 /**
- * Current schema is `witness space [classname] [spaceName] [spaceId]
+ * ## current schema FOR LOCAL (IONIC) SPACES:
  *
- * NOTE this is space-delimited
+ * `witness space [classname] [spaceName] [spaceId]`
+ *
+ * ## current schema FOR SYNC (AWS) OUTERSPACES:
+ *
+ * `outerspace sync [spaceName]
+ *
+ * ## I need to fix this somehow...
+ *
+ * This is why I'm working on streamlining space management
+ *
+ * (To start with, I just had to get the ball rolling and tried my best.)
+ *
+ * ## NOTES
+ *
+ * * both schemas are space-delimited
  */
 export function getInfoFromSpaceIb({
     spaceIb,
 }: {
     spaceIb: Ib,
 }): {
+    /**
+     * currently this can be SpaceId OR undefined.
+     */
     spaceClassname: string,
+    /**
+     * non-unique spaceName of the given space (i.e. most likely space.data.name)
+     */
     spaceName: string,
+    /**
+     * currently this returns EITHER SpaceId OR undefined.
+     *
+     * This is because of my using different schemas for local/outer spaces...
+     *
+     * (for better or worse)
+     */
     spaceId: SpaceId,
 } {
     const lc = `[${getInfoFromSpaceIb.name}]`;
     try {
         if (!spaceIb) { throw new Error(`spaceIb required (E: fa5424cfb7e846e2851562f2f417944f)`); }
 
-        // const name = space.data?.name || c.IBGIB_SPACE_NAME_DEFAULT;
-        // const id = space.data?.uuid || undefined;
-        // return `witness space ${classname} ${name} ${id}`;
-        const pieces = spaceIb.split(' ');
+        if (spaceIb.startsWith('witness space ')) {
+            // const name = space.data?.name || c.IBGIB_SPACE_NAME_DEFAULT;
+            // const id = space.data?.uuid || undefined;
+            // return `witness space ${classname} ${name} ${id}`;
+            const pieces = spaceIb.split(' ');
+            return {
+                spaceClassname: pieces[2],
+                spaceName: pieces[3],
+                spaceId: pieces[4],
+            };
+        } else if (spaceIb.startsWith('outerspace sync ')) {
+            const pieces = spaceIb.split(' ');
+            return {
+                spaceClassname: undefined,
+                spaceName: pieces[2],
+                spaceId: undefined,
+            };
 
-        return {
-            spaceClassname: pieces[2],
-            spaceName: pieces[3],
-            spaceId: pieces[4],
-        };
+        } else {
+            throw new Error(`unknown spaceIb schema (spaceIb: ${spaceIb}) (E: a6d361be85d5f25d6a464a5896186322)`);
+        }
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

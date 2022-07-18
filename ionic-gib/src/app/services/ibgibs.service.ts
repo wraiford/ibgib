@@ -36,7 +36,7 @@ import { IbGibRobbotAny } from '../common/witnesses/robbots/robbot-base-v1';
 import { PicIbGib_V1 } from '../common/types/pic';
 import { ParticipantInfo, StatusCode, SyncSagaInfo, SyncSpaceOptionsData, SyncSpaceOptionsIbGib, SyncSpaceResultIbGib, SyncStatusIbGib } from '../common/types/outer-space';
 import { TjpIbGibAddr } from '../common/types/ibgib';
-import { BootstrapIbGib } from '../common/types/space';
+import { BootstrapIbGib, SpaceId } from '../common/types/space';
 import { IbGibTimelineUpdateInfo, RootData, SpecialIbGibType } from '../common/types/ux';
 import {
   CiphertextData, CiphertextIbGib_V1, CiphertextRel8ns,
@@ -52,7 +52,7 @@ import {
   getConfigAddr, setConfigAddr, setCurrentRoot, rel8ToCurrentRoot,
   rel8ToSpecialIbGib, registerNewIbGib, persistTransformResult, getFromSpace,
   putInSpace, deleteFromSpace, getDependencyGraph, getLatestAddrs, getTjpIbGib,
-  getSpecialIbGib, getSpecialRel8dIbGibs, createRobbotIbGib, GetDependencyGraphOptions,
+  getSpecialIbGib, getSpecialRel8dIbGibs, createRobbotIbGib, GetDependencyGraphOptions, getInfoFromSpaceIb,
 } from '../common/helper/space';
 import { spaceNameIsValid } from '../common/helper/validate';
 import { groupBy } from '../common/helper/utils';
@@ -173,6 +173,7 @@ export class IbgibsService {
 
   async getLocalUserSpace({
     lock,
+    localSpaceId,
   }: {
     /**
      * If true, then we lock by bootstrap/spaceId before trying to retrieve.
@@ -180,6 +181,11 @@ export class IbgibsService {
      * @default If undefined, will default to false if platform is 'web', else true
      */
     lock?: boolean,
+    /**
+     * If provided, will look for the space via this id in the bootstrap ibgib.
+     * If not provided, will use the bootstrap ibgib's default spaceId.
+     */
+    localSpaceId?: SpaceId,
   }): Promise<IonicSpace_V1<AppSpaceData, AppSpaceRel8ns> | undefined> {
     const lc = `${this.lc}[${this.getLocalUserSpace.name}]`;
     try {
@@ -203,6 +209,7 @@ export class IbgibsService {
           bootstrapIbGib,
           lock,
           callerInstanceId: this._instanceId,
+          localSpaceId,
           fnDtoToSpace: (spaceDto: IbGib_V1<AppSpaceData, AppSpaceRel8ns>) => {
             return Promise.resolve(IonicSpace_V1.createFromDto(spaceDto));
           },
@@ -1141,6 +1148,27 @@ export class IbgibsService {
         console.warn(`${lc} tried to ping latest for primitive. returning early... (W: 06c50cfe028cc04cca67e97a48e6fe22)`);
         return; /* <<<< returns early */
       }
+
+      if (ibGib.ib.startsWith(`witness space IonicSpace_V1`)) {
+        // pinging a local user space, which for better or worse, does not
+        // have a tjp (nor is it kept up to date via the latest index).
+        // I can't remember, but I think there was a reason for the last bit,
+        // but I probably should have given it a tjp. Anyway, the latest
+        // "index" for local spaces is in the bootstrap. (Also the space is
+        // not necessarily contained in the passed in `space` arg.)
+        const { spaceId } = getInfoFromSpaceIb({ spaceIb: ibGib.ib });
+        const latestSpace =
+          await this.getLocalUserSpace({ localSpaceId: spaceId });
+        if (latestSpace.gib !== ibGib.gib) {
+          this._latestSubj.next({
+            latestIbGib: latestSpace,
+            latestAddr: h.getIbGibAddr({ ibGib: latestSpace }),
+            tjpAddr: `${ibGib.ib}^gib`
+          });
+        }
+        return; /* <<<< returns early */
+      }
+
       space = space ?? await this.getLocalUserSpace({});
       if (!space) {
         console.warn(`${lc} space falsy and localUserSpace not initialized. (W: e6708e58618947a6b66f6a49406cbf35)`);

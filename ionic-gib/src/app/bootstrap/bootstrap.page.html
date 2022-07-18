@@ -96,11 +96,11 @@
               <ion-button color="primary" fill="outline" [disabled]="isBusy"
                 (click)="refreshFileFolderInfos()">refresh</ion-button>
               <ion-button *ngIf="platform !== 'web'" color="primary" fill="outline" [disabled]="isBusy"
-                (click)="filepicker.click()">import space</ion-button>
+                (click)="filepicker2.click()">import space</ion-button>
               <ion-button *ngIf="platform === 'web'" color="primary" fill="outline" [disabled]="isBusy || !spacesAreSelectedToImport"
                 (click)="handleClick_ImportSpace_Web()">import space</ion-button>
             </ion-buttons>
-            <input type="file" #filepicker hidden (change)="handleFileSelected_Import($event)" />
+            <input type="file" #filepicker2 hidden (change)="handleFileSelected_Import($event)" />
           </ion-item>
       </ion-list>
     </ion-accordion>

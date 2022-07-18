@@ -36,7 +36,7 @@
                     color="secondary"
                     (click)="handleGotoSpecial('bootstrap')">
                     <ion-icon slot="start" name="navigate-outline" color="primary"></ion-icon>
-                    <ion-label>goto</ion-label>
+                    <ion-label>goto bootstrap</ion-label>
                   </ion-button>
                   <!-- <ion-button [disabled]="addingSpace"
                     color="secondary"
@@ -62,7 +62,7 @@
               </ion-label>
             </ion-item>
             <ion-list slot="content" class="accordion-item-list">
-              <ion-item *ngFor="let spaceItem of spaceItems"
+              <ion-item *ngFor="let spaceItem of outerSpaceItems"
                 class="accordion-item"
                 lines="none"
                 [title]="getSpaceTooltip('outerspace', spaceItem)"

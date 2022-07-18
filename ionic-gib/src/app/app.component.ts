@@ -12,7 +12,7 @@ import { concatMap, filter } from 'rxjs/operators';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr, } from 'ts-gib';
-import { IbGib_V1 } from 'ts-gib/dist/V1';
+import { IbGib_V1, ROOT } from 'ts-gib/dist/V1';
 
 import * as c from './common/constants';
 import { IbgibComponentBase } from './common/bases/ibgib-component-base';
@@ -30,6 +30,7 @@ import {
 import { createNewTag } from './common/helper/tag';
 import { validateIbGibIntrinsically, spaceNameIsValid } from './common/helper/validate';
 import { environment } from '../environments/environment';
+import { getInfoFromSpaceIb } from './common/helper/space';
 
 // #endregion imports & some init
 
@@ -73,7 +74,7 @@ export class AppComponent extends IbgibComponentBase
   localSpaceItems: MenuItem[] = [];
 
   @Input()
-  spaceItems: MenuItem[] = [];
+  outerSpaceItems: MenuItem[] = [];
 
   @Input()
   robbotItems: MenuItem[] = [];
@@ -656,7 +657,8 @@ export class AppComponent extends IbgibComponentBase
 
       await this.updateMenu_Tags();
       await this.updateMenu_Roots();
-      await this.updateMenu_Spaces();
+      await this.updateMenu_LocalSpaces();
+      await this.updateMenu_OuterSpaces();
       await this.updateMenu_Robbots();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -853,8 +855,8 @@ export class AppComponent extends IbgibComponentBase
    * ATOW the label is the local user space, while the individual children are
    * the sync spaces.
    */
-  async updateMenu_Spaces(): Promise<void> {
-    const lc = `${this.lc}[${this.updateMenu_Spaces.name}]`;
+  async updateMenu_OuterSpaces(): Promise<void> {
+    const lc = `${this.lc}[${this.updateMenu_OuterSpaces.name}]`;
     let spaceMenuItems: MenuItem[] = [];
 
     try {
@@ -878,7 +880,7 @@ export class AppComponent extends IbgibComponentBase
       // load individual items (only executes if any syncspaces exist)
       for (let i = 0; i < encryptedSyncSpaces.length; i++) {
         const syncSpace = encryptedSyncSpaces[i];
-        const spaceItem = await this.getSpaceItem_syncSpace(syncSpace);
+        const spaceItem = await this.getSpaceItem(syncSpace);
         if (spaceItem) { spaceMenuItems.push(spaceItem); }
       }
     } catch (error) {
@@ -886,14 +888,79 @@ export class AppComponent extends IbgibComponentBase
       console.error(`${lc} ${error.message}`);
     } finally {
       // "load" them into the bound property and detect the changes
-      this.spaceItems = spaceMenuItems;
-      this.ref.detectChanges();
+      this.outerSpaceItems = spaceMenuItems;
+      setTimeout(() => this.ref.detectChanges());
     }
 
   }
 
-  async getSpaceItem_syncSpace(space: IbGibSpaceAny): Promise<MenuItem> {
-    const lc = `${this.lc}[${this.getSpaceItem_syncSpace.name}]`;
+  /**
+   * ATOW the label is the local user space, while the individual children are
+   * the sync spaces.
+   */
+  async updateMenu_LocalSpaces(): Promise<void> {
+    const lc = `${this.lc}[${this.updateMenu_LocalSpaces.name}]`;
+    let spaceMenuItems: MenuItem[] = [];
+
+    try {
+      // spaces should already be initialized
+      if (!this.localSpaceId) { throw new Error(`localSpaceId is falsy, i.e. hasn't been initialized? (E: a5a51fad4a44470a8dc5698a4288eebc)`); };
+
+      // get spaces, but don't initialize
+      while (this.common.ibgibs.initializing) {
+        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 1e84725b134f4992a765c55acd254579)`); }
+        await h.delay(100);
+      }
+
+      const localUserSpace = await this.common.ibgibs.getLocalUserSpace({});
+      const { spaceId } = getInfoFromSpaceIb({ spaceIb: localUserSpace.ib });
+      const spaceItem = await this.getSpaceItem(localUserSpace);
+      // override the click handler to always navigate to the latest space.
+      spaceItem.clickHandler = async (x: MenuItem) => {
+        await this.menu.close();
+        const latestSpace = await this.common.ibgibs.getLocalUserSpace({
+          localSpaceId: spaceId
+        });
+        await this.go({
+          toAddr: h.getIbGibAddr({ ibGib: latestSpace }),
+          fromAddr: h.getIbGibAddr({ ibGib: this.ibGib_Context ?? ROOT }),
+        });
+      };
+      if (!spaceItem) { throw new Error(`(unexpected) couldn't get space item for localUserSpace? (E: b426e5524486a9789831cc6762e83d22)`); }
+      spaceMenuItems.push(spaceItem);
+
+    } catch (error) {
+      spaceMenuItems = [{ title: 'hmm errored...', icon: 'bug-outline', clickHandler: async (item: MenuItem) => { /*donothing*/ } }];
+      console.error(`${lc} ${error.message}`);
+    } finally {
+      // "load" them into the bound property and detect the changes
+      this.localSpaceItems = spaceMenuItems;
+      setTimeout(() => this.ref.detectChanges());
+    }
+
+  }
+  // async getSpaceItem_localSpace(space: IbGibSpaceAny): Promise<MenuItem> {
+  //   const lc = `${this.lc}[${this.getSpaceItem_localSpace.name}]`;
+  //   let item: MenuItem;
+  //   try {
+  //     const ibGib = space.toIbGibDto ? space.toIbGibDto() : space;
+  //     if (logalot) { console.log(`${lc} ibGib: ${h.pretty(ibGib)} (I: c24a7fc94df7b5403bc221e98083ee22)`); }
+  //     let validateIbGibErrors = await validateIbGibIntrinsically({ ibGib });
+  //     if (validateIbGibErrors?.length > 0) { throw new Error(`invalid ibGib intrinsically. errors: ${validateIbGibErrors} (E: d482f5e1ff2db1bb91312128797be922)`); }
+  //     const addr = h.getIbGibAddr({ ibGib });
+  //     if (!spaceNameIsValid(ibGib.data.name)) { throw new Error(`invalid spacename: ${space.data.name} (E: ee437d70aa5e8bdf44e692bfa4832f22)`); }
+  //     const text = ibGib.data.name || ibGib.ib;
+  //     const icon = (<any>space.data).icon || c.DEFAULT_SPACE_ICON;
+  //     item = this.getMenuItem({ text, icon, addr });
+  //   } catch (error) {
+  //     console.error(`${lc} ${error.message}`);
+  //     item = this.getErroredMenuItem();
+  //   }
+  //   return item;
+  // }
+
+  async getSpaceItem(space: IbGibSpaceAny): Promise<MenuItem> {
+    const lc = `${this.lc}[${this.getSpaceItem.name}]`;
     let item: MenuItem;
     try {
       const ibGib = space.toIbGibDto ? space.toIbGibDto() : space;
