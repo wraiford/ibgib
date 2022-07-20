@@ -25,7 +25,7 @@ import { SpaceId } from './common/types/space';
 import {
   getFn_promptCreateSecretIbGib, getFn_promptCreateEncryptionIbGib,
   getFn_promptCreateOuterSpaceIbGib, getFn_promptUpdatePicIbGib,
-  getFnAlert, getFn_promptRobbotIbGib
+  getFnAlert, getFn_promptRobbotIbGib, getFn_promptAppIbGib
 } from './common/helper/prompt-functions';
 import { createNewTag } from './common/helper/tag';
 import { validateIbGibIntrinsically, spaceNameIsValid } from './common/helper/validate';
@@ -234,6 +234,7 @@ export class AppComponent extends IbgibComponentBase
             fnPromptOuterSpace: getFn_promptCreateOuterSpaceIbGib(this.common),
             fnPromptUpdatePic: getFn_promptUpdatePicIbGib(this.common),
             fnPromptRobbot: getFn_promptRobbotIbGib(this.common),
+            fnPromptApp: getFn_promptAppIbGib(this.common),
           });
 
         } finally {

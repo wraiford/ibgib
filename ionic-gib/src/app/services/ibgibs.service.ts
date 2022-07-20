@@ -44,6 +44,7 @@ import {
   SecretData_V1, SecretIbGib_V1, SecretInfo_Password
 } from '../common/types/encryption';
 import { RobbotData_V1, RobbotIbGib_V1 } from '../common/types/robbot';
+import { AppData_V1, AppIbGib_V1 } from '../common/types/app';
 import { hasTjp, getTimelinesGroupedByTjp, getTjpAddrs } from '../common/helper/ibgib';
 import { getFnPrompt, getFnAlert, getFnPromptPassword_AlertController } from '../common/helper/prompt-functions';
 import {
@@ -58,6 +59,8 @@ import { spaceNameIsValid } from '../common/helper/validate';
 import { groupBy } from '../common/helper/utils';
 import { RobbotModalResult } from '../common/modals/robbot-modal-form/robbot-modal-form.component';
 import { createNewRobbot } from '../common/helper/robbot';
+import { AppModalResult } from '../common/modals/app-modal-form/app-modal-form.component';
+import { createNewApp } from '../common/helper/app';
 import { InMemoryIbgibCacheService } from './in-memory-ibgib-cache.service';
 import { BootstrapModalFormComponent, BootstrapModalResult } from '../common/modals/bootstrap-modal-form/bootstrap-modal-form.component';
 import { IonicStorageLatestIbgibCacheService } from './ionic-storage-latest-ibgib-cache.service';
@@ -343,6 +346,7 @@ export class IbgibsService {
   private fnPromptOuterSpace: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>;
   private fnPromptUpdatePic: (space: IbGibSpaceAny, picIbGib: PicIbGib_V1) => Promise<UpdatePicModalResult | undefined>;
   fnPromptRobbot: (space: IbGibSpaceAny, ibGib: RobbotIbGib_V1) => Promise<RobbotModalResult | undefined>;
+  fnPromptApp: (space: IbGibSpaceAny, ibGib: AppIbGib_V1) => Promise<AppModalResult | undefined>;
 
   private _syncing: boolean;
   /**
@@ -437,12 +441,14 @@ export class IbgibsService {
     fnPromptOuterSpace,
     fnPromptUpdatePic,
     fnPromptRobbot,
+    fnPromptApp,
   }: {
     fnPromptSecret: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>,
     fnPromptEncryption: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>,
     fnPromptOuterSpace: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>,
     fnPromptUpdatePic: (space: IbGibSpaceAny, picIbGib: PicIbGib_V1) => Promise<UpdatePicModalResult | undefined>,
     fnPromptRobbot: (space: IbGibSpaceAny, ibGib: RobbotIbGib_V1) => Promise<RobbotModalResult | undefined>,
+    fnPromptApp: (space: IbGibSpaceAny, ibGib: AppIbGib_V1) => Promise<AppModalResult | undefined>,
   }): Promise<void> {
     const lc = `${this.lc}[${this.initialize.name}]`;
     try {
@@ -453,6 +459,7 @@ export class IbgibsService {
       this.fnPromptOuterSpace = fnPromptOuterSpace;
       this.fnPromptUpdatePic = fnPromptUpdatePic;
       this.fnPromptRobbot = fnPromptRobbot;
+      this.fnPromptApp = fnPromptApp;
 
       let timerName: string;
       if (logalot) {
@@ -2298,6 +2305,64 @@ export class IbgibsService {
       }
 
       return appRobbots;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      return [];
+    }
+  }
+
+  async getAppAppIbGibs({
+    createIfNone,
+    space,
+  }: {
+    createIfNone: boolean,
+    space?: IbGibSpaceAny,
+  }): Promise<AppIbGib_V1[]> {
+    const lc = `${this.lc}[${this.getAppAppIbGibs.name}]`;
+    try {
+      space = space ?? await this.getLocalUserSpace({});
+      if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: a5aec4d94f764c6a964179bbb743b577)`); }
+
+      // get existing. Note that these are not the app witnesses, but only
+      // the app ibgib (dtos). They do not have a `witness` function on them
+      // at this point.
+      let appApps_MaybeOutOfDate: AppIbGib_V1[] =
+        await this.getSpecialRel8dIbGibs<AppIbGib_V1>({
+          type: "apps",
+          rel8nName: c.APP_REL8N_NAME,
+          space,
+        });
+
+      let appApps: AppIbGib_V1[] = [];
+      for (let i = 0; i < appApps_MaybeOutOfDate.length; i++) {
+        const appIbGib = appApps_MaybeOutOfDate[i];
+        const appAddr = h.getIbGibAddr({ ibGib: appIbGib });
+        const latestAddr = await this.getLatestAddr({ ibGib: appIbGib });
+        if (latestAddr && latestAddr !== appAddr) {
+          // app has a newer ibgib in its timeline
+          let resGet = await this.get({ addr: latestAddr });
+          if (!resGet || !resGet?.success || (resGet?.ibGibs ?? []).length === 0) {
+            throw new Error(`could not get newer app ibgib (E: de6a77634b1e4e16914ef110bb263d7c)`);
+          }
+          appApps.push(<AppIbGib_V1>resGet.ibGibs[0]);
+        } else {
+          appApps.push(appIbGib);
+        }
+      }
+
+      // create if applicable
+      if (appApps.length === 0 && createIfNone) {
+        let app = await createNewApp({ ibgibs: this, space });
+        if (app) {
+          appApps = await this.getSpecialRel8dIbGibs<AppIbGib_V1>({
+            type: "apps",
+            rel8nName: c.APP_REL8N_NAME,
+            space,
+          });
+        }
+      }
+
+      return appApps;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       return [];

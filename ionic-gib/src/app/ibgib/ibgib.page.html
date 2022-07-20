@@ -58,6 +58,10 @@
       <ion-button *ngIf="ibGib" class="toolbar-title-btn" (click)="handleShareClick()">
         <ion-icon name="share-social-outline" ios="share-outline"></ion-icon>
       </ion-button>
+      <ion-button *ngIf="ibGib" [disabled]="!ibGib" class="toolbar-title-btn" (click)="handleAppClick()"
+        [ngClass]="{'active-btn':appBarIsVisible}">
+        <ion-icon name="apps-outline"></ion-icon>
+      </ion-button>
       <ion-button *ngIf="ibGib" [disabled]="refreshing" class="toolbar-title-btn" (click)="handleRobbotClick()"
         [ngClass]="{'active-btn':robbotBarIsVisible}">
         <ion-icon name="body-outline"></ion-icon>
@@ -110,6 +114,8 @@
   <div id="container" *ngIf="item?.ibGib" [style.border-color]="debugBorderColor"
     [style.border-width]="debugBorderWidth" [style.border-style]="debugBorderStyle">
 
+    <ib-app-bar #appBar *ngIf="appBarIsVisible" [addr]='addr'
+      ></ib-app-bar>
     <ib-robbot-bar #robbotBar *ngIf="robbotBarIsVisible" [addr]='addr' [selectedRobbotAddr]="selectedRobbotAddr"
       (robbotSelected)="handleRobbotSelected($event)"></ib-robbot-bar>
 

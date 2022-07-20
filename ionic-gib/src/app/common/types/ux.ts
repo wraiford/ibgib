@@ -130,7 +130,7 @@ export interface IbgibListItem extends IbGibItem {
  */
 export type SpecialIbGibType =
     "tags" | "roots" | "latest" | "outerspaces" | "secrets" |
-    "encryptions" | "autosyncs" | "robbots";
+    "encryptions" | "autosyncs" | "robbots" | "apps";
 /**
  * Special ibgib types, used for metadata within a space.
  */
@@ -153,6 +153,7 @@ export const SpecialIbGibType = {
     /** indexes all tjp addresses that automatically sync. */
     autosyncs: "autosyncs" as SpecialIbGibType,
     robbots: "robbots" as SpecialIbGibType,
+    apps: "apps" as SpecialIbGibType,
 }
 
 /**
@@ -204,6 +205,6 @@ export interface ActionItem {
  * Used with tags at the very least.
  */
 export interface IconItem {
-  title: string;
-  icon: string;
+    title: string;
+    icon: string;
 }

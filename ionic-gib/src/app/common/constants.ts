@@ -269,7 +269,7 @@ export const DEFAULT_LIST_REL8N_NAMES: string[] = [
 ]
 
 export const DEFAULT_META_IB_STARTS: Ib[] = [
-    'tags', 'tag ', 'settings', 'setting ',
+    'tags', 'tag ', 'settings', 'setting ', 'witness space ',
 ]
 
 export const SPECIAL_URLS = [
@@ -1606,5 +1606,14 @@ export const GESTURE_CLICK_TOLERANCE_ONMOVE_THRESHOLD_COUNT = 5;
 
 // #endregion gestures
 
+export const SIMPLE_CONFIG_KEY_APP_VISIBLE = 'appBarVisible';
+export const SIMPLE_CONFIG_KEY_APP_SELECTED = 'appBarSelectedApp';
 export const SIMPLE_CONFIG_KEY_ROBBOT_VISIBLE = 'robbotBarVisible';
 export const SIMPLE_CONFIG_KEY_ROBBOT_SELECTED_ADDR = 'robbotBarSelectedAddr';
+
+// #region app
+
+export const APP_NAME_REGEXP = /^[a-zA-Z0-9_\-.]{1,32}$/;
+export const APP_REL8N_NAME = 'app';
+
+// #endregion app

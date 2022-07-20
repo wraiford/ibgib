@@ -2,25 +2,28 @@ import { AlertController, } from '@ionic/angular';
 import { Plugins } from '@capacitor/core';
 const { Modals } = Plugins;
 
-import {
-    IbGib_V1,
-} from 'ts-gib/dist/V1';
-import { TransformResult, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
+import { IbGib_V1 } from 'ts-gib/dist/V1';
+import { TransformResult, } from 'ts-gib';
 
-// import { EncryptionData_V1, OuterSpaceIbGib, PicIbGib_V1, RobbotIbGib_V1, SecretIbGib_V1 } from '../types'; // refactoring to not use types/index
-import { SecretModalFormComponent } from '../modals/secret-modal-form/secret-modal-form.component';
 import * as c from '../constants';
+import { SecretModalFormComponent } from '../modals/secret-modal-form/secret-modal-form.component';
 import { EncryptionModalFormComponent } from '../modals/encryption-modal-form/encryption-modal-form.component';
 import { OuterspaceModalFormComponent } from '../modals/outerspace-modal-form/outerspace-modal-form.component';
 import { CommonService } from '../../services/common.service';
 import { UpdatePicModalFormComponent, UpdatePicModalResult } from '../modals/update-pic-modal-form/update-pic-modal-form.component';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
-import { RobbotModalFormComponent, RobbotModalResult } from '../modals/robbot-modal-form/robbot-modal-form.component';
 import { SecretIbGib_V1, EncryptionData_V1 } from '../types/encryption';
 import { OuterSpaceIbGib } from '../types/outer-space';
 import { PicIbGib_V1 } from '../types/pic';
 import { RobbotIbGib_V1 } from '../types/robbot';
+import {
+    RobbotModalFormComponent, RobbotModalResult
+} from '../modals/robbot-modal-form/robbot-modal-form.component';
+import { AppIbGib_V1 } from '../types/app';
+import {
+    AppModalFormComponent, AppModalResult
+} from '../modals/app-modal-form/app-modal-form.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -30,9 +33,9 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
  *
  * @returns FUNCTION that alerts (doesn't actually do the alert)
  */
-export function getFnAlert(): ({title, msg}: {title: string, msg: string}) => Promise<void> {
-    return async ({title, msg}: {title: string, msg: string}) => {
-        await Modals.alert({title, message: msg});
+export function getFnAlert(): ({ title, msg }: { title: string, msg: string }) => Promise<void> {
+    return async ({ title, msg }: { title: string, msg: string }) => {
+        await Modals.alert({ title, message: msg });
     };
 }
 
@@ -41,9 +44,9 @@ export function getFnAlert(): ({title, msg}: {title: string, msg: string}) => Pr
  *
  * @returns FUNCTION that prompts (doesn't actually do the prompt)
  */
-export function getFnPrompt(): ({title, msg}: {title: string, msg: string}) => Promise<string|null> {
-    return async ({title, msg}: {title: string, msg: string}) => {
-        const resPrompt = await Modals.prompt({title, message: msg});
+export function getFnPrompt(): ({ title, msg }: { title: string, msg: string }) => Promise<string | null> {
+    return async ({ title, msg }: { title: string, msg: string }) => {
+        const resPrompt = await Modals.prompt({ title, message: msg });
         if (resPrompt.cancelled) {
             return null;
         } else {
@@ -58,18 +61,18 @@ export function getFnPrompt(): ({title, msg}: {title: string, msg: string}) => P
  * @returns FUNCTION that prompts (doesn't actually do the prompt)
  */
 export function getFnConfirm():
-    ({title, msg, okButtonTitle, cancelButtonTitle}:
-        {title: string, msg: string, okButtonTitle?: string, cancelButtonTitle?: string}) => Promise<boolean> {
+    ({ title, msg, okButtonTitle, cancelButtonTitle }:
+        { title: string, msg: string, okButtonTitle?: string, cancelButtonTitle?: string }) => Promise<boolean> {
 
-    return async ({title, msg, okButtonTitle, cancelButtonTitle}:
-        {title: string, msg: string, okButtonTitle?: string, cancelButtonTitle?: string}) => {
-            okButtonTitle = okButtonTitle || 'Ok';
-            cancelButtonTitle = cancelButtonTitle || 'Cancel';
-            const resConfirm = await Modals.confirm({
-                title, message: msg, okButtonTitle, cancelButtonTitle
-            });
-            return resConfirm.value;
-        }
+    return async ({ title, msg, okButtonTitle, cancelButtonTitle }:
+        { title: string, msg: string, okButtonTitle?: string, cancelButtonTitle?: string }) => {
+        okButtonTitle = okButtonTitle || 'Ok';
+        cancelButtonTitle = cancelButtonTitle || 'Cancel';
+        const resConfirm = await Modals.confirm({
+            title, message: msg, okButtonTitle, cancelButtonTitle
+        });
+        return resConfirm.value;
+    }
 }
 
 /**
@@ -86,26 +89,26 @@ export function getFnPromptPassword_AlertController({
     alertController: AlertController,
     // title: string,
     // msg: string,
-}): (title: string, msg: string) => Promise<string|null> {
+}): (title: string, msg: string) => Promise<string | null> {
     const lc = `[${getFnPromptPassword_AlertController.name}]`;
     try {
         if (!alertController) { throw new Error('alertController required.'); }
-        let fnPromptPassword =  async (title: string, msg: string) => {
-          const alert = await alertController.create({
-            header: title,
-            message: msg,
-            inputs: [
-              { name: 'password', type: 'password', label: 'Password: ', },
-            ],
-            buttons: [ 'OK', 'Cancel' ],
-          });
-          await alert.present();
-          let result = await alert.onDidDismiss();
-          if (result?.data?.values?.password) {
-            return result!.data!.values!.password;
-          } else {
-            return null;
-          }
+        let fnPromptPassword = async (title: string, msg: string) => {
+            const alert = await alertController.create({
+                header: title,
+                message: msg,
+                inputs: [
+                    { name: 'password', type: 'password', label: 'Password: ', },
+                ],
+                buttons: ['OK', 'Cancel'],
+            });
+            await alert.present();
+            let result = await alert.onDidDismiss();
+            if (result?.data?.values?.password) {
+                return result!.data!.values!.password;
+            } else {
+                return null;
+            }
         };
         return fnPromptPassword;
     } catch (error) {
@@ -134,8 +137,8 @@ export function getFn_promptCreateSecretIbGib(
             let resModal = await modal.onWillDismiss();
             if (resModal.data) {
                 const resNewSecret = <TransformResult<SecretIbGib_V1>>resModal.data;
-                await common.ibgibs.persistTransformResult({resTransform: resNewSecret, space});
-                const addr = h.getIbGibAddr({ibGib: resNewSecret.newIbGib});
+                await common.ibgibs.persistTransformResult({ resTransform: resNewSecret, space });
+                const addr = h.getIbGibAddr({ ibGib: resNewSecret.newIbGib });
                 if (logalot) { console.log(`${lc} created secret. addr: ${addr}`); }
                 await common.ibgibs.rel8ToSpecialIbGib({
                     type: "secrets",
@@ -176,8 +179,8 @@ export function getFn_promptCreateEncryptionIbGib(
             let resModal = await modal.onWillDismiss();
             if (resModal.data) {
                 const resNewEncryption = <TransformResult<IbGib_V1<EncryptionData_V1>>>resModal.data;
-                await common.ibgibs.persistTransformResult({resTransform: resNewEncryption, space});
-                const addr = h.getIbGibAddr({ibGib: resNewEncryption.newIbGib});
+                await common.ibgibs.persistTransformResult({ resTransform: resNewEncryption, space });
+                const addr = h.getIbGibAddr({ ibGib: resNewEncryption.newIbGib });
                 if (logalot) { console.log(`${lc} created encryption. addr: ${addr}`); }
                 return resNewEncryption.newIbGib;
             } else {
@@ -211,10 +214,10 @@ export function getFn_promptCreateOuterSpaceIbGib(
             await modal.present();
             let resModal = await modal.onWillDismiss();
             if (resModal.data) {
-            const resOuterSpace = <TransformResult<OuterSpaceIbGib>>resModal.data;
-            await common.ibgibs.persistTransformResult({resTransform: resOuterSpace, space});
-            const addr = h.getIbGibAddr({ibGib: resOuterSpace.newIbGib});
-            if (logalot) { console.log(`${lc} created outerspace. addr: ${addr}`); }
+                const resOuterSpace = <TransformResult<OuterSpaceIbGib>>resModal.data;
+                await common.ibgibs.persistTransformResult({ resTransform: resOuterSpace, space });
+                const addr = h.getIbGibAddr({ ibGib: resOuterSpace.newIbGib });
+                if (logalot) { console.log(`${lc} created outerspace. addr: ${addr}`); }
                 return resOuterSpace.newIbGib;
             } else {
                 // didn't create one
@@ -249,7 +252,7 @@ export function getFn_promptUpdatePicIbGib(
             if (resModal.data) {
                 const result = <UpdatePicModalResult>resModal.data;
                 const [resCreatePic, _resCreateBin] = result;
-                const addr = h.getIbGibAddr({ibGib: resCreatePic.newIbGib});
+                const addr = h.getIbGibAddr({ ibGib: resCreatePic.newIbGib });
                 if (logalot) { console.log(`${lc} updated pic. addr: ${addr}`); }
                 return result;
             } else {
@@ -284,6 +287,42 @@ export function getFn_promptRobbotIbGib(
             let resModal = await modal.onWillDismiss();
             if (resModal.data) {
                 const result = <RobbotModalResult>resModal.data;
+                // const [resCreatePic, _resCreateBin] = result;
+                // const addr = h.getIbGibAddr({ibGib: resCreatePic.newIbGib});
+                // if (logalot) { console.log(`${lc} updated pic. addr: ${addr}`); }
+                return result;
+            } else {
+                // didn't create one
+                console.warn(`${lc} didn't create at this time.`);
+                return undefined;
+            }
+        } catch (error) {
+            console.error(`${lc} error: ${error.message}`);
+            return undefined;
+        }
+    }
+}
+
+/**
+ * Creates a function with a single `space` arg. This fn when called shows a
+ * modal to create a app ibgib. If the user chooses to save, then the modal will
+ * perform the mutation, save the transform result in the given `space`, and
+ * return the new pic ibgib.
+ */
+export function getFn_promptAppIbGib(
+    common: CommonService,
+): (space: IbGibSpaceAny, ibGib: AppIbGib_V1) => Promise<AppModalResult | undefined> {
+    const lc = `[${getFn_promptAppIbGib.name}]`;
+    return async (space: IbGibSpaceAny, ibGib: AppIbGib_V1) => {
+        try {
+            const modal = await common.modalController.create({
+                component: AppModalFormComponent,
+                componentProps: { ibGib, space },
+            });
+            await modal.present();
+            let resModal = await modal.onWillDismiss();
+            if (resModal.data) {
+                const result = <AppModalResult>resModal.data;
                 // const [resCreatePic, _resCreateBin] = result;
                 // const addr = h.getIbGibAddr({ibGib: resCreatePic.newIbGib});
                 // if (logalot) { console.log(`${lc} updated pic. addr: ${addr}`); }

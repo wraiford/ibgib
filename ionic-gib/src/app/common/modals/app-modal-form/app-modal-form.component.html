@@ -1,0 +1,28 @@
+<ion-header translucent>
+  <ion-toolbar>
+    <ion-title color="primary" title="Create App Settings...">Create App...</ion-title>
+    <ion-buttons slot="end">
+      <ion-button color="primary" (click)="handleShowHelpClick()">
+        <ion-icon name="help-circle-outline"></ion-icon>
+      </ion-button>
+      <ion-button color="danger" (click)="handleCancelClick()">Cancel</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content #formContainer fullscreen>
+  <!-- metaform is a hack until we get real composite pattern forms -->
+  <ib-dynamic-form #metaform *ngIf="metaformItems?.length > 0"
+    [items]="metaformItems"
+    (itemSelect)="handleItemSelected($event)"
+    [showSubmit]="false"
+    [showHelp]="showHelp"
+    >
+  </ib-dynamic-form>
+  <!-- form that corresponds to the app we will create/edit -->
+  <ib-dynamic-form #form *ngIf="formItems?.length > 0"
+    [items]="formItems"
+    (dynamicSubmit)="handleDynamicSubmit($event)"
+    [showHelp]="showHelp"
+    >
+  </ib-dynamic-form>
+</ion-content>

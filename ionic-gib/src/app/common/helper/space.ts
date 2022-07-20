@@ -28,7 +28,7 @@ import { SpaceLockScope, IbGibSpaceLockIbGib, BootstrapIbGib, SpaceId, IbGibSpac
 import { isExpired, getExpirationUTCString, getTimestampInTicks } from './utils';
 import { IbGibCacheService, TjpIbGibAddr } from '../types/ibgib';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 
 /**
@@ -3273,6 +3273,7 @@ export function getInfoFromSpaceIb({
      * (for better or worse)
      */
     spaceId: SpaceId,
+    spaceType: 'outer' | 'local' | 'inner',
 } {
     const lc = `[${getInfoFromSpaceIb.name}]`;
     try {
@@ -3287,6 +3288,7 @@ export function getInfoFromSpaceIb({
                 spaceClassname: pieces[2],
                 spaceName: pieces[3],
                 spaceId: pieces[4],
+                spaceType: 'local',
             };
         } else if (spaceIb.startsWith('outerspace sync ')) {
             const pieces = spaceIb.split(' ');
@@ -3294,8 +3296,8 @@ export function getInfoFromSpaceIb({
                 spaceClassname: undefined,
                 spaceName: pieces[2],
                 spaceId: undefined,
+                spaceType: 'outer',
             };
-
         } else {
             throw new Error(`unknown spaceIb schema (spaceIb: ${spaceIb}) (E: a6d361be85d5f25d6a464a5896186322)`);
         }

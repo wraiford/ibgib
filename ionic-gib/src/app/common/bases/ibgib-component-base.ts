@@ -15,7 +15,8 @@ import { CommentData_V1 } from '../types/comment';
 import { LinkData_V1 } from '../types/link';
 import { PicData_V1 } from '../types/pic';
 import { IbGibItem, IbGibTimelineUpdateInfo } from '../types/ux';
-import { isSpaceIb } from '../helper/space';
+import { getInfoFromSpaceIb, isSpaceIb } from '../helper/space';
+import { GetIbGibResult } from '../types/legacy';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -516,12 +517,44 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
                     }
                     //
                     // get the full ibgib record from the ibgibs service (local space)
-                    const resGet = await this.common.ibgibs.get({
-                        addr: item.addr,
-                        isMeta: item.isMeta,
-                        /** if we're getting a space, then it will be found in zero space */
-                        space: isSpaceIb({ ib }) ? this.common.ibgibs.zeroSpace : undefined,
-                    });
+                    let resGet: GetIbGibResult;
+                    if (!isSpaceIb({ ib })) {
+                        // usually we'll be getting a regular ibgib
+                        resGet = await this.common.ibgibs.get({
+                            addr: item.addr,
+                            isMeta: item.isMeta,
+                        });
+                    } else {
+                        let spaceInfo = getInfoFromSpaceIb({ spaceIb: ib });
+                        let localIonicSpaceClassname = 'IonicSpace_V1';
+                        if (spaceInfo.spaceClassname === localIonicSpaceClassname) {
+                            // hard-coded hack because I didn't include space classname in sync space
+                            // aws dynamo space was supposed to be a proof-of-concept anyway, and
+                            // i should be able to export the entire space to another.
+                            // anyway, we must load the space from itself.
+                            if (!spaceInfo.spaceId) { throw new Error(`(UNEXPECTED) spaceClassname is ${localIonicSpaceClassname} but spaceId not found in ib? (E: fb1beb0407ac1507790adaeb46d7e722)`); }
+                            let localSpace = await this.common.ibgibs.getLocalUserSpace({ localSpaceId: spaceInfo.spaceId });
+                            if (!localSpace) { throw new Error(`localSpace with spaceId ${spaceInfo.spaceId} not found in getLocalUserSpace call (E: bde85f1ce73d89efec515bdc1b04a722)`); }
+                            resGet = await this.common.ibgibs.get({
+                                addr: item.addr,
+                                isMeta: item.isMeta,
+                                space: localSpace,
+                            });
+                        } else {
+                            // atow, we will handle this like a normal ibgib
+                            resGet = await this.common.ibgibs.get({
+                                addr: item.addr,
+                                isMeta: item.isMeta,
+                            });
+                        }
+                        if (spaceInfo.spaceId)
+                            // we're getting a space
+                            resGet = await this.common.ibgibs.get({
+                                addr: item.addr,
+                                isMeta: true,
+                                space: isSpaceIb({ ib }) ? this.common.ibgibs.zeroSpace : undefined,
+                            });
+                    }
                     if (resGet.success && resGet.ibGibs?.length === 1) {
                         item.ibGib = resGet.ibGibs![0];
 

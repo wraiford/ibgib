@@ -20,7 +20,7 @@ import { getSpaceIb, getTjpIbGib, getSpecialIbGib, getInfoFromSpaceIb } from '..
 import { argy_ } from '../witness-helper';
 import { validateIbGibIntrinsically } from '../../helper/validate';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 // #region Space related interfaces/constants
 

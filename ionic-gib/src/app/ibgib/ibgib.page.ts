@@ -115,6 +115,15 @@ export class IbGibPage extends IbgibComponentBase
   get autoRefresh(): boolean { return !this.paused; }
   set autoRefresh(value: boolean) { this.paused = value; }
 
+  _appBarIsVisible: boolean = true;
+  @Input()
+  get appBarIsVisible(): boolean {
+    return this._appBarIsVisible && !!this.ibGib && !this.refreshing;
+  }
+  set appBarIsVisible(value: boolean) {
+    this._appBarIsVisible = value;
+  }
+
   _robbotBarIsVisible: boolean = true;
   @Input()
   get robbotBarIsVisible(): boolean {
@@ -454,6 +463,25 @@ export class IbGibPage extends IbgibComponentBase
       });
     } catch (error) {
       await alert({ title: 'ibgib address copied', msg: `clipboard failed...` });
+    }
+  }
+
+  /**
+   * Show/hide the app bar.
+   */
+  async handleAppClick(): Promise<void> {
+    const lc = `${this.lc}[${this.handleAppClick.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      this.appBarIsVisible = !this.appBarIsVisible;
+      await Storage.set({ key: c.SIMPLE_CONFIG_KEY_APP_VISIBLE, value: this.appBarIsVisible ? 'true' : 'false' });
+      setTimeout(() => this.ref.detectChanges());
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
