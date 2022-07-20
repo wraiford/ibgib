@@ -68,18 +68,15 @@
             <ion-buttons>
               <ion-button color="primary" fill="outline" [disabled]="isBusy"
                 (click)="handleClick_AddSpace()">add space</ion-button>
-              <ion-button *ngIf="platform !== 'web'" color="primary" fill="outline" [disabled]="isBusy"
-                (click)="filepicker.click()">import from file...</ion-button>
             </ion-buttons>
-            <input type="file" #filepicker hidden (change)="handleFileSelected_Import($event)" />
           </ion-item>
       </ion-list>
     </ion-accordion>
 
-    <ion-accordion *ngIf="platform === 'web'" value="import_space">
+    <ion-accordion value="import_space">
       <ion-item slot="header">
         <ion-label>
-          <ion-text color="primary">import space from storage</ion-text>
+          <ion-text color="primary">import space</ion-text>
         </ion-label>
       </ion-item>
       <ion-list slot="content" class="accordion-item-list">
@@ -91,16 +88,16 @@
             <ion-icon *ngIf="info.isBootstrap" name="footsteps-outline" color="primary" slot="start"></ion-icon>
             <ion-text color="primary">{{info.label || info.name}}</ion-text>
           </ion-item>
+          <ion-item *ngIf="refreshingBrowseInfos">
+            <ion-spinner name="circles" color="primary"></ion-spinner>
+          </ion-item>
           <ion-item>
             <ion-buttons>
-              <ion-button color="primary" fill="outline" [disabled]="isBusy"
-                (click)="refreshFileFolderInfos()">refresh</ion-button>
-              <ion-button *ngIf="platform !== 'web'" color="primary" fill="outline" [disabled]="isBusy"
-                (click)="filepicker2.click()">import space</ion-button>
-              <ion-button *ngIf="platform === 'web'" color="primary" fill="outline" [disabled]="isBusy || !spacesAreSelectedToImport"
+              <ion-button color="primary" fill="outline" [disabled]="isBusy || refreshingBrowseInfos"
+                (click)="refreshBrowseInfos()">refresh</ion-button>
+              <ion-button color="primary" fill="outline" [disabled]="isBusy || !spacesAreSelectedToImport"
                 (click)="handleClick_ImportSpace_Web()">import space</ion-button>
             </ion-buttons>
-            <input type="file" #filepicker2 hidden (change)="handleFileSelected_Import($event)" />
           </ion-item>
       </ion-list>
     </ion-accordion>

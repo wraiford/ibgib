@@ -5,18 +5,14 @@ const { Modals, Filesystem } = Plugins;
 
 import * as h from 'ts-gib/dist/helper';
 import { IBGIB_DELIMITER } from 'ts-gib/dist/V1';
-import { Gib } from 'ts-gib/dist/types';
 
 import * as c from '../common/constants';
 import { getInfoFromSpaceIb, getValidatedBootstrapIbGib, updateBootstrapIbGib } from '../common/helper/space';
 import { BootstrapIbGib } from '../common/types/space';
-import { IbGibSpaceAny } from '../common/witnesses/spaces/space-base-v1';
-import { IonicSpaceData_V1, IonicSpace_V1, validateIonicSpace_V1Intrinsically } from '../common/witnesses/spaces/ionic-space-v1';
+import { IonicSpace_V1, validateIonicSpace_V1Intrinsically } from '../common/witnesses/spaces/ionic-space-v1';
 import { DynamicFormComponentBase } from '../common/bases/dynamic-form-component-base';
 import { DynamicFormComponent } from '../ibgib-forms/dynamic-form/dynamic-form.component';
 import { DynamicFormBuilder } from '../common/helper/form';
-import { FormItemInfo } from '../ibgib-forms/types/form-items';
-import { validateIbGibIntrinsically } from '../common/helper/validate';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -77,6 +73,9 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
   browseInfos: IndexedDBBrowseInfo[] = [];
 
   @Input()
+  refreshingBrowseInfos: boolean;
+
+  @Input()
   get spacesAreSelectedToImport(): boolean { return this.browseInfos.some(x => !!x.selected); }
 
   @Input()
@@ -84,6 +83,9 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
 
   @Input()
   selectedSpaceToImport: IndexedDBBrowseInfo;
+
+  @Input()
+  currentPath: string;
 
   constructor(
     protected common: CommonService,
@@ -116,7 +118,7 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
       await this.initLocalSpaces();
       await this.initDefaultSpace();
       await this.initFormItems();
-      await this.refreshFileFolderInfos();
+      await this.refreshBrowseInfos();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -254,6 +256,7 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
+
   handleDynamicSubmit_ErrorThrown(form: DynamicFormComponent): Promise<void> {
     throw new Error('Method not implemented.');
   }
@@ -262,6 +265,7 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
     const lc = `${this.lc}[${this.handleClick_AddSpace.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 53938b8ea30d7ff55fc4ba9d98c5bb22)`); }
+      this.isBusy = true;
       const newLocalSpace = await this.common.ibgibs.createLocalSpaceAndUpdateBootstrap({
         zeroSpace: this.common.ibgibs.zeroSpace,
         allowCancel: true,
@@ -279,20 +283,7 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
-
-  async handleFileSelected_Import(event: any): Promise<void> {
-    const lc = `${this.lc}[${this.handleFileSelected_Import.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting... (I: 505439871216b1945742ec1499cd3122)`); }
-
-      debugger;
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
+      this.isBusy = false;
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
@@ -323,6 +314,7 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
 
       const spaceInfos = this.browseInfos.filter(x => x.selected);
       let importCount = 0;
+      this.isBusy = true;
       for (let i = 0; i < spaceInfos.length; i++) {
         const info = spaceInfos[i];
         if (!info.isSpace) {
@@ -346,18 +338,17 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
+      this.isBusy = false;
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
-  @Input()
-  currentPath: string;
-
-  async refreshFileFolderInfos(): Promise<void> {
-    const lc = `${this.lc}[${this.refreshFileFolderInfos.name}]`;
+  async refreshBrowseInfos(): Promise<void> {
+    const lc = `${this.lc}[${this.refreshBrowseInfos.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: fd403ea9dc642680b138e27d12340a22)`); }
       this.browseInfos = [];
+      this.refreshingBrowseInfos = true;
 
       let path = this.currentPath || '';
       let directory = c.IBGIB_BASE_DIR;
@@ -426,6 +417,7 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
+      this.refreshingBrowseInfos = false;
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
@@ -450,7 +442,7 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
             info.name;
         }
         this.browseInfos = [];
-        await this.refreshFileFolderInfos();
+        await this.refreshBrowseInfos();
       } else if (info.isSpace) {
         info.selected = !info.selected;
         // await this.importSpace({ info });

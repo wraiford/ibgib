@@ -868,6 +868,10 @@ export class IbGibPage extends IbgibComponentBase
       this.robbotBarIsVisible =
         (await Storage.get({ key: c.SIMPLE_CONFIG_KEY_ROBBOT_VISIBLE }))?.value === 'true' ?? false;
 
+      // app bar visibility
+      this.appBarIsVisible =
+        (await Storage.get({ key: c.SIMPLE_CONFIG_KEY_APP_VISIBLE }))?.value === 'true' ?? false;
+
       // which robbot was selected last
       const selectedAddrSetting =
         await Storage.get({ key: c.SIMPLE_CONFIG_KEY_ROBBOT_SELECTED_ADDR });
