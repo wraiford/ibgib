@@ -19,19 +19,9 @@
 
 <ion-content>
 
-  <ion-accordion-group multiple value="import_space">
+  <ion-accordion-group multiple [value]="['form', 'spaces']">
 
-    <ion-accordion value="raw">
-      <ion-item slot="header">
-        <ion-label>
-          <ion-text color="primary">raw</ion-text>
-        </ion-label>
-      </ion-item>
-      <ion-item slot="content">
-        <pre>{{bootstrapIbGib | json}}</pre>
-      </ion-item>
-    </ion-accordion>
-
+    <!-- default space -->
     <ion-accordion value="form">
       <ion-item slot="header">
         <ion-label>
@@ -54,6 +44,7 @@
       </ion-item>
     </ion-accordion>
 
+    <!-- spaces -->
     <ion-accordion value="spaces">
       <ion-item slot="header">
         <ion-label>
@@ -73,6 +64,7 @@
       </ion-list>
     </ion-accordion>
 
+    <!-- import spaces -->
     <ion-accordion value="import_space">
       <ion-item slot="header">
         <ion-label>
@@ -102,13 +94,18 @@
       </ion-list>
     </ion-accordion>
 
+    <!-- raw bootstrap -->
+    <ion-accordion value="raw">
+      <ion-item slot="header">
+        <ion-label>
+          <ion-text color="primary">raw</ion-text>
+        </ion-label>
+      </ion-item>
+      <ion-item slot="content">
+        <pre>{{bootstrapIbGib | json}}</pre>
+      </ion-item>
+    </ion-accordion>
+
   </ion-accordion-group>
-
-  <!-- <ion-item>
-    <ion-label>default space: </ion-label>
-    <ion-text *ngIf="defaultSpace">{{defaultSpace.data.name}}</ion-text>
-    <ion-text *ngIf="defaultSpaceNotFound" color="danger">default space not found</ion-text>
-  </ion-item> -->
-
 
 </ion-content>

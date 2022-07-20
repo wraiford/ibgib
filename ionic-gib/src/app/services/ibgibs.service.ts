@@ -62,7 +62,6 @@ import { createNewRobbot } from '../common/helper/robbot';
 import { AppModalResult } from '../common/modals/app-modal-form/app-modal-form.component';
 import { createNewApp } from '../common/helper/app';
 import { InMemoryIbgibCacheService } from './in-memory-ibgib-cache.service';
-import { BootstrapModalFormComponent, BootstrapModalResult } from '../common/modals/bootstrap-modal-form/bootstrap-modal-form.component';
 import { IonicStorageLatestIbgibCacheService } from './ionic-storage-latest-ibgib-cache.service';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -577,49 +576,6 @@ export class IbgibsService {
 
   // #region create functions
 
-  private async editBootstrapGib({
-    bootstrapIbGib,
-    createIfNotFound,
-    zeroSpace,
-  }: {
-    bootstrapIbGib: BootstrapIbGib,
-    createIfNotFound?: boolean,
-    zeroSpace?: IonicSpace_V1,
-  }): Promise<void> {
-    const lc = `${this.lc}[${this.editBootstrapGib.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting... (I: 46e29c053028372429054bdcb5414722)`); }
-      if (!createIfNotFound) { throw new Error(`createIfNotFound must be true. edit not implemented yet... (E: f295ad35737a02358b5f6378bd878c22)`); }
-      if (bootstrapIbGib) { throw new Error(`bootstrapGib must be falsy right now. edit not implemented yet... (E: ecb324f73d08f5d48eb31664136a4a22)`); }
-      zeroSpace = zeroSpace || this.zeroSpace;
-
-      if (!bootstrapIbGib && createIfNotFound) {
-
-      }
-
-      const modal = await this.modalController.create({
-        component: BootstrapModalFormComponent,
-        componentProps: { zeroSpace, },
-      });
-      await modal.present();
-      let resModal = await modal.onWillDismiss();
-      if (!resModal.data) {
-        if (createIfNotFound && !bootstrapIbGib) {
-          throw new Error(`did not create bootstrap (E: ea026d472951453cc18f90c417672322)`);
-        } else {
-          throw new Error(`edit failed (E: d710eb13d441ad949cc9a1bfbd10df22)`);
-        }
-      }
-      const bootstrapGib = <BootstrapModalResult>resModal.data;
-
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
-
   async createNewLocalSpace({
     allowCancel,
   }: {
@@ -704,15 +660,6 @@ export class IbgibsService {
   }): Promise<IonicSpace_V1 | undefined> {
     const lc = `${this.lc}[${this.createLocalSpaceAndUpdateBootstrap.name}]`;
     try {
-
-      // await this.editBootstrapGib({
-      //   bootstrapIbGib: null,
-      //   createIfNotFound: true,
-      //   zeroSpace,
-      // });
-
-      // return; /* <<<< returns early */
-
       let newLocalSpace: IonicSpace_V1;
 
       if (allowCancel) {
