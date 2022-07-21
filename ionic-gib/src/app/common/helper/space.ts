@@ -27,6 +27,8 @@ import { RobbotData_V1, RobbotIbGib_V1 } from '../types/robbot';
 import { SpaceLockScope, IbGibSpaceLockIbGib, BootstrapIbGib, SpaceId, IbGibSpaceLockOptions, BootstrapData, BootstrapRel8ns, TxId, IbGibSpaceResultIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns } from '../types/space';
 import { isExpired, getExpirationUTCString, getTimestampInTicks } from './utils';
 import { IbGibCacheService, TjpIbGibAddr } from '../types/ibgib';
+import { AppData_V1 } from '../types/app';
+import { ChatApp_V1_Factory, DEFAULT_CHAT_APP_DATA_V1 } from '../witnesses/apps/chat-app-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
@@ -2349,6 +2351,24 @@ export async function createApps({
         });
         appsAddr = h.getIbGibAddr({ ibGib: appsIbGib });
         await setConfigAddr({ key: configKey, addr: appsAddr, space, zeroSpace, fnUpdateBootstrap });
+
+        // at this point, our apps ibGib has no associated app ibGibs.
+        // so create a chat app just to get the user started.
+        const chatAppFactory = new ChatApp_V1_Factory(); // just ctor, no need to inject atow
+        let resNewChatApp = await chatAppFactory.newUp({});
+        await persistTransformResult({ resTransform: resNewChatApp, space });
+        await registerNewIbGib({
+            ibGib: resNewChatApp.newIbGib,
+            fnBroadcast, fnUpdateBootstrap,
+            space, zeroSpace
+        });
+        appsAddr = await rel8ToSpecialIbGib({
+            type: "apps",
+            rel8nName: c.APP_REL8N_NAME,
+            ibGibsToRel8: [resNewChatApp.newIbGib],
+            fnBroadcast, fnUpdateBootstrap,
+            space, zeroSpace,
+        });
 
         return appsAddr;
     } catch (error) {

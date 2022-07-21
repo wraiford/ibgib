@@ -212,7 +212,6 @@ export async function createNewApp({
             await getFn_promptAppIbGib(common)(space, /**ibGib*/ null) :
             await ibgibs.fnPromptApp(space, /*ibGib*/ null);
 
-        debugger;
         /** this should be the witness class itself at this point. */
         const newApp = <IbGibAppAny>resApp.newIbGib;
 

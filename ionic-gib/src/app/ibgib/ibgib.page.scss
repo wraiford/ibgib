@@ -277,3 +277,8 @@ ion-menu-button:hover,
   height: 20%;
   width: 77%;
 }
+
+.zero-height {
+  height: 0px;
+  overflow: hidden;
+}

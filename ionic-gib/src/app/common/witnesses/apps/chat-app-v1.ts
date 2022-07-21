@@ -228,7 +228,7 @@ export class ChatApp_V1 extends AppBase_V1<
  *
  * (but of course won't be the end of the world when this doesn't happen).
  */
-const DEFAULT_CHAT_APP_DATA_V1: ChatAppData_V1 = {
+export const DEFAULT_CHAT_APP_DATA_V1: ChatAppData_V1 = {
     version: '1',
     uuid: DEFAULT_UUID_CHAT_APP,
     name: DEFAULT_NAME_CHAT_APP,

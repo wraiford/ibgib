@@ -114,11 +114,14 @@
   <div id="container" *ngIf="item?.ibGib" [style.border-color]="debugBorderColor"
     [style.border-width]="debugBorderWidth" [style.border-style]="debugBorderStyle">
 
-    <ib-app-bar #appBar *ngIf="appBarIsVisible" [addr]='addr'
-      ></ib-app-bar>
+    <ib-app-bar #appBar [addr]='addr'
+      [ngClass]="{'zero-height': !appBarIsVisible}"
+      (appSelected)="handleAppSelected($event)"></ib-app-bar>
     <ib-robbot-bar #robbotBar *ngIf="robbotBarIsVisible" [addr]='addr' [selectedRobbotAddr]="selectedRobbotAddr"
       (robbotSelected)="handleRobbotSelected($event)"></ib-robbot-bar>
 
+    <!-- <ib-chat-app *ngIf="activeApp?.data.classname === 'ChatApp_V1'"></ib-chat-app> -->
+    <ib-chat-app *ngIf="activeApp"></ib-chat-app>
     <tag-list *ngIf='isTags' [addr]='addr' [ibGib_Context]='ibGib' (scroll)="scrollSubject.next($event)">
     </tag-list>
     <root-list *ngIf='isRoots' [addr]='addr' [ibGib_Context]='ibGib' (scroll)="scrollSubject.next($event)">

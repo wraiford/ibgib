@@ -32,9 +32,6 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
   @Input()
   appNames: string[] = [];
 
-  // @Input()
-  // selectedAppName: string;
-
   @Input()
   selectedApp: AppIbGib_V1;
 
@@ -55,7 +52,6 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
 
   @ViewChild('appName')
   appNameIonSelect: IonSelect;
-
 
   @Output()
   appSelected = new EventEmitter<AppIbGib_V1>();
@@ -112,8 +108,6 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
       }
       if (!appToSelect) { throw new Error(`appAddr (${appAddr}) not found among apps. (E: c7124fff5628412f907825a6d1fa997b)`); }
       this.selectedApp = appToSelect;
-      // this.selectedAppName = appToSelect?.data?.name;
-      this.hackUpdateAppNameIonSelectText();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -133,17 +127,12 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
         let lastSelectedAppId = (await Storage.get({ key: c.SIMPLE_CONFIG_KEY_APP_SELECTED }))?.value;
         if (lastSelectedAppId && this.apps.some(x => x.data?.uuid === lastSelectedAppId)) {
           this.selectedApp = this.apps.filter(x => x.data?.uuid === lastSelectedAppId)[0];
-          // this.selectedAppName = this.selectedApp.data.name;
         } else {
           this.selectedApp = this.apps[0];
-          // this.selectedAppName = this.apps[0].data.name;
         }
       } else {
         this.appNames = [];
-        // delete this.selectedAppName;
       }
-
-      this.hackUpdateAppNameIonSelectText();
 
       setTimeout(() => this.ref.detectChanges());
     } catch (error) {
@@ -152,28 +141,6 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
     }
-  }
-
-  /**
-   * There is a bug that the text does not update correctly.
-   */
-  hackUpdateAppNameIonSelectText(): void {
-    const lc = `${this.lc}[${this.hackUpdateAppNameIonSelectText.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting... (I: 033cf51b7e2fdbda7a20a2417657f222)`); }
-
-      // const text = this.selectedAppName || undefined;
-
-      // if (this.appNameIonSelect) {
-      //   this.appNameIonSelect.selectedText = text;
-      // }
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-
   }
 
   async handleAppSelectChange(event: any): Promise<void> {
@@ -189,7 +156,6 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
         if (this.selectedApp?.data.uuid !== appIbGib.data.uuid) {
           this.selectedApp = appIbGib;
           console.log(`new app selected. (I: eb3a8ca5a54a4fc8915931bd3ed19c8e)`);
-          // this.selectedAppName = appIbGib.data.name ?? appIbGib.ib;
           await Storage.set({ key: c.SIMPLE_CONFIG_KEY_APP_SELECTED, value: this.selectedApp.data.uuid });
           this.appSelected.emit(h.clone(appIbGib));
         } else {
@@ -204,7 +170,6 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
         }
       }
 
-      this.hackUpdateAppNameIonSelectText();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

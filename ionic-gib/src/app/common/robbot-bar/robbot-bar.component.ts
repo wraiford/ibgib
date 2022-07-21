@@ -31,9 +31,6 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
   @Input()
   robbotNames: string[] = [];
 
-  // @Input()
-  // selectedRobbotName: string;
-
   @Input()
   selectedRobbot: RobbotIbGib_V1;
 
@@ -106,7 +103,6 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       }
       if (!robbotToSelect) { throw new Error(`robbotAddr (${robbotAddr}) not found among robbots. (E: da7e66a4fee6e749321bd954b087ca22)`); }
       this.selectedRobbot = robbotToSelect;
-      // this.selectedRobbotName = robbotToSelect?.data?.name;
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -124,10 +120,8 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       this.robbots = await this.common.ibgibs.getAppRobbotIbGibs({ createIfNone: false }) ?? [];
       if (this.robbots?.length > 0) {
         this.robbotNames = this.robbots.map(r => r.data.name);
-        // this.selectedRobbotName = this.robbots[0].data.name;
       } else {
         this.robbotNames = [];
-        // delete this.selectedRobbotName;
       }
       setTimeout(() => this.ref.detectChanges());
     } catch (error) {
@@ -151,7 +145,6 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
         if (this.selectedRobbot?.data.uuid !== robbotIbGib.data.uuid) {
           this.selectedRobbot = robbotIbGib;
           console.log(`new robbot selected. (I: f09b25c6b71b441c9c7c01e734ff2bb0)`);
-          // this.selectedRobbotName = robbotIbGib.data.name ?? robbotIbGib.ib;
           this.robbotSelected.emit(h.clone(robbotIbGib));
         } else {
           if (logalot) { console.log(`${lc} same robbot selected (I: 05680c6006b2800ef12ab466c69e2c22)`); }
@@ -289,17 +282,6 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       if ((this.robbots ?? []).length === 0) { throw new Error(`(UNEXPECTED) this.robbots should be truthy if this function is accessible. (E: 92cb8d13628546d3972f9332af3c2b6d)`); }
 
       return this.selectedRobbot;
-
-      // const filteredIbGibs =
-      //   this.robbots.filter(x => x?.data?.name === this.selectedRobbotName);
-
-      // if (filteredIbGibs.length === 0) { throw new Error(`(UNEXPECTED) selectedRobbotName not found in robbots list? (E: 1fd157b2d9ee4075a08693a5cc4a4366)`); }
-
-      // // hack: change this to correctly map name/ion-select item to the robbot using gib/id
-      // console.warn(`${lc} if robbot name isn't unique, then this may not return the correct robbot. (W: 100287bce6b249d6af7f27c1fc53d90d)`);
-
-      // const robbotIbGib = filteredIbGibs[0];
-      // return robbotIbGib;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

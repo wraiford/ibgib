@@ -25,7 +25,9 @@
 @import "~@ionic/angular/css/text-transformation.css";
 @import "~@ionic/angular/css/flex-utils.css";
 
-app-root, ion-app, ion-router-outlet {
+app-root,
+ion-app,
+ion-router-outlet {
     // height: 600px;
     // width: 600px;
     // min-height: 500px;
@@ -46,15 +48,38 @@ ion-skeleton-text {
     --background-rgb: var(--ion-color-primary-rgb);
 }
 
-ion-input.floating-with-placeholder{
-    input:focus::-webkit-input-placeholder { color:gray; }
-    input:focus:-moz-placeholder { color:gray; }
-    input:focus::-moz-placeholder { color:gray; }
-    input:focus:-ms-input-placeholder { color:gray; }
-    input::-webkit-input-placeholder { color:transparent; }
-    input:-moz-placeholder { color:transparent; }
-    input::-moz-placeholder { color:transparent; }
-    input:-ms-input-placeholder { color:transparent; }
+ion-input.floating-with-placeholder {
+    input:focus::-webkit-input-placeholder {
+        color: gray;
+    }
+
+    input:focus:-moz-placeholder {
+        color: gray;
+    }
+
+    input:focus::-moz-placeholder {
+        color: gray;
+    }
+
+    input:focus:-ms-input-placeholder {
+        color: gray;
+    }
+
+    input::-webkit-input-placeholder {
+        color: transparent;
+    }
+
+    input:-moz-placeholder {
+        color: transparent;
+    }
+
+    input::-moz-placeholder {
+        color: transparent;
+    }
+
+    input:-ms-input-placeholder {
+        color: transparent;
+    }
 }
 
 // for swiper, customizing like ion-slides
@@ -72,7 +97,6 @@ ion-input.floating-with-placeholder{
 
 // this is required for navigation buttons in vertical swipers.
 .swiper-container-vertical {
-    // background-color: pink !important;
 
     .swiper-button-next,
     .swiper-button-prev {
@@ -90,4 +114,5 @@ ion-input.floating-with-placeholder{
         top: auto;
         bottom: 10px;
     }
+
 }
