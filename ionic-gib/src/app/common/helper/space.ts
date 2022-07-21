@@ -1801,6 +1801,9 @@ export async function createSpecial({
             case "robbots":
                 return createRobbots({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
 
+            case "apps":
+                return createApps({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
+
             default:
                 throw new Error(`not implemented. type: ${type}`);
         }
@@ -2319,6 +2322,41 @@ export async function createRobbots({
     }
 }
 
+export async function createApps({
+    space,
+    zeroSpace,
+    fnUpdateBootstrap,
+    fnBroadcast,
+}: {
+    space: IbGibSpaceAny,
+    zeroSpace: IbGibSpaceAny,
+    fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
+    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
+}): Promise<IbGibAddr | null> {
+    const lc = `[${createApps.name}]`;
+    try {
+        if (!space) { throw new Error(`space required. (E: f01cf6a4a460486796e16d505d629522)`); }
+
+        let appsAddr: IbGibAddr;
+        const configKey = getSpecialConfigKey({ type: "apps" });
+
+        const appsIbGib = await createSpecialIbGib({
+            type: "apps",
+            space,
+            zeroSpace,
+            fnBroadcast,
+            fnUpdateBootstrap,
+        });
+        appsAddr = h.getIbGibAddr({ ibGib: appsIbGib });
+        await setConfigAddr({ key: configKey, addr: appsAddr, space, zeroSpace, fnUpdateBootstrap });
+
+        return appsAddr;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        return null;
+    }
+}
+
 /**
  * 1. Creates a new robbot ibgib with the given properties.
  * 2. Persists graph in given {@link space}
@@ -2328,55 +2366,55 @@ export async function createRobbots({
  *
  * @returns the new robbot ibgib and new robbots address.
  */
-export async function createRobbotIbGib({
-    robbotData,
-    space,
-    zeroSpace,
-    fnUpdateBootstrap,
-    fnBroadcast,
-}: {
-    robbotData: RobbotData_V1,
-    space: IbGibSpaceAny,
-    zeroSpace: IbGibSpaceAny,
-    fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
-    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
-}): Promise<{ newRobbotIbGib: RobbotIbGib_V1, newRobbotsAddr: string }> {
-    const lc = `[${createRobbotIbGib.name}]`;
-    try {
-        if (logalot) { console.log(`${lc} starting...`); }
-        if (!space) { throw new Error(`space required. (E: 5def0b1afab74b0c9286e3ac5060cb8f)`); }
-        if (!robbotData) { throw new Error(`robbotData required (E: cd0304401a2f5a63d86dd71f76f31222)`); }
+// export async function createRobbotIbGib({
+//     robbotData,
+//     space,
+//     zeroSpace,
+//     fnUpdateBootstrap,
+//     fnBroadcast,
+// }: {
+//     robbotData: RobbotData_V1,
+//     space: IbGibSpaceAny,
+//     zeroSpace: IbGibSpaceAny,
+//     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
+//     fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
+// }): Promise<{ newRobbotIbGib: RobbotIbGib_V1, newRobbotsAddr: string }> {
+//     const lc = `[${createRobbotIbGib.name}]`;
+//     try {
+//         if (logalot) { console.log(`${lc} starting...`); }
+//         if (!space) { throw new Error(`space required. (E: 5def0b1afab74b0c9286e3ac5060cb8f)`); }
+//         if (!robbotData) { throw new Error(`robbotData required (E: cd0304401a2f5a63d86dd71f76f31222)`); }
 
-        const ib = getRobbotIb({ robbotData });
-        const resNewRobbot = await factory.firstGen({
-            parentIbGib: factory.primitive({ ib: "robbot" }),
-            ib,
-            data: robbotData,
-            linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
-            tjp: { uuid: true, timestamp: true },
-            dna: true,
-            nCounter: true,
-        });
-        const newRobbot = <RobbotIbGib_V1>resNewRobbot.newIbGib;
-        await persistTransformResult({ resTransform: resNewRobbot, isMeta: true, space });
-        await registerNewIbGib({ ibGib: newRobbot, space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
-        const newRobbotsAddr = await rel8ToSpecialIbGib({
-            type: "robbots",
-            rel8nName: c.ROBBOT_REL8N_NAME,
-            ibGibsToRel8: [newRobbot],
-            space,
-            zeroSpace,
-            fnUpdateBootstrap,
-            fnBroadcast,
-        });
-        return { newRobbotIbGib: newRobbot, newRobbotsAddr };
-    } catch (error) {
-        console.error(`${lc} ${error.message}`);
-        throw error;
-    } finally {
-        if (logalot) { console.log(`${lc} complete.`); }
-    }
-}
+//         const ib = getRobbotIb({ robbotData });
+//         const resNewRobbot = await factory.firstGen({
+//             parentIbGib: factory.primitive({ ib: "robbot" }),
+//             ib,
+//             data: robbotData,
+//             linkedRel8ns: [Rel8n.past, Rel8n.ancestor],
+//             tjp: { uuid: true, timestamp: true },
+//             dna: true,
+//             nCounter: true,
+//         });
+//         const newRobbot = <RobbotIbGib_V1>resNewRobbot.newIbGib;
+//         await persistTransformResult({ resTransform: resNewRobbot, isMeta: true, space });
+//         await registerNewIbGib({ ibGib: newRobbot, space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
+//         const newRobbotsAddr = await rel8ToSpecialIbGib({
+//             type: "robbots",
+//             rel8nName: c.ROBBOT_REL8N_NAME,
+//             ibGibsToRel8: [newRobbot],
+//             space,
+//             zeroSpace,
+//             fnUpdateBootstrap,
+//             fnBroadcast,
+//         });
+//         return { newRobbotIbGib: newRobbot, newRobbotsAddr };
+//     } catch (error) {
+//         console.error(`${lc} ${error.message}`);
+//         throw error;
+//     } finally {
+//         if (logalot) { console.log(`${lc} complete.`); }
+//     }
+// }
 
 
 /**

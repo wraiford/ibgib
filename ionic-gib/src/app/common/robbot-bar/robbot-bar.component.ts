@@ -31,8 +31,8 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
   @Input()
   robbotNames: string[] = [];
 
-  @Input()
-  selectedRobbotName: string;
+  // @Input()
+  // selectedRobbotName: string;
 
   @Input()
   selectedRobbot: RobbotIbGib_V1;
@@ -48,7 +48,7 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
   set selectedRobbotAddr(value: IbGibAddr) {
     if (value !== this._selectedRobbotAddr) {
       this._selectedRobbotAddr = value;
-      this.selectRobbot({robbotAddr: value}); // spins off
+      this.selectRobbot({ robbotAddr: value }); // spins off
     }
   }
 
@@ -96,7 +96,7 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       for (let i = 0; i < this.robbots.length; i++) {
         const robbot = this.robbots[i];
         const robbotAddrs = [
-          h.getIbGibAddr({ibGib: robbot}),
+          h.getIbGibAddr({ ibGib: robbot }),
           ...(robbot.rel8ns?.past ?? [])
         ];
         if (robbotAddrs.includes(robbotAddr)) {
@@ -106,7 +106,7 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       }
       if (!robbotToSelect) { throw new Error(`robbotAddr (${robbotAddr}) not found among robbots. (E: da7e66a4fee6e749321bd954b087ca22)`); }
       this.selectedRobbot = robbotToSelect;
-      this.selectedRobbotName = robbotToSelect?.data?.name;
+      // this.selectedRobbotName = robbotToSelect?.data?.name;
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -121,13 +121,13 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
-      this.robbots = await this.common.ibgibs.getAppRobbotIbGibs({createIfNone: false}) ?? [];
+      this.robbots = await this.common.ibgibs.getAppRobbotIbGibs({ createIfNone: false }) ?? [];
       if (this.robbots?.length > 0) {
         this.robbotNames = this.robbots.map(r => r.data.name);
-        this.selectedRobbotName = this.robbots[0].data.name;
+        // this.selectedRobbotName = this.robbots[0].data.name;
       } else {
         this.robbotNames = [];
-        delete this.selectedRobbotName;
+        // delete this.selectedRobbotName;
       }
       setTimeout(() => this.ref.detectChanges());
     } catch (error) {
@@ -151,7 +151,7 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
         if (this.selectedRobbot?.data.uuid !== robbotIbGib.data.uuid) {
           this.selectedRobbot = robbotIbGib;
           console.log(`new robbot selected. (I: f09b25c6b71b441c9c7c01e734ff2bb0)`);
-          this.selectedRobbotName = robbotIbGib.data.name ?? robbotIbGib.ib;
+          // this.selectedRobbotName = robbotIbGib.data.name ?? robbotIbGib.ib;
           this.robbotSelected.emit(h.clone(robbotIbGib));
         } else {
           if (logalot) { console.log(`${lc} same robbot selected (I: 05680c6006b2800ef12ab466c69e2c22)`); }
@@ -180,9 +180,9 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       if (this.addingRobbot) { throw new Error(`(UNEXPECTED) already adding tag...shouldn't get here (E: 3978fdd932764199b659d9166f718205)`); }
       this.addingRobbot = true;
 
-      const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
+      const space = await this.common.ibgibs.getLocalUserSpace({ lock: true });
 
-      await createNewRobbot({common: this.common, space});
+      await createNewRobbot({ common: this.common, space });
       await this.updateRobbots();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -217,7 +217,7 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       });
       const resCmd = await robbot.witness(cmdIbGib);
       if (!resCmd) { throw new Error(`resCmd is falsy. (E: e9d5046381c32bfe8d6b7a11cc7ef722)`); }
-      if (isError({ibGib: resCmd})) {
+      if (isError({ ibGib: resCmd })) {
         const errIbGib = <ErrorIbGib_V1>resCmd;
         throw new Error(`errIbGib: ${h.pretty(errIbGib)} (E: bbd032d860ff710973dc1f24f6446122)`);
       }
@@ -266,7 +266,7 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       });
       const resCmd = await robbot.witness(cmdIbGib);
       if (!resCmd) { throw new Error(`resCmd is falsy. (E: 9ddd93b5d5554bbb8fa3b4ad59f48aae)`); }
-      if (isError({ibGib: resCmd})) {
+      if (isError({ ibGib: resCmd })) {
         const errIbGib = <ErrorIbGib_V1>resCmd;
         throw new Error(`errIbGib: ${h.pretty(errIbGib)} (E: 967e544ccb2a4332a3ecaf4b6885f75a)`);
       }
@@ -317,7 +317,7 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
 
       if (logalot) { console.log(`${lc} calling robbot.witness (uuid: ${robbotIbGib.data.uuid}) on this.ibGib (${this.addr})  (I: e591b792bf459fe533d5e26202412722)`); }
       const name: string = robbotIbGib.data.classname;
-      const factory = this.common.factories.getFactory({name});
+      const factory = this.common.factories.getFactory({ name });
       const robbotWitness = <IbGibRobbotAny>(await factory.newUp({})).newIbGib;
       await robbotWitness.loadIbGibDto(robbotIbGib);
 
@@ -340,7 +340,7 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       event.stopPropagation();
 
       const ibGib = await this.getSelectedRobbot_IbGibOnly();
-      const addr = h.getIbGibAddr({ibGib});
+      const addr = h.getIbGibAddr({ ibGib });
       await this.go({
         toAddr: addr,
         fromAddr: this.addr,

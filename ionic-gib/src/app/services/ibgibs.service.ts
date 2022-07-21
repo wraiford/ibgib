@@ -53,7 +53,7 @@ import {
   getConfigAddr, setConfigAddr, setCurrentRoot, rel8ToCurrentRoot,
   rel8ToSpecialIbGib, registerNewIbGib, persistTransformResult, getFromSpace,
   putInSpace, deleteFromSpace, getDependencyGraph, getLatestAddrs, getTjpIbGib,
-  getSpecialIbGib, getSpecialRel8dIbGibs, createRobbotIbGib, GetDependencyGraphOptions, getInfoFromSpaceIb,
+  getSpecialIbGib, getSpecialRel8dIbGibs, /*createRobbotIbGib, */ GetDependencyGraphOptions, getInfoFromSpaceIb,
 } from '../common/helper/space';
 import { spaceNameIsValid } from '../common/helper/validate';
 import { groupBy } from '../common/helper/utils';
@@ -493,6 +493,9 @@ export class IbgibsService {
       await this.loadAutoSyncs();
 
       await this.getSpecialIbGib({ type: "robbots", initialize: true });
+      if (logalot) { console.timeLog(timerName); }
+
+      await this.getSpecialIbGib({ type: "apps", initialize: true });
       if (logalot) { console.timeLog(timerName); }
 
       await this.precalculateSomeUUIDsPlease();
@@ -2174,30 +2177,30 @@ export class IbgibsService {
     }
   }
 
-  async createRobbotIbGib({
-    robbotData,
-    space,
-  }: {
-    robbotData: RobbotData_V1,
-    space?: IbGibSpaceAny,
-  }): Promise<{ newRobbotIbGib: RobbotIbGib_V1, newRobbotsAddr: string }> {
-    const lc = `${this.lc}[${this.createRobbotIbGib.name}]`;
-    try {
-      space = space ?? await this.getLocalUserSpace({});
-      if (!space) { throw new Error(`space falsy and localUserSpace not initialized (E: 33ea7f4633484afa984225d037478ac4)`); }
+  // async createRobbotIbGib({
+  //   robbotData,
+  //   space,
+  // }: {
+  //   robbotData: RobbotData_V1,
+  //   space?: IbGibSpaceAny,
+  // }): Promise<{ newRobbotIbGib: RobbotIbGib_V1, newRobbotsAddr: string }> {
+  //   const lc = `${this.lc}[${this.createRobbotIbGib.name}]`;
+  //   try {
+  //     space = space ?? await this.getLocalUserSpace({});
+  //     if (!space) { throw new Error(`space falsy and localUserSpace not initialized (E: 33ea7f4633484afa984225d037478ac4)`); }
 
-      return createRobbotIbGib({
-        robbotData,
-        space,
-        zeroSpace: this.zeroSpace,
-        fnBroadcast: (x) => this.fnBroadcast(x),
-        fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
-      });
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    }
-  }
+  //     return createRobbotIbGib({
+  //       robbotData,
+  //       space,
+  //       zeroSpace: this.zeroSpace,
+  //       fnBroadcast: (x) => this.fnBroadcast(x),
+  //       fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
+  //     });
+  //   } catch (error) {
+  //     console.error(`${lc} ${error.message}`);
+  //     throw error;
+  //   }
+  // }
 
   async getAppRobbotIbGibs({
     createIfNone,

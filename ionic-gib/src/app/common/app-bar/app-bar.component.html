@@ -1,3 +1,55 @@
-<p>
-  app-bar works!
-</p>
+<ion-toolbar
+  [style.border-color]="debugBorderColor"
+  [style.border-width]="debugBorderWidth"
+  [style.border-style]="debugBorderStyle"
+  >
+
+  <!-- little label at the start -->
+  <!-- ionic has a bug with floating labels + ion-select -->
+  <ion-anchor slot="start">
+    <ion-label id="app-bar-label" color="primary">
+      <ion-icon name="apps-outline"></ion-icon>
+    </ion-label>
+  </ion-anchor>
+
+  <!-- drop-down selector for app name -->
+  <ion-select id="app-name" #appName
+    slot="primary"
+    [compareWith]="compareIbGibs"
+    okText="Select App"
+    [value]="selectedApp"
+    (ionChange)="handleAppSelectChange($event)"
+    >
+    <ion-select-option *ngFor="let app of apps" [value]="app">
+      <ion-icon [name]="(app.data?.icon || 'beer') + '-outline'"></ion-icon>
+      <ion-label>{{ app.data?.name || app.ib }}</ion-label>
+    </ion-select-option>
+  </ion-select>
+
+  <!-- app action buttons -->
+  <!-- primary also because that's how the formatting is "working" -->
+  <ion-buttons slot="primary">
+    <ion-button *ngIf="selectedApp" (click)="handleAppGoto($event)"
+      title="Navigate to the app's ibGib"
+      >
+      <ion-icon slot="start" name="navigate-outline" color="primary"></ion-icon>
+    </ion-button>
+    <!-- <ion-button *ngIf="selectedApp" (click)="handleAppLook($event)"
+      title="Let the app look at the current ibGib. What this does inevitably will depend on the app, but it's like putting the ibGib in its memory."
+      >
+      <ion-label>👀</ion-label>
+    </ion-button> -->
+    <!-- <ion-button *ngIf="selectedApp" (click)="handleAppSpeak($event)"
+      title="Ask the app to join in the conversation. For some apps, this will prompt only one item to be added to the chat, but for others perhaps more dynamic interaction."
+      >
+      <ion-icon name="chatbubbles-outline"></ion-icon>
+    </ion-button> -->
+    <ion-button (click)="handleAddApp()"
+      title="Create a new app. You can create more than one instance of any particular type of App."
+      >
+      <ion-icon name="add-outline"></ion-icon>
+    </ion-button>
+  </ion-buttons>
+
+
+</ion-toolbar>

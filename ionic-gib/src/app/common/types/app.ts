@@ -53,6 +53,11 @@ export interface AppData_V1 extends WitnessData_V1 {
    */
   uuid: string;
 
+  /**
+   * Right now, this will be just for ionicons.
+   */
+  icon: string;
+
 }
 
 

@@ -1,0 +1,67 @@
+ion-toolbar {
+    justify-content: stretch;
+}
+
+ion-button,
+#app-name {
+    color: var(--ion-color-primary);
+    border-color: var(--ion-color-primary);
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 5px;
+}
+
+ion-button:hover,
+ion-menu-button:hover,
+#app-name:hover {
+    border-width: 2px;
+    background-color: rgba(var(--ion-color-primary-rgb), 0.14);
+}
+
+ion-buttons {
+    justify-content: stretch;
+    align-items: stretch;
+}
+
+#app-name {
+    // display: flex;
+    // flex-direction: column;
+    width: 100%;
+    overflow: hidden;
+    margin: 0px 0px 0px -18px;
+    padding: 6px 6px 6px 18px;
+}
+
+
+#app-bar-label {
+    height: 100%;
+    padding: 6px 6px 6px 6px;
+    margin-right: 2px;
+}
+
+@media (max-width: 350px) {
+    #app-name {
+        width: 100%;
+        overflow: hidden;
+        margin: 0px 0px 0px -18px;
+        padding: 6px 6px 6px 18px;
+    }
+}
+
+@media (min-width: 350px) and (max-width: 900px) {
+    #app-name {
+        width: 100%;
+        overflow: hidden;
+        margin: 0px 0px 0px -22px;
+        padding: 6px 6px 6px 22px;
+    }
+}
+
+@media (min-width: 900px) {
+    #app-name {
+        width: 100%;
+        overflow: hidden;
+        margin: 0px 0px 0px -23px;
+        padding: 6px 6px 6px 23px;
+    }
+}

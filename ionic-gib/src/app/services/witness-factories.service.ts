@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
 import { Witness } from '../common/types/witness';
+import { ChatApp_V1_Factory } from '../common/witnesses/apps/chat-app-v1';
 import { RandomRobbot_V1_Factory } from '../common/witnesses/robbots/random-robbot-v1';
 import { WitnessFactoryAny, WitnessFactoryBase } from '../common/witnesses/witness-factory-base';
 
@@ -16,10 +17,12 @@ export class WitnessFactoriesService {
 
   constructor(
     public randomRobbotFactory: RandomRobbot_V1_Factory,
+    public chatAppFactory: ChatApp_V1_Factory,
   ) {
     this.factories = {
       [randomRobbotFactory.getName()]: randomRobbotFactory,
-     };
+      [chatAppFactory.getName()]: chatAppFactory,
+    };
   }
 
   getFactory<

@@ -9,7 +9,7 @@ import * as c from '../../constants';
 import { FormItemInfo } from '../../../ibgib-forms/types/form-items';
 import { AppData_V1, AppIbGib_V1, AppRel8ns_V1 } from '../../types/app';
 import { CommonService } from '../../../services/common.service';
-import { RandomApp_V1, } from '../../witnesses/apps/random-app-v1';
+import { ChatApp_V1, } from '../../witnesses/apps/chat-app-v1';
 import { getRegExp } from '../../helper/utils';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
 import { IbGibAppAny, } from '../../witnesses/apps/app-base-v1';
@@ -125,7 +125,7 @@ export class AppModalFormComponent
 
       this.appFactories = [
         // add our list of app classnames here,
-        RandomApp_V1.name,
+        ChatApp_V1.name,
       ].map(name => {
         return this.factories.getFactory<
           AppData_V1,

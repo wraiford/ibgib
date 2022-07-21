@@ -210,8 +210,9 @@ export async function createNewApp({
         // creating not editing.
         let resApp = common ?
             await getFn_promptAppIbGib(common)(space, /**ibGib*/ null) :
-            await ibgibs.fnPromptRobbot(space, /*ibGib because creating*/null);
+            await ibgibs.fnPromptApp(space, /*ibGib*/ null);
 
+        debugger;
         /** this should be the witness class itself at this point. */
         const newApp = <IbGibAppAny>resApp.newIbGib;
 
@@ -246,6 +247,7 @@ export async function createNewApp({
         });
         return newApp;
     } catch (error) {
+        debugger;
         console.error(`${lc} ${error.message}`);
         return;
     } finally {
@@ -261,26 +263,33 @@ export class AppFormBuilder extends WitnessFormBuilder {
         this.what = 'app';
     }
 
-    // outputPrefix({
-    //     of,
-    //     required,
-    // }: {
-    //     of: string,
-    //     required?: boolean,
-    // }): AppFormBuilder {
-    //     this.addItem({
-    //         // witness.data.outputPrefix
-    //         name: "outputPrefix",
-    //         description: `Technical setting that sets a prefix for all text output of the app.`,
-    //         label: "Output Prefix",
-    //         regexp: c.APP_PREFIX_SUFFIX_REGEXP,
-    //         regexpErrorMsg: c.APP_PREFIX_SUFFIX_REGEXP_DESC,
-    //         dataType: 'textarea',
-    //         value: of,
-    //         required,
-    //     });
-    //     return this;
-    // }
+    icon({
+        of,
+        required,
+        defaultValue,
+    }: {
+        of: string,
+        required?: boolean,
+        defaultValue?: string,
+    }): AppFormBuilder {
+        const exampleIonicons = c.IONICONS.slice(0, 4).map(x => `"${x}"`).join(', ');
+        this.addItem({
+            // witness.data.outputPrefix
+            name: "icon",
+            description: `Icon name for the app's icon in the app bar. (NOTE: Only ionicons right now, e.g. ${exampleIonicons}). See https://ionic.io/ionicons for a full list.`,
+            label: "Icon",
+            fnValid: (x: string | number) => { return typeof x === 'string' && c.IONICONS.includes(x); },
+            defaultErrorMsg: `Must be a valid ionicon selection, e.g. ${exampleIonicons}. See https://ionic.io/ionicons for a full list.`,
+            dataType: 'select',
+            value: of,
+            defaultValue: defaultValue || 'beer',
+            selectOptions: [
+                ...c.IONICONS,
+            ],
+            required,
+        });
+        return this;
+    }
 
     // outputSuffix({
     //     of,

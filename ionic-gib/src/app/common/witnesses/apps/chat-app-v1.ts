@@ -26,35 +26,35 @@ import { DynamicFormBuilder } from '../../helper/form';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
-export const DEFAULT_UUID_RANDOM_APP = undefined;
-export const DEFAULT_NAME_RANDOM_APP = 'Randie';
-export const DEFAULT_DESCRIPTION_RANDOM_APP =
-    `Randie chooses a random ibgib from those he's seen and says it.`;
+export const DEFAULT_UUID_CHAT_APP = undefined;
+export const DEFAULT_NAME_CHAT_APP = 'chat_gib';
+export const DEFAULT_DESCRIPTION_CHAT_APP =
+    `A chat app done ibgib style, enabling infinitely nesting comments, pics and links. It's ibgibs all the way down...`;
 
 
-export interface RandomAppData_V1 extends AppData_V1 {
+export interface ChatAppData_V1 extends AppData_V1 {
 
 }
 
 
-export interface RandomAppRel8ns_V1 extends AppRel8ns_V1 {
+export interface ChatAppRel8ns_V1 extends AppRel8ns_V1 {
 
 }
 
 /**
  *
  */
-export class RandomApp_V1 extends AppBase_V1<
+export class ChatApp_V1 extends AppBase_V1<
     // in
     any, IbGibRel8ns_V1, IbGib_V1<any, IbGibRel8ns_V1>,
     // out
     any, IbGibRel8ns_V1, IbGib_V1<any, IbGibRel8ns_V1>,
     // this
-    RandomAppData_V1, RandomAppRel8ns_V1
+    ChatAppData_V1, ChatAppRel8ns_V1
 > {
-    protected lc: string = `[${RandomApp_V1.name}]`;
+    protected lc: string = `[${ChatApp_V1.name}]`;
 
-    constructor(initialData?: RandomAppData_V1, initialRel8ns?: RandomAppRel8ns_V1) {
+    constructor(initialData?: ChatAppData_V1, initialRel8ns?: ChatAppRel8ns_V1) {
         super(initialData, initialRel8ns);
         const lc = `${this.lc}[ctor]`;
         try {
@@ -75,9 +75,9 @@ export class RandomApp_V1 extends AppBase_V1<
         const lc = `${this.lc}[${this.initialize.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            if (!this.data) { this.data = h.clone(DEFAULT_RANDOM_APP_DATA_V1); }
-            if (!this.rel8ns && DEFAULT_RANDOM_APP_REL8NS_V1) {
-                this.rel8ns = h.clone(DEFAULT_RANDOM_APP_REL8NS_V1);
+            if (!this.data) { this.data = h.clone(DEFAULT_CHAT_APP_DATA_V1); }
+            if (!this.rel8ns && DEFAULT_CHAT_APP_REL8NS_V1) {
+                this.rel8ns = h.clone(DEFAULT_CHAT_APP_REL8NS_V1);
             }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -228,19 +228,21 @@ export class RandomApp_V1 extends AppBase_V1<
  *
  * (but of course won't be the end of the world when this doesn't happen).
  */
-const DEFAULT_RANDOM_APP_DATA_V1: RandomAppData_V1 = {
+const DEFAULT_CHAT_APP_DATA_V1: ChatAppData_V1 = {
     version: '1',
-    uuid: DEFAULT_UUID_RANDOM_APP,
-    name: DEFAULT_NAME_RANDOM_APP,
-    description: DEFAULT_DESCRIPTION_RANDOM_APP,
-    classname: RandomApp_V1.name,
+    uuid: DEFAULT_UUID_CHAT_APP,
+    name: DEFAULT_NAME_CHAT_APP,
+    description: DEFAULT_DESCRIPTION_CHAT_APP,
+    classname: ChatApp_V1.name,
+
+    icon: 'chatbubbles',
 
     persistOptsAndResultIbGibs: false,
     allowPrimitiveArgs: true,
     catchAllErrors: true,
     trace: false,
 }
-const DEFAULT_RANDOM_APP_REL8NS_V1: RandomAppRel8ns_V1 = undefined;
+const DEFAULT_CHAT_APP_REL8NS_V1: ChatAppRel8ns_V1 = undefined;
 
 /**
  * factory for random app.
@@ -248,25 +250,25 @@ const DEFAULT_RANDOM_APP_REL8NS_V1: RandomAppRel8ns_V1 = undefined;
  * @see {@link DynamicFormFactoryBase}
  */
 @Injectable({ providedIn: 'root' })
-export class RandomApp_V1_Factory
-    extends DynamicFormFactoryBase<RandomAppData_V1, RandomAppRel8ns_V1, RandomApp_V1> {
+export class ChatApp_V1_Factory
+    extends DynamicFormFactoryBase<ChatAppData_V1, ChatAppRel8ns_V1, ChatApp_V1> {
 
-    protected lc: string = `[${RandomApp_V1_Factory.name}]`;
+    protected lc: string = `[${ChatApp_V1_Factory.name}]`;
 
-    getName(): string { return RandomApp_V1.name; }
+    getName(): string { return ChatApp_V1.name; }
 
     async newUp({
         data,
         rel8ns,
     }: {
-        data?: RandomAppData_V1,
-        rel8ns?: RandomAppRel8ns_V1,
-    }): Promise<TransformResult<RandomApp_V1>> {
+        data?: ChatAppData_V1,
+        rel8ns?: ChatAppRel8ns_V1,
+    }): Promise<TransformResult<ChatApp_V1>> {
         const lc = `${this.lc}[${this.newUp.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            data = data ?? h.clone(DEFAULT_RANDOM_APP_DATA_V1);
-            rel8ns = rel8ns ?? DEFAULT_RANDOM_APP_REL8NS_V1 ? h.clone(DEFAULT_RANDOM_APP_REL8NS_V1) : undefined;
+            data = data ?? h.clone(DEFAULT_CHAT_APP_DATA_V1);
+            rel8ns = rel8ns ?? DEFAULT_CHAT_APP_REL8NS_V1 ? h.clone(DEFAULT_CHAT_APP_REL8NS_V1) : undefined;
             data.uuid = data.uuid ?? await h.getUUID();
             let { classname } = data;
 
@@ -286,12 +288,12 @@ export class RandomApp_V1_Factory
             // replace the newIbGib which is just ib,gib,data,rel8ns with loaded
             // witness class
             const appDto = resApp.newIbGib;
-            let appIbGib = new RandomApp_V1(null, null);
+            let appIbGib = new ChatApp_V1(null, null);
             await appIbGib.loadIbGibDto(appDto);
             resApp.newIbGib = appIbGib;
             if (logalot) { console.log(`${lc} appDto: ${h.pretty(appDto)} (I: af9d16de46d6e6d75b2a21312d72d922)`); }
 
-            return <TransformResult<RandomApp_V1>>resApp;
+            return <TransformResult<ChatApp_V1>>resApp;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -300,7 +302,7 @@ export class RandomApp_V1_Factory
         }
     }
 
-    async witnessToForm({ witness }: { witness: RandomApp_V1; }): Promise<DynamicForm> {
+    async witnessToForm({ witness }: { witness: ChatApp_V1; }): Promise<DynamicForm> {
         const lc = `${this.lc}[${this.witnessToForm.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
@@ -314,7 +316,7 @@ export class RandomApp_V1_Factory
                 .name({ of: data.name, required: true })
                 .description({ of: data.description })
                 .and<AppFormBuilder>()
-                // .outputMode({of: data.outputMode})
+                .icon({ of: data.icon, required: true })
                 .and<DynamicFormBuilder>()
                 .uuid({ of: data.uuid, required: true })
                 .classname({ of: data.classname })
@@ -322,7 +324,7 @@ export class RandomApp_V1_Factory
                 .commonWitnessFields({ data })
                 .outputForm({
                     formName: 'form',
-                    label: 'Random App',
+                    label: 'Chat',
                 });
             return Promise.resolve(form);
         } catch (error) {
@@ -333,9 +335,9 @@ export class RandomApp_V1_Factory
         }
     }
 
-    async formToWitness({ form }: { form: DynamicForm; }): Promise<TransformResult<RandomApp_V1>> {
-        // let app = new RandomApp_V1(null, null);
-        let data: AppData_V1 = h.clone(DEFAULT_RANDOM_APP_DATA_V1);
+    async formToWitness({ form }: { form: DynamicForm; }): Promise<TransformResult<ChatApp_V1>> {
+        // let app = new ChatApp_V1(null, null);
+        let data: AppData_V1 = h.clone(DEFAULT_CHAT_APP_DATA_V1);
         this.patchDataFromItems({ data, items: form.items, pathDelimiter: c.DEFAULT_DATA_PATH_DELIMITER });
         let resApp = await this.newUp({ data });
         return resApp;
