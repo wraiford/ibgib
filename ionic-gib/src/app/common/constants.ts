@@ -261,8 +261,8 @@ export const DEFAULT_LIST_REL8N_NAMES: string[] = [
     'result', 'import',
     'tagged',
     TAGGED_REL8N_NAME,
-    // TAG_REL8N_NAME,
-    // ROOT_REL8N_NAME, // hack for now to get all to show
+    TAG_REL8N_NAME,
+    ROOT_REL8N_NAME, // hack for now to get all to show
     DEFAULT_ROOT_REL8N_NAME,
     ROBBOT_REL8N_NAME,
     SYNC_SPACE_REL8N_NAME,

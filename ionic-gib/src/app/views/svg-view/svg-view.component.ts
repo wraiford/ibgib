@@ -1,16 +1,19 @@
-import { Component, OnInit, ChangeDetectorRef, Output, Input, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import {
+  Component, ChangeDetectorRef, Output, Input,
+  ViewChild, ElementRef, AfterViewInit
+} from '@angular/core';
 import { EventEmitter } from '@angular/core';
-import { IonContent, IonInfiniteScroll } from '@ionic/angular';
+import { IonContent } from '@ionic/angular';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 
 import * as c from '../../common/constants';
-import { IbGibItem, IbgibListItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
+import { IbGibItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
 import { IbgibListComponentBase } from '../../common/bases/ibgib-list-component-base';
 import { CommonService } from '../../services/common.service';
-import { ibCircle, ibGetDefs, ibGroup, ibLine, ibSvg, } from '../../common/helper/svg';
+import { ibCircle, ibGroup, ibLine, ibSvg, } from '../../common/helper/svg';
 import { DiagramPosition, IbGibDiagramInfo, SVG_NAMESPACE } from '../../common/types/svg';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -34,30 +37,10 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
   protected lc: string = `[${SvgViewComponent.name}]`;
 
   @Input()
-  get addr(): IbGibAddr { return super.addr; }
-  set addr(value: IbGibAddr) { super.addr = value; }
-
-  @Input()
-  get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
-  set ibGib_Context(value: IbGib_V1) { super.ibGib_Context = value; }
-
-  /**
-   * Rel8n names to show in the list by default.
-   */
-  // @Input()
-  // rel8nNames: string[] = c.DEFAULT_LIST_REL8N_NAMES;
-
-  @Input()
   svgInfo: SVGInfo;
 
   @Output()
   ibclicked: EventEmitter<IbGibItem> = new EventEmitter();
-
-  // @Output()
-  // scrolled: EventEmitter<void> = new EventEmitter();
-
-  @Output()
-  itemsAdded: EventEmitter<number> = new EventEmitter();
 
   @ViewChild('svgViewContent')
   svgViewContent: IonContent;
@@ -66,7 +49,6 @@ export class SvgViewComponent extends IbgibListComponentBase<SvgIbgibItem>
   svgContainerRef: ElementRef;
 
   get svgContainerDiv(): HTMLDivElement { return this.svgContainerRef?.nativeElement; }
-
 
   private circles: SVGCircleElement[] = [];
 

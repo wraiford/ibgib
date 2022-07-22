@@ -1,6 +1,6 @@
 <!-- pic is title-->
 <div *ngIf='isTitleOrJustSmall'>
-  <img *ngIf='ibGib && !item.multiPicSrcs' [src]='item.picSrc'/>
+  <img *ngIf='ibGib && !item.multiPicSrcs' class='small-img' [src]='item.picSrc'/>
 
   <swiper *ngIf='ibGib && item.multiPicSrcs'
     [autoplay]="false" [keyboard]="true" [pagination]="false"

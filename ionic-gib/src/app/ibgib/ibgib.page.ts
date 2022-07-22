@@ -7,8 +7,6 @@
  * ATOW it uses polling to check for updates both in the current local
  * space, as well as in outer (sync) space(s) if autosync is turned on for
  * the timeline.
- *
- *
  */
 
 import {
@@ -16,9 +14,11 @@ import {
   ChangeDetectorRef, ChangeDetectionStrategy, Input, ViewChild
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { Subscription, interval, Observable, Subject, fromEvent } from 'rxjs';
-import { ActionSheetOptionStyle, Capacitor, FilesystemDirectory, FilesystemEncoding, Plugins } from '@capacitor/core';
-const { Modals, Clipboard, Filesystem, Storage, LocalNotifications } = Plugins;
+import { IonContent, IonRouterOutlet } from '@ionic/angular';
+import { Subscription, interval, Observable, Subject, } from 'rxjs';
+import { concatMap, debounceTime } from 'rxjs/operators';
+import { Capacitor, FilesystemDirectory, FilesystemEncoding, Plugins } from '@capacitor/core';
+const { Modals, Clipboard, Storage, LocalNotifications } = Plugins;
 
 import * as h from 'ts-gib';
 import { IbGibAddr, V1 } from 'ts-gib';
@@ -29,7 +29,6 @@ import { IbgibComponentBase } from '../common/bases/ibgib-component-base';
 import { CommonService } from '../services/common.service';
 import { SPECIAL_URLS } from '../common/constants';
 import { IbgibFullscreenModalComponent } from '../common/ibgib-fullscreen-modal/ibgib-fullscreen-modal.component';
-import { concatMap, debounceTime } from 'rxjs/operators';
 import { IbGibSpaceAny } from '../common/witnesses/spaces/space-base-v1';
 import { PicData_V1, PicIbGib_V1 } from '../common/types/pic';
 import { IbGibTimelineUpdateInfo } from '../common/types/ux';
@@ -38,11 +37,11 @@ import { getFnAlert, getFnPrompt, getFnConfirm } from '../common/helper/prompt-f
 import { createNewTag } from '../common/helper/tag';
 import { ActionBarComponent } from '../common/action-bar/action-bar.component';
 import { ChatViewComponent } from '../views/chat-view/chat-view.component';
-import { IonAccordionGroup, IonContent, IonRouterOutlet } from '@ionic/angular';
 import { TagIbGib_V1 } from '../common/types/tag';
 import { RobbotIbGib_V1 } from '../common/types/robbot';
 import { RobbotBarComponent } from '../common/robbot-bar/robbot-bar.component';
 import { AppIbGib_V1 } from '../common/types/app';
+import { AppBarComponent } from '../common/app-bar/app-bar.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -70,9 +69,9 @@ export class IbGibPage extends IbgibComponentBase
   private _subPollLatest_Store: Subscription;
   private _pollingLatest_Store: boolean;
 
-  @Input()
-  get addr(): IbGibAddr { return super.addr; }
-  set addr(value: IbGibAddr) { super.addr = value; }
+  // @Input()
+  // get addr(): IbGibAddr { return super.addr; }
+  // set addr(value: IbGibAddr) { super.addr = value; }
 
   // /**
   //  * For the ibgib page, our context is just our ibgib itself.
@@ -128,6 +127,9 @@ export class IbGibPage extends IbgibComponentBase
   @Input()
   get autoRefresh(): boolean { return !this.paused; }
   set autoRefresh(value: boolean) { this.paused = value; }
+
+  @ViewChild('appBar')
+  appBar: AppBarComponent
 
   _appBarIsVisible: boolean = true;
   @Input()
@@ -263,6 +265,9 @@ export class IbGibPage extends IbgibComponentBase
       // additional item loading if we're a pic/comment
       await this.loadItem();
 
+      // use the correct app. (atow this means loading only from the app bar)
+      this.updateActiveApp(); // spin off
+
       // poll if there is a timeline/tjp involved
       if (this.tjp) {
         this.startPollLatest_Local();
@@ -296,6 +301,34 @@ export class IbGibPage extends IbgibComponentBase
       this.removeStatusText({ statusId });
       this.ref.detectChanges();
       if (logalot) { console.log(`${lc} updated.`); }
+    }
+  }
+
+  /**
+   * loads the correct app depending on the current ibgib.
+   */
+  async updateActiveApp(): Promise<void> {
+    const lc = `${this.lc}[${this.updateActiveApp.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: e3064a93ac6fb9b22767dadd48646622)`); }
+
+      let count = 0;
+      while (!this.appBar && count < 10) {
+        await h.delay(2000);
+        count++
+      }
+      if (!this.appBar) {
+        console.warn(`${lc} (UNEXPECTED) this.appBar is falsy? (W: 6c9f578dc2774b8da5ae1b3660b9b922)`);
+        return; /* <<<< returns early */
+      }
+
+      this.activeApp = this.appBar.selectedApp;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      setTimeout(() => this.ref.detectChanges());
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 

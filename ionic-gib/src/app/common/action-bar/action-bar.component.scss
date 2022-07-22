@@ -42,7 +42,7 @@ ion-button {
   }
 
   ion-button {
-    border-width: $btnBorderWidth !important;
+    border-width: $btnBorderWidth  !important;
     border-color: transparent;
     border-style: solid;
   }
@@ -82,7 +82,8 @@ ion-button {
     overflow-y: scroll;
   }
 
-  .textarea-wrapper, .native-textarea {
+  .textarea-wrapper,
+  .native-textarea {
     height: 100% !important;
     min-height: 100% !important;
     width: 100%;
@@ -97,7 +98,7 @@ ion-button {
     padding: 1px 2px 1px 2px;
     border-radius: $btnBorderRadius;
     border-color: var(--ion-color-primary);
-    border-width: $btnBorderWidth !important;
+    border-width: $btnBorderWidth  !important;
     border-color: transparent;
     border-style: solid;
     border-width: 1px;
@@ -118,7 +119,7 @@ ion-button {
 
 ion-button:hover,
 ion-menu-button:hover {
-  border-width: $btnBorderWidth !important;
+  border-width: $btnBorderWidth  !important;
   color: var(--ion-color-secondary);
   border-color: var(--ion-color-secondary) !important;
   border-style: solid;
@@ -169,7 +170,6 @@ ion-thumbnail {
 }
 
 
-
 #thumbnails {
   ion-item {
     --padding-start: 0px;
@@ -177,7 +177,6 @@ ion-thumbnail {
     border-radius: 10px;
   }
 }
-
 
 #thumbnails {
   display: flex;
@@ -187,7 +186,6 @@ ion-thumbnail {
   background: transparent;
 }
 
-
 .thumbnail-btn {
   --background: transparent !important;
   color: var(--ion-color-primary);
@@ -196,6 +194,7 @@ ion-thumbnail {
   border-style: dashed;
   border-radius: $btnBorderRadius;
   padding: 0px;
+  aspect-ratio: 1/1;
 
   ion-badge {
     position: absolute;

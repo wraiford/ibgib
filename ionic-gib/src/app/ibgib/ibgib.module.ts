@@ -24,6 +24,9 @@ import { SvgViewComponent } from '../views/svg-view/svg-view.component';
 import { TagListViewComponent } from '../views/tag-list-view/tag-list-view.component';
 import { RootListViewComponent } from '../views/root-list-view/root-list-view.component';
 import { ChatViewComponent } from '../views/chat-view/chat-view.component';
+
+import { ChatAppComponent } from '../apps/chat-app/chat-app.component';
+
 import { IbGibPage } from './ibgib.page';
 
 import { ChooseIconModalComponent } from '../common/choose-icon-modal/choose-icon-modal.component';
@@ -73,6 +76,9 @@ import { ClickHoldAnimationDirective } from '../common/directives/animations/cli
     TagListViewComponent,
     RootListViewComponent,
     ChatViewComponent,
+
+    ChatAppComponent,
+
     IbGibPage,
 
     ChooseIconModalComponent,

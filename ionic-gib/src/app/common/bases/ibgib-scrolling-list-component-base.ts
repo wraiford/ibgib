@@ -1,16 +1,11 @@
 import {
-    OnInit, OnDestroy, Input, ChangeDetectorRef, Output,
-    EventEmitter, ViewChild, Directive,
+    OnInit, OnDestroy, ChangeDetectorRef, ViewChild, Directive,
 } from '@angular/core';
-import { Injectable } from '@angular/core';
 
 import * as h from 'ts-gib/dist/helper';
-import { IbGibAddr } from 'ts-gib';
-import { getGibInfo, } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 import * as c from '../constants';
-import { IbgibListItem, IbGibTimelineUpdateInfo } from '../types/ux';
-import { IbgibComponentBase } from './ibgib-component-base';
+import { IbgibListItem, } from '../types/ux';
 import { CommonService } from '../../services/common.service';
 import { unique } from '../helper/utils';
 import { IonContent, IonInfiniteScroll } from '@ionic/angular';
@@ -21,7 +16,6 @@ import { IbgibListComponentBase } from './ibgib-list-component-base';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
-// @Injectable({ providedIn: "root" })
 @Directive()
 export abstract class IbgibScrollingListComponentBase<TItem extends IbgibListItem = IbgibListItem>
     extends IbgibListComponentBase<TItem>
@@ -36,25 +30,6 @@ export abstract class IbgibScrollingListComponentBase<TItem extends IbgibListIte
      *   Otherwise, I usually use very long names...often too long! :-)
      */
     protected lc: string = `[${IbgibScrollingListComponentBase.name}]`;
-
-    @Input()
-    items: TItem[] = [];
-
-    // @Input()
-    // rel8nNames: string[] = c.DEFAULT_LIST_REL8N_NAMES;
-
-    /**
-     * How many items we're going to be adding when doing differential udpate.
-     */
-    @Input()
-    skeletonItemsCount: number = 0;
-
-    /**
-     * trying this out to let consumer know when items have been added to effect
-     * scrolling.
-     */
-    @Output()
-    itemsAdded: EventEmitter<number> = new EventEmitter();
 
     @ViewChild('listViewContent')
     listViewContent: IonContent;

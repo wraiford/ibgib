@@ -15,7 +15,7 @@
     </ion-title>
     <ion-title *ngIf='isPic' class='pic-title toolbar-title-yo'>
       <ion-thumbnail>
-        <pic-view [addr]='item.addr' [isTitleOrJustSmall]='true' (click)="showFullscreenModal()"></pic-view>
+        <pic-view [addr]='item.addr' [isTitleOrJustSmall]='true' (click)="showFullscreenModal()" ></pic-view>
       </ion-thumbnail>
     </ion-title>
     <ion-title *ngIf='isComment' class='comment-title toolbar-title-yo' (click)="handleTitleClick()">
@@ -120,24 +120,40 @@
     <ib-robbot-bar #robbotBar *ngIf="robbotBarIsVisible" [addr]='addr' [selectedRobbotAddr]="selectedRobbotAddr"
       (robbotSelected)="handleRobbotSelected($event)"></ib-robbot-bar>
 
-    <!-- <ib-chat-app *ngIf="activeApp?.data.classname === 'ChatApp_V1'"></ib-chat-app> -->
-    <ib-chat-app *ngIf="activeApp"></ib-chat-app>
-    <tag-list *ngIf='isTags' [addr]='addr' [ibGib_Context]='ibGib' (scroll)="scrollSubject.next($event)">
-    </tag-list>
-    <root-list *ngIf='isRoots' [addr]='addr' [ibGib_Context]='ibGib' (scroll)="scrollSubject.next($event)">
-    </root-list>
-    <chat-view #chatView *ngIf='!(isTags || isRoots) && !showHeart' [addr]='addr' [ibGib_Context]='ibGib'
-      (scroll)="scrollSubject.next($event)" (chatItemsAdded)="handleChatItemsAdded()">
-    </chat-view>
-    <div id="heart-div" *ngIf='!(isTags || isRoots) && showHeart'>
-      <!-- show pics in svg view -->
+    <ng-container *ngIf="activeApp?.data.classname === 'ChatApp_V1';then chatApp; else defaultApp">
+    </ng-container>
+
+    <ng-template #chatApp>
+      <ib-chat-app [addr]="addr"></ib-chat-app>
+    </ng-template>
+
+    <ng-template #defaultApp>
+      <ib-chat-app [addr]="addr"></ib-chat-app>
+      <!-- <p>default app</p> -->
+      <!-- <ion-spinner name="circles" color="tertiary"></ion-spinner> -->
+      <!-- <ib-chat-app></ib-chat-app> -->
+      <!-- <chat-view #chatView [addr]='addr' [ibGib_Context]='ibGib'
+        (scroll)="scrollSubject.next($event)" (chatItemsAdded)="handleChatItemsAdded()">
+      </chat-view> -->
+    </ng-template>
+
+    <!-- <tag-list *ngIf='isTags' [addr]='addr' [ibGib_Context]='ibGib' (scroll)="scrollSubject.next($event)">
+    </tag-list> -->
+    <!-- <root-list *ngIf='isRoots' [addr]='addr' [ibGib_Context]='ibGib' (scroll)="scrollSubject.next($event)">
+    </root-list> -->
+    <!-- <chat-view #chatView *ngIf='!(isTags || isRoots) && !showHeart' [addr]='addr' [ibGib_Context]='ibGib'
+      (scroll)="scrollSubject.next($event)" (itemsAdded)="handleChatItemsAdded()">
+    </chat-view> -->
+
+    <!-- show pics in svg view -->
+    <!-- everything else linear chat -->
+    <!-- <div id="heart-div" *ngIf='!(isTags || isRoots) && showHeart'>
       <svg-view #ibgibpageSvgView [addr]='addr' [ibGib_Context]='ibGib'>
       </svg-view>
-      <!-- everything else linear chat -->
       <chat-view #chatViewHeart [addr]='addr' [ibGib_Context]='ibGib' [rel8nNames]="chatViewRel8nNamesNoPics"
-        (scroll)="scrollSubject.next($event)" (chatItemsAdded)="handleChatItemsAdded()">
+        (scroll)="scrollSubject.next($event)" (itemsAdded)="handleChatItemsAdded()">
       </chat-view>
-    </div>
+    </div> -->
 
     <ion-modal [isOpen]="showModal_PromptForTag">
       <ng-template>

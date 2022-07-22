@@ -2,25 +2,20 @@ import {
     OnInit, OnDestroy, Input, ChangeDetectorRef, Output,
     EventEmitter, ViewChild, Directive,
 } from '@angular/core';
-import { Injectable } from '@angular/core';
+import { IonContent } from '@ionic/angular';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib';
 import { getGibInfo, } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 import * as c from '../constants';
-import { IbGibItem, IbgibListItem, IbGibTimelineUpdateInfo } from '../types/ux';
+import { IbgibListItem, IbGibTimelineUpdateInfo } from '../types/ux';
 import { IbgibComponentBase } from './ibgib-component-base';
 import { CommonService } from '../../services/common.service';
 import { unique } from '../helper/utils';
-import { IonContent } from '@ionic/angular';
-import { Subject } from 'rxjs/internal/Subject';
-import { Observable, Subscription } from 'rxjs';
-import { debounceTime } from 'rxjs/internal/operators/debounceTime';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
-// @Injectable({ providedIn: "root" })
 @Directive()
 export abstract class IbgibListComponentBase<TItem extends IbgibListItem = IbgibListItem>
     extends IbgibComponentBase<TItem>
@@ -45,13 +40,9 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
     set rel8nNames(value: string[]) {
         const lc = `${this.lc}[set rel8nNames]`;
         if (logalot) { console.log(`${lc} value: ${value} (I: 15708e5febab6d3684b5667d9918fb22)`); }
-        // if (this.lc === '[ListViewComponent]') {
-        //     debugger;
-        // } else {
-        //     debugger;
-        // }
         this._rel8nNames = value;
     }
+
     /**
      * should determine which rel8ns are showed by the list component.
      */
@@ -72,7 +63,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
      * scrolling.
      */
     @Output()
-    itemsAdded: EventEmitter<number> = new EventEmitter();
+    itemsAdded = new EventEmitter<TItem[]>();
 
     @ViewChild('listViewContent')
     listViewContent: IonContent;
@@ -117,8 +108,6 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
 
     async updateIbGib_NewerTimelineFrame({
         latestAddr,
-        // latestIbGib,
-        // tjpAddr,
     }: IbGibTimelineUpdateInfo): Promise<void> {
         const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
         try {
@@ -480,7 +469,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
             if (itemsToAdd.length > 0) {
                 if (logalot) { console.log(`${lc} emitting itemsAdded (I: 145ca8df34da5119d1e08fe970faac22)`); }
                 // this.sortItems(this.items);
-                this.itemsAdded.emit();
+                this.itemsAdded.emit(itemsToAdd);
             }
         } catch (error) {
             console.error(`${lc} ${error.message}`);

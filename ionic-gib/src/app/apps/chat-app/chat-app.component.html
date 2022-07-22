@@ -1,3 +1,4 @@
-<p>
-  chat-app works!
-</p>
+<chat-view #chatView [addr]='addr' [ibGib_Context]='ibGib'
+  (chatViewScrolled)="handleChatViewScroll($event)"
+  (chatViewItemsAdded)="handleChatViewItemsAdded($event)">
+</chat-view>

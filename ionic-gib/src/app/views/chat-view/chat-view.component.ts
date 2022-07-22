@@ -1,20 +1,19 @@
-import { Component, Input, ChangeDetectorRef, Output, EventEmitter, ViewChild } from '@angular/core';
-import { Capacitor } from '@capacitor/core';
+import {
+  Component, ChangeDetectorRef, Output, EventEmitter, ViewChild
+} from '@angular/core';
+import { ScrollBaseCustomEvent } from '@ionic/angular';
 
 import * as h from 'ts-gib/dist/helper';
-import { IbGibAddr } from 'ts-gib';
-import { IbGib_V1 } from 'ts-gib/dist/V1';
 
 import * as c from '../../common/constants';
-import { CommonService } from 'src/app/services/common.service';
+import { CommonService } from '../../services/common.service';
 import { IbGibItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
-import { IbgibListComponentBase } from 'src/app/common/bases/ibgib-list-component-base';
-import { ScrollBaseCustomEvent } from '@ionic/angular';
+import { IbgibListComponentBase } from '../../common/bases/ibgib-list-component-base';
 import { ListViewComponent } from '../list-view/list-view.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
-interface ChatItem extends IbGibItem {
+export interface ChatItem extends IbGibItem {
 
 }
 
@@ -27,30 +26,11 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
 
   protected lc: string = `[${ChatViewComponent.name}]`;
 
-  @Input()
-  get addr(): IbGibAddr { return super.addr; }
-  set addr(value: IbGibAddr) { super.addr = value; }
-
-  @Input()
-  get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
-  set ibGib_Context(value: IbGib_V1) { super.ibGib_Context = value; }
-
-  // set rel8nNames(value: string[]) {
-  //   const lc = `${this.lc}[set rel8nNames]`;
-  //   if (logalot) { console.log(`${lc} value: ${value} (I: bfd0a0312c2c414d99414d2163b227a7)`); }
-  //   this._rel8nNames = value;
-  // }
-  // /**
-  //  * should determine which rel8ns are showed by the list component.
-  //  */
-  // @Input()
-  // get rel8nNames(): string[] { return this._rel8nNames; }
+  @Output()
+  chatViewScrolled: EventEmitter<ScrollBaseCustomEvent> = new EventEmitter();
 
   @Output()
-  scroll: EventEmitter<ScrollBaseCustomEvent> = new EventEmitter();
-
-  @Output()
-  chatItemsAdded: EventEmitter<number> = new EventEmitter();
+  chatViewItemsAdded = new EventEmitter<ChatItem[]>();
 
   @ViewChild('listView')
   listView: ListViewComponent;
@@ -62,27 +42,22 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
     super(common, ref);
   }
 
-  async updateIbGib_NewerTimelineFrame(info: IbGibTimelineUpdateInfo): Promise<void> {
-    const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting...`); }
+  // async updateIbGib_NewerTimelineFrame(info: IbGibTimelineUpdateInfo): Promise<void> {
+  //   const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
+  //   try {
+  //     if (logalot) { console.log(`${lc} starting...`); }
 
-      await super.updateIbGib_NewerTimelineFrame(info);
-      if (logalot) { console.log(`${lc}[testing] this.items.length: ${this.items?.length ?? -1}`); }
+  //     await super.updateIbGib_NewerTimelineFrame(info);
+  //     if (logalot) { console.log(`${lc}[testing] this.items.length: ${this.items?.length ?? -1}`); }
 
-      // temporary hack...no idea why it's still not updating correctly on the device
-      // if (this.listView) {
-      //   await this.listView.updateIbGib_NewerTimelineFrame(info);
-      // }
-
-    } catch (error) {
-      debugger;
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
+  //   } catch (error) {
+  //     debugger;
+  //     console.error(`${lc} ${error.message}`);
+  //     throw error;
+  //   } finally {
+  //     if (logalot) { console.log(`${lc} complete.`); }
+  //   }
+  // }
 
   async itemClicked(item: IbGibItem): Promise<void> {
     const lc = `${this.lc}[${this.itemClicked.name}]`;
@@ -103,15 +78,12 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
 
   handleScroll(event: any): void {
     const lc = `${this.lc}[${this.handleScroll.name}]`;
-    this.scroll.emit(event);
+    this.chatViewScrolled.emit(event);
     if (logalot) { console.log(`${lc} scrolling (I: b62e75fad64d0d12147cd608e8323622)`); }
   }
 
-  handleItemsAdded(): void {
-    this.chatItemsAdded.emit();
-    // setTimeout(() => {
-    //   this.scrollToBottom();
-    //   this.ref.detectChanges();
-    // }, 500);
+  handleItemsAdded(items: ChatItem[]): void {
+    this.chatViewItemsAdded.emit(items);
   }
+
 }

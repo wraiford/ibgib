@@ -23,24 +23,8 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
 
   protected lc: string = `[${ListViewComponent.name}]`;
 
-  @Input()
-  get addr(): IbGibAddr { return super.addr; }
-  set addr(value: IbGibAddr) {
-    super.addr = value;
-  }
-
-  @Input()
-  get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
-  set ibGib_Context(value: IbGib_V1) { super.ibGib_Context = value; }
-
   @Output()
-  clicked: EventEmitter<IbGibItem> = new EventEmitter();
-
-  // @Output()
-  // scrolled: EventEmitter<void> = new EventEmitter();
-
-  @Output()
-  itemsAdded: EventEmitter<number> = new EventEmitter();
+  clicked = new EventEmitter<IbGibItem>();
 
   @ViewChild('listViewContent')
   listViewContent: IonContent;
