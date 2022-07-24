@@ -2,17 +2,16 @@ import { Injectable } from '@angular/core';
 
 import * as h from 'ts-gib/dist/helper';
 import {
-    IbGib_V1, ROOT, Factory_V1 as factory, Rel8n,
-    IbGibRel8ns_V1,
+    IbGib_V1, ROOT, Factory_V1 as factory, Rel8n, IbGibRel8ns_V1,
 } from 'ts-gib/dist/V1';
 import { TransformResult } from 'ts-gib';
 
 import * as c from '../../constants';
+import { AppBase_V1 } from './app-base-v1';
 import {
     AppData_V1, AppRel8ns_V1, AppIbGib_V1,
-    AppCmdData, AppCmdIbGib, AppCmdRel8ns, AppCmd,
+    AppCmdData, AppCmdIbGib, AppCmdRel8ns,
 } from '../../types/app';
-import { AppBase_V1 } from './app-base-v1';
 import { DynamicForm } from '../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
 import { getIdPool } from '../../helper/utils';
@@ -23,35 +22,34 @@ import { DynamicFormBuilder } from '../../helper/form';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
-export const DEFAULT_UUID_CHAT_APP = undefined;
-export const DEFAULT_NAME_CHAT_APP = 'chat_gib';
-export const DEFAULT_DESCRIPTION_CHAT_APP =
-    `A chat app done ibgib style, enabling infinitely nesting comments, pics and links. It's ibgibs all the way down...`;
+export const DEFAULT_UUID_RAW_APP = undefined;
+export const DEFAULT_NAME_RAW_APP = 'raw_gib';
+export const DEFAULT_DESCRIPTION_RAW_APP =
+    `Explorer app for navigating raw ibgib data.`;
 
 
-export interface ChatAppData_V1 extends AppData_V1 {
+export interface RawAppData_V1 extends AppData_V1 {
 
 }
 
-
-export interface ChatAppRel8ns_V1 extends AppRel8ns_V1 {
+export interface RawAppRel8ns_V1 extends AppRel8ns_V1 {
 
 }
 
 /**
  *
  */
-export class ChatApp_V1 extends AppBase_V1<
+export class RawApp_V1 extends AppBase_V1<
     // in
     any, IbGibRel8ns_V1, IbGib_V1<any, IbGibRel8ns_V1>,
     // out
     any, IbGibRel8ns_V1, IbGib_V1<any, IbGibRel8ns_V1>,
     // this
-    ChatAppData_V1, ChatAppRel8ns_V1
+    RawAppData_V1, RawAppRel8ns_V1
 > {
-    protected lc: string = `[${ChatApp_V1.name}]`;
+    protected lc: string = `[${RawApp_V1.name}]`;
 
-    constructor(initialData?: ChatAppData_V1, initialRel8ns?: ChatAppRel8ns_V1) {
+    constructor(initialData?: RawAppData_V1, initialRel8ns?: RawAppRel8ns_V1) {
         super(initialData, initialRel8ns);
         const lc = `${this.lc}[ctor]`;
         try {
@@ -72,9 +70,9 @@ export class ChatApp_V1 extends AppBase_V1<
         const lc = `${this.lc}[${this.initialize.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            if (!this.data) { this.data = h.clone(DEFAULT_CHAT_APP_DATA_V1); }
-            if (!this.rel8ns && DEFAULT_CHAT_APP_REL8NS_V1) {
-                this.rel8ns = h.clone(DEFAULT_CHAT_APP_REL8NS_V1);
+            if (!this.data) { this.data = h.clone(DEFAULT_RAW_APP_DATA_V1); }
+            if (!this.rel8ns && DEFAULT_RAW_APP_REL8NS_V1) {
+                this.rel8ns = h.clone(DEFAULT_RAW_APP_REL8NS_V1);
             }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -91,7 +89,7 @@ export class ChatApp_V1 extends AppBase_V1<
         const lc = `${this.lc}[${this.doDefault.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            throw new Error(`not implemented (E: 62217a6f28228a576df094bf237df322)`);
+            throw new Error(`not implemented (E: bd8ce5e2518742c98ae1928cabddab64)`);
             return ROOT;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -115,7 +113,7 @@ export class ChatApp_V1 extends AppBase_V1<
         const lc = `${this.lc}[${this.doCmdIb.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            throw new Error(`not implemented (E: 09ce64dd7939ee2bd3a614ce80138d22)`);
+            throw new Error(`not implemented (E: 7c57ff07b45a4779895eb245590c3de4)`);
             return ROOT;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -142,7 +140,7 @@ export class ChatApp_V1 extends AppBase_V1<
 
             const space = await this.ibgibsSvc.getLocalUserSpace({ lock: true });
 
-            throw new Error(`not implemented yet (E: 2fee227028baa72a660cb5b60f020122)`);
+            throw new Error(`not implemented yet (E: 0f83e488f2774a64b3a905b08d64946e)`);
             return ROOT;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -160,7 +158,7 @@ export class ChatApp_V1 extends AppBase_V1<
         const lc = `${this.lc}[${this.doCmdIbgib.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            throw new Error(`not implemented yet (E: 425ef954b639e64202fe5fb9fdc94b22)`);
+            throw new Error(`not implemented yet (E: b87ad1a62e8c48f1a4860abe3d3789b0)`);
             return ROOT;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -177,12 +175,12 @@ export class ChatApp_V1 extends AppBase_V1<
             if (logalot) { console.log(`${lc} starting...`); }
             const errors = await super.validateWitnessArg(arg) ?? [];
             if (!this.ibgibsSvc) {
-                errors.push(`this.ibgibsSvc required (E: 2e64390a2e014631b5bcc1c0cc9b80cf)`);
+                errors.push(`this.ibgibsSvc required (E: aa389a8642e643d78ff0ea777893a3df)`);
             }
             if ((<any>arg.data).cmd) {
                 // perform extra validation for cmds
                 if ((arg.ibGibs ?? []).length === 0) {
-                    errors.push(`ibGibs required. (E: a21da24eea0049128eeed253aae1218b)`);
+                    errors.push(`ibGibs required. (E: 1ced444edbf745a5828f0a478a5d8d85)`);
                 }
             }
             return errors;
@@ -225,21 +223,21 @@ export class ChatApp_V1 extends AppBase_V1<
  *
  * (but of course won't be the end of the world when this doesn't happen).
  */
-export const DEFAULT_CHAT_APP_DATA_V1: ChatAppData_V1 = {
+export const DEFAULT_RAW_APP_DATA_V1: RawAppData_V1 = {
     version: '1',
-    uuid: DEFAULT_UUID_CHAT_APP,
-    name: DEFAULT_NAME_CHAT_APP,
-    description: DEFAULT_DESCRIPTION_CHAT_APP,
-    classname: ChatApp_V1.name,
+    uuid: DEFAULT_UUID_RAW_APP,
+    name: DEFAULT_NAME_RAW_APP,
+    description: DEFAULT_DESCRIPTION_RAW_APP,
+    classname: RawApp_V1.name,
 
-    icon: 'chatbubbles',
+    icon: 'paper-plane',
 
     persistOptsAndResultIbGibs: false,
     allowPrimitiveArgs: true,
     catchAllErrors: true,
     trace: false,
 }
-const DEFAULT_CHAT_APP_REL8NS_V1: ChatAppRel8ns_V1 = undefined;
+const DEFAULT_RAW_APP_REL8NS_V1: RawAppRel8ns_V1 = undefined;
 
 /**
  * factory for random app.
@@ -247,25 +245,26 @@ const DEFAULT_CHAT_APP_REL8NS_V1: ChatAppRel8ns_V1 = undefined;
  * @see {@link DynamicFormFactoryBase}
  */
 @Injectable({ providedIn: 'root' })
-export class ChatApp_V1_Factory
-    extends DynamicFormFactoryBase<ChatAppData_V1, ChatAppRel8ns_V1, ChatApp_V1> {
+export class RawApp_V1_Factory
+    extends DynamicFormFactoryBase<RawAppData_V1, RawAppRel8ns_V1, RawApp_V1> {
 
-    protected lc: string = `[${ChatApp_V1_Factory.name}]`;
+    protected lc: string = `[${RawApp_V1_Factory.name}]`;
 
-    getName(): string { return ChatApp_V1.name; }
+    getName(): string { return RawApp_V1.name; }
 
     async newUp({
         data,
         rel8ns,
     }: {
-        data?: ChatAppData_V1,
-        rel8ns?: ChatAppRel8ns_V1,
-    }): Promise<TransformResult<ChatApp_V1>> {
+        data?: RawAppData_V1,
+        rel8ns?: RawAppRel8ns_V1,
+    }): Promise<TransformResult<RawApp_V1>> {
         const lc = `${this.lc}[${this.newUp.name}]`;
         try {
+            debugger;
             if (logalot) { console.log(`${lc} starting...`); }
-            data = data ?? h.clone(DEFAULT_CHAT_APP_DATA_V1);
-            rel8ns = rel8ns ?? DEFAULT_CHAT_APP_REL8NS_V1 ? h.clone(DEFAULT_CHAT_APP_REL8NS_V1) : undefined;
+            data = data ?? h.clone(DEFAULT_RAW_APP_DATA_V1);
+            rel8ns = rel8ns ?? DEFAULT_RAW_APP_REL8NS_V1 ? h.clone(DEFAULT_RAW_APP_REL8NS_V1) : undefined;
             data.uuid = data.uuid ?? await h.getUUID();
             let { classname } = data;
 
@@ -285,12 +284,12 @@ export class ChatApp_V1_Factory
             // replace the newIbGib which is just ib,gib,data,rel8ns with loaded
             // witness class (that has the witness function on it)
             const appDto = resApp.newIbGib;
-            let appIbGib = new ChatApp_V1(null, null);
+            let appIbGib = new RawApp_V1(null, null);
             await appIbGib.loadIbGibDto(appDto);
             resApp.newIbGib = appIbGib;
-            if (logalot) { console.log(`${lc} appDto: ${h.pretty(appDto)} (I: af9d16de46d6e6d75b2a21312d72d922)`); }
+            if (logalot) { console.log(`${lc} appDto: ${h.pretty(appDto)} (I: 0f76e11281684ee0b9b7b719f7065d2a)`); }
 
-            return <TransformResult<ChatApp_V1>>resApp;
+            return <TransformResult<RawApp_V1>>resApp;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -299,13 +298,14 @@ export class ChatApp_V1_Factory
         }
     }
 
-    async witnessToForm({ witness }: { witness: ChatApp_V1; }): Promise<DynamicForm> {
+    async witnessToForm({ witness }: { witness: RawApp_V1; }): Promise<DynamicForm> {
         const lc = `${this.lc}[${this.witnessToForm.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
+            debugger;
             let { data } = witness;
             // We do the AppFormBuilder specific functions first, because of
-            if (logalot) { console.log(`${lc} data: ${h.pretty(data)} (I: d4dc7619a4da932badbd7738bb4ebd22)`); }
+            if (logalot) { console.log(`${lc} data: ${h.pretty(data)} (I: 7601c0e1046b4faa9f62df45e92fd77e)`); }
             const idPool = await getIdPool({ n: 100 });
             // type inference in TS! eesh...
             let form = new AppFormBuilder()
@@ -321,7 +321,7 @@ export class ChatApp_V1_Factory
                 .commonWitnessFields({ data })
                 .outputForm({
                     formName: 'form',
-                    label: 'Chat',
+                    label: 'Raw',
                 });
             return Promise.resolve(form);
         } catch (error) {
@@ -332,9 +332,10 @@ export class ChatApp_V1_Factory
         }
     }
 
-    async formToWitness({ form }: { form: DynamicForm; }): Promise<TransformResult<ChatApp_V1>> {
-        // let app = new ChatApp_V1(null, null);
-        let data: AppData_V1 = h.clone(DEFAULT_CHAT_APP_DATA_V1);
+    async formToWitness({ form }: { form: DynamicForm; }): Promise<TransformResult<RawApp_V1>> {
+        // let app = new RawApp_V1(null, null);
+        debugger;
+        let data: AppData_V1 = h.clone(DEFAULT_RAW_APP_DATA_V1);
         this.patchDataFromItems({ data, items: form.items, pathDelimiter: c.DEFAULT_DATA_PATH_DELIMITER });
         let resApp = await this.newUp({ data });
         return resApp;

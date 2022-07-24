@@ -189,9 +189,6 @@ export class IbGibPage extends IbgibComponentBase
   @Input()
   activeApp: AppIbGib_V1;
 
-  @Input()
-  invisibleStyleExp = "{'height': appBarIsVisible ? 'initial' : '0px','overflow-y': appBarIsVisible ? 'initial' : 'hidden'}";
-
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,

@@ -93,6 +93,47 @@
             </ion-list>
           </ion-accordion>
 
+          <!-- apps -->
+          <ion-accordion value="apps">
+            <ion-item slot="header" title="our helpers...">
+              <ion-label class="header" expand="block">
+                <ion-icon title="apps" slot="start" name="body-outline"></ion-icon>
+                <ion-text>apps</ion-text>
+              </ion-label>
+            </ion-item>
+            <ion-list slot="content" class="accordion-item-list">
+              <ion-item *ngFor="let appItem of appItems"
+                lines="none"
+                >
+                <ion-button (click)="appItem.clickHandler(appItem)">
+                  <ion-icon slot="start" [name]="appItem.icon"></ion-icon>
+                  <ion-label>{{ appItem.title }}</ion-label>
+                </ion-button>
+              </ion-item>
+              <ion-item lines="none">
+                <ion-buttons class="special-menu-btns">
+                  <ion-button [disabled]="addingApp"
+                    title="goto apps ibgib where all of your apps are" color="secondary"
+                    (click)="handleGotoSpecial('apps')">
+                    <ion-spinner *ngIf="addingApp" name="circles" color="primary"></ion-spinner>
+                    <ion-icon slot="start" name="navigate-outline" color="primary"></ion-icon>
+                    <ion-label>goto</ion-label>
+                  </ion-button>
+                  <ion-button [disabled]="initializing || refreshing || addingApp" color="secondary"
+                    (click)="handleAddApp()">
+                    <ion-spinner *ngIf="initializing || refreshing || addingApp" name="circles" color="primary"></ion-spinner>
+                    <ion-icon slot="start" name="add-outline" color="primary"></ion-icon>
+                    <ion-label>add</ion-label>
+                  </ion-button>
+                </ion-buttons>
+              </ion-item>
+              <ion-item *ngIf="initializing || refreshing || addingApp || !appsAddr">
+                <ion-label color="primary">i believe...</ion-label>
+                <ion-spinner name="circles" color="tertiary"></ion-spinner>
+              </ion-item>
+            </ion-list>
+          </ion-accordion>
+
           <!-- tags -->
           <ion-accordion value="tags">
             <ion-item slot="header" title="tags are like bookmarks, bookmarks are like tags...">

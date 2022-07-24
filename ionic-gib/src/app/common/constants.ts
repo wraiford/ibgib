@@ -1615,5 +1615,6 @@ export const SIMPLE_CONFIG_KEY_ROBBOT_SELECTED_ADDR = 'robbotBarSelectedAddr';
 
 export const APP_NAME_REGEXP = /^[a-zA-Z0-9_\-.]{1,32}$/;
 export const APP_REL8N_NAME = 'app';
+export const DEFAULT_APP_ICON = 'apps-outline';
 
 // #endregion app

@@ -1,7 +1,6 @@
 import * as h from 'ts-gib/dist/helper';
-import { IbGibAddr, V1 } from 'ts-gib';
 import {
-    IbGib_V1, IbGibRel8ns_V1, ROOT,
+    IbGib_V1, IbGibRel8ns_V1,
 } from 'ts-gib/dist/V1';
 
 import * as c from '../../constants';
@@ -16,13 +15,9 @@ import { CommentIbGib_V1 } from '../../types/comment';
 import { PicIbGib_V1 } from '../../types/pic';
 import { validateCommonAppData } from '../../helper/app';
 import { argy_, isArg, resulty_ } from '../witness-helper';
-import { IbGibSpaceAny } from '../spaces/space-base-v1';
 import { IbgibsService } from '../../../services/ibgibs.service';
-import { validateIbGibIntrinsically } from '../../helper/validate';
-import { persistTransformResult } from '../../helper/space';
 import { ErrorIbGib_V1 } from '../../types/error';
 import { errorIbGib } from '../../helper/error';
-import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 

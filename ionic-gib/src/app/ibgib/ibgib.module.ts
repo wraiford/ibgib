@@ -24,8 +24,10 @@ import { SvgViewComponent } from '../views/svg-view/svg-view.component';
 import { TagListViewComponent } from '../views/tag-list-view/tag-list-view.component';
 import { RootListViewComponent } from '../views/root-list-view/root-list-view.component';
 import { ChatViewComponent } from '../views/chat-view/chat-view.component';
+import { RawViewComponent } from '../views/raw-view/raw-view.component';
 
 import { ChatAppComponent } from '../apps/chat-app/chat-app.component';
+import { RawAppComponent } from '../apps/raw-app/raw-app.component';
 
 import { IbGibPage } from './ibgib.page';
 
@@ -59,9 +61,6 @@ import { ClickHoldAnimationDirective } from '../common/directives/animations/cli
     HighlightDirective,
     ClickHoldAnimationDirective,
 
-    ActionBarComponent,
-    RobbotBarComponent,
-    AppBarComponent,
 
     FallbackViewComponent,
     TagViewComponent,
@@ -76,10 +75,18 @@ import { ClickHoldAnimationDirective } from '../common/directives/animations/cli
     TagListViewComponent,
     RootListViewComponent,
     ChatViewComponent,
+    RawViewComponent,
 
     ChatAppComponent,
+    RawAppComponent,
+
+    ActionBarComponent,
+    RobbotBarComponent,
+    AppBarComponent,
 
     IbGibPage,
+
+
 
     ChooseIconModalComponent,
     IbgibFullscreenModalComponent,

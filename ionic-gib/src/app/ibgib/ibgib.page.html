@@ -114,28 +114,34 @@
   <div id="container" *ngIf="item?.ibGib" [style.border-color]="debugBorderColor"
     [style.border-width]="debugBorderWidth" [style.border-style]="debugBorderStyle">
 
+      <!-- [ngClass]="{'zero-height': !appBarIsVisible}" -->
     <ib-app-bar #appBar [addr]='addr'
-      [ngClass]="{'zero-height': !appBarIsVisible}"
+      [hidden]="!appBarIsVisible"
       (appSelected)="handleAppSelected($event)"></ib-app-bar>
-    <ib-robbot-bar #robbotBar *ngIf="robbotBarIsVisible" [addr]='addr' [selectedRobbotAddr]="selectedRobbotAddr"
+    <ib-robbot-bar #robbotBar
+      [hidden]="!robbotBarIsVisible"
+      [addr]='addr' [selectedRobbotAddr]="selectedRobbotAddr"
       (robbotSelected)="handleRobbotSelected($event)"></ib-robbot-bar>
 
-    <ng-container *ngIf="activeApp?.data.classname === 'ChatApp_V1';then chatApp; else defaultApp">
+    <ng-container [ngSwitch]="activeApp?.data.classname">
+      <ib-chat-app *ngSwitchCase="'ChatApp_V1'" [addr]="addr"></ib-chat-app>
+      <ib-raw-app *ngSwitchCase="'RawApp_V1'" [addr]="addr"></ib-raw-app>
+      <ib-chat-app *ngSwitchDefault [addr]="addr"></ib-chat-app>
+      <!-- <p *ngSwitchDefault>default</p> -->
     </ng-container>
 
+
+
+
+    <!-- using ngIf/then/else... -->
+    <!-- <ng-container *ngIf="activeApp?.data.classname === 'ChatApp_V1';then chatApp; else defaultApp">
+    </ng-container>
     <ng-template #chatApp>
       <ib-chat-app [addr]="addr"></ib-chat-app>
     </ng-template>
-
     <ng-template #defaultApp>
       <ib-chat-app [addr]="addr"></ib-chat-app>
-      <!-- <p>default app</p> -->
-      <!-- <ion-spinner name="circles" color="tertiary"></ion-spinner> -->
-      <!-- <ib-chat-app></ib-chat-app> -->
-      <!-- <chat-view #chatView [addr]='addr' [ibGib_Context]='ibGib'
-        (scroll)="scrollSubject.next($event)" (chatItemsAdded)="handleChatItemsAdded()">
-      </chat-view> -->
-    </ng-template>
+    </ng-template> -->
 
     <!-- <tag-list *ngIf='isTags' [addr]='addr' [ibGib_Context]='ibGib' (scroll)="scrollSubject.next($event)">
     </tag-list> -->

@@ -31,6 +31,8 @@ import { createNewTag } from './common/helper/tag';
 import { validateIbGibIntrinsically, spaceNameIsValid } from './common/helper/validate';
 import { environment } from '../environments/environment';
 import { getInfoFromSpaceIb } from './common/helper/space';
+import { AppIbGib_V1 } from './common/types/app';
+import { createNewApp } from './common/helper/app';
 
 // #endregion imports & some init
 
@@ -78,6 +80,9 @@ export class AppComponent extends IbgibComponentBase
 
   @Input()
   robbotItems: MenuItem[] = [];
+
+  @Input()
+  appItems: MenuItem[] = [];
 
   _currentRoot: MenuItem;
   @Input()
@@ -128,6 +133,19 @@ export class AppComponent extends IbgibComponentBase
   private _subRobbotsUpdate: Subscription;
   // private _subTagsUpdateTEST: Subscription;
 
+  private _appsAddr: IbGibAddr;
+  @Input()
+  get appsAddr(): IbGibAddr { return this._appsAddr; }
+  set appsAddr(value: IbGibAddr) {
+    const lc = `${this.lc}[set appsAddr]`;
+    if (value !== this._appsAddr) {
+      if (logalot) { console.log(`${lc} updating appsAddr: ${value}`); }
+      this._appsAddr = value;
+      setTimeout(() => { this.ref.detectChanges(); });
+    }
+  }
+  private _subAppsUpdate: Subscription;
+
   private _rootsAddr: IbGibAddr;
   @Input()
   get rootsAddr(): IbGibAddr { return this._rootsAddr; }
@@ -174,6 +192,9 @@ export class AppComponent extends IbgibComponentBase
 
   @Input()
   addingTag: boolean;
+
+  @Input()
+  addingApp: boolean;
 
   constructor(
     private splashScreen: SplashScreen,
@@ -256,6 +277,7 @@ export class AppComponent extends IbgibComponentBase
 
         // these are AppComponent-specific initializations
         await this.initializeMyRoots();
+        await this.initializeMyApps();
         await this.initializeMyTags();
         await this.initializeMySpaces();
         await this.initializeMyRobbots();
@@ -449,6 +471,7 @@ export class AppComponent extends IbgibComponentBase
     }
   }
 
+
   /**
    * Initializes app components properties, NOT the actual special ibgib
    * on the ibgibs service. That should already be done.
@@ -587,6 +610,57 @@ export class AppComponent extends IbgibComponentBase
   }
 
   /**
+   * Initializes app components properties, NOT the actual special ibgib
+   * on the ibgibs service. That should already be done.
+   */
+  async initializeMyApps(): Promise<void> {
+    const lc = `${this.lc}[${this.initializeMyApps.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      let appsIbGib = <AppIbGib_V1>(await this.common.ibgibs.getSpecialIbGib({ type: 'apps' }));
+      const appsTjpIbGib =
+        await this.common.ibgibs.getTjpIbGib({ ibGib: appsIbGib, naive: true });
+      const appsTjpAddr = h.getIbGibAddr({ ibGib: appsTjpIbGib });
+      if (!appsIbGib) { throw new Error(`(UNEXPECTED) appsIbGib falsy (E: 218ede1269a84aaf853af20906ee6c2d)`); }
+      if (!appsIbGib.data) { throw new Error(`(UNEXPECTED) localUserSpace.data falsy (E: c34465b7d4734475a9826790938b0432)`); }
+
+      if (this._subAppsUpdate) { this._subAppsUpdate.unsubscribe(); }
+
+      this._subAppsUpdate = this.common.ibgibs.latestObs.pipe(
+        concatMap(async (latestEvent) => {
+          if (logalot) { console.log(`${lc} ibGib update heard. latestAddr: ${latestEvent.latestAddr}.`); }
+          if (
+            latestEvent?.tjpAddr === appsTjpAddr &&
+            latestEvent.latestAddr !== this.appsAddr
+          ) {
+            // we have a new apps ibgib. easiest way to handle with
+            // existing code is just to clear out the exising appsAddr
+            // and run updateMenu_Apps
+            if (logalot) { console.log(`${lc} triggering apps menu update... (I: ∏e1253e6e65084e60b1afd19a7b008779)`); }
+            this.appsAddr = null;
+
+            await this.updateMenu_Apps();
+            setTimeout(() => { this.ref.detectChanges(); })
+          } else {
+            if (logalot) { console.log(`${lc} nope. latestEvent?.tjpAddr: ${latestEvent?.tjpAddr}`); }
+            if (logalot) { console.log(`${lc} nope. appsTjpAddr: ${appsTjpAddr}`); }
+            if (logalot) { console.log(`${lc} nope. latestEvent.latestAddr: ${latestEvent.latestAddr}`); }
+            if (logalot) { console.log(`${lc} nope. this.appsAddr: ${this.appsAddr}`); }
+          }
+        })
+      ).subscribe();
+      await this.updateMenu_Apps();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      setTimeout(() => this.ref.detectChanges());
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  /**
    * RobbotsIbGib is the special ibgib that tracks robbots in the local space.
    */
   async loadRobbotsAddrAndGetRobbotsIbGib(): Promise<IbGib_V1> {
@@ -594,12 +668,34 @@ export class AppComponent extends IbgibComponentBase
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       while (this.common.ibgibs.initializing) {
-        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 1a41f1e1a28748bc88f913780bd74b4f)`); }
+        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 7b53c95b6dde4485b665f0c1652f6dd1)`); }
         await h.delay(100);
       }
       const robbotsIbGib = await this.common.ibgibs.getSpecialIbGib({ type: "robbots" });
       this.robbotsAddr = h.getIbGibAddr({ ibGib: robbotsIbGib });
       return robbotsIbGib;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  /**
+   * AppsIbGib is the special ibgib that tracks robbots in the local space.
+   */
+  async loadAppsAddrAndGetAppsIbGib(): Promise<IbGib_V1> {
+    const lc = `${this.lc}[${this.loadAppsAddrAndGetAppsIbGib.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      while (this.common.ibgibs.initializing) {
+        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 89805017bfb84c318c484fc70103ca2e)`); }
+        await h.delay(100);
+      }
+      const appsIbGib = await this.common.ibgibs.getSpecialIbGib({ type: "apps" });
+      this.appsAddr = h.getIbGibAddr({ ibGib: appsIbGib });
+      return appsIbGib;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -661,6 +757,7 @@ export class AppComponent extends IbgibComponentBase
       await this.updateMenu_LocalSpaces();
       await this.updateMenu_OuterSpaces();
       await this.updateMenu_Robbots();
+      await this.updateMenu_Apps();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     }
@@ -1122,6 +1219,53 @@ export class AppComponent extends IbgibComponentBase
 
   }
 
+  async updateMenu_Apps(): Promise<void> {
+    const lc = `${this.lc}[${this.updateMenu_Apps.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      const appMenuItems: MenuItem[] = [];
+
+      while (this.common.ibgibs.initializing) {
+        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 757343932e0b46c7a68547b846831a25)`); }
+        await h.delay(100);
+      }
+
+      // load apps if needed
+      if (!this.appsAddr) {
+        if (logalot) { console.log(`${lc} this.appsAddr falsy (I: 8a9e616edfb9406fa09bb0d07f3b64de)`); }
+        await this.loadAppsAddrAndGetAppsIbGib();
+      }
+
+      // get apps, but don't initialize
+      let appsIbGib = await this.common.ibgibs.getSpecialIbGib({ type: "apps" });
+      let appAddrs = appsIbGib?.rel8ns ?
+        appsIbGib.rel8ns[c.APP_REL8N_NAME] ?? [] :
+        [];
+
+      // return if we don't have any apps.
+      if (!appAddrs || appAddrs.length === 0) {
+        if (logalot) { console.log(`${lc} no apps found. (I: 363e05991594406a8476e3d4b1634690)`); }
+        return; /* <<<< returns early */
+      }
+
+      // load individual app items
+      for (let appAddr of appAddrs) {
+        const appItem = await this.getAppItem(appAddr);
+        if (appItem) { appMenuItems.push(appItem); }
+      }
+
+      // "load" them into the bound property and detect the changes
+      this.appItems = appMenuItems;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      this.appItems = [];
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+      setTimeout(() => this.ref.detectChanges());
+    }
+
+  }
+
   getErroredMenuItem(): MenuItem {
     return <MenuItem>{
       icon: 'alert-outline',
@@ -1197,6 +1341,31 @@ export class AppComponent extends IbgibComponentBase
     return item;
   }
 
+  async getAppItem(addr: IbGibAddr): Promise<MenuItem> {
+    const lc = `${this.lc}[${this.getAppItem.name}]`;
+    let item: MenuItem;
+    try {
+      const resGet = await this.common.ibgibs.get({ addr });
+      if (resGet.success && resGet.ibGibs?.length === 1) {
+        const ibGib = resGet.ibGibs![0];
+        if (ibGib?.ib && ibGib.gib && ibGib.data) {
+          const icon = ibGib.data.icon || c.DEFAULT_APP_ICON;
+          const text = ibGib.data.name || ibGib.data.text || ibGib.ib;
+          item = this.getMenuItem({ text, icon, addr });
+        } else {
+          throw new Error(`Invalid ibgib gotten (E: fcd917fad1114de49676de12487018fe)`);
+        }
+      } else {
+        throw new Error(resGet.errorMsg || `error getting ${addr} (E: c55afe29a1174f43803d7917876326b2)`);
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      item = this.getErroredMenuItem();
+    }
+
+    return item;
+  }
+
   getSpaceTooltip(spaceType: string, spaceItem: MenuItem): string {
     return `${spaceType} ${spaceItem.title}`;
   }
@@ -1262,6 +1431,26 @@ export class AppComponent extends IbgibComponentBase
       throw error;
     } finally {
       this.addingRobbot = false;
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleAddApp(): Promise<void> {
+    const lc = `${this.lc}[${this.handleAddApp.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      await this.menu.close();
+      if (this.addingApp) { throw new Error(`(UNEXPECTED) already adding tag...shouldn't get here (E: cc864bf24e134714adfae95b2546d5ac)`); }
+      this.addingApp = true;
+
+      const space = await this.common.ibgibs.getLocalUserSpace({ lock: true });
+
+      await createNewApp({ common: this.common, space });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      this.addingApp = false;
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
