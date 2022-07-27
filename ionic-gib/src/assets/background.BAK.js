@@ -1,10 +1,10 @@
-var lcBackground = `[extension background.js]`;
+let lc = `[extension background.js]`;
 var logalot = true;
 const ibgibUrl = "/index.html";
 
 
 function initializeActionClick() {
-    let lc = `${lcBackground}[${initializeActionClick.name}]`;
+    let lc = `${lc}[${initializeActionClick.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: 4c5508a7e0c70168714e0c111c9b6b22)`); }
         // initialize the action button (and not a context menu click)
@@ -27,7 +27,7 @@ function initializeActionClick() {
 }
 
 function initializeContextMenuClick() {
-    let lc = `${lcBackground}[${initializeActionClick.name}]`;
+    let lc = `${lc}[${initializeActionClick.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: 7b185c4afd53dd75dbd5314461ee3c22)`); }
 
@@ -90,19 +90,13 @@ function initializeContextMenuClick() {
     }
 }
 
-function init() {
-    let lc = `${lcBackground}[${init.name}]`;
-    try {
-
-        if (logalot) { console.log(`${lc} starting... (I: bf749fd2190b3c8cfbc9608b6e23ef22)`); }
-        initializeActionClick();
-        initializeContextMenuClick();
-    } catch (error) {
-        console.error(`${lc} ${error.message}`);
-        throw error;
-    } finally {
-        if (logalot) { console.log(`${lc} complete.`); }
-    }
+try {
+    if (logalot) { console.log(`${lc} starting... (I: bf749fd2190b3c8cfbc9608b6e23ef22)`); }
+    initializeActionClick();
+    initializeContextMenuClick();
+} catch (error) {
+    console.error(`${lc} ${error.message}`);
+    throw error;
+} finally {
+    if (logalot) { console.log(`${lc} complete.`); }
 }
-
-init();

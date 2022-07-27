@@ -2,7 +2,7 @@
     "name": "ionicgib",
     "version": "0.0.1",
     "description": "Simple, powerful and open life-long learning, chat, todo, calendar, and much more...",
-    "action": {
+    "browser_action": {
         "default_title": "ibgib",
         "default_icon": {
             "32": "/assets/icon/favicon.png",
@@ -10,13 +10,11 @@
         }
     },
     "background": {
-        "service_worker": "background.js",
-        "type": "module"
+        "scripts": [
+            "background.js"
+        ]
     },
-    "content_security_policy": {
-        "script-src": "'self' 'unsafe-eval'",
-        "object-src": "'self'"
-    },
+    "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self';",
     "permissions": [
         "storage",
         "contextMenus",
@@ -27,5 +25,5 @@
             "id": "{06d5120a-e87f-48b2-93f2-b06dda2f62ff}"
         }
     },
-    "manifest_version": 3
+    "manifest_version": 2
 }
