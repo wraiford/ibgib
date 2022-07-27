@@ -36,6 +36,8 @@ import * as c from '../common/constants';
 import { CommonService } from '../services/common.service';
 import { ibCircle, ibGroup, ibLine, ibSvg, } from '../common/helper/svg';
 import { SVG_NAMESPACE, IbGibDiagramInfo, } from '../common/types/svg';
+import { ActivatedRoute, Params } from '@angular/router';
+import { ExtensionLaunchInfo } from '../common/types/app';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -108,6 +110,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
+    protected activatedRoute: ActivatedRoute,
   ) {
 
   }
@@ -121,6 +124,24 @@ export class WelcomePage implements OnInit, AfterViewInit {
         console.warn(`${lc} (UNEXPECTED) hacky wait while initializing ibgibs service (I: 4b917090ffb64734a42c3d481e5088fb)`);
         await h.delay(100);
       }
+
+      this.activatedRoute.queryParams.subscribe((params: Params) => {
+        console.log(`${lc} query params: `);
+        console.dir(params);
+        console.log(`params['extensionLaunchInfo']: ${params['extensionLaunchInfo']}`);
+        const info = <ExtensionLaunchInfo>JSON.parse(params['extensionLaunchInfo']);
+        console.log(`${lc} info parsed (params['extensionLaunchInfo'] parsed): `);
+        console.dir(info);
+        if (info.selectionText) {
+          // leaving off here...there are a couple of paths...
+          // create a modal form that creates a new ibgib, including tagging it
+          // or create additional menu links that parse and pass a cetain way
+          //   * see https://github.com/mdn/webextensions-examples/blob/master/emoji-substitution/substitute.js
+          //  but don't actually use their code. just the idea to learn from is can iterate through document.body
+          // and check if nodes are text. if so, look through them and get the words. We can do tf;idf here
+          // for auto-generation of suggested comment ibgibs, etc.
+        }
+      });
 
       // update the title! woohoo!
       document.title = 'welcome';

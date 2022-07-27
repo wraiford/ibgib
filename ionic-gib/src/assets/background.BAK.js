@@ -1,10 +1,10 @@
-let lc = `[extension background.js]`;
+var lcBackground = `[extension background.js]`;
 var logalot = true;
 const ibgibUrl = "/index.html";
 
 
 function initializeActionClick() {
-    let lc = `${lc}[${initializeActionClick.name}]`;
+    let lc = `${lcBackground}[${initializeActionClick.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: 4c5508a7e0c70168714e0c111c9b6b22)`); }
         // initialize the action button (and not a context menu click)
@@ -18,6 +18,7 @@ function initializeActionClick() {
                 if (logalot) { console.log(`${lc} tab created. (I: 1967c7b8b6fa496b929018bd13eeaadf)`); }
             });
         });
+        if (logalot) { console.log(`${lc} success (I: 5eebbe46914b16c2ab3d0b4dc7197f22)`); }
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -27,7 +28,7 @@ function initializeActionClick() {
 }
 
 function initializeContextMenuClick() {
-    let lc = `${lc}[${initializeActionClick.name}]`;
+    let lc = `${lcBackground}[${initializeContextMenuClick.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: 7b185c4afd53dd75dbd5314461ee3c22)`); }
 
@@ -47,31 +48,33 @@ function initializeContextMenuClick() {
         };
         chrome.contextMenus.create(menuItem_link);
 
-        if (logalot) { console.log(`${lc} preparing launch params (pageUrl, selectionText, ...) (I: d1135e0662b640335748719a57d53722)`); }
-        /**
-         * custom event info to pass in to the app
-         * https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
-         */
-        const eventInfo = {
-            ib: true,
-            lc,
-            menuItemId: itemData.menuItemId,
-            pageUrl: itemData.pageUrl,
-            selectionText: itemData.selectionText || undefined,
-        }
-        /**
-         * instead of breaking out our event info into multiple params, we create
-         * a wrapper object for params, and put the entire stringified object
-         * into a single param that we will parse back into a JS object.
-         */
-        const msgObj = { extensionLaunchInfo: JSON.stringify(eventInfo) }
-        const launchParams = new URLSearchParams(msgObj).toString();
 
         if (logalot) { console.log(`${lc} initializing contextMenus.onClicked (I: 62818c091ed5bf612fd564140cc1d222)`); }
         // https://developer.chrome.com/docs/extensions/reference/contextMenus/#type-OnClickData
         // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/menus/OnClickData
         chrome.contextMenus.onClicked.addListener(function (itemData) {
             console.log(`${lc} contextMenu link clicked. itemData.id: ${itemData.id}`);
+            console.dir(itemData);
+
+            if (logalot) { console.log(`${lc} preparing launch params (pageUrl, selectionText, ...) (I: d1135e0662b640335748719a57d53722)`); }
+            /**
+             * custom event info to pass in to the app
+             * https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
+             */
+            const eventInfo = {
+                ib: true,
+                lc,
+                menuItemId: itemData.menuItemId,
+                pageUrl: itemData.pageUrl,
+                selectionText: itemData.selectionText || undefined,
+            }
+            /**
+             * instead of breaking out our event info into multiple params, we create
+             * a wrapper object for params, and put the entire stringified object
+             * into a single param that we will parse back into a JS object.
+             */
+            const msgObj = { extensionLaunchInfo: JSON.stringify(eventInfo) }
+            const launchParams = new URLSearchParams(msgObj).toString();
 
             if (itemData.id === idLink) {
                 if (logalot) { console.log(`${lc} creating ${idLink} tab... (I: 8cffc16cf3ccdfa52ebe565873360122)`); }
@@ -82,6 +85,7 @@ function initializeContextMenuClick() {
                 });
             }
         });
+        if (logalot) { console.log(`${lc} success (I: 78cfd7d3285fbe005cc882899ff0f722)`); }
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -90,13 +94,19 @@ function initializeContextMenuClick() {
     }
 }
 
-try {
-    if (logalot) { console.log(`${lc} starting... (I: bf749fd2190b3c8cfbc9608b6e23ef22)`); }
-    initializeActionClick();
-    initializeContextMenuClick();
-} catch (error) {
-    console.error(`${lc} ${error.message}`);
-    throw error;
-} finally {
-    if (logalot) { console.log(`${lc} complete.`); }
+function init() {
+    let lc = `${lcBackground}[${init.name}]`;
+    try {
+
+        if (logalot) { console.log(`${lc} starting... (I: bf749fd2190b3c8cfbc9608b6e23ef22)`); }
+        initializeActionClick();
+        initializeContextMenuClick();
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
 }
+
+init();

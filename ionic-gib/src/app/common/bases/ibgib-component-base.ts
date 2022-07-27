@@ -899,7 +899,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             } if (info_latestIbGib.gib === this.gib) {
                 if (logalot) { console.log(`${lc} latest ibgib info is the same as the current. (I: 2e184de2498e205ef692395e2b25d922)`); }
             } else {
-                console.warn(`${lc} ignoring "latest" info because it's not newer.\nthis.addr: ${this.addr}\nlatestAddr: ${info.latestAddr} (W: c88d135984c39a2aaefd48620d913b22)`);
+                console.log(`${lc} ignoring "latest" info because it's not newer.\nthis.addr: ${this.addr}\nlatestAddr: ${info.latestAddr} (I: c88d135984c39a2aaefd48620d913b22)`);
                 if (logalot) { console.log(`${lc} current: ${h.pretty(this.ibGib)}, "latest": ${h.pretty(info_latestIbGib)} (I: c89622ffc6ca1be7f668940c26fb5b22)`); }
                 // the following call is idempotent, so okay here in base class.
                 await this.common.ibgibs.registerNewIbGib({ ibGib: this.ibGib });

@@ -211,39 +211,6 @@ export class AppComponent extends IbgibComponentBase
 
     console.log(`${lc} appVersion: ${environment.appVersion}`);
 
-
-    debugger;
-
-
-    // console.log(`${lc} initializing window.addEventListener`);
-    // window.addEventListener('ibExtEvent', (x: any) => {
-    //   debugger;
-    //   console.dir(x);
-    // });
-
-    let counter = 0;
-    this.debugInterval = setInterval(() => {
-      try {
-        if (logalot) { console.log(`${lc} starting... (I: 90ebe189e59345db5f34d8fdb8916922)`); }
-        let msg: any = {
-          lc,
-          type: 'ib',
-          ib: true,
-          text: 'hello',
-          counter,
-        };
-        console.log(`${lc} trying with window.postMessage. msg: ${h.pretty(msg)}`);
-        window.postMessage(msg, '*');
-        counter++;
-
-      } catch (error) {
-        console.error(`${lc} ${error.message}`);
-        throw error;
-      } finally {
-        if (logalot) { console.log(`${lc} complete.`); }
-      }
-    }, 10000);
-
     console.time(c.GLOBAL_TIMER_NAME);
     // interstitial calls throughout code as desired
     setTimeout(() => { console.timeEnd(c.GLOBAL_TIMER_NAME); }, 10000);
@@ -256,7 +223,6 @@ export class AppComponent extends IbgibComponentBase
   async initializeApp(): Promise<void> {
     const lc = `${this.lc}[${this.initializeApp.name}]`;
 
-    debugger;
     if (logalot) { console.log(`${lc} starting...`); }
     this.initializing = true;
     this.common.platform.ready().then(async () => {

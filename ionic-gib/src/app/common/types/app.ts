@@ -177,3 +177,48 @@ export interface AppResultIbGib<
   >
   extends WitnessResultIbGib<TIbGib, TResultData, TResultRel8ns> {
 }
+
+/**
+ * this is generated in background.js (WARNING! background.js atow is generated
+ * from background.v2.js or background.v3.js . ...do NOT make changes directly
+ * in background.js!).
+ *
+ * When the user is in their browser with the ibgib extension and selects some
+ * text or clicks an ibgib context menu item to initiate the app, this info is
+ * passed to the app via query params (atow).
+ */
+export interface ExtensionLaunchInfo {
+  /** brand the event so we know it's ours */
+  ib: boolean;
+  /**
+   * indicate to the receiving angular app that we're launching
+   * from an extension in firefox/chrome. (this is obvious here in
+   * background.js but in the angular app, not so much).
+   */
+  isExtensionLaunch: boolean;
+  /**
+   * So consumer knows where this is coming from. (obvious to us
+   * here, but helps consumer)
+   */
+  lc: string,
+  /**
+   * text of the context menu clicked
+   * @link https://developer.chrome.com/docs/extensions/reference/contextMenus/#type-OnClickData
+   */
+  menuItemId: string;
+  /**
+   * url of the page that _initiates_ the click and starts the app.
+   * so if the user is on wikipedia.org, selects some text and clicks on the ibgib link,
+   * in order to generate some ibgib data based on the page, this will be
+   * https://en.wikipedia.org/wiki/Phanerozoic (or whatever).
+   *
+   * @link https://developer.chrome.com/docs/extensions/reference/contextMenus/#type-OnClickData
+   */
+  pageUrl: string;
+  /**
+   * selected text when initiating the app.
+   *
+   * @link https://developer.chrome.com/docs/extensions/reference/contextMenus/#type-OnClickData
+   */
+  selectionText?: string;
+}
