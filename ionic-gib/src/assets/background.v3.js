@@ -2,20 +2,66 @@ var lcBackground = `[extension background.js]`;
 var logalot = true;
 const ibgibUrl = "/index.html";
 
+// document is falsy in this script, because it runs in a service worker now
+// let location = document?.location?.toString();
+// console.warn(`${lcBackground} document.location.toString(): ${location}`);
+function injectedFunction() {
+    let a = 'a';
+    // document.body.style.borderColor = 'orange';
+    // document.body.style.borderWidth = '5px';
+    // document.body.style.borderStyle = 'solid';
+}
+// console.log('injectedFunction yo');
+// const lc = `[injectedFunction]`;
+// try {
+//     if (logalot) { console.log(`${lc} starting... (I: 73b10ee1c6b5a824cbfa55c822bc5322)`); }
+// } catch (error) {
+//     console.error(`${lc} ${error.message}`);
+//     throw error;
+// } finally {
+//     if (logalot) { console.log(`${lc} complete.`); }
+// }
 
+/**
+ * action button click
+ *
+ * just opens the app in a new tab
+ */
 function initializeActionClick() {
     let lc = `${lcBackground}[${initializeActionClick.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: 4c5508a7e0c70168714e0c111c9b6b22)`); }
-        // initialize the action button (and not a context menu click)
         if (logalot) { console.log(`${lc} adding listener to chrome.action (I: ae93c4d6b016306dc7abf56296213622)`); }
-        chrome.action.onClicked.addListener(() => {
+        chrome.action.onClicked.addListener((outerTab) => {
             if (logalot) { console.log(`${lc} action clicked (I: 636291cefb06f4cf6f216147ad0cb622)`); }
 
             if (logalot) { console.log(`${lc} creating tab... (I: 30c1dd8ba45b483c8c95aa66e4b2eff0)`); }
             // https://developer.chrome.com/docs/extensions/reference/tabs/#method-create
             chrome.tabs.create({ url: ibgibUrl }, (tab) => {
                 if (logalot) { console.log(`${lc} tab created. (I: 1967c7b8b6fa496b929018bd13eeaadf)`); }
+                if (logalot) { console.log(`${lc} tab.url: ${tab.url} (I: 1967c7b8b6fa496b929018bd13eeaadf)`); }
+                if (logalot) { console.log(`${lc} tab.pendingUrl: ${tab.pendingUrl} (I: 1a7a5a447ae6496cbbf652cdbe3fa2aa)`); }
+                if (logalot) { console.log(`${lc} outerTab.url: ${outerTab.url} (I: 225a884a6fba486c903bdaf4a0d5851e)`); }
+                if (logalot) { console.log(`${lc} calling executeScript... (I: 9640c2f315bf5112a97028e5088cd222)`); }
+                try {
+                    if (logalot) { console.log(`${lc} console.dir(tab)... (I: 29d84df078b7810af44f80ea2b858422)`); }
+                    console.dir(tab);
+                    setTimeout(() => {
+                        chrome.scripting.executeScript({
+                            target: { tabId: tab.id },
+                            // function: injectedFunction
+                            files: ['injected.js'],
+                        }, resScript => {
+                            if (logalot) { console.log(`${lc} executeScript complete. console.dir(resScript)...: (I: 9640c2f315bf5112a97028e5088cd222)`); }
+                            console.dir(resScript);
+                        });
+                    }, 3000);
+                } catch (error) {
+                    console.error(`${lc} executeScript errored. Error: ${error.message}`);
+                } finally {
+                    if (logalot) { console.log(`${lc} execute script try-catch-finally complete (I: 2d3956095e586c6cb4ee6ea26250a222)`); }
+                }
+                // chrome.storage.sync.set('')
             });
         });
         if (logalot) { console.log(`${lc} success (I: 5eebbe46914b16c2ab3d0b4dc7197f22)`); }
@@ -27,6 +73,11 @@ function initializeActionClick() {
     }
 }
 
+/**
+ * context menu click
+ *
+ * opens app in new tab and passes in information
+ */
 function initializeContextMenuClick() {
     let lc = `${lcBackground}[${initializeContextMenuClick.name}]`;
     try {

@@ -48,6 +48,11 @@
                 "glob": "**/background.js",
                 "input": "src/assets",
                 "output": "/"
+              },
+              {
+                "glob": "**/injected.js",
+                "input": "src/assets",
+                "output": "/"
               }
             ],
             "styles": [

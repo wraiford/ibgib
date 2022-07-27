@@ -128,18 +128,23 @@ export class WelcomePage implements OnInit, AfterViewInit {
       this.activatedRoute.queryParams.subscribe((params: Params) => {
         console.log(`${lc} query params: `);
         console.dir(params);
-        console.log(`params['extensionLaunchInfo']: ${params['extensionLaunchInfo']}`);
-        const info = <ExtensionLaunchInfo>JSON.parse(params['extensionLaunchInfo']);
-        console.log(`${lc} info parsed (params['extensionLaunchInfo'] parsed): `);
-        console.dir(info);
-        if (info.selectionText) {
-          // leaving off here...there are a couple of paths...
-          // create a modal form that creates a new ibgib, including tagging it
-          // or create additional menu links that parse and pass a cetain way
-          //   * see https://github.com/mdn/webextensions-examples/blob/master/emoji-substitution/substitute.js
-          //  but don't actually use their code. just the idea to learn from is can iterate through document.body
-          // and check if nodes are text. if so, look through them and get the words. We can do tf;idf here
-          // for auto-generation of suggested comment ibgibs, etc.
+        if (params['extensionLaunchInfo']) {
+          console.log(`params['extensionLaunchInfo']: ${params['extensionLaunchInfo']}`);
+          const info = <ExtensionLaunchInfo>JSON.parse(params['extensionLaunchInfo']);
+          console.log(`${lc} info parsed (params['extensionLaunchInfo'] parsed): `);
+          console.dir(info);
+          if (info.selectionText) {
+            // leaving off here...there are a couple of paths...
+            // create a modal form that creates a new ibgib, including tagging it
+            // or create additional menu links that parse and pass a cetain way
+            //   * see https://github.com/mdn/webextensions-examples/blob/master/emoji-substitution/substitute.js
+            //  but don't actually use their code. just the idea to learn from is can iterate through document.body
+            // and check if nodes are text. if so, look through them and get the words. We can do tf;idf here
+            // for auto-generation of suggested comment ibgibs, etc.
+          }
+
+        } else {
+          console.log(`no params extensionLaunchInfo found`)
         }
       });
 
