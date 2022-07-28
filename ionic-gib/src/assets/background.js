@@ -2,26 +2,6 @@ var lcBackground = `[extension background.js]`;
 var logalot = true;
 const ibgibUrl = "/index.html";
 
-// document is falsy in this script, because it runs in a service worker now
-// let location = document?.location?.toString();
-// console.warn(`${lcBackground} document.location.toString(): ${location}`);
-function injectedFunction() {
-    let a = 'a';
-    // document.body.style.borderColor = 'orange';
-    // document.body.style.borderWidth = '5px';
-    // document.body.style.borderStyle = 'solid';
-}
-// console.log('injectedFunction yo');
-// const lc = `[injectedFunction]`;
-// try {
-//     if (logalot) { console.log(`${lc} starting... (I: 73b10ee1c6b5a824cbfa55c822bc5322)`); }
-// } catch (error) {
-//     console.error(`${lc} ${error.message}`);
-//     throw error;
-// } finally {
-//     if (logalot) { console.log(`${lc} complete.`); }
-// }
-
 /**
  * action button click
  *
@@ -34,6 +14,9 @@ function initializeActionClick() {
         if (logalot) { console.log(`${lc} adding listener to chrome.action (I: ae93c4d6b016306dc7abf56296213622)`); }
         chrome.action.onClicked.addListener((outerTab) => {
             if (logalot) { console.log(`${lc} action clicked (I: 636291cefb06f4cf6f216147ad0cb622)`); }
+            if (logalot) { console.log(`${lc} outerTab.url: ${outerTab.url} (I: 225a884a6fba486c903bdaf4a0d5851e)`); }
+            if (logalot) { console.log(`${lc} console.dir(outerTab)... (I: feead477bdfc4317b2ecc52d7d81741f)`); }
+            if (logalot) { console.dir(outerTab); }
 
             if (logalot) { console.log(`${lc} creating tab... (I: 30c1dd8ba45b483c8c95aa66e4b2eff0)`); }
             // https://developer.chrome.com/docs/extensions/reference/tabs/#method-create
@@ -41,7 +24,6 @@ function initializeActionClick() {
                 if (logalot) { console.log(`${lc} tab created. (I: 1967c7b8b6fa496b929018bd13eeaadf)`); }
                 if (logalot) { console.log(`${lc} tab.url: ${tab.url} (I: 1967c7b8b6fa496b929018bd13eeaadf)`); }
                 if (logalot) { console.log(`${lc} tab.pendingUrl: ${tab.pendingUrl} (I: 1a7a5a447ae6496cbbf652cdbe3fa2aa)`); }
-                if (logalot) { console.log(`${lc} outerTab.url: ${outerTab.url} (I: 225a884a6fba486c903bdaf4a0d5851e)`); }
                 if (logalot) { console.log(`${lc} calling executeScript... (I: 9640c2f315bf5112a97028e5088cd222)`); }
                 try {
                     if (logalot) { console.log(`${lc} console.dir(tab)... (I: 29d84df078b7810af44f80ea2b858422)`); }
@@ -83,32 +65,71 @@ function initializeContextMenuClick() {
     try {
         if (logalot) { console.log(`${lc} starting... (I: 7b185c4afd53dd75dbd5314461ee3c22)`); }
 
-        if (logalot) { console.log(`${lc} preparing extension menu links (I: 6a5ea16f0f0bca708a4787621da39622)`); }
-        const menuItemId_IbgibLink = 'ibgib link';
-        const menuItem_link = {
-            title: 'ibgib link',
-            id: menuItemId_IbgibLink,
-            type: 'normal',
-            documentUrlPatterns: ['https://*/*', 'https://*/*'],
-            contexts: [
-                // right-click on page background
-                'page',
-                // right-click with selection
-                'selection'
-            ],
-        };
-        chrome.contextMenus.create(menuItem_link);
+        try {
+
+            if (logalot) { console.log(`${lc} preparing extension menu links (I: 6a5ea16f0f0bca708a4787621da39622)`); }
+            // var parent = chrome.contextMenus.create({"title": "Test parent item"});
+            const MENU_ITEM_PARENT_IBGIB = 'ibgib';
+            const menuItem_Parent = chrome.contextMenus.create({
+                id: MENU_ITEM_PARENT_IBGIB,
+                title: MENU_ITEM_PARENT_IBGIB,
+                documentUrlPatterns: ['https://*/*', 'https://*/*'],
+                contexts: ['all'],
+            });
+
+            // var child1 = chrome.contextMenus.create(
+            // {"title": "Child 1", "parentId": parent, "onclick": genericOnClick});
+            // var child2 = chrome.contextMenus.create(
+            // {"title": "Child 2", "parentId": parent, "onclick": genericOnClick});
+
+            const MENU_ITEM_ADD_SELECTION = 'queue selected text...';
+            chrome.contextMenus.create({
+                parentId: MENU_ITEM_PARENT_IBGIB,
+                id: MENU_ITEM_ADD_SELECTION,
+                title: MENU_ITEM_ADD_SELECTION,
+                type: 'normal',
+                documentUrlPatterns: ['https://*/*', 'https://*/*'],
+                contexts: ['selection'],
+            });
+
+            const MENU_ITEM_ADD_LINK = 'queue link...';
+            chrome.contextMenus.create({
+                parentId: MENU_ITEM_PARENT_IBGIB,
+                id: MENU_ITEM_ADD_LINK,
+                title: MENU_ITEM_ADD_LINK,
+                type: 'normal',
+                documentUrlPatterns: ['https://*/*', 'https://*/*'],
+                contexts: ['link'],
+            });
+
+            const MENU_ITEM_EXEC_CREATE_IBGIB = 'create ibgib';
+            const menuItem_CreateIbGib = chrome.contextMenus.create({
+                parentId: MENU_ITEM_PARENT_IBGIB,
+                id: MENU_ITEM_EXEC_CREATE_IBGIB,
+                title: MENU_ITEM_EXEC_CREATE_IBGIB,
+                type: 'normal',
+                documentUrlPatterns: ['https://*/*', 'https://*/*'],
+                contexts: ['all'],
+            });
+            chrome.contextMenus.create(menuItem_CreateIbGib);
+        } catch (error) {
+            console.error(`${lc} error when creating menu item link...maybe duplicate create? console.dir(error`);
+            console.dir(error);
+        }
 
 
         if (logalot) { console.log(`${lc} initializing contextMenus.onClicked (I: 62818c091ed5bf612fd564140cc1d222)`); }
         // https://developer.chrome.com/docs/extensions/reference/contextMenus/#type-OnClickData
         // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/menus/OnClickData
-        chrome.contextMenus.onClicked.addListener(function (itemData) {
+        chrome.contextMenus.onClicked.addListener(function (itemData, outerTab) {
             console.log(`${lc} contextMenu link clicked. itemData.menuItemId: ${itemData.menuItemId}`);
             console.log(`${lc} itemData: `)
             console.dir(itemData);
 
-            if (logalot) { console.log(`${lc} preparing launch params (pageUrl, selectionText, ...) (I: d1135e0662b640335748719a57d53722)`); }
+            if (logalot) { console.log(`${lc} outerTab.url: ${outerTab.url} (I: ed8d0715d5434aa3932eefc7af5b1667)`); }
+            if (logalot) { console.log(`${lc} console.dir(outerTab)... (I: fd989d970a704c2abdf9c2841bbdb514)`); }
+            if (logalot) { console.dir(outerTab); }
+
             /**
              * custom event info to pass in to the app
              * https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
@@ -148,6 +169,8 @@ function initializeContextMenuClick() {
                  */
                 selectionText: itemData.selectionText || undefined,
             }
+
+            if (logalot) { console.log(`${lc} preparing launch params (pageUrl, selectionText, ...) (I: d1135e0662b640335748719a57d53722)`); }
             /**
              * instead of breaking out our event info into multiple params, we create
              * a wrapper object for params, and put the entire stringified object
@@ -156,9 +179,9 @@ function initializeContextMenuClick() {
             const msgObj = { extensionLaunchInfo: JSON.stringify(eventInfo) }
             const launchParams = new URLSearchParams(msgObj).toString();
 
-            if (itemData.menuItemId === menuItemId_IbgibLink) {
-                if (logalot) { console.log(`${lc} creating ${menuItemId_IbgibLink} tab... (I: 8cffc16cf3ccdfa52ebe565873360122)`); }
+            if (itemData.menuItemId === MENU_ITEM_EXEC_CREATE_IBGIB) {
 
+                if (logalot) { console.log(`${lc} creating ${MENU_ITEM_EXEC_CREATE_IBGIB} tab... (I: 8cffc16cf3ccdfa52ebe565873360122)`); }
                 // https://developer.chrome.com/docs/extensions/reference/tabs/#method-create
                 chrome.tabs.create({ url: ibgibUrl + '?' + launchParams }, (tab) => {
                     if (logalot) { console.log(`${lc} tab created. (I: 7aebd5f816d79c044c11e6e569031c22)`); }

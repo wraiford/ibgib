@@ -34,6 +34,9 @@ function initializeActionClick() {
         if (logalot) { console.log(`${lc} adding listener to chrome.action (I: ae93c4d6b016306dc7abf56296213622)`); }
         chrome.action.onClicked.addListener((outerTab) => {
             if (logalot) { console.log(`${lc} action clicked (I: 636291cefb06f4cf6f216147ad0cb622)`); }
+            if (logalot) { console.log(`${lc} outerTab.url: ${outerTab.url} (I: 225a884a6fba486c903bdaf4a0d5851e)`); }
+            if (logalot) { console.log(`${lc} console.dir(outerTab)... (I: feead477bdfc4317b2ecc52d7d81741f)`); }
+            if (logalot) { console.dir(outerTab); }
 
             if (logalot) { console.log(`${lc} creating tab... (I: 30c1dd8ba45b483c8c95aa66e4b2eff0)`); }
             // https://developer.chrome.com/docs/extensions/reference/tabs/#method-create
@@ -41,9 +44,10 @@ function initializeActionClick() {
                 if (logalot) { console.log(`${lc} tab created. (I: 1967c7b8b6fa496b929018bd13eeaadf)`); }
                 if (logalot) { console.log(`${lc} tab.url: ${tab.url} (I: 1967c7b8b6fa496b929018bd13eeaadf)`); }
                 if (logalot) { console.log(`${lc} tab.pendingUrl: ${tab.pendingUrl} (I: 1a7a5a447ae6496cbbf652cdbe3fa2aa)`); }
-                if (logalot) { console.log(`${lc} outerTab.url: ${outerTab.url} (I: 225a884a6fba486c903bdaf4a0d5851e)`); }
                 if (logalot) { console.log(`${lc} calling executeScript... (I: 9640c2f315bf5112a97028e5088cd222)`); }
                 try {
+                    if (logalot) { console.log(`${lc} console.dir(tab)... (I: 29d84df078b7810af44f80ea2b858422)`); }
+                    console.dir(tab);
                     setTimeout(() => {
                         chrome.scripting.executeScript({
                             target: { tabId: tab.id },
@@ -53,7 +57,7 @@ function initializeActionClick() {
                             if (logalot) { console.log(`${lc} executeScript complete. console.dir(resScript)...: (I: 9640c2f315bf5112a97028e5088cd222)`); }
                             console.dir(resScript);
                         });
-                    }, 2000);
+                    }, 3000);
                 } catch (error) {
                     console.error(`${lc} executeScript errored. Error: ${error.message}`);
                 } finally {
@@ -95,16 +99,25 @@ function initializeContextMenuClick() {
                 'selection'
             ],
         };
-        chrome.contextMenus.create(menuItem_link);
+        try {
+            chrome.contextMenus.create(menuItem_link);
+        } catch (error) {
+            console.error(`${lc} error when creating menu item link...maybe duplicate create? console.dir(error`);
+            console.dir(error);
+        }
 
 
         if (logalot) { console.log(`${lc} initializing contextMenus.onClicked (I: 62818c091ed5bf612fd564140cc1d222)`); }
         // https://developer.chrome.com/docs/extensions/reference/contextMenus/#type-OnClickData
         // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/menus/OnClickData
-        chrome.contextMenus.onClicked.addListener(function (itemData) {
+        chrome.contextMenus.onClicked.addListener(function (itemData, outerTab) {
             console.log(`${lc} contextMenu link clicked. itemData.menuItemId: ${itemData.menuItemId}`);
             console.log(`${lc} itemData: `)
             console.dir(itemData);
+
+            if (logalot) { console.log(`${lc} outerTab.url: ${outerTab.url} (I: ed8d0715d5434aa3932eefc7af5b1667)`); }
+            if (logalot) { console.log(`${lc} console.dir(outerTab)... (I: fd989d970a704c2abdf9c2841bbdb514)`); }
+            if (logalot) { console.dir(outerTab); }
 
             if (logalot) { console.log(`${lc} preparing launch params (pageUrl, selectionText, ...) (I: d1135e0662b640335748719a57d53722)`); }
             /**

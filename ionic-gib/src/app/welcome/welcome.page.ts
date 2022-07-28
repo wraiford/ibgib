@@ -40,7 +40,7 @@ import { ActivatedRoute, Params } from '@angular/router';
 import { ExtensionLaunchInfo } from '../common/types/app';
 
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 @Component({
   selector: 'ib-welcome',
@@ -101,7 +101,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
   get showBackChevronBtn(): boolean {
     const lc = `${this.lc}[get showBackChevronBtn]`;
     const platform = Capacitor.getPlatform();
-    if (logalot) { console.log(`${lc} platform: ${platform}`); }
+    // if (logalot) { console.log(`${lc} platform: ${platform}`); }
 
     // temporary hack is to always show the chevron if it's ios
     return platform === 'ios';
@@ -133,6 +133,21 @@ export class WelcomePage implements OnInit, AfterViewInit {
           const info = <ExtensionLaunchInfo>JSON.parse(params['extensionLaunchInfo']);
           console.log(`${lc} info parsed (params['extensionLaunchInfo'] parsed): `);
           console.dir(info);
+          if (info.pageUrl) {
+            setTimeout(async () => {
+
+              let resFetch = await fetch(info.pageUrl);
+              debugger;
+              if (logalot) { console.log(`${lc} console.dir(resFetch)... (I: 2b176a6c1d5df53207f9615139407122)`); }
+              console.dir(resFetch);
+              let htmlText = await resFetch.text();
+              if (logalot) { console.log(`${lc} htmlText: ${htmlText} (I: eb835887d598a3508e7ed8f28bdf3d22)`); }
+
+              const paragraphs = htmlText.match(/<p>.*<\/p>/g);
+              debugger;
+              console.dir(paragraphs);
+            }, 2000);
+          }
           if (info.selectionText) {
             // leaving off here...there are a couple of paths...
             // create a modal form that creates a new ibgib, including tagging it
