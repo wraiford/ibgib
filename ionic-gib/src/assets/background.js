@@ -45,26 +45,14 @@ function initializeActionClick() {
                 if (logalot) { console.log(`${lc} tab created. (I: 1967c7b8b6fa496b929018bd13eeaadf)`); }
                 if (logalot) { console.log(`${lc} tab.url: ${tab.url} (I: 1967c7b8b6fa496b929018bd13eeaadf)`); }
                 if (logalot) { console.log(`${lc} tab.pendingUrl: ${tab.pendingUrl} (I: 1a7a5a447ae6496cbbf652cdbe3fa2aa)`); }
-                if (logalot) { console.log(`${lc} calling executeScript... (I: 9640c2f315bf5112a97028e5088cd222)`); }
-                try {
-                    if (logalot) { console.log(`${lc} console.dir(tab)... (I: 29d84df078b7810af44f80ea2b858422)`); }
-                    console.dir(tab);
-                    setTimeout(() => {
-                        chrome.scripting.executeScript({
-                            target: { tabId: tab.id },
-                            // function: injectedFunction
-                            files: ['injected.js'],
-                        }, resScript => {
-                            if (logalot) { console.log(`${lc} executeScript complete. console.dir(resScript)...: (I: 9640c2f315bf5112a97028e5088cd222)`); }
-                            console.dir(resScript);
-                        });
-                    }, 3000);
-                } catch (error) {
-                    console.error(`${lc} executeScript errored. Error: ${error.message}`);
-                } finally {
-                    if (logalot) { console.log(`${lc} execute script try-catch-finally complete (I: 2d3956095e586c6cb4ee6ea26250a222)`); }
-                }
-                // chrome.storage.sync.set('')
+                chrome.storage.sync.set({ testing: 'testing 123' }, (resSyncSet) => {
+                    console.log(`${lc} sync set testing: testing 123 returned. result: ...`);
+                    console.dir(resSyncSet);
+                    chrome.storage.sync.get(['testing'], resGet => {
+                        console.log(`${lc} sync get testing: testing 123 returned. result: ...`);
+                        console.dir(resGet);
+                    });
+                });
             });
         });
         if (logalot) { console.log(`${lc} success (I: 5eebbe46914b16c2ab3d0b4dc7197f22)`); }
@@ -141,6 +129,18 @@ function initializeContextMenuClick() {
             if (logalot) { console.log(`${lc} console.dir(outerTab)... (I: fd989d970a704c2abdf9c2841bbdb514)`); }
             if (logalot) { console.dir(outerTab); }
 
+            setTimeout(() => {
+                chrome.scripting.executeScript({
+                    target: {
+                        tabId: outerTab.id,
+                    },
+                    func: fnGetSelectedText
+                }, (result) => {
+                    console.log(`${lc}[yo] result came back...`)
+                    console.dir(result);
+                });
+            }, 3000);
+
             /**
              * custom event info to pass in to the app
              * https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
@@ -213,12 +213,32 @@ function initializeContextMenuClick() {
     }
 }
 
-function getSelectedText() {
-    var text = "";
-    if (window && window.getSelection) {
-        text = window.getSelection().toString();
+function fnGetTopTenWords() {
+    var logalot = true;
+    const words = [];
+    if (document) {
+
     }
-    return text;
+    return words;
+}
+
+function fnGetSelectedText() {
+    const lc = `[${fnGetSelectedText.name}]`;
+    var logalot = true;
+    var text = "";
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: f11f0668c6ce698f4dbbbd37c9e19422)`); }
+        if (window && window.getSelection) {
+            text = window.getSelection().toString();
+        }
+        return text;
+    } catch (error) {
+        text = "";
+        console.error(`${lc} ${error.message}`);
+    } finally {
+        if (logalot) { console.log(`${lc} complete. text: ${text}`); }
+        return text;
+    }
 }
 
 function initializeCommands() {
@@ -238,7 +258,7 @@ function initializeCommands() {
                     target: {
                         tabId: outerTab.id,
                     },
-                    func: getSelectedText
+                    func: fnGetSelectedText
                 }, (result) => {
                     console.log(`${lc} result came back...`)
                     console.dir(result);
@@ -259,7 +279,6 @@ function initializeCommands() {
 function init() {
     let lc = `${lcBackground}[${init.name}]`;
     try {
-
         if (logalot) { console.log(`${lc} starting... (I: bf749fd2190b3c8cfbc9608b6e23ef22)`); }
         initializeActionClick();
         initializeContextMenuClick();
