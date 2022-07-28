@@ -2,25 +2,26 @@ var lcBackground = `[extension background.js]`;
 var logalot = true;
 const ibgibUrl = "/index.html";
 
-// document is falsy in this script, because it runs in a service worker now
-// let location = document?.location?.toString();
-// console.warn(`${lcBackground} document.location.toString(): ${location}`);
-function injectedFunction() {
-    let a = 'a';
-    // document.body.style.borderColor = 'orange';
-    // document.body.style.borderWidth = '5px';
-    // document.body.style.borderStyle = 'solid';
-}
-// console.log('injectedFunction yo');
-// const lc = `[injectedFunction]`;
-// try {
-//     if (logalot) { console.log(`${lc} starting... (I: 73b10ee1c6b5a824cbfa55c822bc5322)`); }
-// } catch (error) {
-//     console.error(`${lc} ${error.message}`);
-//     throw error;
-// } finally {
-//     if (logalot) { console.log(`${lc} complete.`); }
-// }
+/**
+ * For some reason, inside the click handler loses scoped variables but not if I
+ * place them here.
+ */
+const MENU_ITEM_PARENT_IBGIB = 'ibgib';
+/**
+ * For some reason, inside the click handler loses scoped variables but not if I
+ * place them here.
+ */
+const MENU_ITEM_EXEC_CREATE_IBGIB = 'create ibgib';
+/**
+ * For some reason, inside the click handler loses scoped variables but not if I
+ * place them here.
+ */
+const MENU_ITEM_ADD_SELECTION = 'queue selected text...';
+/**
+ * For some reason, inside the click handler loses scoped variables but not if I
+ * place them here.
+ */
+const MENU_ITEM_ADD_LINK = 'queue link...';
 
 /**
  * action button click
@@ -85,22 +86,43 @@ function initializeContextMenuClick() {
     try {
         if (logalot) { console.log(`${lc} starting... (I: 7b185c4afd53dd75dbd5314461ee3c22)`); }
 
-        if (logalot) { console.log(`${lc} preparing extension menu links (I: 6a5ea16f0f0bca708a4787621da39622)`); }
-        const menuItemId_IbgibLink = 'ibgib link';
-        const menuItem_link = {
-            title: 'ibgib link',
-            id: menuItemId_IbgibLink,
-            type: 'normal',
-            documentUrlPatterns: ['https://*/*', 'https://*/*'],
-            contexts: [
-                // right-click on page background
-                'page',
-                // right-click with selection
-                'selection'
-            ],
-        };
         try {
-            chrome.contextMenus.create(menuItem_link);
+
+            if (logalot) { console.log(`${lc} preparing extension menu links (I: 6a5ea16f0f0bca708a4787621da39622)`); }
+            // var parent = chrome.contextMenus.create({"title": "Test parent item"});
+            const menuItem_Parent = chrome.contextMenus.create({
+                id: MENU_ITEM_PARENT_IBGIB,
+                title: MENU_ITEM_PARENT_IBGIB,
+                documentUrlPatterns: ['https://*/*', 'https://*/*'],
+                contexts: ['all'],
+            });
+
+            chrome.contextMenus.create({
+                parentId: MENU_ITEM_PARENT_IBGIB,
+                id: MENU_ITEM_ADD_SELECTION,
+                title: MENU_ITEM_ADD_SELECTION,
+                type: 'normal',
+                documentUrlPatterns: ['https://*/*', 'https://*/*'],
+                contexts: ['selection'],
+            });
+
+            chrome.contextMenus.create({
+                parentId: MENU_ITEM_PARENT_IBGIB,
+                id: MENU_ITEM_ADD_LINK,
+                title: MENU_ITEM_ADD_LINK,
+                type: 'normal',
+                documentUrlPatterns: ['https://*/*', 'https://*/*'],
+                contexts: ['link'],
+            });
+
+            chrome.contextMenus.create({
+                parentId: MENU_ITEM_PARENT_IBGIB,
+                id: MENU_ITEM_EXEC_CREATE_IBGIB,
+                title: MENU_ITEM_EXEC_CREATE_IBGIB,
+                type: 'normal',
+                documentUrlPatterns: ['https://*/*', 'https://*/*'],
+                contexts: ['all'],
+            });
         } catch (error) {
             console.error(`${lc} error when creating menu item link...maybe duplicate create? console.dir(error`);
             console.dir(error);
@@ -119,7 +141,6 @@ function initializeContextMenuClick() {
             if (logalot) { console.log(`${lc} console.dir(outerTab)... (I: fd989d970a704c2abdf9c2841bbdb514)`); }
             if (logalot) { console.dir(outerTab); }
 
-            if (logalot) { console.log(`${lc} preparing launch params (pageUrl, selectionText, ...) (I: d1135e0662b640335748719a57d53722)`); }
             /**
              * custom event info to pass in to the app
              * https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
@@ -159,6 +180,8 @@ function initializeContextMenuClick() {
                  */
                 selectionText: itemData.selectionText || undefined,
             }
+
+            if (logalot) { console.log(`${lc} preparing launch params (pageUrl, selectionText, ...) (I: d1135e0662b640335748719a57d53722)`); }
             /**
              * instead of breaking out our event info into multiple params, we create
              * a wrapper object for params, and put the entire stringified object
@@ -167,18 +190,64 @@ function initializeContextMenuClick() {
             const msgObj = { extensionLaunchInfo: JSON.stringify(eventInfo) }
             const launchParams = new URLSearchParams(msgObj).toString();
 
-            if (itemData.menuItemId === menuItemId_IbgibLink) {
-                if (logalot) { console.log(`${lc} creating ${menuItemId_IbgibLink} tab... (I: 8cffc16cf3ccdfa52ebe565873360122)`); }
-
+            if (itemData.menuItemId === MENU_ITEM_EXEC_CREATE_IBGIB) {
+                if (logalot) { console.log(`${lc} creating ${MENU_ITEM_EXEC_CREATE_IBGIB} tab... (I: 8cffc16cf3ccdfa52ebe565873360122)`); }
                 // https://developer.chrome.com/docs/extensions/reference/tabs/#method-create
                 chrome.tabs.create({ url: ibgibUrl + '?' + launchParams }, (tab) => {
                     if (logalot) { console.log(`${lc} tab created. (I: 7aebd5f816d79c044c11e6e569031c22)`); }
                 });
+            } else if (itemData.menuItemId === MENU_ITEM_ADD_SELECTION) {
+                if (logalot) { console.log(`${lc} MENU_ITEM_ADD_SELECTION clicked (I: fa984a2992a114c6455f1a266116a822)`); }
+            } else if (itemData.menuItemId === MENU_ITEM_ADD_LINK) {
+                if (logalot) { console.log(`${lc} MENU_ITEM_ADD_LINK clicked (I: eaa76de3b7cc374926d7f13b7abc2422)`); }
             } else {
                 console.warn(`${lc} item`)
             }
         });
         if (logalot) { console.log(`${lc} success (I: 78cfd7d3285fbe005cc882899ff0f722)`); }
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+function getSelectedText() {
+    var text = "";
+    if (window && window.getSelection) {
+        text = window.getSelection().toString();
+    }
+    return text;
+}
+
+function initializeCommands() {
+    const lc = `[${initializeCommands.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: a999a116eb6c1dc05b8c85a9f673af22)`); }
+        chrome.commands.onCommand.addListener((command, outerTab) => {
+            if (command === "enqueue_selection") {
+                debugger;
+                if (logalot) { console.log(`${lc} command: ${command} (I: 2437cbd757d85a45beb392fad9d5df22)`); }
+                if (logalot) { console.log(`${lc} outerTab.url: ${outerTab.url} (I: 121415fc03564804b7e30d12271ef0aa)`); }
+                if (logalot) { console.log(`${lc} console.dir(outerTab)... (I: 9802af573c95494f9495c6ffe30ef052)`); }
+                if (logalot) { console.dir(outerTab); }
+                debugger;
+
+                chrome.scripting.executeScript({
+                    target: {
+                        tabId: outerTab.id,
+                        func: getSelectedText
+                    }
+                }, (result) => {
+                    console.log(`${lc} result came back...`)
+                    console.dir(result);
+                });
+
+            } else {
+                console.error(`${lc} unknown command`)
+            }
+        });
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -194,6 +263,7 @@ function init() {
         if (logalot) { console.log(`${lc} starting... (I: bf749fd2190b3c8cfbc9608b6e23ef22)`); }
         initializeActionClick();
         initializeContextMenuClick();
+        initializeCommands();
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

@@ -37,5 +37,22 @@
     "host_permissions": [
         "*://*/*"
     ],
+    "commands": {
+        "enqueue_selection": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+L",
+                "mac": "MacCtrl+Shift+L"
+            },
+            "description": "Enqueue selected text to ibgib"
+        },
+        "_execute_action": {
+            "suggested_key": {
+                "windows": "Ctrl+Shift+Y",
+                "mac": "Command+Shift+Y",
+                "chromeos": "Ctrl+Shift+U",
+                "linux": "Ctrl+Shift+J"
+            }
+        }
+    },
     "manifest_version": 3
 }
