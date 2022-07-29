@@ -210,7 +210,8 @@ function initializeContextMenuClick() {
                     target: {
                         tabId: outerTab.id,
                     },
-                    func: fnGetSelectedText
+                    // func: fnGetSelectedText
+                    files: ['injected.js']
                 }, (result) => {
                     console.log(`${lc}[yo] result came back...`)
                     console.dir(result);
@@ -263,7 +264,7 @@ function initializeContextMenuClick() {
              * a wrapper object for params, and put the entire stringified object
              * into a single param that we will parse back into a JS object.
              */
-            const msgObj = { extensionLaunchInfo: JSON.stringify(eventInfo) }
+            const msgObj = { extensionLaunchInfo: JSON.stringify(eventInfo) };
             const launchParams = new URLSearchParams(msgObj).toString();
 
             if (itemData.menuItemId === MENU_ITEM_EXEC_CREATE_IBGIB) {
@@ -314,6 +315,23 @@ function fnGetSelectedText() {
     } finally {
         if (logalot) { console.log(`${lc} complete. text: ${text}`); }
         return text;
+    }
+}
+
+function dynamicIbgibDocument() {
+    const lc = `[${dynamicIbgibDocument.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 8548775212aa15f3aab3787c5f069322)`); }
+        if (!document) {
+            console.error(`${lc} document falsy. returning early. (E: 50cd480ed6fc40c8904e9bb750cdfbaa)`);
+            return; /* <<<< returns early */
+        }
+
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
     }
 }
 

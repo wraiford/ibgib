@@ -17,16 +17,6 @@
         "script-src": "'self' 'unsafe-eval'",
         "object-src": "'self'"
     },
-    "content_scripts": [
-        {
-            "matches": [
-                "*://*/*"
-            ],
-            "js": [
-                "injected.js"
-            ]
-        }
-    ],
     "permissions": [
         "activeTab",
         "scripting",
