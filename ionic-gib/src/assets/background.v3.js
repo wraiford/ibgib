@@ -6,22 +6,84 @@ const ibgibUrl = "/index.html";
  * For some reason, inside the click handler loses scoped variables but not if I
  * place them here.
  */
-const MENU_ITEM_PARENT_IBGIB = 'ibgib';
+// const MENU_ITEM_PARENT_IBGIB = 'ibgib';
 /**
  * For some reason, inside the click handler loses scoped variables but not if I
  * place them here.
  */
-const MENU_ITEM_EXEC_CREATE_IBGIB = 'create ibgib';
+const MENU_ITEM_EXEC_CREATE_IBGIB = 'ibgib create';
 /**
  * For some reason, inside the click handler loses scoped variables but not if I
  * place them here.
  */
-const MENU_ITEM_ADD_SELECTION = 'queue selected text...';
+const MENU_ITEM_ADD_SELECTION = 'ibgib queue selection...';
 /**
  * For some reason, inside the click handler loses scoped variables but not if I
  * place them here.
  */
-const MENU_ITEM_ADD_LINK = 'queue link...';
+const MENU_ITEM_ADD_LINK = 'ibgib queue link...';
+
+/**
+ *
+ * @param key key to set
+ * @param value to set
+ * @returns Promise<void> to await
+ */
+function storageSet(objectKeysValues) {
+    const lc = `${lcBackground}[${storageSet.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: eda5c9b57ff5f76a99d3f97b9bfa6722)`); }
+        return new Promise((resolve, reject) => {
+            chrome.storage.local.set(objectKeysValues, () => {
+                if (chrome.runtime.lastError) {
+                    return reject(chrome.runtime.lastError);
+                }
+                resolve();
+            });
+        });
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+function storageGet(arrayKeys) {
+    const lc = `${lcBackground}[${storageGet.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: e1b30fbe1df1ca7c29a8dd6f325e1522)`); }
+
+        return new Promise((resolve, reject) => {
+            chrome.storage.local.get(arrayKeys, (items) => {
+                if (chrome.runtime.lastError) {
+                    return reject(chrome.runtime.lastError);
+                }
+                resolve(items);
+            });
+        });
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+function storageGetAll() { return storageGet(null); }
+
+function storageClear() {
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.clear(() => {
+            if (chrome.runtime.lastError) {
+                return reject(chrome.runtime.lastError);
+            }
+            resolve();
+        })
+    });
+}
+
+
 
 /**
  * action button click
@@ -41,18 +103,32 @@ function initializeActionClick() {
 
             if (logalot) { console.log(`${lc} creating tab... (I: 30c1dd8ba45b483c8c95aa66e4b2eff0)`); }
             // https://developer.chrome.com/docs/extensions/reference/tabs/#method-create
-            chrome.tabs.create({ url: ibgibUrl }, (tab) => {
+            chrome.tabs.create({ url: ibgibUrl }, async (tab) => {
                 if (logalot) { console.log(`${lc} tab created. (I: 1967c7b8b6fa496b929018bd13eeaadf)`); }
                 if (logalot) { console.log(`${lc} tab.url: ${tab.url} (I: 1967c7b8b6fa496b929018bd13eeaadf)`); }
                 if (logalot) { console.log(`${lc} tab.pendingUrl: ${tab.pendingUrl} (I: 1a7a5a447ae6496cbbf652cdbe3fa2aa)`); }
-                chrome.storage.sync.set({ testing: 'testing 123' }, (resSyncSet) => {
-                    console.log(`${lc} sync set testing: testing 123 returned. result: ...`);
-                    console.dir(resSyncSet);
-                    chrome.storage.sync.get(['testing'], resGet => {
-                        console.log(`${lc} sync get testing: testing 123 returned. result: ...`);
-                        console.dir(resGet);
-                    });
+
+                console.log(`await storageSet({ testingp: ['test1', 'test2', 'test3', 'wakka'] });`);
+                await storageSet({
+                    testing1: ['test1', 'test11', 'test111', 'wakka'],
+                    testing2: ['test2', 'test22', 'test222', 'doodle'],
+                    testing3: ['test3', 'test33'],
                 });
+                let resGet = await storageGet(['testing1', 'testing2']);
+                console.log(`${lc} await storageGet(...);. resGet: ...`);
+                console.dir(resGet);
+
+                let resGetAll = await storageGetAll();
+                console.log(`${lc} await storageGetAll(); resGetAll: ...`);
+                console.dir(resGetAll);
+
+                await storageClear();
+                resGetAll = await storageGetAll();
+                console.log(`${lc} await storageClear() THEN await storageGetAll() resGetAll: ...`);
+                console.dir(resGetAll);
+                // });
+                // });
+                // let resultAwait = await chrome.storage.sync.set({ testing: ['test1', 'test2', 'test3'] });
             });
         });
         if (logalot) { console.log(`${lc} success (I: 5eebbe46914b16c2ab3d0b4dc7197f22)`); }
@@ -78,15 +154,15 @@ function initializeContextMenuClick() {
 
             if (logalot) { console.log(`${lc} preparing extension menu links (I: 6a5ea16f0f0bca708a4787621da39622)`); }
             // var parent = chrome.contextMenus.create({"title": "Test parent item"});
-            const menuItem_Parent = chrome.contextMenus.create({
-                id: MENU_ITEM_PARENT_IBGIB,
-                title: MENU_ITEM_PARENT_IBGIB,
-                documentUrlPatterns: ['https://*/*', 'https://*/*'],
-                contexts: ['all'],
-            });
+            // const menuItem_Parent = chrome.contextMenus.create({
+            //     id: MENU_ITEM_PARENT_IBGIB,
+            //     title: MENU_ITEM_PARENT_IBGIB,
+            //     documentUrlPatterns: ['https://*/*', 'https://*/*'],
+            //     contexts: ['all'],
+            // });
 
             chrome.contextMenus.create({
-                parentId: MENU_ITEM_PARENT_IBGIB,
+                // parentId: MENU_ITEM_PARENT_IBGIB,
                 id: MENU_ITEM_ADD_SELECTION,
                 title: MENU_ITEM_ADD_SELECTION,
                 type: 'normal',
@@ -95,7 +171,7 @@ function initializeContextMenuClick() {
             });
 
             chrome.contextMenus.create({
-                parentId: MENU_ITEM_PARENT_IBGIB,
+                // parentId: MENU_ITEM_PARENT_IBGIB,
                 id: MENU_ITEM_ADD_LINK,
                 title: MENU_ITEM_ADD_LINK,
                 type: 'normal',
@@ -104,7 +180,7 @@ function initializeContextMenuClick() {
             });
 
             chrome.contextMenus.create({
-                parentId: MENU_ITEM_PARENT_IBGIB,
+                // parentId: MENU_ITEM_PARENT_IBGIB,
                 id: MENU_ITEM_EXEC_CREATE_IBGIB,
                 title: MENU_ITEM_EXEC_CREATE_IBGIB,
                 type: 'normal',

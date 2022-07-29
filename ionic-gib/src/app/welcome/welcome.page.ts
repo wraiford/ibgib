@@ -135,7 +135,6 @@ export class WelcomePage implements OnInit, AfterViewInit {
           console.dir(info);
           if (info.pageUrl) {
             setTimeout(async () => {
-
               let resFetch = await fetch(info.pageUrl);
               debugger;
               if (logalot) { console.log(`${lc} console.dir(resFetch)... (I: 2b176a6c1d5df53207f9615139407122)`); }
