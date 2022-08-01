@@ -1,0 +1,19 @@
+.ib-selected {
+    background-color: rgb(146, 237, 128, 0.2);
+}
+
+.ib-selection-confirmed {
+    animation: selection-confirmed-animation 3s;
+}
+
+@keyframes selection-confirmed-animation {
+
+    0% {
+        /* background: green; */
+        background-color: rgb(146, 237, 128, 0.5);
+    }
+
+    100% {
+        background: initial;
+    }
+}

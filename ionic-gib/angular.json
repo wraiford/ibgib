@@ -50,7 +50,7 @@
                 "output": "/"
               },
               {
-                "glob": "**/injected.js",
+                "glob": "**/injected.(js|css)",
                 "input": "src/assets",
                 "output": "/"
               }
