@@ -2,15 +2,46 @@ var lcFile = `[extension background.js]`;
 var logalot = true;
 const ibgibUrl = "/index.html";
 
-let injectedScripts = false;
+/**
+ * I have it phrased this way so we can just say if (await script....)
+ * @returns true if not injected yet
+ */
+async function scriptsAreAlreadyInjected(tabId) {
+    const lc = `[${scriptsAreAlreadyInjected.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 65f3952e7fadb16f8f54bbb5405b0122)`); }
+
+        return new Promise((resolve, reject) => {
+            chrome.scripting.executeScript({
+                target: { tabId },
+                func: () => {
+                    // this is run in host web page.
+                    const isInjected = !!document.ibgib;
+                    return isInjected;
+                }
+            }, (result) => {
+                if (!Array.isArray(result)) { throw new Error(`expected array back (E: 66b3be1840d24bc4876812328e1fd3f0)`); }
+                if (result.length !== 1) { throw new Error(`expected array result length 1 (E: 7f703dcc479844dd996cbd83cd87bf5e)`); }
+
+                const isInjected = result[0].result;
+                resolve(isInjected);
+            });
+        });
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
 
 async function injectScriptsAndCss(tabId) {
     const lc = `${lcFile}[${injectScriptsAndCss.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: 5a8576278f71c51c6babfbc8b33a6d22)`); }
 
-        if (injectedScripts) {
-            if (logalot) { console.log(`${lc} already injectedScripts. returning early. (I: 600a0f1340a38b406b617a256741a722)`); }
+        if (await scriptsAreAlreadyInjected(tabId)) {
+            if (logalot) { console.log(`${lc} await scriptsAreInjected() true. returning early. (I: 600a0f1340a38b406b617a256741a722)`); }
             return; /* <<<< returns early */
         }
 
@@ -38,8 +69,6 @@ async function injectScriptsAndCss(tabId) {
                 resolve();
             });
         });
-
-        injectedScripts = true;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -55,7 +84,7 @@ const MENU_ITEM_EXEC_CREATE_IBGIB = 'ibgib CREATE';
 const MENU_ITEM_ADD_SELECTION = 'ibgib ADD selection...';
 const MENU_ITEM_CLEAR_SELECTIONS = 'ibgib CLEAR selections...';
 const MENU_ITEM_ADD_LINK = 'ibgib ADD link...';
-const MENU_ITEM_SELECT_MODE = 'ibgib SELECT mode...';
+const MENU_ITEM_SELECT_MODE = 'ibgib MODE select many...';
 
 /**
  *
@@ -178,7 +207,9 @@ async function handleMenuItem_SelectMode(itemData, tabId) {
     const lc = `[${handleMenuItem_SelectMode.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: c4730aac00f17a1c9911486bbf550e22)`); }
-        if (!injectedScripts) { await injectScriptsAndCss(tabId); }
+
+        await injectScriptsAndCss(tabId);
+
         await new Promise((resolve, reject) => {
             chrome.scripting.executeScript({
                 target: { tabId },
@@ -294,7 +325,7 @@ async function handleMenuItem_AddSelection(itemData, tabId) {
     try {
         if (logalot) { console.log(`${lc} starting... (I: 9f1a79c0b811348735a5ea7ea0764422)`); }
 
-        if (!injectedScripts) { await injectScriptsAndCss(tabId); }
+        await injectScriptsAndCss(tabId);
 
         // function addSelection({type, text, url}) {
 
@@ -305,7 +336,7 @@ async function handleMenuItem_AddSelection(itemData, tabId) {
         return new Promise((resolve, reject) => {
             chrome.scripting.executeScript({
                 target: { tabId },
-                func: (x) => { addSelection(x); },
+                func: (x) => { ibAddSelection(x); },
                 args: [arg]
             }, (result) => {
                 console.log(`${lc}[executeScript] result came back...`)
@@ -326,20 +357,18 @@ async function handleMenuItem_AddLink(itemData, tabId) {
     try {
         if (logalot) { console.log(`${lc} starting... (I: ef85eba63f1d4e59bd533f216ca3a4b6)`); }
 
-        if (!injectedScripts) { await injectScriptsAndCss(tabId); }
+        await injectScriptsAndCss(tabId);
 
         // function addLink({type, text, url}) {
 
-        debugger;
         const arg = {
             type: 'link',
-            text: itemData.selectionText,
-            url: '',
+            url: itemData.linkUrl,
         };
         return new Promise((resolve, reject) => {
             chrome.scripting.executeScript({
                 target: { tabId },
-                func: (x) => { addLink(x); },
+                func: (x) => { ibAddSelection(x); },
                 args: [arg]
             }, (result) => {
                 console.log(`${lc}[executeScript] result came back...`)
@@ -360,7 +389,7 @@ async function handleMenuItem_ClearSelections(itemData, tabId) {
     try {
         if (logalot) { console.log(`${lc} starting... (I: dd876ad752ada726ac9193f824726922)`); }
 
-        if (!injectedScripts) { await injectScriptsAndCss(tabId); }
+        await injectScriptsAndCss(tabId);
 
         return new Promise((resolve, reject) => {
             chrome.scripting.executeScript({

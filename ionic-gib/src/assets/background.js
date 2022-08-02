@@ -2,15 +2,46 @@ var lcFile = `[extension background.js]`;
 var logalot = true;
 const ibgibUrl = "/index.html";
 
-let injectedScripts = false;
+/**
+ * I have it phrased this way so we can just say if (await script....)
+ * @returns true if not injected yet
+ */
+async function scriptsAreAlreadyInjected(tabId) {
+    const lc = `[${scriptsAreAlreadyInjected.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 65f3952e7fadb16f8f54bbb5405b0122)`); }
+
+        return new Promise((resolve, reject) => {
+            chrome.scripting.executeScript({
+                target: { tabId },
+                func: () => {
+                    // this is run in host web page.
+                    const isInjected = !!document.ibgib;
+                    return isInjected;
+                }
+            }, (result) => {
+                if (!Array.isArray(result)) { throw new Error(`expected array back (E: 66b3be1840d24bc4876812328e1fd3f0)`); }
+                if (result.length !== 1) { throw new Error(`expected array result length 1 (E: 7f703dcc479844dd996cbd83cd87bf5e)`); }
+
+                const isInjected = result[0].result;
+                resolve(isInjected);
+            });
+        });
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
 
 async function injectScriptsAndCss(tabId) {
     const lc = `${lcFile}[${injectScriptsAndCss.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: 5a8576278f71c51c6babfbc8b33a6d22)`); }
 
-        if (injectedScripts) {
-            if (logalot) { console.log(`${lc} already injectedScripts. returning early. (I: 600a0f1340a38b406b617a256741a722)`); }
+        if (await scriptsAreAlreadyInjected(tabId)) {
+            if (logalot) { console.log(`${lc} await scriptsAreInjected() true. returning early. (I: 600a0f1340a38b406b617a256741a722)`); }
             return; /* <<<< returns early */
         }
 
@@ -38,8 +69,6 @@ async function injectScriptsAndCss(tabId) {
                 resolve();
             });
         });
-
-        injectedScripts = true;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -51,11 +80,11 @@ async function injectScriptsAndCss(tabId) {
 // For some reason, inside the click handler loses scoped variables but not if I
 // place them here.
 const MENU_ITEM_PARENT_IBGIB = 'ibgib';
-const MENU_ITEM_EXEC_CREATE_IBGIB = 'ibgib CREATE';
-const MENU_ITEM_ADD_SELECTION = 'ibgib ADD selection...';
-const MENU_ITEM_CLEAR_SELECTIONS = 'ibgib CLEAR selections...';
-const MENU_ITEM_ADD_LINK = 'ibgib ADD link...';
-const MENU_ITEM_SELECT_MODE = 'ibgib SELECT mode...';
+const MENU_ITEM_EXEC_CREATE_IBGIB = 'CREATE ibgib';
+const MENU_ITEM_ADD_SELECTION = 'ADD selection...';
+const MENU_ITEM_CLEAR_SELECTIONS = 'CLEAR selections...';
+const MENU_ITEM_ADD_LINK = 'ADD link...';
+const MENU_ITEM_SELECT_MODE = 'MODE select many...';
 
 /**
  *
@@ -178,7 +207,9 @@ async function handleMenuItem_SelectMode(itemData, tabId) {
     const lc = `[${handleMenuItem_SelectMode.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: c4730aac00f17a1c9911486bbf550e22)`); }
-        if (!injectedScripts) { await injectScriptsAndCss(tabId); }
+
+        await injectScriptsAndCss(tabId);
+
         await new Promise((resolve, reject) => {
             chrome.scripting.executeScript({
                 target: { tabId },
@@ -196,7 +227,7 @@ async function handleMenuItem_SelectMode(itemData, tabId) {
                     chrome.contextMenus.update(
                         MENU_ITEM_SELECT_MODE,
                         {
-                            title: 'end select mode',
+                            title: 'END select mode',
                             // type: 'normal',
                             // documentUrlPatterns: ['https://*/*', 'https://*/*'],
                             // contexts: ['all'],
@@ -225,11 +256,53 @@ async function handleMenuItem_SelectMode(itemData, tabId) {
     }
 }
 
-function handleMenuItem_ExecCreateIbGib(itemData) {
+/**
+ * gets the selections that the user has chosen to ibgib.
+ *
+ * @returns {Promise<Object[]>} selections array from (atow) injected.js
+ */
+async function getSelections(tabId) {
+    const lc = `[${getSelections.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 749ea6b342919db8373c05b9d44aca22)`); }
+
+        await injectScriptsAndCss(tabId);
+
+        return new Promise((resolve, reject) => {
+            chrome.scripting.executeScript({
+                target: { tabId },
+                func: () => {
+                    // this is run in host web page.
+                    return document.ibgib?.selections;
+                }
+            }, (result) => {
+                if (!Array.isArray(result)) { throw new Error(`expected array back (E: e4c5ff1ff3a444cb86773a93304bbcb2)`); }
+                if (result.length !== 1) { throw new Error(`expected array result length 1 (E: e32116a3b3044913b7d10bcbaef66399)`); }
+
+                const selections = result[0].result ?? [];
+                resolve(selections);
+            });
+        });
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+async function handleMenuItem_ExecCreateIbGib(itemData, tabId) {
     const lc = `[${handleMenuItem_ExecCreateIbGib.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: 23870576bfff23681f3619b75b340522)`); }
         if (logalot) { console.log(`${lc} preparing launch params (pageUrl, selectionText, ...) (I: d1135e0662b640335748719a57d53722)`); }
+
+        const selections = await getSelections(tabId);
+        if (selections.length === 0) {
+            console.warn(`${lc} empty selections. (W: e2aa39d7cd6a4903a943ccc6a2ca38d9)`);
+            return; /* <<<< returns early */
+        }
+
         /**
          * custom event info to pass in to the app being created in a new tab
          * https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
@@ -249,11 +322,6 @@ function handleMenuItem_ExecCreateIbGib(itemData) {
              */
             lc,
             /**
-             * text of the context menu clicked
-             * @link https://developer.chrome.com/docs/extensions/reference/contextMenus/#type-OnClickData
-             */
-            menuItemId: itemData.menuItemId,
-            /**
              * url of the page that _initiates_ the click and starts the app.
              * so if the user is on wikipedia.org, selects some text and clicks on the ibgib link,
              * in order to generate some ibgib data based on the page, this will be
@@ -262,12 +330,7 @@ function handleMenuItem_ExecCreateIbGib(itemData) {
              * @link https://developer.chrome.com/docs/extensions/reference/contextMenus/#type-OnClickData
              */
             pageUrl: itemData.pageUrl,
-            /**
-             * selected text when initiating the app.
-             *
-             * @link https://developer.chrome.com/docs/extensions/reference/contextMenus/#type-OnClickData
-             */
-            selectionText: itemData.selectionText || undefined,
+            selections,
         }
         /**
          * instead of breaking out our event info into multiple params, we create
@@ -294,7 +357,7 @@ async function handleMenuItem_AddSelection(itemData, tabId) {
     try {
         if (logalot) { console.log(`${lc} starting... (I: 9f1a79c0b811348735a5ea7ea0764422)`); }
 
-        if (!injectedScripts) { await injectScriptsAndCss(tabId); }
+        await injectScriptsAndCss(tabId);
 
         // function addSelection({type, text, url}) {
 
@@ -326,7 +389,7 @@ async function handleMenuItem_AddLink(itemData, tabId) {
     try {
         if (logalot) { console.log(`${lc} starting... (I: ef85eba63f1d4e59bd533f216ca3a4b6)`); }
 
-        if (!injectedScripts) { await injectScriptsAndCss(tabId); }
+        await injectScriptsAndCss(tabId);
 
         // function addLink({type, text, url}) {
 
@@ -358,7 +421,7 @@ async function handleMenuItem_ClearSelections(itemData, tabId) {
     try {
         if (logalot) { console.log(`${lc} starting... (I: dd876ad752ada726ac9193f824726922)`); }
 
-        if (!injectedScripts) { await injectScriptsAndCss(tabId); }
+        await injectScriptsAndCss(tabId);
 
         return new Promise((resolve, reject) => {
             chrome.scripting.executeScript({
@@ -473,7 +536,7 @@ function initializeContextMenuClick() {
 
             if (itemData.menuItemId === MENU_ITEM_EXEC_CREATE_IBGIB) {
                 if (logalot) { console.log(`${lc} creating ${MENU_ITEM_EXEC_CREATE_IBGIB} tab... (I: 8cffc16cf3ccdfa52ebe565873360122)`); }
-                handleMenuItem_ExecCreateIbGib(itemData);
+                await handleMenuItem_ExecCreateIbGib(itemData, outerTab.id);
             } else if (itemData.menuItemId === MENU_ITEM_ADD_SELECTION) {
                 if (logalot) { console.log(`${lc} MENU_ITEM_ADD_SELECTION clicked (I: fa984a2992a114c6455f1a266116a822)`); }
                 await handleMenuItem_AddSelection(itemData, outerTab.id);
