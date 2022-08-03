@@ -37,7 +37,7 @@ import { CommonService } from '../services/common.service';
 import { ibCircle, ibGroup, ibLine, ibSvg, } from '../common/helper/svg';
 import { SVG_NAMESPACE, IbGibDiagramInfo, } from '../common/types/svg';
 import { ActivatedRoute, Params } from '@angular/router';
-import { ExtensionLaunchInfo } from '../common/types/app';
+import { ExtensionLaunchInfo, ExtensionSelectionInfo } from '../common/types/app';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
@@ -125,7 +125,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
         await h.delay(100);
       }
 
-      this.activatedRoute.queryParams.subscribe((params: Params) => {
+      this.activatedRoute.queryParams.subscribe(async (params: Params) => {
         console.log(`${lc} query params: `);
         console.dir(params);
         if (params['extensionLaunchInfo']) {
@@ -133,28 +133,14 @@ export class WelcomePage implements OnInit, AfterViewInit {
           const info = <ExtensionLaunchInfo>JSON.parse(params['extensionLaunchInfo']);
           console.log(`${lc} info parsed (params['extensionLaunchInfo'] parsed): `);
           console.dir(info);
-          if (info.pageUrl) {
-            setTimeout(async () => {
-              let resFetch = await fetch(info.pageUrl);
-              debugger;
-              if (logalot) { console.log(`${lc} console.dir(resFetch)... (I: 2b176a6c1d5df53207f9615139407122)`); }
-              console.dir(resFetch);
-              let htmlText = await resFetch.text();
-              if (logalot) { console.log(`${lc} htmlText: ${htmlText} (I: eb835887d598a3508e7ed8f28bdf3d22)`); }
-
-              const paragraphs = htmlText.match(/<p>.*<\/p>/g);
-              debugger;
-              console.dir(paragraphs);
-            }, 2000);
-          }
-          if (info.selectionText) {
-            // leaving off here...there are a couple of paths...
-            // create a modal form that creates a new ibgib, including tagging it
-            // or create additional menu links that parse and pass a cetain way
-            //   * see https://github.com/mdn/webextensions-examples/blob/master/emoji-substitution/substitute.js
-            //  but don't actually use their code. just the idea to learn from is can iterate through document.body
-            // and check if nodes are text. if so, look through them and get the words. We can do tf;idf here
-            // for auto-generation of suggested comment ibgibs, etc.
+          if (info.selectionInfos) {
+            console.error(`${lc} congratulations. This s*** ain't implemented because ...well maybe soon...`)
+            await this.common.nav.go({
+              toRawLocation: ['/'],
+              force: true,
+              queryParams: { extensionLaunchInfo: null },
+              queryParamsHandling: 'merge',
+            });
           }
 
         } else {

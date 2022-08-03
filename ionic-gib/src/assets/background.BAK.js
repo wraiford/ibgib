@@ -1,4 +1,4 @@
-var lcFile = `[extension background.js]`;
+var lcFile = `[ibgib][extension background.js]`;
 var logalot = true;
 const ibgibUrl = "/index.html";
 
@@ -80,11 +80,12 @@ async function injectScriptsAndCss(tabId) {
 // For some reason, inside the click handler loses scoped variables but not if I
 // place them here.
 const MENU_ITEM_PARENT_IBGIB = 'ibgib';
-const MENU_ITEM_EXEC_CREATE_IBGIB = 'ibgib CREATE';
-const MENU_ITEM_ADD_SELECTION = 'ibgib ADD selection...';
-const MENU_ITEM_CLEAR_SELECTIONS = 'ibgib CLEAR selections...';
-const MENU_ITEM_ADD_LINK = 'ibgib ADD link...';
-const MENU_ITEM_SELECT_MODE = 'ibgib MODE select many...';
+const MENU_ITEM_ADD_SELECTION = 'ADD selected text...';
+const MENU_ITEM_ADD_LINK = 'ADD link...';
+const MENU_ITEM_SELECT_MODE = 'MULTI select mode...';
+const MENU_ITEM_END_SELECT_MODE_TITLE = 'END multi select mode (adds all selections)...';
+const MENU_ITEM_CLEAR_SELECTIONS = 'CLEAR selections...';
+const MENU_ITEM_EXEC_CREATE_IBGIB = 'CREATE ibgib';
 
 /**
  *
@@ -203,7 +204,7 @@ function initializeActionClick() {
     }
 }
 
-async function handleMenuItem_SelectMode(itemData, tabId) {
+async function handleMenuItem_SelectMode(clickData, tabId) {
     const lc = `[${handleMenuItem_SelectMode.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: c4730aac00f17a1c9911486bbf550e22)`); }
@@ -213,7 +214,7 @@ async function handleMenuItem_SelectMode(itemData, tabId) {
         await new Promise((resolve, reject) => {
             chrome.scripting.executeScript({
                 target: { tabId },
-                func: () => { return toggleSelectMode(); }
+                func: () => { return ibToggleSelectMode(); }
             }, (result) => {
                 console.log(`${lc}[executeScript] result came back...`)
                 console.dir(result);
@@ -226,22 +227,12 @@ async function handleMenuItem_SelectMode(itemData, tabId) {
                 if (selectMode) {
                     chrome.contextMenus.update(
                         MENU_ITEM_SELECT_MODE,
-                        {
-                            title: 'end select mode',
-                            // type: 'normal',
-                            // documentUrlPatterns: ['https://*/*', 'https://*/*'],
-                            // contexts: ['all'],
-                        }
+                        { title: MENU_ITEM_END_SELECT_MODE_TITLE, }
                     );
                 } else {
                     chrome.contextMenus.update(
                         MENU_ITEM_SELECT_MODE,
-                        {
-                            title: MENU_ITEM_SELECT_MODE,
-                            // type: 'normal',
-                            // documentUrlPatterns: ['https://*/*', 'https://*/*'],
-                            // contexts: ['all'],
-                        }
+                        { title: MENU_ITEM_SELECT_MODE, }
                     );
                 }
                 resolve(result);
@@ -256,18 +247,75 @@ async function handleMenuItem_SelectMode(itemData, tabId) {
     }
 }
 
-function handleMenuItem_ExecCreateIbGib(itemData) {
-    const lc = `[${handleMenuItem_ExecCreateIbGib.name}]`;
+/**
+ * gets the selections that the user has chosen to ibgib.
+ *
+ * @returns {Promise<Object[]>} selections array from (atow) injected.js
+ */
+async function getSelections(tabId, stripElements) {
+    const lc = `[${getSelections.name}]`;
     try {
-        if (logalot) { console.log(`${lc} starting... (I: 23870576bfff23681f3619b75b340522)`); }
-        if (logalot) { console.log(`${lc} preparing launch params (pageUrl, selectionText, ...) (I: d1135e0662b640335748719a57d53722)`); }
+        if (logalot) { console.log(`${lc} starting... (I: 749ea6b342919db8373c05b9d44aca22)`); }
+
+        await injectScriptsAndCss(tabId);
+
+        let resSelections = [];
+
+        /** @type {Object[] | undefined} */
+        let rawSelections = await new Promise((resolve, reject) => {
+            chrome.scripting.executeScript({
+                target: { tabId },
+                func: () => {
+                    // this is run in host web page.
+                    return document.ibgib?.selections;
+                }
+            }, (result) => {
+                if (!Array.isArray(result)) { throw new Error(`expected array back (E: e4c5ff1ff3a444cb86773a93304bbcb2)`); }
+                if (result.length !== 1) { throw new Error(`expected array result length 1 (E: e32116a3b3044913b7d10bcbaef66399)`); }
+
+                const selections = result[0].result ?? [];
+                resolve(selections);
+            });
+        });
+        rawSelections = rawSelections ?? [];
+        if (rawSelections.length > 0 && stripElements) {
+            // fucking plain text js sucks
+            var stripEl = (s) => {
+                return { type: s.type, text: s.text, url: s.url, children: s.children?.map(c => stripEl(c)) };
+            }
+            resSelections = rawSelections.map(x => stripEl(x));
+        } else {
+            resSelections = rawSelections;
+        }
+
+        if (logalot) { console.log(`${lc} resSelections: ${JSON.stringify(resSelections, null, 2)} (I: 3fb99ea63b9c8b5dcd870d3643133222)`); }
+        if (logalot) { console.dir(resSelections); }
+
+        return resSelections;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+async function getExtensionLaunchInfo(clickData, tabId) {
+    const lc = `[${getExtensionLaunchInfo.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 3d149bec5f43d799ef7849540ce3eb22)`); }
+
+        const selections = await getSelections(tabId, /*stripElements*/ true);
+        if (selections.length === 0) {
+            console.warn(`${lc} empty selections. (W: e2aa39d7cd6a4903a943ccc6a2ca38d9)`);
+            return null; /* <<<< returns early */
+        }
+
         /**
-         * custom event info to pass in to the app being created in a new tab
-         * https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
+         * info we will pass to the ibgib app through the url params (couldn't
+         * figure out event messaging).
          */
-        const eventInfo = {
-            /** brand the event so we know it's ours */
-            ib: true,
+        const extensionLaunchInfo = {
             /**
              * indicate to the receiving angular app that we're launching
              * from an extension in firefox/chrome. (this is obvious here in
@@ -280,11 +328,6 @@ function handleMenuItem_ExecCreateIbGib(itemData) {
              */
             lc,
             /**
-             * text of the context menu clicked
-             * @link https://developer.chrome.com/docs/extensions/reference/contextMenus/#type-OnClickData
-             */
-            menuItemId: itemData.menuItemId,
-            /**
              * url of the page that _initiates_ the click and starts the app.
              * so if the user is on wikipedia.org, selects some text and clicks on the ibgib link,
              * in order to generate some ibgib data based on the page, this will be
@@ -292,20 +335,40 @@ function handleMenuItem_ExecCreateIbGib(itemData) {
              *
              * @link https://developer.chrome.com/docs/extensions/reference/contextMenus/#type-OnClickData
              */
-            pageUrl: itemData.pageUrl,
+            pageUrl: clickData.pageUrl,
             /**
-             * selected text when initiating the app.
-             *
-             * @link https://developer.chrome.com/docs/extensions/reference/contextMenus/#type-OnClickData
+             * Contains the actual infos for the selections the user made.
              */
-            selectionText: itemData.selectionText || undefined,
+            selectionInfos: selections,
         }
+
+        return extensionLaunchInfo;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+async function handleMenuItem_ExecCreateIbGib(clickData, tabId) {
+    const lc = `[${handleMenuItem_ExecCreateIbGib.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 23870576bfff23681f3619b75b340522)`); }
+        if (logalot) { console.log(`${lc} preparing launch params (pageUrl, selectionText, ...) (I: d1135e0662b640335748719a57d53722)`); }
+
+        const extensionLaunchInfo = await getExtensionLaunchInfo(clickData, tabId);
+        if (!extensionLaunchInfo) {
+            console.warn(`${lc} extensionLaunchInfo empty. returning early... (W: b51fafbab6d044818b4943ae44a190c1)`);
+            return; /* <<<< returns early */
+        }
+
         /**
          * instead of breaking out our event info into multiple params, we create
          * a wrapper object for params, and put the entire stringified object
          * into a single param that we will parse back into a JS object.
          */
-        const msgObj = { extensionLaunchInfo: JSON.stringify(eventInfo) };
+        const msgObj = { extensionLaunchInfo: JSON.stringify(extensionLaunchInfo) };
         const launchParams = new URLSearchParams(msgObj).toString();
 
         // https://developer.chrome.com/docs/extensions/reference/tabs/#method-create
@@ -320,7 +383,7 @@ function handleMenuItem_ExecCreateIbGib(itemData) {
     }
 }
 
-async function handleMenuItem_AddSelection(itemData, tabId) {
+async function handleMenuItem_AddSelection(clickData, tabId) {
     const lc = `${handleMenuItem_AddSelection.name}`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: 9f1a79c0b811348735a5ea7ea0764422)`); }
@@ -331,7 +394,7 @@ async function handleMenuItem_AddSelection(itemData, tabId) {
 
         const arg = {
             type: 'comment',
-            text: itemData.selectionText,
+            text: clickData.selectionText,
         };
         return new Promise((resolve, reject) => {
             chrome.scripting.executeScript({
@@ -352,7 +415,7 @@ async function handleMenuItem_AddSelection(itemData, tabId) {
     }
 }
 
-async function handleMenuItem_AddLink(itemData, tabId) {
+async function handleMenuItem_AddLink(clickData, tabId) {
     const lc = `${handleMenuItem_AddLink.name}`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: ef85eba63f1d4e59bd533f216ca3a4b6)`); }
@@ -363,7 +426,7 @@ async function handleMenuItem_AddLink(itemData, tabId) {
 
         const arg = {
             type: 'link',
-            url: itemData.linkUrl,
+            url: clickData.linkUrl,
         };
         return new Promise((resolve, reject) => {
             chrome.scripting.executeScript({
@@ -384,7 +447,7 @@ async function handleMenuItem_AddLink(itemData, tabId) {
     }
 }
 
-async function handleMenuItem_ClearSelections(itemData, tabId) {
+async function handleMenuItem_ClearSelections(clickData, tabId) {
     const lc = `[${handleMenuItem_ClearSelections.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: dd876ad752ada726ac9193f824726922)`); }
@@ -489,10 +552,10 @@ function initializeContextMenuClick() {
         if (logalot) { console.log(`${lc} initializing contextMenus.onClicked (I: 62818c091ed5bf612fd564140cc1d222)`); }
         // https://developer.chrome.com/docs/extensions/reference/contextMenus/#type-OnClickData
         // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/menus/OnClickData
-        chrome.contextMenus.onClicked.addListener(async (itemData, outerTab) => {
-            console.log(`${lc} contextMenu link clicked. itemData.menuItemId: ${itemData.menuItemId}`);
-            console.log(`${lc} itemData: `)
-            console.dir(itemData);
+        chrome.contextMenus.onClicked.addListener(async (clickData, outerTab) => {
+            console.log(`${lc} contextMenu link clicked. clickData.menuItemId: ${clickData.menuItemId}`);
+            console.log(`${lc} clickData: `)
+            console.dir(clickData);
 
             // for lack of a better name, "outer" tab means the tab that
             // initiates the context menu event. the "inner" tab is the one that
@@ -502,23 +565,23 @@ function initializeContextMenuClick() {
             if (logalot) { console.log(`${lc} console.dir(outerTab)... (I: fd989d970a704c2abdf9c2841bbdb514)`); }
             if (logalot) { console.dir(outerTab); }
 
-            if (itemData.menuItemId === MENU_ITEM_EXEC_CREATE_IBGIB) {
+            if (clickData.menuItemId === MENU_ITEM_EXEC_CREATE_IBGIB) {
                 if (logalot) { console.log(`${lc} creating ${MENU_ITEM_EXEC_CREATE_IBGIB} tab... (I: 8cffc16cf3ccdfa52ebe565873360122)`); }
-                handleMenuItem_ExecCreateIbGib(itemData);
-            } else if (itemData.menuItemId === MENU_ITEM_ADD_SELECTION) {
+                await handleMenuItem_ExecCreateIbGib(clickData, outerTab.id);
+            } else if (clickData.menuItemId === MENU_ITEM_ADD_SELECTION) {
                 if (logalot) { console.log(`${lc} MENU_ITEM_ADD_SELECTION clicked (I: fa984a2992a114c6455f1a266116a822)`); }
-                await handleMenuItem_AddSelection(itemData, outerTab.id);
-            } else if (itemData.menuItemId === MENU_ITEM_ADD_LINK) {
+                await handleMenuItem_AddSelection(clickData, outerTab.id);
+            } else if (clickData.menuItemId === MENU_ITEM_ADD_LINK) {
                 if (logalot) { console.log(`${lc} MENU_ITEM_ADD_LINK clicked (I: eaa76de3b7cc374926d7f13b7abc2422)`); }
-                await handleMenuItem_AddLink(itemData, outerTab.id);
-            } else if (itemData.menuItemId === MENU_ITEM_SELECT_MODE) {
+                await handleMenuItem_AddLink(clickData, outerTab.id);
+            } else if (clickData.menuItemId === MENU_ITEM_SELECT_MODE) {
                 if (logalot) { console.log(`${lc} MENU_ITEM_SELECT_MODE clicked (I: ff8ef04326e847c7ac7e6f530d579993)`); }
-                await handleMenuItem_SelectMode(itemData, outerTab.id);
-            } else if (itemData.menuItemId === MENU_ITEM_CLEAR_SELECTIONS) {
+                await handleMenuItem_SelectMode(clickData, outerTab.id);
+            } else if (clickData.menuItemId === MENU_ITEM_CLEAR_SELECTIONS) {
                 if (logalot) { console.log(`${lc} MENU_ITEM_CLEAR_SELECTIONS clicked (I: 1da6e37dd06340c29a1a4fe49faf5a27)`); }
-                await handleMenuItem_ClearSelections(itemData, outerTab.id);
+                await handleMenuItem_ClearSelections(clickData, outerTab.id);
             } else {
-                console.warn(`${lc} unknown menu item id: ${itemData.menuItemId}`);
+                console.warn(`${lc} unknown menu item id: ${clickData.menuItemId}`);
             }
         });
         if (logalot) { console.log(`${lc} success (I: 78cfd7d3285fbe005cc882899ff0f722)`); }

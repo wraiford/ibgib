@@ -179,6 +179,17 @@ export interface AppResultIbGib<
 }
 
 /**
+ * When coming from the extension in firefox/chrome(chromium), this info
+ * represents a selection to be converted/saved in an ibgib graph.
+ */
+export interface ExtensionSelectionInfo {
+  type: 'comment' | 'link';
+  text: string;
+  url?: string;
+  children?: ExtensionSelectionInfo[];
+}
+
+/**
  * this is generated in background.js (WARNING! background.js atow is generated
  * from background.v2.js or background.v3.js . ...do NOT make changes directly
  * in background.js!).
@@ -216,9 +227,16 @@ export interface ExtensionLaunchInfo {
    */
   pageUrl: string;
   /**
-   * selected text when initiating the app.
+   * info about selections user made when starting the (extension) app.
+   *
+   * So if they highlight some text and add it, that is one info. If they highlight a whole paragraph
+   * it will create a comment for the p and possibly children infos for links in that paragraph.
+   *
+   * Same goes for if they select a header tag.
    *
    * @link https://developer.chrome.com/docs/extensions/reference/contextMenus/#type-OnClickData
    */
-  selectionText?: string;
+  selectionInfos?: ExtensionSelectionInfo[];
 }
+
+
