@@ -112,7 +112,11 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
         const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            if (logalot) { console.log(`${lc} LOOOKING AT THIS starting...`); }
+
+            if (this.paused) {
+                if (logalot) { console.log(`${lc} paused is true, returning early. (I: e22b7a67955226b65979f6b7e61e5222)`); }
+                return; /* <<<< returns early */
+            }
 
             // we want to change how we update the ibgib depending on if it's
             // the same ibgib timeline (same tjp) or a completely different one.
@@ -132,7 +136,6 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
             await this.loadTjp();
             await this.updateItems();
         } catch (error) {
-            debugger;
             console.error(`${lc} ${error.message}`);
             throw error;
         } finally {
@@ -162,7 +165,7 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
                 // both old and new are non-falsy
                 let oldTjpGib = getGibInfo({ ibGibAddr: this.item.addr }).tjpGib;
                 let newTjpGib = getGibInfo({ ibGibAddr: addr }).tjpGib;
-                if (oldTjpGib === newTjpGib) {
+                if (oldTjpGib === newTjpGib && !this.paused) {
                     // same timeline
                     await this.updateIbGib_NewerTimelineFrame({ latestAddr: addr })
                     return; /* <<<< returns early */
@@ -412,10 +415,10 @@ export abstract class IbgibListComponentBase<TItem extends IbgibListItem = Ibgib
         return x.sort((a, b) => {
             if (!a.ibGib?.data || !b.ibGib?.data) { return 0; }
             if (!a.ibGib?.data?.timestamp ?? a.ibGib?.data?.textTimestamp) {
-                console.error(`${lc} no timestamp a.addr: ${a.addr}`)
+                console.warn(`${lc} no timestamp a.addr: ${a.addr}`)
             }
             if (!b.ibGib?.data?.timestamp ?? b.ibGib?.data?.textTimestamp) {
-                console.error(`${lc} no timestamp b.addr: ${b.addr}`)
+                console.warn(`${lc} no timestamp b.addr: ${b.addr}`)
             }
             return new Date(a.ibGib?.data?.timestamp ?? a.ibGib?.data?.textTimestamp) < new Date(b.ibGib?.data?.timestamp ?? b.ibGib?.data?.textTimestamp) ? -1 : 1
         });

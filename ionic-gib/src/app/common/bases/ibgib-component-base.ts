@@ -407,9 +407,6 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
         try {
             if (logalot) { console.log(`${lc} starting...`); }
             item = item ?? this.item;
-            if (!item) {
-                debugger;
-            }
             const { ib, gib } = h.getIbAndGib({ ibGibAddr: addr });
             item.ib = ib;
             item.gib = gib;
@@ -878,7 +875,6 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             // if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\ninfo: ${JSON.stringify(info, null, 2)} (I: c0483014944c43cdac5f8d296bb56e05)`); }
             if (logalot) { console.log(`${lc} setting this.addr (${this.addr}) to info.latestAddr (${info.latestAddr}). (I: 74f2ce5803064578a5f4166ad045c1bf)`); }
 
-            if (!this.ibGib) { debugger; }
             // check manually comparing data
             if (logalot) { console.log(`${lc} triggered.\nthis.addr: ${this.addr}\nlatest info: ${JSON.stringify(info, null, 2)}`); }
             let info_latestIbGib = info.latestIbGib;

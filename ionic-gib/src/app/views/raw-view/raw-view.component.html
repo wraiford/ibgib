@@ -1,8 +1,50 @@
-<list-view #listView id='theList'
-  [addr]='addr'
-  [rel8nNames]='rel8nNames'
-  (clicked)='itemClicked($event)'
-  [scrollEvents]="true"
-  (ionScroll)='handleScroll($event)'
-  (itemsAdded)='handleItemsAdded($event)'
-  ></list-view>
+<ion-accordion-group multiple [value]="['ib', 'gib', 'data', 'rel8ns']">
+
+  <ion-accordion value="ib">
+    <ion-item slot="header">ib: </ion-item>
+    <ion-item slot="content">
+      <p *ngIf="ibGib">{{ibGib?.ib}}</p>
+      <ion-spinner *ngIf="!ibGib" name="circles" color="tertiary"></ion-spinner>
+    </ion-item>
+  </ion-accordion>
+
+  <ion-accordion value="gib">
+    <ion-item slot="header">gib: </ion-item>
+    <ion-item slot="content">
+      <p *ngIf="ibGib">{{ibGib?.gib}}</p>
+      <ion-spinner *ngIf="!ibGib" name="circles" color="tertiary"></ion-spinner>
+    </ion-item>
+  </ion-accordion>
+
+  <ion-accordion value="data">
+    <ion-item slot="header">data: </ion-item>
+    <ion-item slot="content">
+      <pre *ngIf="ibGib">{{ibGib?.data | json}}</pre>
+      <ion-spinner *ngIf="!ibGib" name="circles" color="tertiary"></ion-spinner>
+    </ion-item>
+  </ion-accordion>
+
+  <ion-accordion value="rel8ns">
+    <ion-item slot="header">rel8ns: </ion-item>
+    <ion-list slot="content" class="rel8ns-container">
+      <ul *ngFor="let rel8nName of allRel8nNames">
+        <li>{{rel8nName}} [
+          <ul>
+            <li *ngFor="let rel8dAddr of ibGib?.rel8ns[rel8nName]; let i = index" class="pseudo-link" (click)="handleRel8dAddrClick(rel8dAddr)">[{{i}}] {{rel8dAddr}}</li>
+          </ul>
+          ]
+        </li>
+      </ul>
+      <ion-spinner *ngIf="!ibGib" name="circles" color="tertiary"></ion-spinner>
+    </ion-list>
+  </ion-accordion>
+
+  <ion-accordion value="raw-json">
+    <ion-item slot="header">raw json: </ion-item>
+    <ion-item slot="content">
+      <pre *ngIf="ibGib">{{ibGib | json}}</pre>
+      <ion-spinner *ngIf="!ibGib" name="circles" color="tertiary"></ion-spinner>
+    </ion-item>
+  </ion-accordion>
+
+</ion-accordion-group>

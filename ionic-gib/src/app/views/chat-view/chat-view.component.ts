@@ -51,7 +51,6 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
   //     if (logalot) { console.log(`${lc}[testing] this.items.length: ${this.items?.length ?? -1}`); }
 
   //   } catch (error) {
-  //     debugger;
   //     console.error(`${lc} ${error.message}`);
   //     throw error;
   //   } finally {

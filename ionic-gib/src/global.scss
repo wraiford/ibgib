@@ -116,3 +116,24 @@ ion-input.floating-with-placeholder {
     }
 
 }
+
+
+.pseudo-link {
+    cursor: pointer;
+    color: blue;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .pseudo-link {
+        cursor: pointer;
+        color: rgb(75, 75, 208);
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+}

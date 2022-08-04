@@ -32,8 +32,31 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
   @Input()
   appNames: string[] = [];
 
+  _selectedApp: AppIbGib_V1;
   @Input()
-  selectedApp: AppIbGib_V1;
+  get selectedApp(): AppIbGib_V1 { return this._selectedApp; }
+  set selectedApp(value: AppIbGib_V1) {
+    // this.appSelected.emit(h.clone(appIbGib));
+    if (!value && !this._selectedApp) { return; /* <<<< returns early */ }
+    if (value) {
+      if (this._selectedApp) {
+        if (this._selectedApp.data.uuid === value.data.uuid) {
+          // it's the same app, so just update the value but don't emit
+          // appSelected event
+          this._selectedApp = value;
+        } else {
+          // it's a different app, so emit
+          this._selectedApp = value;
+          this.appSelected.emit(h.clone(value));
+        }
+      } else {
+        this._selectedApp = value;
+        this.appSelected.emit(h.clone(value));
+      }
+    } else {
+      this.appSelected.emit(null);
+    }
+  }
 
   @Input()
   addingApp: boolean;
@@ -94,7 +117,6 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
       if ((this.apps ?? []).length === 0) { await this.updateApps(); }
       if ((this.apps ?? []).length === 0) { throw new Error(`app selected but this.apps is falsy/empty even after updating (E: 39dad954e37642568ab5f2ca08326612)`); }
       let appToSelect: AppIbGib_V1;
-      debugger;
       for (let i = 0; i < this.apps.length; i++) {
         const app = this.apps[i];
         const appAddrs = [
@@ -154,10 +176,9 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
         if (!appIbGib.data.uuid) { throw new Error(`invalid app data. uuid required (E: 395428787001407d90ccea81ac900e9e)`); }
 
         if (this.selectedApp?.data.uuid !== appIbGib.data.uuid) {
-          this.selectedApp = appIbGib;
           console.log(`new app selected. (I: eb3a8ca5a54a4fc8915931bd3ed19c8e)`);
           await Storage.set({ key: c.SIMPLE_CONFIG_KEY_APP_SELECTED, value: this.selectedApp.data.uuid });
-          this.appSelected.emit(h.clone(appIbGib));
+          this.selectedApp = appIbGib; // emits appSelected event
         } else {
           if (logalot) { console.log(`${lc} same app selected (I: 18e45c4819dc4a4c8cc20c1b138b59e3)`); }
         }

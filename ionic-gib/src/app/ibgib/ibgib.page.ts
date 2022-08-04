@@ -310,8 +310,8 @@ export class IbGibPage extends IbgibComponentBase
       if (logalot) { console.log(`${lc} starting... (I: e3064a93ac6fb9b22767dadd48646622)`); }
 
       let count = 0;
-      while (!this.appBar && count < 10) {
-        await h.delay(2000);
+      while (!this.appBar && count < 1000) {
+        await h.delay(100);
         count++
       }
       if (!this.appBar) {

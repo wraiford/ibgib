@@ -1,5 +1,5 @@
 import {
-  Component, ChangeDetectorRef, Output, EventEmitter, ViewChild
+  Component, ChangeDetectorRef, Output, EventEmitter, ViewChild, Input
 } from '@angular/core';
 import { ScrollBaseCustomEvent } from '@ionic/angular';
 
@@ -26,6 +26,16 @@ export class RawViewComponent extends IbgibListComponentBase<RawItem> {
 
   protected lc: string = `[${RawViewComponent.name}]`;
 
+  /**
+   * We bind to all of the rel8nNames instead of some filtered list.
+   *
+   * Or said another way, in the raw view, we want to see all of the rel8nNames.
+   */
+  @Input()
+  get allRel8nNames(): string[] {
+    return Object.keys(this.ibGib?.rel8ns ?? {});
+  }
+
   @Output()
   rawViewScrolled: EventEmitter<ScrollBaseCustomEvent> = new EventEmitter();
 
@@ -40,6 +50,7 @@ export class RawViewComponent extends IbgibListComponentBase<RawItem> {
     protected ref: ChangeDetectorRef,
   ) {
     super(common, ref);
+    this.paused = true;
   }
 
   // async updateIbGib_NewerTimelineFrame(info: IbGibTimelineUpdateInfo): Promise<void> {
@@ -51,7 +62,6 @@ export class RawViewComponent extends IbgibListComponentBase<RawItem> {
   //     if (logalot) { console.log(`${lc}[testing] this.items.length: ${this.items?.length ?? -1}`); }
 
   //   } catch (error) {
-  //     debugger;
   //     console.error(`${lc} ${error.message}`);
   //     throw error;
   //   } finally {
@@ -86,4 +96,22 @@ export class RawViewComponent extends IbgibListComponentBase<RawItem> {
     this.rawViewItemsAdded.emit(items);
   }
 
+  async handleRel8dAddrClick(rel8dAddr): Promise<void> {
+    const lc = `${this.lc}[${this.handleRel8dAddrClick.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 6c547a8a10996e148e126064e5b64e22)`); }
+      await this.go({
+        toAddr: rel8dAddr,
+        fromAddr: this.addr,
+        force: true,
+        queryParams: { paused: true },
+        queryParamsHandling: 'merge'
+      });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 }
