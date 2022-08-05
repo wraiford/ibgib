@@ -797,6 +797,7 @@ export class IbGibPage extends IbgibComponentBase
           queryParamsHandling: 'merge',
           force: true,
         });
+        return; /* <<<< returns early */
       }
       if (this.item) { this.item.refreshing = true; }
       await this.common.ibgibs.pingLatest_Local({ ibGib: this.ibGib, tjpIbGib: this.tjp, useCache: false });

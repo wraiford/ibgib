@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, Output, EventEmitter, ViewChild } from '@angular/core';
+import { Component, ChangeDetectorRef, Output, EventEmitter, ViewChild, OnInit, OnDestroy } from '@angular/core';
 import { ScrollBaseCustomEvent } from '@ionic/angular';
 
 import * as h from 'ts-gib/dist/helper';
@@ -16,7 +16,7 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
   templateUrl: './chat-app.component.html',
   styleUrls: ['./chat-app.component.scss'],
 })
-export class ChatAppComponent extends IbgibComponentBase {
+export class ChatAppComponent extends IbgibComponentBase implements OnInit, OnDestroy {
 
   protected lc: string = `[${ChatAppComponent.name}]`;
 
@@ -55,7 +55,7 @@ export class ChatAppComponent extends IbgibComponentBase {
       await this.loadTjp();
       await this.loadItem();
       // trigger an initial ping to check for newer ibgibs
-      if (!this.paused) {
+      if (!this.paused && !window.location.toString().includes('paused=true')) {
         setTimeout(async () => {
           await this.smallDelayToLoadBalanceUI();
           await this.common.ibgibs.pingLatest_Local({ ibGib: this.ibGib, tjpIbGib: this.tjp, useCache: true });
