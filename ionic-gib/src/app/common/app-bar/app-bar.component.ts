@@ -177,7 +177,7 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
 
         if (this.selectedApp?.data.uuid !== appIbGib.data.uuid) {
           console.log(`new app selected. (I: eb3a8ca5a54a4fc8915931bd3ed19c8e)`);
-          await Storage.set({ key: c.SIMPLE_CONFIG_KEY_APP_SELECTED, value: this.selectedApp.data.uuid });
+          await Storage.set({ key: c.SIMPLE_CONFIG_KEY_APP_SELECTED, value: appIbGib.data.uuid });
           this.selectedApp = appIbGib; // emits appSelected event
         } else {
           if (logalot) { console.log(`${lc} same app selected (I: 18e45c4819dc4a4c8cc20c1b138b59e3)`); }

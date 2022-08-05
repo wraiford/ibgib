@@ -1,6 +1,6 @@
 {
   "name": "ionicgib",
-  "version": "0.2.338",
+  "version": "0.2.353",
   "author": "William Raiford",
   "repository": {
     "url": "https://github.com/wraiford/ibgib",
@@ -35,7 +35,7 @@
     "build:ios": "npm run build && ionic build && ionic capacitor sync ios",
     "build:android:prod": "ionic capacitor build android --prod",
     "build:ios:prod": "ionic capacitor build ios --prod",
-    "man:watch": "echo 'builds with aot flag, outputting to www with `-watch` flag enabled for live-reloading. Use this with extension development.'",
+    "man:watch": "echo 'builds with aot flag, outputting to www with `--watch` flag enabled for live-reloading. Use this with extension development.'",
     "prewatch": "npm --no-git-tag-version version patch",
     "watch": "ng build --aot --output-path www --watch",
     "postwatch": "npm run man:watch",

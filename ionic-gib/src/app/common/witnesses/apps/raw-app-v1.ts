@@ -18,23 +18,10 @@ import { getIdPool } from '../../helper/utils';
 import { WitnessFormBuilder } from '../../helper/witness';
 import { getAppIb, AppFormBuilder } from '../../helper/app';
 import { DynamicFormBuilder } from '../../helper/form';
+import { DEFAULT_RAW_APP_DATA_V1, DEFAULT_RAW_APP_REL8NS_V1, RawAppData_V1, RawAppRel8ns_V1 } from '../../types/raw-app';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
-
-export const DEFAULT_UUID_RAW_APP = undefined;
-export const DEFAULT_NAME_RAW_APP = 'raw_gib';
-export const DEFAULT_DESCRIPTION_RAW_APP =
-    `Explorer app for navigating raw ibgib data.`;
-
-
-export interface RawAppData_V1 extends AppData_V1 {
-
-}
-
-export interface RawAppRel8ns_V1 extends AppRel8ns_V1 {
-
-}
 
 /**
  *
@@ -217,29 +204,6 @@ export class RawApp_V1 extends AppBase_V1<
 }
 
 /**
- * Default data values for a random app.
- *
- * If you change this, please bump the version
- *
- * (but of course won't be the end of the world when this doesn't happen).
- */
-export const DEFAULT_RAW_APP_DATA_V1: RawAppData_V1 = {
-    version: '1',
-    uuid: DEFAULT_UUID_RAW_APP,
-    name: DEFAULT_NAME_RAW_APP,
-    description: DEFAULT_DESCRIPTION_RAW_APP,
-    classname: RawApp_V1.name,
-
-    icon: 'paper-plane',
-
-    persistOptsAndResultIbGibs: false,
-    allowPrimitiveArgs: true,
-    catchAllErrors: true,
-    trace: false,
-}
-const DEFAULT_RAW_APP_REL8NS_V1: RawAppRel8ns_V1 = undefined;
-
-/**
  * factory for random app.
  *
  * @see {@link DynamicFormFactoryBase}
@@ -261,7 +225,6 @@ export class RawApp_V1_Factory
     }): Promise<TransformResult<RawApp_V1>> {
         const lc = `${this.lc}[${this.newUp.name}]`;
         try {
-            debugger;
             if (logalot) { console.log(`${lc} starting...`); }
             data = data ?? h.clone(DEFAULT_RAW_APP_DATA_V1);
             rel8ns = rel8ns ?? DEFAULT_RAW_APP_REL8NS_V1 ? h.clone(DEFAULT_RAW_APP_REL8NS_V1) : undefined;
@@ -302,7 +265,6 @@ export class RawApp_V1_Factory
         const lc = `${this.lc}[${this.witnessToForm.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            debugger;
             let { data } = witness;
             // We do the AppFormBuilder specific functions first, because of
             if (logalot) { console.log(`${lc} data: ${h.pretty(data)} (I: 7601c0e1046b4faa9f62df45e92fd77e)`); }
@@ -334,7 +296,6 @@ export class RawApp_V1_Factory
 
     async formToWitness({ form }: { form: DynamicForm; }): Promise<TransformResult<RawApp_V1>> {
         // let app = new RawApp_V1(null, null);
-        debugger;
         let data: AppData_V1 = h.clone(DEFAULT_RAW_APP_DATA_V1);
         this.patchDataFromItems({ data, items: form.items, pathDelimiter: c.DEFAULT_DATA_PATH_DELIMITER });
         let resApp = await this.newUp({ data });
