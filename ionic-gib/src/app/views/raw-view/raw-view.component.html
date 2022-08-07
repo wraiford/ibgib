@@ -3,7 +3,19 @@
   <ion-accordion value="ib">
     <ion-item slot="header">ib: </ion-item>
     <ion-item slot="content">
-      <p *ngIf="ibGib">{{ibGib?.ib}}</p>
+      <ng-container *ngIf="ibGib">
+        <ion-item>
+          <ion-label position="stacked" color="primary">raw: </ion-label>
+          <div class="buttons-then-text">
+            <ion-buttons>
+              <ion-button (click)="handleClick_Copy(ibGib.ib, ibText)">
+                <ion-icon name="copy-outline" size="large"></ion-icon>
+              </ion-button>
+            </ion-buttons>
+            <p #ibText>{{ibGib.ib}}</p>
+          </div>
+        </ion-item>
+      </ng-container>
       <ion-spinner *ngIf="!ibGib" name="circles" color="tertiary"></ion-spinner>
     </ion-item>
   </ion-accordion>
@@ -11,7 +23,43 @@
   <ion-accordion value="gib">
     <ion-item slot="header">gib: </ion-item>
     <ion-item slot="content">
-      <p *ngIf="ibGib">{{ibGib?.gib}}</p>
+      <ng-container *ngIf="ibGib">
+        <ion-list>
+          <ion-item>
+            <ion-label position="stacked" color="primary">raw: </ion-label>
+            <div class="buttons-then-text">
+              <ion-buttons>
+                <ion-button (click)="handleClick_Copy(ibGib.gib, gibText)">
+                  <ion-icon name="copy-outline" size="large"></ion-icon>
+                </ion-button>
+              </ion-buttons>
+              <p #gibText>{{ibGib.gib}}</p>
+            </div>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked" color="primary">punctiliar hash: </ion-label>
+            <div class="buttons-then-text">
+              <ion-buttons>
+                <ion-button (click)="handleClick_Copy(item.punctiliarHash, punctiliarHash)">
+                  <ion-icon name="copy-outline" size="large"></ion-icon>
+                </ion-button>
+              </ion-buttons>
+              <p #punctiliarHash>{{item.punctiliarHash ?? '[none]'}}</p>
+            </div>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked" color="primary">tjpGib: </ion-label>
+            <div class="buttons-then-text">
+              <ion-buttons>
+                <ion-button (click)="handleClick_Copy(item.tjpGib, tjpGib)">
+                  <ion-icon name="copy-outline" size="large"></ion-icon>
+                </ion-button>
+              </ion-buttons>
+              <p #tjpGib>{{item.tjpGib ?? '[none]'}}</p>
+            </div>
+          </ion-item>
+        </ion-list>
+      </ng-container>
       <ion-spinner *ngIf="!ibGib" name="circles" color="tertiary"></ion-spinner>
     </ion-item>
   </ion-accordion>
@@ -30,7 +78,13 @@
       <ul *ngFor="let rel8nName of allRel8nNames">
         <li>{{rel8nName}} [
           <ul>
-            <li *ngFor="let rel8dAddr of ibGib?.rel8ns[rel8nName]; let i = index" class="pseudo-link" (click)="handleRel8dAddrClick(rel8dAddr)">[{{i}}] {{rel8dAddr}}</li>
+            <li #rel8dListItem *ngFor="let rel8dAddr of ibGib?.rel8ns[rel8nName]; let i = index"
+              class="li-rel8d-addr">
+              <ion-buttons>
+                <ion-button (click)="handleClick_Copy(rel8dAddr, rel8dListItem)">
+                  <ion-icon name="copy-outline"></ion-icon>
+                </ion-button>
+              </ion-buttons>[{{i}}] <span  class="pseudo-link" (click)="handleRel8dAddrClick(rel8dAddr)">{{rel8dAddr}}</span></li>
           </ul>
           ]
         </li>

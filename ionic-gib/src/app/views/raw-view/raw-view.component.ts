@@ -1,7 +1,9 @@
 import {
-  Component, ChangeDetectorRef, Output, EventEmitter, ViewChild, Input
+  Component, ChangeDetectorRef, Output, EventEmitter, ViewChild, Input, ElementRef
 } from '@angular/core';
 import { ScrollBaseCustomEvent } from '@ionic/angular';
+import { Plugins } from "@capacitor/core";
+const { Clipboard, } = Plugins;
 
 import * as h from 'ts-gib/dist/helper';
 
@@ -10,6 +12,7 @@ import { CommonService } from '../../services/common.service';
 import { IbGibItem, } from '../../common/types/ux';
 import { IbgibListComponentBase } from '../../common/bases/ibgib-list-component-base';
 import { ListViewComponent } from '../list-view/list-view.component';
+import { Gib } from 'ts-gib';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -107,6 +110,32 @@ export class RawViewComponent extends IbgibListComponentBase<RawItem> {
         queryParams: { paused: true },
         queryParamsHandling: 'merge'
       });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleClick_Copy(rel8dAddr: string, rel8dListItem: HTMLElement): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_Copy.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 3f0b6ea7ebedd68acc2737546fc54322)`); }
+
+      // debugger;
+      await Clipboard.write({ string: rel8dAddr });
+      await Plugins.Toast.show({ text: 'copied!', duration: 'short' });
+
+      if (rel8dListItem) {
+        const el = rel8dListItem;
+        const highlighted = 'ib-highlighted';
+        if (!el.classList.contains(highlighted)) { el.classList.add(highlighted); }
+        setTimeout(() => {
+          if (el.classList.contains(highlighted)) { el.classList.remove(highlighted); }
+        }, 2000);
+      }
+
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

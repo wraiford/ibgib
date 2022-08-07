@@ -410,6 +410,13 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             const { ib, gib } = h.getIbAndGib({ ibGibAddr: addr });
             item.ib = ib;
             item.gib = gib;
+            if (gib) {
+                let gibInfo = getGibInfo({ gib });
+                item.tjpGib = gibInfo.tjpGib;
+                item.punctiliarHash = gibInfo.punctiliarHash;
+            } else {
+                delete item.tjpGib;
+            }
             item.addr = addr;
         } catch (error) {
             console.error(`${lc} ${error.message}`);

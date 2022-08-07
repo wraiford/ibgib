@@ -110,7 +110,6 @@ export class IonicStorageLatestIbgibCacheService implements IbGibCacheService {
       await Storage.set({ key, value: jsonString });
       this.infos[key] = h.clone(info);
     } catch (error) {
-      debugger;
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {

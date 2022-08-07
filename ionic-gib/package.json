@@ -1,6 +1,6 @@
 {
   "name": "ionicgib",
-  "version": "0.2.354",
+  "version": "0.2.356",
   "author": "William Raiford",
   "repository": {
     "url": "https://github.com/wraiford/ibgib",
@@ -52,7 +52,7 @@
     "man:ff:createprofiles": "echo 'creates test profiles for ff. each profile retains data between sessions. you can delete profiles in ff at url \"about:profiles\"'",
     "ff:createprofiles": "/Applications/Firefox.app/Contents/MacOS/firefox -CreateProfile \"ibgibtest1\" && /Applications/Firefox.app/Contents/MacOS/firefox -CreateProfile \"ibgibtest2\" && /Applications/Firefox.app/Contents/MacOS/firefox -CreateProfile \"ibgibtest3\"",
     "man:ff": "echo 'ff starts firefox with web-ext. the numbers after are the test profiles, for simultaneous users. the \"none\" is no profile, which does not retain data between sessions.'",
-    "ff": "npm run ff:1",
+    "ff": "npm run ff:0",
     "man:ff:0": "echo 'runs web-ext ff with a temporary, clean session profile, i.e., does not keep data between sessions.'",
     "preff:0": "npm run build:ff",
     "ff:0": "web-ext run -s './www' -t firefox-desktop --browser-console",

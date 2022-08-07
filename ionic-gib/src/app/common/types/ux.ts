@@ -31,6 +31,17 @@ export interface IbGibItem {
      */
     gib?: string;
     /**
+     * If there is a tjpGib in the gib address, this should be set to it.
+     */
+    tjpGib?: string;
+    /**
+     * hash of _this_ frame, if available.
+     *
+     * the gib of ibgibs with timelines include both the punctiliar hash and the gib
+     * of the tjp (temporal junction point).
+     */
+    punctiliarHash?: string;
+    /**
      * ib^gib address which uniquely identifies the ibGib.
      */
     addr?: IbGibAddr;
