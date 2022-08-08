@@ -866,8 +866,8 @@ const IBGIB_APP_FEATURES: VerticalSwiperTidbit[] = [
     focused: true,
     title: `just a prototype`,
     body: [
-      `(n)ow: we can do some things...`,
-      `(f)uture: we will do all teh things.`,
+      `(n)ow: can do some things...`,
+      `(f)uture: do all teh things.`,
     ],
   },
   {

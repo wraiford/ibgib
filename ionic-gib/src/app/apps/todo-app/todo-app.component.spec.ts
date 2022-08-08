@@ -1,19 +1,19 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
 
-import { RawAppComponent } from './raw-app.component';
+import { TodoAppComponent } from './todo-app.component';
 
-describe('RawAppComponent', () => {
-  let component: RawAppComponent;
-  let fixture: ComponentFixture<RawAppComponent>;
+describe('TodoAppComponent', () => {
+  let component: TodoAppComponent;
+  let fixture: ComponentFixture<TodoAppComponent>;
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [RawAppComponent],
+      declarations: [TodoAppComponent],
       imports: [IonicModule.forRoot()]
     }).compileComponents();
 
-    fixture = TestBed.createComponent(RawAppComponent);
+    fixture = TestBed.createComponent(TodoAppComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   }));

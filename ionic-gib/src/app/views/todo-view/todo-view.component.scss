@@ -1,0 +1,116 @@
+:host {
+  // border-width: 5px;
+  // border-style: solid;
+  // border-color: darkgoldenrod;
+
+  height: 100%;
+  width: 100%;
+  display: flex;
+  overflow-y: none;
+}
+
+ion-accordion-group {
+  width: 99%;
+}
+
+ion-accordion {
+  margin: 0 auto;
+  border-color: rgba(var(--ion-color-primary-rgb), 0.14);
+  border-radius: 5px;
+  border-width: 1px;
+  border-style: solid;
+  // max-height: 50%;
+}
+
+ion-accordion.accordion-expanding,
+ion-accordion.accordion-expanded {
+  width: calc(100% - 8px);
+  margin: 16px auto;
+}
+
+
+ion-accordion.accordion-expanding ion-item[slot="header"] {
+  // color: var(--ion-color-tertiary);
+  border-radius: 5px;
+  border-width: 1px;
+  border-color: var(--ion-color-primary);
+  border-style: solid;
+}
+
+ion-accordion.accordion-expanded ion-item[slot="header"] {
+  color: var(--ion-color-primary) !important;
+  border-radius: 5px;
+  border-width: 1px;
+  border-color: var(--ion-color-primary);
+  border-style: solid;
+  font-weight: bold;
+}
+
+ion-accordion.accordion-expanded ion-item[slot="header"] ion-label ion-icon {
+  color: var(--ion-color-primary) !important;
+}
+
+ion-accordion ion-item[slot="header"] ion-label ion-text {
+  margin-left: 10px;
+}
+
+ion-accordion ion-list ion-item ion-button {
+  width: calc(100% - 8px);
+  margin: 0px !important;
+  font-family: 'Courier New', Courier, monospace !important;
+}
+
+ion-accordion ion-list ion-item ion-button button {
+  color: purple !important;
+  font-family: 'Courier New', Courier, monospace !important;
+}
+
+.header {
+  font-size: 18px;
+  font-weight: 600;
+
+  min-height: 20px;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+ion-item {
+  overflow: auto;
+}
+
+.buttons-then-text {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.rel8ns-container {
+  display: flex;
+  flex-direction: column !important;
+  // color: var(--ion-color-primary);
+  overflow-x: scroll;
+
+  .li-rel8d-addr {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+  }
+}
+
+@keyframes ibHighlight {
+  0% {
+    background-color: initial;
+  }
+
+  50% {
+    background-color: var(--ion-color-primary);
+  }
+
+  100% {
+    background-color: initial;
+  }
+}
+
+.ib-highlighted {
+  animation: ibHighlight 1s;
+}

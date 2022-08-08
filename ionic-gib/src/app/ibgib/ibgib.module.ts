@@ -25,9 +25,11 @@ import { TagListViewComponent } from '../views/tag-list-view/tag-list-view.compo
 import { RootListViewComponent } from '../views/root-list-view/root-list-view.component';
 import { ChatViewComponent } from '../views/chat-view/chat-view.component';
 import { RawViewComponent } from '../views/raw-view/raw-view.component';
+import { TodoViewComponent } from '../views/todo-view/todo-view.component';
 
 import { ChatAppComponent } from '../apps/chat-app/chat-app.component';
 import { RawAppComponent } from '../apps/raw-app/raw-app.component';
+import { TodoAppComponent } from '../apps/todo-app/todo-app.component';
 
 import { IbGibPage } from './ibgib.page';
 
@@ -76,9 +78,11 @@ import { ClickHoldAnimationDirective } from '../common/directives/animations/cli
     RootListViewComponent,
     ChatViewComponent,
     RawViewComponent,
+    TodoViewComponent,
 
     ChatAppComponent,
     RawAppComponent,
+    TodoAppComponent,
 
     ActionBarComponent,
     RobbotBarComponent,

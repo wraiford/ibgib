@@ -16,6 +16,7 @@ import { WitnessFactoriesService } from '../../../services/witness-factories.ser
 import { DynamicFormComponent } from '../../../ibgib-forms/dynamic-form/dynamic-form.component';
 import { ChatApp_V1, } from '../../witnesses/apps/chat-app-v1';
 import { RawApp_V1 } from '../../witnesses/apps/raw-app-v1';
+import { TodoApp_V1 } from '../../witnesses/apps/todo-app-v1';
 import { IbGibAppAny, } from '../../witnesses/apps/app-base-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -128,6 +129,7 @@ export class AppModalFormComponent
         // add our list of app classnames here,
         ChatApp_V1.name,
         RawApp_V1.name,
+        TodoApp_V1.name,
       ].map(name => {
         return this.factories.getFactory<
           AppData_V1,

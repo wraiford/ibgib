@@ -25,11 +25,11 @@ import { IbGibTimelineUpdateInfo, RootData, SpecialIbGibType } from '../types/ux
 import { SpaceLockScope, IbGibSpaceLockIbGib, BootstrapIbGib, SpaceId, IbGibSpaceLockOptions, BootstrapData, BootstrapRel8ns, TxId, IbGibSpaceResultIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns } from '../types/space';
 import { isExpired, getExpirationUTCString, getTimestampInTicks } from './utils';
 import { IbGibCacheService, TjpIbGibAddr } from '../types/ibgib';
-import { DEFAULT_CHAT_APP_DATA_V1, DEFAULT_CHAT_APP_REL8NS_V1 } from '../types/chat-app';
 import { getAppIb } from './app';
 import { AppIbGib_V1 } from '../types/app';
+import { DEFAULT_CHAT_APP_DATA_V1, DEFAULT_CHAT_APP_REL8NS_V1 } from '../types/chat-app';
 import { DEFAULT_RAW_APP_DATA_V1, DEFAULT_RAW_APP_REL8NS_V1 } from '../types/raw-app';
-// import { ChatApp_V1_Factory, } from '../witnesses/apps/chat-app-v1';
+import { DEFAULT_TODO_APP_DATA_V1, DEFAULT_TODO_APP_REL8NS_V1 } from '../types/todo-app';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -2355,8 +2355,24 @@ export async function createApps({
 
         // at this point, our apps ibGib has no associated app ibGibs.
         // so create our initial apps.
-        appsAddr = await createApps_Chat({ space, zeroSpace, fnUpdateBootstrap, fnBroadcast });
-        appsAddr = await createApps_Raw({ space, zeroSpace, fnUpdateBootstrap, fnBroadcast });
+        // appsAddr = await createApps_Chat({ space, zeroSpace, fnUpdateBootstrap, fnBroadcast });
+        appsAddr = await createApp({
+            defaultAppData: DEFAULT_CHAT_APP_DATA_V1,
+            defaultAppRel8ns: DEFAULT_CHAT_APP_REL8NS_V1,
+            space, zeroSpace, fnUpdateBootstrap, fnBroadcast,
+        });
+        // appsAddr = await createApps_Raw({ space, zeroSpace, fnUpdateBootstrap, fnBroadcast });
+        appsAddr = await createApp({
+            defaultAppData: DEFAULT_RAW_APP_DATA_V1,
+            defaultAppRel8ns: DEFAULT_RAW_APP_REL8NS_V1,
+            space, zeroSpace, fnUpdateBootstrap, fnBroadcast,
+        });
+        // appsAddr = await createApps_Todo({ space, zeroSpace, fnUpdateBootstrap, fnBroadcast });
+        appsAddr = await createApp({
+            defaultAppData: DEFAULT_TODO_APP_DATA_V1,
+            defaultAppRel8ns: DEFAULT_TODO_APP_REL8NS_V1,
+            space, zeroSpace, fnUpdateBootstrap, fnBroadcast,
+        });
 
         return appsAddr;
     } catch (error) {
@@ -2365,85 +2381,36 @@ export async function createApps({
     }
 }
 
-export async function createApps_Chat({
+export async function createApp({
+    defaultAppData,
+    defaultAppRel8ns,
     space,
     zeroSpace,
     fnUpdateBootstrap,
     fnBroadcast,
 }: {
+    /**
+     * object that contains all of the default "data" for the app.  Data here
+     * does not mean an app's data like other apps. In ibgib, data is
+     * everywhere. This means particularly the defalut app ibGib's data, i.e.
+     * `ibGib.data`.
+     */
+    defaultAppData: any,
+    defaultAppRel8ns: any,
     space: IbGibSpaceAny,
     zeroSpace: IbGibSpaceAny,
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr | null> {
-    const lc = `[${createApps_Chat.name}]`;
+    const lc = `[${createApp.name}]`;
     try {
-        if (logalot) { console.log(`${lc} starting... (I: dc7d687a7bde679e0136361ba01e2122)`); }
+        if (logalot) { console.log(`${lc} starting... (I: 677f68789abdc7316887e8f38c764e22)`); }
 
         // #region torn from chat-app-v1.ts because of circular dependency...eesh
-        if (logalot) { console.log(`${lc} starting...`); }
-        let data_ChatApp_V1 = h.clone(DEFAULT_CHAT_APP_DATA_V1);
-        let rel8ns_ChatApp_V1 = DEFAULT_CHAT_APP_REL8NS_V1 ? h.clone(DEFAULT_CHAT_APP_REL8NS_V1) : undefined;
-        data_ChatApp_V1.uuid = data_ChatApp_V1.uuid ?? await h.getUUID();
-        let { classname } = data_ChatApp_V1;
-
-        const ib = getAppIb({ appData: data_ChatApp_V1, classname });
-
-        const resNewChatApp = <TransformResult<AppIbGib_V1>>await factory.firstGen({
-            ib,
-            parentIbGib: factory.primitive({ ib: `app ${classname}` }),
-            data: data_ChatApp_V1,
-            rel8ns: rel8ns_ChatApp_V1,
-            dna: true,
-            linkedRel8ns: [Rel8n.ancestor, Rel8n.past],
-            nCounter: true,
-            tjp: { timestamp: true },
-        });
-        // #endregion torn from chat-app-v1.ts because of circular dependency...eesh
-
-        await persistTransformResult({ resTransform: resNewChatApp, space });
-        await registerNewIbGib({
-            ibGib: resNewChatApp.newIbGib,
-            fnBroadcast, fnUpdateBootstrap,
-            space, zeroSpace
-        });
-        let appsAddr = await rel8ToSpecialIbGib({
-            type: "apps",
-            rel8nName: c.APP_REL8N_NAME,
-            ibGibsToRel8: [resNewChatApp.newIbGib],
-            fnBroadcast, fnUpdateBootstrap,
-            space, zeroSpace,
-        });
-
-        return appsAddr;
-    } catch (error) {
-        console.error(`${lc} ${error.message}`);
-        throw error;
-    } finally {
-        if (logalot) { console.log(`${lc} complete.`); }
-    }
-}
-
-export async function createApps_Raw({
-    space,
-    zeroSpace,
-    fnUpdateBootstrap,
-    fnBroadcast,
-}: {
-    space: IbGibSpaceAny,
-    zeroSpace: IbGibSpaceAny,
-    fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
-    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
-}): Promise<IbGibAddr | null> {
-    const lc = `[${createApps_Raw.name}]`;
-    try {
-        if (logalot) { console.log(`${lc} starting... (I: dc7d687a7bde679e0136361ba01e2122)`); }
-
-        // #region torn from raw-app-v1.ts because of circular dependency...eesh
 
         if (logalot) { console.log(`${lc} starting...`); }
-        let data = h.clone(DEFAULT_RAW_APP_DATA_V1);
-        let rel8ns = DEFAULT_RAW_APP_REL8NS_V1 ? h.clone(DEFAULT_RAW_APP_REL8NS_V1) : undefined;
+        let data = h.clone(defaultAppData);
+        let rel8ns = defaultAppRel8ns ? h.clone(defaultAppRel8ns) : undefined;
         data.uuid = data.uuid ?? await h.getUUID();
         let { classname } = data;
 
@@ -2460,7 +2427,7 @@ export async function createApps_Raw({
             tjp: { timestamp: true },
         });
 
-        // #endregion torn from raw-app-v1.ts because of circular dependency...eesh
+        // #endregion torn from chat-app-v1.ts because of circular dependency...eesh
 
         await persistTransformResult({ resTransform: resNewApp, space });
         await registerNewIbGib({
@@ -2477,6 +2444,7 @@ export async function createApps_Raw({
         });
 
         return appsAddr;
+
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -2484,6 +2452,7 @@ export async function createApps_Raw({
         if (logalot) { console.log(`${lc} complete.`); }
     }
 }
+
 /**
  * 1. Creates a new robbot ibgib with the given properties.
  * 2. Persists graph in given {@link space}
