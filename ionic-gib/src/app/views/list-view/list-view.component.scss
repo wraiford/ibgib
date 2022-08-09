@@ -13,11 +13,15 @@ ion-list {
   flex-direction: column;
 }
 
+ion-list ion-item::part(native) {
+  flex-shrink: 0;
+  background-color: transparent;
+}
+
 .list-item-row {
   display: flex;
   flex-direction: row;
   align-items: center;
-  flex-shrink: 0;
 
   ion-checkbox {
     margin-left: 2px;

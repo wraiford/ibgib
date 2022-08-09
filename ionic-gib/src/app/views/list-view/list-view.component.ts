@@ -9,7 +9,7 @@ import * as c from '../../common/constants';
 import { IbGibItem, IbGibListItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
 import { IbgibListComponentBase } from '../../common/bases/ibgib-list-component-base';
 import { CommonService } from '../../services/common.service';
-import { IonContent, IonInfiniteScroll } from '@ionic/angular';
+import { IonCheckbox, IonContent, IonInfiniteScroll } from '@ionic/angular';
 import { IbgibScrollingListComponentBase } from 'src/app/common/bases/ibgib-scrolling-list-component-base';
 import { IbgibComponentBase } from 'src/app/common/bases/ibgib-component-base';
 import { ListItemViewComponent } from '../list-item-view/list-item-view.component';
@@ -45,6 +45,9 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
 
   @ViewChild('infiniteScroll')
   infiniteScroll: IonInfiniteScroll;
+
+  @ViewChild('primaryCheckbox')
+  primaryCheckbox: IonCheckbox;
 
   constructor(
     protected common: CommonService,
@@ -92,6 +95,7 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
     try {
       if (logalot) { console.log(`${lc} starting... (I: 84afcd3f55e22fd0024d6297305a3b22)`); }
       item.checked = event?.detail?.checked;
+      this.ibCheckChanged.emit([item, !!event?.detail?.checked]);
       // itemRef.checked = item.checked;
       // setTimeout(() => (<any>itemRef).ref.detectChanges());
       // }, 2000);
@@ -100,6 +104,21 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
       throw error;
     } finally {
       // setTimeout(() => this.ref.detectChanges());
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  handleCheckboxChange_Secondary(event: any, item: IbGibListItem, i: number): void {
+    const lc = `${this.lc}[${this.handleCheckboxChange_Secondary.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 8c606eaac4cf46d01fb9075ae47b0a22)`); }
+      let primaryCheckbox = document.getElementById('ib-primary-checkbox_' + i);
+      (<any>primaryCheckbox).checked = event?.detail?.checked;
+      console.dir(primaryCheckbox);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
