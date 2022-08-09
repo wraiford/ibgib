@@ -9,11 +9,11 @@ import * as h from 'ts-gib/dist/helper';
 
 import * as c from '../../common/constants';
 import { CommonService } from '../../services/common.service';
-import { IbGibItem, IbGibListItem, } from '../../common/types/ux';
+import { IbGibItem, IbGibListItem, IbGibTimelineUpdateInfo, } from '../../common/types/ux';
 import { IbgibListComponentBase } from '../../common/bases/ibgib-list-component-base';
 import { ListViewComponent } from '../list-view/list-view.component';
 import { Gib, IbGibAddr } from 'ts-gib';
-import { Factory_V1 as factory, mut8, Rel8n } from 'ts-gib/dist/V1';
+import { Factory_V1 as factory, mut8, rel8, Rel8n } from 'ts-gib/dist/V1';
 import { IbgibComponentBase } from 'src/app/common/bases/ibgib-component-base';
 import { TodoApp_V1 } from '../../common/witnesses/apps/todo-app-v1';
 import { TodoInfoData_V1, TodoInfoIbGib_V1, TODO_INFO_IB, TODO_INFO_REL8N_NAME } from 'src/app/common/types/todo-app';
@@ -58,7 +58,6 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
     protected ref: ChangeDetectorRef,
   ) {
     super(common, ref);
-    this.paused = true;
   }
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
@@ -87,21 +86,23 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
     }
   }
 
-  // async updateIbGib_NewerTimelineFrame(info: IbGibTimelineUpdateInfo): Promise<void> {
-  //   const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
-  //   try {
-  //     if (logalot) { console.log(`${lc} starting...`); }
+  async updateIbGib_NewerTimelineFrame(info: IbGibTimelineUpdateInfo): Promise<void> {
+    const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
 
-  //     await super.updateIbGib_NewerTimelineFrame(info);
-  //     if (logalot) { console.log(`${lc}[testing] this.items.length: ${this.items?.length ?? -1}`); }
+      await super.updateIbGib_NewerTimelineFrame(info);
+      // await this.loadTodoInfo();
+      // await this.updateCheckboxes();
+      // if (logalot) { console.log(`${lc}[testing] this.items.length: ${this.items?.length ?? -1}`); }
 
-  //   } catch (error) {
-  //     console.error(`${lc} ${error.message}`);
-  //     throw error;
-  //   } finally {
-  //     if (logalot) { console.log(`${lc} complete.`); }
-  //   }
-  // }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 
   async itemClicked(item: IbGibItem): Promise<void> {
     const lc = `${this.lc}[${this.itemClicked.name}]`;
@@ -239,7 +240,6 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
       if (logalot) { console.log(`${lc} starting... (I: 39b1c39e172a64b057f818575694de22)`); }
 
       if (!this.todoInfo) { await this.createTodoInfo(); }
-      debugger;
       console.dir(item);
       if (checked) {
         // check item by adding to list in todoInfo
@@ -250,8 +250,9 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
         const { tjpGibsDone } = this.todoInfo.data;
         if (!tjpGibsDone.includes(tjpGib)) {
           let resMut8 = await mut8({
-            src: this.ibGib,
+            src: this.todoInfo,
             dataToAddOrPatch: { tjpGibsDone: [...tjpGibsDone, tjpGib] },
+            linkedRel8ns: [Rel8n.ancestor, Rel8n.past],
             dna: true,
             nCounter: true,
           });
@@ -266,7 +267,22 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
         throw new Error(`not implemented yet need to do this next... (E: b4363a363079b86976d0f08e7a3d5422)`);
       }
 
-      // mut8 this.ibgib to point to new todoinfo
+      // rel8 this.ibgib to point to new todoinfo
+
+      const resRel8 = await rel8({
+        src: this.ibGib,
+        rel8nsToAddByAddr: {
+          [TODO_INFO_REL8N_NAME]: [h.getIbGibAddr({ ibGib: this.todoInfo })],
+        },
+        linkedRel8ns: [Rel8n.ancestor, Rel8n.past, TODO_INFO_REL8N_NAME],
+        dna: true,
+        nCounter: true,
+      });
+      await this.common.ibgibs.persistTransformResult({ resTransform: resRel8 });
+      await this.common.ibgibs.registerNewIbGib({ ibGib: resRel8.newIbGib });
+      // NOTE: Execution at this point atow will hereafter be with the newibGib
+      // as the ibGib and the interface  will update automatically
+      // SO DON'T DO ANYTHING ELSE AT THIS POINT IN THIS FN
 
       if (logalot) { console.log(`${lc} checked: ${checked} (I: d188bcace219f116459637bf11fd7d22)`); }
     } catch (error) {
