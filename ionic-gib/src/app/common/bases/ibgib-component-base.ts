@@ -234,6 +234,9 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     @Input()
     stopClickPropagation: boolean;
 
+    @Input()
+    isTodo: boolean;
+
     constructor(
         protected common: CommonService,
         protected ref: ChangeDetectorRef,

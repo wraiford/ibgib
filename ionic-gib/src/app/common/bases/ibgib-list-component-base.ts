@@ -9,7 +9,7 @@ import { IbGibAddr } from 'ts-gib';
 import { getGibInfo, } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 import * as c from '../constants';
-import { IbgibListItem, IbGibTimelineUpdateInfo } from '../types/ux';
+import { IbGibListItem, IbGibTimelineUpdateInfo } from '../types/ux';
 import { IbgibComponentBase } from './ibgib-component-base';
 import { CommonService } from '../../services/common.service';
 import { unique } from '../helper/utils';
@@ -17,7 +17,7 @@ import { unique } from '../helper/utils';
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 @Directive()
-export abstract class IbgibListComponentBase<TItem extends IbgibListItem = IbgibListItem>
+export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGibListItem>
     extends IbgibComponentBase<TItem>
     implements OnInit, OnDestroy {
 

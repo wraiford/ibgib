@@ -850,7 +850,7 @@ export class ActionBarComponent extends IbgibComponentBase
     if (this.actionDetailMode === 'comment') {
       setTimeout(() => this.textareaComment.setFocus());
     } else if (this.actionDetailMode === 'link') {
-      setTimeout(() => this.inputLink.setFocus());
+      setTimeout(() => this.inputLink?.setFocus());
     } else if (this.actionDetailMode === 'import') {
       setTimeout(() => this.inputImport.setFocus());
     }

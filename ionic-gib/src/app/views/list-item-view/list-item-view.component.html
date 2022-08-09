@@ -3,6 +3,7 @@
   *ngIf='item?.type === "root"'
   class='root-item'
   [addr]='addr'
+  [isTodo]="isTodo"
   (click)='handleClicked(item)'
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"
@@ -18,6 +19,7 @@
   *ngIf='item?.type === "pic"'
   class='pic-item'
   [addr]='addr'
+  [isTodo]="isTodo"
   [isTitleOrJustSmall]='false'
   (click)='handleClicked(item)'
   [style.border-color]="debugBorderColor"
@@ -34,6 +36,7 @@
   *ngIf='item?.type === "comment"'
   class='comment-item'
   [addr]='addr'
+  [isTodo]="isTodo"
   (click)='handleClicked(item)'
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"
@@ -49,6 +52,7 @@
   *ngIf='item?.type === "link"'
   class='link-item'
   [addr]='addr'
+  [isTodo]="isTodo"
   [stopClickPropagation]="true"
   (click)='handleClicked(item)'
   [style.border-color]="debugBorderColor"
@@ -65,6 +69,7 @@
   *ngIf='item?.type === "tag"'
   class='list-item tag-item'
   [addr]='addr'
+  [isTodo]="isTodo"
   (click)='handleClicked(item)'
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"
@@ -80,6 +85,7 @@
   *ngIf='!itemTypes.includes(item?.type)'
   class='list-item'
   [addr]='addr'
+  [isTodo]="isTodo"
   (click)='handleClicked(item)'
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"

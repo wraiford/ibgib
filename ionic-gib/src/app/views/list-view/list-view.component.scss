@@ -13,7 +13,30 @@ ion-list {
   flex-direction: column;
 }
 
-list-item {
-  height: auto;
-  border-radius: 15px;
+.list-item-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+
+  ion-checkbox {
+    margin-left: 2px;
+    height: width;
+    flex-shrink: 1;
+    flex-grow: 0;
+  }
+
+  list-item {
+    height: auto;
+    border-radius: 15px;
+    width: 89%;
+    flex-shrink: 0;
+    flex-grow: 1;
+  }
+
+  .item-done {
+    opacity: 0.15;
+    text-decoration: line-through !important;
+  }
+
 }

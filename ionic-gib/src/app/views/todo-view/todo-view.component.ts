@@ -17,7 +17,10 @@ import { Gib } from 'ts-gib';
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 export interface TodoItem extends IbGibItem {
-
+  /**
+   * If the item is done.
+   */
+  checked?: boolean;
 }
 
 @Component({
@@ -44,6 +47,9 @@ export class TodoViewComponent extends IbgibListComponentBase<TodoItem> {
 
   @Output()
   todoViewItemsAdded = new EventEmitter<TodoItem[]>();
+
+  @Output()
+  todoItemChecked = new EventEmitter<TodoItem>();
 
   @ViewChild('listView')
   listView: ListViewComponent;

@@ -1,1 +1,10 @@
-<p>todo view works hmm</p>
+<list-view #listView id='theList'
+  [addr]='addr'
+  [isTodo]="true"
+  [rel8nNames]='rel8nNames'
+  (clicked)='itemClicked($event)'
+  [scrollEvents]="true"
+  (ionScroll)='handleScroll($event)'
+  (itemsAdded)='handleItemsAdded($event)'
+  ></list-view>
+

@@ -5,7 +5,7 @@ import {
 import * as h from 'ts-gib/dist/helper';
 
 import * as c from '../constants';
-import { IbgibListItem, } from '../types/ux';
+import { IbGibListItem, } from '../types/ux';
 import { CommonService } from '../../services/common.service';
 import { unique } from '../helper/utils';
 import { IonContent, IonInfiniteScroll } from '@ionic/angular';
@@ -17,7 +17,7 @@ import { IbgibListComponentBase } from './ibgib-list-component-base';
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 @Directive()
-export abstract class IbgibScrollingListComponentBase<TItem extends IbgibListItem = IbgibListItem>
+export abstract class IbgibScrollingListComponentBase<TItem extends IbGibListItem = IbGibListItem>
     extends IbgibListComponentBase<TItem>
     implements OnInit, OnDestroy {
 
@@ -280,7 +280,7 @@ export abstract class IbgibScrollingListComponentBase<TItem extends IbgibListIte
             // infinite scroll
             for (let i = 0; i < rel8nNames.length; i++) {
                 const rel8nName = rel8nNames[i];
-                const rel8dAddrs = this.item.ibGib?.rel8ns[rel8nName] || [];
+                const rel8dAddrs = this.item?.ibGib?.rel8ns[rel8nName] || [];
                 rel8dAddrs.forEach(x => {
                     if (!currentItemAddrs.includes(x)) {
                         // we do not have all items, so re-enable the infinite scroll

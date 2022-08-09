@@ -6,11 +6,13 @@ import { IbGibAddr } from 'ts-gib';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 
 import * as c from '../../common/constants';
-import { IbGibItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
+import { IbGibItem, IbGibListItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
 import { IbgibListComponentBase } from '../../common/bases/ibgib-list-component-base';
 import { CommonService } from '../../services/common.service';
 import { IonContent, IonInfiniteScroll } from '@ionic/angular';
 import { IbgibScrollingListComponentBase } from 'src/app/common/bases/ibgib-scrolling-list-component-base';
+import { IbgibComponentBase } from 'src/app/common/bases/ibgib-component-base';
+import { ListItemViewComponent } from '../list-item-view/list-item-view.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -23,8 +25,20 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
 
   protected lc: string = `[${ListViewComponent.name}]`;
 
+  @Input()
+  checkboxesVisible: boolean;
+
   @Output()
   clicked = new EventEmitter<IbGibItem>();
+
+  /**
+   * if checkboxes visible, this event is fired when checked/unchecked.
+   */
+  @Output()
+  ibCheckChanged = new EventEmitter<[IbGibListItem, boolean]>();
+
+  // @Output()
+  // ibListCheckChanged = new EventEmitter<[IbGibItem, boolean]>();
 
   @ViewChild('listViewContent')
   listViewContent: IonContent;
@@ -65,6 +79,36 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
 
       if (!this.stopClickPropagation) { this.clicked.emit(item); }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  handleCheckboxChange(event: any, item: IbGibListItem): void {
+    const lc = `${this.lc}[${this.handleCheckboxChange.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 84afcd3f55e22fd0024d6297305a3b22)`); }
+      item.checked = event?.detail?.checked;
+      // itemRef.checked = item.checked;
+      // setTimeout(() => (<any>itemRef).ref.detectChanges());
+      // }, 2000);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      // setTimeout(() => this.ref.detectChanges());
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async updateCheckedIbGibs(): Promise<void> {
+    const lc = `${this.lc}[${this.updateCheckedIbGibs.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 20b584b284172e8f98339b86d51c9522)`); }
+      // load checked statuses from this.ibGib's info.
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

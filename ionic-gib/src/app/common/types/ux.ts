@@ -125,9 +125,10 @@ export interface IbGibItem {
      * if the item has children per rel8nNames
      */
     hasChildren?: boolean;
+    checked?: boolean;
 }
 
-export interface IbgibListItem extends IbGibItem {
+export interface IbGibListItem extends IbGibItem {
     /**
      * 0-based index of item in list.
      *

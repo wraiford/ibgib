@@ -5,9 +5,9 @@ import { IbGib_V1 } from 'ts-gib/dist/V1';
 
 import { IbgibComponentBase } from '../../common/bases/ibgib-component-base';
 import { CommonService } from '../../services/common.service';
-import { IbGibItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
+import { IbGibItem, IbGibListItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
 import * as c from '../../common/constants';
-import { AnimationController } from '@ionic/angular';
+import { AnimationController, CheckboxChangeEventDetail } from '@ionic/angular';
 import { RootViewComponent } from '../root-view/root-view.component';
 import { CommentViewComponent } from '../comment-view/comment-view.component';
 import { PicViewComponent } from '../pic-view/pic-view.component';
@@ -23,30 +23,32 @@ const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
   templateUrl: './list-item-view.component.html',
   styleUrls: ['./list-item-view.component.scss'],
 })
-export class ListItemViewComponent extends IbgibComponentBase {
+export class ListItemViewComponent extends IbgibComponentBase<IbGibListItem> {
 
   protected lc: string = `[${ListItemViewComponent.name}]`;
 
   @Input()
-  get addr(): IbGibAddr { return super.addr; }
-  set addr(value: IbGibAddr) { super.addr = value; }
-
-  @Input()
-  get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
-  set ibGib_Context(value: IbGib_V1 ) { super.ibGib_Context = value; }
+  get checked(): boolean {
+    return this.childComponent?.item?.checked;
+  }
+  set checked(value: boolean) {
+    if (this.childComponent?.item) {
+      this.childComponent.item.checked = value;
+    }
+  }
 
   @Output()
-  ibclicked: EventEmitter<IbGibItem> = new EventEmitter();
+  ibclicked: EventEmitter<IbGibListItem> = new EventEmitter();
 
-  public debugBorderWidth: string = debugBorder ? "2px" : "0px"
+  public debugBorderWidth: string = debugBorder ? "1px" : "0px"
   public debugBorderColor: string = "#92ed80";
   public debugBorderStyle: string = "solid";
 
   /**
    * redeclared
    */
-  @Input()
-  stopClickPropagation: boolean;
+  // @Input()
+  // stopClickPropagation: boolean;
 
   @ViewChild('rootView')
   rootView: RootViewComponent;
@@ -102,7 +104,7 @@ export class ListItemViewComponent extends IbgibComponentBase {
     const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 2c15f733144ced6f19bbbdb378adae22)`); }
-      return super.updateIbGib_NewerTimelineFrame({latestAddr, latestIbGib, tjpAddr });
+      return super.updateIbGib_NewerTimelineFrame({ latestAddr, latestIbGib, tjpAddr });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -127,7 +129,6 @@ export class ListItemViewComponent extends IbgibComponentBase {
     }
   }
 
-
   initializeAnimation(): void {
     const lc = `${this.lc}[${this.initializeAnimation.name}]`;
     try {
@@ -140,5 +141,5 @@ export class ListItemViewComponent extends IbgibComponentBase {
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
-}
 
+}
