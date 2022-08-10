@@ -14,7 +14,7 @@ import { DynamicFormComponentBase } from '../common/bases/dynamic-form-component
 import { DynamicFormComponent } from '../ibgib-forms/dynamic-form/dynamic-form.component';
 import { DynamicFormBuilder } from '../common/helper/form';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 /**
  * I have this in a separate class (not ibgib page) for a couple reasons. The

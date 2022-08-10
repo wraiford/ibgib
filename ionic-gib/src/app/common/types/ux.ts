@@ -2,11 +2,8 @@
  * Types used in UX operations/bindings in various views.
  */
 
-import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
-import { IbGibAddr, IbGib, IbGibWithDataAndRel8ns, IbGibRel8ns } from 'ts-gib';
-import { HashAlgorithm, SaltStrategy, } from 'encrypt-gib';
-import * as c from '../constants';
-import { TagData_V1 } from './tag';
+import { IbGib_V1 } from 'ts-gib/dist/V1';
+import { IbGibAddr, } from 'ts-gib';
 
 /**
  * Special types used in ux.

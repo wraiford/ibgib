@@ -79,6 +79,13 @@ export class ChatAppComponent extends IbgibComponentBase implements OnInit, OnDe
   handleChatViewItemsAdded(items: ChatItem[]): void {
     const lc = `${this.lc}[${this.handleChatViewItemsAdded.name}]`;
     if (logalot) { console.log(`${lc} (I: a321a669769a4e2d9b8080c09065f3d2)`); }
+
+    // I'm doing this here because the trackby in angular goes by address. but
+    // if we come over from the todo app and some are checked, then this property will
+    // be set. this maybe should be placed elsewhere, but it works for now
+    items.forEach(x => { delete x.checked; });
+
     this.chatItemsAdded.emit(items);
   }
+
 }

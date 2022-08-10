@@ -19,7 +19,7 @@ import { TodoApp_V1 } from '../../common/witnesses/apps/todo-app-v1';
 import { TodoInfoData_V1, TodoInfoIbGib_V1, TODO_INFO_IB, TODO_INFO_REL8N_NAME } from 'src/app/common/types/todo-app';
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 export interface TodoItem extends IbGibItem {
   /**
@@ -36,6 +36,8 @@ export interface TodoItem extends IbGibItem {
 export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
 
   protected lc: string = `[${TodoViewComponent.name}]`;
+
+  private _updatingCheckboxes = false;
 
   /**
    * We bind to all of the rel8nNames instead of some filtered list.
@@ -86,24 +88,6 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
     }
   }
 
-  async updateIbGib_NewerTimelineFrame(info: IbGibTimelineUpdateInfo): Promise<void> {
-    const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting...`); }
-
-      await super.updateIbGib_NewerTimelineFrame(info);
-      // await this.loadTodoInfo();
-      // await this.updateCheckboxes();
-      // if (logalot) { console.log(`${lc}[testing] this.items.length: ${this.items?.length ?? -1}`); }
-
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
-
   async itemClicked(item: IbGibItem): Promise<void> {
     const lc = `${this.lc}[${this.itemClicked.name}]`;
     try {
@@ -123,12 +107,15 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
 
   handleScroll(event: any): void {
     const lc = `${this.lc}[${this.handleScroll.name}]`;
-    // this.todoViewScrolled.emit(event);
     if (logalot) { console.log(`${lc} scrolling (I: b62e75fad64d0d12147cd608e8323622)`); }
   }
 
   handleItemsAdded(items: TodoItem[]): void {
-    // this.todoViewItemsAdded.emit(items);
+    // strictly speaking should only update checkboxes for items added, but not
+    // a big penalty cost just to update all at this time. if in the future
+    // there are 1000s of items and no paging, then maybe this will need to
+    // change
+    this.updateCheckboxes(); // SPINS OFF!
   }
 
   async loadTodoInfo(): Promise<void> {
@@ -141,7 +128,7 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
       const todoRel8d = this.ibGib.rel8ns[TODO_INFO_REL8N_NAME];
       // get rel8d from this.ibGib (if exists)
       if (todoRel8d?.length > 0) {
-        // existing info, so load it
+        // todo info exists, so load it
         if (todoRel8d.length > 1) { console.warn(`${lc} multiple rel8d todo infos found, but only one is expected atow. Using the first. (W: 111145bd9a324484ab7e6f1d8a875798)`); }
         let todoInfoAddr = todoRel8d[0];
         let resGetTodoInfoIbGib = await this.common.ibgibs.get({ addr: todoInfoAddr });
@@ -167,7 +154,8 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
         this.todoInfo = todoInfoIbGib;
 
         // } else {
-        // none exists, and we will create it upon first need (not just loading.)
+        //   none exists, and we will create it upon first need (not just here
+        //   during loading.)
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -181,8 +169,9 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
     const lc = `${this.lc}[${this.updateCheckboxes.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 3e303946b86afd1765601cc5c1c2b622)`); }
+      while (this._updatingCheckboxes) { await h.delay(500); }
+      this._updatingCheckboxes = true;
       if (this.todoInfo?.data?.tjpGibsDone?.length > 0) {
-        // this.todoInfo.data.tjpGibsDone.forEach
         this.listView.items.forEach(item => {
           if (!item.addr) {
             debugger;
@@ -205,6 +194,7 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
+      this._updatingCheckboxes = false;
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
@@ -226,6 +216,22 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
       await this.common.ibgibs.persistTransformResult({ resTransform: resFirstGen });
       await this.common.ibgibs.registerNewIbGib({ ibGib: resFirstGen.newIbGib });
       this.todoInfo = <TodoInfoIbGib_V1>resFirstGen.newIbGib;
+
+      // rel8 this.ibgib to point to new todoinfo ibgib
+      const resRel8 = await rel8({
+        src: this.ibGib,
+        rel8nsToAddByAddr: {
+          [TODO_INFO_REL8N_NAME]: [h.getIbGibAddr({ ibGib: this.todoInfo })],
+        },
+        linkedRel8ns: [Rel8n.ancestor, Rel8n.past, TODO_INFO_REL8N_NAME],
+        dna: true,
+        nCounter: true,
+      });
+      await this.common.ibgibs.persistTransformResult({ resTransform: resRel8 });
+      await this.common.ibgibs.registerNewIbGib({ ibGib: resRel8.newIbGib });
+      // NOTE: Execution at this point atow will hereafter be with the newibGib
+      // as the ibGib and the interface  will update automatically
+      // SO DON'T DO ANYTHING ELSE AT THIS POINT IN THIS FN
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -241,49 +247,39 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
 
       if (!this.todoInfo) { await this.createTodoInfo(); }
       console.dir(item);
+      const tjpGib = getGibInfo({ ibGibAddr: item.addr }).tjpGib ?? item.gib;
+      if (!tjpGib) { throw new Error(`(UNEXPECTED) no tjpGib and item.gib is falsy ? (E: ad183e834481130aefb2194debae9722)`); }
+      const { tjpGibsDone } = this.todoInfo.data;
+      let dataToAddOrPatch: any;
       if (checked) {
         // check item by adding to list in todoInfo
-        let { tjpGib } = getGibInfo({ ibGibAddr: item.addr });
-        tjpGib = tjpGib ?? item.gib;
-        if (!tjpGib) { throw new Error(`(UNEXPECTED) no tjpGib and item.gib is falsy ? (E: ad183e834481130aefb2194debae9722)`); }
-
-        const { tjpGibsDone } = this.todoInfo.data;
         if (!tjpGibsDone.includes(tjpGib)) {
-          let resMut8 = await mut8({
-            src: this.todoInfo,
-            dataToAddOrPatch: { tjpGibsDone: [...tjpGibsDone, tjpGib] },
-            linkedRel8ns: [Rel8n.ancestor, Rel8n.past],
-            dna: true,
-            nCounter: true,
-          });
-          await this.common.ibgibs.persistTransformResult({ resTransform: resMut8 });
-          await this.common.ibgibs.registerNewIbGib({ ibGib: resMut8.newIbGib });
-          this.todoInfo = <TodoInfoIbGib_V1>resMut8.newIbGib;
+          dataToAddOrPatch = { tjpGibsDone: [...tjpGibsDone, tjpGib] };
         } else {
-          console.warn(`${lc} todoInfo.data.tjpGibsDone already includes tjpGib? (W: 12e8c089ef404968bc5dd5c83e92c3d4)`)
+          console.warn(`${lc} todoInfo.data.tjpGibsDone already includes tjpGib? (W: 12e8c089ef404968bc5dd5c83e92c3d4)`);
         }
       } else {
         // uncheck item by removing from list in todoInfo
-        throw new Error(`not implemented yet need to do this next... (E: b4363a363079b86976d0f08e7a3d5422)`);
+        if (tjpGibsDone.includes(tjpGib)) {
+          dataToAddOrPatch = { tjpGibsDone: tjpGibsDone.filter(x => x !== tjpGib) };
+        } else {
+          console.warn(`${lc} todoInfo.data.tjpGibsDone already does NOT include tjpGib? (W: f922c87feb0d4f88ba2700042486aae1)`);
+        }
       }
 
-      // rel8 this.ibgib to point to new todoinfo
-
-      const resRel8 = await rel8({
-        src: this.ibGib,
-        rel8nsToAddByAddr: {
-          [TODO_INFO_REL8N_NAME]: [h.getIbGibAddr({ ibGib: this.todoInfo })],
-        },
-        linkedRel8ns: [Rel8n.ancestor, Rel8n.past, TODO_INFO_REL8N_NAME],
-        dna: true,
-        nCounter: true,
-      });
-      await this.common.ibgibs.persistTransformResult({ resTransform: resRel8 });
-      await this.common.ibgibs.registerNewIbGib({ ibGib: resRel8.newIbGib });
-      // NOTE: Execution at this point atow will hereafter be with the newibGib
-      // as the ibGib and the interface  will update automatically
-      // SO DON'T DO ANYTHING ELSE AT THIS POINT IN THIS FN
-
+      // execute mut8 with newly patched data and do local space plumbing
+      if (dataToAddOrPatch) {
+        let resMut8 = await mut8({
+          src: this.todoInfo,
+          dataToAddOrPatch,
+          linkedRel8ns: [Rel8n.ancestor, Rel8n.past],
+          dna: true,
+          nCounter: true,
+        });
+        await this.common.ibgibs.persistTransformResult({ resTransform: resMut8 });
+        await this.common.ibgibs.registerNewIbGib({ ibGib: resMut8.newIbGib });
+        this.todoInfo = <TodoInfoIbGib_V1>resMut8.newIbGib;
+      }
       if (logalot) { console.log(`${lc} checked: ${checked} (I: d188bcace219f116459637bf11fd7d22)`); }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -293,4 +289,5 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
+
 }

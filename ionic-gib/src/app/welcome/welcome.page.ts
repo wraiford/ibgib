@@ -40,7 +40,7 @@ import { ActivatedRoute, Params } from '@angular/router';
 import { ExtensionLaunchInfo, ExtensionSelectionInfo } from '../common/types/app';
 
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 @Component({
   selector: 'ib-welcome',
@@ -101,7 +101,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
   get showBackChevronBtn(): boolean {
     const lc = `${this.lc}[get showBackChevronBtn]`;
     const platform = Capacitor.getPlatform();
-    // if (logalot) { console.log(`${lc} platform: ${platform}`); }
+    if (logalot) { console.log(`${lc} platform: ${platform}`); }
 
     // temporary hack is to always show the chevron if it's ios
     return platform === 'ios';
