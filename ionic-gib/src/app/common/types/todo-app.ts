@@ -5,7 +5,7 @@ import { AppData_V1, AppRel8ns_V1 } from "./app";
 export const DEFAULT_UUID_TODO_APP = undefined;
 export const DEFAULT_NAME_TODO_APP = 'todo_gib';
 export const DEFAULT_DESCRIPTION_TODO_APP =
-    `Todo app for viewing & interacting with ibgibs like checklists.`;
+    `Todo app for viewing and interacting with ibgibs like they're checklists.`;
 
 
 export interface TodoAppData_V1 extends AppData_V1 {

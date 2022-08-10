@@ -9,7 +9,7 @@ import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { IBGIB_DELIMITER } from 'ts-gib/dist/V1';
 import { getTimestampInTicks } from '../common/helper/utils';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 @Injectable({
   providedIn: 'root'
@@ -121,7 +121,6 @@ export class IonicIbgibNavService implements IbgibNav {
       // that this instantiates an ibgib page component, which from testing
       // creates a new ibgib page component each nav.
       // let to = new URL(toRawLocation);
-      debugger;
       await this.nav?.navigateRoot(toRawLocation, {
         queryParamsHandling,
         animated: false,
@@ -294,7 +293,7 @@ export class IonicIbgibNavService implements IbgibNav {
       } else if (this.stack.length === 1) {
         const existing = this.stack[this.stack.length - 1];
         if (existing.fromAddr) {
-          const { fromAddr, queryParamsHandling, queryParams } = this.stack.pop();
+          let { fromAddr, queryParamsHandling, queryParams } = this.stack.pop();
           await this.nav.navigateRoot(['ibgib', fromAddr], {
             queryParamsHandling,
             animated: false,

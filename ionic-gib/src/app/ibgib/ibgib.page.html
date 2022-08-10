@@ -32,10 +32,10 @@
   <!-- ibgib context buttons -->
   <ion-toolbar>
     <ion-buttons id="context-btns" slot="end">
-      <ion-button class="toolbar-title-btn" [disabled]="syncing || refreshing" [ngClass]="{'active-btn':showHeart}"
+      <!-- <ion-button class="toolbar-title-btn" [disabled]="syncing || refreshing" [ngClass]="{'active-btn':showHeart}"
         (click)="showHeart = !showHeart">
         <ion-icon name="heart-outline"></ion-icon>
-      </ion-button>
+      </ion-button> -->
       <!-- leaving these in for future testing of download the da!n pic -->
       <ion-button *ngIf="item?.type === 'pic'" class="toolbar-title-btn" [disabled]="syncing || refreshing"
         (click)="handleUpdatePicClick()">

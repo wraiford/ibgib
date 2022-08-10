@@ -141,7 +141,6 @@ export class AppModalFormComponent
         });
       });
 
-      debugger;
       this.selectTypeItem.selectOptions = [
         ...this.appFactories.map(factory => factory.getName()),
       ];
