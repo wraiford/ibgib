@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, Output, EventEmitter, ViewChild, OnInit, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectorRef, Output, EventEmitter, ViewChild, OnInit, OnDestroy, Input } from '@angular/core';
 import { ScrollBaseCustomEvent } from '@ionic/angular';
 
 import * as h from 'ts-gib/dist/helper';
@@ -8,6 +8,7 @@ import * as c from '../../common/constants';
 import { CommonService } from 'src/app/services/common.service';
 import { IbgibComponentBase } from '../../common/bases/ibgib-component-base';
 import { ChatItem, ChatViewComponent } from '../../views/chat-view/chat-view.component';
+import { ChatApp_V1 } from 'src/app/common/witnesses/apps/chat-app-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -19,6 +20,9 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
 export class ChatAppComponent extends IbgibComponentBase implements OnInit, OnDestroy {
 
   protected lc: string = `[${ChatAppComponent.name}]`;
+
+  @Input()
+  activeApp: ChatApp_V1;
 
   @Output()
   chatScrolled = new EventEmitter<ScrollBaseCustomEvent>();

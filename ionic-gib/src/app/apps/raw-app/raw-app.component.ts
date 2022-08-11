@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, Output, EventEmitter, ViewChild } from '@angular/core';
+import { Component, ChangeDetectorRef, Output, EventEmitter, ViewChild, Input } from '@angular/core';
 import { ScrollBaseCustomEvent } from '@ionic/angular';
 
 import * as h from 'ts-gib/dist/helper';
@@ -8,6 +8,7 @@ import * as c from '../../common/constants';
 import { CommonService } from 'src/app/services/common.service';
 import { IbgibComponentBase } from '../../common/bases/ibgib-component-base';
 import { RawItem, RawViewComponent } from '../../views/raw-view/raw-view.component';
+import { RawApp_V1 } from 'src/app/common/witnesses/apps/raw-app-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -19,6 +20,9 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
 export class RawAppComponent extends IbgibComponentBase {
 
   protected lc: string = `[${RawAppComponent.name}]`;
+
+  @Input()
+  activeApp: RawApp_V1;
 
   @Output()
   rawScrolled = new EventEmitter<ScrollBaseCustomEvent>();

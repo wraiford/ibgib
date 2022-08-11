@@ -189,6 +189,15 @@ export class IbGibPage extends IbgibComponentBase
   @Input()
   activeApp: AppIbGib_V1;
 
+  /**
+   * Casted so compiler doesn't complain when binding to specific apps that know
+   * what type to expect.
+   *
+   * For example, a chat app component only shows when activeApp is a chat ibgib.
+   */
+  @Input()
+  get activeAppAny(): any { return this.activeApp; }
+
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,

@@ -1,7 +1,7 @@
 import {
   Component, ChangeDetectorRef, Output, EventEmitter, ViewChild, Input, ElementRef
 } from '@angular/core';
-import { ScrollBaseCustomEvent } from '@ionic/angular';
+import { LoadingController, ScrollBaseCustomEvent } from '@ionic/angular';
 import { Plugins } from "@capacitor/core";
 const { Clipboard, } = Plugins;
 
@@ -18,8 +18,9 @@ import { IbgibComponentBase } from 'src/app/common/bases/ibgib-component-base';
 import { TodoApp_V1 } from '../../common/witnesses/apps/todo-app-v1';
 import { TodoInfoData_V1, TodoInfoIbGib_V1, TODO_INFO_IB, TODO_INFO_REL8N_NAME } from 'src/app/common/types/todo-app';
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { getAppInfoIb, getInfoFromAppInfoIb } from 'src/app/common/helper/app';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || false || true;
 
 export interface TodoItem extends IbGibItem {
   /**
@@ -37,7 +38,30 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
 
   protected lc: string = `[${TodoViewComponent.name}]`;
 
-  private _updatingCheckboxes = false;
+  @Input()
+  updatingCheckboxes = false;
+
+  private _activeApp: TodoApp_V1;
+  @Input()
+  get activeApp(): TodoApp_V1 { return this._activeApp; }
+  set activeApp(value: TodoApp_V1) {
+    if (this._activeApp && value && this._activeApp.data.uuid !== value.data.uuid) {
+      // we're changing todo apps, so the current info is invalid.
+      delete this.todoInfo;
+    }
+    if (!value && this.todoInfo) { delete this.todoInfo; }
+    this._activeApp = value;
+
+    this.loadingController.create()
+      .then(loading => loading.present())
+      .then(() => { return this.loadTodoInfo() })
+      .then(() => this.updateCheckboxes())
+      .then(() => h.delay(250))
+      .finally(() => {
+        this.loadingController.dismiss()
+        setTimeout(() => { this.ref.detectChanges(); })
+      });
+  }
 
   /**
    * We bind to all of the rel8nNames instead of some filtered list.
@@ -49,6 +73,9 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
 
   todoInfo: TodoInfoIbGib_V1;
 
+  @Input()
+  loadingApp: boolean = false;
+
   @Output()
   todoItemChecked = new EventEmitter<TodoItem>();
 
@@ -58,8 +85,32 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
+    protected loadingController: LoadingController,
   ) {
     super(common, ref);
+  }
+
+  async stripPausedQueryParamSilentlyIfNeeded(): Promise<boolean> {
+    const lc = `${this.lc}[${this.stripPausedQueryParamSilentlyIfNeeded.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: d33f41f2311f4f4e8a0d04264b580a22)`); }
+      if (window.location.toString().includes('paused=true')) {
+        let newURL = window.location.toString().replace('paused=true', '');
+        if (newURL.endsWith('?')) {
+          newURL = newURL.slice(0, newURL.length - 1);
+        }
+        window.location.replace(newURL)
+        this.paused = false;
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
@@ -72,13 +123,12 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
       await this.loadItem();
       await this.loadTodoInfo();
       await this.updateCheckboxes();
+      await this.stripPausedQueryParamSilentlyIfNeeded();
       // trigger an initial ping to check for newer ibgibs
-      if (!this.paused && !window.location.toString().includes('paused=true')) {
-        setTimeout(async () => {
-          await this.smallDelayToLoadBalanceUI();
-          await this.common.ibgibs.pingLatest_Local({ ibGib: this.ibGib, tjpIbGib: this.tjp, useCache: true });
-        });
-      }
+      setTimeout(async () => {
+        await this.smallDelayToLoadBalanceUI();
+        await this.common.ibgibs.pingLatest_Local({ ibGib: this.ibGib, tjpIbGib: this.tjp, useCache: true });
+      });
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);
       this.clearItem();
@@ -121,16 +171,44 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
   async loadTodoInfo(): Promise<void> {
     const lc = `${this.lc}[${this.loadTodoInfo.name}]`;
     try {
+      this.loadingApp = true;
       if (logalot) { console.log(`${lc} starting... (I: 45fe32fcbb5b06dd33336b0803896d22)`); }
-      if (!this.ibGib) { throw new Error(`this.ibGib required (E: 97448c381d7bc54b0a50b54d9ac45d22)`); }
+      if (!this.ibGib) {
+        if (logalot) { console.log(`${lc} this.ibGib falsy. deleting this.todoInfo and returning early (I: f439af3d60315a3c2a05c3d1d85db422)`); }
+        delete this.todoInfo;
+        return; /* <<<< returns early */
+      }
       if (!this.ibGib.rel8ns) { throw new Error(`this.ibGib.rel8ns falsy edge case. (E: aeb9cae890ad62b69a8b0d8c495f1422)`); }
 
-      const todoRel8d = this.ibGib.rel8ns[TODO_INFO_REL8N_NAME];
-      // get rel8d from this.ibGib (if exists)
-      if (todoRel8d?.length > 0) {
-        // todo info exists, so load it
-        if (todoRel8d.length > 1) { console.warn(`${lc} multiple rel8d todo infos found, but only one is expected atow. Using the first. (W: 111145bd9a324484ab7e6f1d8a875798)`); }
-        let todoInfoAddr = todoRel8d[0];
+      // get the app info corresponding to the current todo app
+      // but we need to be sure that the activeApp is loaded and valid
+      let delayMs = 100;
+      let counter = 1;
+      while (!this.activeApp && counter < 5) {
+        await h.delay(delayMs * counter);
+        counter++;
+      }
+      if (!this.activeApp) { throw new Error(`this.activeApp required (E: 530dac162bb4f4d15887a38f31484622)`); }
+      if (!this.activeApp?.data?.uuid) { throw new Error(`this.activeApp.data.uuid required (E: f8055e16d0241f761f2e6b9197ade322)`); }
+      // valid (enough for now) activeApp. get the app's info in this.ibGib.rel8ns
+      const activeAppTjpGib = getGibInfo({ gib: this.activeApp.gib }).tjpGib;
+      // const activeAppInfoIb = getAppInfoIb({ appData: this.activeApp.data, activeAppTjpGib });
+
+      // filter our rel8d addrs looking for the (hopefully at most) one addr
+      // that corresponds to the the activeApp info. atow this includes the
+      // app.data.uuid and its tjpGib
+      const rel8dInfoArray =
+        (this.ibGib.rel8ns[TODO_INFO_REL8N_NAME] ?? [])
+          .filter(rel8dAppInfoAddr => {
+            const rel8dAppInfoIb = h.getIbAndGib({ ibGibAddr: rel8dAppInfoAddr }).ib;
+            const parsedInfo = getInfoFromAppInfoIb({ appInfoIb: rel8dAppInfoIb });
+            return parsedInfo.appId === this.activeApp.data.uuid && parsedInfo.appTjpGib === activeAppTjpGib;
+          });
+
+      if (rel8dInfoArray?.length > 0) {
+        // corresponding todo info ibgib already exists, so load it
+        if (rel8dInfoArray.length > 1) { console.warn(`${lc} multiple rel8d todo infos found, but only one is expected atow. Using the first. (W: 111145bd9a324484ab7e6f1d8a875798)`); }
+        let todoInfoAddr = rel8dInfoArray[0];
         let resGetTodoInfoIbGib = await this.common.ibgibs.get({ addr: todoInfoAddr });
         let todoInfoIbGib: TodoInfoIbGib_V1;
         if (resGetTodoInfoIbGib.success && resGetTodoInfoIbGib.ibGibs?.length === 1) {
@@ -161,6 +239,7 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
+      this.loadingApp = false;
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
@@ -169,8 +248,8 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
     const lc = `${this.lc}[${this.updateCheckboxes.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 3e303946b86afd1765601cc5c1c2b622)`); }
-      while (this._updatingCheckboxes) { await h.delay(500); }
-      this._updatingCheckboxes = true;
+      while (this.updatingCheckboxes) { await h.delay(500); }
+      this.updatingCheckboxes = true;
       if (this.todoInfo?.data?.tjpGibsDone?.length > 0) {
         this.listView.items.forEach(item => {
           if (!item.addr) {
@@ -194,7 +273,7 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
-      this._updatingCheckboxes = false;
+      this.updatingCheckboxes = false;
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
@@ -203,10 +282,12 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
     const lc = `${this.lc}[${this.createTodoInfo.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: dd00cdb6070fd3824ceeeaae35c70d22)`); }
+      if (!this.activeApp) { throw new Error(`(UNEXPECTED) this.activeApp required (E: 31522a9b56013b763b8ca3fb8344d722)`); }
+
       let data: TodoInfoData_V1 = { tjpGibsDone: [] }
       let resFirstGen = await factory.firstGen({
         parentIbGib: factory.primitive({ ib: TODO_INFO_IB }),
-        ib: TODO_INFO_IB,
+        ib: getAppInfoIb({ appData: this.activeApp.data, appTjpGib: getGibInfo({ gib: this.activeApp.gib }).tjpGib }),
         data,
         dna: true,
         nCounter: true,
@@ -287,7 +368,7 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
           rel8nsToAddByAddr: {
             [TODO_INFO_REL8N_NAME]: [h.getIbGibAddr({ ibGib: newTodoInfo })],
           },
-          linkedRel8ns: [Rel8n.ancestor, Rel8n.past, TODO_INFO_REL8N_NAME],
+          linkedRel8ns: [Rel8n.ancestor, Rel8n.past],
           dna: true,
           nCounter: true,
         });

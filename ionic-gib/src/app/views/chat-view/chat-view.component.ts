@@ -1,5 +1,5 @@
 import {
-  Component, ChangeDetectorRef, Output, EventEmitter, ViewChild
+  Component, ChangeDetectorRef, Output, EventEmitter, ViewChild, Input
 } from '@angular/core';
 import { ScrollBaseCustomEvent } from '@ionic/angular';
 
@@ -10,6 +10,7 @@ import { CommonService } from '../../services/common.service';
 import { IbGibItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
 import { IbgibListComponentBase } from '../../common/bases/ibgib-list-component-base';
 import { ListViewComponent } from '../list-view/list-view.component';
+import { ChatApp_V1 } from 'src/app/common/witnesses/apps/chat-app-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -25,6 +26,9 @@ export interface ChatItem extends IbGibItem {
 export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
 
   protected lc: string = `[${ChatViewComponent.name}]`;
+
+  @Input()
+  activeApp: ChatApp_V1;
 
   @Output()
   chatViewScrolled: EventEmitter<ScrollBaseCustomEvent> = new EventEmitter();

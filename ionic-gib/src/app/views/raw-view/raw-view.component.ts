@@ -13,6 +13,7 @@ import { IbGibItem, } from '../../common/types/ux';
 import { IbgibListComponentBase } from '../../common/bases/ibgib-list-component-base';
 import { ListViewComponent } from '../list-view/list-view.component';
 import { Gib } from 'ts-gib';
+import { RawApp_V1 } from 'src/app/common/witnesses/apps/raw-app-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -28,6 +29,9 @@ export interface RawItem extends IbGibItem {
 export class RawViewComponent extends IbgibListComponentBase<RawItem> {
 
   protected lc: string = `[${RawViewComponent.name}]`;
+
+  @Input()
+  activeApp: RawApp_V1;
 
   /**
    * We bind to all of the rel8nNames instead of some filtered list.

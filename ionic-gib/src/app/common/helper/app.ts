@@ -1,5 +1,5 @@
 import * as h from 'ts-gib/dist/helper';
-import { Ib, } from 'ts-gib';
+import { Gib, Ib, } from 'ts-gib';
 
 import * as c from '../constants';
 import { getRegExp, getTimestampInTicks } from './utils';
@@ -117,12 +117,8 @@ export function getAppIb({
             if (!classname) { throw new Error(`classname required (E: 5f6ffb4317044125b94f662070e1f40b)`); }
         }
 
-        // ad hoc validation here. should centralize witness classname validation
-        // let classnameValidationError = validateWitnessClassname({classname});
-        // if (classnameValidationError) { throw new Error(`invalid classname. ${classnameValidationError} (E: 32a83683cb53449e9f397202000c00ff)`); }
-
         const { name, uuid } = appData;
-        return `witness app ${classname} ${name} ${uuid}`;
+        return `app ${classname} ${name} ${uuid}`;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -130,7 +126,7 @@ export function getAppIb({
 }
 
 /**
- * Current schema is `witness app [classname] [appName] [appId]
+ * Current schema is `app ${classname} ${name} ${uuid}`
  *
  * NOTE this is space-delimited
  */
@@ -147,15 +143,78 @@ export function getInfoFromAppIb({
     try {
         if (!appIb) { throw new Error(`appIb required (E: 6b065aee67e641ba9f9c6db367ebb0fb)`); }
 
-        // const name = app.data?.name || c.IBGIB_APP_NAME_DEFAULT;
-        // const id = app.data?.uuid || undefined;
-        // return `witness app ${classname} ${name} ${id}`;
         const pieces = appIb.split(' ');
 
         return {
-            appClassname: pieces[2],
-            appName: pieces[3],
-            appId: pieces[4],
+            appClassname: pieces[1],
+            appName: pieces[2],
+            appId: pieces[3],
+        };
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
+
+export function getAppInfoIb({
+    appData,
+    appTjpGib,
+    classname,
+}: {
+    appData: AppData_V1,
+    appTjpGib: Gib,
+    /**
+     * Not sure why i have this here, since it should always be in the appData.classname...
+     */
+    classname?: string,
+}): Ib {
+    const lc = `[${getAppIb.name}]`;
+    try {
+        const validationErrors = validateCommonAppData({ appData });
+        if (validationErrors.length > 0) { throw new Error(`invalid appData: ${validationErrors} (E: 7be1f54ce8af4e4982966b2dedb4cf6e)`); }
+        if (classname) {
+            if (appData.classname && appData.classname !== classname) { throw new Error(`classname does not match appData.classname (E: 64bd9eaef1f94be8856e18b791d4ae52)`); }
+        } else {
+            classname = appData.classname;
+            if (!classname) { throw new Error(`classname required (E: 8d194cf8fb3f4c8eb2f708e0ccfe187c)`); }
+        }
+
+        const { name, uuid } = appData;
+        return `info_app ${classname} ${name} ${uuid} ${appTjpGib ?? 0}`;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
+
+/**
+ * Current schema is `info_app ${classname} ${name} ${uuid} ${appTjpGib ?? 0}`
+ *
+ * NOTE this is space-delimited
+ */
+export function getInfoFromAppInfoIb({
+    appInfoIb,
+}: {
+    appInfoIb: Ib,
+}): {
+    appClassname: string;
+    appName: string;
+    appId: string;
+    appTjpGib: Gib;
+} {
+    const lc = `[${getInfoFromAppIb.name}]`;
+    try {
+        if (!appInfoIb) { throw new Error(`appInfoIb required (E: d12756f218144d22acb14c794dd3eeef)`); }
+
+        const pieces = appInfoIb.split(' ');
+
+        if (pieces.length !== 5) { throw new Error(`invalid appInfoIb. Expected space-delimited pieces.length === 5 (E: 21bfc58e4d88c298680ea95bc6dfc622)`); }
+
+        return {
+            appClassname: pieces[1],
+            appName: pieces[2],
+            appId: pieces[3],
+            appTjpGib: pieces[4],
         };
     } catch (error) {
         console.error(`${lc} ${error.message}`);

@@ -124,9 +124,9 @@
       (robbotSelected)="handleRobbotSelected($event)"></ib-robbot-bar>
 
     <ng-container [ngSwitch]="activeApp?.data.classname">
-      <ib-chat-app *ngSwitchCase="'ChatApp_V1'" [addr]="addr"></ib-chat-app>
-      <ib-raw-app *ngSwitchCase="'RawApp_V1'" [addr]="addr"></ib-raw-app>
-      <ib-todo-app *ngSwitchCase="'TodoApp_V1'" [addr]="addr"></ib-todo-app>
+      <ib-chat-app *ngSwitchCase="'ChatApp_V1'" [addr]="addr" [activeApp]="activeAppAny"></ib-chat-app>
+      <ib-raw-app *ngSwitchCase="'RawApp_V1'" [addr]="addr" [activeApp]="activeAppAny"></ib-raw-app>
+      <ib-todo-app *ngSwitchCase="'TodoApp_V1'" [addr]="addr" [activeApp]="activeAppAny"></ib-todo-app>
       <ib-chat-app *ngSwitchDefault [addr]="addr"></ib-chat-app>
       <!-- <p *ngSwitchDefault>default</p> -->
     </ng-container>
