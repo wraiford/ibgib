@@ -215,23 +215,8 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
       });
       await this.common.ibgibs.persistTransformResult({ resTransform: resFirstGen });
       await this.common.ibgibs.registerNewIbGib({ ibGib: resFirstGen.newIbGib });
-      this.todoInfo = <TodoInfoIbGib_V1>resFirstGen.newIbGib;
 
-      // rel8 this.ibgib to point to new todoinfo ibgib
-      const resRel8 = await rel8({
-        src: this.ibGib,
-        rel8nsToAddByAddr: {
-          [TODO_INFO_REL8N_NAME]: [h.getIbGibAddr({ ibGib: this.todoInfo })],
-        },
-        linkedRel8ns: [Rel8n.ancestor, Rel8n.past, TODO_INFO_REL8N_NAME],
-        dna: true,
-        nCounter: true,
-      });
-      await this.common.ibgibs.persistTransformResult({ resTransform: resRel8 });
-      await this.common.ibgibs.registerNewIbGib({ ibGib: resRel8.newIbGib });
-      // NOTE: Execution at this point atow will hereafter be with the newibGib
-      // as the ibGib and the interface  will update automatically
-      // SO DON'T DO ANYTHING ELSE AT THIS POINT IN THIS FN
+      this.todoInfo = <TodoInfoIbGib_V1>resFirstGen.newIbGib;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -245,7 +230,21 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
     try {
       if (logalot) { console.log(`${lc} starting... (I: 39b1c39e172a64b057f818575694de22)`); }
 
-      if (!this.todoInfo) { await this.createTodoInfo(); }
+      /**
+       * If we rel8 & save the new todo right away to the current this.ibGib,
+       * then it's going to trigger a new update which will take an unknown
+       * amount of time.  we can't continue this function until that completes
+       * and it would be a pain to tie into it (I think). So we'll rel8 it at
+       * the end here.
+       */
+      let createdNewTodo = false;
+      let newTodoInfo: TodoInfoIbGib_V1;
+      if (!this.todoInfo) {
+        // this also sets this.todoInfo
+        await this.createTodoInfo();
+        newTodoInfo = this.todoInfo;
+        createdNewTodo = true;
+      }
       console.dir(item);
       const tjpGib = getGibInfo({ ibGibAddr: item.addr }).tjpGib ?? item.gib;
       if (!tjpGib) { throw new Error(`(UNEXPECTED) no tjpGib and item.gib is falsy ? (E: ad183e834481130aefb2194debae9722)`); }
@@ -280,6 +279,25 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
         await this.common.ibgibs.registerNewIbGib({ ibGib: resMut8.newIbGib });
         this.todoInfo = <TodoInfoIbGib_V1>resMut8.newIbGib;
       }
+
+      if (createdNewTodo) {
+        // rel8 this.ibgib to point to new todoinfo ibgib
+        const resRel8 = await rel8({
+          src: this.ibGib,
+          rel8nsToAddByAddr: {
+            [TODO_INFO_REL8N_NAME]: [h.getIbGibAddr({ ibGib: newTodoInfo })],
+          },
+          linkedRel8ns: [Rel8n.ancestor, Rel8n.past, TODO_INFO_REL8N_NAME],
+          dna: true,
+          nCounter: true,
+        });
+        await this.common.ibgibs.persistTransformResult({ resTransform: resRel8 });
+        await this.common.ibgibs.registerNewIbGib({ ibGib: resRel8.newIbGib });
+        // NOTE: Execution at this point atow will hereafter be with the newibGib
+        // as the ibGib and the interface  will update automatically
+        // SO DON'T DO ANYTHING ELSE AT THIS POINT IN THIS FN
+      }
+
       if (logalot) { console.log(`${lc} checked: ${checked} (I: d188bcace219f116459637bf11fd7d22)`); }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
