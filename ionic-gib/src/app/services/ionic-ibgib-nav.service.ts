@@ -9,7 +9,7 @@ import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { IBGIB_DELIMITER } from 'ts-gib/dist/V1';
 import { getTimestampInTicks } from '../common/helper/utils';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 @Injectable({
   providedIn: 'root'

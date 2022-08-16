@@ -20,7 +20,7 @@ import { TodoInfoData_V1, TodoInfoIbGib_V1, TODO_INFO_IB, TODO_INFO_REL8N_NAME }
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { getAppInfoIb, getInfoFromAppInfoIb } from 'src/app/common/helper/app';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 export interface TodoItem extends IbGibItem {
   /**

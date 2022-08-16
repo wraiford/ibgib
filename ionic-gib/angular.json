@@ -40,7 +40,7 @@
                 "output": "./svg"
               },
               {
-                "glob": "**/manifest.json",
+                "glob": "**/manifest.@(json|webmanifest)",
                 "input": "src/assets",
                 "output": "/"
               },
@@ -50,8 +50,13 @@
                 "output": "/"
               },
               {
-                "glob": "**/injected.(js|css)",
+                "glob": "**/injected.@(js|css)",
                 "input": "src/assets",
+                "output": "/"
+              },
+              {
+                "glob": "*.png",
+                "input": "src/assets/icon",
                 "output": "/"
               }
             ],
@@ -64,7 +69,7 @@
               }
             ],
             "scripts": [],
-            "aot": false,
+            "aot": true,
             "vendorChunk": true,
             "extractLicenses": false,
             "buildOptimizer": false,
