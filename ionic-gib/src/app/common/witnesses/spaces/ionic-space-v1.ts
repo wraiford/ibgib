@@ -55,6 +55,7 @@ const DEFAULT_IONIC_SPACE_DATA_V1: IonicSpaceData_V1 = {
     version: '5',
     uuid: c.ZERO_SPACE_ID,
     name: c.IBGIB_SPACE_NAME_DEFAULT,
+    classname: 'IonicSpace_V1',
     baseDir: c.IBGIB_BASE_DIR,
     encoding: c.IBGIB_ENCODING,
     baseSubPath: c.IBGIB_BASE_SUBPATH,
@@ -401,6 +402,8 @@ export class IonicSpace_V1<
             if (!this.data.dnaSubPath) { this.data.dnaSubPath = c.IBGIB_DNA_SUBPATH; }
 
             this.ib = getSpaceIb({ space: this, classname: IonicSpace_V1.name });
+
+            console.log(`${lc} this.ib: ${this.ib}`);
         } catch (error) {
             console.error(`${lc} ${error.message}`);
         } finally {

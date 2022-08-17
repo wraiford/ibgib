@@ -808,8 +808,10 @@ export class IbGibPage extends IbgibComponentBase
         });
         return; /* <<<< returns early */
       }
+      this.tjpUpdatesAvailableCount_Local = 0;
       if (this.item) { this.item.refreshing = true; }
       await this.common.ibgibs.pingLatest_Local({ ibGib: this.ibGib, tjpIbGib: this.tjp, useCache: false });
+
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     }

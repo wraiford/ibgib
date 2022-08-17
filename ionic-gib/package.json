@@ -1,6 +1,6 @@
 {
   "name": "ionicgib",
-  "version": "0.2.422",
+  "version": "0.2.435",
   "author": "William Raiford",
   "repository": {
     "url": "https://github.com/wraiford/ibgib",
@@ -31,7 +31,7 @@
     "prebuild:prod": "npm run prebuild",
     "build:prod": "npm run build:prod:ionic",
     "build:prod:ng": "ng build --aot --output-path www --extra-webpack-config webpack.partial.js --configuration production",
-    "build:prod:ionic": "ionic build --prod --aot --minifyjs --minifycss --optimizejs --output-path www --extra-webpack-config webpack.partial.js",
+    "build:prod:ionic": "ionic build --prod --aot --minifyjs --minifycss --output-path www --extra-webpack-config webpack.partial.js",
     "postbuild:prod": "npm run man:build:prod",
     "prebuild:ff": "npm run hack:v2",
     "build:ff": "npm run build",

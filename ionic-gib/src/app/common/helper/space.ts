@@ -3343,7 +3343,9 @@ export function getSpaceIb({
         if (name.includes(' ')) { throw new Error(`invalid space name. cannot contain spaces (E: a8450e1651081412c8ac018520182422)`); }
         const id = space.data?.uuid || undefined;
         if (id.includes(' ')) { throw new Error(`invalid space id. cannot contain spaces (E: 8696830fe7f54bfa85e670a063f3e089)`); }
-        return `witness space ${classname} ${name} ${id}`;
+        let ib = `witness space ${classname} ${name} ${id}`;
+        console.log(`${lc} ib: ${ib}`);
+        return ib;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
