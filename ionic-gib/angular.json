@@ -21,7 +21,8 @@
               "@aws-crypto/sha256-browser",
               "@aws-crypto/crc32",
               "ts-gib",
-              "encrypt-gib"
+              "encrypt-gib",
+              "rxjs"
             ],
             "outputPath": "www",
             "index": "src/index.html",
