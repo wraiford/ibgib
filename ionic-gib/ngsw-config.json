@@ -11,7 +11,8 @@
           "/index.html",
           "/manifest.webmanifest",
           "/*.css",
-          "/*.js"
+          "/*.js",
+          "/svg/(earth|navigate|sparkles|add|body|pricetag|analytics|ellipsis-horizontal|chevron-back|folder|footsteps|chatbox|arrow-forward|close|image|camera|download|apps|beer|chatbubbles|help|information|eye|heart|share|alert|rocket|sync|copy|home)*.svg"
         ]
       }
     },
@@ -22,6 +23,7 @@
       "resources": {
         "files": [
           "/assets/**",
+          "/svg/*.svg",
           "/*.(svg|cur|jpg|jpeg|png|apng|webp|avif|gif|otf|ttf|woff|woff2)"
         ]
       }
