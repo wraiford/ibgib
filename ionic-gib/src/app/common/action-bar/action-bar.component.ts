@@ -20,9 +20,10 @@ import { createCommentIbGib } from '../helper/comment';
 import { createLinkIbGib } from '../helper/link';
 import { getFnAlert, getFnPrompt } from '../helper/prompt-functions';
 import { getFromSpace, getDependencyGraph } from '../helper/space';
-import { validateIbGibAddr } from '../helper/validate';
+import { validateIbGibAddr, validateIbGibIntrinsically } from '../helper/validate';
 import { PicIbGib_V1 } from '../types/pic';
 import { BinIbGib_V1 } from '../types/bin';
+import { RawExportIbGib_V1 } from '../types/import-export';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -624,20 +625,46 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
-  /**
-   * Import an ibgib from either the local space or our sync spaces to our
-   * current context ibgib.
-   */
   async send_AddImport(): Promise<void> {
     const lc = `${this.lc}[${this.send_AddImport.name}]`;
     let actionItem: ActionItem;
     try {
+      if (logalot) { console.log(`${lc} starting... (I: 58a31bb618e8a470afd424b8b74a2822)`); }
+
       actionItem = this.items.filter(x => x.name === 'import')[0];
       actionItem.busy = true;
       this.sending = true;
 
-      if (!this.ibGib) { throw new Error(`There isn't a current ibGib loaded...?`); }
-      if (!this.addr) { throw new Error(`There isn't a current ibGib addr loaded...?`); }
+      if (!this.ibGib) { throw new Error(`(UNEXPECTED) There isn't a current ibGib loaded...? (E: a683530d0e4246fc9d3f3e3e8eb0737a)`); }
+      if (!this.addr) { throw new Error(`(UNEXPECTED) There isn't a current ibGib addr loaded...? (E: 7ca9d32efe164538ad25cda65f23e13d)`); }
+
+      if (this.selectedExportIbGib) {
+        await this.send_AddImport_ByFile();
+      } else if (this.actionDetailImportText) {
+        await this.send_AddImport_ByAddr();
+      } else {
+        throw new Error(`(UNEXPECTED) either selectedExportIbGib or actionDetailImportText required (E: 28898640fc76e5e549f0f8ed18a38622)`);
+      }
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+      actionItem.busy = false;
+      this.sending = false;
+      this.ref.detectChanges();
+    }
+  }
+
+  /**
+   * Import an ibgib from either the local space or our sync spaces to our
+   * current context ibgib.
+   */
+  async send_AddImport_ByAddr(): Promise<void> {
+    const lc = `${this.lc}[${this.send_AddImport_ByAddr.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 4533c0805fc04df2b9b2cfaccc91579d)`); }
 
       const fnAlert = getFnAlert();
 
@@ -758,9 +785,34 @@ export class ActionBarComponent extends IbgibComponentBase
       console.error(`${lc} ${error.message}`)
       await Modals.alert({ title: 'something went awry...', message: error.message });
     } finally {
-      actionItem.busy = false;
-      this.sending = false;
-      this.ref.detectChanges();
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async send_AddImport_ByFile(): Promise<void> {
+    const lc = `${this.lc}[${this.send_AddImport_ByFile.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 716faa48d7646bbff5c8dac37ad4fd22)`); }
+      const exportIbGib = this.selectedExportIbGib;
+      delete this.selectedExportIbGib;
+
+      // validate it
+      debugger;
+      let resValidate = await validateIbGibIntrinsically({ ibGib: exportIbGib });
+
+      // parse and validate exportIbGib.data ibgibs
+
+      // store ibgibs in local space, register new
+      // if not already stored.
+
+      // rel8 the context ibgib to the current this.ibGib
+      // exportIbGib.data.contextIbGibAddr
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
@@ -944,6 +996,10 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
+
+  @Input()
+  selectedExportIbGib: RawExportIbGib_V1;
+
   async handleImportFileInputClick(event: any): Promise<void> {
     const lc = `${this.lc}[${this.handleImportFileInputClick.name}]`;
     try {
@@ -957,14 +1013,42 @@ export class ActionBarComponent extends IbgibComponentBase
       const file = input.files[0];
       let reader = new FileReader();
 
-      reader.addEventListener('load', () => {
-        debugger;
-        let exportIbGib = JSON.parse(<string>reader.result);
-        debugger;
-        console.dir(exportIbGib);
+      reader.addEventListener('load', async () => {
+        let exportIbGib = <RawExportIbGib_V1>JSON.parse(<string>reader.result);
+        if (exportIbGib) {
+          this.selectedExportIbGib = exportIbGib;
+        } else {
+          delete this.selectedExportIbGib;
+        }
       });
 
       reader.readAsText(file);
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async importFromExportIbGib(): Promise<void> {
+    const lc = `${this.lc}[${this.importFromExportIbGib.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 716faa48d7646bbff5c8dac37ad4fd22)`); }
+      const exportIbGib = this.selectedExportIbGib;
+      delete this.selectedExportIbGib;
+
+      // validate it
+      let resValidate = await validateIbGibIntrinsically({ ibGib: exportIbGib });
+
+      // parse and validate exportIbGib.data ibgibs
+
+      // store ibgibs in local space, register new
+      // if not already stored.
+
+      // rel8 the context ibgib to the current this.ibGib
+      // exportIbGib.data.contextIbGibAddr
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);

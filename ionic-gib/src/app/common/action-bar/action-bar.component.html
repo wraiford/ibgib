@@ -111,19 +111,18 @@
   <div *ngIf="actionDetailMode === 'import'" class="detail-container" [disabled]="sending">
     <ion-list>
       <ion-item>
-        <ion-label>by addr: </ion-label>
+        <ion-label slot="start">import by addr: </ion-label>
         <ion-textarea #inputImport id="inputImportId" class="detail-content"
           (ionChange)="handleImportDetailChange($event)"
           [debounce]="debounceMs"
           spellcheck="false"
           autoGrow="false"
           (click)="handleTextAreaClick($event)"
-          rows="2"
           >
         </ion-textarea>
       </ion-item>
       <ion-item>
-        <ion-label>from file...</ion-label>
+        <ion-label slot="start">import from file...</ion-label>
 
         <ion-button (click)='inputFileImport.click()' [disabled]="sending">
           <ion-icon name="document-outline"></ion-icon>

@@ -67,27 +67,40 @@ ion-button {
 
     ion-list {
       width: 99%;
+      height: 99%;
+      box-sizing: border-box;
 
       ion-item {
+        height: 45%;
         display: flex;
         flex-direction: row;
-        outline: green solid 1px;
+        // outline: green solid 1px;
+        align-items: center;
 
         ion-label {
-          width: 10%;
+          width: 20%;
           margin: 0px;
+          align-self: center !important;
         }
 
         ion-textarea {
-          width: 90%;
-          margin: 0px;
+          width: 80%;
+          height: 90%;
+          margin: 3px;
+          box-sizing: border-box;
+
+          border-color: var(--ion-color-secondary);
+          border-style: solid;
+          border-width: 1px;
+          border-radius: $btnBorderRadius;
+
+          overflow-y: scroll;
         }
       }
     }
   }
 
   #textareaCommentId,
-  #inputImportId,
   #inputLinkId {
     margin: 3px;
     height: 98%;
