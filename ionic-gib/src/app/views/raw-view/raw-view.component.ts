@@ -96,7 +96,7 @@ export class RawViewComponent extends IbgibListComponentBase<RawItem> {
   handleScroll(event: any): void {
     const lc = `${this.lc}[${this.handleScroll.name}]`;
     this.rawViewScrolled.emit(event);
-    if (logalot) { console.log(`${lc} scrolling (I: b62e75fad64d0d12147cd608e8323622)`); }
+    if (logalot) { console.log(`${lc} scrolling (I: 5e98e601f89f488a9ff2fdce02e0e094)`); }
   }
 
   handleItemsAdded(items: RawItem[]): void {

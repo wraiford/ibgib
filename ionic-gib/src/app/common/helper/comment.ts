@@ -11,6 +11,7 @@ import { BinIbGib_V1 } from '../types/bin';
 import { persistTransformResult, putInSpace } from './space';
 import { TransformResult } from 'ts-gib';
 import { CommentData_V1, CommentIbGib_V1 } from '../types/comment';
+import { getSaferSubstring } from './utils';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -25,26 +26,27 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
  * @returns comment ib for the given comment text
  */
 export function getCommentIb(commentText: string): string {
-    const lc = `[${getCommentIb.name}]`;
-    try {
-        if (!commentText) { throw new Error(`commentText required. (E: 22fdfd0aa0524a18b63a9405b312c99e)`); }
-        let saferText = commentText.replace(/\W/g, '');
-        let ibCommentText: string;
-        if (saferText.length > c.DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH) {
-            ibCommentText =
-                saferText.substring(0, c.DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH);
-        } else if (saferText.length > 0) {
-            ibCommentText = saferText;
-        } else {
-            // comment text only has characters/nonalphanumerics.
-            ibCommentText = c.ONLY_HAS_NON_ALPHANUMERICS;
-        }
+  const lc = `[${getCommentIb.name}]`;
+  try {
+    if (!commentText) { throw new Error(`commentText required. (E: 22fdfd0aa0524a18b63a9405b312c99e)`); }
+    let saferText = getSaferSubstring({ text: commentText, length: c.DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH });
+    let ibCommentText = commentText.replace(/\W/g, '');
+    // let ibCommentText: string;
+    // if (saferText.length > c.DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH) {
+    //     ibCommentText =
+    //         saferText.substring(0, c.DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH);
+    // } else if (saferText.length > 0) {
+    //     ibCommentText = saferText;
+    // } else {
+    //     // comment text only has characters/nonalphanumerics.
+    //     ibCommentText = c.ONLY_HAS_NON_ALPHANUMERICS;
+    // }
 
-        return `comment ${ibCommentText}`;
-    } catch (error) {
-        console.error(`${lc} ${error.message}`);
-        throw error;
-    }
+    return `comment ${ibCommentText}`;
+  } catch (error) {
+    console.error(`${lc} ${error.message}`);
+    throw error;
+  }
 }
 
 /**
@@ -83,8 +85,8 @@ export async function createCommentIbGib({
     const data: CommentData_V1 = { text, textTimestamp: h.getTimestamp() };
 
     // create an ibgib with the filename and ext
-    const opts:any = {
-      parentIbGib: factory.primitive({ib: 'comment'}),
+    const opts: any = {
+      parentIbGib: factory.primitive({ ib: 'comment' }),
       ib: getCommentIb(text),
       data,
       dna: true,
@@ -100,7 +102,7 @@ export async function createCommentIbGib({
 
     if (saveInSpace) {
       if (!space) { throw new Error(`space required if saveInSpace is truthy (E: 40f69f22f21b4279a83cb746cb4b0da1)`); }
-      await persistTransformResult({resTransform: resCommentIbGib, space});
+      await persistTransformResult({ resTransform: resCommentIbGib, space });
     }
 
     return resCommentIbGib;
@@ -121,7 +123,7 @@ export function isComment({
 
     if (!ibGib) { throw new Error(`ibGib required (E: f204dac30ae548b0a049f1c4d8048502)`); }
 
-    const {ib, data, rel8ns} = ibGib;
+    const { ib, data, rel8ns } = ibGib;
 
     // try rel8ns first
     if (!rel8ns) {

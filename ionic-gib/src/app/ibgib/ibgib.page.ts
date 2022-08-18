@@ -22,7 +22,7 @@ const { Modals, Clipboard, Storage, LocalNotifications } = Plugins;
 
 import * as h from 'ts-gib';
 import { IbGibAddr, V1 } from 'ts-gib';
-import { IbGib_V1, isPrimitive } from 'ts-gib/dist/V1';
+import { IbGibData_V1, IbGib_V1, isPrimitive } from 'ts-gib/dist/V1';
 
 import * as c from '../common/constants';
 import { IbgibComponentBase } from '../common/bases/ibgib-component-base';
@@ -42,6 +42,9 @@ import { RobbotIbGib_V1 } from '../common/types/robbot';
 import { RobbotBarComponent } from '../common/robbot-bar/robbot-bar.component';
 import { AppIbGib_V1 } from '../common/types/app';
 import { AppBarComponent } from '../common/app-bar/app-bar.component';
+import { RawExportData_V1, RawExportIbGib_V1 } from '../common/types/import-export';
+import { getSaferSubstring } from '../common/helper/utils';
+import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -176,6 +179,9 @@ export class IbGibPage extends IbgibComponentBase
    */
   @ViewChild('ibgibPageContent')
   ibgibPageContent: IonContent;
+
+  @ViewChild('inputExport')
+  inputExport: HTMLInputElement;
 
   @Input()
   syncErrored: boolean = false;
@@ -1000,6 +1006,81 @@ export class IbGibPage extends IbgibComponentBase
       console.log(info);
     } catch (error) {
       console.error(`${lc} ${error.message}`)
+    }
+  }
+
+  @Input()
+  preparingExport: boolean;
+
+  async handleExportClick(): Promise<void> {
+    const lc = `${this.lc}[${this.handleExportClick.name}]`;
+    try {
+      if (!this.ibGib) { throw new Error(`(UNEXPECTED) this.ibGib falsy? (E: d2898eea744360865f0da5fb91baae22)`); }
+      if (this.preparingExport) {
+        console.warn(`${lc} already preparing export. (W: cb31b23a313247f0ad128dd984645db4)`);
+        return; /* <<<< returns early */
+      }
+
+      this.preparingExport = true;
+
+      // build an ibgib that contains the entire dependency graph of this.ibGib and save it
+
+      // ib
+      let today = (new Date()).toDateString();
+      while (today.includes(' ')) { today = today.replace(' ', '_'); } // lazy
+      let safeSubtextOfThisIb = getSaferSubstring({
+        text: this.ib.replace(' ', '___'),
+        length: 20, // wth
+      });
+      let exportIb = `ibgib_export ${today} ${safeSubtextOfThisIb} ${this.gib}`;
+
+      // data
+      let resGraph = await this.common.ibgibs.getDependencyGraph({
+        ibGib: this.ibGib,
+        live: true,
+        space: null, // defaults to localUserSpace
+      });
+      if (!this.tjpAddr) { await this.loadTjp(); }
+      // the graph will be the data section of an export ibgib
+      let exportData: RawExportData_V1 = {
+        contextIbGibAddr: this.addr,
+        tjpAddr: this.tjpAddr,
+        dependencyGraphAsString: JSON.stringify(resGraph),
+      }
+
+      // [no rel8ns because this is a self-contained export ibgib]
+
+      // gib
+      let exportIbGib: RawExportIbGib_V1 = { ib: exportIb, data: exportData, };
+      let exportGib = await getGib({ ibGib: exportIbGib, hasTjp: false });
+      exportIbGib.gib = exportGib;
+
+      if (logalot || true) { console.log(`${lc} JSON.stringify(exportIbGib).length: ${JSON.stringify(exportIbGib).length} (I: db3a8d913a91d8fc5d6e45981e034822)`); }
+
+      // at this point, we have a possibly quite large ibGib whose data includes
+      // every single ibgib that this.ibGib relates to (its dependency graph).
+      // so now we can save this file and later import from it.
+
+      // thank you SO, OP and volzotan at https://stackoverflow.com/questions/19721439/download-json-object-as-a-file-from-browser
+      // set the anchor's href to a data stream
+      var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportIbGib));
+      var dlAnchorElem = document.getElementById('export-ibgib-anchor');
+      dlAnchorElem.setAttribute("href", dataStr);
+
+      // get the filename for the anchor to suggest for the "download"
+      let exportAddr = h.getIbGibAddr({ ibGib: exportIbGib });
+      const filename = `${exportAddr}.json`;
+
+      // trigger the click
+      dlAnchorElem.setAttribute("download", filename);
+      dlAnchorElem.click();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      this.preparingExport = false;
+      setTimeout(() => this.ref.detectChanges());
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 

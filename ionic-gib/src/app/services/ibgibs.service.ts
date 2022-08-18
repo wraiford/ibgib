@@ -1323,6 +1323,8 @@ export class IbgibsService {
    * to earmark this for the future.
    *
    * todo: auto-update or better
+   *
+   * @returns map of addr => ibGib
    */
   async getDependencyGraph(opts: GetDependencyGraphOptions): Promise<{ [addr: string]: IbGib_V1 }> {
     const lc = `${this.lc}[${this.getDependencyGraph.name}]`;

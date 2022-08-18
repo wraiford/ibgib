@@ -25,7 +25,6 @@ export function getAppResultMetadata({ app }: { app: IbGibAppAny }): string {
     return `${app.ib} ${getTimestampInTicks()}`;
 }
 
-
 export function validateCommonAppData({
     appData,
 }: {

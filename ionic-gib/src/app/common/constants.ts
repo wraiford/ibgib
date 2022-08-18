@@ -312,7 +312,7 @@ export const ERROR_MSG_LOCATION_ONLY_REGEXP = /^(\[.+\]).+$/;
 /**
  * If a comment/link/whatever has only alphanumerics, this is used in the ib.
  */
-export const ONLY_HAS_NON_ALPHANUMERICS = '_non-alphanumerics_';
+export const ONLY_HAS_NON_ALPHANUMERICS = '_nonalphanumerics_';
 
 /**
  * Default icon when creating a tag.

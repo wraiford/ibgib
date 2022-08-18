@@ -13,7 +13,7 @@ export function groupBy<TItem>({
 }): { [key: string]: TItem[] } {
     const lc = `[${groupBy.name}]`;
     try {
-        const result: {[key: string]: TItem[]} = {};
+        const result: { [key: string]: TItem[] } = {};
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
             const key = keyFn(item);
@@ -31,15 +31,15 @@ export function groupBy<TItem>({
  * Just trying to centralize and standardize regular expressions here...
  */
 export function getRegExp({
-  min,
-  max,
-  chars,
-  noSpaces,
+    min,
+    max,
+    chars,
+    noSpaces,
 }: {
-  min?: number,
-  max?: number,
-  chars?: string,
-  noSpaces?: boolean,
+    min?: number,
+    max?: number,
+    chars?: string,
+    noSpaces?: boolean,
 }): RegExp {
     min = min ?? 1;
     max = max ?? 999999999999;
@@ -252,7 +252,7 @@ export function patchObject({
         pathPieces.forEach(piece => {
             let currentValue = targetObj[piece];
             if (currentValue) {
-                if (typeof currentValue !== 'object') {throw new Error(`invalid path into object. Each step along the path must be typeof === 'object', but typeof targetObj["${piece}"] === ${typeof currentValue}. (value: ${currentValue})  (E: 38cf29c5f624a40b4b56502c2ec39d22)`); }
+                if (typeof currentValue !== 'object') { throw new Error(`invalid path into object. Each step along the path must be typeof === 'object', but typeof targetObj["${piece}"] === ${typeof currentValue}. (value: ${currentValue})  (E: 38cf29c5f624a40b4b56502c2ec39d22)`); }
             } else {
                 // if not exist, create it
                 targetObj[piece] = {};
@@ -283,9 +283,42 @@ export async function getIdPool({
         let result: string[] = [];
         for (let i = 0; i < n; i++) {
             const id = await h.getUUID();
-            result.push(id.substring(0,16));
+            result.push(id.substring(0, 16));
         }
         return result;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+export function getSaferSubstring({
+    text,
+    length,
+}: {
+    text: string;
+    length?: number,
+}): string {
+    const lc = `[${getSaferSubstring.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 27437e312e5aa621adfebb84e059c822)`); }
+        if (!text) { throw new Error(`text required (E: 87e0493613c8b30dfade83e1d2862a22)`); }
+
+        let saferText = text.replace(/\W/g, '');
+        let resText: string;
+        if (saferText.length > length) {
+            resText =
+                saferText.substring(0, length);
+        } else if (saferText.length > 0) {
+            resText = saferText;
+        } else {
+            // text only has characters/nonalphanumerics ("unsafe").
+            resText = c.ONLY_HAS_NON_ALPHANUMERICS;
+        }
+
+        return resText;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

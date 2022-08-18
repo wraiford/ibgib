@@ -76,7 +76,7 @@ export class TodoApp_V1 extends AppBase_V1<
         const lc = `${this.lc}[${this.doDefault.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            throw new Error(`not implemented (E: bd8ce5e2518742c98ae1928cabddab64)`);
+            throw new Error(`not implemented (E: 0edbe0e6bee342d69eb99afb09f2c437)`);
             return ROOT;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -100,7 +100,7 @@ export class TodoApp_V1 extends AppBase_V1<
         const lc = `${this.lc}[${this.doCmdIb.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            throw new Error(`not implemented (E: 7c57ff07b45a4779895eb245590c3de4)`);
+            throw new Error(`not implemented (E: 6f1e426f73394682bc69525a39197fa3)`);
             return ROOT;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -127,7 +127,7 @@ export class TodoApp_V1 extends AppBase_V1<
 
             const space = await this.ibgibsSvc.getLocalUserSpace({ lock: true });
 
-            throw new Error(`not implemented yet (E: 0f83e488f2774a64b3a905b08d64946e)`);
+            throw new Error(`not implemented yet (E: bd420d81fb2847d285f4323d69f5fbb9)`);
             return ROOT;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -145,7 +145,7 @@ export class TodoApp_V1 extends AppBase_V1<
         const lc = `${this.lc}[${this.doCmdIbgib.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            throw new Error(`not implemented yet (E: b87ad1a62e8c48f1a4860abe3d3789b0)`);
+            throw new Error(`not implemented yet (E: 4768b4a35ebf4edf83ab8389b1851743)`);
             return ROOT;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -162,12 +162,12 @@ export class TodoApp_V1 extends AppBase_V1<
             if (logalot) { console.log(`${lc} starting...`); }
             const errors = await super.validateWitnessArg(arg) ?? [];
             if (!this.ibgibsSvc) {
-                errors.push(`this.ibgibsSvc required (E: aa389a8642e643d78ff0ea777893a3df)`);
+                errors.push(`this.ibgibsSvc required (E: de011944e7d14b2bab2fbbf5d470c294)`);
             }
             if ((<any>arg.data).cmd) {
                 // perform extra validation for cmds
                 if ((arg.ibGibs ?? []).length === 0) {
-                    errors.push(`ibGibs required. (E: 1ced444edbf745a5828f0a478a5d8d85)`);
+                    errors.push(`ibGibs required. (E: b14b5457229c4bd1894ce5bf16920e0a)`);
                 }
             }
             return errors;
@@ -250,7 +250,7 @@ export class TodoApp_V1_Factory
             let appIbGib = new TodoApp_V1(null, null);
             await appIbGib.loadIbGibDto(appDto);
             resApp.newIbGib = appIbGib;
-            if (logalot) { console.log(`${lc} appDto: ${h.pretty(appDto)} (I: 0f76e11281684ee0b9b7b719f7065d2a)`); }
+            if (logalot) { console.log(`${lc} appDto: ${h.pretty(appDto)} (I: 8df47b0d383a482f9c56eb18912c5ee4)`); }
 
             return <TransformResult<TodoApp_V1>>resApp;
         } catch (error) {
@@ -267,7 +267,7 @@ export class TodoApp_V1_Factory
             if (logalot) { console.log(`${lc} starting...`); }
             let { data } = witness;
             // We do the AppFormBuilder specific functions first, because of
-            if (logalot) { console.log(`${lc} data: ${h.pretty(data)} (I: 7601c0e1046b4faa9f62df45e92fd77e)`); }
+            if (logalot) { console.log(`${lc} data: ${h.pretty(data)} (I: 59e1e6837d1641c6a1348558978df2a4)`); }
             const idPool = await getIdPool({ n: 100 });
             // type inference in TS! eesh...
             let form = new AppFormBuilder()

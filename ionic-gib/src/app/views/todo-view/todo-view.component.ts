@@ -157,7 +157,7 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
 
   handleScroll(event: any): void {
     const lc = `${this.lc}[${this.handleScroll.name}]`;
-    if (logalot) { console.log(`${lc} scrolling (I: b62e75fad64d0d12147cd608e8323622)`); }
+    if (logalot) { console.log(`${lc} scrolling (I: cc8370a18af74e04bd89ecdbb720ae76)`); }
   }
 
   handleItemsAdded(items: TodoItem[]): void {
@@ -254,7 +254,7 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
         this.listView.items.forEach(item => {
           if (!item.addr) {
             debugger;
-            throw new Error(`(unexpected) item.addr falsy (E: 60f8e4cafe298e44db78735c11109322)`);
+            throw new Error(`(UNEXPECTED) item.addr falsy (E: 60f8e4cafe298e44db78735c11109322)`);
           }
           let itemGibInfo = getGibInfo({ ibGibAddr: item.addr });
           if (itemGibInfo.tjpGib) {
