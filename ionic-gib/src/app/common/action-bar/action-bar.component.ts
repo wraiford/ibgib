@@ -1,6 +1,6 @@
 import {
   Component, OnInit, ChangeDetectorRef,
-  Input, ViewChild, AfterViewInit, EventEmitter, Output,
+  Input, ViewChild, AfterViewInit, EventEmitter, Output, ElementRef,
 } from '@angular/core';
 import { IonInput, IonTextarea } from '@ionic/angular';
 import { Plugins, } from '@capacitor/core';
@@ -93,7 +93,8 @@ export class ActionBarComponent extends IbgibComponentBase
    * and sets the mode to 'comment'.
    */
   @Input()
-  actionDetailMode: ActionItemName = 'comment';
+  actionDetailMode: ActionItemName = 'import';
+  // actionDetailMode: ActionItemName = 'comment';
   /**
    * @see {@link actionDetailMode}
    */
@@ -123,6 +124,9 @@ export class ActionBarComponent extends IbgibComponentBase
 
   @ViewChild('inputImport')
   inputImport: IonInput;
+
+  @ViewChild('inputFileImport')
+  inputFileImport: ElementRef;
 
   @Input()
   debounceMs: number = 100;
@@ -932,6 +936,36 @@ export class ActionBarComponent extends IbgibComponentBase
       if (logalot) { console.log(`${lc} starting... (I: 61bdea9e93f2cc911bc4c0fac2fc5222)`); }
       const textArea = event?.target?.firstChild?.firstChild;
       if (textArea) { setTimeout(() => textArea.focus()); }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleImportFileInputClick(event: any): Promise<void> {
+    const lc = `${this.lc}[${this.handleImportFileInputClick.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: ffded66ecc6b3f56bfa73ee429b55722)`); }
+      debugger;
+      console.dir(event);
+
+      const input = <HTMLInputElement>this.inputFileImport.nativeElement;
+      if (input.files.length !== 1) { throw new Error(`(UNEXPECTED) input.files.length !== 1 (E: 5a8ab96779aa3c399e6a87dd30ed4c22)`); }
+
+      const file = input.files[0];
+      let reader = new FileReader();
+
+      reader.addEventListener('load', () => {
+        debugger;
+        let exportIbGib = JSON.parse(<string>reader.result);
+        debugger;
+        console.dir(exportIbGib);
+      });
+
+      reader.readAsText(file);
+
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

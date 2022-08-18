@@ -109,14 +109,28 @@
 
   <!-- import -->
   <div *ngIf="actionDetailMode === 'import'" class="detail-container" [disabled]="sending">
-    <ion-textarea #inputImport id="inputImportId" class="detail-content"
-      (ionChange)="handleImportDetailChange($event)"
-      [debounce]="debounceMs"
-      spellcheck="false"
-      autoGrow="true"
-      (click)="handleTextAreaClick($event)"
-      >
-    </ion-textarea>
+    <ion-list>
+      <ion-item>
+        <ion-label>by addr: </ion-label>
+        <ion-textarea #inputImport id="inputImportId" class="detail-content"
+          (ionChange)="handleImportDetailChange($event)"
+          [debounce]="debounceMs"
+          spellcheck="false"
+          autoGrow="false"
+          (click)="handleTextAreaClick($event)"
+          rows="2"
+          >
+        </ion-textarea>
+      </ion-item>
+      <ion-item>
+        <ion-label>from file...</ion-label>
+
+        <ion-button (click)='inputFileImport.click()' [disabled]="sending">
+          <ion-icon name="document-outline"></ion-icon>
+          <input #inputFileImport type="file" hidden (change)="handleImportFileInputClick($event)" accept="application/json" multiple/>
+        </ion-button>
+      </ion-item>
+    </ion-list>
     <ion-button class="detail-send-btn" color="primary"
       (click)="send_AddImport()"
       [disabled]="!canSend">
