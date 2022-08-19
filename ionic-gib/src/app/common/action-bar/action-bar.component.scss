@@ -59,6 +59,7 @@ ion-button {
     display: flex;
     flex-direction: row;
     align-items: center;
+    overflow-y: hidden;
 
     border-color: var(--ion-color-primary);
     border-style: solid;

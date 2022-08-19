@@ -109,27 +109,27 @@
 
   <!-- import -->
   <div *ngIf="actionDetailMode === 'import'" class="detail-container" [disabled]="sending">
-    <ion-list>
-      <ion-item>
-        <ion-label slot="start">import by addr: </ion-label>
+    <!-- <ion-list> -->
+      <!-- <ion-item> -->
+        <ion-button (click)='inputFileImport.click()' [disabled]="sending">
+          <ion-icon name="document-outline"></ion-icon>
+          <input #inputFileImport type="file" hidden (change)="handleImportFileInputClick($event)" accept="application/json" multiple/>
+        </ion-button>
         <ion-textarea #inputImport id="inputImportId" class="detail-content"
           (ionChange)="handleImportDetailChange($event)"
           [debounce]="debounceMs"
+          placeholder="Paste in a local or outerspace addr, or import by file"
           spellcheck="false"
           autoGrow="false"
           (click)="handleTextAreaClick($event)"
           >
         </ion-textarea>
-      </ion-item>
-      <ion-item>
+      <!-- </ion-item> -->
+      <!-- <ion-item>
         <ion-label slot="start">import from file...</ion-label>
-
-        <ion-button (click)='inputFileImport.click()' [disabled]="sending">
-          <ion-icon name="document-outline"></ion-icon>
-          <input #inputFileImport type="file" hidden (change)="handleImportFileInputClick($event)" accept="application/json" multiple/>
-        </ion-button>
-      </ion-item>
-    </ion-list>
+        <ion-text>{{ selectedExportIbGibFilename ?? 'select file...' }}</ion-text>
+      </ion-item> -->
+    <!-- </ion-list> -->
     <ion-button class="detail-send-btn" color="primary"
       (click)="send_AddImport()"
       [disabled]="!canSend">

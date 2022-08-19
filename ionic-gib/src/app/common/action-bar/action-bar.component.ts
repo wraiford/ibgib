@@ -2,13 +2,13 @@ import {
   Component, OnInit, ChangeDetectorRef,
   Input, ViewChild, AfterViewInit, EventEmitter, Output, ElementRef,
 } from '@angular/core';
-import { IonInput, IonTextarea } from '@ionic/angular';
+import { IonInput, IonText, IonTextarea } from '@ionic/angular';
 import { Plugins, } from '@capacitor/core';
 const { Modals } = Plugins;
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr, TransformResult, V1 } from 'ts-gib';
-import { IbGibRel8ns_V1, IbGib_V1 } from 'ts-gib/dist/V1';
+import { IbGibRel8ns_V1, IbGib_V1, isDna } from 'ts-gib/dist/V1';
 
 import * as c from '../constants';
 import { CommonService } from '../../services/common.service';
@@ -19,11 +19,12 @@ import { createPicAndBinIbGibsFromInputFilePickedEvent } from '../helper/pic';
 import { createCommentIbGib } from '../helper/comment';
 import { createLinkIbGib } from '../helper/link';
 import { getFnAlert, getFnPrompt } from '../helper/prompt-functions';
-import { getFromSpace, getDependencyGraph } from '../helper/space';
+import { getFromSpace, getDependencyGraph, putInSpace } from '../helper/space';
 import { validateIbGibAddr, validateIbGibIntrinsically } from '../helper/validate';
 import { PicIbGib_V1 } from '../types/pic';
 import { BinIbGib_V1 } from '../types/bin';
 import { RawExportIbGib_V1 } from '../types/import-export';
+import { getTimelinesGroupedByTjp, } from '../helper/ibgib';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -94,8 +95,7 @@ export class ActionBarComponent extends IbgibComponentBase
    * and sets the mode to 'comment'.
    */
   @Input()
-  actionDetailMode: ActionItemName = 'import';
-  // actionDetailMode: ActionItemName = 'comment';
+  actionDetailMode: ActionItemName = 'comment';
   /**
    * @see {@link actionDetailMode}
    */
@@ -124,7 +124,7 @@ export class ActionBarComponent extends IbgibComponentBase
   inputLink: IonInput;
 
   @ViewChild('inputImport')
-  inputImport: IonInput;
+  inputImport: IonTextarea;
 
   @ViewChild('inputFileImport')
   inputFileImport: ElementRef;
@@ -641,7 +641,7 @@ export class ActionBarComponent extends IbgibComponentBase
       if (this.selectedExportIbGib) {
         await this.send_AddImport_ByFile();
       } else if (this.actionDetailImportText) {
-        await this.send_AddImport_ByAddr();
+        await this.send_AddImport_ByAddr({ addr: this.actionDetailImportText });
       } else {
         throw new Error(`(UNEXPECTED) either selectedExportIbGib or actionDetailImportText required (E: 28898640fc76e5e549f0f8ed18a38622)`);
       }
@@ -661,7 +661,7 @@ export class ActionBarComponent extends IbgibComponentBase
    * Import an ibgib from either the local space or our sync spaces to our
    * current context ibgib.
    */
-  async send_AddImport_ByAddr(): Promise<void> {
+  async send_AddImport_ByAddr({ addr }: { addr: IbGibAddr }): Promise<void> {
     const lc = `${this.lc}[${this.send_AddImport_ByAddr.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 4533c0805fc04df2b9b2cfaccc91579d)`); }
@@ -670,7 +670,7 @@ export class ActionBarComponent extends IbgibComponentBase
 
       if (logalot) { console.log(`${lc} prompting for address to import.`); }
 
-      const addr = this.actionDetailImportText;
+      // const addr = ;
 
       const validationErrors = validateIbGibAddr({ addr });
       if ((validationErrors ?? []).length > 0) { throw new Error(`Invalid address: ${validationErrors.join('\n')} (E: 343823cb6ab04e6e9a8f7e6de1cd12c8)`); }
@@ -797,19 +797,74 @@ export class ActionBarComponent extends IbgibComponentBase
       delete this.selectedExportIbGib;
 
       // validate it
-      debugger;
       let resValidate = await validateIbGibIntrinsically({ ibGib: exportIbGib });
+      if (resValidate?.length > 0) {
+        const emsg = `There was a problem with the raw export file and it does not validate properly. Here are the errors: ${resValidate.join('; ')}`;
+        throw new Error(`${emsg} (E: 78e697a6d83362b10b0af1e785b55622)`);
+      }
 
       // parse and validate exportIbGib.data ibgibs
+      // for speed, also sort into dna/non-dna ibgibs (put all the
+      // fork/mut8/rel8 ibgibs in one bucket)
+      let dependencyGraph = <{ [addr: string]: IbGib_V1 }>JSON.parse(exportIbGib.data.dependencyGraphAsString);
+      let ibGibsToImport = Object.values(dependencyGraph);
+      const invalidMsgs: string[] = [];
+      const dnaIbGibs: IbGib_V1[] = [];
+      const nonDnaIbGibs: IbGib_V1[] = [];
+      for (let i = 0; i < ibGibsToImport.length; i++) {
+        const ibGib = ibGibsToImport[i];
+        const addr = h.getIbGibAddr({ ibGib });
+        resValidate = await validateIbGibIntrinsically({ ibGib });
+        if (resValidate?.length > 0) {
+          const emsg = `${addr} errors: ${resValidate.join('; ')}`;
+          invalidMsgs.push(emsg);
+        } else {
+          if (isDna({ ibGib })) { dnaIbGibs.push(ibGib); } else { nonDnaIbGibs.push(ibGib); }
+        }
+      }
+      if (invalidMsgs?.length > 0) { throw new Error(`There were invalid ibgibs contained in the import:\n${invalidMsgs.join('\n')} (E: f28725ac30aab1ccdf926de27eaa3d22)`); }
 
-      // store ibgibs in local space, register new
-      // if not already stored.
+      // todo: validate further with guaranteeing that the import is a
+      // fully-contained graph, meaning that all ibgibs have all of their
+      // related ibgibs. I need to add a "validateDependencyGraph" function to
+      // the validate.ts, and also should probably go ahead and create my
+      // "InnerSpace" that I can pass to the `getDependencyGraph` `space` param.
 
-      // rel8 the context ibgib to the current this.ibGib
-      // exportIbGib.data.contextIbGibAddr
+      // before storing anything, be sure that our
+      // exportIbGib.data.contextIbGibAddr is found in the incoming ibgibs to be
+      // imported.
+      const exportContextIbGib = dependencyGraph[exportIbGib.data.contextIbGibAddr];
+      if (!exportContextIbGib) { throw new Error(`The export file is invalid. data.contextIbGibAddr (${exportIbGib.data.contextIbGibAddr}) is not contained in the dependency graph. (E: ac012394d29ea79e936ba6a594379322)`); }
 
+      // store ibgibs in local space, register new if not already stored.
+      // do dna first and non-dna second, because if there is a problem, having
+      // loose dna around seems like less of a big deal than having larger
+      // macro-ibgibs that won't have their corresponding dna floating around.
+      const space = await this.common.ibgibs.getLocalUserSpace({});
+      let resPutDna = await putInSpace({ ibGibs: dnaIbGibs, space, isDna: true });
+      if (!resPutDna.success || resPutDna.errorMsg) { throw new Error(`There was a problem storing dna ibgibs in the local space. (E: 09ad8bc93019cbe1ff32f39f5a674722)`); }
+      let resPutNonDna = await putInSpace({ ibGibs: nonDnaIbGibs, space, });
+      if (!resPutNonDna.success || resPutNonDna.errorMsg) { throw new Error(`There was a problem storing NON-dna ibgibs in the local space. (E: 05f30df2a9c1400494ac2c6da1eda516)`); }
+
+
+      // register latest in timelines as new
+      // const { mapWithTjp_NoDna, mapWithTjp_YesDna, mapWithoutTjps } =
+      //   splitPerTjpAndOrDna({ ibGibs: ibGibsToImport, filterPrimitives: true });
+      const timelinesByTjp_Ascending = getTimelinesGroupedByTjp({ ibGibs: nonDnaIbGibs });
+      const latestIbGibsPerTimeline =
+        Object.values(timelinesByTjp_Ascending)
+          .flatMap(timeline => timeline[timeline.length - 1]);
+
+      for (let i = 0; i < latestIbGibsPerTimeline.length; i++) {
+        const latestIbGib = latestIbGibsPerTimeline[i];
+        await this.common.ibgibs.registerNewIbGib({ ibGib: latestIbGib, space });
+      }
+
+      // at this point, we can reuse code that imports via the addr
+      await this.send_AddImport_ByAddr({ addr: exportIbGib.data.contextIbGibAddr });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
+      getFnAlert()({ title: 'invalid export file', msg: error.message ?? 'there was an error importing.' }); // spins off
       throw error;
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
@@ -847,6 +902,10 @@ export class ActionBarComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.handleImportDetailChange.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
+      if (this.selectedExportIbGib && !this.settingExportIbGib) {
+        this.inputImport.value = '';
+        delete this.selectedExportIbGib;
+      }
       const text: string = event.detail.value || '';
       this.actionDetailImportText = text.trim();
     } catch (error) {
@@ -999,18 +1058,21 @@ export class ActionBarComponent extends IbgibComponentBase
 
   @Input()
   selectedExportIbGib: RawExportIbGib_V1;
+  settingExportIbGib: boolean;
 
   async handleImportFileInputClick(event: any): Promise<void> {
     const lc = `${this.lc}[${this.handleImportFileInputClick.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: ffded66ecc6b3f56bfa73ee429b55722)`); }
-      debugger;
-      console.dir(event);
 
       const input = <HTMLInputElement>this.inputFileImport.nativeElement;
       if (input.files.length !== 1) { throw new Error(`(UNEXPECTED) input.files.length !== 1 (E: 5a8ab96779aa3c399e6a87dd30ed4c22)`); }
 
+
       const file = input.files[0];
+      this.settingExportIbGib = true;
+      this.inputImport.value = 'FILE: ' + file.name;
+      setTimeout(() => this.settingExportIbGib = false, 1000);
       let reader = new FileReader();
 
       reader.addEventListener('load', async () => {
@@ -1023,40 +1085,15 @@ export class ActionBarComponent extends IbgibComponentBase
       });
 
       reader.readAsText(file);
-
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
+      setTimeout(() => this.ref.detectChanges());
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
-  async importFromExportIbGib(): Promise<void> {
-    const lc = `${this.lc}[${this.importFromExportIbGib.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting... (I: 716faa48d7646bbff5c8dac37ad4fd22)`); }
-      const exportIbGib = this.selectedExportIbGib;
-      delete this.selectedExportIbGib;
-
-      // validate it
-      let resValidate = await validateIbGibIntrinsically({ ibGib: exportIbGib });
-
-      // parse and validate exportIbGib.data ibgibs
-
-      // store ibgibs in local space, register new
-      // if not already stored.
-
-      // rel8 the context ibgib to the current this.ibGib
-      // exportIbGib.data.contextIbGibAddr
-
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
 }
 
 interface PicCandidate {
