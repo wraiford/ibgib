@@ -33,7 +33,7 @@ import { IbGibSpaceAny } from '../common/witnesses/spaces/space-base-v1';
 import { PicData_V1, PicIbGib_V1 } from '../common/types/pic';
 import { IbGibTimelineUpdateInfo } from '../common/types/ux';
 import { ensureDirPath, pathExists, writeFile } from '../common/helper/ionic';
-import { getFnAlert, getFnPrompt, getFnConfirm } from '../common/helper/prompt-functions';
+import { getFnAlert, getFnPrompt, getFnConfirm, getFn_promptCreateSecretIbGib, getFn_promptCreateEncryptionIbGib, getFn_promptCreateOuterSpaceIbGib, getFn_promptUpdatePicIbGib, getFn_promptRobbotIbGib, getFn_promptAppIbGib } from '../common/helper/prompt-functions';
 import { createNewTag } from '../common/helper/tag';
 import { ActionBarComponent } from '../common/action-bar/action-bar.component';
 import { ChatViewComponent } from '../views/chat-view/chat-view.component';
@@ -55,8 +55,7 @@ const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
   styleUrls: ['./ibgib.page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class IbGibPage extends IbgibComponentBase
-  implements OnInit, OnDestroy {
+export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
 
   protected lc: string = `[${IbGibPage.name}]`;
 
@@ -218,6 +217,16 @@ export class IbGibPage extends IbgibComponentBase
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
     if (logalot) { console.log(`${lc} called.`) }
     try {
+      // if (!this.common.ibgibs.initialized) {
+      //   await this.common.ibgibs.initialize({
+      //     fnPromptSecret: getFn_promptCreateSecretIbGib(this.common),
+      //     fnPromptEncryption: getFn_promptCreateEncryptionIbGib(this.common),
+      //     fnPromptOuterSpace: getFn_promptCreateOuterSpaceIbGib(this.common),
+      //     fnPromptUpdatePic: getFn_promptUpdatePicIbGib(this.common),
+      //     fnPromptRobbot: getFn_promptRobbotIbGib(this.common),
+      //     fnPromptApp: getFn_promptAppIbGib(this.common),
+      //   });
+      // }
       while (this.common.ibgibs.initializing) {
         if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: a44efa21a33b41f4b27732d38a65530f)`); }
         await h.delay(100);

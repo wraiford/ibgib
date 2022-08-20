@@ -54,19 +54,28 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             h.delay(100).then(() => { this.addr = value; }); // calls this recursively, because is sync
             return; /* <<<< returns early */
         }
-        if (value === this.addr) {
-            if (logalot) { console.log(`${lc} value already === this.addr`); }
-            if (logalot) { console.log(`${lc}[end]${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
-        } else {
-            if (logalot) { console.log(`${lc} updating ibgib ${value}`); }
-            this._updatingIbGib = true;
-            const statusId = this.addStatusText({ text: 'updating...' });
-            setTimeout(() => this.ref.detectChanges());
-            this.updateIbGib(value).finally(() => {
-                this.removeStatusText({ statusId: statusId })
-                this._updatingIbGib = false;
-                setTimeout(() => { this.ref.detectChanges(); }, 500)
+        const doSet = () => {
+            if (value === this.addr) {
+                if (logalot) { console.log(`${lc} value already === this.addr`); }
                 if (logalot) { console.log(`${lc}[end]${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
+            } else {
+                if (logalot) { console.log(`${lc} updating ibgib ${value}`); }
+                this._updatingIbGib = true;
+                const statusId = this.addStatusText({ text: 'updating...' });
+                setTimeout(() => this.ref.detectChanges());
+                this.updateIbGib(value).finally(() => {
+                    this.removeStatusText({ statusId: statusId })
+                    this._updatingIbGib = false;
+                    setTimeout(() => { this.ref.detectChanges(); }, 500)
+                    if (logalot) { console.log(`${lc}[end]${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
+                });
+            }
+        }
+        if (this.common.ibgibs.initialized) {
+            doSet();
+        } else {
+            this.common.ibgibs.initialized$.subscribe(() => {
+                doSet();
             });
         }
     }

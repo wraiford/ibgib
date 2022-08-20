@@ -220,6 +220,8 @@ export class AppComponent extends IbgibComponentBase
     if (logalot) { console.log(`${lc}[end]${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
   }
 
+  private _subIbgibsInitializing: Subscription;
+
   async initializeApp(): Promise<void> {
     const lc = `${this.lc}[${this.initializeApp.name}]`;
 
@@ -237,6 +239,24 @@ export class AppComponent extends IbgibComponentBase
           if (logalot) { console.log(`${lc} this.initializing is falsy`); }
         }
 
+        this._subIbgibsInitializing = this.common.ibgibs.initialized$.subscribe(async () => {
+          const lcInit = `${lc}[ibgibs initialized]`;
+          try {
+            if (logalot) { console.log(`${lcInit} starting... (I: 41cde5d70289c0a75ab4da15bddc2422)`); }
+
+            await this.initializeMyRoots();
+            await this.initializeMyApps();
+            await this.initializeMyTags();
+            await this.initializeMySpaces();
+            await this.initializeMyRobbots();
+          } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+          } finally {
+            if (logalot) { console.log(`${lcInit} complete.`); }
+          }
+        });
+
         let timerName: string; let infoGuid: string;
         try {
           if (logalot) {
@@ -251,15 +271,16 @@ export class AppComponent extends IbgibComponentBase
           // make sure the service is initialized FIRST before any
           // other ibgib happenings
           if (logalot) { console.log(`${lc} wakka calling IbgibsService.initialize...`); }
-          await this.common.ibgibs.initialize({
-            fnPromptSecret: getFn_promptCreateSecretIbGib(this.common),
-            fnPromptEncryption: getFn_promptCreateEncryptionIbGib(this.common),
-            fnPromptOuterSpace: getFn_promptCreateOuterSpaceIbGib(this.common),
-            fnPromptUpdatePic: getFn_promptUpdatePicIbGib(this.common),
-            fnPromptRobbot: getFn_promptRobbotIbGib(this.common),
-            fnPromptApp: getFn_promptAppIbGib(this.common),
-          });
-
+          if (!['/', 'welcome', '/welcome'].includes(window.location.pathname)) {
+            await this.common.ibgibs.initialize({
+              fnPromptSecret: getFn_promptCreateSecretIbGib(this.common),
+              fnPromptEncryption: getFn_promptCreateEncryptionIbGib(this.common),
+              fnPromptOuterSpace: getFn_promptCreateOuterSpaceIbGib(this.common),
+              fnPromptUpdatePic: getFn_promptUpdatePicIbGib(this.common),
+              fnPromptRobbot: getFn_promptRobbotIbGib(this.common),
+              fnPromptApp: getFn_promptAppIbGib(this.common),
+            });
+          }
         } finally {
           if (logalot) {
             console.timeEnd(timerName);

@@ -593,11 +593,17 @@ export class IbgibsService {
       const promptName: () => Promise<void> = async () => {
         const fnPrompt = getFnPrompt();
         const resName = await fnPrompt({
-          title: 'Enter a Name...', msg: `We need to create a local space for you.
+          title: 'name your space', msg: `greetings program.
 
-        Spaces are kinda like usernames, but they dont need to be unique and in the future you will have more than one.
+          this website isn't a website. it has no database and only uses cookies to make the website work.
 
-        So enter a name for your space and choose OK to get started. ${allowCancel ? '' : '\n\n\tOr if you just want a random bunch of letters, hit Cancel.'}`
+          all of your data is stored locally on your device's "local space".
+
+          after you give it a name (or we randomly assign it a hex uuid), you can use this app completely offline without touching the web again.
+
+          we can hook up & sync with other outerspaces later.
+
+          so name your space with alphanumerics & underscores, like 'phone_alice' or 'web_bob_foo'.`
         });
 
         if (resName === null && !allowCancel) {

@@ -1,6 +1,6 @@
 {
   "name": "ionicgib",
-  "version": "0.2.440",
+  "version": "0.2.462",
   "author": "William Raiford",
   "repository": {
     "url": "https://github.com/wraiford/ibgib",
@@ -29,9 +29,10 @@
     "postbuild": "npm run man:build",
     "man:build:prod": "echo 'builds project with aot flag, configuration production flag, and outputs to www folder.'",
     "prebuild:prod": "npm run prebuild",
-    "build:prod": "npm run build:prod:ionic",
+    "build:prod": "npm run build:prod:ng",
     "build:prod:ng": "ng build --aot --output-path www --extra-webpack-config webpack.partial.js --configuration production",
-    "build:prod:ionic": "ionic build --prod --aot --minifyjs --minifycss --output-path www --extra-webpack-config webpack.partial.js",
+    "build:prod:ionic": "ionic build --prod --aot --minifyjs --optimizejs --output-path www --extra-webpack-config webpack.partial.js",
+    "build:prod:ionic:full": "ionic build --prod --aot --minifyjs --minifycss --optimizejs --output-path www --extra-webpack-config webpack.partial.js",
     "postbuild:prod": "npm run man:build:prod",
     "prebuild:ff": "npm run hack:v2",
     "build:ff": "npm run build",

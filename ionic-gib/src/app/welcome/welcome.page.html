@@ -260,7 +260,10 @@
       <ion-button color="primary" (click)="handleNextSlide()">
         <ion-icon name="chevron-forward-outline"></ion-icon>
       </ion-button>
-      <ion-button color="primary" (click)="handleGo()">{{goText}}</ion-button>
+      <ion-button color="primary" (click)="handleGo()">
+        <ion-label *ngIf="!going">{{goText}}</ion-label>
+        <ion-spinner *ngIf="going" name="circles" color="tertiary"></ion-spinner>
+      </ion-button>
       <!-- <ion-button color="primary" (click)="handleNextSlide()">
         <ion-icon name="chevron-forward-outline"></ion-icon>
       </ion-button> -->

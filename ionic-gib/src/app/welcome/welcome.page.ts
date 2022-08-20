@@ -38,6 +38,11 @@ import { ibCircle, ibGroup, ibLine, ibSvg, } from '../common/helper/svg';
 import { SVG_NAMESPACE, IbGibDiagramInfo, } from '../common/types/svg';
 import { ActivatedRoute, Params } from '@angular/router';
 import { ExtensionLaunchInfo, ExtensionSelectionInfo } from '../common/types/app';
+import {
+  getFn_promptCreateSecretIbGib, getFn_promptCreateEncryptionIbGib,
+  getFn_promptCreateOuterSpaceIbGib, getFn_promptUpdatePicIbGib,
+  getFnAlert, getFn_promptRobbotIbGib, getFn_promptAppIbGib
+} from '../common/helper/prompt-functions';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -56,9 +61,11 @@ export class WelcomePage implements OnInit, AfterViewInit {
 
   @Input()
   get goText(): string {
-    const waitLabel = 'wait for it...';
-    const tldrLabel = this.goToAddr ? 'tl;dr' : waitLabel;
-    const goLabel = this.goToAddr ? 'go' : waitLabel;
+    // const waitLabel = 'wait for it...';
+    // const tldrLabel = this.goToAddr ? 'tl;dr' : waitLabel;
+    // const goLabel = this.goToAddr ? 'go' : waitLabel;
+    const tldrLabel = 'tl;dr';
+    const goLabel = 'go';
 
     // while the app starts/initializes, show waitLabel. after which, if it's
     // the last slide, say "go". previous slides are "tl;dr"
@@ -107,6 +114,13 @@ export class WelcomePage implements OnInit, AfterViewInit {
     return platform === 'ios';
   }
 
+  /**
+   * for binding to spinner when the user hits the go button and the app starts
+   * to initialize.
+   */
+  @Input()
+  going: boolean;
+
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
@@ -152,25 +166,6 @@ export class WelcomePage implements OnInit, AfterViewInit {
       document.title = 'welcome';
 
       // spins off
-      this._subInitialized = this.common.ibgibs.initialized$.pipe(
-        concatMap(
-          async () => {
-
-            const result = await Storage.get({ key: 'welcomeShown' });
-            if (result?.value === 'true') {
-              // already shown welcome, so nav to home
-              await this.initializeGoToAddr();
-              await this.handleGo();
-            } else {
-              // haven't shown welcome, so stay here
-              this.initializeGoToAddr();
-              await h.delay(2000); // hmmm
-            }
-            this._subInitialized.unsubscribe();
-            delete this._subInitialized;
-          },
-        )
-      ).subscribe();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -749,13 +744,53 @@ export class WelcomePage implements OnInit, AfterViewInit {
       if (this.goText?.toLowerCase() === 'go') {
         // we've gone through the entire welcome screen (not tl;dr skipping)
         await Storage.set({ key: 'welcomeShown', value: 'true' });
+
+        this.going = true;
+        if (!this.common.ibgibs.initialized) {
+          // this._subInitialized = this.common.ibgibs.initialized$.pipe(
+          //   concatMap(
+          //     async () => {
+
+          //       debugger;
+          //       const result = await Storage.get({ key: 'welcomeShown' });
+          //       if (result?.value === 'true') {
+          //         // already shown welcome, so nav to home
+          //         await this.initializeGoToAddr();
+          //         await this.handleGo();
+          //       } else {
+          //         // haven't shown welcome, so stay here
+          //         await this.initializeGoToAddr();
+          //         await h.delay(2000); // hmmm
+          //       }
+          //       this._subInitialized.unsubscribe();
+          //       delete this._subInitialized;
+          //     },
+          //   )
+          // ).subscribe();
+
+          await this.common.ibgibs.initialize({
+            fnPromptSecret: getFn_promptCreateSecretIbGib(this.common),
+            fnPromptEncryption: getFn_promptCreateEncryptionIbGib(this.common),
+            fnPromptOuterSpace: getFn_promptCreateOuterSpaceIbGib(this.common),
+            fnPromptUpdatePic: getFn_promptUpdatePicIbGib(this.common),
+            fnPromptRobbot: getFn_promptRobbotIbGib(this.common),
+            fnPromptApp: getFn_promptAppIbGib(this.common),
+          });
+        }
+        await this.initializeGoToAddr();
+        await this.common.nav.go({
+          toAddr: this.goToAddr,
+          fromAddr: undefined,
+          force: true,
+        });
+
+      } else {
+        // tl;dr
+        await this.handleNextSlide();
+        await this.handleNextSlide();
+        setTimeout(() => this.ref.detectChanges());
       }
 
-      await this.common.nav.go({
-        toAddr: this.goToAddr,
-        fromAddr: undefined,
-        force: true,
-      });
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
