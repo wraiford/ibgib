@@ -46,7 +46,7 @@ import { IbgibFormsModule } from '../ibgib-forms/ibgib-forms.module';
 
 import { ClickAnimationDirective } from '../common/directives/animations/click-animation.directive';
 import { HighlightDirective } from '../common/directives/highlight.directive';
-import { ClickHoldAnimationDirective } from '../common/directives/animations/click-hold-animation.directive';
+import { OmniAnimationGestureDirective } from '../common/directives/animations/omni-animation-gesture.directive';
 
 @NgModule({
   imports: [
@@ -61,8 +61,7 @@ import { ClickHoldAnimationDirective } from '../common/directives/animations/cli
   declarations: [
     ClickAnimationDirective,
     HighlightDirective,
-    ClickHoldAnimationDirective,
-
+    OmniAnimationGestureDirective,
 
     FallbackViewComponent,
     TagViewComponent,

@@ -12,14 +12,14 @@ import { AnimationWithGestureDirectiveBase } from '../../bases/animation-with-ge
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 @Directive({
-    selector: '[ibClickHoldAnimation]'
+    selector: '[ibOmni]'
 })
-export class ClickHoldAnimationDirective extends AnimationWithGestureDirectiveBase {
+export class OmniAnimationGestureDirective extends AnimationWithGestureDirectiveBase {
 
-    protected lc: string = `[${ClickHoldAnimationDirective.name}]`;
+    protected lc: string = `[${OmniAnimationGestureDirective.name}]`;
 
     private _itemRef: any;
-    @Input('ibClickAnimation')
+    @Input('ibOmni')
     set itemRef(value: any) {
         this._itemRef = value;
     }
