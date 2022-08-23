@@ -237,6 +237,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       // if (this.common.platform.is('mobileweb')) {
       //   this.actionBarHeightPerPlatform = '110px !important';
       // }
+      this.hackScrollButtonsListBecauseOfChromeBug();
       super.ngOnInit();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -401,6 +402,61 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       if (logalot) { console.log(`${lc} unsubscribing`); }
       this.paramMapSub.unsubscribe();
       delete this.paramMapSub;
+    }
+  }
+
+  /**
+   * On my Samsung phone in Chrome for Mobile (not Firefox), the horizontal
+   * scrollbar shows up and stays visible. If you jiggle it right and left, it
+   * goes away.  So I'm just going to do that here in code and hopefully the
+   * thing will not stay visible.
+   */
+  async hackScrollButtonsListBecauseOfChromeBug(): Promise<void> {
+    const lc = `${this.lc}[${this.hackScrollButtonsListBecauseOfChromeBug.name}]`;
+    try {
+      const buttonsList = document.getElementById('context-btns');
+      if (window?.navigator?.userAgent?.toLowerCase().includes('chrom')) {
+        // chrome based, check to see if desktop
+        if (window.innerWidth < 800) {
+          buttonsList.style.overflowX = 'hidden !important';
+          buttonsList.addEventListener('touchstart', () => {
+            buttonsList.style.overflowX = 'auto';
+          });
+          buttonsList.addEventListener('mouseenter', () => {
+            buttonsList.style.overflowX = 'auto';
+          });
+        }
+      } else {
+        buttonsList.style.overflowX = 'auto';
+      }
+
+      // buttonsList.addEventListener('touchend', () => {
+      //   buttonsList.style.overflowX = 'initial';
+      // });
+      // buttonsList.addEventListener('touchcancel', () => {
+      //   buttonsList.style.overflowX = 'initial';
+      // });
+      // setTimeout(() => {
+
+      //   const initial = buttonsList.scrollLeft;
+      //   if (initial) {
+      //     requestAnimationFrame(() => {
+      //       buttonsList.scrollLeft = 0;
+      //       buttonsList.click();
+      //       this.ref.detectChanges();
+      //     })
+      //   } else {
+      //     requestAnimationFrame(() => { buttonsList.scrollLeft = buttonsList.scrollLeft + 200; this.ref.detectChanges(); })
+      //     buttonsList.click();
+      //   }
+      //   // requestAnimationFrame(() => { buttonsList.scrollLeft = buttonsList.scrollLeft - 1; })
+      //   // requestAnimationFrame(() => { buttonsList.scrollLeft = initial; })
+      // }, 4000);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+
     }
   }
 

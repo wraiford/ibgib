@@ -1,6 +1,6 @@
 {
   "name": "ionicgib",
-  "version": "0.2.462",
+  "version": "0.2.464",
   "author": "William Raiford",
   "repository": {
     "url": "https://github.com/wraiford/ibgib",
@@ -36,7 +36,7 @@
     "postbuild:prod": "npm run man:build:prod",
     "prebuild:ff": "npm run hack:v2",
     "build:ff": "npm run build",
-    "prebuild:chrome": "npm run hack:v3",
+    "prebuild:chrome:xxxx": "npm run hack:v3",
     "build:chrome": "npm run build",
     "build:android": "npm run build && ionic build && ionic capacitor sync android",
     "build:ios": "npm run build && ionic build && ionic capacitor sync ios",

@@ -31,17 +31,25 @@
 
   <!-- ibgib context buttons -->
   <ion-toolbar>
-    <ion-buttons id="context-btns" slot="end">
-      <!-- <ion-button class="toolbar-title-btn" [disabled]="syncing || refreshing" [ngClass]="{'active-btn':showHeart}"
-        (click)="showHeart = !showHeart">
-        <ion-icon name="heart-outline"></ion-icon>
-      </ion-button> -->
-      <!-- leaving these in for future testing of download the da!n pic -->
+    <ion-buttons id="context-btns" class="hack-overflow-x" slot="end">
+
+      <!-- local refresh -->
+      <ion-button *ngIf="gib !== 'gib'" [disabled]="refreshing" [ngClass]="{'active-btn':!paused}" class="toolbar-title-btn" (click)="handleRefreshClick()">
+        <ion-icon *ngIf="!refreshing" name="refresh"></ion-icon>
+        <ion-spinner *ngIf="refreshing" name="bubbles" color="tertiary"></ion-spinner>
+        <ion-badge *ngIf="tjpUpdatesAvailableCount_Local" color="primary" slot="end">
+          {{ tjpUpdatesAvailableCount_Local }}
+        </ion-badge>
+      </ion-button>
+
+      <!-- update pic -->
       <ion-button *ngIf="item?.type === 'pic'" class="toolbar-title-btn" [disabled]="syncing || refreshing"
         (click)="handleUpdatePicClick()">
         <ion-icon name="camera-reverse-outline"></ion-icon>
         <ion-spinner *ngIf="updatingPic" name="circles" color="tertiary"></ion-spinner>
       </ion-button>
+
+      <!-- download pic -->
       <ion-button *ngIf="item?.type === 'pic' && (ios || android)" class="toolbar-title-btn"
         [disabled]="syncing || refreshing" (click)="handleDownloadPicClick()">
         <ion-icon name="download-outline"></ion-icon>
@@ -55,20 +63,30 @@
           <ion-icon name="image-outline"></ion-icon>
         </ion-button>
       </a>
+
+      <!-- share -->
       <ion-button *ngIf="ibGib" class="toolbar-title-btn" (click)="handleShareClick()">
         <ion-icon name="share-social-outline" ios="share-outline"></ion-icon>
       </ion-button>
+
+      <!-- apps -->
       <ion-button *ngIf="ibGib" [disabled]="!ibGib" class="toolbar-title-btn" (click)="handleAppClick()"
         [ngClass]="{'active-btn':appBarIsVisible}">
         <ion-icon name="apps-outline"></ion-icon>
       </ion-button>
+
+      <!-- robbot -->
       <ion-button *ngIf="ibGib" [disabled]="refreshing" class="toolbar-title-btn" (click)="handleRobbotClick()"
         [ngClass]="{'active-btn':robbotBarIsVisible}">
         <ion-icon name="body-outline"></ion-icon>
       </ion-button>
+
+      <!-- space sparkles -->
       <ion-button *ngIf="tjp" [disabled]="syncing || refreshing" [ngClass]="{'active-btn': autosync}" class="toolbar-title-btn" (click)="handleSpaceClick()">
         <ion-icon name="sparkles-outline"></ion-icon>
       </ion-button>
+
+      <!-- rocket sync -->
       <ion-button *ngIf="tjp" [disabled]="syncing || refreshing" class="toolbar-title-btn" (click)="handleSyncClick()">
         <ion-badge *ngIf="syncErrored" color="danger" slot="start">
           <ion-icon name="alert-circle-outline"></ion-icon>
@@ -82,19 +100,11 @@
           {{ tjpUpdatesAvailableCount_Store }}
         </ion-badge>
       </ion-button>
+
+      <!-- tag -->
       <ion-button [disabled]="syncing || refreshing || paused || tagging" class="toolbar-title-btn" (click)="handleTagClick($event)">
         <ion-icon name="pricetag-outline"></ion-icon>
         <ion-spinner *ngIf="tagging" name="bubbles" color="tertiary"></ion-spinner>
-      </ion-button>
-      <ion-button *ngIf="gib !== 'gib'" [disabled]="refreshing" [ngClass]="{'active-btn':!paused}" class="toolbar-title-btn" (click)="handleRefreshClick()">
-        <ion-icon *ngIf="!refreshing" name="refresh"></ion-icon>
-        <ion-spinner *ngIf="refreshing" name="bubbles" color="tertiary"></ion-spinner>
-        <ion-badge *ngIf="tjpUpdatesAvailableCount_Local" color="primary" slot="end">
-          {{ tjpUpdatesAvailableCount_Local }}
-        </ion-badge>
-      </ion-button>
-      <ion-button [disabled]="refreshing" class="toolbar-title-btn" (click)="handleInfoClick($event)">
-        <ion-icon name="information-outline"></ion-icon>
       </ion-button>
 
       <!-- export -->
@@ -103,6 +113,12 @@
         <a id="export-ibgib-anchor" style="display:none"></a>
         <ion-spinner *ngIf="preparingExport" name="bubbles" color="tertiary"></ion-spinner>
       </ion-button>
+
+      <!-- information (show raw json) -->
+      <ion-button [disabled]="refreshing" class="toolbar-title-btn" (click)="handleInfoClick($event)">
+        <ion-icon name="information-outline"></ion-icon>
+      </ion-button>
+
     </ion-buttons>
   </ion-toolbar>
 </ion-header>

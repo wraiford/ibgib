@@ -30,7 +30,8 @@ ion-menu-button:hover {
 }
 
 #context-btns {
-  overflow-x: auto;
+  // see hack in ibgib.page hackScrollButtonsListBecauseOfChromeBug function
+  // overflow-x: auto;
 }
 
 #container {
