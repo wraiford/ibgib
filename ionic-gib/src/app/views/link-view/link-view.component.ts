@@ -8,7 +8,7 @@ import { IbgibComponentBase } from 'src/app/common/bases/ibgib-component-base';
 import { CommonService } from 'src/app/services/common.service';
 import * as c from '../../common/constants';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
@@ -28,7 +28,7 @@ export class LinkViewComponent
 
   @Input()
   get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
-  set ibGib_Context(value: IbGib_V1 ) { super.ibGib_Context = value; }
+  set ibGib_Context(value: IbGib_V1) { super.ibGib_Context = value; }
 
   public debugBorderWidth: string = debugBorder ? "5px" : "0px"
   public debugBorderColor: string = "yellow";
@@ -66,7 +66,7 @@ export class LinkViewComponent
       if (!this.paused) {
         setTimeout(async () => {
           await this.smallDelayToLoadBalanceUI();
-          await this.common.ibgibs.pingLatest_Local({ibGib: this.ibGib, tjpIbGib: this.tjp, useCache: true});
+          await this.common.ibgibs.pingLatest_Local({ ibGib: this.ibGib, tjpIbGib: this.tjp, useCache: true });
         });
       }
     } catch (error) {

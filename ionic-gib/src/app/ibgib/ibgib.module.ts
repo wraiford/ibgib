@@ -8,6 +8,7 @@ import { IbGibPageRoutingModule } from './ibgib-routing.module';
 
 
 import { ActionBarComponent } from '../common/action-bar/action-bar.component';
+import { CommandBarComponent } from '../common/command-bar/command-bar.component';
 import { RobbotBarComponent } from '../common/robbot-bar/robbot-bar.component';
 import { AppBarComponent } from '../common/app-bar/app-bar.component';
 
@@ -18,7 +19,7 @@ import { PicViewComponent } from '../views/pic-view/pic-view.component';
 import { LinkViewComponent } from '../views/link-view/link-view.component';
 import { RootViewComponent } from '../views/root-view/root-view.component';
 
-import { ListItemViewComponent } from '../views/list-item-view/list-item-view.component';
+import { ItemViewComponent } from '../views/item-view/item-view.component';
 import { ListViewComponent } from '../views/list-view/list-view.component';
 import { SvgViewComponent } from '../views/svg-view/svg-view.component';
 import { TagListViewComponent } from '../views/tag-list-view/tag-list-view.component';
@@ -70,7 +71,7 @@ import { OmniAnimationGestureDirective } from '../common/directives/animations/o
     LinkViewComponent,
     RootViewComponent,
 
-    ListItemViewComponent,
+    ItemViewComponent,
     ListViewComponent,
     SvgViewComponent,
     TagListViewComponent,
@@ -84,6 +85,7 @@ import { OmniAnimationGestureDirective } from '../common/directives/animations/o
     TodoAppComponent,
 
     ActionBarComponent,
+    CommandBarComponent,
     RobbotBarComponent,
     AppBarComponent,
 

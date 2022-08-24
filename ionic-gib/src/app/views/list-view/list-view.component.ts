@@ -1,18 +1,13 @@
-import { Component, OnInit, ChangeDetectorRef, Output, Input, ViewChild } from '@angular/core';
+import { Component, ChangeDetectorRef, Output, Input, ViewChild } from '@angular/core';
 import { EventEmitter } from '@angular/core';
 
 import * as h from 'ts-gib/dist/helper';
-import { IbGibAddr } from 'ts-gib';
-import { IbGib_V1 } from 'ts-gib/dist/V1';
 
 import * as c from '../../common/constants';
 import { IbGibItem, IbGibListItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
-import { IbgibListComponentBase } from '../../common/bases/ibgib-list-component-base';
 import { CommonService } from '../../services/common.service';
 import { IonCheckbox, IonContent, IonInfiniteScroll } from '@ionic/angular';
 import { IbgibScrollingListComponentBase } from 'src/app/common/bases/ibgib-scrolling-list-component-base';
-import { IbgibComponentBase } from 'src/app/common/bases/ibgib-component-base';
-import { ListItemViewComponent } from '../list-item-view/list-item-view.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -28,17 +23,17 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
   @Input()
   checkboxesVisible: boolean;
 
+  /**
+   * Can't just use 'click', 'ibclicked' etc because already taken.
+   */
   @Output()
-  clicked = new EventEmitter<IbGibItem>();
+  ibListClicked = new EventEmitter<IbGibItem>();
 
   /**
    * if checkboxes visible, this event is fired when checked/unchecked.
    */
   @Output()
   ibCheckChanged = new EventEmitter<[IbGibListItem, boolean]>();
-
-  // @Output()
-  // ibListCheckChanged = new EventEmitter<[IbGibItem, boolean]>();
 
   @ViewChild('listViewContent')
   listViewContent: IonContent;
@@ -81,7 +76,7 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
       if (logalot) { console.log(`${lc} starting... (I: 159dff8460f9cf2349348dfce3ca3c22)`); }
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
 
-      if (!this.stopClickPropagation) { this.clicked.emit(item); }
+      if (!this.stopClickPropagation) { this.ibListClicked.emit(item); }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

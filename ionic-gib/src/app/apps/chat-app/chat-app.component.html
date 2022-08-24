@@ -2,4 +2,18 @@
   [activeApp]="activeApp"
   (chatViewScrolled)="handleChatViewScroll($event)"
   (chatViewItemsAdded)="handleChatViewItemsAdded($event)">
+  (ibGibItemClicked)="handleIbGibItemClicked($event)"
 </chat-view>
+
+<ion-modal [isOpen]="showModal_FullscreenIbGib"
+  [showBackdrop]="true" [animated]="true" [swipeToClose]="true"
+  [keyboardClose]="true"
+  >
+  <ng-template>
+    <ion-content id="fullscreen-content">
+      <ion-title id="fullscreen-title"></ion-title>
+      <ib-item [addr]="fullscreenIbGibAddr" [isTitleOrJustSmall]="true"></ib-item>
+      <ib-item [addr]="fullscreenIbGibAddr" [isTitleOrJustSmall]="false"></ib-item>
+    </ion-content>
+  </ng-template>
+</ion-modal>

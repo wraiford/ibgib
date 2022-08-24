@@ -1,13 +1,13 @@
-import { Component, OnInit, ChangeDetectorRef, Output, EventEmitter, Input, ElementRef, ViewChild } from '@angular/core';
+import {
+  Component, ChangeDetectorRef, Output, EventEmitter, Input, ViewChild,
+} from '@angular/core';
 
 import { IbGibAddr } from 'ts-gib';
-import { IbGib_V1 } from 'ts-gib/dist/V1';
 
+import * as c from '../../common/constants';
 import { IbgibComponentBase } from '../../common/bases/ibgib-component-base';
 import { CommonService } from '../../services/common.service';
 import { IbGibItem, IbGibListItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
-import * as c from '../../common/constants';
-import { AnimationController, CheckboxChangeEventDetail } from '@ionic/angular';
 import { RootViewComponent } from '../root-view/root-view.component';
 import { CommentViewComponent } from '../comment-view/comment-view.component';
 import { PicViewComponent } from '../pic-view/pic-view.component';
@@ -15,17 +15,21 @@ import { LinkViewComponent } from '../link-view/link-view.component';
 import { TagViewComponent } from '../tag-view/tag-view.component';
 import { FallbackViewComponent } from '../fallback-view/fallback-view.component';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
-  selector: 'list-item',
-  templateUrl: './list-item-view.component.html',
-  styleUrls: ['./list-item-view.component.scss'],
+  selector: 'ib-item',
+  templateUrl: './item-view.component.html',
+  styleUrls: ['./item-view.component.scss'],
 })
-export class ListItemViewComponent extends IbgibComponentBase<IbGibListItem> {
+export class ItemViewComponent extends IbgibComponentBase<IbGibListItem> {
 
-  protected lc: string = `[${ListItemViewComponent.name}]`;
+  protected lc: string = `[${ItemViewComponent.name}]`;
+  public debugBorderWidth: string = debugBorder ? "1px" : "0px"
+  public debugBorderColor: string = "#92ed80";
+  public debugBorderStyle: string = "solid";
+
 
   @Input()
   get checked(): boolean {
@@ -38,17 +42,7 @@ export class ListItemViewComponent extends IbgibComponentBase<IbGibListItem> {
   }
 
   @Output()
-  ibclicked: EventEmitter<IbGibListItem> = new EventEmitter();
-
-  public debugBorderWidth: string = debugBorder ? "1px" : "0px"
-  public debugBorderColor: string = "#92ed80";
-  public debugBorderStyle: string = "solid";
-
-  /**
-   * redeclared
-   */
-  // @Input()
-  // stopClickPropagation: boolean;
+  ibItemClicked = new EventEmitter<IbGibListItem>();
 
   @ViewChild('rootView')
   rootView: RootViewComponent;
@@ -75,8 +69,6 @@ export class ListItemViewComponent extends IbgibComponentBase<IbGibListItem> {
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
-    private elementRef: ElementRef,
-    private animation: AnimationController,
   ) {
     super(common, ref)
     const lc = `${this.lc}[ctor]`;
@@ -120,20 +112,7 @@ export class ListItemViewComponent extends IbgibComponentBase<IbGibListItem> {
       if (logalot) { console.log(`${lc} item: ${JSON.stringify(item, null, 2)}`); }
       if (!this.childComponent) { throw new Error(`this.childComponent falsy (E: 7f11dc3ce9a5bdc0b8da033b53d41822)`); }
 
-      if (!this.childComponent.stopClickPropagation) { this.ibclicked.emit(item); }
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
-
-  initializeAnimation(): void {
-    const lc = `${this.lc}[${this.initializeAnimation.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting... (I: 23a07bccfede43ac41fbcd65ae905e22)`); }
-      // this.animation.create().
+      if (!this.childComponent.stopClickPropagation) { this.ibItemClicked.emit(item); }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

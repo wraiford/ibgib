@@ -65,6 +65,9 @@ export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGib
     @Output()
     itemsAdded = new EventEmitter<TItem[]>();
 
+    @Output()
+    ibGibItemClicked = new EventEmitter<TItem>();
+
     @ViewChild('listViewContent')
     listViewContent: IonContent;
 

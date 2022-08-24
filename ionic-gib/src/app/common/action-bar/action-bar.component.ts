@@ -190,58 +190,6 @@ export class ActionBarComponent extends IbgibComponentBase
     this.items = this.DEFAULT_ACTIONS.concat(); // dev only
   }
 
-  // async promptForCommentText(): Promise<string> {
-  //   const lc = `${this.lc}[${this.promptForCommentText.name}]`;
-  //   try {
-  //     if (logalot) { console.log(`${lc} starting...`); }
-
-  //     const resComment = await Modals.prompt({
-  //       title: 'comment',
-  //       message: 'add text',
-  //       inputPlaceholder: 'text here',
-  //     });
-  //     if (resComment.cancelled || !resComment.value) { return; } // <<<< returns early
-  //     const text = resComment.value.trim();
-  //     if (logalot) { console.log(`${lc} text: ${text}`); }
-  //     if (text === '') {
-  //       return;
-  //     } else {
-  //       return text;
-  //     }
-  //   } catch (error) {
-  //     console.error(`${lc} ${error.message}`);
-  //     throw error;
-  //   } finally {
-  //     if (logalot) { console.log(`${lc} complete.`); }
-  //   }
-  // }
-
-  // async promptForLinkText(): Promise<string> {
-  //   const lc = `${this.lc}[${this.promptForLinkText.name}]`;
-  //   try {
-  //     if (logalot) { console.log(`${lc} starting...`); }
-
-  //     const resLink = await Modals.prompt({
-  //       title: 'link',
-  //       message: 'add text',
-  //       inputPlaceholder: 'text here',
-  //     });
-  //     if (resLink.cancelled || !resLink.value) { return; } // <<<< returns early
-  //     const text = resLink.value.trim();
-  //     if (logalot) { console.log(`${lc} text: ${text}`); }
-  //     if (text === '') {
-  //       return;
-  //     } else {
-  //       return text;
-  //     }
-  //   } catch (error) {
-  //     console.error(`${lc} ${error.message}`);
-  //     throw error;
-  //   } finally {
-  //     if (logalot) { console.log(`${lc} complete.`); }
-  //   }
-  // }
-
   async actionAddComment(_event: MouseEvent): Promise<void> {
     const lc = `${this.lc}[${this.actionAddComment.name}]`;
     try {
@@ -251,13 +199,9 @@ export class ActionBarComponent extends IbgibComponentBase
         this.actionDetailMode = 'comment';
         this.actionDetailVisible = true;
         this.focusDetail({ force: true });
-        // setTimeout(() => this.textareaComment.setFocus());
       } else if (this.actionDetailMode !== 'comment') {
         this.actionDetailMode = 'comment';
-        // this.ref.detectChanges();
-        // while (!this.textareaComment) { await h.delay(100); }
         this.focusDetail({ force: true });
-        // setTimeout(() => this.textareaComment.setFocus());
       } else if (this.actionDetailMode === 'comment') {
         this.actionDetailVisible = false;
       }
@@ -278,13 +222,9 @@ export class ActionBarComponent extends IbgibComponentBase
         this.actionDetailMode = 'link';
         this.actionDetailVisible = true;
         this.focusDetail({ force: true });
-        // setTimeout(() => this.textareaLink.setFocus());
       } else if (this.actionDetailMode !== 'link') {
         this.actionDetailMode = 'link';
-        // this.ref.detectChanges();
-        // while (!this.textareaLink) { await h.delay(100); }
         this.focusDetail({ force: true });
-        // setTimeout(() => this.textareaLink.setFocus());
       } else if (this.actionDetailMode === 'link') {
         this.actionDetailVisible = false;
       }
@@ -396,16 +336,19 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
-  private async _rel8ToCurrentContext({
+  /**
+   * Performs a rel8 transform, relating the given `ibGibToRel8` to
+   * `this.ibGib`. Persists the transform and registers the new
+   * ibgib produced (`transform.newIbGib`).
+   */
+  protected async rel8ToThisIbGib({
     ibGibToRel8,
     rel8nNames,
-    // registerNewContext,
   }: {
     ibGibToRel8: IbGib_V1,
     rel8nNames: string[],
-    // registerNewContext?: boolean,
   }): Promise<void> {
-    const lc = `${this.lc}[${this._rel8ToCurrentContext.name}]`;
+    const lc = `${this.lc}[${this.rel8ToThisIbGib.name}]`;
     try {
       // load the context if not already
       if (!this.ibGib) { await this.loadIbGib(); await this.loadTjp(); }
@@ -430,10 +373,8 @@ export class ActionBarComponent extends IbgibComponentBase
       await this.common.ibgibs.persistTransformResult({ resTransform: resRel8ToContext });
 
       // ...register the context.
-      // if (registerNewContext) {
       const { newIbGib: newContext } = resRel8ToContext;
       await this.common.ibgibs.registerNewIbGib({ ibGib: newContext });
-      // }
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -551,7 +492,7 @@ export class ActionBarComponent extends IbgibComponentBase
 
         // rel8 to context, but only register the absolute last context
         // in order to avoid navigating to each interim context.
-        await this._rel8ToCurrentContext({
+        await this.rel8ToThisIbGib({
           ibGibToRel8: resCreatePic.newIbGib,
           rel8nNames: ['pic'],
           // only register on the last context
@@ -683,7 +624,7 @@ export class ActionBarComponent extends IbgibComponentBase
       if (resGet_Local.success && resGet_Local.ibGibs?.length === 1) {
         if (logalot) { console.log(`${lc} found ibgib locally with addr: ${addr}.`); }
         await fnAlert({ title: "We have it locally!", msg: "We have it locally! We'll relate it to the current ibgib..." });
-        await this._rel8ToCurrentContext({
+        await this.rel8ToThisIbGib({
           ibGibToRel8: resGet_Local.ibGibs[0],
           rel8nNames: ['import'],
         });
@@ -751,7 +692,7 @@ export class ActionBarComponent extends IbgibComponentBase
           await this.common.ibgibs.registerNewIbGib({ ibGib: gotIbGib });
           // now that we've stored the dependency graph, we can rel8 the import
           // to the current context
-          await this._rel8ToCurrentContext({
+          await this.rel8ToThisIbGib({
             ibGibToRel8: gotIbGib,
             rel8nNames: ['import'],
           });

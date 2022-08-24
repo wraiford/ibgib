@@ -33,6 +33,12 @@ export class ChatAppComponent extends IbgibComponentBase implements OnInit, OnDe
   @ViewChild('chatView')
   chatView: ChatViewComponent;
 
+  @Input()
+  get showModal_FullscreenIbGib(): boolean { return !!this.fullscreenIbGibAddr; }
+
+  @Input()
+  fullscreenIbGibAddr: IbGibAddr;
+
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
@@ -90,6 +96,20 @@ export class ChatAppComponent extends IbgibComponentBase implements OnInit, OnDe
     items.forEach(x => { delete x.checked; });
 
     this.chatItemsAdded.emit(items);
+  }
+
+  async handleIbGibItemClicked(item: ChatItem): Promise<void> {
+    const lc = `${this.lc}[${this.handleIbGibItemClicked.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: bdb22ba5a75aa9ed93659595913cc822)`); }
+      this.fullscreenIbGibAddr = item.addr;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+
   }
 
 }

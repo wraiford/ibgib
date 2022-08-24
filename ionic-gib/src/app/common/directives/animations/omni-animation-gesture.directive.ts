@@ -6,7 +6,7 @@ import { AnimationController, GestureController, GestureDetail } from '@ionic/an
 import * as h from 'ts-gib/dist/helper';
 
 import * as c from '../../constants';
-import { ListItemViewComponent } from '../../../views/list-item-view/list-item-view.component';
+import { ItemViewComponent } from '../../../views/item-view/item-view.component';
 import { AnimationWithGestureDirectiveBase } from '../../bases/animation-with-gesture-directive-base';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -23,7 +23,7 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
     set itemRef(value: any) {
         this._itemRef = value;
     }
-    get itemRef(): ListItemViewComponent {
+    get itemRef(): ItemViewComponent {
         return this._itemRef;
     }
 
