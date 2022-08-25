@@ -43,7 +43,7 @@ import { RobbotBarComponent } from '../common/robbot-bar/robbot-bar.component';
 import { AppIbGib_V1 } from '../common/types/app';
 import { AppBarComponent } from '../common/app-bar/app-bar.component';
 import { RawExportData_V1, RawExportIbGib_V1 } from '../common/types/import-export';
-import { executeDoCancelModalIfNeeded, getSaferSubstring } from '../common/helper/utils';
+import { clearDoCancelModalOnBackButton, executeDoCancelModalIfNeeded, getSaferSubstring, registerCancelModalOnBackButton } from '../common/helper/utils';
 import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -1057,7 +1057,13 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
         },
         cssClass: ['fullscreen-modal'],
       });
+      // have to register/clear modal for cancelling in case the user
+      // presses the back button while the modal is still visible
+      registerCancelModalOnBackButton(modal);
       await modal.present();
+      let resModal = await modal.onWillDismiss();
+      // clear the cancel since it dismissed naturally
+      clearDoCancelModalOnBackButton();
       if (logalot) { console.log(`${lc} modal closed.`); }
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);

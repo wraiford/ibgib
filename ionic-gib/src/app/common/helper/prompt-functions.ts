@@ -184,8 +184,13 @@ export function getFn_promptCreateEncryptionIbGib(
             const modal = await common.modalController.create({
                 component: EncryptionModalFormComponent,
             });
+            // have to register/clear modal for cancelling in case the user
+            // presses the back button while the modal is still visible
+            registerCancelModalOnBackButton(modal);
             await modal.present();
             let resModal = await modal.onWillDismiss();
+            // clear the cancel since it dismissed naturally
+            clearDoCancelModalOnBackButton();
             if (resModal.data) {
                 const resNewEncryption = <TransformResult<IbGib_V1<EncryptionData_V1>>>resModal.data;
                 await common.ibgibs.persistTransformResult({ resTransform: resNewEncryption, space });
@@ -220,8 +225,13 @@ export function getFn_promptCreateOuterSpaceIbGib(
             const modal = await common.modalController.create({
                 component: OuterspaceModalFormComponent,
             });
+            // have to register/clear modal for cancelling in case the user
+            // presses the back button while the modal is still visible
+            registerCancelModalOnBackButton(modal);
             await modal.present();
             let resModal = await modal.onWillDismiss();
+            // clear the cancel since it dismissed naturally
+            clearDoCancelModalOnBackButton();
             if (resModal.data) {
                 const resOuterSpace = <TransformResult<OuterSpaceIbGib>>resModal.data;
                 await common.ibgibs.persistTransformResult({ resTransform: resOuterSpace, space });
@@ -256,8 +266,13 @@ export function getFn_promptUpdatePicIbGib(
                 component: UpdatePicModalFormComponent,
                 componentProps: { picIbGib, space },
             });
+            // have to register/clear modal for cancelling in case the user
+            // presses the back button while the modal is still visible
+            registerCancelModalOnBackButton(modal);
             await modal.present();
             let resModal = await modal.onWillDismiss();
+            // clear the cancel since it dismissed naturally
+            clearDoCancelModalOnBackButton();
             if (resModal.data) {
                 const result = <UpdatePicModalResult>resModal.data;
                 const [resCreatePic, _resCreateBin] = result;
@@ -292,8 +307,13 @@ export function getFn_promptRobbotIbGib(
                 component: RobbotModalFormComponent,
                 componentProps: { ibGib, space },
             });
+            // have to register/clear modal for cancelling in case the user
+            // presses the back button while the modal is still visible
+            registerCancelModalOnBackButton(modal);
             await modal.present();
             let resModal = await modal.onWillDismiss();
+            // clear the cancel since it dismissed naturally
+            clearDoCancelModalOnBackButton();
             if (resModal.data) {
                 const result = <RobbotModalResult>resModal.data;
                 // const [resCreatePic, _resCreateBin] = result;
@@ -328,8 +348,13 @@ export function getFn_promptAppIbGib(
                 component: AppModalFormComponent,
                 componentProps: { ibGib, space },
             });
+            // have to register/clear modal for cancelling in case the user
+            // presses the back button while the modal is still visible
+            registerCancelModalOnBackButton(modal);
             await modal.present();
             let resModal = await modal.onWillDismiss();
+            // clear the cancel since it dismissed naturally
+            clearDoCancelModalOnBackButton();
             if (resModal.data) {
                 const result = <AppModalResult>resModal.data;
                 // const [resCreatePic, _resCreateBin] = result;
