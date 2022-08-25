@@ -43,7 +43,7 @@ import { RobbotBarComponent } from '../common/robbot-bar/robbot-bar.component';
 import { AppIbGib_V1 } from '../common/types/app';
 import { AppBarComponent } from '../common/app-bar/app-bar.component';
 import { RawExportData_V1, RawExportIbGib_V1 } from '../common/types/import-export';
-import { getSaferSubstring } from '../common/helper/utils';
+import { executeDoCancelModalIfNeeded, getSaferSubstring } from '../common/helper/utils';
 import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -271,10 +271,18 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
         await h.delay(100);
       }
 
+      // kluge to deal with modals being orphaned when back button is hit
+      const canceledModal_SoAbortQuoteNavEndQuote = executeDoCancelModalIfNeeded();
+      if (canceledModal_SoAbortQuoteNavEndQuote) {
+        window.history.forward();
+        return; /* <<<< returns early */
+      }
+
       // initialize/cleanup
       statusId = this.addStatusText({ text: 'updating ibgib...' })
       this.stopPollLatest_Local();
       this.stopPollLatest_Store();
+
 
       // loads the default properties for this.item
       await super.updateIbGib(addr);
@@ -620,7 +628,6 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
     try {
       if (logalot) { console.log(`${lc} starting... (I: 1df5978e051c48a9ad1bb2b773502e44)`); }
       console.log(`${lc} app: ${h.pretty(app)}`);
-      // debugger;
 
       this.activeApp = app;
 

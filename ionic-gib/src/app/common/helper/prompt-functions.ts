@@ -24,6 +24,7 @@ import { AppIbGib_V1 } from '../types/app';
 import {
     AppModalFormComponent, AppModalResult
 } from '../modals/app-modal-form/app-modal-form.component';
+import { clearDoCancelModalOnBackButton, registerCancelModalOnBackButton } from './utils';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -129,12 +130,18 @@ export function getFn_promptCreateSecretIbGib(
 ): (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined> {
     const lc = `[${getFn_promptCreateSecretIbGib.name}]`;
     return async (space: IbGibSpaceAny) => {
+        /** hacked untyped document reference to hack a solution to the back button leaving modals open. */
         try {
             const modal = await common.modalController.create({
                 component: SecretModalFormComponent,
             });
+            // have to register/clear modal for cancelling in case the user
+            // presses the back button while the modal is still visible
+            registerCancelModalOnBackButton(modal);
             await modal.present();
             let resModal = await modal.onWillDismiss();
+            // clear the cancel since it dismissed naturally
+            clearDoCancelModalOnBackButton();
             if (resModal.data) {
                 const resNewSecret = <TransformResult<SecretIbGib_V1>>resModal.data;
                 await common.ibgibs.persistTransformResult({ resTransform: resNewSecret, space });
@@ -155,6 +162,8 @@ export function getFn_promptCreateSecretIbGib(
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
             return undefined;
+        } finally {
+
         }
     }
 }

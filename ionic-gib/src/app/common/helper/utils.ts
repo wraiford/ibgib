@@ -326,3 +326,74 @@ export function getSaferSubstring({
         if (logalot) { console.log(`${lc} complete.`); }
     }
 }
+
+export function registerCancelModalOnBackButton(modal: any): void {
+    const lc = `[${registerCancelModalOnBackButton.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 6c16ccf6e827d9053a6f256558f72d22)`); }
+        const doc = <any>document;
+
+        const doCancel = async () => {
+            if (modal) {
+                await modal.dismiss(null);
+            } else {
+                console.warn(`${lc}[doCancel] modal falsy already (W: 87c700dd09d64cdea1721c32680bd653) `);
+            }
+            if (doc.ibgib.backButton.cancelModal) {
+                delete doc.ibgib.backButton.cancelModal;
+            } else {
+                console.warn(`${lc} (UNEXPECTED) doc.ibgib.backButton.cancelModal falsy? (W: 8a00062e489e4412996be833cbacf7d6)`)
+            }
+        };
+        if (!doc.ibgib) { doc.ibgib = {}; }
+        if (!doc.ibgib.backButton) { doc.ibgib.backButton = {} }
+        if (!doc.ibgib.backButton.cancelModal) {
+            doc.ibgib.backButton.cancelModal = doCancel;
+        } else {
+            console.warn(`${lc} (UNEXPECTED) doc.ibgib.backButton.cancelModal already exists? (W: 77a39521a5ac4273997db9d97a36052e)`);
+        }
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+export function clearDoCancelModalOnBackButton(): void {
+    const lc = `[${clearDoCancelModalOnBackButton.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: ffd55a00e9653d4fc35ae1a36906df22)`); }
+        const doc = <any>document;
+        if (doc.ibgib?.backButton?.cancelModal) {
+            delete doc.ibgib.backButton.cancelModal;
+        } else {
+            console.warn(`${lc} (UNEXPECTED) doc.ibgib.backButton.cancelModal falsy? (W: 8a00062e489e4412996be833cbacf7d6)`)
+        }
+
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+export function executeDoCancelModalIfNeeded(): boolean {
+    const lc = `[${executeDoCancelModalIfNeeded.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: a773ca13acc162bc881310e44fd0a922)`); }
+        const doc = <any>document;
+        if (doc.ibgib?.backButton?.cancelModal) {
+            doc.ibgib.backButton.cancelModal();
+            return true;
+        } else {
+            return false;
+        }
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
