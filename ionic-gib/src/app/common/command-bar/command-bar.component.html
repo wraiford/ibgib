@@ -1,3 +1,20 @@
-<p>
-  command-bar works!
-</p>
+<ion-toolbar>
+  <ion-buttons id="context-btns" class="hack-overflow-x" slot="end" color="primary">
+
+    <!-- local refresh -->
+    <ion-button *ngIf="gib !== 'gib'" [disabled]="refreshing" (click)="handleRefreshClick()">
+      <ion-icon *ngIf="!refreshing" name="refresh"></ion-icon>
+      <ion-spinner *ngIf="refreshing" name="bubbles" color="tertiary"></ion-spinner>
+      <!-- <ion-badge *ngIf="tjpUpdatesAvailableCount_Local" color="primary" slot="end">
+        {{ tjpUpdatesAvailableCount_Local }}
+      </ion-badge> -->
+    </ion-button>
+
+    <!-- share -->
+    <ion-button *ngIf="ibGib" class="toolbar-title-btn" (click)="handleShareClick()">
+      <ion-icon name="share-social-outline" ios="share-outline"></ion-icon>
+    </ion-button>
+
+  </ion-buttons>
+
+</ion-toolbar>

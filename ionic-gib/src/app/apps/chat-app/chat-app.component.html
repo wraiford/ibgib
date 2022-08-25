@@ -1,19 +1,51 @@
 <chat-view #chatView [addr]='addr' [ibGib_Context]='ibGib'
   [activeApp]="activeApp"
   (chatViewScrolled)="handleChatViewScroll($event)"
-  (chatViewItemsAdded)="handleChatViewItemsAdded($event)">
-  (ibGibItemClicked)="handleIbGibItemClicked($event)"
+  (chatViewItemsAdded)="handleChatViewItemsAdded($event)"
+  (ibGibItemClicked)="handleIbGibItemClicked($event)">
 </chat-view>
 
-<ion-modal [isOpen]="showModal_FullscreenIbGib"
+<ion-modal #fullscreenIonModal class="fullscreen-modal"
+  [isOpen]="showModal_FullscreenIbGib"
   [showBackdrop]="true" [animated]="true" [swipeToClose]="true"
   [keyboardClose]="true"
   >
   <ng-template>
-    <ion-content id="fullscreen-content">
-      <ion-title id="fullscreen-title"></ion-title>
-      <ib-item [addr]="fullscreenIbGibAddr" [isTitleOrJustSmall]="true"></ib-item>
-      <ib-item [addr]="fullscreenIbGibAddr" [isTitleOrJustSmall]="false"></ib-item>
+    <ion-content class="modal-content">
+
+      <ion-list>
+
+        <!-- title -->
+        <ion-header>
+          <ion-toolbar>
+            <ion-buttons slot="start">
+              <ion-button color="primary" (click)="handleClick_GoToAddr()">
+                <ion-icon name="navigate-outline"></ion-icon>
+              </ion-button>
+            </ion-buttons>
+            <ion-buttons slot="end">
+              <ion-button color="primary" (click)="handleClick_CloseModal()">
+                <ion-icon name="close-outline"></ion-icon>
+              </ion-button>
+            </ion-buttons>
+            <ion-title (click)="handleClick_GoToAddr()">
+              <ib-item [addr]="fullscreenIbGibAddr" [isTitleOrJustSmall]="true"
+                [hideTimestamp]="true">
+              </ib-item>
+            </ion-title>
+          </ion-toolbar>
+        </ion-header>
+
+        <!-- content -->
+        <ib-item class="large-item" [addr]="fullscreenIbGibAddr" [isLarge]="true"></ib-item>
+
+        <ion-footer>
+          <!-- commands -->
+          <ib-command-bar [addr]="fullscreenIbGibAddr"></ib-command-bar>
+        </ion-footer>
+
+      </ion-list>
+
     </ion-content>
   </ng-template>
 </ion-modal>

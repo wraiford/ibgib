@@ -1048,6 +1048,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
         componentProps: {
           addr,
         },
+        cssClass: ['fullscreen-modal'],
       });
       await modal.present();
       if (logalot) { console.log(`${lc} modal closed.`); }

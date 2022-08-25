@@ -4,6 +4,9 @@
   class='root-item'
   [addr]='addr'
   [isTodo]="isTodo"
+  [isTitleOrJustSmall]='isTitleOrJustSmall'
+  [hideTimestamp]="hideTimestamp"
+  [isLarge]="isLarge"
   (click)='handleClicked(item)'
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"
@@ -20,7 +23,9 @@
   class='pic-item'
   [addr]='addr'
   [isTodo]="isTodo"
-  [isTitleOrJustSmall]='false'
+  [isTitleOrJustSmall]='isTitleOrJustSmall'
+  [hideTimestamp]="hideTimestamp"
+  [isLarge]="isLarge"
   (click)='handleClicked(item)'
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"
@@ -37,6 +42,9 @@
   class='comment-item'
   [addr]='addr'
   [isTodo]="isTodo"
+  [isTitleOrJustSmall]='isTitleOrJustSmall'
+  [hideTimestamp]="hideTimestamp"
+  [isLarge]="isLarge"
   (click)='handleClicked(item)'
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"
@@ -53,7 +61,10 @@
   class='link-item'
   [addr]='addr'
   [isTodo]="isTodo"
-  [stopClickPropagation]="true"
+  [isTitleOrJustSmall]='isTitleOrJustSmall'
+  [hideTimestamp]="hideTimestamp"
+  [isLarge]="isLarge"
+  [stopClickPropagation]="false"
   (click)='handleClicked(item)'
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"
@@ -70,6 +81,9 @@
   class='list-item tag-item'
   [addr]='addr'
   [isTodo]="isTodo"
+  [isTitleOrJustSmall]='isTitleOrJustSmall'
+  [hideTimestamp]="hideTimestamp"
+  [isLarge]="isLarge"
   (click)='handleClicked(item)'
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"
@@ -86,6 +100,9 @@
   class='list-item'
   [addr]='addr'
   [isTodo]="isTodo"
+  [isTitleOrJustSmall]='isTitleOrJustSmall'
+  [hideTimestamp]="hideTimestamp"
+  [isLarge]="isLarge"
   (click)='handleClicked(item)'
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"

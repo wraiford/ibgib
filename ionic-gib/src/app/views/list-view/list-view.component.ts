@@ -70,8 +70,8 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
     }
   }
 
-  async handleClicked(item: IbGibItem, itemRef: any): Promise<void> {
-    const lc = `${this.lc}[${this.handleClicked.name}]`;
+  async handleIbItemClicked(item: IbGibItem, itemRef: any): Promise<void> {
+    const lc = `${this.lc}[${this.handleIbItemClicked.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 159dff8460f9cf2349348dfce3ca3c22)`); }
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }

@@ -5,7 +5,9 @@
   [style.border-style]="debugBorderStyle"
   >
   <!-- <pre class="link-text">{{ item?.text }}</pre> -->
-  <a [style.maxHeight]="'100px'" class="link-text" [href]="item?.text" target="_blank">{{item?.text}}</a>
+  <ion-item>
+    <a [style.maxHeight]="'100px'" class="link-text" [href]="item?.text" target="_blank">{{item?.text}}</a>
+  </ion-item>
   <!-- <ion-card-content *ngIf='!isTitle'> </ion-card-content> -->
   <ion-card-subtitle class='timestamp'>{{ item?.timestamp }}</ion-card-subtitle>
 </ion-card>

@@ -1,5 +1,5 @@
 import { Component, ChangeDetectorRef, Output, EventEmitter, ViewChild, OnInit, OnDestroy, Input } from '@angular/core';
-import { ScrollBaseCustomEvent } from '@ionic/angular';
+import { IonModal, ScrollBaseCustomEvent } from '@ionic/angular';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib/dist/types';
@@ -33,11 +33,24 @@ export class ChatAppComponent extends IbgibComponentBase implements OnInit, OnDe
   @ViewChild('chatView')
   chatView: ChatViewComponent;
 
-  @Input()
-  get showModal_FullscreenIbGib(): boolean { return !!this.fullscreenIbGibAddr; }
+  @ViewChild('fullscreenIonModal')
+  fullscreenIonModal: IonModal;
 
   @Input()
-  fullscreenIbGibAddr: IbGibAddr;
+  // get showModal_FullscreenIbGib(): boolean { return !!this.fullscreenIbGibAddr; }
+  showModal_FullscreenIbGib: boolean;
+
+  _fullscreenIbGibAddr: IbGibAddr;
+  @Input()
+  get fullscreenIbGibAddr(): IbGibAddr { return this._fullscreenIbGibAddr; }
+  set fullscreenIbGibAddr(value: IbGibAddr) {
+    if (value) {
+      this._fullscreenIbGibAddr = value;
+    } else {
+      delete this._fullscreenIbGibAddr;
+    }
+    this.showModal_FullscreenIbGib = !!value;
+  }
 
   constructor(
     protected common: CommonService,
@@ -47,6 +60,22 @@ export class ChatAppComponent extends IbgibComponentBase implements OnInit, OnDe
     const lc = `${this.lc}[ctor]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 6aefded68cbf4a5fa22dd55cab481fd1)`); }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async ngOnDestroy(): Promise<void> {
+    const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (logalot) { console.log(`${lc}[testing] caching items (I: d61f38fbed6042f98518e47a4edd6f67)`); }
+      if (this.fullscreenIbGibAddr) { this.fullscreenIbGibAddr = null; }
+      if (this.fullscreenIonModal) { this.fullscreenIonModal.dismiss(); }
+      await super.ngOnDestroy();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -107,9 +136,42 @@ export class ChatAppComponent extends IbgibComponentBase implements OnInit, OnDe
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
+      setTimeout(() => this.ref.detectChanges());
       if (logalot) { console.log(`${lc} complete.`); }
     }
+  }
 
+  handleClick_CloseModal(): void {
+    const lc = `${this.lc}[${this.handleClick_CloseModal.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 4575a41e85144d06b472fe87f9d5ab22)`); }
+      if (this._fullscreenIbGibAddr) { this.fullscreenIbGibAddr = null; }
+      this.showModal_FullscreenIbGib = false;
+      setTimeout(() => this.ref.detectChanges());
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  handleClick_GoToAddr(): void {
+    const lc = `${this.lc}[${this.handleClick_GoToAddr.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 65ccd3431238b114e1ea6d155bbb3722)`); }
+      const toAddr = this.fullscreenIbGibAddr;
+      this.fullscreenIbGibAddr = null;
+      // spin off navigate after the above js event loop exits
+      if (this.fullscreenIbGibAddr !== this.addr) {
+        setTimeout(() => { this.go({ toAddr, fromAddr: this.addr }); });
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
 }

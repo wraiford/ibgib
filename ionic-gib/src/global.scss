@@ -137,3 +137,46 @@ ion-input.floating-with-placeholder {
         }
     }
 }
+
+// fullscreen modal related
+@import './theme/size-variables.scss';
+
+.fullscreen-modal {
+    --height: 97%;
+    --width: 97%;
+}
+
+@media (min-height: $xs-height) and (max-height: $sm-height) {
+    .fullscreen-modal {
+        --height: 98%;
+        --width: 98%;
+    }
+}
+
+@media (min-height: $sm-height) and (max-height: $md-height) {
+    .fullscreen-modal {
+        --height: 98%;
+        --width: 98%;
+    }
+}
+
+@media (min-height: $md-height) and (max-height: $lg-height) {
+    .fullscreen-modal {
+        --height: 97%;
+        --width: 97%;
+    }
+}
+
+@media (min-height: $lg-height) and (max-height: $xl-height) {
+    .fullscreen-modal {
+        --height: 97%;
+        --width: 97%;
+    }
+}
+
+@media (min-height: $xl-height) {
+    .fullscreen-modal {
+        --height: 93%;
+        --width: 93%;
+    }
+}

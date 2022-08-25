@@ -1,6 +1,7 @@
 :host {
   width: 100%;
   color: var(--ion-color-primary);
+  overflow: hidden;
 }
 
 .is-title {
@@ -27,10 +28,11 @@ pre {
   /* Internet Explorer 5.5+ */
   word-wrap: break-word;
   color: var(--ion-color-primary);
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .comment-text {
-  height: 85%;
   width: 100%;
   font-family: monospace;
   padding: 2px 5px 10px 5px;
@@ -46,4 +48,19 @@ ion-card-subtitle {
   font-size: small !important;
   font-style: italic !important;
   text-align: right;
+}
+
+.is-large {
+  height: 96%;
+  display: flex;
+
+  pre {
+    // height: 99%;
+    max-height: none;
+    flex-grow: 1;
+  }
+
+  ion-card-subtitle {
+    height: auto;
+  }
 }

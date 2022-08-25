@@ -1,7 +1,7 @@
 <list-view #listView id='theList'
   [addr]='addr'
   [rel8nNames]='rel8nNames'
-  (ibListClicked)='itemClicked($event)'
+  (ibListClicked)='handleClick_ListItem($event)'
   [scrollEvents]="true"
   (ionScroll)='handleScroll($event)'
   (itemsAdded)='handleItemsAdded($event)'

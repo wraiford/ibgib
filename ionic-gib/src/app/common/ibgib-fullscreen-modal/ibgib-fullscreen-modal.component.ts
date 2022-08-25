@@ -88,12 +88,6 @@ export class IbgibFullscreenModalComponent
     }
   }
 
-  // async handleItemClick(item: any): Promise<void> {
-  //   const lc = `${this.lc}[${this.handleItemClick.name}]`;
-  //   if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
-  //   await this.modalController.dismiss(item);
-  // }
-
   async updateIbGib(addr: IbGibAddr): Promise<void> {
     const lc = `${this.lc}[${this.updateIbGib.name}(${addr})]`;
     if (logalot) { console.log(`${lc} updating...`); }
@@ -114,4 +108,5 @@ export class IbgibFullscreenModalComponent
   async handleCancelClick(): Promise<void> {
     await this.common.modalController.dismiss();
   }
+
 }

@@ -62,12 +62,11 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
   //   }
   // }
 
-  async itemClicked(item: IbGibItem): Promise<void> {
-    const lc = `${this.lc}[${this.itemClicked.name}]`;
+  async handleClick_ListItem(item: IbGibItem): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_ListItem.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
-      debugger;
       this.ibGibItemClicked.emit(item);
       // await this.go({
       //   toAddr: item.addr,

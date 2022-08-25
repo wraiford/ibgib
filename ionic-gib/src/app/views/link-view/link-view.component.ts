@@ -45,7 +45,7 @@ export class LinkViewComponent
     protected ref: ChangeDetectorRef,
   ) {
     super(common, ref)
-    this.stopClickPropagation = true;
+    // this.stopClickPropagation = true;
   }
 
   async ngOnInit(): Promise<void> {

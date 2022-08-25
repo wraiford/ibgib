@@ -1,18 +1,31 @@
 <!-- non-title comment -->
-<ion-card *ngIf='ibGib && !isTitleOrJustSmall' [title]="item?.text || item?.ib || '[html title binding error!]'"
+<ion-card *ngIf='ibGib && !isTitleOrJustSmall && !isLarge' [title]="item?.text || item?.ib || '[html title binding error!]'"
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"
   [style.border-style]="debugBorderStyle"
   >
   <pre class="comment-text">{{ item?.text }}</pre>
-  <ion-card-subtitle class='timestamp'>{{ item?.timestamp }}</ion-card-subtitle>
+  <ion-card-subtitle *ngIf="!hideTimestamp" class='timestamp'>{{ item?.timestamp }}</ion-card-subtitle>
 </ion-card>
 
 <!-- title comment -->
-<div *ngIf='ibGib && isTitleOrJustSmall' [title]="item?.text || item?.ib || '[html title binding error!]'"
+<div *ngIf='ibGib && isTitleOrJustSmall'
+  [title]="item?.text || item?.ib || '[html title binding error!]'"
   >
   <pre [style.maxHeight]="'100px'" class="is-title">{{ item?.text }}</pre>
 </div>
+
+<!-- LARGE comment -->
+<ion-card *ngIf='ibGib && isLarge'
+  [title]="item?.text || item?.ib || '[html title binding error!]'"
+  class="is-large"
+  [style.border-color]="debugBorderColor"
+  [style.border-width]="debugBorderWidth"
+  [style.border-style]="debugBorderStyle"
+  >
+  <pre class="comment-text">{{ item?.text }}</pre>
+  <ion-card-subtitle *ngIf="!hideTimestamp" class='timestamp'>{{ item?.timestamp }}</ion-card-subtitle>
+</ion-card>
 
 <!-- placeholder/loading -->
 <ion-skeleton-text *ngIf='!ibGib' animated

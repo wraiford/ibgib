@@ -1,6 +1,7 @@
 :host {
   width: 100%;
   // max-height: 300px;
+  overflow: hidden;
 }
 
 ion-card {
@@ -43,4 +44,17 @@ img {
   font-size: small !important;
   font-style: italic !important;
   text-align: right;
+}
+
+.is-large {
+  height: 96%;
+
+  img {
+    height: 99%;
+    max-height: 99%;
+  }
+
+  ion-card-subtitle {
+    height: auto;
+  }
 }

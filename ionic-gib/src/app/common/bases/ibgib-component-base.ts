@@ -183,6 +183,9 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     @Input()
     isTitleOrJustSmall: boolean;
 
+    @Input()
+    isLarge: boolean;
+
     get title(): string {
         if (this.isTag) {
             return this.ibGib?.data?.tagText || this.ibGib?.data?.text || this.ib.split(' ').slice(1).join(' ');
@@ -245,6 +248,9 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
 
     @Input()
     isTodo: boolean;
+
+    @Input()
+    hideTimestamp: boolean;
 
     constructor(
         protected common: CommonService,

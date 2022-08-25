@@ -1,6 +1,8 @@
 <!-- pic is title-->
 <div *ngIf='isTitleOrJustSmall'>
-  <img *ngIf='ibGib && !item.multiPicSrcs' class='small-img' [src]='item.picSrc'/>
+  <ion-thumbnail>
+    <img *ngIf='ibGib && !item.multiPicSrcs' class='small-img' [src]='item.picSrc'/>
+  </ion-thumbnail>
 
   <swiper *ngIf='ibGib && item.multiPicSrcs'
     [autoplay]="false" [keyboard]="true" [pagination]="false"
@@ -11,7 +13,9 @@
     effect="cube"
     >
     <ng-template *ngFor='let src of item.multiPicSrcs;let i = index' swiperSlide>
-      <img [src]='item.multiPicSrcs[i]'/>
+      <ion-thumbnail>
+        <img [src]='item.multiPicSrcs[i]'/>
+      </ion-thumbnail>
     </ng-template>
 
   </swiper>
@@ -23,8 +27,50 @@
   </ion-skeleton-text>
 </div>
 
-<!-- pic is NOT title -->
-<ion-card *ngIf='!isTitleOrJustSmall'
+<!-- normal list item pic (not small or large)-->
+<ion-card *ngIf='!isTitleOrJustSmall && !isLarge'
+  [style.border-color]="debugBorderColor"
+  [style.border-width]="debugBorderWidth"
+  [style.border-style]="debugBorderStyle"
+  >
+
+  <!-- <img *ngIf='ibGib' [src]='item.picSrc'/> -->
+  <img *ngIf='ibGib && !item.multiPicSrcs' [src]='item.picSrc'/>
+
+  <swiper *ngIf='ibGib && item.multiPicSrcs'
+    [autoplay]="false" [keyboard]="true" [pagination]="false"
+    [navigation]="true"
+    [scrollbar]="true" [zoom]="true"
+    [loop]="false"
+    [slidesPerView]="1"
+    [allowTouchMove]="true"
+    [grabCursor]="false"
+    [mousewheel]="false"
+    [zoom]="true"
+    (swiper)="setSwiperInstance($event)"
+    effect="cube"
+    >
+    <ng-template *ngFor='let src of item.multiPicSrcs;let i = index' swiperSlide>
+      <img [src]='item.multiPicSrcs[i]'/>
+    </ng-template>
+
+  </swiper>
+
+  <!-- placeholder/loading -->
+  <ion-card-content *ngIf='!ibGib'>
+    <ion-skeleton-text *ngIf='!ibGib' animated
+      style="width: 100%;height:200px;border-radius:5px"
+      color="primary">
+    </ion-skeleton-text>
+  </ion-card-content>
+
+  <ion-card-subtitle class='timestamp'>{{ item?.timestamp }}</ion-card-subtitle>
+</ion-card>
+
+
+<!-- pic is LARGE -->
+<ion-card *ngIf='isLarge'
+  class="is-large"
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"
   [style.border-style]="debugBorderStyle"

@@ -40,16 +40,16 @@ export class ActionBarComponent extends IbgibComponentBase
 
   protected lc = `[${ActionBarComponent.name}]`;
 
-  @Input()
-  get addr(): IbGibAddr { return super.addr; }
-  set addr(value: IbGibAddr) {
-    let lc = `${this.lc}[set addr(value: ${value})]`;
-    super.addr = value;
-  }
+  // @Input()
+  // get addr(): IbGibAddr { return super.addr; }
+  // set addr(value: IbGibAddr) {
+  //   let lc = `${this.lc}[set addr(value: ${value})]`;
+  //   super.addr = value;
+  // }
 
-  @Input()
-  get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
-  set ibGib_Context(value: IbGib_V1) { super.ibGib_Context = value; }
+  // @Input()
+  // get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
+  // set ibGib_Context(value: IbGib_V1) { super.ibGib_Context = value; }
 
   /**
    * temporary hack
