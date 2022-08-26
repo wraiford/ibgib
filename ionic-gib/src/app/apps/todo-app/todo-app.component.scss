@@ -1,4 +1,16 @@
+@import '../../../theme/size-variables.scss';
+
 :host {
     height: 99%;
     width: 99%;
+}
+
+ion-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.large-item {
+    // height: 80%;
+    flex: 1;
 }

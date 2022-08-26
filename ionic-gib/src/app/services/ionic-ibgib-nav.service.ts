@@ -180,9 +180,13 @@ export class IonicIbgibNavService implements IbgibNav {
         const now = getTimestampInTicks();
         if (Number.parseInt(lastTimestamp)) {
           const delta = Number.parseInt(now) - Number.parseInt(lastTimestamp);
-          if (delta < 1000) {
+          if (delta < 1000 || force) {
             // hack: user has double-clicked the back button, so probably messed up...
-            console.warn(`${lc} duplicate toAddr requested but user "double-clicked" go (probably back), so calling this.back(). (W: ae6962ad44ba4baf909bc6333c865022)`);
+            if (delta < 1000) {
+              console.warn(`${lc} duplicate toAddr requested but user "double-clicked" go (probably back), so calling this.back(). (W: ae6962ad44ba4baf909bc6333c865022)`);
+            } else {
+              console.warn(`${lc} duplicate toAddr requested but force === true, so calling this.back(). (W: ee212b89af5140a195a13ad9c1f3be03)`);
+            }
             localStorage.removeItem(keyLastBackTimestamp);
             await this.back();
           } else {

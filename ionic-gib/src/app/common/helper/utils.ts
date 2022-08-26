@@ -327,13 +327,13 @@ export function getSaferSubstring({
     }
 }
 
-export function registerCancelModalOnBackButton(modal: any): void {
+export function registerCancelModalOnBackButton(modal: any, fnCancel?: () => Promise<void>): void {
     const lc = `[${registerCancelModalOnBackButton.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: 6c16ccf6e827d9053a6f256558f72d22)`); }
         const doc = <any>document;
 
-        const doCancel = async () => {
+        const doCancel = fnCancel ?? (async () => {
             if (modal) {
                 await modal.dismiss(null);
             } else {
@@ -344,7 +344,7 @@ export function registerCancelModalOnBackButton(modal: any): void {
             } else {
                 console.warn(`${lc} (UNEXPECTED) doc.ibgib.backButton.cancelModal falsy? (W: 8a00062e489e4412996be833cbacf7d6)`)
             }
-        };
+        });
         if (!doc.ibgib) { doc.ibgib = {}; }
         if (!doc.ibgib.backButton) { doc.ibgib.backButton = {} }
         if (!doc.ibgib.backButton.cancelModal) {
@@ -386,6 +386,7 @@ export function executeDoCancelModalIfNeeded(): boolean {
         const doc = <any>document;
         if (doc.ibgib?.backButton?.cancelModal) {
             doc.ibgib.backButton.cancelModal();
+            clearDoCancelModalOnBackButton();
             return true;
         } else {
             return false;

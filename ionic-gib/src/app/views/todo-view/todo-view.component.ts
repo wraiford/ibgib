@@ -79,6 +79,9 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
   @Output()
   todoItemChecked = new EventEmitter<TodoItem>();
 
+  @Output()
+  ibGibItemClicked = new EventEmitter<TodoItem>();
+
   @ViewChild('listView')
   listView: ListViewComponent;
 
@@ -143,10 +146,12 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
-      await this.go({
-        toAddr: item.addr,
-        fromAddr: h.getIbGibAddr({ ibGib: this.ibGib_Context }),
-      });
+      // this.ibgib
+      this.ibGibItemClicked.emit(item);
+      // await this.go({
+      //   toAddr: item.addr,
+      //   fromAddr: h.getIbGibAddr({ ibGib: this.ibGib_Context }),
+      // });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

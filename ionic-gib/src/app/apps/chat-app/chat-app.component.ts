@@ -9,6 +9,7 @@ import { CommonService } from 'src/app/services/common.service';
 import { IbgibComponentBase } from '../../common/bases/ibgib-component-base';
 import { ChatItem, ChatViewComponent } from '../../views/chat-view/chat-view.component';
 import { ChatApp_V1 } from 'src/app/common/witnesses/apps/chat-app-v1';
+import { registerCancelModalOnBackButton, clearDoCancelModalOnBackButton } from 'src/app/common/helper/utils';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -49,7 +50,13 @@ export class ChatAppComponent extends IbgibComponentBase implements OnInit, OnDe
     } else {
       delete this._fullscreenIbGibAddr;
     }
-    this.showModal_FullscreenIbGib = !!value;
+    const showModal = !!value;
+    if (showModal) {
+      // need to register the cancel modal if the user presses the back button,
+      // (atow this is consumed in the ibgib.page component that checks to see
+      // if a modal was open at time of back button press)
+    }
+    this.showModal_FullscreenIbGib = showModal;
   }
 
   constructor(
@@ -127,16 +134,32 @@ export class ChatAppComponent extends IbgibComponentBase implements OnInit, OnDe
     this.chatItemsAdded.emit(items);
   }
 
-  async handleIbGibItemClicked(item: ChatItem): Promise<void> {
-    const lc = `${this.lc}[${this.handleIbGibItemClicked.name}]`;
+  async handleClick_IbGibItem(item: ChatItem): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_IbGibItem.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: bdb22ba5a75aa9ed93659595913cc822)`); }
-      this.fullscreenIbGibAddr = item.addr;
+      if (this.fullscreenIbGibAddr) {
+        // user hit escape (probably) and the modal disappeared but we still
+        // have this address set. so do setTimeout rigamarole because the
+        // javascript event loop doesn't detect when the modal is gone and the
+        // fullscreen addr is still populated.
+        this.fullscreenIbGibAddr = null;
+        setTimeout(() => {
+          this.fullscreenIbGibAddr = item.addr;
+          setTimeout(() => this.ref.detectChanges());
+        });
+      } else {
+        // opening fullscreen detail modal fresh
+        this.fullscreenIbGibAddr = item.addr;
+        registerCancelModalOnBackButton(/*modal*/null, /*fnCancel*/ async () => {
+          this.showModal_FullscreenIbGib = false;
+        });
+        setTimeout(() => this.ref.detectChanges());
+      }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
-      setTimeout(() => this.ref.detectChanges());
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
@@ -147,6 +170,7 @@ export class ChatAppComponent extends IbgibComponentBase implements OnInit, OnDe
       if (logalot) { console.log(`${lc} starting... (I: 4575a41e85144d06b472fe87f9d5ab22)`); }
       if (this._fullscreenIbGibAddr) { this.fullscreenIbGibAddr = null; }
       this.showModal_FullscreenIbGib = false;
+      clearDoCancelModalOnBackButton();
       setTimeout(() => this.ref.detectChanges());
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -162,9 +186,10 @@ export class ChatAppComponent extends IbgibComponentBase implements OnInit, OnDe
       if (logalot) { console.log(`${lc} starting... (I: 65ccd3431238b114e1ea6d155bbb3722)`); }
       const toAddr = this.fullscreenIbGibAddr;
       this.fullscreenIbGibAddr = null;
+      clearDoCancelModalOnBackButton();
       // spin off navigate after the above js event loop exits
       if (this.fullscreenIbGibAddr !== this.addr) {
-        setTimeout(() => { this.go({ toAddr, fromAddr: this.addr }); });
+        setTimeout(() => { this.go({ toAddr, fromAddr: this.addr, force: true }); });
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
