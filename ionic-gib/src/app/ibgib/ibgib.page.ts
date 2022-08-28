@@ -203,6 +203,13 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
   @Input()
   get activeAppAny(): any { return this.activeApp; }
 
+  /**
+   * When this page opens up a new ibgib, it may have autosync turned on.
+   * So this triggers the polling of outerspaces which will prompt the user
+   * for the password. If they cancel then we don't want to pester them.
+   */
+  private userHasCanceledAutoSyncPasswordWhenPrompted: boolean;
+
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
@@ -241,10 +248,9 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       this.initScroll();
       this.initLastViewConfiguration();
       this.subscribeParamMap();
-      // if (this.common.platform.is('mobileweb')) {
-      //   this.actionBarHeightPerPlatform = '110px !important';
-      // }
+
       this.hackScrollButtonsListBecauseOfChromeBug();
+
       super.ngOnInit();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -1326,7 +1332,12 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       const appSyncSpaces = await this.common.ibgibs.getAppSyncSpaces({
         unwrapEncrypted: true,
         createIfNone: true,
+        dontPrompt: this.userHasCanceledAutoSyncPasswordWhenPrompted,
       });
+      if ((appSyncSpaces ?? []).length === 0) {
+        // the user has canceled or edge case of auto sync is on but no sync spaces created.
+        this.userHasCanceledAutoSyncPasswordWhenPrompted = true;
+      }
       const syncSpaceIds = appSyncSpaces.map(syncSpace => syncSpace?.data?.uuid);
       if (logalot) { console.log(`${lc} syncSpaceIds: ${syncSpaceIds} (I: 141f050b682f1a1a23ebb06c69b2c422)`); }
 

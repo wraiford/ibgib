@@ -60,28 +60,28 @@ export class ActionBarComponent extends IbgibComponentBase
       type: 'button',
       text: 'comment',
       icons: ['chatbox-outline'],
-      handler: async (event) => await this.actionAddComment(event),
+      handler: async (event) => await this.handleClick_Comment(event),
     },
     {
       name: 'file',
       type: 'inputfile',
       text: 'image',
       icons: ['image-outline'],
-      handler: async (event) => await this.actionAddImage(event),
+      handler: async (event) => await this.handleClick_Image(event),
     },
     {
       name: 'link',
       type: 'button',
       text: 'link',
       icons: ['link-outline'],
-      handler: async (event) => await this.actionAddLink(event),
+      handler: async (event) => await this.handleClick_Link(event),
     },
     {
       name: 'import',
       type: 'button',
-      text: 'add from space',
+      text: 'add an existing ibgib',
       icons: ['sparkles-outline', 'download-outline'],
-      handler: async (event) => await this.actionAddImport(event),
+      handler: async (event) => await this.handleClick_Import(event),
     },
   ];
 
@@ -190,8 +190,8 @@ export class ActionBarComponent extends IbgibComponentBase
     this.items = this.DEFAULT_ACTIONS.concat(); // dev only
   }
 
-  async actionAddComment(_event: MouseEvent): Promise<void> {
-    const lc = `${this.lc}[${this.actionAddComment.name}]`;
+  async handleClick_Comment(_event: MouseEvent): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_Comment.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
@@ -213,8 +213,8 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
-  async actionAddLink(_event: MouseEvent): Promise<void> {
-    const lc = `${this.lc}[${this.actionAddLink.name}]`;
+  async handleClick_Link(_event: MouseEvent): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_Link.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
@@ -382,8 +382,8 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
-  async actionAddImage(_event: MouseEvent): Promise<void> {
-    const lc = `${this.lc}[${this.actionAddImage.name}]`;
+  async handleClick_Image(_event: MouseEvent): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_Image.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
@@ -522,8 +522,8 @@ export class ActionBarComponent extends IbgibComponentBase
   @Input()
   resCreatePicCandidates: PicCandidate[] = [];
 
-  async actionAddImport(_event: MouseEvent): Promise<void> {
-    const lc = `${this.lc}[${this.actionAddImport.name}]`;
+  async handleClick_Import(_event: MouseEvent): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_Import.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
@@ -886,32 +886,45 @@ export class ActionBarComponent extends IbgibComponentBase
   }
 
   /**
-   * Focuses the action bar detail, deciding if it's
-   * comment/import or whatever.
+   * Focuses the action bar detail, deciding if it's comment/import or whatever.
    */
   focusDetail({
     force
   }: {
     /**
-     * I'm adding this because when the user presses the button, you want to set
-     * the focus even if on mobile. But if it's auto-focusing because of, e.g.,
-     * the page refreshing automatically, then it's annoying on the mobile
-     * because the keyboard pops up.
+     * I'm adding this because when the user presses the button, you want to
+     * force focus even if on mobile. But if it's trying to auto-focus because
+     * of, e.g., the page refreshing automatically, then it's annoying on the
+     * mobile because the keyboard pops up.
      */
     force?: boolean,
   } = {}): void {
-    // this is usually only convenient if on the web browser proper.
-    if (this.platform !== 'web' && !force) { return; }
+    const lc = `${this.lc}[${this.focusDetail.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: ac1f5b8b1233c033b1ada16f5a3d0d22)`); }
+      // this is usually only convenient if on a large screen.
+      // platforms (atow):
+      //  android capacitor cordova ios ipad iphone phablet tablet electron pwa
+      //  mobile mobileweb desktop hybrid
+      const autoFocusPlatforms = ['ipad', 'phablet', 'tablet', 'electron', 'desktop'];
+      const platforms = this.common.platform.platforms();
+      const doAutoFocus = autoFocusPlatforms.some(x => platforms.includes(x));
+      if (!doAutoFocus && !force) { return; }
 
-    if (this.actionDetailMode === 'comment') {
-      setTimeout(() => this.textareaComment.setFocus());
-    } else if (this.actionDetailMode === 'link') {
-      setTimeout(() => this.inputLink?.setFocus());
-    } else if (this.actionDetailMode === 'import') {
-      setTimeout(() => this.inputImport.setFocus());
+      if (this.actionDetailMode === 'comment') {
+        setTimeout(() => this.textareaComment.setFocus());
+      } else if (this.actionDetailMode === 'link') {
+        setTimeout(() => this.inputLink?.setFocus());
+      } else if (this.actionDetailMode === 'import') {
+        setTimeout(() => this.inputImport.setFocus());
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (!this.actionDetailVisible) { this.actionDetailVisible = true; }
+      if (logalot) { console.log(`${lc} complete.`); }
     }
-
-    if (!this.actionDetailVisible) { this.actionDetailVisible = true; }
   }
 
   async reset(): Promise<void> {

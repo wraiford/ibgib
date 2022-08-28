@@ -44,6 +44,7 @@ import {
   getFn_promptCreateOuterSpaceIbGib, getFn_promptUpdatePicIbGib,
   getFnAlert, getFn_promptRobbotIbGib, getFn_promptAppIbGib
 } from '../common/helper/prompt-functions';
+import { documentLocationIsAtWelcomePage } from '../common/helper/app';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -140,7 +141,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
         await h.delay(100);
       }
 
-      if (['welcome', '/welcome', '/welcome/'].includes(document.location.pathname)) {
+      if (documentLocationIsAtWelcomePage()) {
         this.common.menuCtrl.enable(false);
       } else {
         this.common.menuCtrl.enable(true);

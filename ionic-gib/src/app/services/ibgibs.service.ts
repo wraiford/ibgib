@@ -60,7 +60,7 @@ import { groupBy } from '../common/helper/utils';
 import { RobbotModalResult } from '../common/modals/robbot-modal-form/robbot-modal-form.component';
 import { createNewRobbot } from '../common/helper/robbot';
 import { AppModalResult } from '../common/modals/app-modal-form/app-modal-form.component';
-import { createNewApp } from '../common/helper/app';
+import { createNewApp, documentLocationIsAtWelcomePage } from '../common/helper/app';
 import { InMemoryIbgibCacheService } from './in-memory-ibgib-cache.service';
 import { IonicStorageLatestIbgibCacheService } from './ionic-storage-latest-ibgib-cache.service';
 
@@ -376,7 +376,7 @@ export class IbgibsService {
    * We don't want to prompt while we're already prompting, and this
    * is a straight-forward approach.
    *
-   * @see {@link promptForSecrets}
+   * @see {@link getPasswordForSecrets}
    */
   private isPrompting: boolean;
 
@@ -1122,7 +1122,7 @@ export class IbgibsService {
         const { spaceId } = getInfoFromSpaceIb({ spaceIb: ibGib.ib });
         const latestSpace =
           await this.getLocalUserSpace({ localSpaceId: spaceId });
-        // if (latestSpace.gib !== ibGib.gib) {
+        // if (latestSpace.gib !== ibGib.gib) { // leavin this in for now. delete after awhile of normal operation. see https://github.com/wraiford/ibgib/commit/2247235a6f25945000fef419c08d5518ba2cfb48
         this._latestSubj.next({
           latestIbGib: latestSpace,
           latestAddr: h.getIbGibAddr({ ibGib: latestSpace }),
@@ -1516,18 +1516,20 @@ export class IbgibsService {
   /**
    * Feels klugy.
    */
-  async promptForSecrets({
+  async getPasswordForSecrets({
     secretIbGibs,
     fnPromptPassword,
+    dontPrompt,
     checkCacheFirst,
     cacheAfter,
   }: {
     secretIbGibs: IbGib_V1<SecretData_V1>[],
     fnPromptPassword: (title: string, msg: string) => Promise<string | null>,
+    dontPrompt?: boolean,
     checkCacheFirst?: boolean,
     cacheAfter?: boolean,
   }): Promise<string | null> {
-    const lc = `${this.lc}[${this.promptForSecrets.name}]`;
+    const lc = `${this.lc}[${this.getPasswordForSecrets.name}]`;
     /** Flag that we'll check in finally clause */
     let erroredDueToPromptTimeout = false;
     try {
@@ -1542,7 +1544,6 @@ export class IbgibsService {
         }
       }
 
-      this.isPrompting = true;
 
       // used if we `checkCacheFirst` AND/OR if we `cacheAfter`
       const secretsCacheKey =
@@ -1559,7 +1560,13 @@ export class IbgibsService {
         }
       }
 
+      if (dontPrompt) {
+        return null; /* <<<< returns early */
+      }
+
       // build prompt message
+      this.isPrompting = true;
+
       let secretInfos: SecretInfo_Password[] = [];
       for (let i = 0; i < secretIbGibs.length; i++) {
         const secretIbGib = secretIbGibs[i];
@@ -1728,11 +1735,13 @@ export class IbgibsService {
     ciphertextIbGib,
     secretIbGibs,
     fnPromptPassword,
+    dontPrompt,
     space,
   }: {
     ciphertextIbGib: CiphertextIbGib_V1,
     secretIbGibs: SecretIbGib_V1[],
     fnPromptPassword: (title: string, msg: string) => Promise<string | null>,
+    dontPrompt?: boolean,
     space: IbGibSpaceAny,
   }): Promise<string> {
     const lc = `${this.lc}[${this.getPlaintextString.name}]`;
@@ -1751,9 +1760,10 @@ export class IbgibsService {
       if (!encryptionIbGib.data) { throw new Error('encryptionIbGib.data falsy'); }
 
       // prompt user for the password
-      const password = await this.promptForSecrets({
+      const password = await this.getPasswordForSecrets({
         secretIbGibs,
         fnPromptPassword,
+        dontPrompt,
         checkCacheFirst: true,
         cacheAfter: true,
       });
@@ -1800,10 +1810,12 @@ export class IbgibsService {
   async unwrapEncryptedSyncSpace({
     encryptedSpace,
     fnPromptPassword,
+    dontPrompt,
     space,
   }: {
     encryptedSpace: IbGibSpaceAny,
     fnPromptPassword: (title: string, msg: string) => Promise<string | null>,
+    dontPrompt?: boolean,
     space?: IbGibSpaceAny,
   }): Promise<IbGibSpaceAny> {
     const lc = `${this.lc}[${this.unwrapEncryptedSyncSpace.name}]`;
@@ -1836,6 +1848,7 @@ export class IbgibsService {
       const plaintextString = await this.getPlaintextString({
         ciphertextIbGib: ciphertextIbGib,
         fnPromptPassword,
+        dontPrompt,
         secretIbGibs,
         space,
       });
@@ -2124,14 +2137,25 @@ export class IbgibsService {
   async getAppSyncSpaces({
     unwrapEncrypted,
     createIfNone,
+    dontPrompt,
     space,
   }: {
     unwrapEncrypted: boolean,
     createIfNone: boolean,
+    /**
+     * If true, don't prompt the user if we don't have it already cached.
+     *
+     * We don't want the user to hit the page and then always have to type in
+     * the password, just because my password code sucks atow.
+     */
+    dontPrompt?: boolean,
     space?: IbGibSpaceAny,
   }): Promise<IbGibSpaceAny[]> {
     const lc = `${this.lc}[${this.getAppSyncSpaces.name}]`;
     try {
+      // I don't want this pinging the user if we're on the welcome page.
+      dontPrompt = dontPrompt ?? documentLocationIsAtWelcomePage();
+
       space = space ?? await this.getLocalUserSpace({});
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: bf09346708ba4d6e9a1389bd1b66d500)`); }
 
@@ -2167,6 +2191,7 @@ export class IbgibsService {
               fnPromptPassword: getFnPromptPassword_AlertController({
                 alertController: this.alertController,
               }),
+              dontPrompt,
               space,
             });
           }

@@ -370,3 +370,7 @@ export class AppFormBuilder extends WitnessFormBuilder {
     // }
 
 }
+
+export function documentLocationIsAtWelcomePage(): boolean {
+    return ['welcome', '/welcome', '/welcome/'].includes(document.location.pathname);
+}

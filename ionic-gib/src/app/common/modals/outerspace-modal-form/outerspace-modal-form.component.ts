@@ -21,31 +21,31 @@ import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 const EXAMPLE_SYNC_SPACE_AWSDYNAMODB: SyncSpaceData_AWSDynamoDB = {
-    uuid: '01c4bb00999741018716c47bf7bebcf2',
-    name: 'default_name',
-    description: 'this is a test space.',
-    type: 'sync',
-    subtype: 'aws-dynamodb',
+  uuid: '01c4bb00999741018716c47bf7bebcf2',
+  name: 'default_name',
+  description: 'this is a test space.',
+  type: 'sync',
+  subtype: 'aws-dynamodb',
 
-    tableName: 'some-table-name-with-primary-key-named-ibGibAddrHash',
-    bucketName: 'some-bucket-name-for-large-ibgibs',
-    accessKeyId: 'some-aws-key-id',
-    secretAccessKey: 'some-aws-secret-access-key',
-    region: 'us-east-1',
+  tableName: 'some-table-name-with-primary-key-named-ibGibAddrHash',
+  bucketName: 'some-bucket-name-for-large-ibgibs',
+  accessKeyId: 'some-aws-key-id',
+  secretAccessKey: 'some-aws-secret-access-key',
+  region: 'us-east-1',
 
-    maxRetryThroughputCount: c.DEFAULT_AWS_MAX_RETRY_THROUGHPUT,
-    maxRetryUnprocessedItemsCount: c.DEFAULT_AWS_MAX_RETRY_UNPROCESSED_ITEMS,
-    putBatchSize: c.DEFAULT_AWS_PUT_BATCH_SIZE,
-    getBatchSize: c.DEFAULT_AWS_GET_BATCH_SIZE,
-    queryBatchSize: c.DEFAULT_AWS_QUERY_LATEST_BATCH_SIZE,
-    throttleMsBetweenPuts: c.DEFAULT_AWS_PUT_THROTTLE_MS,
-    throttleMsBetweenGets: c.DEFAULT_AWS_GET_THROTTLE_MS,
-    throttleMsDueToThroughputError: c.DEFAULT_AWS_RETRY_THROUGHPUT_THROTTLE_MS,
+  maxRetryThroughputCount: c.DEFAULT_AWS_MAX_RETRY_THROUGHPUT,
+  maxRetryUnprocessedItemsCount: c.DEFAULT_AWS_MAX_RETRY_UNPROCESSED_ITEMS,
+  putBatchSize: c.DEFAULT_AWS_PUT_BATCH_SIZE,
+  getBatchSize: c.DEFAULT_AWS_GET_BATCH_SIZE,
+  queryBatchSize: c.DEFAULT_AWS_QUERY_LATEST_BATCH_SIZE,
+  throttleMsBetweenPuts: c.DEFAULT_AWS_PUT_THROTTLE_MS,
+  throttleMsBetweenGets: c.DEFAULT_AWS_GET_THROTTLE_MS,
+  throttleMsDueToThroughputError: c.DEFAULT_AWS_RETRY_THROUGHPUT_THROTTLE_MS,
 
-    catchAllErrors: true,
-    persistOptsAndResultIbGibs: true,
-    validateIbGibAddrsMatchIbGibs: true,
-    trace: false,
+  catchAllErrors: true,
+  persistOptsAndResultIbGibs: true,
+  validateIbGibAddrsMatchIbGibs: true,
+  trace: false,
 }
 
 /**
@@ -118,7 +118,7 @@ export class OuterspaceModalFormComponent
       description: "Short name of the space, with only letters, underscores and hyphens.",
       label: "Name",
       placeholder: `e.g. "def_sync_space-hyphensOK_32charMax"`,
-      regexp: getRegExp({min: 1, max: 32, chars: '-', noSpaces: true}),
+      regexp: getRegExp({ min: 1, max: 32, chars: '-', noSpaces: true }),
       required: true,
     },
     description: {
@@ -126,7 +126,7 @@ export class OuterspaceModalFormComponent
       description: `Description/notes for this space endpoint, with only letters, underscores and ${c.SAFE_SPECIAL_CHARS}`,
       label: "Description",
       placeholder: `Optionally describe this space here...`,
-      regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
+      regexp: getRegExp({ min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS }),
     },
     type: {
       name: "type",
@@ -177,7 +177,7 @@ export class OuterspaceModalFormComponent
       name: "accessKeyId",
       description: "accessKeyId in AWS credentials for the DynamoDB API access",
       label: "Access Key Id",
-      regexp: getRegExp({min: 1, max: 50, chars: c.ALLISH_SPECIAL_CHARS}),
+      regexp: getRegExp({ min: 1, max: 50, chars: c.ALLISH_SPECIAL_CHARS }),
       required: true,
       private: true,
     },
@@ -185,7 +185,7 @@ export class OuterspaceModalFormComponent
       name: "secretAccessKey",
       description: "secretAccessKey in AWS credentials for the DynamoDB API access",
       label: "Secret Access Key",
-      regexp: getRegExp({min: 1, max: 100, chars: c.ALLISH_SPECIAL_CHARS}),
+      regexp: getRegExp({ min: 1, max: 100, chars: c.ALLISH_SPECIAL_CHARS }),
       required: true,
       private: true,
     },
@@ -277,31 +277,31 @@ export class OuterspaceModalFormComponent
   }
 
   async validateForm(): Promise<string[]> {
-      const lc = `${this.lc}[${this.validateForm.name}]`;
-      try {
-        const errors = await super.validateForm();
+    const lc = `${this.lc}[${this.validateForm.name}]`;
+    try {
+      const errors = await super.validateForm();
 
-        if (this.selectedSecrets.length === 0) {
-          const emsg = `Must select at least one secret`;
-          this.validationErrors.push(emsg);
-          errors.push(emsg)
-        }
-
-        return errors;
-      } catch (error) {
-        console.error(`${lc} ${error.message}`);
-        throw error;
+      if (this.selectedSecrets.length === 0) {
+        const emsg = `Must select at least one secret`;
+        this.validationErrors.push(emsg);
+        errors.push(emsg)
       }
+
+      return errors;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    }
   }
 
   async createSyncSpace_AWSDynamoDB(): Promise<TransformResult<OuterSpaceIbGib>> {
     const lc = `${this.lc}[${this.createSyncSpace_AWSDynamoDB.name}]`;
     try {
       // prompt for the secret(s)
-      const password = await this.common.ibgibs.promptForSecrets({
+      const password = await this.common.ibgibs.getPasswordForSecrets({
         secretIbGibs: this.secrets,
         fnPromptPassword:
-          getFnPromptPassword_AlertController({alertController: this.alertController}),
+          getFnPromptPassword_AlertController({ alertController: this.alertController }),
         checkCacheFirst: false,
         cacheAfter: false, // should be true probably(?)
       });
@@ -349,7 +349,7 @@ export class OuterspaceModalFormComponent
 
       // create the outerspace ibgib, rel8ing to the ciphertext ibgib
       const resOuterSpace = await factory.firstGen({
-        parentIbGib: factory.primitive({ib: 'outerspace'}),
+        parentIbGib: factory.primitive({ ib: 'outerspace' }),
         ib: `outerspace sync ${this.name}`,
         data: <OuterSpaceData>{
           name: this.name,
@@ -358,7 +358,7 @@ export class OuterspaceModalFormComponent
         },
         rel8ns: <OuterSpaceRel8ns>{
           [c.CIPHERTEXT_REL8N_NAME]:
-            [h.getIbGibAddr({ibGib: resCiphertext.newIbGib})],
+            [h.getIbGibAddr({ ibGib: resCiphertext.newIbGib })],
           [c.SECRET_REL8N_NAME]:
             this.selectedSecrets.map(ibGib => h.getIbGibAddr(ibGib)),
         },

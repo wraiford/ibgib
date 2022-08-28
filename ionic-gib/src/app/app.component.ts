@@ -569,6 +569,7 @@ export class AppComponent extends IbgibComponentBase
       const appSyncSpaces = await this.common.ibgibs.getAppSyncSpaces({
         unwrapEncrypted: true,
         createIfNone: false,
+        dontPrompt: true,
       });
       this.outerspaces = appSyncSpaces.concat();
       const syncSpaceNames = appSyncSpaces.map(syncSpace => syncSpace?.data?.name);
