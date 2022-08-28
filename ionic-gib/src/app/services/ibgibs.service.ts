@@ -1122,13 +1122,13 @@ export class IbgibsService {
         const { spaceId } = getInfoFromSpaceIb({ spaceIb: ibGib.ib });
         const latestSpace =
           await this.getLocalUserSpace({ localSpaceId: spaceId });
-        if (latestSpace.gib !== ibGib.gib) {
-          this._latestSubj.next({
-            latestIbGib: latestSpace,
-            latestAddr: h.getIbGibAddr({ ibGib: latestSpace }),
-            tjpAddr: `${ibGib.ib}^gib`
-          });
-        }
+        // if (latestSpace.gib !== ibGib.gib) {
+        this._latestSubj.next({
+          latestIbGib: latestSpace,
+          latestAddr: h.getIbGibAddr({ ibGib: latestSpace }),
+          tjpAddr: `${ibGib.ib}^gib`
+        });
+        // }
         return; /* <<<< returns early */
       }
 
