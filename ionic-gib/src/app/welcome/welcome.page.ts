@@ -1,6 +1,7 @@
 import {
-  AfterViewInit, ChangeDetectorRef, Component,
-  ElementRef, Input, OnInit, ViewChild,
+  AfterViewInit, OnInit,
+  ChangeDetectorRef, Component,
+  ElementRef, Input, ViewChild,
 } from '@angular/core';
 import SwiperCore, {
   // properties
@@ -13,7 +14,7 @@ import SwiperCore, {
   Swiper,
   Navigation,
 } from 'swiper';
-import { IonicSlides } from '@ionic/angular';
+import { IonicSlides, MenuController } from '@ionic/angular';
 SwiperCore.use([
   Autoplay, Keyboard, Pagination, Scrollbar, Zoom,
   Navigation,
@@ -137,6 +138,12 @@ export class WelcomePage implements OnInit, AfterViewInit {
       while (!this.common.ibgibs.initialized$) {
         console.warn(`${lc} (UNEXPECTED) hacky wait while initializing ibgibs service (I: 4b917090ffb64734a42c3d481e5088fb)`);
         await h.delay(100);
+      }
+
+      if (['welcome', '/welcome', '/welcome/'].includes(document.location.pathname)) {
+        this.common.menuCtrl.enable(false);
+      } else {
+        this.common.menuCtrl.enable(true);
       }
 
       this.activatedRoute.queryParams.subscribe(async (params: Params) => {

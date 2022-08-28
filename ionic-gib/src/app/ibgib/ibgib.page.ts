@@ -231,6 +231,13 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
         if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: a44efa21a33b41f4b27732d38a65530f)`); }
         await h.delay(100);
       }
+
+      if (['welcome', '/welcome', '/welcome/'].includes(document.location.pathname)) {
+        this.common.menuCtrl.enable(false);
+      } else {
+        this.common.menuCtrl.enable(true);
+      }
+
       this.initScroll();
       this.initLastViewConfiguration();
       this.subscribeParamMap();
