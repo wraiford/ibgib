@@ -33,6 +33,7 @@ import { environment } from '../environments/environment';
 import { getInfoFromSpaceIb } from './common/helper/space';
 import { AppIbGib_V1 } from './common/types/app';
 import { createNewApp } from './common/helper/app';
+import { UpdatePwaService } from './services/update-pwa.service';
 
 // #endregion imports & some init
 
@@ -205,6 +206,7 @@ export class AppComponent extends IbgibComponentBase
     protected ref: ChangeDetectorRef,
     private router: Router,
     public menu: MenuController,
+    private pwaUpdates: UpdatePwaService,
   ) {
     super(common, ref);
     const lc = `${this.lc}[ctor]`;
@@ -326,6 +328,18 @@ export class AppComponent extends IbgibComponentBase
         this.common.platform.backButton.subscribeWithPriority(10, async () => {
           if (this.common?.nav) { await this.common.nav.back(); }
         });
+
+        // after some seconds, initialize pwa app updating
+        setTimeout(() => {
+          this.pwaUpdates.initialize();
+          (<any>this).initpwasub = this.pwaUpdates.initialized$.subscribe(
+            (resPwaInitialize: boolean) => {
+              console.log(`${lc} pwaUpdates initialized result: ${resPwaInitialize}.`);
+            },
+            (err: any) => {
+              console.error(`${lc} there was an error initializting pwaUpdates: ${err.message ? err.message : '[?]'} (E: 3dd91ac374de411fa1495d73635f5e97)`);
+            });
+        }, 15_000);
 
       } catch (error) {
         console.error(`${lc} ${error.message}`);
