@@ -14,7 +14,7 @@
 
   <swiper
     [autoplay]="false" [keyboard]="true"
-    [pagination]="{clickable: true}" [navigation]="false"
+    [pagination]="{type: 'progressbar'}" [navigation]="false"
     [scrollbar]="true" [zoom]="true" [loop]="false"
     [slidesPerView]="1" [scrollbar]="false"
     (swiper)="this.mainSwiper = $event"
@@ -90,9 +90,11 @@
 
           <ion-card-content>
             <swiper class="swiper-container-vertical"
-              [autoplay]="false" [speed]="500"
-              [navigation]="true" [direction]="'vertical'" [spaceBetween]="0"
-              [loop]="true" [freeMode]="false" [slidesPerView]="3"
+              [autoplay]="{delay: 10000, disableOnInteraction: false}"
+              [speed]="6000"
+              [navigation]="false"
+              [direction]="'vertical'" [spaceBetween]="0"
+              [loop]="true" [freeMode]="true" [slidesPerView]="3"
               [loopPreventsSlide]="false" [mousewheel]="true"
               [keyboard]="true"
               [allowTouchMove]="true" [grabCursor]="true"
@@ -129,8 +131,10 @@
 
           <ion-card-content>
             <swiper class="swiper-container-vertical"
-              [autoplay]="false" [speed]="500"
-              [navigation]="true" [direction]="'vertical'" [spaceBetween]="0"
+              [autoplay]="{delay: 10000, disableOnInteraction: false}"
+              [speed]="6000"
+              [navigation]="false"
+              [direction]="'vertical'" [spaceBetween]="0"
               [loop]="true" [freeMode]="false" [slidesPerView]="3"
               [loopPreventsSlide]="false" [mousewheel]="true"
               [keyboard]="true"

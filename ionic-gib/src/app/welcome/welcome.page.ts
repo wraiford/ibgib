@@ -862,11 +862,11 @@ const IBGIB_PROTOCOL_FEATURES: VerticalSwiperTidbit[] = [
   {
     focused: true,
     title: `a protocol apart`,
-    body: [`ibgib is unique on this earth. born apart from those other DLTs and blockchains, the protocol does not inherit their assumptions, nor their technical debt.`],
+    body: [`ibgib is unique on this earth. born apart from other blockchains/DLTs (even BTC), the protocol inherits neither their assumptions nor their technical debt.`],
   },
   {
     title: `uniquely content addressed`,
-    body: [`most protocols address by just the hash, some with hard-coded metadata. we address with the most flexible per-use case metadata^hash (called the ib^gib).`],
+    body: [`most protocols address by just the hash, some with hard-coded metadata. we address more flexibly per use case with metadata^hash (called the ib^gib).`],
   },
   {
     title: `uniquely linked, more biological data`,

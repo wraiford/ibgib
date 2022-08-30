@@ -32,14 +32,14 @@ ion-content {
             overflow-y: auto;
 
             ion-card {
-                height: 82%;
+                height: 92%;
 
                 ion-card-header {
-                    height: 10%;
+                    height: 7%;
                 }
 
                 ion-card-content {
-                    height: 90%;
+                    height: 93%;
                     padding: 0px;
                     margin: 0px;
                 }
@@ -73,7 +73,7 @@ ion-content {
 
             @media (min-height: $xs-height) and (max-height: $sm-height) {
                 ion-card {
-                    height: 82%;
+                    height: 92%;
 
                     ion-card-header {
                         height: 10%;
@@ -104,7 +104,7 @@ ion-content {
 
             @media (min-height: $sm-height) and (max-height: $md-height) {
                 ion-card {
-                    height: 82%;
+                    height: 92%;
 
                     ion-card-header {
                         height: 10%;
@@ -135,7 +135,7 @@ ion-content {
 
             @media (min-height: $md-height) and (max-height: $lg-height) {
                 ion-card {
-                    height: 82%;
+                    height: 92%;
 
                     ion-card-header {
                         height: 10%;
@@ -166,7 +166,7 @@ ion-content {
 
             @media (min-height: $lg-height) and (max-height: $xl-height) {
                 ion-card {
-                    height: 82%;
+                    height: 92%;
 
                     ion-card-header {
                         height: 10%;
@@ -195,6 +195,36 @@ ion-content {
                 }
             }
 
+            @media (min-height: $xl-height) {
+                ion-card {
+                    height: 98%;
+
+                    ion-card-header {
+                        height: 10%;
+
+                        ion-card-title {
+                            font-size: x-large;
+                        }
+
+                        ion-card-subtitle {
+                            font-size: large;
+                            font-style: italic;
+                        }
+                    }
+
+                    ion-card-content {
+                        p {
+                            font-size: medium;
+                        }
+
+                        height: 80%;
+                    }
+                }
+
+                ion-buttons {
+                    height: 10%;
+                }
+            }
 
         }
 
