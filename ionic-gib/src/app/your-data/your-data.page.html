@@ -1,0 +1,131 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button slot="icon-only" color="primary"></ion-menu-button>
+    </ion-buttons>
+    <ion-title color="primary">your data is YOUR data</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+
+  <ion-header>
+  </ion-header>
+
+  <ion-accordion-group [value]="openAccordionGroups" [multiple]="true">
+
+    <ion-accordion [value]="important" id="important">
+      <ion-item slot="header" title="important">
+        <ion-label class="header" expand="block" color="danger">
+          <ion-icon slot="start" name="alert-outline"></ion-icon>
+          <ion-text>important</ion-text>
+        </ion-label>
+      </ion-item>
+      <section slot="content">
+        <ion-text>
+          this website serves a PROTOTYPE web application built on top of ibgib's custom protocol similar to, but not derived from, existing blockchain/DLT designs (it is not a token). ibgib's technologies are experimental and provided AS-IS with no guarantees other than my good-faith, best effort to provide a foundation for the exceptional future web that I simply do not see being created anywhere else. with great power comes great responsibility...use this at YOUR OWN RISK.
+        </ion-text>
+      </section>
+    </ion-accordion>
+
+    <ion-accordion [value]="yourData" id="your-data" >
+      <ion-item slot="header" title="your data">
+        <ion-label class="header" expand="block">
+          <ion-icon slot="start" name="analytics-outline"></ion-icon>
+          <ion-text >your data</ion-text>
+        </ion-label>
+      </ion-item>
+      <section slot="content">
+        <p>your data is YOUR data. full stop.</p>
+        <p>the entire distributed architecture of ibgib's protocol and this prototype is meant to facilitate FREEDOM and a correspondingly OPEN web. These are the GOALS that will be implemented with...</p>
+        <ul>
+          <li>translucent data
+            <ul>
+              <li>as much transparency as possible</li>
+              <li>flexibility per use case, depending on security requirements</li>
+            </ul>
+          </li>
+          <li>cryptographically corroborated audit trails when necessary
+            <ul>
+              <li>ibgib's substrate is a crypto-based DAG</li>
+              <li>its unique architecture enables both retaining crypto-based data, as well as "unchaining" data projections per use case</li>
+            </ul>
+          </li>
+          <li>oversight and distributed enforcement mechanism
+            <ul>
+              <li>transparently log requests, such as "forget requests", in a standardized, auditable way.</li>
+              <li>since metadata and data live alongside each other, spaces' policies are just as auditable as their implementations</li>
+              <li>for dealing with the extremely difficult problem of content takedowns in a disributed environment</li>
+              <li>"soft links" can reference non-ibgib data, allowing for compartmentalization and privacy per use case</li>
+            </ul>
+          </li>
+        </ul>
+      </section>
+    </ion-accordion>
+
+    <ion-accordion value="privacy" id="privacy">
+      <ion-item slot="header" title="privacy">
+        <ion-label class="header" expand="block">
+          <ion-icon slot="start" name="eye-off-outline"></ion-icon>
+          <ion-text>privacy</ion-text>
+        </ion-label>
+      </ion-item>
+      <section slot="content">
+        <p>all of your data for this app is local first. your privacy is in your very capable hands.</p>
+        <p>because of this, this website does not use cookies. how your data is stored depends on how you are viewing this page:</p>
+        <ul>
+          <li>browser web page (mobile/desktop):
+            <ul>
+              <li>browser's <a href="https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API">IndexedDB</a> for the vast majority of data</li>
+              <li>browser's <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage">localStorage</a> for minor settings and flags to this prototype to function</li>
+              <li>note: this prototype can also be run as a browser addon/extension, in which case the above is still valid per browser but scoped to the addon/extension's data.</li>
+            </ul>
+          </li>
+          <li>native app (android/ios):
+            <ul>
+              <li>android stores most data in the internal Documents folder.</li>
+              <li>ios stores most data in the application's internal app folder.</li>
+            </ul>
+          </li>
+        </ul>
+        <p>currently there are two methods implemented of connecting your local store to others:</p>
+        <ul>
+          <li>export dependency graph to a local file on your device</li>
+          <li>connect/sync with the cloud by creating your own space resources.
+            <ul>
+              <li>ATOW only on AWS</li>
+            </ul>
+          </li>
+        </ul>
+        <p>in the future, there will be public data spaces similar to the cloud for storing your data with...</p>
+        <ul>
+          <li>more transparency</li>
+          <li>simpler structure</li>
+          <li>less lock-in</li>
+          <li>more freedom</li>
+        </ul>
+        <p>you will want to be sure of these storage facilities' privacy policies, and ibgib's architecture is designed to make this simpler to both understand and control. (but this is for the future)</p>
+      </section>
+    </ion-accordion>
+
+  </ion-accordion-group>
+
+</ion-content>
+
+<ion-footer>
+  <ion-buttons>
+    <ion-button title="collapse all sections" color="primary" (click)="openAccordionGroups = []">
+      <ion-icon name="layers-outline"></ion-icon>
+      <ion-label>collapse all</ion-label>
+    </ion-button>
+    <ion-button title="accept app's data handling" color="primary" (click)="handleClick_Accept()" [disabled]="accepted">
+      <ion-spinner *ngIf="accepting" name="circles" color="tertiary"></ion-spinner>
+      <ion-icon name="checkmark-outline"></ion-icon>
+      <ion-label *ngIf="!accepted">accept</ion-label>
+      <ion-label *ngIf="accepted">accepted</ion-label>
+    </ion-button>
+  </ion-buttons>
+</ion-footer>
+
+
+

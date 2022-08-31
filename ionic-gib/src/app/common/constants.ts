@@ -21,6 +21,8 @@ export const GLOBAL_TIMER_NAME = '[ib^gib timer]';
 
 export const GLOBAL_DEBUG_BORDER = false;
 
+export const STORAGE_KEY_APP_USES_STUFF = 'STORAGE_KEY_APP_USES_STUFF';
+
 /**
  * When expressing ibgib data paths, this will be used as the delimiter
  * to indicate a sub-object.

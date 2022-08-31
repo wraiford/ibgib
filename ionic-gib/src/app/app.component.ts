@@ -240,6 +240,12 @@ export class AppComponent extends IbgibComponentBase
         } else {
           if (logalot) { console.log(`${lc} this.initializing is falsy`); }
         }
+        let consented = await this.userConsentedToUsingStorageEtc();
+        if (!consented) {
+          // navigate to more info
+          await this.navToRaw('your-data');
+          return; /* <<<< returns early */
+        }
 
         this._subIbgibsInitializing = this.common.ibgibs.initialized$.subscribe(async () => {
           const lcInit = `${lc}[ibgibs initialized]`;
@@ -393,6 +399,56 @@ export class AppComponent extends IbgibComponentBase
       throw error;
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async userConsentedToUsingStorageEtc(): Promise<boolean> {
+    const lc = `${this.lc}[${this.userConsentedToUsingStorageEtc.name}]`;
+    try {
+      let resGet = await Storage.get({ key: c.STORAGE_KEY_APP_USES_STUFF });
+      if (resGet?.value === 'accepted') { return true; /* <<<< returns early */ }
+      if (
+        document.location.pathname.startsWith('/your-data') ||
+        document.location.pathname.startsWith('your-data')
+      ) {
+        return false; /* <<<< returns early */
+      }
+
+      return new Promise(async (resolve, reject) => {
+
+        // user has NOT accepted yet...
+        const alert = await this.common.alertController.create({
+          header: 'privacy',
+          subHeader: 'your data is YOUR data',
+          message: `this website does not work like most. it uses NO cookies, and ALL of YOUR data lives in your browser's internal storage & database. you will be responsible for your data, which may be deleted at any time by your browser, or by yourself if you choose to clear data for this site. do you accept this web app to store data on your browser?`,
+          buttons: [
+            {
+              text: 'accept',
+              handler: async () => { console.log(`${lc} accepted`); resolve(true); }
+            },
+            {
+              text: 'more info',
+              handler: async () => { console.log(`${lc} more`); resolve(false); }
+            },
+            {
+              text: 'cancel',
+              handler: async () => {
+                console.log(`${lc} canceled`);
+                history.back();
+                reject(new Error(`user canceled (E: d05805e7f80a1474b88a400814b0a422)`));
+              }
+            },
+          ],
+        });
+        await alert.present();
+      });
+
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+
     }
   }
 
@@ -1503,6 +1559,20 @@ export class AppComponent extends IbgibComponentBase
       // we've gone through the entire welcome screen (not tl;dr skipping)
       await Storage.remove({ key: 'welcomeShown' });
 
+      await this.navToRaw('welcome');
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  private async navToRaw(rawName: string): Promise<void> {
+    const lc = `${this.lc}[${this.navToRaw.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 9a099cf1b0499bbb09e06a06dffb4422)`); }
+
       // const
       let url = new URL(window.location.toString());
       let currentRawLocation = url.pathname.split('/');
@@ -1510,10 +1580,10 @@ export class AppComponent extends IbgibComponentBase
         // if the first bit is an empty string, drop it.
         if (currentRawLocation[0] === '') { currentRawLocation = currentRawLocation.slice(1); }
       } else {
-        currentRawLocation = ['welcome'];
+        currentRawLocation = [rawName];
       }
       this.common.nav.go({
-        toRawLocation: ['welcome'],
+        toRawLocation: [rawName],
         fromRawLocation: currentRawLocation,
       });
     } catch (error) {
@@ -1523,5 +1593,4 @@ export class AppComponent extends IbgibComponentBase
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
-
 }

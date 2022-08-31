@@ -1,7 +1,7 @@
 import {
   Component, ChangeDetectorRef, Output, EventEmitter, ViewChild, Input, ElementRef
 } from '@angular/core';
-import { LoadingController, ScrollBaseCustomEvent } from '@ionic/angular';
+import { LoadingController } from '@ionic/angular';
 import { Plugins } from "@capacitor/core";
 const { Clipboard, } = Plugins;
 

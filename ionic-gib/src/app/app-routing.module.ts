@@ -43,6 +43,10 @@ const routes: Routes = [
     path: 'welcome',
     loadChildren: () => import('./welcome/welcome.module').then(m => m.WelcomePageModule)
   },
+  {
+    path: 'your-data',
+    loadChildren: () => import('./your-data/your-data.module').then(m => m.YourDataPageModule)
+  },
 ];
 
 @NgModule({

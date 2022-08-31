@@ -9,12 +9,11 @@ import SwiperCore, {
   Mousewheel, FreeMode,
   Parallax,
   // effects
-  EffectFade,
   EffectCube,
   Swiper,
   Navigation,
 } from 'swiper';
-import { IonicSlides, MenuController } from '@ionic/angular';
+import { IonicSlides, LoadingController, } from '@ionic/angular';
 SwiperCore.use([
   Autoplay, Keyboard, Pagination, Scrollbar, Zoom,
   Navigation,
@@ -26,7 +25,6 @@ SwiperCore.use([
   IonicSlides,
 ]);
 import { Subscription } from 'rxjs';
-import { concatMap, } from 'rxjs/operators';
 import { Capacitor, Plugins } from '@capacitor/core';
 const { Storage } = Plugins;
 
@@ -127,6 +125,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
     protected activatedRoute: ActivatedRoute,
+    protected loadingController: LoadingController,
   ) {
 
   }
@@ -407,7 +406,11 @@ export class WelcomePage implements OnInit, AfterViewInit {
   async initializeGoToAddr(): Promise<void> {
     const lc = `${this.lc}[${this.initializeGoToAddr.name}]`;
     if (logalot) { console.log(`${lc} starting...`); }
+
+    let loading = await this.loadingController.create({ message: 'getting our home tag address' });
     try {
+      await loading.present();
+      await h.delay(1500);
 
       const tagsIbGib = await this.common.ibgibs.getSpecialIbGib({ type: "tags" });
       if (!tagsIbGib) { throw new Error(`tagsIbGib falsy. (E: f6d840cddd3c4880943cb562e217cec7)`); }
@@ -441,6 +444,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
+      await loading.dismiss();
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
@@ -754,43 +758,34 @@ export class WelcomePage implements OnInit, AfterViewInit {
         await Storage.set({ key: 'welcomeShown', value: 'true' });
 
         this.going = true;
-        if (!this.common.ibgibs.initialized) {
-          // this._subInitialized = this.common.ibgibs.initialized$.pipe(
-          //   concatMap(
-          //     async () => {
+        let loading_Global = await this.loadingController.create({ message: 'initializing ibgib...' });
+        try {
+          if (logalot) { console.log(`${lc} starting... (I: a02c2348fc3b2e1e55804984265d6322)`); }
+          await loading_Global.present();
+          await h.delay(1000);
 
-          //       debugger;
-          //       const result = await Storage.get({ key: 'welcomeShown' });
-          //       if (result?.value === 'true') {
-          //         // already shown welcome, so nav to home
-          //         await this.initializeGoToAddr();
-          //         await this.handleGo();
-          //       } else {
-          //         // haven't shown welcome, so stay here
-          //         await this.initializeGoToAddr();
-          //         await h.delay(2000); // hmmm
-          //       }
-          //       this._subInitialized.unsubscribe();
-          //       delete this._subInitialized;
-          //     },
-          //   )
-          // ).subscribe();
+          await this.initializeIbGibsServiceIfNeeded();
 
-          await this.common.ibgibs.initialize({
-            fnPromptSecret: getFn_promptCreateSecretIbGib(this.common),
-            fnPromptEncryption: getFn_promptCreateEncryptionIbGib(this.common),
-            fnPromptOuterSpace: getFn_promptCreateOuterSpaceIbGib(this.common),
-            fnPromptUpdatePic: getFn_promptUpdatePicIbGib(this.common),
-            fnPromptRobbot: getFn_promptRobbotIbGib(this.common),
-            fnPromptApp: getFn_promptAppIbGib(this.common),
+          await this.initializeGoToAddr();
+
+          await this.common.nav.go({
+            toAddr: this.goToAddr,
+            fromAddr: undefined,
+            force: true,
+          });
+
+        } catch (error) {
+          console.error(`${lc} ${error.message}`);
+          throw error;
+        } finally {
+          setTimeout(async () => {
+            // await this.loadingController.dismiss();
+            // await loading.dismiss();
+            await loading_Global.dismiss();
+            this.ref.detectChanges();
+            if (logalot) { console.log(`${lc} complete.`); }
           });
         }
-        await this.initializeGoToAddr();
-        await this.common.nav.go({
-          toAddr: this.goToAddr,
-          fromAddr: undefined,
-          force: true,
-        });
 
       } else {
         // tl;dr
@@ -804,6 +799,33 @@ export class WelcomePage implements OnInit, AfterViewInit {
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async initializeIbGibsServiceIfNeeded(): Promise<void> {
+    const lc = `${this.lc}[${this.initializeIbGibsServiceIfNeeded.name}]`;
+    let loading: HTMLIonLoadingElement;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: e651c10f2a7a3a25f81e21828d68ff22)`); }
+      if (!this.common.ibgibs.initialized) {
+        loading = await this.loadingController.create({ message: 'creating initial ibgibs and services...' });
+        await loading.present();
+        // await h.delay(1000);
+        await this.common.ibgibs.initialize({
+          fnPromptSecret: getFn_promptCreateSecretIbGib(this.common),
+          fnPromptEncryption: getFn_promptCreateEncryptionIbGib(this.common),
+          fnPromptOuterSpace: getFn_promptCreateOuterSpaceIbGib(this.common),
+          fnPromptUpdatePic: getFn_promptUpdatePicIbGib(this.common),
+          fnPromptRobbot: getFn_promptRobbotIbGib(this.common),
+          fnPromptApp: getFn_promptAppIbGib(this.common),
+        });
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (loading) { await loading.dismiss(); }
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
