@@ -1,8 +1,10 @@
 import { ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
 import { Capacitor, Plugins } from '@capacitor/core';
+import { WebOnePageBase } from '../common/bases/web-one-page-base';
 const { Storage } = Plugins;
 
 import * as c from '../common/constants';
+import { CommonService } from '../services/common.service';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -19,15 +21,9 @@ const AccordionSection = {
   templateUrl: './your-data.page.html',
   styleUrls: ['./your-data.page.scss'],
 })
-export class YourDataPage implements OnInit {
+export class YourDataPage extends WebOnePageBase implements OnInit {
 
   protected lc: string = `[${YourDataPage.name}]`;
-
-  @Input()
-  accepted: boolean;
-
-  @Input()
-  accepting: boolean;
 
   @Input()
   openAccordionGroups: AccordionSection[] = Object.values(AccordionSection);
@@ -40,18 +36,35 @@ export class YourDataPage implements OnInit {
   important: AccordionSection = 'important';
 
   constructor(
+    protected common: CommonService,
     protected ref: ChangeDetectorRef,
-  ) { }
+  ) {
+    super(common, ref);
+  }
 
   async ngOnInit(): Promise<void> {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: d7b4fe97765ddf35c33670d5040bf722)`); }
 
-      // check if the user has accepted
+      // // check if the user has accepted
+      // let resGet = await Storage.get({ key: c.STORAGE_KEY_APP_USES_STUFF });
+      // this.accepted = resGet?.value === 'accepted';
 
-      await this.initializeAccepted();
-      await this.initializeAccordion();
+      // // check if user already has a local space
+      // this.common.ibgibs.initialized$.subscribe(() => {
+      //   this.alreadyHasLocalSpace = true;
+      // });
+      // this.alreadyHasLocalSpace = this.common.ibgibs.initialized;
+
+      await super.ngOnInit();
+
+      // accordion
+      Object.values(AccordionSection).forEach(section => {
+        if (document.location.toString().endsWith(`#${section}`)) {
+          this.openAccordionGroups = [section];
+        }
+      });
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -77,29 +90,17 @@ export class YourDataPage implements OnInit {
     }
   }
 
-  async initializeAccepted(): Promise<void> {
-    const lc = `${this.lc}[${this.initializeAccepted.name}]`;
+  async handleClick_Go(): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_Go.name}]`;
     try {
-      if (logalot) { console.log(`${lc} starting... (I: 6591c4d272f25584632ac66b52f22122)`); }
-
-      let resGet = await Storage.get({ key: c.STORAGE_KEY_APP_USES_STUFF });
-      this.accepted = resGet?.value === 'accepted';
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
-  async initializeAccordion(): Promise<void> {
-    const lc = `${this.lc}[${this.initializeAccordion.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting... (I: d6330e91a47cc5726d880c8708aa3222)`); }
-      Object.values(AccordionSection).forEach(section => {
-        if (document.location.toString().endsWith(`#${section}`)) {
-          this.openAccordionGroups = [section];
-        }
+      if (logalot) { console.log(`${lc} starting... (I: c3a6386fdcde7a2149b211f2173ce722)`); }
+      if (!this.accepted) { throw new Error(`(UNEXPECTED) must be accepted before go...this button should have been disabled though. (E: 54c02806145dcc715dd9ac29875ecc22)`); }
+      await this.common.nav.go({
+        toRawLocation: ['welcome'],
+        fromRawLocation: ['your-data'],
+        force: true,
       });
+
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -108,6 +109,6 @@ export class YourDataPage implements OnInit {
     }
   }
 
-
+  getDocumentTitle(): string { return 'YOUR data and privacy with ibgib' }
 
 }

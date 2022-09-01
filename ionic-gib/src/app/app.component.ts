@@ -424,11 +424,18 @@ export class AppComponent extends IbgibComponentBase
           buttons: [
             {
               text: 'accept',
-              handler: async () => { console.log(`${lc} accepted`); resolve(true); }
+              handler: async () => {
+                console.log(`${lc} accepted`);
+                await Storage.set({ key: c.STORAGE_KEY_APP_USES_STUFF, value: 'accepted' });
+                resolve(true);
+              }
             },
             {
               text: 'more info',
-              handler: async () => { console.log(`${lc} more`); resolve(false); }
+              handler: async () => {
+                console.log(`${lc} more`);
+                resolve(false);
+              }
             },
             {
               text: 'cancel',
@@ -1560,6 +1567,22 @@ export class AppComponent extends IbgibComponentBase
       await Storage.remove({ key: 'welcomeShown' });
 
       await this.navToRaw('welcome');
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleClick_Privacy(): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_Privacy.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 609d93f81c2caeae934c488e6bd86622)`); }
+
+      await this.menu.close();
+
+      await this.navToRaw('your-data');
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

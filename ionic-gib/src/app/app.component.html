@@ -97,7 +97,7 @@
           <ion-accordion value="apps">
             <ion-item slot="header" title="our helpers...">
               <ion-label class="header" expand="block">
-                <ion-icon title="apps" slot="start" name="body-outline"></ion-icon>
+                <ion-icon title="apps" slot="start" name="apps-outline"></ion-icon>
                 <ion-text>apps</ion-text>
               </ion-label>
             </ion-item>
@@ -269,21 +269,28 @@
           </ion-accordion>
 
           <ion-accordion value="web1">
-            <ion-item slot="header" title="web 1.0 stuff hmm...">
+            <ion-item slot="header" title="web 1.0...">
               <ion-label class="header" expand="block">
-                <ion-icon slot="start" name="ellipsis-horizontal-outline"></ion-icon>
-                <ion-text>web 1.0 stuff</ion-text>
+                <ion-icon slot="start" name="globe-outline"></ion-icon>
+                <ion-text>web 1.0</ion-text>
               </ion-label>
             </ion-item>
             <ion-list slot="content" class="accordion-item-list">
               <ion-item lines="none">
-                <ion-button
-                  title="goes to a static welcome page"
-                  color="secondary"
+                <button class="web-1-button"
+                  title="nav to static welcome page"
                   (click)="handleClick_Welcome()">
-                  <ion-icon slot="start" name="navigate-outline" color="primary"></ion-icon>
+                  <ion-icon slot="start" name="beer-outline"></ion-icon>
                   <ion-label>welcome</ion-label>
-                </ion-button>
+                </button>
+              </ion-item>
+              <ion-item lines="none">
+                <button class="web-1-button"
+                  title="nav to static privacy page"
+                  (click)="handleClick_Privacy()">
+                  <ion-icon slot="start" name="eye-off-outline"></ion-icon>
+                  <ion-label>privacy (YOUR data)</ion-label>
+                </button>
               </ion-item>
             </ion-list>
           </ion-accordion>

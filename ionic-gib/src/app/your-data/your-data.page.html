@@ -32,30 +32,38 @@
       <ion-item slot="header" title="your data">
         <ion-label class="header" expand="block">
           <ion-icon slot="start" name="analytics-outline"></ion-icon>
-          <ion-text >your data</ion-text>
+          <ion-text >your data vision</ion-text>
         </ion-label>
       </ion-item>
       <section slot="content">
         <p>your data is YOUR data. full stop.</p>
-        <p>the entire distributed architecture of ibgib's protocol and this prototype is meant to facilitate FREEDOM and a correspondingly OPEN web. These are the GOALS that will be implemented with...</p>
+        <p>the entire distributed architecture of ibgib's protocol and this prototype is meant to facilitate FREEDOM and a correspondingly OPEN web. This VISION will be implemented with...</p>
         <ul>
           <li>translucent data
             <ul>
-              <li>as much transparency as possible</li>
-              <li>flexibility per use case, depending on security requirements</li>
+              <li>maximal transparency per use case requirements</li>
+              <li>high transparency for cases where high visibility is desired</li>
+              <li>reduced transparency via sovereign compartmentalization when more appropriate</li>
             </ul>
           </li>
-          <li>cryptographically corroborated audit trails when necessary
+          <li>cryptographically corroborated audit trails
             <ul>
-              <li>ibgib's substrate is a crypto-based DAG</li>
-              <li>its unique architecture enables both retaining crypto-based data, as well as "unchaining" data projections per use case</li>
+              <li>base data substrate is a crypto-based <a href="https://en.wikipedia.org/wiki/Directed_acyclic_graph">Directed Acyclic Graph (DAG)</a></li>
+              <li>unique architecture enables both long-term blockchain-like ledgers, as well as "unchaining" data projections per use case</li>
             </ul>
+          </li>
+          <li>both data and "spec" metadata live alongside each other in the same graph
+            <ul>enables both your data and your data's policies to travel together uniformly</ul>
+            <ul>empowers your identity to be scoped locally but accompany your data</ul>
           </li>
           <li>oversight and distributed enforcement mechanism
             <ul>
-              <li>transparently log requests, such as "forget requests", in a standardized, auditable way.</li>
-              <li>since metadata and data live alongside each other, spaces' policies are just as auditable as their implementations</li>
-              <li>for dealing with the extremely difficult problem of content takedowns in a disributed environment</li>
+              <li>leveraging transparent audit trails and metadata + data alongside each other, create novel mechanisms for extremely difficult problems in distributed systems, such as...
+                <ul>
+                  <li>"forget requests" for takedowns</li>
+                  <li>"spec/policy reviews" with associated concrete implementations</li>
+                </ul>
+              </li>
               <li>"soft links" can reference non-ibgib data, allowing for compartmentalization and privacy per use case</li>
             </ul>
           </li>
@@ -119,10 +127,12 @@
       <ion-label>collapse all</ion-label>
     </ion-button>
     <ion-button title="accept app's data handling" color="primary" (click)="handleClick_Accept()" [disabled]="accepted">
-      <ion-spinner *ngIf="accepting" name="circles" color="tertiary"></ion-spinner>
       <ion-icon name="checkmark-outline"></ion-icon>
       <ion-label *ngIf="!accepted">accept</ion-label>
       <ion-label *ngIf="accepted">accepted</ion-label>
+    </ion-button>
+    <ion-button *ngIf="!alreadyHasLocalSpace" title="go" color="primary" (click)="handleClick_Go()" [disabled]="!accepted">
+      <ion-label>go</ion-label>
     </ion-button>
   </ion-buttons>
 </ion-footer>

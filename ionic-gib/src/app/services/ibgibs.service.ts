@@ -599,15 +599,15 @@ export class IbgibsService {
 
           all of your data is stored locally on your device's "local space".
 
-          after you give it a name (or we randomly assign it a hex uuid), you can use this app completely offline without touching the web again.
+          after you give it a name, you can use this app completely offline without touching the web again.
 
           we can hook up & sync with other outerspaces later.
 
-          so name your space with alphanumerics & underscores, like 'phone_alice' or 'web_bob_foo'.`
+          so name your space with alphanumerics & underscores, like 'phone_alice' or 'web_bob_foo', or leave blank and get a random name.`
         });
 
-        if (resName === null && !allowCancel) {
-          spaceName = (await h.getUUID()).slice(10);
+        if (resName === '' && !allowCancel) {
+          spaceName = 'space_' + (await h.getUUID()).slice(0, 10);
         } else {
           if (resName && spaceNameIsValid(resName)) {
             spaceName = resName;

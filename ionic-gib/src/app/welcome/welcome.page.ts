@@ -43,6 +43,7 @@ import {
   getFnAlert, getFn_promptRobbotIbGib, getFn_promptAppIbGib
 } from '../common/helper/prompt-functions';
 import { documentLocationIsAtWelcomePage } from '../common/helper/app';
+import { WebOnePageBase } from '../common/bases/web-one-page-base';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -52,7 +53,7 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
   templateUrl: './welcome.page.html',
   styleUrls: ['./welcome.page.scss'],
 })
-export class WelcomePage implements OnInit, AfterViewInit {
+export class WelcomePage extends WebOnePageBase implements OnInit, AfterViewInit {
 
   protected lc: string = `[${WelcomePage.name}]`;
 
@@ -127,7 +128,7 @@ export class WelcomePage implements OnInit, AfterViewInit {
     protected activatedRoute: ActivatedRoute,
     protected loadingController: LoadingController,
   ) {
-
+    super(common, ref);
   }
 
   async ngOnInit(): Promise<void> {
@@ -135,13 +136,15 @@ export class WelcomePage implements OnInit, AfterViewInit {
     try {
       if (logalot) { console.log(`${lc} starting... (I: 31919fc7d99af1e29bb4f92907572722)`); }
 
-      while (!this.common.ibgibs.initialized$) {
-        console.warn(`${lc} (UNEXPECTED) hacky wait while initializing ibgibs service (I: 4b917090ffb64734a42c3d481e5088fb)`);
-        await h.delay(100);
-      }
+      await super.ngOnInit();
 
+      // only hide the menu if at welcome page and don't already have a local
+      // space (i.e. initialized)
       if (documentLocationIsAtWelcomePage()) {
         this.common.menuCtrl.enable(false);
+        this.common.ibgibs.initialized$.subscribe(() => {
+          this.common.menuCtrl.enable(true);
+        });
       } else {
         this.common.menuCtrl.enable(true);
       }
@@ -168,11 +171,6 @@ export class WelcomePage implements OnInit, AfterViewInit {
           console.log(`no params extensionLaunchInfo found`)
         }
       });
-
-      // update the title! woohoo!
-      document.title = 'welcome';
-
-      // spins off
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -873,6 +871,8 @@ export class WelcomePage implements OnInit, AfterViewInit {
   async handleBackButtonClick(): Promise<void> {
     await this.common.nav.back();
   }
+
+  getDocumentTitle(): string { return 'welcome to ibgib' }
 
 }
 

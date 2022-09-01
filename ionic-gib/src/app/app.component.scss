@@ -145,3 +145,32 @@ ion-item.selected {
 .special-menu-btns {
   width: 100%;
 }
+
+.web-1-button {
+  display: flex;
+  flex-direction: row;
+  background-color: transparent;
+  gap: 5px;
+
+  ion-icon {
+    color: blue;
+  }
+
+  ion-label {
+    color: blue;
+    text-decoration: underline !important;
+    cursor: pointer;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .web-1-button {
+    ion-icon {
+      color: var(--ion-color-primary);
+    }
+
+    ion-label {
+      color: var(--ion-color-primary);
+    }
+  }
+}

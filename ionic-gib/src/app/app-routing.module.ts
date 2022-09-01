@@ -44,6 +44,10 @@ const routes: Routes = [
     loadChildren: () => import('./welcome/welcome.module').then(m => m.WelcomePageModule)
   },
   {
+    path: 'privacy',
+    redirectTo: 'your-data#privacy',
+  },
+  {
     path: 'your-data',
     loadChildren: () => import('./your-data/your-data.module').then(m => m.YourDataPageModule)
   },
