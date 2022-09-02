@@ -1,0 +1,73 @@
+
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button slot="icon-only" color="primary"></ion-menu-button>
+    </ion-buttons>
+    <ion-title color="primary">about us</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+
+  <ion-accordion-group [value]="openAccordionGroups" [multiple]="true">
+
+    <ion-accordion value="bill" id="important">
+      <ion-item slot="header" title="important">
+        <ion-avatar slot="start">
+          <img alt="pic of me, bill raiford" src="/assets/people/20220818_bill.jpeg" />
+        </ion-avatar>
+        <ion-text>Bill Raiford</ion-text>
+        <!-- <ion-label class="header" expand="block" color="danger">
+          <ion-icon slot="start" name="alert-outline"></ion-icon>
+          <ion-text>important</ion-text>
+        </ion-label> -->
+      </ion-item>
+      <section slot="content">
+        <ion-text>
+          <p>
+            Hi, I'm Bill Raiford. I love all living things; each a single thread
+            woven into the one tapestry of life; each a single melody in the one
+            universal symphony; each a single cell in the one body that
+            overcomes entropy.
+          </p>
+          <p>
+            I don't necessarily <i>like</i> all living things.
+          </p>
+          <p>
+            I conceived ibgib well over twenty years ago when I first moved from
+            information based on knowledge to that based on belief. Although
+            perhaps the first remembrance of this I have is as an 8th grade math
+            nerd, I realized that if I ever were to make an "error" that I then
+            had a non-zero probability of any statement I made to contain that
+            error. This was seemingly quite inescapable!
+          </p>
+          <p>
+            And I could not - and still cannot - read philosophy.
+          </p>
+          <p>
+            So I wrote, and continue to write, code instead, focused on this
+            belief-based approach, which over the years has gone through several
+            iterations, the most recent prototype of which you are currently
+            sampling. As it turns out, instilling humility and belief into a
+            code base at its foundations ends up looking extremely biological.
+          </p>
+          <p>
+            So if you're interested in the intersection of non-Shannon,
+            belief-based computer science and biological coding; where data and
+            metadata sit alongside each other; where theorems are more theorem-y
+            and less proof-y; and where we can perhaps gain insight into other
+            seemingly disparate topics such as money, knowledge, life &
+            death...to you I say welcome!
+          </p>
+          <p>
+            Let us weave our threads, harmonize our melodies, and enjoin our
+            bodies as we strive to overcome that entropic night.
+          </p>
+        </ion-text>
+      </section>
+    </ion-accordion>
+
+  </ion-accordion-group>
+
+</ion-content>

@@ -1591,6 +1591,23 @@ export class AppComponent extends IbgibComponentBase
     }
   }
 
+  async handleClick_AboutUs(): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_AboutUs.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: a191549efc104be0b3b5de1114ddc3b8)`); }
+
+      await this.menu.close();
+
+      await this.navToRaw('about-us');
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+
   private async navToRaw(rawName: string): Promise<void> {
     const lc = `${this.lc}[${this.navToRaw.name}]`;
     try {

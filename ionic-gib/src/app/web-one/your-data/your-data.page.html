@@ -9,9 +9,6 @@
 
 <ion-content>
 
-  <ion-header>
-  </ion-header>
-
   <ion-accordion-group [value]="openAccordionGroups" [multiple]="true">
 
     <ion-accordion [value]="important" id="important">
@@ -53,8 +50,10 @@
             </ul>
           </li>
           <li>both data and "spec" metadata live alongside each other in the same graph
-            <ul>enables both your data and your data's policies to travel together uniformly</ul>
-            <ul>empowers your identity to be scoped locally but accompany your data</ul>
+            <ul>
+              <li>enables both your data and your data's policies to travel together uniformly</li>
+              <li>empowers your identity to be scoped locally but accompany your data</li>
+            </ul>
           </li>
           <li>oversight and distributed enforcement mechanism
             <ul>
@@ -79,8 +78,8 @@
         </ion-label>
       </ion-item>
       <section slot="content">
-        <p>all of your data for this app is local first. your privacy is in your very capable hands.</p>
-        <p>because of this, this website does not use cookies. how your data is stored depends on how you are viewing this page:</p>
+        <p>all of your data for this app is local first, meaning it resides on your device not on our servers. so your privacy starts in your very capable hands.</p>
+        <p>because of this, this website does not use cookies. how exactly your data is stored depends on how you are viewing this page:</p>
         <ul>
           <li>browser web page (mobile/desktop):
             <ul>
@@ -89,7 +88,7 @@
               <li>note: this prototype can also be run as a browser addon/extension, in which case the above is still valid per browser but scoped to the addon/extension's data.</li>
             </ul>
           </li>
-          <li>native app (android/ios):
+          <li>native app (android/ios installed through the store):
             <ul>
               <li>android stores most data in the internal Documents folder.</li>
               <li>ios stores most data in the application's internal app folder.</li>
@@ -98,8 +97,8 @@
         </ul>
         <p>currently there are two methods implemented of connecting your local store to others:</p>
         <ul>
-          <li>export dependency graph to a local file on your device</li>
-          <li>connect/sync with the cloud by creating your own space resources.
+          <li>export dependency graph to a local file on your device and import it into another space.</li>
+          <li>connect/sync with a shared outerspace (like the cloud) and syncing to that same space from another local space.
             <ul>
               <li>ATOW only on AWS</li>
             </ul>

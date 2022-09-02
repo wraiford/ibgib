@@ -41,7 +41,7 @@ const routes: Routes = [
   },
   {
     path: 'welcome',
-    loadChildren: () => import('./welcome/welcome.module').then(m => m.WelcomePageModule)
+    loadChildren: () => import('./web-one/welcome/welcome.module').then(m => m.WelcomePageModule)
   },
   {
     path: 'privacy',
@@ -49,7 +49,11 @@ const routes: Routes = [
   },
   {
     path: 'your-data',
-    loadChildren: () => import('./your-data/your-data.module').then(m => m.YourDataPageModule)
+    loadChildren: () => import('./web-one/your-data/your-data.module').then(m => m.YourDataPageModule)
+  },
+  {
+    path: 'about-us',
+    loadChildren: () => import('./web-one/about-us/about-us.module').then(m => m.AboutUsPageModule)
   },
 ];
 

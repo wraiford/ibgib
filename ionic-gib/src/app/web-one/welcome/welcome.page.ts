@@ -31,19 +31,19 @@ const { Storage } = Plugins;
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib/dist/types';
 
-import * as c from '../common/constants';
-import { CommonService } from '../services/common.service';
-import { ibCircle, ibGroup, ibLine, ibSvg, } from '../common/helper/svg';
-import { SVG_NAMESPACE, IbGibDiagramInfo, } from '../common/types/svg';
+import * as c from '../../common/constants';
+import { CommonService } from '../../services/common.service';
+import { ibCircle, ibGroup, ibLine, ibSvg, } from '../../common/helper/svg';
+import { SVG_NAMESPACE, IbGibDiagramInfo, } from '../../common/types/svg';
 import { ActivatedRoute, Params } from '@angular/router';
-import { ExtensionLaunchInfo, ExtensionSelectionInfo } from '../common/types/app';
+import { ExtensionLaunchInfo, ExtensionSelectionInfo } from '../../common/types/app';
 import {
   getFn_promptCreateSecretIbGib, getFn_promptCreateEncryptionIbGib,
   getFn_promptCreateOuterSpaceIbGib, getFn_promptUpdatePicIbGib,
   getFnAlert, getFn_promptRobbotIbGib, getFn_promptAppIbGib
-} from '../common/helper/prompt-functions';
-import { documentLocationIsAtWelcomePage } from '../common/helper/app';
-import { WebOnePageBase } from '../common/bases/web-one-page-base';
+} from '../../common/helper/prompt-functions';
+import { documentLocationIsAtWelcomePage } from '../../common/helper/app';
+import { WebOnePageBase } from '../../common/bases/web-one-page-base';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -446,6 +446,7 @@ export class WelcomePage extends WebOnePageBase implements OnInit, AfterViewInit
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
+
   async handleSVGClick(): Promise<void> {
     const lc = `${this.lc}[${this.handleSVGClick.name}]`;
     try {
