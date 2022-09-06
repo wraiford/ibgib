@@ -2,7 +2,7 @@
   <ion-buttons id="context-btns" class="hack-overflow-x" slot="end" color="primary">
 
     <!-- local refresh -->
-    <ion-button *ngIf="gib !== 'gib'" [disabled]="refreshing" (click)="handleRefreshClick()">
+    <ion-button *ngIf="gib !== 'gib'" [disabled]="refreshing" (click)="handleClick_Refresh()">
       <ion-icon *ngIf="!refreshing" name="refresh"></ion-icon>
       <ion-spinner *ngIf="refreshing" name="bubbles" color="tertiary"></ion-spinner>
       <!-- <ion-badge *ngIf="tjpUpdatesAvailableCount_Local" color="primary" slot="end">
@@ -11,9 +11,20 @@
     </ion-button>
 
     <!-- share -->
-    <ion-button *ngIf="ibGib" class="toolbar-title-btn" (click)="handleShareClick()">
+    <ion-button *ngIf="ibGib" class="toolbar-title-btn" (click)="handleClick_Share()">
       <ion-icon name="share-social-outline" ios="share-outline"></ion-icon>
     </ion-button>
+
+    <!-- archive -->
+    <ion-button *ngIf="ibGib" class="toolbar-title-btn" (click)="handleClick_Archive()">
+      <ion-icon name="archive-outline" ios="share-outline"></ion-icon>
+    </ion-button>
+
+    <!-- trash -->
+    <ion-button *ngIf="ibGib" class="toolbar-title-btn" (click)="handleClick_Trash()">
+      <ion-icon name="trash-outline" ios="trash-outline"></ion-icon>
+    </ion-button>
+
 
   </ion-buttons>
 

@@ -3344,7 +3344,6 @@ export function getSpaceIb({
         const id = space.data?.uuid || undefined;
         if (id.includes(' ')) { throw new Error(`invalid space id. cannot contain spaces (E: 8696830fe7f54bfa85e670a063f3e089)`); }
         let ib = `witness space ${classname} ${name} ${id}`;
-        console.log(`${lc} ib: ${ib}`);
         return ib;
     } catch (error) {
         console.error(`${lc} ${error.message}`);

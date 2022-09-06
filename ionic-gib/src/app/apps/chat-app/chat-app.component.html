@@ -41,7 +41,12 @@
 
         <ion-footer>
           <!-- commands -->
-          <ib-command-bar [addr]="fullscreenIbGibAddr"></ib-command-bar>
+          <ib-command-bar
+            [addr]="fullscreenIbGibAddr"
+            [rel8nName_Context]="fullscreenIbGibRel8nName"
+            [ibGib_Context]="ibGib"
+            (dismissMe)="handleModalDismissMe()"></ib-command-bar>
+
         </ion-footer>
 
       </ion-list>

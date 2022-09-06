@@ -125,25 +125,9 @@ export class TodoAppComponent extends IbgibComponentBase {
   async handleClick_IbGibItem(item: TodoItem): Promise<void> {
     const lc = `${this.lc}[${this.handleClick_IbGibItem.name}]`;
     try {
+      // if (logalot) { console.log(`${lc} starting... (I: bdb22ba5a75aa9ed93659595913cc822)`); }
       if (logalot) { console.log(`${lc} starting... (I: f439facc2d28403a9bfa25f6143ca8f1)`); }
-      if (this.fullscreenIbGibAddr) {
-        // user hit escape (probably) and the modal disappeared but we still
-        // have this address set. so do setTimeout rigamarole because the
-        // javascript event loop doesn't detect when the modal is gone and the
-        // fullscreen addr is still populated.
-        this.fullscreenIbGibAddr = null;
-        setTimeout(() => {
-          this.fullscreenIbGibAddr = item.addr;
-          setTimeout(() => this.ref.detectChanges());
-        });
-      } else {
-        // opening fullscreen detail modal fresh
-        this.fullscreenIbGibAddr = item.addr;
-        registerCancelModalOnBackButton(/*modal*/null, /*fnCancel*/ async () => {
-          this.showModal_FullscreenIbGib = false;
-        });
-        setTimeout(() => this.ref.detectChanges());
-      }
+      await this.showModal(item);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -151,15 +135,46 @@ export class TodoAppComponent extends IbgibComponentBase {
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
+  // async handleClick_IbGibItem(item: TodoItem): Promise<void> {
+  //   const lc = `${this.lc}[${this.handleClick_IbGibItem.name}]`;
+  //   try {
+  //     if (logalot) { console.log(`${lc} starting... (I: f439facc2d28403a9bfa25f6143ca8f1)`); }
+  //     if (this.fullscreenIbGibAddr) {
+  //       // user hit escape (probably) and the modal disappeared but we still
+  //       // have this address set. so do setTimeout rigamarole because the
+  //       // javascript event loop doesn't detect when the modal is gone and the
+  //       // fullscreen addr is still populated.
+  //       this.fullscreenIbGibAddr = null;
+  //       setTimeout(() => {
+  //         this.fullscreenIbGibAddr = item.addr;
+  //         setTimeout(() => this.ref.detectChanges());
+  //       });
+  //     } else {
+  //       // opening fullscreen detail modal fresh
+  //       this.fullscreenIbGibAddr = item.addr;
+  //       registerCancelModalOnBackButton(/*modal*/null, /*fnCancel*/ async () => {
+  //         this.showModal_FullscreenIbGib = false;
+  //       });
+  //       setTimeout(() => this.ref.detectChanges());
+  //     }
+  //   } catch (error) {
+  //     console.error(`${lc} ${error.message}`);
+  //     throw error;
+  //   } finally {
+  //     if (logalot) { console.log(`${lc} complete.`); }
+  //   }
+  // }
 
   handleClick_CloseModal(): void {
     const lc = `${this.lc}[${this.handleClick_CloseModal.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: aa14deb245994637a41915d9e0e7f0a7)`); }
-      if (this._fullscreenIbGibAddr) { this.fullscreenIbGibAddr = null; }
-      this.showModal_FullscreenIbGib = false;
-      clearDoCancelModalOnBackButton();
-      setTimeout(() => this.ref.detectChanges());
+      this.closeModal();
+      // if (this._fullscreenIbGibAddr) { this.fullscreenIbGibAddr = null; }
+
+      // this.showModal_FullscreenIbGib = false;
+      // clearDoCancelModalOnBackButton();
+      // setTimeout(() => this.ref.detectChanges());
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -176,7 +191,7 @@ export class TodoAppComponent extends IbgibComponentBase {
       this.fullscreenIbGibAddr = null;
       clearDoCancelModalOnBackButton();
       // spin off navigate after the above js event loop exits
-      if (this.fullscreenIbGibAddr !== this.addr) {
+      if (toAddr !== this.addr) {
         setTimeout(() => { this.go({ toAddr, fromAddr: this.addr, force: true }); });
       }
     } catch (error) {

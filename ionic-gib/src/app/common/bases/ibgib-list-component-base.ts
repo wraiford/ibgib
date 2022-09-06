@@ -56,7 +56,7 @@ export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGib
     skeletonItemsCount: number = 0;
 
     @Input()
-    batchSize: number = 3;
+    batchSize: number = 5;
 
     /**
      * trying this out to let consumer know when items have been added to effect
@@ -328,13 +328,15 @@ export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGib
 
                 for (let i = 0; i < addrsToAdd.length; i++) {
                     const addrToAdd = addrsToAdd[i];
+
                     const cached = await this.common.cache.get({ addr: addrToAdd, addrScope: this.lc });
                     // const cached = this._cachingItems ?
                     //     null :
                     //     await this.common.cache.get({addr: addrToAdd, addrScope: this.lc});
                     let newItem: TItem;
                     if (cached?.other) {
-                        newItem = cached?.other;
+                        newItem = h.clone(cached?.other);
+                        newItem.rel8nName_Context = rel8nName;
                         if (logalot) { console.log(`${lc} found item in cache (I: d61f38fbed6042f98518e47a4edd6f67)`); }
                     } else {
                         // hack: just implemented ionic storage and am reusing it here maybe unnecessarily
@@ -350,7 +352,7 @@ export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGib
                         //         itemsToCache.push(newItem);
                         //     }
                         // } else {
-                        newItem = <TItem>{ addr: addrToAdd };
+                        newItem = <TItem>{ addr: addrToAdd, rel8nName_Context: rel8nName };
                         if (logalot) { console.log(`${lc} queueing item to cache (${addrToAdd}) (I: 0fe55669bfdd74f0cc9714ae96e4a622)`); }
                         itemsToCache.push(newItem);
                         // }

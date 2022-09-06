@@ -275,7 +275,7 @@ export async function validateIonicSpace_V1Intrinsically({ space }: { space: Ion
 export class IonicSpace_V1<
     TData extends IonicSpaceData_V1 = IonicSpaceData_V1,
     TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
-    > extends SpaceBase_V1<
+> extends SpaceBase_V1<
     IbGib_V1,
     IonicSpaceOptionsData,
     IonicSpaceOptionsRel8ns,
@@ -285,7 +285,7 @@ export class IonicSpace_V1<
     IonicSpaceResultIbGib,
     TData,
     TRel8ns
-    > {
+> {
 
     /**
      * Log context for convenience with logging. (Ignore if you don't want to use this.)
@@ -402,8 +402,6 @@ export class IonicSpace_V1<
             if (!this.data.dnaSubPath) { this.data.dnaSubPath = c.IBGIB_DNA_SUBPATH; }
 
             this.ib = getSpaceIb({ space: this, classname: IonicSpace_V1.name });
-
-            console.log(`${lc} this.ib: ${this.ib}`);
         } catch (error) {
             console.error(`${lc} ${error.message}`);
         } finally {

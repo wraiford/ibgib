@@ -1,46 +1,47 @@
-<todo-view [addr]="addr" [activeApp]="activeApp"
-    (ibGibItemClicked)="handleClick_IbGibItem($event)"
-    >
+<todo-view [addr]="addr" [activeApp]="activeApp" (ibGibItemClicked)="handleClick_IbGibItem($event)">
 </todo-view>
 
-<ion-modal #fullscreenIonModal class="fullscreen-modal"
-    [isOpen]="showModal_FullscreenIbGib" [showBackdrop]="true"
-    [animated]="true" [swipeToClose]="true" [keyboardClose]="false">
+<ion-modal #fullscreenIonModal class="fullscreen-modal" [isOpen]="showModal_FullscreenIbGib" [showBackdrop]="true"
+  [animated]="true" [swipeToClose]="true" [keyboardClose]="false">
 
-    <ng-template>
-        <ion-content class="modal-content">
-            <ion-list>
+  <ng-template>
+    <ion-content class="modal-content">
+      <ion-list>
 
-                <!-- title -->
-                <ion-header>
-                    <ion-toolbar>
-                        <ion-buttons slot="start">
-                            <ion-button color="primary" (click)="handleClick_GoToAddr()">
-                                <ion-icon name="navigate-outline"></ion-icon>
-                            </ion-button>
-                        </ion-buttons>
-                        <ion-buttons slot="end">
-                            <ion-button color="primary" (click)="handleClick_CloseModal()">
-                                <ion-icon name="close-outline"></ion-icon>
-                            </ion-button>
-                        </ion-buttons>
-                        <ion-title (click)="handleClick_GoToAddr()">
-                            <ib-item [addr]="fullscreenIbGibAddr" [isTitleOrJustSmall]="true" [hideTimestamp]="true">
-                            </ib-item>
-                        </ion-title>
-                    </ion-toolbar>
-                </ion-header>
+        <!-- title -->
+        <ion-header>
+          <ion-toolbar>
+            <ion-buttons slot="start">
+              <ion-button color="primary" (click)="handleClick_GoToAddr()">
+                <ion-icon name="navigate-outline"></ion-icon>
+              </ion-button>
+            </ion-buttons>
+            <ion-buttons slot="end">
+              <ion-button color="primary" (click)="handleClick_CloseModal()">
+                <ion-icon name="close-outline"></ion-icon>
+              </ion-button>
+            </ion-buttons>
+            <ion-title (click)="handleClick_GoToAddr()">
+              <ib-item [addr]="fullscreenIbGibAddr" [isTitleOrJustSmall]="true" [hideTimestamp]="true">
+              </ib-item>
+            </ion-title>
+          </ion-toolbar>
+        </ion-header>
 
-                <!-- content -->
-                <ib-item class="large-item" [addr]="fullscreenIbGibAddr" [isLarge]="true"></ib-item>
+        <!-- content -->
+        <ib-item class="large-item" [addr]="fullscreenIbGibAddr" [isLarge]="true"></ib-item>
 
-                <ion-footer>
-                    <!-- commands -->
-                    <ib-command-bar [addr]="fullscreenIbGibAddr"></ib-command-bar>
-                </ion-footer>
+        <ion-footer>
+          <!-- commands -->
+          <ib-command-bar
+            [addr]="fullscreenIbGibAddr"
+            [rel8nName_Context]="fullscreenIbGibRel8nName"
+            [ibGib_Context]="ibGib"
+            (dismissMe)="handleModalDismissMe()"></ib-command-bar>
+        </ion-footer>
 
-            </ion-list>
-        </ion-content>
-    </ng-template>
+      </ion-list>
+    </ion-content>
+  </ng-template>
 
 </ion-modal>

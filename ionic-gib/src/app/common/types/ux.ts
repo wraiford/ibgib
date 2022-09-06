@@ -62,6 +62,10 @@ export interface IbGibItem {
      */
     ibGib_Context?: IbGib_V1;
     /**
+     * context.rel8ns[rel8nName] that has this item.
+     */
+    rel8nName_Context?: string;
+    /**
      * type of ibGib per use case in this app.
      *
      * In the future, any comment could conceivably be a tag and thus have

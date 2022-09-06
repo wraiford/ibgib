@@ -247,6 +247,8 @@ export const ROBBOT_REL8N_NAME = 'robbot';
  * by relating the target ibgib to itself via this rel8nName.
  */
 export const DEFAULT_ROBBOT_TARGET_REL8N_NAME = 'x';
+export const ARCHIVE_REL8N_NAME = 'archive';
+export const TRASH_REL8N_NAME = 'trash';
 
 /**
  * wah wah wah...

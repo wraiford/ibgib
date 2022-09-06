@@ -1,6 +1,7 @@
 import {
-    OnInit, OnDestroy, Input, ChangeDetectorRef, Injectable, Directive,
+    OnInit, OnDestroy, Input, ChangeDetectorRef, Injectable, Directive, ViewChild,
 } from '@angular/core';
+import { IonModal } from '@ionic/angular';
 import { Subscription } from 'rxjs';
 
 import * as h from 'ts-gib/dist/helper';
@@ -17,6 +18,7 @@ import { PicData_V1 } from '../types/pic';
 import { IbGibItem, IbGibTimelineUpdateInfo } from '../types/ux';
 import { getInfoFromSpaceIb, isSpaceIb } from '../helper/space';
 import { GetIbGibResult } from '../types/legacy';
+import { registerCancelModalOnBackButton, clearDoCancelModalOnBackButton } from 'src/app/common/helper/utils';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -96,7 +98,44 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     @Input()
     set ibGib_Context(value: IbGib_V1) {
         const lc = `${this.lc}[set ibGib_Context]`;
-        if (this.item?.ibGib_Context) {
+        // if (this.item?.ibGib_Context) {
+        //     console.warn(`${lc} can only set context once.`);
+        //     return; /* <<<< returns early */
+        // }
+        if (!value) {
+            if (logalot) { console.log(`${lc} ignored setting falsy context.`); }
+            return; /* <<<< returns early */
+        }
+        const setContext = () => {
+            if (logalot) { console.log(`${lc} setting context`); }
+            if (this.item) {
+                this.item.ibGib_Context = value;
+                this.ref.detectChanges();
+            } else {
+                console.error(`${lc} attempted to set context to falsy item.`);
+            }
+        };
+        if (this.item) {
+            setContext();
+        } else {
+            // hack in case this gets set in binding before the item does.
+            const now = new Date();
+            let interval = setInterval(() => {
+                if (this.item) {
+                    setContext();
+                    clearInterval(interval);
+                } else {
+                    console.log(`${lc}[${now.toTimeString()}] nope.`);
+                }
+            }, 1000);
+            // setTimeout(() => { setContext(); }, 1000);
+        }
+    }
+    get rel8nName_Context(): string { return this.item?.rel8nName_Context; }
+    @Input()
+    set rel8nName_Context(value: string) {
+        const lc = `${this.lc}[set rel8nName_Context]`;
+        if (this.item?.rel8nName_Context) {
             console.warn(`${lc} can only set context once.`);
             return; /* <<<< returns early */
         }
@@ -107,7 +146,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
         const setContext = () => {
             if (logalot) { console.log(`${lc} setting context`); }
             if (this.item) {
-                this.item.ibGib_Context = value;
+                this.item.rel8nName_Context = value;
                 this.ref.detectChanges();
             } else {
                 console.error(`${lc} attempted to set context to falsy item.`);
@@ -252,6 +291,38 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     @Input()
     hideTimestamp: boolean;
 
+    // #region modal related if component does that...
+
+    @ViewChild('fullscreenIonModal')
+    fullscreenIonModal: IonModal;
+
+    @Input()
+    // get showModal_FullscreenIbGib(): boolean { return !!this.fullscreenIbGibAddr; }
+    showModal_FullscreenIbGib: boolean;
+
+    _fullscreenIbGibAddr: IbGibAddr;
+    @Input()
+    get fullscreenIbGibAddr(): IbGibAddr { return this._fullscreenIbGibAddr; }
+    set fullscreenIbGibAddr(value: IbGibAddr) {
+        if (value) {
+            this._fullscreenIbGibAddr = value;
+        } else {
+            delete this._fullscreenIbGibAddr;
+        }
+        const showModal = !!value;
+        if (showModal) {
+            // need to register the cancel modal if the user presses the back button,
+            // (atow this is consumed in the ibgib.page component that checks to see
+            // if a modal was open at time of back button press)
+        }
+        this.showModal_FullscreenIbGib = showModal;
+    }
+
+    @Input()
+    fullscreenIbGibRel8nName: string;
+
+    // #endregion modal related if component does that...
+
     constructor(
         protected common: CommonService,
         protected ref: ChangeDetectorRef,
@@ -350,6 +421,25 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
 
             await this.cleanAndCacheCurrentItem();
             this.unsubscribeLatest();
+            this.ngOnDestroy_Modal();
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    protected ngOnDestroy_Modal(): void {
+        const lc = `${this.lc}[${this.ngOnDestroy_Modal.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 5665422bec560d11628fafa7a6779222)`); }
+
+            if (this.fullscreenIbGibAddr) {
+                this.fullscreenIbGibAddr = null;
+                delete this.fullscreenIbGibRel8nName;
+            }
+            if (this.fullscreenIonModal) { this.fullscreenIonModal.dismiss(); }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -476,8 +566,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
                 return; /* <<<< returns early */
             }
 
-            this.addr = latestAddr; // triggers `updateIbGib` call
-
+            this.addr = latestAddr; // spins off `updateIbGib` call
         } catch (error) {
             debugger;
             console.error(`${lc} ${error.message}`);
@@ -917,7 +1006,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             const isNewer = (info_latestIbGib.data?.n ?? -1) > (this.ibGib.data?.n ?? -1);
             if (isNewer) {
                 await this.updateIbGib_NewerTimelineFrame(info);
-            } if (info_latestIbGib.gib === this.gib) {
+            } else if (info_latestIbGib.gib === this.gib) {
                 if (logalot) { console.log(`${lc} latest ibgib info is the same as the current. (I: 2e184de2498e205ef692395e2b25d922)`); }
             } else {
                 console.log(`${lc} ignoring "latest" info because it's not newer.\nthis.addr: ${this.addr}\nlatestAddr: ${info.latestAddr} (I: c88d135984c39a2aaefd48620d913b22)`);
@@ -1061,6 +1150,77 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
+
+    // #region modal related commands (should these be here...?)
+
+    async showModal(item: TItem): Promise<void> {
+        const lc = `${this.lc}[${this.showModal.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 5780a3e2a40f4504bb73fdde4c5c7a22)`); }
+
+            if (this.fullscreenIbGibAddr) {
+                // user hit escape (probably) and the modal disappeared but we still
+                // have this address set. so do setTimeout rigamarole because the
+                // javascript event loop doesn't detect when the modal is gone and the
+                // fullscreen addr is still populated.
+                this.fullscreenIbGibAddr = null;
+                delete this.fullscreenIbGibRel8nName;
+                setTimeout(() => {
+                    this.fullscreenIbGibRel8nName = item.rel8nName_Context;
+                    this.fullscreenIbGibAddr = item.addr;
+                    setTimeout(() => this.ref.detectChanges());
+                });
+            } else {
+                // opening fullscreen detail modal fresh
+                this.fullscreenIbGibRel8nName = item.rel8nName_Context;
+                this.fullscreenIbGibAddr = item.addr;
+                registerCancelModalOnBackButton(/*modal*/null, /*fnCancel*/ async () => {
+                    this.showModal_FullscreenIbGib = false;
+                });
+                setTimeout(() => this.ref.detectChanges());
+            }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    async handleModalDismissMe(): Promise<void> {
+        const lc = `${this.lc}[${this.handleModalDismissMe.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 94470f22ebb85e838cb54cd779623522)`); }
+            this.closeModal();
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    closeModal(): void {
+        const lc = `${this.lc}[${this.closeModal.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 4309e36dea46b1553563b98cf9ffcc22)`); }
+            if (this._fullscreenIbGibAddr) {
+                this.fullscreenIbGibAddr = null;
+                delete this.fullscreenIbGibRel8nName;
+            }
+            this.showModal_FullscreenIbGib = false;
+            clearDoCancelModalOnBackButton();
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            setTimeout(() => this.ref.detectChanges());
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    // #endregion modal related commands (should these be here...?)
+
 }
 
 function isRootItem(item: IbGibItem): boolean { return item.ib?.startsWith('root ') || false; }
