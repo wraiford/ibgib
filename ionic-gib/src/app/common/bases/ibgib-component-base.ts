@@ -323,6 +323,18 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
 
     // #endregion modal related if component does that...
 
+    /**
+     * When we update a timeline, this list will grow with the latest addr.
+     *
+     * ## intent
+     *
+     * I'm creating this to keep track of the original address used when
+     * creating a component. This way, if I am opening the component with the
+     * original addr (and not calling a `getLatestAddr` before loading the
+     * component), then I know which one is actually on the original context.
+     */
+    addrs_UpdatePerTimelineHistory: IbGibAddr[] = [];
+
     constructor(
         protected common: CommonService,
         protected ref: ChangeDetectorRef,
@@ -564,6 +576,10 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             if (latestAddr === this.addr) {
                 console.warn(`${lc} (UNEXPECTED) this function is expected to fire only when latest is already checked to be different, but latestAddr (${latestAddr}) === this.addr (${this.addr}) (W: a23c8187caef4308b1d9f85b3aa8bedc)`);
                 return; /* <<<< returns early */
+            }
+
+            if (!this.addrs_UpdatePerTimelineHistory.includes(this.addr)) {
+                this.addrs_UpdatePerTimelineHistory.push(this.addr);
             }
 
             this.addr = latestAddr; // spins off `updateIbGib` call

@@ -1,9 +1,8 @@
 {
-  "name": "app",
-  "short_name": "app",
-  "theme_color": "#1976d2",
+  "name": "ibgib",
+  "short_name": "ibgib",
+  "theme_color": "#47a135",
   "background_color": "#fafafa",
-  "display": "standalone",
   "scope": "./",
   "start_url": "./",
   "icons": [

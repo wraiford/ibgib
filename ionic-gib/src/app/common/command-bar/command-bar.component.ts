@@ -1,30 +1,18 @@
 import {
   Component, OnInit, ChangeDetectorRef,
-  Input, ViewChild, AfterViewInit, EventEmitter, Output, ElementRef,
+  Input, EventEmitter, Output,
 } from '@angular/core';
-import { IonInput, IonText, IonTextarea } from '@ionic/angular';
-import { Capacitor, FilesystemDirectory, FilesystemEncoding, Plugins } from '@capacitor/core';
-const { Modals, Clipboard, Storage, LocalNotifications } = Plugins;
+import { Plugins } from '@capacitor/core';
+const { Clipboard } = Plugins;
 
-import * as h from 'ts-gib/dist/helper';
-import { IbGibAddr, TransformResult, V1 } from 'ts-gib';
-import { IbGibRel8ns_V1, IbGib_V1, isDna, isPrimitive, Rel8n } from 'ts-gib/dist/V1';
+import { IbGibAddr, V1 } from 'ts-gib';
+import { isPrimitive, } from 'ts-gib/dist/V1';
 
 import * as c from '../constants';
 import { CommonService } from '../../services/common.service';
-import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { IbgibComponentBase } from '../bases/ibgib-component-base';
-import { ActionItem, ActionItemName, IbGibItem, IbGibTimelineUpdateInfo } from '../types/ux';
-import { createPicAndBinIbGibsFromInputFilePickedEvent } from '../helper/pic';
-import { createCommentIbGib } from '../helper/comment';
-import { createLinkIbGib } from '../helper/link';
-import { getFnAlert, getFnPrompt } from '../helper/prompt-functions';
-import { getFromSpace, getDependencyGraph, putInSpace } from '../helper/space';
-import { validateIbGibAddr, validateIbGibIntrinsically } from '../helper/validate';
-import { PicIbGib_V1 } from '../types/pic';
-import { BinIbGib_V1 } from '../types/bin';
-import { RawExportIbGib_V1 } from '../types/import-export';
-import { getTimelinesGroupedByTjp, } from '../helper/ibgib';
+import { IbGibTimelineUpdateInfo } from '../types/ux';
+import { getFnAlert } from '../helper/prompt-functions';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false || true;
@@ -45,8 +33,6 @@ export class CommandBarComponent
   public debugBorderColor: string = "#FFAABB";
   public debugBorderStyle: string = "solid";
 
-  private debugInterval: any;
-
   /**
    * Number of tjp timelines that have updates in outer space(s).
    */
@@ -64,14 +50,6 @@ export class CommandBarComponent
 
     const lc = `${this.lc}[ctor]`;
     if (logalot) { console.log(`${lc} addr: ${this.addr}`); }
-    let previousHasContext: boolean;
-    this.debugInterval = setInterval(() => {
-      const hasContext = !!this.ibGib_Context;
-      if (previousHasContext && !hasContext) { debugger; }
-      console.log(`${lc} hasContext: ${hasContext}, previousHasContext: ${previousHasContext}`);
-      previousHasContext = hasContext;
-    }, 100);
-
   }
 
   async ngOnInit(): Promise<void> {
@@ -91,10 +69,6 @@ export class CommandBarComponent
     const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 5be3d9febce6afc68c26ab85f1cc2922)`); }
-      if (this.debugInterval) {
-        clearInterval(this.debugInterval);
-        delete this.debugInterval;
-      }
       await super.ngOnDestroy();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -109,15 +83,15 @@ export class CommandBarComponent
     if (logalot) { console.log(`${lc} updating...`); }
     try {
       let contextIbGib = this.ibGib_Context;
+      let contextRel8nName = this.rel8nName_Context;
       await super.updateIbGib(addr);
       await this.loadIbGib();
       await this.updateCommands();
 
       // reinstate the context ibgib...
       // major kluge here but I'm tired...
-      if (this.updatingTimeline) {
-        this.ibGib_Context = contextIbGib;
-      }
+      this.ibGib_Context = contextIbGib;
+      this.rel8nName_Context = contextRel8nName;
 
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);
@@ -154,21 +128,7 @@ export class CommandBarComponent
       hasContext = !!this.ibGib_Context;
       console.log(`${lc} hasContext after update newer timeline: ${hasContext}`);
 
-      // // cheap double-check assertion
-      // if (latestAddr === this.addr) {
-      //     console.warn(`${lc} (UNEXPECTED) this function is expected to fire only when latest is already checked to be different, but latestAddr (${latestAddr}) === this.addr (${this.addr}) (W: a23c8187caef4308b1d9f85b3aa8bedc)`);
-      //     return; /* <<<< returns early */
-      // }
-
-      // let debug = false;
-      // // if (this.ibGib_Context) { debug = true; debugger; }
-      // const context = this.ibGib_Context;
-      // this.addr = latestAddr; // triggers `updateIbGib` call
-      // // if (debug) { debugger; }
-      // this.ibGib_Context = context;
-
     } catch (error) {
-      debugger;
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
@@ -181,6 +141,30 @@ export class CommandBarComponent
     try {
       if (logalot) { console.log(`${lc} starting... (I: 096e74b5bd7c267c029e6ce9a0db0622)`); }
 
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  getLinkActuallyRel8edToContext(): IbGibAddr {
+    const lc = `${this.lc}[${this.getLinkActuallyRel8edToContext.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 6fe6c99f3dbdce50ad657034248fe222)`); }
+
+      let actualAddrLinkedToContext: IbGibAddr;
+      let addrsToCheck = [this.addr, ...this.addrs_UpdatePerTimelineHistory];
+      for (let i = 0; i < addrsToCheck.length; i++) {
+        const addrToCheck = addrsToCheck[i];
+        if (this.ibGib_Context.rel8ns[this.rel8nName_Context].includes(addrToCheck)) {
+          actualAddrLinkedToContext = addrToCheck;
+          break;
+        }
+      }
+      if (!actualAddrLinkedToContext) { throw new Error(`actual addr linked to context not found. edge case? (E: 60a7a3be83fbb3fdf965814b7b553e22)`); }
+      return actualAddrLinkedToContext;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -246,12 +230,15 @@ export class CommandBarComponent
       if (!this.ibGib) { throw new Error(`this.ibGib required (E: 0ad4bdac05034ae8bca650d485332633)`); }
       if (!this.ibGib_Context) { throw new Error(`this.ibGib_Context required (E: 4b9abfa9c45b4dd0b3ef63f3e33f8ef0)`); }
 
+      // need to get the address actually associated with the context, which may
+      // be in the past. this is not perfect but what can ya do.
+      const addr = this.getLinkActuallyRel8edToContext();
+
       const resNewContext = await V1.rel8({
         src: this.ibGib_Context,
-        rel8nsToAddByAddr: { [c.ARCHIVE_REL8N_NAME]: [this.addr] },
-        rel8nsToRemoveByAddr: { [this.rel8nName_Context]: [this.addr] },
+        rel8nsToAddByAddr: { [c.ARCHIVE_REL8N_NAME]: [addr] },
+        rel8nsToRemoveByAddr: { [this.rel8nName_Context]: [addr] },
         dna: true,
-        linkedRel8ns: [Rel8n.past],
         nCounter: true,
       });
 
@@ -275,12 +262,15 @@ export class CommandBarComponent
       if (!this.ibGib) { throw new Error(`this.ibGib required (E: 560031890368435c97c609c21ca44b0c)`); }
       if (!this.ibGib_Context) { throw new Error(`this.ibGib_Context required (E: 78908f20be7265f3987d408508dcad22)`); }
 
+      // need to get the address actually associated with the context, which may
+      // be in the past. this is not perfect but what can ya do.
+      const addr = this.getLinkActuallyRel8edToContext();
+
       const resNewContext = await V1.rel8({
         src: this.ibGib_Context,
-        rel8nsToAddByAddr: { [c.TRASH_REL8N_NAME]: [this.addr] },
-        rel8nsToRemoveByAddr: { [this.rel8nName_Context]: [this.addr] },
+        rel8nsToAddByAddr: { [c.TRASH_REL8N_NAME]: [addr] },
+        rel8nsToRemoveByAddr: { [this.rel8nName_Context]: [addr] },
         dna: true,
-        linkedRel8ns: [Rel8n.past],
         nCounter: true,
       });
 
@@ -296,15 +286,15 @@ export class CommandBarComponent
     }
   }
 
-  async loadItemPrimaryProperties(addr: IbGibAddr, item?: IbGibItem): Promise<void> {
-    const lc = `${this.lc}[${this.loadItemPrimaryProperties.name}]`;
-    try {
-      await super.loadItemPrimaryProperties(addr, item);
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
+  // async loadItemPrimaryProperties(addr: IbGibAddr, item?: IbGibItem): Promise<void> {
+  //   const lc = `${this.lc}[${this.loadItemPrimaryProperties.name}]`;
+  //   try {
+  //     await super.loadItemPrimaryProperties(addr, item);
+  //   } catch (error) {
+  //     console.error(`${lc} ${error.message}`);
+  //     throw error;
+  //   } finally {
+  //     if (logalot) { console.log(`${lc} complete.`); }
+  //   }
+  // }
 }
