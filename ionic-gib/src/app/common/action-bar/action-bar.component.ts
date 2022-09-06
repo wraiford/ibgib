@@ -111,6 +111,23 @@ export class ActionBarComponent extends IbgibComponentBase
    */
   @Input()
   actionDetailLinkText: string;
+  @Input()
+  get linkTextIsValid(): boolean {
+    // could do a regex but i'm just doing some simplified checking here.
+    const text = (this.actionDetailLinkText ?? '').trimEnd();
+    const includesADot = text.includes('.');
+    const doesntEndWithDot = !text.endsWith('.');
+    const hasNoLineBreaks = !text.includes('\n');
+    let isValidHttpsUrl: boolean;
+    try {
+      const url = new URL(this.actionDetailLinkText);
+      isValidHttpsUrl = url.protocol === 'https:';
+    } catch (error) {
+      isValidHttpsUrl = false;
+    }
+    return isValidHttpsUrl && includesADot && hasNoLineBreaks && doesntEndWithDot;
+  }
+
   /**
    * Text bound do import ibgib addr detail.
    */
@@ -120,8 +137,8 @@ export class ActionBarComponent extends IbgibComponentBase
   @ViewChild('textareaComment')
   textareaComment: IonTextarea;
 
-  @ViewChild('inputLink')
-  inputLink: IonInput;
+  @ViewChild('textareaLink')
+  textareaLink: IonTextarea;
 
   @ViewChild('inputImport')
   inputImport: IonTextarea;
@@ -250,7 +267,13 @@ export class ActionBarComponent extends IbgibComponentBase
       actionItem.busy = true;
 
       await h.delay(this.debounceMs + 50); // to allow for debounce in binding
-      const text = this.actionDetailCommentText; // already trimmed
+      let text = this.actionDetailCommentText ?? ''; // already trimmed
+      while (text.endsWith('\n')) {
+        text = text.slice(0, text.length - 1);
+        text.trimEnd();
+      }
+      if (!text) { console.log(`${lc} text is empty.`); return; /* <<<< returns early */ }
+
 
       const space = await this.common.ibgibs.getLocalUserSpace({ lock: true });
       const resCommentIbGib = await createCommentIbGib({
@@ -278,11 +301,13 @@ export class ActionBarComponent extends IbgibComponentBase
     } catch (error) {
       console.error(`${lc} ${error.message}`)
     } finally {
-      this.sending = false;
       this.actionDetailCommentText = '';
       this.focusDetail();
       if (actionItem) { actionItem.busy = false; }
       this.ref.detectChanges();
+      // hack to try to minimize still showing comment text very briefly after sending...
+      // not a big deal i don't think
+      setTimeout(() => { this.sending = false; this.ref.detectChanges(); }, 500);
     }
   }
 
@@ -301,6 +326,11 @@ export class ActionBarComponent extends IbgibComponentBase
 
       await h.delay(this.debounceMs + 50); // to allow for debounce in binding
       const text = this.actionDetailLinkText; // already trimmed
+      if (!this.linkTextIsValid) {
+        const emsg = `Link text is invalid. it has to be a regular link that starts with https, like "https://ibgib.space"`;
+        await (getFnAlert()({ title: 'doh', msg: emsg }));
+        throw new Error(`${emsg} (E: d8532b4212b7e528bef384d81f9b5722)`);
+      }
 
       const space = await this.common.ibgibs.getLocalUserSpace({ lock: true });
       const resLinkIbGib = await createLinkIbGib({
@@ -328,11 +358,18 @@ export class ActionBarComponent extends IbgibComponentBase
     } catch (error) {
       console.error(`${lc} ${error.message}`)
     } finally {
-      this.sending = false;
       this.actionDetailLinkText = '';
       this.focusDetail();
       if (actionItem) { actionItem.busy = false; }
       this.ref.detectChanges();
+      // hack to try to minimize still showing comment text very briefly after sending...
+      // not a big deal i don't think
+      setTimeout(() => { this.sending = false; this.ref.detectChanges(); }, 500);
+      // this.actionDetailLinkText = '';
+      // this.focusDetail();
+      // if (actionItem) { actionItem.busy = false; }
+      // this.sending = false;
+      // this.ref.detectChanges();
     }
   }
 
@@ -912,11 +949,11 @@ export class ActionBarComponent extends IbgibComponentBase
       if (!doAutoFocus && !force) { return; }
 
       if (this.actionDetailMode === 'comment') {
-        setTimeout(() => this.textareaComment.setFocus());
+        setTimeout(() => this.textareaComment?.setFocus());
       } else if (this.actionDetailMode === 'link') {
-        setTimeout(() => this.inputLink?.setFocus());
+        setTimeout(() => this.textareaLink?.setFocus());
       } else if (this.actionDetailMode === 'import') {
-        setTimeout(() => this.inputImport.setFocus());
+        setTimeout(() => this.inputImport?.setFocus());
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -932,7 +969,7 @@ export class ActionBarComponent extends IbgibComponentBase
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       if (this.textareaComment) { this.textareaComment.value = ''; }
-      if (this.inputLink) { this.inputLink.value = ''; }
+      if (this.textareaLink) { this.textareaLink.value = ''; }
       if (this.inputImport) { this.inputImport.value = ''; }
       this.actionDetailCommentText = '';
       this.actionDetailLinkText = '';
