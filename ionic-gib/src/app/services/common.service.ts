@@ -1,4 +1,4 @@
-import { AlertController, MenuController, ModalController, Platform, } from '@ionic/angular';
+import { AlertController, LoadingController, MenuController, ModalController, Platform, } from '@ionic/angular';
 import { Injectable, Inject, } from '@angular/core';
 
 import { Gib, IbGibAddr } from 'ts-gib';
@@ -99,6 +99,7 @@ export class CommonService {
     public cache: InMemoryIbgibCacheService,
     public getLatestCache: IonicStorageLatestIbgibCacheService,
     public menuCtrl: MenuController,
+    public loadingCtrl: LoadingController,
   ) {
 
   }

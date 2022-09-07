@@ -1,7 +1,7 @@
 import {
   AfterViewInit, Component, Input, OnDestroy, OnInit
 } from '@angular/core';
-import { ModalController } from '@ionic/angular';
+import { LoadingController, ModalController } from '@ionic/angular';
 import { AlertController } from '@ionic/angular';
 
 import { IbGibAddr, TransformResult } from 'ts-gib';
@@ -11,7 +11,7 @@ import * as h from 'ts-gib/dist/helper';
 import * as c from '../../constants';
 import { CommonService } from '../../../services/common.service';
 import { SyncSpaceData_AWSDynamoDB } from '../../witnesses/spaces/aws-dynamo-space-v1';
-import { EncryptionData_V1, SecretIbGib_V1 } from '../../types/encryption';
+import { CiphertextIbGib_V1, EncryptionData_V1, SecretIbGib_V1 } from '../../types/encryption';
 import { FormItemInfo } from '../../../ibgib-forms/types/form-items';
 import { OuterSpaceIbGib, OuterSpaceType, SyncSpaceSubtype, AWSRegion, VALID_OUTER_SPACE_TYPES, VALID_OUTER_SPACE_SUBTYPES, OuterSpaceData, OuterSpaceRel8ns } from '../../types/outer-space';
 import { getFnPromptPassword_AlertController } from '../../helper/prompt-functions';
@@ -218,15 +218,17 @@ export class OuterspaceModalFormComponent
 
   constructor(
     protected common: CommonService,
+    protected loadingCtrl: LoadingController,
     protected alertController: AlertController,
   ) {
-    super(common);
+    super(common, loadingCtrl);
   }
 
   async ngOnInit(): Promise<void> {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
     if (logalot) { console.log(`${this.lc}`); }
     await super.ngOnInit();
+    this.skipLoadingSpinnerOnCreate = true;
   }
 
   async ngAfterViewInit(): Promise<void> {
@@ -296,6 +298,7 @@ export class OuterspaceModalFormComponent
 
   async createSyncSpace_AWSDynamoDB(): Promise<TransformResult<OuterSpaceIbGib>> {
     const lc = `${this.lc}[${this.createSyncSpace_AWSDynamoDB.name}]`;
+    let refLoading: HTMLIonLoadingElement;
     try {
       // prompt for the secret(s)
       const password = await this.common.ibgibs.getPasswordForSecrets({
@@ -307,6 +310,9 @@ export class OuterspaceModalFormComponent
       });
 
       if (!password) { return undefined; }
+
+      refLoading = await this.common.loadingCtrl.create({ message: `creating...` });
+      await refLoading.present();
 
       // create the info
       const uuid = await h.getUUID();
@@ -336,16 +342,25 @@ export class OuterspaceModalFormComponent
       };
 
       // create the ciphertext ibgib, encrypting with the encryption and secret(s)
-      const resCiphertext =
-        await this.common.ibgibs.getCiphertextIbGib({
-          plaintext: JSON.stringify(syncSpaceData),
-          password,
-          encryptionIbGib: this.encryption,
-          confirm: true,
-          persist: true,
-          // publicIbMetadata: `outerspace sync ${this.name}`,
-          // publicMetadata: { name: this.name, description: this.description, },
-        });
+      const refLoading_encrypting = await this.common.loadingCtrl.create({ message: `creating encrypted private info...` });
+      let resCiphertext: TransformResult<CiphertextIbGib_V1>;
+      try {
+        await refLoading_encrypting.present();
+        resCiphertext =
+          await this.common.ibgibs.getCiphertextIbGib({
+            plaintext: JSON.stringify(syncSpaceData),
+            password,
+            encryptionIbGib: this.encryption,
+            confirm: true,
+            persist: true,
+            // publicIbMetadata: `outerspace sync ${this.name}`,
+            // publicMetadata: { name: this.name, description: this.description, },
+          });
+      } catch (error) {
+        throw error;
+      } finally {
+        await refLoading_encrypting.dismiss();
+      }
 
       // create the outerspace ibgib, rel8ing to the ciphertext ibgib
       const resOuterSpace = await factory.firstGen({
@@ -371,6 +386,8 @@ export class OuterspaceModalFormComponent
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
+    } finally {
+      if (refLoading) { await refLoading.dismiss(); }
     }
   }
 

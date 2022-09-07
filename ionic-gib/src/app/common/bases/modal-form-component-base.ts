@@ -1,5 +1,7 @@
-import { Injectable, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { IonContent } from '@ionic/angular';
+import { Directive, Injectable, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { IonContent, LoadingController } from '@ionic/angular';
+
+import * as h from 'ts-gib/dist/helper';
 
 import * as c from '../constants';
 import { CommonService } from '../../services/common.service';
@@ -14,7 +16,8 @@ export type ModalContext = 'create' | 'edit';
  *
  * Does NOT save this ibGib in any space(s) at present.
  */
-@Injectable()
+// @Injectable()
+@Directive()
 export abstract class ModalFormComponentBase<TDataOut> implements OnInit, OnDestroy {
 
   protected lc: string = `[${ModalFormComponentBase.name}]`;
@@ -54,8 +57,11 @@ export abstract class ModalFormComponentBase<TDataOut> implements OnInit, OnDest
   @Input()
   isReadonly: boolean;
 
+  protected skipLoadingSpinnerOnCreate = false;
+
   constructor(
     protected common: CommonService,
+    protected loadingCtrl: LoadingController,
   ) { }
 
   async ngOnInit(): Promise<void> {
@@ -71,6 +77,7 @@ export abstract class ModalFormComponentBase<TDataOut> implements OnInit, OnDest
 
   async handleSaveClick(): Promise<void> {
     const lc = `${this.lc}[${this.handleSaveClick.name}]`;
+    let refLoading: HTMLIonLoadingElement;
     try {
       if (logalot) { console.log(`${lc}`); }
       this.showHelp = false;
@@ -80,10 +87,18 @@ export abstract class ModalFormComponentBase<TDataOut> implements OnInit, OnDest
         return;
       }
 
+      if (!this.skipLoadingSpinnerOnCreate) {
+        refLoading = await this.common.loadingCtrl.create({ message: `creating...` });
+        await refLoading.present();
+        await h.delay(200); // so the user can see what's happening but not too long to be annoying
+      }
       const data = await this.createImpl();
+      await h.delay(1000);
       await this.common.modalController.dismiss(data);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
+    } finally {
+      if (refLoading) { await refLoading.dismiss(); }
     }
   }
 

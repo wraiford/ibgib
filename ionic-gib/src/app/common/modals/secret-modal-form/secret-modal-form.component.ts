@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component, Input, OnDestroy, OnInit } from '@angular/core';
-import { ModalController } from '@ionic/angular';
+import { LoadingController, ModalController } from '@ionic/angular';
 
 import { IbGib_V1, Factory_V1 as factory, IbGibRel8ns_V1 } from 'ts-gib/dist/V1';
 
@@ -57,7 +57,7 @@ export class SecretModalFormComponent
   @Input()
   hint: string;
   @Input()
-  expirationUTC: string = getExpirationUTCString({years: 1});
+  expirationUTC: string = getExpirationUTCString({ years: 1 });
 
   @Input()
   validationErrors: string[] = [];
@@ -74,7 +74,7 @@ export class SecretModalFormComponent
       description: "It's a name for the secret. Make it short with only letters, underscores and hyphens.",
       label: "Name (public)",
       placeholder: `e.g. "default_password". brief_name-hyphensOK_32charMax`,
-      regexp: getRegExp({min: 1, max: 32, chars: '-', noSpaces: true}),
+      regexp: getRegExp({ min: 1, max: 32, chars: '-', noSpaces: true }),
       required: true,
     },
     description: {
@@ -82,7 +82,7 @@ export class SecretModalFormComponent
       description: `Optional description/notes for this secret. You can use this and/or hint. Only letters, underscores and ${c.SAFE_SPECIAL_CHARS}`,
       label: "Description (public)",
       placeholder: `Description/notes for this secret. Can use this and/or hint. Only letters, underscores and ${c.SAFE_SPECIAL_CHARS}`,
-      regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
+      regexp: getRegExp({ min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS }),
     },
     secretType: {
       name: "secretType",
@@ -132,7 +132,7 @@ export class SecretModalFormComponent
       label: "Hint (public)",
       description: "Optional hint for your use as you see fit",
       placeholder: "Optional...",
-      regexp: getRegExp({min: 1, max: 50, chars: c.SAFE_SPECIAL_CHARS}),
+      regexp: getRegExp({ min: 1, max: 50, chars: c.SAFE_SPECIAL_CHARS }),
       defaultErrorMsg: `Optional hint must contain letters, numbers and ${c.SAFE_SPECIAL_CHARS}`,
       private: true,
     },
@@ -144,8 +144,9 @@ export class SecretModalFormComponent
 
   constructor(
     protected common: CommonService,
+    protected loadingCtrl: LoadingController,
   ) {
-    super(common);
+    super(common, loadingCtrl);
   }
 
   async ngOnInit(): Promise<void> {
@@ -192,18 +193,18 @@ export class SecretModalFormComponent
     const lc = `${this.lc}[${this.createSecret_Password.name}]`;
     try {
       // already been validated
-      const hash16816_SHA256 = await hash16816({s: this.userPassword, algorithm: 'SHA-256'});
+      const hash16816_SHA256 = await hash16816({ s: this.userPassword, algorithm: 'SHA-256' });
       let data: SecretInfo_Password = {
         name: this.name,
         description: this.description,
-        expirationUTC: getExpirationUTCString({years: 1}),
+        expirationUTC: getExpirationUTCString({ years: 1 }),
         type: 'password',
         hint: this.hint,
         hash16816_SHA256,
       };
 
       const resCreate = await factory.firstGen({
-        parentIbGib: factory.primitive({ib: 'secret'}),
+        parentIbGib: factory.primitive({ ib: 'secret' }),
         ib: `secret password ${this.name}`,
         data,
         dna: false,

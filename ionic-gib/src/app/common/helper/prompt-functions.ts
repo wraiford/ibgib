@@ -162,8 +162,6 @@ export function getFn_promptCreateSecretIbGib(
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
             return undefined;
-        } finally {
-
         }
     }
 }

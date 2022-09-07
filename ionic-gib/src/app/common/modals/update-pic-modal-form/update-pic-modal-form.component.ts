@@ -13,6 +13,7 @@ import { createPicAndBinIbGibsFromInputFilePickedEvent } from '../../helper/pic'
 import { CommonService } from '../../../services/common.service';
 import { IbGibSpaceAny } from '../../witnesses/spaces/space-base-v1';
 import { getRegExp } from '../../helper/utils';
+import { LoadingController } from '@ionic/angular';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -49,7 +50,7 @@ export class UpdatePicModalFormComponent
     return this._picIbGib;
   }
   set picIbGib(ibGib: PicIbGib_V1) {
-    this.initialize({ibGib});
+    this.initialize({ ibGib });
   }
 
   /**
@@ -70,7 +71,7 @@ export class UpdatePicModalFormComponent
       description: "It's the filename for the pic (excluding the dot + extension). Make it short with only letters, underscores and hyphens.",
       label: "Name",
       placeholder: `e.g. "my_super_picture_name"`,
-      regexp: getRegExp({min: 1, max: 1024, chars: c.FILENAME_SPECIAL_CHARS, noSpaces: false}),
+      regexp: getRegExp({ min: 1, max: 1024, chars: c.FILENAME_SPECIAL_CHARS, noSpaces: false }),
       readonly: true,
     },
     extension: {
@@ -78,7 +79,7 @@ export class UpdatePicModalFormComponent
       description: "It's the extension part of the filename (the part that comes after the last dot).",
       label: "Extension",
       placeholder: `e.g. "jpg"`,
-      regexp: getRegExp({min: 1, max: 8, chars: '-', noSpaces: true}),
+      regexp: getRegExp({ min: 1, max: 8, chars: '-', noSpaces: true }),
       readonly: true,
     },
     binHash: {
@@ -148,9 +149,9 @@ export class UpdatePicModalFormComponent
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
+    protected loadingCtrl: LoadingController,
   ) {
-    super(common);
-
+    super(common, loadingCtrl);
     // this.addNewImageField();
   }
 
@@ -169,7 +170,7 @@ export class UpdatePicModalFormComponent
       this.initializing = true;
 
       this._picIbGib = ibGib;
-      this.addr = ibGib ? h.getIbGibAddr({ibGib}) : undefined;
+      this.addr = ibGib ? h.getIbGibAddr({ ibGib }) : undefined;
       this.name = ibGib.data.filename;
       this.extension = ibGib.data.ext;
       this.binHash = ibGib.data.binHash;
@@ -251,7 +252,7 @@ export class UpdatePicModalFormComponent
         noTimestamp: true,
       });
 
-      const binAddr = h.getIbGibAddr({ibGib: this.resCreateBin.newIbGib});
+      const binAddr = h.getIbGibAddr({ ibGib: this.resCreateBin.newIbGib });
       const resRel8Bin = <TransformResult<PicIbGib_V1>>await V1.rel8({
         src: resMut8DataAndIb.newIbGib,
         // linkedRel8ns: [c.BINARY_REL8N_NAME],
@@ -312,7 +313,7 @@ export class UpdatePicModalFormComponent
       }
       this.handlingInputFileClick = true;
 
-      const space = await this.common.ibgibs.getLocalUserSpace({lock: true});
+      const space = await this.common.ibgibs.getLocalUserSpace({ lock: true });
 
       // create the pic (and all other dependency ibgibs), but do not save yet.
       // we will save when the user chooses save update.
@@ -353,14 +354,14 @@ export class UpdatePicModalFormComponent
       const data = newPicIbGib.data;
       const binIbGib = this.resCreateBin.newIbGib;
       this.updatedItem = {
-        addr: h.getIbGibAddr({ibGib: newPicIbGib}),
+        addr: h.getIbGibAddr({ ibGib: newPicIbGib }),
         binExt: data.ext,
         binId: data.binHash,
         filenameWithExt: `${data.filename || data.binHash}.${data.ext}`,
         ib: newPicIbGib.ib,
         gib: newPicIbGib.gib,
         timestamp: data.timestamp,
-        text: data.filename ?? `pic ${newPicIbGib.gib.slice(0,5)}...`, // no idea why I'm setting this in loadPic
+        text: data.filename ?? `pic ${newPicIbGib.gib.slice(0, 5)}...`, // no idea why I'm setting this in loadPic
         ibGib: newPicIbGib,
         type: 'pic',
         picSrc: `data:image/jpeg;base64,${binIbGib.data!}`,

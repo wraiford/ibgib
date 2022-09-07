@@ -1,5 +1,5 @@
 import { Component, Input, OnDestroy, OnInit } from '@angular/core';
-import { IonContent, ModalController } from '@ionic/angular';
+import { IonContent, LoadingController, ModalController } from '@ionic/angular';
 
 import { IbGib_V1, Factory_V1 as factory } from 'ts-gib/dist/V1';
 
@@ -35,7 +35,7 @@ export class EncryptionModalFormComponent
       description: "It's a name for the secret. Make it short with only letters, underscores and hyphens.",
       label: "Name (public)",
       placeholder: `e.g. "my_enc-hyphensOK_32charMax"`,
-      regexp: getRegExp({min: 1, max: 32, chars: '-', noSpaces: true}),
+      regexp: getRegExp({ min: 1, max: 32, chars: '-', noSpaces: true }),
       required: true,
     },
     description: {
@@ -43,7 +43,7 @@ export class EncryptionModalFormComponent
       description: `Description/notes for this encryption.`,
       label: "Description (public)",
       placeholder: `Describe these encryption settings here...`,
-      regexp: getRegExp({min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS}),
+      regexp: getRegExp({ min: 0, max: 155, chars: c.SAFE_SPECIAL_CHARS }),
     },
     method: {
       name: "method",
@@ -120,7 +120,7 @@ export class EncryptionModalFormComponent
   @Input()
   hashAlgorithm: HashAlgorithm = 'SHA-256';
   @Input()
-  expirationUTC: string = getExpirationUTCString({years: 1});
+  expirationUTC: string = getExpirationUTCString({ years: 1 });
 
   @Input()
   validationErrors: string[] = [];
@@ -134,8 +134,9 @@ export class EncryptionModalFormComponent
 
   constructor(
     protected common: CommonService,
+    protected loadingCtrl: LoadingController,
   ) {
-    super(common);
+    super(common, loadingCtrl);
   }
 
   protected async createImpl(): Promise<TransformResult<EncryptionIbGib>> {
@@ -184,7 +185,7 @@ export class EncryptionModalFormComponent
       };
 
       const resCreate = await factory.firstGen({
-        parentIbGib: factory.primitive({ib: 'secret'}),
+        parentIbGib: factory.primitive({ ib: 'secret' }),
         ib: `encryption ${this.method} ${this.name}`,
         data,
         dna: false,
