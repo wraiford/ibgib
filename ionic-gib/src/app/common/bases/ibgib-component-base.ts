@@ -42,8 +42,16 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     public debugBorderColor: string = "green";
     public debugBorderStyle: string = "solid";
 
+    /**
+     * Apparently stuff is still trying to bind after being destroyed, so I'm
+     * throwing this flag in here.
+     */
+    protected _destroyed = false;
+
     private _updatingIbGib: boolean;
     public get updatingIbGib(): boolean { return this._updatingIbGib; }
+
+
 
     // private _addr: IbGibAddr;
     get addr(): IbGibAddr { return this.item?.addr; }
@@ -112,20 +120,26 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
                 this.item.ibGib_Context = value;
                 this.ref.detectChanges();
             } else {
-                console.error(`${lc} attempted to set context to falsy item.`);
+                console.error(`${lc} attempted to set context to falsy item. (E: 35f1e42c06684a5d90443e2a758d4a07)`);
             }
         };
         if (this.item) {
             setContext();
         } else {
             // hack in case this gets set in binding before the item does.
-            const now = new Date();
-            let interval = setInterval(() => {
+            const start = new Date();
+            setTimeout(() => {
                 if (this.item) {
                     setContext();
-                    clearInterval(interval);
+                    // clearInterval(interval);
                 } else {
-                    console.log(`${lc}[${now.toTimeString()}] nope.`);
+                    // debugger;
+                    const now = new Date();
+                    if (this._destroyed) {
+                        if (logalot) { console.log(`${lc}[${start}][${now.toTimeString()}] this.item is false but we've been destroyed (I: 9661881c60724930b3bc5a5224049a19)`); }
+                    } else {
+                        console.warn(`${lc}[${start}][${now.toTimeString()}] this.item is still false? (W: 592a2b97b3d540e29c55d119379b4776)`);
+                    }
                 }
             }, 1000);
             // setTimeout(() => { setContext(); }, 1000);
@@ -135,8 +149,8 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     @Input()
     set rel8nName_Context(value: string) {
         const lc = `${this.lc}[set rel8nName_Context]`;
-        if (this.item?.rel8nName_Context) {
-            console.warn(`${lc} can only set context once.`);
+        if (this.item?.rel8nName_Context && value) {
+            if (!this._destroyed) { console.warn(`${lc} can only set context once. (W: d619effab73b4699a43d04e3eadef946)`); }
             return; /* <<<< returns early */
         }
         if (!value) {
@@ -149,7 +163,11 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
                 this.item.rel8nName_Context = value;
                 this.ref.detectChanges();
             } else {
-                console.error(`${lc} attempted to set context to falsy item.`);
+                if (this._destroyed) {
+                    if (logalot) { console.log(`${lc} attempted to set context to falsy item, but we've been destroyed. (I: 0b3a9a9e4106513e0249bf1e45b06d22)`); }
+                } else {
+                    console.warn(`${lc} attempted to set context to falsy item. (W: 0b3a9a9e4106513e0249bf1e45b06d22)`);
+                }
             }
         };
         if (this.item) {
@@ -431,6 +449,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
         try {
             if (logalot) { console.log(`${lc} starting...`); }
 
+
             await this.cleanAndCacheCurrentItem();
             this.unsubscribeLatest();
             this.ngOnDestroy_Modal();
@@ -438,6 +457,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             console.error(`${lc} ${error.message}`);
             throw error;
         } finally {
+            this._destroyed = true;
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
@@ -617,7 +637,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             }
         }
         if (!item) {
-            console.warn(`${lc} item is undefined/null`);
+            if (!this._destroyed) { console.warn(`${lc} item is undefined/null (W: ed017cc4349d4e9e90aaabe173a0703a)`); }
             return; /* <<<< returns early */
         }
         if (item.addr) {

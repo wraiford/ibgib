@@ -73,6 +73,18 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
     }
   }
 
+  @Input()
+  // get appUniqueId(): string { return this.common.ibgibs.instanceId; }
+  appUniqueId: string;
+
+  get lastAppStorageKey(): string {
+    const lc = `${this.lc}[lastAppStorageKey]`;
+    if (!this.appUniqueId) {
+      console.warn(`${lc} appUniqueId not set... (W: 795736a7baf64e09a23ae157d62cd7fb)`);
+    }
+    return c.SIMPLE_CONFIG_KEY_APP_SELECTED + this.appUniqueId;
+  }
+
   @ViewChild('appName')
   appNameIonSelect: IonSelect;
 
@@ -85,6 +97,20 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
 
   ) {
     super(common, ref);
+  }
+
+  async ngOnInit(): Promise<void> {
+    const lc = `${this.lc}[${this.ngOnInit.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: e8ea3c75930815e1a463c04d8f4ffc22)`); }
+      this.appUniqueId = await h.getUUID();
+      await super.ngOnInit();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
@@ -146,7 +172,7 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
       this.apps = await this.common.ibgibs.getAppAppIbGibs({ createIfNone: false }) ?? [];
       if (this.apps?.length > 0) {
         this.appNames = this.apps.map(r => r.data.name);
-        let lastSelectedAppId = (await Storage.get({ key: c.SIMPLE_CONFIG_KEY_APP_SELECTED }))?.value;
+        let lastSelectedAppId = (await Storage.get({ key: this.lastAppStorageKey }))?.value;
         if (lastSelectedAppId && this.apps.some(x => x.data?.uuid === lastSelectedAppId)) {
           this.selectedApp = this.apps.filter(x => x.data?.uuid === lastSelectedAppId)[0];
         } else {
@@ -177,7 +203,7 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
 
         if (this.selectedApp?.data.uuid !== appIbGib.data.uuid) {
           console.log(`new app selected. (I: eb3a8ca5a54a4fc8915931bd3ed19c8e)`);
-          await Storage.set({ key: c.SIMPLE_CONFIG_KEY_APP_SELECTED, value: appIbGib.data.uuid });
+          await Storage.set({ key: this.lastAppStorageKey, value: appIbGib.data.uuid });
           this.selectedApp = appIbGib; // emits appSelected event
         } else {
           if (logalot) { console.log(`${lc} same app selected (I: 18e45c4819dc4a4c8cc20c1b138b59e3)`); }
@@ -282,4 +308,5 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
+
 }

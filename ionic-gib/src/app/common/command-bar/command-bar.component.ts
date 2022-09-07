@@ -15,7 +15,7 @@ import { IbGibTimelineUpdateInfo } from '../types/ux';
 import { getFnAlert } from '../helper/prompt-functions';
 
 
-const logalot = c.GLOBAL_LOG_A_LOT || false || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
@@ -69,6 +69,7 @@ export class CommandBarComponent
     const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 5be3d9febce6afc68c26ab85f1cc2922)`); }
+      debugger;
       await super.ngOnDestroy();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -84,6 +85,7 @@ export class CommandBarComponent
     try {
       let contextIbGib = this.ibGib_Context;
       let contextRel8nName = this.rel8nName_Context;
+      if (!this.item) { debugger; }
       await super.updateIbGib(addr);
       await this.loadIbGib();
       await this.updateCommands();

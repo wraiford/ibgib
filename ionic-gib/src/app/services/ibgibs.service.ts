@@ -159,7 +159,7 @@ export class IbgibsService {
   // we won't get an object back, only a DTO ibGib essentially
   private lc: string = `[${IbgibsService.name}]`;
 
-  private _instanceId: string;
+  instanceId: string;
 
   private _initialized: boolean;
   get initialized(): boolean { return this._initialized; }
@@ -210,7 +210,7 @@ export class IbgibsService {
           zeroSpace: this.zeroSpace,
           bootstrapIbGib,
           lock,
-          callerInstanceId: this._instanceId,
+          callerInstanceId: this.instanceId,
           localSpaceId,
           fnDtoToSpace: (spaceDto: IbGib_V1<AppSpaceData, AppSpaceRel8ns>) => {
             return Promise.resolve(IonicSpace_V1.createFromDto(spaceDto));
@@ -306,7 +306,7 @@ export class IbgibsService {
             bootstrapIbGib,
             lock,
             localSpaceId,
-            callerInstanceId: this._instanceId,
+            callerInstanceId: this.instanceId,
             fnDtoToSpace: (spaceDto: IbGib_V1<AppSpaceData, AppSpaceRel8ns>) => {
               return Promise.resolve(IonicSpace_V1.createFromDto(spaceDto));
             },
@@ -430,8 +430,8 @@ export class IbgibsService {
     private latestCacheSvc: IonicStorageLatestIbgibCacheService,
   ) {
     const lc = `${this.lc}[ctor]`;
-    if (logalot) { console.log(`${lc} doodle `); }
     if (logalot) { console.log(`${lc}${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
+    console.log(`${lc} created.`);
   }
 
   async initialize({
@@ -451,7 +451,7 @@ export class IbgibsService {
   }): Promise<void> {
     const lc = `${this.lc}[${this.initialize.name}]`;
     try {
-      this._instanceId = await h.getUUID();
+      this.instanceId = await h.getUUID();
 
       this.fnPromptSecret = fnPromptSecret;
       this.fnPromptEncryption = fnPromptEncryption;
@@ -554,7 +554,7 @@ export class IbgibsService {
           scope: bootstrapAddr,
           secondsValid: c.DEFAULT_SECONDS_VALID_LOCAL,
           fn: () => { return getValidatedBootstrapIbGib({ zeroSpace }); },
-          callerInstanceId: this._instanceId,
+          callerInstanceId: this.instanceId,
         });
         if (logalot) { console.log(`${lc} got bootstrap ibgib with locking from zero space.`) }
       } else {

@@ -389,7 +389,7 @@ export class AppComponent extends IbgibComponentBase
   async ngOnDestroy(): Promise<void> {
     const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
     try {
-      if (logalot) { console.log(`${lc} starting...`); }
+      console.log(`${lc} starting...`);
 
       this.unsubscribeParamMap();
 
@@ -398,7 +398,7 @@ export class AppComponent extends IbgibComponentBase
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
+      console.log(`${lc} complete.`);
     }
   }
 
