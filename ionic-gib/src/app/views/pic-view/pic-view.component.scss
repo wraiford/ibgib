@@ -4,6 +4,14 @@
   overflow: hidden;
 }
 
+.title-div {
+  ion-thumbnail {
+    // not sure why, but this is necessary for the swiper when title is a pic with multiple
+    // pics (thus the swiper)
+    height: auto;
+  }
+}
+
 ion-card {
   width: 96%;
   display: flex;
