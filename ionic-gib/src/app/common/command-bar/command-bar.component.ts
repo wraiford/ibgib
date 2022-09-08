@@ -149,29 +149,6 @@ export class CommandBarComponent
     }
   }
 
-  getLinkActuallyRel8edToContext(): IbGibAddr {
-    const lc = `${this.lc}[${this.getLinkActuallyRel8edToContext.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting... (I: 6fe6c99f3dbdce50ad657034248fe222)`); }
-
-      let actualAddrLinkedToContext: IbGibAddr;
-      let addrsToCheck = [this.addr, ...this.addrs_UpdatePerTimelineHistory];
-      for (let i = 0; i < addrsToCheck.length; i++) {
-        const addrToCheck = addrsToCheck[i];
-        if (this.ibGib_Context.rel8ns[this.rel8nName_Context].includes(addrToCheck)) {
-          actualAddrLinkedToContext = addrToCheck;
-          break;
-        }
-      }
-      if (!actualAddrLinkedToContext) { throw new Error(`actual addr linked to context not found. edge case? (E: 60a7a3be83fbb3fdf965814b7b553e22)`); }
-      return actualAddrLinkedToContext;
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
 
   async handleClick_Refresh(): Promise<void> {
     const lc = `${this.lc}[${this.handleClick_Refresh.name}]`;
@@ -232,7 +209,7 @@ export class CommandBarComponent
 
       // need to get the address actually associated with the context, which may
       // be in the past. this is not perfect but what can ya do.
-      const addr = this.getLinkActuallyRel8edToContext();
+      const addr = this.getAddrActuallyRel8edToContext();
 
       const resNewContext = await V1.rel8({
         src: this.ibGib_Context,
@@ -264,18 +241,24 @@ export class CommandBarComponent
 
       // need to get the address actually associated with the context, which may
       // be in the past. this is not perfect but what can ya do.
-      const addr = this.getLinkActuallyRel8edToContext();
+      const addr = this.getAddrActuallyRel8edToContext();
 
-      const resNewContext = await V1.rel8({
-        src: this.ibGib_Context,
-        rel8nsToAddByAddr: { [c.TRASH_REL8N_NAME]: [addr] },
-        rel8nsToRemoveByAddr: { [this.rel8nName_Context]: [addr] },
-        dna: true,
-        nCounter: true,
+      await this.common.ibgibs.trash({
+        ibGib_Context: this.ibGib_Context,
+        rel8nName_Context: this.rel8nName_Context,
+        addr
       });
 
-      await this.common.ibgibs.persistTransformResult({ resTransform: resNewContext });
-      await this.common.ibgibs.registerNewIbGib({ ibGib: resNewContext.newIbGib });
+      // const resNewContext = await V1.rel8({
+      //   src: this.ibGib_Context,
+      //   rel8nsToAddByAddr: { [c.TRASH_REL8N_NAME]: [addr] },
+      //   rel8nsToRemoveByAddr: { [this.rel8nName_Context]: [addr] },
+      //   dna: true,
+      //   nCounter: true,
+      // });
+
+      // await this.common.ibgibs.persistTransformResult({ resTransform: resNewContext });
+      // await this.common.ibgibs.registerNewIbGib({ ibGib: resNewContext.newIbGib });
 
       this.dismissMe.emit();
     } catch (error) {

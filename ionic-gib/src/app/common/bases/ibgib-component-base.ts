@@ -133,7 +133,6 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
                     setContext();
                     // clearInterval(interval);
                 } else {
-                    // debugger;
                     const now = new Date();
                     if (this._destroyed) {
                         if (logalot) { console.log(`${lc}[${start}][${now.toTimeString()}] this.item is false but we've been destroyed (I: 9661881c60724930b3bc5a5224049a19)`); }
@@ -604,7 +603,6 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
 
             this.addr = latestAddr; // spins off `updateIbGib` call
         } catch (error) {
-            debugger;
             console.error(`${lc} ${error.message}`);
             throw error;
         } finally {
@@ -1051,7 +1049,6 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
                 await this.common.ibgibs.registerNewIbGib({ ibGib: this.ibGib });
             }
         } catch (error) {
-            debugger;
             console.error(`${lc} ${error.message}`);
             this.errored = true;
         } finally {
@@ -1257,6 +1254,34 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
 
     // #endregion modal related commands (should these be here...?)
 
+    getAddrActuallyRel8edToContext(ibGib_Context?: IbGib_V1, rel8nName_Context?: string): IbGibAddr {
+        const lc = `${this.lc}[${this.getAddrActuallyRel8edToContext.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 6fe6c99f3dbdce50ad657034248fe222)`); }
+
+            ibGib_Context = ibGib_Context ?? this.ibGib_Context;
+            if (!ibGib_Context) { throw new Error(`ibGib_Context required (E: 7dafa435fe34304bbb54c5b119fdf522)`); }
+            rel8nName_Context = rel8nName_Context ?? this.rel8nName_Context;
+            if (!rel8nName_Context) { throw new Error(`rel8nName_Context required (E: 4bb7a49e24b65e5dd7b8da8881165622)`); }
+
+            let actualAddrLinkedToContext: IbGibAddr;
+            let addrsToCheck = [this.addr, ...this.addrs_UpdatePerTimelineHistory];
+            for (let i = 0; i < addrsToCheck.length; i++) {
+                const addrToCheck = addrsToCheck[i];
+                if (ibGib_Context.rel8ns[rel8nName_Context].includes(addrToCheck)) {
+                    actualAddrLinkedToContext = addrToCheck;
+                    break;
+                }
+            }
+            if (!actualAddrLinkedToContext) { throw new Error(`actual addr linked to context not found. edge case? (E: 60a7a3be83fbb3fdf965814b7b553e22)`); }
+            return actualAddrLinkedToContext;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
 }
 
 function isRootItem(item: IbGibItem): boolean { return item.ib?.startsWith('root ') || false; }

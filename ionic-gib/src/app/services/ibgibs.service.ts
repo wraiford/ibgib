@@ -53,7 +53,9 @@ import {
   getConfigAddr, setConfigAddr, setCurrentRoot, rel8ToCurrentRoot,
   rel8ToSpecialIbGib, registerNewIbGib, persistTransformResult, getFromSpace,
   putInSpace, deleteFromSpace, getDependencyGraph, getLatestAddrs, getTjpIbGib,
-  getSpecialIbGib, getSpecialRel8dIbGibs, /*createRobbotIbGib, */ GetDependencyGraphOptions, getInfoFromSpaceIb,
+  getSpecialIbGib, getSpecialRel8dIbGibs, /*createRobbotIbGib, */
+  GetDependencyGraphOptions, getInfoFromSpaceIb,
+  trash, archive,
 } from '../common/helper/space';
 import { spaceNameIsValid } from '../common/helper/validate';
 import { groupBy } from '../common/helper/utils';
@@ -771,6 +773,82 @@ export class IbgibsService {
     }
   }
 
+  async trash({
+    ibGib_Context,
+    rel8nName_Context,
+    addr,
+    space,
+  }: {
+    ibGib_Context: IbGib_V1,
+    rel8nName_Context: IbGibAddr,
+    addr: IbGibAddr,
+    space?: IbGibSpaceAny,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.trash.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 4cf73be6e3294124a78a4a45368bfbcc)`); }
+      if (!ibGib_Context) { throw new Error(`ibGib_Context required (E: 09dd5e5a9f784953a42d70b1827ba442)`); }
+      if (!rel8nName_Context) { throw new Error(`rel8nName_Context required (E: cb6edaaac586773b08fd18855fc11322)`); }
+      if (!addr) { throw new Error(`addr required (E: 14f27805749c499098cebc0b1b11bc57)`); }
+
+      space = space ?? await this.getLocalUserSpace({});
+      if (!space) { throw new Error(`space falsy and localUserSpace not initialized (E: f81574e3437a4b88acd044b2abdc1ae4)`); }
+
+      return trash({
+        ibGib_Context,
+        rel8nName_Context,
+        addr,
+        space,
+        zeroSpace: this.zeroSpace,
+        fnBroadcast: (x) => this.fnBroadcast(x),
+        fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
+      });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async archive({
+    ibGib_Context,
+    rel8nName_Context,
+    addr,
+    space,
+  }: {
+    ibGib_Context: IbGib_V1,
+    rel8nName_Context: IbGibAddr,
+    addr: IbGibAddr,
+    space?: IbGibSpaceAny,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.archive.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 785b44dbb7b048cb8c210a907b73b4c8)`); }
+      if (!ibGib_Context) { throw new Error(`ibGib_Context required (E: dc277b47aa4f42118ad14bfc817bf1d5)`); }
+      if (!rel8nName_Context) { throw new Error(`rel8nName_Context required (E: 87bd7ffa820645e9bdfb17fc726249ba)`); }
+      if (!addr) { throw new Error(`addr required (E: f6ce4e1325c84aa9b3da31c5b9dcc787)`); }
+
+      space = space ?? await this.getLocalUserSpace({});
+      if (!space) { throw new Error(`space falsy and localUserSpace not initialized (E: d6e0b1618eec400e820de6ac37491d39)`); }
+
+      return archive({
+        ibGib_Context,
+        rel8nName_Context,
+        addr,
+        space,
+        zeroSpace: this.zeroSpace,
+        fnBroadcast: (x) => this.fnBroadcast(x),
+        fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
+      });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
   // #endregion
 
   /**
@@ -1179,7 +1257,6 @@ export class IbgibsService {
             // we tried to use cache but it wasn't there, so put it for the next time.
             if (logalot) { console.log(`${lc} putting in getLatest cache (I: 5f264edf03940a0f7e72252fd6fe0d22)`); }
             console.log(`${lc} putting in getLatest cache (I: 5f264edf03940a0f7e72252fd6fe0d22)`);
-            // debugger;
             setTimeout(async () => {
               await this.latestCacheSvc.put({
                 addr: latestAddr,
@@ -3452,5 +3529,7 @@ export class IbgibsService {
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
+
+
 
 }

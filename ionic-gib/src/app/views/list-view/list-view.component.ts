@@ -8,6 +8,7 @@ import { IbGibItem, IbGibListItem, IbGibTimelineUpdateInfo } from '../../common/
 import { CommonService } from '../../services/common.service';
 import { IonCheckbox, IonContent, IonInfiniteScroll } from '@ionic/angular';
 import { IbgibScrollingListComponentBase } from 'src/app/common/bases/ibgib-scrolling-list-component-base';
+import { IbgibComponentBase } from 'src/app/common/bases/ibgib-component-base';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -27,12 +28,13 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
    * Can't just use 'click', 'ibclicked' etc because already taken.
    */
   @Output()
-  ibListClicked = new EventEmitter<IbGibItem>();
+  ibListItemClicked = new EventEmitter<IbGibItem>();
 
   @Output()
-  ibListItemSwipedRight = new EventEmitter<IbGibItem>();
+  ibListItemSwipedRight = new EventEmitter<[IbGibItem, IbgibComponentBase]>();
+
   @Output()
-  ibListItemSwipedLeft = new EventEmitter<IbGibItem>();
+  ibListItemSwipedLeft = new EventEmitter<[IbGibItem, IbgibComponentBase]>();
 
   /**
    * if checkboxes visible, this event is fired when checked/unchecked.
@@ -81,9 +83,7 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
       if (logalot) { console.log(`${lc} starting... (I: 159dff8460f9cf2349348dfce3ca3c22)`); }
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
 
-      console.log(lc);
-
-      if (!this.stopClickPropagation) { this.ibListClicked.emit(item); }
+      if (!this.stopClickPropagation) { this.ibListItemClicked.emit(item); }
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -99,9 +99,7 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
       if (logalot) { console.log(`${lc} starting... (I: 20960b2388d64cebb8b7827df3763fe1)`); }
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
 
-      console.log(lc);
-
-      if (!this.stopClickPropagation) { this.ibListClicked.emit(item); }
+      if (!this.stopClickPropagation) { this.ibListItemSwipedRight.emit([item, itemRef]); }
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -117,9 +115,7 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
       if (logalot) { console.log(`${lc} starting... (I: 99ac71b79b2441e1b586ae631d63c80e)`); }
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
 
-      console.log(lc);
-
-      if (!this.stopClickPropagation) { this.ibListClicked.emit(item); }
+      if (!this.stopClickPropagation) { this.ibListItemSwipedLeft.emit([item, itemRef]); }
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -134,7 +130,7 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
       if (logalot) { console.log(`${lc} starting... (I: 159dff8460f9cf2349348dfce3ca3c22)`); }
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
 
-      if (!this.stopClickPropagation) { this.ibListClicked.emit(item); }
+      if (!this.stopClickPropagation) { this.ibListItemClicked.emit(item); }
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);

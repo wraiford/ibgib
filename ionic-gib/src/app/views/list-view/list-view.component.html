@@ -10,9 +10,11 @@
         [addr]='item.addr'
         [isTodo]="isTodo"
         [ibOmni]="itemRef"
+        [ibGib_Context]="ibGib"
+        [rel8nName_Context]="item.rel8nName_Context"
         (omniClick)="handleOmniIbItemClicked(item, itemRef)"
         (omniSwipeRight)="handleOmniIbItemSwipeRight(item, itemRef)"
-        (omniSwipeLeft)="handleOmniIbItemSwipeRight(item, itemRef)"
+        (omniSwipeLeft)="handleOmniIbItemSwipeLeft(item, itemRef)"
         [style.border-color]="debugBorderColor"
         [style.border-width]="debugBorderWidth"
         [style.border-style]="debugBorderStyle"

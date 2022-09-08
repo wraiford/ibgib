@@ -3664,3 +3664,105 @@ export interface GetDependencyGraphOptions {
      */
     mapTjpAddrToLatestAddrsInSpace?: { [tjpAddr: string]: IbGibAddr }
 }
+
+export async function trash({
+    ibGib_Context,
+    rel8nName_Context,
+    addr,
+    space,
+    zeroSpace,
+    fnUpdateBootstrap,
+    fnBroadcast,
+}: {
+    ibGib_Context: IbGib_V1,
+    rel8nName_Context: string,
+    addr: IbGibAddr,
+    space: IbGibSpaceAny,
+    zeroSpace: IbGibSpaceAny,
+    fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
+    fnBroadcast?: (info: IbGibTimelineUpdateInfo) => void,
+}): Promise<void> {
+    const lc = `[${trash.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 2dc486bb2d516e4534f437aaf5ec7f22)`); }
+        if (!ibGib_Context) { throw new Error(`ibGib_Context required (E: 75f7bfa93145d6dffe85d488443ca722)`); }
+        if (!rel8nName_Context) { throw new Error(`rel8nName_Context required (E: 12aaa43de9e34b68b25dc9a2a68ad6b9)`); }
+        if (!addr) { throw new Error(`addr required (E: e27df3bdc5a2554697cc9597afc4e422)`); }
+        if (!space) { throw new Error(`space required (E: 2e3562486ed2956a770ed9e8d77a3f22)`); }
+
+        const resNewContext = await V1.rel8({
+            src: ibGib_Context,
+            rel8nsToAddByAddr: { [c.TRASH_REL8N_NAME]: [addr] },
+            rel8nsToRemoveByAddr: { [rel8nName_Context]: [addr] },
+            dna: true,
+            nCounter: true,
+        });
+
+        await persistTransformResult({ resTransform: resNewContext, space });
+        if (fnBroadcast && fnUpdateBootstrap) {
+            await registerNewIbGib({
+                ibGib: resNewContext.newIbGib,
+                fnBroadcast,
+                fnUpdateBootstrap,
+                zeroSpace,
+                space,
+            });
+        };
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+export async function archive({
+    ibGib_Context,
+    rel8nName_Context,
+    addr,
+    space,
+    zeroSpace,
+    fnUpdateBootstrap,
+    fnBroadcast,
+}: {
+    ibGib_Context: IbGib_V1,
+    rel8nName_Context: string,
+    addr: IbGibAddr,
+    space: IbGibSpaceAny,
+    zeroSpace: IbGibSpaceAny,
+    fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
+    fnBroadcast?: (info: IbGibTimelineUpdateInfo) => void,
+}): Promise<void> {
+    const lc = `[${archive.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 38098552b830495187299bb24fcddff0)`); }
+        if (!ibGib_Context) { throw new Error(`ibGib_Context required (E: d819e8c4db5b4c0bb721300ba434cd40)`); }
+        if (!rel8nName_Context) { throw new Error(`rel8nName_Context required (E: de061adff8c04429a211aa09116a532d)`); }
+        if (!addr) { throw new Error(`addr required (E: 7059ebb8ef6149ea94e22f961d6b5c81)`); }
+        if (!space) { throw new Error(`space required (E: e19566f2d42347798621447edcae312e)`); }
+
+        const resNewContext = await V1.rel8({
+            src: ibGib_Context,
+            rel8nsToAddByAddr: { [c.ARCHIVE_REL8N_NAME]: [addr] },
+            rel8nsToRemoveByAddr: { [rel8nName_Context]: [addr] },
+            dna: true,
+            nCounter: true,
+        });
+
+        await persistTransformResult({ resTransform: resNewContext, space });
+        if (fnBroadcast && fnUpdateBootstrap) {
+            await registerNewIbGib({
+                ibGib: resNewContext.newIbGib,
+                fnBroadcast,
+                fnUpdateBootstrap,
+                zeroSpace,
+                space,
+            });
+        };
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}

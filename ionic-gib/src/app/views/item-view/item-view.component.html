@@ -3,6 +3,8 @@
   *ngIf='item?.type === "root"'
   class='root-item'
   [addr]='addr'
+  [ibGib_Context]="ibGib_Context"
+  [rel8nName_Context]="rel8nName_Context"
   [isTodo]="isTodo"
   [isTitleOrJustSmall]='isTitleOrJustSmall'
   [hideTimestamp]="hideTimestamp"
@@ -22,6 +24,8 @@
   *ngIf='item?.type === "pic"'
   class='pic-item'
   [addr]='addr'
+  [ibGib_Context]="ibGib_Context"
+  [rel8nName_Context]="rel8nName_Context"
   [isTodo]="isTodo"
   [isTitleOrJustSmall]='isTitleOrJustSmall'
   [hideTimestamp]="hideTimestamp"
@@ -41,6 +45,8 @@
   *ngIf='item?.type === "comment"'
   class='comment-item'
   [addr]='addr'
+  [ibGib_Context]="ibGib_Context"
+  [rel8nName_Context]="rel8nName_Context"
   [isTodo]="isTodo"
   [isTitleOrJustSmall]='isTitleOrJustSmall'
   [hideTimestamp]="hideTimestamp"
@@ -60,6 +66,8 @@
   *ngIf='item?.type === "link"'
   class='link-item'
   [addr]='addr'
+  [ibGib_Context]="ibGib_Context"
+  [rel8nName_Context]="rel8nName_Context"
   [isTodo]="isTodo"
   [isTitleOrJustSmall]='isTitleOrJustSmall'
   [hideTimestamp]="hideTimestamp"
@@ -80,6 +88,8 @@
   *ngIf='item?.type === "tag"'
   class='list-item tag-item'
   [addr]='addr'
+  [ibGib_Context]="ibGib_Context"
+  [rel8nName_Context]="rel8nName_Context"
   [isTodo]="isTodo"
   [isTitleOrJustSmall]='isTitleOrJustSmall'
   [hideTimestamp]="hideTimestamp"
@@ -99,6 +109,8 @@
   *ngIf='!itemTypes.includes(item?.type)'
   class='list-item'
   [addr]='addr'
+  [ibGib_Context]="ibGib_Context"
+  [rel8nName_Context]="rel8nName_Context"
   [isTodo]="isTodo"
   [isTitleOrJustSmall]='isTitleOrJustSmall'
   [hideTimestamp]="hideTimestamp"

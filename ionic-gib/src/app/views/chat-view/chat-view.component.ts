@@ -11,6 +11,7 @@ import { IbGibItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
 import { IbgibListComponentBase } from '../../common/bases/ibgib-list-component-base';
 import { ListViewComponent } from '../list-view/list-view.component';
 import { ChatApp_V1 } from 'src/app/common/witnesses/apps/chat-app-v1';
+import { IbgibComponentBase } from 'src/app/common/bases/ibgib-component-base';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -68,7 +69,6 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
       if (logalot) { console.log(`${lc} starting...`); }
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
 
-      console.log(lc);
 
       this.ibGibItemClicked.emit(item);
 
@@ -84,15 +84,13 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
     }
   }
 
-  async handleSwipeRight_ListItem(item: IbGibItem): Promise<void> {
+  async handleSwipeRight_ListItem([item, itemRef]: [IbGibItem, IbgibComponentBase]): Promise<void> {
     const lc = `${this.lc}[${this.handleSwipeRight_ListItem.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
 
-      console.log(lc);
-
-      this.ibGibItemSwipedRight.emit(item);
+      this.ibGibItemSwipedRight.emit([item, itemRef]);
 
       // await this.go({
       //   toAddr: item.addr,
@@ -106,15 +104,13 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
     }
   }
 
-  async handleSwipeLeft_ListItem(item: IbGibItem): Promise<void> {
+  async handleSwipeLeft_ListItem([item, itemRef]: [IbGibItem, IbgibComponentBase]): Promise<void> {
     const lc = `${this.lc}[${this.handleSwipeLeft_ListItem.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
 
-      console.log(lc);
-
-      this.ibGibItemSwipedLeft.emit(item);
+      this.ibGibItemSwipedLeft.emit([item, itemRef]);
 
       // await this.go({
       //   toAddr: item.addr,

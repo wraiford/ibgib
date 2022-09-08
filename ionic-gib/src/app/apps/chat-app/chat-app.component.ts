@@ -116,8 +116,58 @@ export class ChatAppComponent extends IbgibComponentBase implements OnInit, OnDe
     const lc = `${this.lc}[${this.handleClick_IbGibItem.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: bdb22ba5a75aa9ed93659595913cc822)`); }
-      console.log(lc);
+      await this.showModal(item);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleSwipeRight_IbGibItem([item, itemRef]: [ChatItem, IbgibComponentBase]): Promise<void> {
+    const lc = `${this.lc}[${this.handleSwipeRight_IbGibItem.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 17fd57c103c5459695ba34dcd8539c0c)`); }
       // await this.showModal(item);
+
+      // need to get the address actually associated with the context, which may
+      // be in the past. this is not perfect but what can ya do.
+      // very ugly right now, not solved. state of ibgib/context binding with
+      // list/items eesh.
+      const ibGib_Context = this.ibGib;
+      const { rel8nName_Context } = item;
+      const addr = itemRef.getAddrActuallyRel8edToContext(ibGib_Context, rel8nName_Context);
+
+      await this.common.ibgibs.trash({
+        ibGib_Context: this.ibGib,
+        rel8nName_Context: item.rel8nName_Context,
+        addr
+      });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+  async handleSwipeLeft_IbGibItem([item, itemRef]: [ChatItem, IbgibComponentBase]): Promise<void> {
+    const lc = `${this.lc}[${this.handleSwipeLeft_IbGibItem.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: aa5c4bde7b6e4387aab577b9c82c938d)`); }
+      // need to get the address actually associated with the context, which may
+      // be in the past. this is not perfect but what can ya do.
+      // very ugly right now, not solved. state of ibgib/context binding with
+      // list/items eesh.
+      const ibGib_Context = this.ibGib;
+      const { rel8nName_Context } = item;
+      const addr = itemRef.getAddrActuallyRel8edToContext(ibGib_Context, rel8nName_Context);
+
+      await this.common.ibgibs.archive({
+        ibGib_Context: this.ibGib,
+        rel8nName_Context: item.rel8nName_Context,
+        addr
+      });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

@@ -49,7 +49,6 @@ export class ClickAnimationDirective extends AnimationWithGestureDirectiveBase {
         const lc = `${this.lc}[${this.initializeAnimation.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: ccd34399d335dc7d5a5b0af8de867f22)`); }
-            // debugger;
 
             this.animation =
                 this.animationCtrl.create()

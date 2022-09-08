@@ -58,6 +58,19 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
     @Input()
     cmd_MinDeltaXYDeadzone: number = 10;
 
+    @Input()
+    swipeRight_WeakColor: string = 'rgba(245, 0, 53, 0.1)';
+    @Input()
+    swipeRight_StrongColor: string = 'rgba(245, 0, 53, 1)';
+    @Input()
+    swipeLeft_WeakColor: string = 'rgba(16, 12, 228, 0.1)';
+    @Input()
+    swipeLeft_StrongColor: string = 'rgba(0, 12, 245, 1)';
+    @Input()
+    swipeNeutral_WeakColor: string = 'transparent';
+    @Input()
+    swipeNeutral_StrongColor: string = 'grey';
+
     /**
      * this is how long the animation plays when executing a command.
      *
@@ -98,7 +111,6 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
         const lc = `${this.lc}[${this.initializeAnimation.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 7ce3a7e8f64c416c8f912550992eec8f)`); }
-            // debugger;
 
             this.animation =
                 this.animationCtrl.create()
@@ -146,7 +158,6 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
     protected onStart(detail: GestureDetail): boolean | void {
         const lc = `${this.lc}[${this.onStart.name}]`;
         try {
-            console.log(lc)
             if (logalot) { console.log(`${lc} starting... (I: 9c5ca6a1637a41fda3c4c1512da28ba0)`); }
 
             if (this.animating) {
@@ -154,23 +165,6 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
                 return; /* <<<< returns early */
             }
 
-            // this._startTime = Date.now();
-
-            /**
-             * If after this delay the gesture is not cancelled, then we begin animating.
-             */
-            // const delayMs = 300;
-            // setTimeout(() => {
-            //     if (this.aborting) {
-            //         if (logalot) { console.log(`${lc} aborting is true. returning early (I: c3e34b0e6d8b8a470257b90f44214322)`); }
-            //         return; /* <<<< returns early */
-
-            //     } else {
-            //         this.animating = true;
-            //         this.animation.direction('alternate').play();
-            //     }
-
-            // }, delayMs);
             this.aborting = false;
 
             this.animating = true;
@@ -204,9 +198,6 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
 
             const { deltaX, deltaY } = detail;
             const { abs } = Math;
-
-            // this._endTime = Date.now();
-
 
             // if it hasn't moved much and the click is fast enough, emit the click event
             // const deltaMs = this._endTime - this._startTime;
@@ -282,27 +273,27 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
                 // cmd is trash
                 if (abs(deltaX) < abs(this.cmd_MinDeltaXYExecute)) {
                     // slightly displaced, indicate maybe cmd
-                    borderColor = 'rgba(245, 0, 53, 0.73)';
-                    backgroundColor = 'rgba(245, 0, 53, 0.33)';
+                    borderColor = this.swipeRight_StrongColor;
+                    backgroundColor = this.swipeRight_WeakColor;
                 } else {
                     // very displaced, indicate cmd will exec on end gesture
-                    borderColor = 'red';
-                    backgroundColor = 'red';
+                    borderColor = this.swipeRight_StrongColor;
+                    backgroundColor = this.swipeRight_StrongColor;
                 }
             } else if (deltaX < 0 && abs(deltaX) > this.cmd_MinDeltaXYDeadzone) {
                 // cmd is archive
                 if (abs(deltaX) < abs(this.cmd_MinDeltaXYExecute)) {
                     // slightly displaced, indicate maybe cmd
-                    borderColor = 'rgba(16, 12, 228, 0.7)';
-                    backgroundColor = 'rgba(16, 12, 228, 0.2)';
+                    borderColor = this.swipeLeft_StrongColor;
+                    backgroundColor = this.swipeLeft_WeakColor;
                 } else {
                     // very displaced, indicate cmd will exec on end gesture
-                    borderColor = 'rgba(0, 12, 245, 1)';
-                    backgroundColor = 'rgba(0, 12, 245, 1)';
+                    borderColor = this.swipeLeft_StrongColor;
+                    backgroundColor = this.swipeLeft_StrongColor;
                 }
             } else {
-                backgroundColor = 'transparent';
-                borderColor = 'grey';
+                backgroundColor = this.swipeNeutral_WeakColor;
+                borderColor = this.swipeNeutral_StrongColor;
             }
 
             style.backgroundColor = backgroundColor;
@@ -320,10 +311,9 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
         try {
             if (logalot) { console.log(`${lc} starting... (I: 6e260c36f67ef44fb3f6378d5a27c422)`); }
 
-            const { deltaX, deltaY, startX, currentX } = detail;
+            const { deltaX } = detail;
             // ty https://www.javascripttutorial.net/javascript-dom/javascript-width-height/
             const remainingX = this.el.nativeElement.getBoundingClientRect().width;
-            const { abs } = Math;
 
             const animation =
                 this.animationCtrl.create()
@@ -350,7 +340,6 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
 
             const { deltaX, deltaY, startX, currentX } = detail;
             // const remainingX = window.innerWidth - this.el.nativeElement.left - deltaX;
-            // debugger;
             const remainingX = this.el.nativeElement.getBoundingClientRect().width;
             const { abs } = Math;
 
@@ -363,7 +352,7 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
                     .fromTo('opacity', '1', '0.2');
             await animation.play();
             this.el.nativeElement.style.display = 'none';
-            this.omniSwipeRight.emit();
+            this.omniSwipeLeft.emit();
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
