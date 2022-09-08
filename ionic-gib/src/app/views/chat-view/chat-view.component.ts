@@ -67,7 +67,55 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
+
+      console.log(lc);
+
       this.ibGibItemClicked.emit(item);
+
+      // await this.go({
+      //   toAddr: item.addr,
+      //   fromAddr: h.getIbGibAddr({ ibGib: this.ibGib_Context }),
+      // });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleSwipeRight_ListItem(item: IbGibItem): Promise<void> {
+    const lc = `${this.lc}[${this.handleSwipeRight_ListItem.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
+
+      console.log(lc);
+
+      this.ibGibItemSwipedRight.emit(item);
+
+      // await this.go({
+      //   toAddr: item.addr,
+      //   fromAddr: h.getIbGibAddr({ ibGib: this.ibGib_Context }),
+      // });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleSwipeLeft_ListItem(item: IbGibItem): Promise<void> {
+    const lc = `${this.lc}[${this.handleSwipeLeft_ListItem.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
+
+      console.log(lc);
+
+      this.ibGibItemSwipedLeft.emit(item);
+
       // await this.go({
       //   toAddr: item.addr,
       //   fromAddr: h.getIbGibAddr({ ibGib: this.ibGib_Context }),

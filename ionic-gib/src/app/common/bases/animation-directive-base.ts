@@ -53,7 +53,11 @@ export abstract class AnimationDirectiveBase
      */
     protected abstract initializeAnimation(): Promise<void>;
 
-    protected async abortAnimation(): Promise<void> {
+    protected async abortAnimation({
+        reverse,
+    }: {
+        reverse?: boolean,
+    } = { reverse: true }): Promise<void> {
         const lc = `${this.lc}[${this.abortAnimation.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: ffa1f9a733d15c2e35a8e18c02aa3422)`); }
@@ -66,7 +70,7 @@ export abstract class AnimationDirectiveBase
             if (this.animation.isRunning) { this.animation.stop(); }
 
             if (this.animating) {
-                await this.animation.direction('reverse').play();
+                if (reverse) { await this.animation.direction('reverse').play(); }
                 this.animation.stop();
             } else {
                 if (logalot) { console.log(`${lc} animation already stopped. (I: 5b6257af45d4b8e504073324128f9c22)`); }

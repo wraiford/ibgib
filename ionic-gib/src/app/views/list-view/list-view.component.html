@@ -9,13 +9,17 @@
       <ib-item #itemRef
         [addr]='item.addr'
         [isTodo]="isTodo"
-        [ibClickAnimation]="itemRef"
-        (ibItemClicked)='handleIbItemClicked(item, itemRef)'
+        [ibOmni]="itemRef"
+        (omniClick)="handleOmniIbItemClicked(item, itemRef)"
+        (omniSwipeRight)="handleOmniIbItemSwipeRight(item, itemRef)"
+        (omniSwipeLeft)="handleOmniIbItemSwipeRight(item, itemRef)"
         [style.border-color]="debugBorderColor"
         [style.border-width]="debugBorderWidth"
         [style.border-style]="debugBorderStyle"
         [ngClass]="{'item-done':item.checked}"
         >
+        <!-- [ibClickAnimation]="itemRef" -->
+        <!-- (ibItemClicked)='handleIbItemClicked(item, itemRef)' -->
       </ib-item>
       <ion-checkbox *ngIf="isTodo" [checked]="item.checked" (ionChange)="handleCheckboxChange_Secondary($event, item, i)"></ion-checkbox>
     </ion-item>

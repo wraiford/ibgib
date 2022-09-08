@@ -112,6 +112,8 @@ export class ItemViewComponent extends IbgibComponentBase<IbGibListItem> {
       if (logalot) { console.log(`${lc} item: ${JSON.stringify(item, null, 2)}`); }
       if (!this.childComponent) { throw new Error(`this.childComponent falsy (E: 7f11dc3ce9a5bdc0b8da033b53d41822)`); }
 
+      console.log(lc);
+
       if (!this.childComponent.stopClickPropagation) { this.ibItemClicked.emit(item); }
     } catch (error) {
       console.error(`${lc} ${error.message}`);

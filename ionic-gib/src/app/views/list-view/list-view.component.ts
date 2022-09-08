@@ -29,6 +29,11 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
   @Output()
   ibListClicked = new EventEmitter<IbGibItem>();
 
+  @Output()
+  ibListItemSwipedRight = new EventEmitter<IbGibItem>();
+  @Output()
+  ibListItemSwipedLeft = new EventEmitter<IbGibItem>();
+
   /**
    * if checkboxes visible, this event is fired when checked/unchecked.
    */
@@ -70,6 +75,59 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
     }
   }
 
+  async handleOmniIbItemClicked(item: IbGibItem, itemRef: any): Promise<void> {
+    const lc = `${this.lc}[${this.handleOmniIbItemClicked.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 159dff8460f9cf2349348dfce3ca3c22)`); }
+      if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
+
+      console.log(lc);
+
+      if (!this.stopClickPropagation) { this.ibListClicked.emit(item); }
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleOmniIbItemSwipeRight(item: IbGibItem, itemRef: any): Promise<void> {
+    const lc = `${this.lc}[${this.handleOmniIbItemSwipeRight.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 20960b2388d64cebb8b7827df3763fe1)`); }
+      if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
+
+      console.log(lc);
+
+      if (!this.stopClickPropagation) { this.ibListClicked.emit(item); }
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleOmniIbItemSwipeLeft(item: IbGibItem, itemRef: any): Promise<void> {
+    const lc = `${this.lc}[${this.handleOmniIbItemSwipeLeft.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 99ac71b79b2441e1b586ae631d63c80e)`); }
+      if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
+
+      console.log(lc);
+
+      if (!this.stopClickPropagation) { this.ibListClicked.emit(item); }
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
   async handleIbItemClicked(item: IbGibItem, itemRef: any): Promise<void> {
     const lc = `${this.lc}[${this.handleIbItemClicked.name}]`;
     try {
@@ -77,6 +135,7 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
 
       if (!this.stopClickPropagation) { this.ibListClicked.emit(item); }
+
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
