@@ -3,13 +3,13 @@ import {
 } from '@angular/core';
 import { AnimationController, GestureController, GestureDetail, Animation } from '@ionic/angular';
 
-import * as h from 'ts-gib/dist/helper';
+// import * as h from 'ts-gib/dist/helper';
 
 import * as c from '../../constants';
 import { ItemViewComponent } from '../../../views/item-view/item-view.component';
 import { AnimationWithGestureDirectiveBase } from '../../bases/animation-with-gesture-directive-base';
 
-const logalot = c.GLOBAL_LOG_A_LOT || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 @Directive({
     selector: '[ibOmni]'
@@ -28,6 +28,7 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
     private _initialStyle: any;
     private _cancelClickSetTimeoutRef: any;
     private _cancelGesture: boolean;
+    private _longClickSetTimeoutRef: any;
 
     protected animation_swipeRightExecCmd: Animation;
 
@@ -44,7 +45,7 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
      * Max ms time that will trigger a single click event.
      */
     @Input()
-    click_MaxMs: number = 500;
+    click_MaxMs: number = 385;
     /**
      * Max amount of deadzone area (play) that will trigger a single click event.
      */
@@ -78,6 +79,9 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
     @Input()
     swipeNeutral_StrongColor: string = 'transparent';
 
+    @Input()
+    longClickMs: number = 430;
+
     /**
      * this is how long the animation plays when executing a command.
      *
@@ -87,6 +91,9 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
     @Input()
     swipeCmdAnimationMs: number = 500;
 
+    // @Input()
+    // longClickCmdAnimationMs: number = 500;
+
     @Output()
     omniClick = new EventEmitter<void>();
 
@@ -95,6 +102,9 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
 
     @Output()
     omniSwipeLeft = new EventEmitter<void>();
+
+    @Output()
+    omniLongClick = new EventEmitter<void>();
 
     constructor(
         protected el: ElementRef,
@@ -182,9 +192,18 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
 
             // clear this in onMove/onEnd
             this._cancelClickSetTimeoutRef = setTimeout(() => {
+                if (logalot) { console.log(`${lc} canceling single click (I: 6ef9bdac15b55531a7924846bd988f22)`); }
                 this.abortAnimation({ reverse: false }); // spins off
                 delete this._cancelClickSetTimeoutRef;
             }, this.click_MaxMs);
+
+            this._longClickSetTimeoutRef = setTimeout(() => {
+                console.log(`${lc} long clicked...(I: 020f699b9d364dea8833c3020c9268b4)`)
+                this.abortAnimation({ reverse: true }); // spins off
+                delete this._longClickSetTimeoutRef;
+                // this._cancelGesture = true;
+                this.doLongClick(detail);
+            }, this.longClickMs);
 
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -194,6 +213,12 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
         }
     }
 
+    /**
+     * NOTE: there is a bug if you long press in chrome (emulator anyway). when it
+     * long clicks, it brings up the context menu.
+     * @param detail
+     * @returns
+     */
     protected onEnd(detail: GestureDetail): boolean | void {
         const lc = `${this.lc}[${this.onEnd.name}]`;
         try {
@@ -203,12 +228,12 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
                 clearTimeout(this._cancelClickSetTimeoutRef);
                 delete this._cancelClickSetTimeoutRef;
             }
-
-            if (this._cancelGesture) {
-                if (logalot) { console.log(`${lc} slide was canceled (I: e86aec308f114c7391fc496a6acd812b)`); }
-                return; /* <<<< returns early */
+            if (this._longClickSetTimeoutRef) {
+                clearTimeout(this._longClickSetTimeoutRef);
+                delete this._longClickSetTimeoutRef;
             }
 
+            // deltaMs before checking cancel for logging...
             const { deltaX, deltaY } = detail;
             const { abs } = Math;
 
@@ -219,8 +244,16 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
             console.log(`${lc} deltaX: ${deltaX}`);
             console.log(`${lc} deltaY: ${deltaY}`);
 
+            if (this._cancelGesture) {
+                if (logalot) { console.log(`${lc} slide was canceled (I: e86aec308f114c7391fc496a6acd812b)`); }
+                return; /* <<<< returns early */
+            }
+
+
             if (deltaMs < this.click_MaxMs && abs(deltaX) < this.click_MaxDeltaXYDeadzone) {
                 // single click
+                if (logalot) { console.log(`${lc} single click (I: 49017e24689d01c1d952d8b39fddbc22)`); }
+                this.abortAnimation({ reverse: true });
                 this.omniClick.emit();
                 return; /* <<<< returns early */
             }
@@ -231,7 +264,7 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
                 if (deltaX > this.cmd_MinDeltaXYExecute) {
                     // swiped right
                     console.log(`${lc} swiped right`);
-                    this.swipeRightCmdExec(detail); // spins off
+                    this.doSwipeRight(detail); // spins off
                 } else {
                     console.log(`${lc} ALMOST swipe right`);
                     this.el.nativeElement.style = this._initialStyle;
@@ -240,7 +273,7 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
                 if (abs(deltaX) > this.cmd_MinDeltaXYExecute) {
                     // swiped left
                     console.log(`${lc} swiped left`);
-                    this.swipeLeftCmdExec(detail); // spins off
+                    this.doSwipeLeft(detail); // spins off
                 } else {
                     console.log(`${lc} ALMOST swiped left`);
                     this.el.nativeElement.style = this._initialStyle;
@@ -267,33 +300,40 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
 
             if (this._cancelGesture) { return; /* <<<< returns early */ }
 
-            // if we're definitely not single click, then cancel that animation (but dont reverse)
             if (abs(deltaX) > this.click_MaxDeltaXYDeadzone || abs(deltaY) > this.click_MaxDeltaXYDeadzone) {
+                // not single click, cancel that animation (but dont reverse)
                 if (this._cancelClickSetTimeoutRef) {
                     clearTimeout(this._cancelClickSetTimeoutRef);
                     delete this._cancelClickSetTimeoutRef;
                 }
                 this.abortAnimation({ reverse: false }); // spins off
+
+                // not a long click either
+                if (this._longClickSetTimeoutRef) {
+                    clearTimeout(this._longClickSetTimeoutRef);
+                    delete this._longClickSetTimeoutRef;
+                }
             }
 
             this.moveCount++;
 
+            // either swiping left/right or up/down at this point
+
             if (abs(deltaY) > this.maxDeltaYCancelSlideThreshold) {
-                // user is sliding the list up/down, not swiping to exec a cmd
+                // sliding the list up/down, not swiping to exec a cmd
                 this._cancelGesture = true;
                 this.el.nativeElement.style = this._initialStyle;
                 this.abortAnimation({ reverse: true }); // spins off
                 return; /* <<<< returns early */
             }
 
+            // swiping left/right
             const style = this.el.nativeElement.style;
             style.transform = `translate3d(${deltaX}px, 0, 0) scale(0.95)`;
             style.padding = '0px';
             style.margin = '2px';
             style.borderWidth = '2px';
             style.borderStroke = 'solid';
-
-            // const abs = (x: number) => { return Math.abs(x); }
 
             // ty https://www.hexcolortool.com
             let backgroundColor: string;
@@ -335,8 +375,8 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
         }
     }
 
-    private async swipeRightCmdExec(detail: GestureDetail): Promise<void> {
-        const lc = `${this.lc}[${this.swipeRightCmdExec.name}]`;
+    private async doSwipeRight(detail: GestureDetail): Promise<void> {
+        const lc = `${this.lc}[${this.doSwipeRight.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 6e260c36f67ef44fb3f6378d5a27c422)`); }
 
@@ -362,8 +402,8 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
         }
     }
 
-    private async swipeLeftCmdExec(detail: GestureDetail): Promise<void> {
-        const lc = `${this.lc}[${this.swipeLeftCmdExec.name}]`;
+    private async doSwipeLeft(detail: GestureDetail): Promise<void> {
+        const lc = `${this.lc}[${this.doSwipeLeft.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 5c516c0433144363b5ae6a6576491f4e)`); }
 
@@ -382,6 +422,27 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
             await animation.play();
             this.el.nativeElement.style.display = 'none';
             this.omniSwipeLeft.emit();
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    private async doLongClick(detail: GestureDetail): Promise<void> {
+        const lc = `${this.lc}[${this.doLongClick.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 04a7f491f7ea4fa4a7091bdf49f46244)`); }
+
+            // const animation =
+            //     this.animationCtrl.create()
+            //         .addElement(this.el.nativeElement)
+            //         .duration(this.longClickCmdAnimationMs)
+            //         .to('height', `${this.el.nativeElement.clientHeight * 1.5}px`)
+            //         .fromTo('opacity', '0.7', '1');
+            // await animation.play();
+            this.omniLongClick.emit();
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;

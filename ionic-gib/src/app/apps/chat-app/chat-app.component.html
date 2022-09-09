@@ -5,6 +5,7 @@
   (chatViewScrolled)="handleChatViewScroll($event)"
   (chatViewItemsAdded)="handleChatViewItemsAdded($event)"
   (ibGibItemClicked)="handleClick_IbGibItem($event)"
+  (ibGibItemLongClicked)="handleLongClick_IbGibItem($event)"
   (ibGibItemSwipedRight)="handleSwipeRight_IbGibItem($event)"
   (ibGibItemSwipedLeft)="handleSwipeLeft_IbGibItem($event)"
   >
@@ -13,8 +14,8 @@
 <!-- fullscreen modal -->
 <ion-modal #fullscreenIonModal class="fullscreen-modal"
   [isOpen]="showModal_FullscreenIbGib"
-  [showBackdrop]="true" [animated]="true" [swipeToClose]="true"
-  [keyboardClose]="true"
+  [showBackdrop]="true" [animated]="true" [swipeToClose]="false"
+  [keyboardClose]="false"
   >
   <ng-template>
     <ion-content class="modal-content">

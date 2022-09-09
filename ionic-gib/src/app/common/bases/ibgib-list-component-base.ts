@@ -68,6 +68,8 @@ export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGib
     @Output()
     ibGibItemClicked = new EventEmitter<TItem>();
     @Output()
+    ibGibItemLongClicked = new EventEmitter<TItem>();
+    @Output()
     ibGibItemSwipedRight = new EventEmitter<[TItem, IbgibComponentBase]>();
     @Output()
     ibGibItemSwipedLeft = new EventEmitter<[TItem, IbgibComponentBase]>();

@@ -14,3 +14,21 @@ ion-list {
     // height: 80%;
     flex: 1;
 }
+
+.fullscreen-modal {
+    // animation: grow-fullscreen;
+    animation-name: grow-fullscreen;
+    animation-duration: 1s;
+    // animation-iteration-count: 1;
+    // animation-fill-mode: forwards;
+}
+
+@keyframes grow-fullscreen {
+    0% {
+        scale: 0.3
+    }
+
+    100% {
+        scale: 1.0
+    }
+}

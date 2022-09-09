@@ -34,6 +34,9 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
   ibListItemClicked = new EventEmitter<IbGibItem>();
 
   @Output()
+  ibListItemLongClicked = new EventEmitter<IbGibItem>();
+
+  @Output()
   ibListItemSwipedRight = new EventEmitter<[IbGibItem, IbgibComponentBase]>();
 
   @Output()
@@ -87,6 +90,22 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
 
       if (!this.stopClickPropagation) { this.ibListItemClicked.emit(item); }
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleOmniIbItemLongClicked(item: IbGibItem, itemRef: any): Promise<void> {
+    const lc = `${this.lc}[${this.handleOmniIbItemLongClicked.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 2a8cd11727cc49deb3875e7890487b58)`); }
+      if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
+
+      if (!this.stopClickPropagation) { this.ibListItemLongClicked.emit(item); }
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
