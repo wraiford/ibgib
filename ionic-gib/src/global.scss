@@ -144,6 +144,18 @@ ion-input.floating-with-placeholder {
 .fullscreen-modal {
     --height: 97%;
     --width: 97%;
+    animation-name: grow-fullscreen;
+    animation-duration: 1s;
+}
+
+@keyframes grow-fullscreen {
+    0% {
+        scale: 0.3
+    }
+
+    100% {
+        scale: 1.0
+    }
 }
 
 @media (min-height: $xs-height) and (max-height: $sm-height) {

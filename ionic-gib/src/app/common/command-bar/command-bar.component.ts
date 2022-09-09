@@ -249,17 +249,6 @@ export class CommandBarComponent
         addr
       });
 
-      // const resNewContext = await V1.rel8({
-      //   src: this.ibGib_Context,
-      //   rel8nsToAddByAddr: { [c.TRASH_REL8N_NAME]: [addr] },
-      //   rel8nsToRemoveByAddr: { [this.rel8nName_Context]: [addr] },
-      //   dna: true,
-      //   nCounter: true,
-      // });
-
-      // await this.common.ibgibs.persistTransformResult({ resTransform: resNewContext });
-      // await this.common.ibgibs.registerNewIbGib({ ibGib: resNewContext.newIbGib });
-
       this.dismissMe.emit();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -269,15 +258,19 @@ export class CommandBarComponent
     }
   }
 
-  // async loadItemPrimaryProperties(addr: IbGibAddr, item?: IbGibItem): Promise<void> {
-  //   const lc = `${this.lc}[${this.loadItemPrimaryProperties.name}]`;
-  //   try {
-  //     await super.loadItemPrimaryProperties(addr, item);
-  //   } catch (error) {
-  //     console.error(`${lc} ${error.message}`);
-  //     throw error;
-  //   } finally {
-  //     if (logalot) { console.log(`${lc} complete.`); }
-  //   }
-  // }
+  async handleClick_OpenInNewTab(): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_OpenInNewTab.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 7f3b684be561491066932db5363efb22)`); }
+      const { origin } = document.location;
+      const newUrl = `${origin}/ibgib/${this.addr}`;
+      window.open(newUrl, "_blank");
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
 }
