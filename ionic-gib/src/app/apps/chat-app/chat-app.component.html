@@ -1,5 +1,7 @@
+<!-- primary chat view (list of ibgibs) -->
 <chat-view #chatView [addr]='addr' [ibGib_Context]='ibGib'
   [activeApp]="activeApp"
+  [disableSelection]="true"
   (chatViewScrolled)="handleChatViewScroll($event)"
   (chatViewItemsAdded)="handleChatViewItemsAdded($event)"
   (ibGibItemClicked)="handleClick_IbGibItem($event)"
@@ -8,6 +10,7 @@
   >
 </chat-view>
 
+<!-- fullscreen modal -->
 <ion-modal #fullscreenIonModal class="fullscreen-modal"
   [isOpen]="showModal_FullscreenIbGib"
   [showBackdrop]="true" [animated]="true" [swipeToClose]="true"
@@ -15,9 +18,7 @@
   >
   <ng-template>
     <ion-content class="modal-content">
-
       <ion-list>
-
         <!-- title -->
         <ion-header>
           <ion-toolbar>
@@ -38,10 +39,9 @@
             </ion-title>
           </ion-toolbar>
         </ion-header>
-
-        <!-- content -->
-        <ib-item class="large-item" [addr]="fullscreenIbGibAddr" [isLarge]="true"></ib-item>
-
+        <!-- content ibgib -->
+        <ib-item class="large-item" [addr]="fullscreenIbGibAddr" [isLarge]="true"
+          [disableSelection]="false"></ib-item>
         <ion-footer>
           <!-- commands -->
           <ib-command-bar
@@ -49,11 +49,8 @@
             [rel8nName_Context]="fullscreenIbGibRel8nName"
             [ibGib_Context]="ibGib"
             (dismissMe)="handleModalDismissMe()"></ib-command-bar>
-
         </ion-footer>
-
       </ion-list>
-
     </ion-content>
   </ng-template>
 </ion-modal>

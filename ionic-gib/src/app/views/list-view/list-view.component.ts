@@ -24,6 +24,9 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
   @Input()
   checkboxesVisible: boolean;
 
+  @Input()
+  disableSelection: boolean;
+
   /**
    * Can't just use 'click', 'ibclicked' etc because already taken.
    */

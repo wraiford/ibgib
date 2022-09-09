@@ -41,6 +41,9 @@ export class ItemViewComponent extends IbgibComponentBase<IbGibListItem> {
     }
   }
 
+  @Input()
+  disableSelection: boolean;
+
   @Output()
   ibItemClicked = new EventEmitter<IbGibListItem>();
 

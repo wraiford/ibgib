@@ -44,6 +44,7 @@
 <comment-view #commentView
   *ngIf='item?.type === "comment"'
   class='comment-item'
+  [ngClass]="{'disable-selection': disableSelection}"
   [addr]='addr'
   [ibGib_Context]="ibGib_Context"
   [rel8nName_Context]="rel8nName_Context"

@@ -27,6 +27,7 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
      */
     private _initialStyle: any;
     private _cancelClickSetTimeoutRef: any;
+    private _cancelGesture: boolean;
 
     protected animation_swipeRightExecCmd: Animation;
 
@@ -48,7 +49,7 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
      * Max amount of deadzone area (play) that will trigger a single click event.
      */
     @Input()
-    click_MaxDeltaXYDeadzone: number = 10;
+    click_MaxDeltaXYDeadzone: number = 5;
 
     /**
      * Min delta XY displacement that will trigger a command.
@@ -57,6 +58,12 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
     cmd_MinDeltaXYExecute: number = 125;
     @Input()
     cmd_MinDeltaXYDeadzone: number = 10;
+    /**
+     * max vertical distance before we cancel a slide swipe command and decide
+     * the user is swiping up/down.
+     */
+    @Input()
+    maxDeltaYCancelSlideThreshold: number = 30;
 
     @Input()
     swipeRight_WeakColor: string = 'rgba(245, 0, 53, 0.1)';
@@ -69,7 +76,7 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
     @Input()
     swipeNeutral_WeakColor: string = 'transparent';
     @Input()
-    swipeNeutral_StrongColor: string = 'grey';
+    swipeNeutral_StrongColor: string = 'transparent';
 
     /**
      * this is how long the animation plays when executing a command.
@@ -166,6 +173,7 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
             }
 
             this.aborting = false;
+            this._cancelGesture = false;
 
             this.animating = true;
             this.animation.direction('alternate').play();
@@ -196,6 +204,11 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
                 delete this._cancelClickSetTimeoutRef;
             }
 
+            if (this._cancelGesture) {
+                if (logalot) { console.log(`${lc} slide was canceled (I: e86aec308f114c7391fc496a6acd812b)`); }
+                return; /* <<<< returns early */
+            }
+
             const { deltaX, deltaY } = detail;
             const { abs } = Math;
 
@@ -207,8 +220,14 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
             console.log(`${lc} deltaY: ${deltaY}`);
 
             if (deltaMs < this.click_MaxMs && abs(deltaX) < this.click_MaxDeltaXYDeadzone) {
+                // single click
                 this.omniClick.emit();
-            } else if (deltaX > 0) {
+                return; /* <<<< returns early */
+            }
+
+            // not a single click
+
+            if (deltaX > 0) {
                 if (deltaX > this.cmd_MinDeltaXYExecute) {
                     // swiped right
                     console.log(`${lc} swiped right`);
@@ -246,6 +265,7 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
             const { deltaX, deltaY } = detail;
             const { abs } = Math;
 
+            if (this._cancelGesture) { return; /* <<<< returns early */ }
 
             // if we're definitely not single click, then cancel that animation (but dont reverse)
             if (abs(deltaX) > this.click_MaxDeltaXYDeadzone || abs(deltaY) > this.click_MaxDeltaXYDeadzone) {
@@ -257,6 +277,15 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
             }
 
             this.moveCount++;
+
+            if (abs(deltaY) > this.maxDeltaYCancelSlideThreshold) {
+                // user is sliding the list up/down, not swiping to exec a cmd
+                this._cancelGesture = true;
+                this.el.nativeElement.style = this._initialStyle;
+                this.abortAnimation({ reverse: true }); // spins off
+                return; /* <<<< returns early */
+            }
+
             const style = this.el.nativeElement.style;
             style.transform = `translate3d(${deltaX}px, 0, 0) scale(0.95)`;
             style.padding = '0px';

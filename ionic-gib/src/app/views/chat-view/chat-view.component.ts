@@ -31,6 +31,9 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
   @Input()
   activeApp: ChatApp_V1;
 
+  @Input()
+  disableSelection: boolean;
+
   @Output()
   chatViewScrolled: EventEmitter<ScrollBaseCustomEvent> = new EventEmitter();
 

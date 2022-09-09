@@ -4,6 +4,7 @@
   (ibListItemClicked)='handleClick_ListItem($event)'
   (ibListItemSwipedRight)="handleSwipeRight_ListItem($event)"
   (ibListItemSwipedLeft)="handleSwipeLeft_ListItem($event)"
+  [disableSelection]="disableSelection"
   [scrollEvents]="true"
   (ionScroll)='handleScroll($event)'
   (itemsAdded)='handleItemsAdded($event)'

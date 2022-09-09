@@ -24,3 +24,12 @@
   @extend .list-item;
   border-color: pink;
 }
+
+.disable-selection {
+  // ty https://www.arungudelli.com/tutorial/css/disable-text-selection-in-html-using-user-select-css-property/
+  /* supported by Chrome and Opera */
+  user-select: none; // Chrome, Opera
+  -webkit-user-select: none; // Safari
+  -moz-user-select: none; // Firefox
+  -ms-user-select: none; // Internet Explorer/Edge
+}
