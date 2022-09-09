@@ -1,4 +1,7 @@
-<todo-view [addr]="addr" [activeApp]="activeApp" (ibGibItemClicked)="handleClick_IbGibItem($event)">
+<todo-view [addr]="addr" [activeApp]="activeApp"
+  (ibGibItemClicked)="handleClick_IbGibItem($event)"
+  (ibGibItemLongClicked)="handleLongClick_IbGibItem($event)"
+  >
 </todo-view>
 
 <ion-modal #fullscreenIonModal class="fullscreen-modal" [isOpen]="showModal_FullscreenIbGib" [showBackdrop]="true"

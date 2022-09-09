@@ -116,11 +116,7 @@ export class ChatAppComponent extends IbgibComponentBase implements OnInit, OnDe
     const lc = `${this.lc}[${this.handleClick_IbGibItem.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: bdb22ba5a75aa9ed93659595913cc822)`); }
-      // await this.showModal(item);
-      await this.go({
-        toAddr: item.addr,
-        fromAddr: this.addr,
-      });
+      await this.go({ toAddr: item.addr, fromAddr: this.addr, });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

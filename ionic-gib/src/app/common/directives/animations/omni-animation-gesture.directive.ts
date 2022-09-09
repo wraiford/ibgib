@@ -198,7 +198,7 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
             }, this.click_MaxMs);
 
             this._longClickSetTimeoutRef = setTimeout(() => {
-                console.log(`${lc} long clicked...(I: 020f699b9d364dea8833c3020c9268b4)`)
+                if (logalot) { console.log(`${lc} long clicked...(I: 020f699b9d364dea8833c3020c9268b4)`) }
                 this.abortAnimation({ reverse: true }); // spins off
                 delete this._longClickSetTimeoutRef;
                 // this._cancelGesture = true;
@@ -240,9 +240,11 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
             // if it hasn't moved much and the click is fast enough, emit the click event
             // const deltaMs = this._endTime - this._startTime;
             const deltaMs = detail.currentTime - detail.startTime;
-            console.log(`${lc} deltaMs: ${deltaMs}`);
-            console.log(`${lc} deltaX: ${deltaX}`);
-            console.log(`${lc} deltaY: ${deltaY}`);
+            if (logalot) {
+                console.log(`${lc} deltaMs: ${deltaMs}`);
+                console.log(`${lc} deltaX: ${deltaX}`);
+                console.log(`${lc} deltaY: ${deltaY}`);
+            }
 
             if (this._cancelGesture) {
                 if (logalot) { console.log(`${lc} slide was canceled (I: e86aec308f114c7391fc496a6acd812b)`); }
@@ -263,19 +265,19 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
             if (deltaX > 0) {
                 if (deltaX > this.cmd_MinDeltaXYExecute) {
                     // swiped right
-                    console.log(`${lc} swiped right`);
+                    if (logalot) { console.log(`${lc} swiped right`); }
                     this.doSwipeRight(detail); // spins off
                 } else {
-                    console.log(`${lc} ALMOST swipe right`);
+                    if (logalot) { console.log(`${lc} ALMOST swipe right`); }
                     this.el.nativeElement.style = this._initialStyle;
                 }
             } else if (deltaX < 0) {
                 if (abs(deltaX) > this.cmd_MinDeltaXYExecute) {
                     // swiped left
-                    console.log(`${lc} swiped left`);
+                    if (logalot) { console.log(`${lc} swiped left`); }
                     this.doSwipeLeft(detail); // spins off
                 } else {
-                    console.log(`${lc} ALMOST swiped left`);
+                    if (logalot) { console.log(`${lc} ALMOST swiped left`); }
                     this.el.nativeElement.style = this._initialStyle;
                 }
             } else {

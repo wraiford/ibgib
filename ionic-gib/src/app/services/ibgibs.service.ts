@@ -5,7 +5,7 @@
 
 import { Injectable } from '@angular/core';
 import { AlertController, ModalController } from '@ionic/angular';
-import { Capacitor, } from '@capacitor/core';
+import { Capacitor, Plugins } from '@capacitor/core';
 import { Observable, ReplaySubject, Subject, Subscription, } from 'rxjs';
 
 import { IbGib_V1, GIB, GIB_DELIMITER, } from 'ts-gib/dist/V1';
@@ -794,7 +794,7 @@ export class IbgibsService {
       space = space ?? await this.getLocalUserSpace({});
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized (E: f81574e3437a4b88acd044b2abdc1ae4)`); }
 
-      return trash({
+      await trash({
         ibGib_Context,
         rel8nName_Context,
         addr,
@@ -803,6 +803,7 @@ export class IbgibsService {
         fnBroadcast: (x) => this.fnBroadcast(x),
         fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       });
+      Plugins.Toast.show({ text: `trashed '${addr.slice(0, 32)}...'`, duration: "long" }); // spins off...
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -832,7 +833,7 @@ export class IbgibsService {
       space = space ?? await this.getLocalUserSpace({});
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized (E: d6e0b1618eec400e820de6ac37491d39)`); }
 
-      return archive({
+      await archive({
         ibGib_Context,
         rel8nName_Context,
         addr,
@@ -841,6 +842,8 @@ export class IbgibsService {
         fnBroadcast: (x) => this.fnBroadcast(x),
         fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       });
+
+      Plugins.Toast.show({ text: `archived '${addr.slice(0, 32)}...'`, duration: "long" }); // spins off...
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
