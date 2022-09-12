@@ -143,7 +143,7 @@ export interface IbGibListItem extends IbGibItem {
  */
 export type SpecialIbGibType =
     "tags" | "roots" | "latest" | "outerspaces" | "secrets" |
-    "encryptions" | "autosyncs" | "robbots" | "apps";
+    "encryptions" | "autosyncs" | "robbots" | "apps" | "history";
 /**
  * Special ibgib types, used for metadata within a space.
  */
@@ -167,6 +167,8 @@ export const SpecialIbGibType = {
     autosyncs: "autosyncs" as SpecialIbGibType,
     robbots: "robbots" as SpecialIbGibType,
     apps: "apps" as SpecialIbGibType,
+    /** timelines history */
+    history: "history" as SpecialIbGibType,
 }
 
 /**

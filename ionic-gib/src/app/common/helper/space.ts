@@ -999,7 +999,7 @@ export async function getSpecialRel8dIbGibs<TIbGib extends IbGib_V1 = IbGib_V1>(
  * @param initialize initialize (i.e. create) ONLY IF IbGib not found. Used for initializing app (first run).
  *
  * @see {@link createSpecial}
- * @see {@link createTags}
+ * @see {@link createSpecial_Tags}
  */
 export async function getSpecialIbGib({
     type,
@@ -1777,38 +1777,19 @@ export async function createSpecial({
 }): Promise<IbGibAddr | null> {
     const lc = `[${createSpecial.name}]`;
     try {
-        if (!space) { throw new Error(`space falsy and localUserSpace not initialized.`); }
+        if (!space) { throw new Error(`space falsy and localUserSpace not initialized. (E: 66e7d3ff098248f0a5ddda51853c92e6)`); }
 
         switch (type) {
-            case "roots":
-                return createRootsIbGib({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
-
-            case "tags":
-                return createTags({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
-
-            case "latest":
-                return createLatest({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
-
-            case "secrets":
-                return createSecrets({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
-
-            case "encryptions":
-                return createEncryptions({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
-
-            case "outerspaces":
-                return createOuterSpaces({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
-
-            case "autosyncs":
-                return createAutosyncs({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
-
-            case "robbots":
-                return createRobbots({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
-
-            case "apps":
-                return createApps({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
-
-            default:
-                throw new Error(`not implemented. type: ${type}`);
+            case "roots": return createSpecial_Roots({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
+            case "tags": return createSpecial_Tags({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
+            case "latest": return createSpecial_Latest({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
+            case "secrets": return createSpecial_Secrets({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
+            case "encryptions": return createSpecial_Encryptions({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
+            case "outerspaces": return createSpecial_OuterSpaces({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
+            case "autosyncs": return createSpecial_Autosyncs({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
+            case "robbots": return createSpecial_Robbots({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
+            case "apps": return createSpecial_Apps({ space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
+            default: return createSpecial_Default({ type, space, zeroSpace, fnBroadcast, fnUpdateBootstrap });
         }
     } catch (error) {
         console.error(`${lc} ${error.message}`);
@@ -1875,7 +1856,7 @@ export async function createSpecialIbGib({
  *
  * Stores the tags ibGib's addr in config.
  */
-export async function createTags({
+export async function createSpecial_Tags({
     space,
     zeroSpace,
     fnUpdateBootstrap,
@@ -1886,7 +1867,7 @@ export async function createTags({
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr | null> {
-    const lc = `[${createTags.name}]`;
+    const lc = `[${createSpecial_Tags.name}]`;
     try {
         if (!space) { throw new Error(`space required. (E: 9c05b9bd355943a39ca47afef67a50eb)`); }
 
@@ -1980,7 +1961,7 @@ export async function createTagIbGibAndSundry({
     }
 }
 
-export async function createRootsIbGib({
+export async function createSpecial_Roots({
     space,
     zeroSpace,
     fnUpdateBootstrap,
@@ -1991,7 +1972,7 @@ export async function createRootsIbGib({
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr | null> {
-    const lc = `[${createRootsIbGib.name}]`;
+    const lc = `[${createSpecial_Roots.name}]`;
     try {
         if (!space) { throw new Error(`space required. (E: d12a8ea31163429fb6e53ff8e7579c57)`); }
 
@@ -2105,7 +2086,7 @@ async function createRootIbGib({
     }
 }
 
-async function createLatest({
+async function createSpecial_Latest({
     space,
     zeroSpace,
     fnUpdateBootstrap,
@@ -2116,7 +2097,7 @@ async function createLatest({
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr | null> {
-    const lc = `[${createLatest.name}]`;
+    const lc = `[${createSpecial_Latest.name}]`;
     try {
         if (!space) { throw new Error(`space required. (E: 173b08d7eb114238b32280c3efce9d1a)`); }
 
@@ -2144,7 +2125,7 @@ async function createLatest({
     }
 }
 
-async function createSecrets({
+async function createSpecial_Secrets({
     space,
     zeroSpace,
     fnUpdateBootstrap,
@@ -2155,7 +2136,7 @@ async function createSecrets({
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr | null> {
-    const lc = `[${createSecrets.name}]`;
+    const lc = `[${createSpecial_Secrets.name}]`;
     try {
         if (!space) { throw new Error(`space required. (E: 340960cd5ad24addb300b23d9722e30a)`); }
 
@@ -2181,7 +2162,7 @@ async function createSecrets({
     }
 }
 
-async function createEncryptions({
+async function createSpecial_Encryptions({
     space,
     zeroSpace,
     fnUpdateBootstrap,
@@ -2192,7 +2173,7 @@ async function createEncryptions({
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr | null> {
-    const lc = `[${createEncryptions.name}]`;
+    const lc = `[${createSpecial_Encryptions.name}]`;
     try {
         if (!space) { throw new Error(`space required. (E: 5084e698b6924e7090697ca50075ca59)`); }
 
@@ -2218,7 +2199,7 @@ async function createEncryptions({
     }
 }
 
-async function createOuterSpaces({
+async function createSpecial_OuterSpaces({
     space,
     zeroSpace,
     fnUpdateBootstrap,
@@ -2229,7 +2210,7 @@ async function createOuterSpaces({
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr | null> {
-    const lc = `[${createOuterSpaces.name}]`;
+    const lc = `[${createSpecial_OuterSpaces.name}]`;
     try {
         if (!space) { throw new Error(`space required. (E: 99dd9e92535c470482eb9f6625a33831)`); }
 
@@ -2255,7 +2236,7 @@ async function createOuterSpaces({
     }
 }
 
-async function createAutosyncs({
+async function createSpecial_Autosyncs({
     space,
     zeroSpace,
     fnUpdateBootstrap,
@@ -2266,7 +2247,7 @@ async function createAutosyncs({
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr | null> {
-    const lc = `[${createAutosyncs.name}]`;
+    const lc = `[${createSpecial_Autosyncs.name}]`;
     try {
         if (!space) { throw new Error(`space required. (E: f01cf6a4a460486796e16d505d629522)`); }
 
@@ -2290,7 +2271,7 @@ async function createAutosyncs({
     }
 }
 
-export async function createRobbots({
+export async function createSpecial_Robbots({
     space,
     zeroSpace,
     fnUpdateBootstrap,
@@ -2301,7 +2282,7 @@ export async function createRobbots({
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr | null> {
-    const lc = `[${createRobbots.name}]`;
+    const lc = `[${createSpecial_Robbots.name}]`;
     try {
         if (!space) { throw new Error(`space required. (E: f01cf6a4a460486796e16d505d629522)`); }
 
@@ -2325,7 +2306,7 @@ export async function createRobbots({
     }
 }
 
-export async function createApps({
+export async function createSpecial_Apps({
     space,
     zeroSpace,
     fnUpdateBootstrap,
@@ -2336,7 +2317,7 @@ export async function createApps({
     fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
     fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
 }): Promise<IbGibAddr | null> {
-    const lc = `[${createApps.name}]`;
+    const lc = `[${createSpecial_Apps.name}]`;
     try {
         if (!space) { throw new Error(`space required. (E: f01cf6a4a460486796e16d505d629522)`); }
 
@@ -2450,6 +2431,45 @@ export async function createApp({
         throw error;
     } finally {
         if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+async function createSpecial_Default({
+    type,
+    space,
+    zeroSpace,
+    fnUpdateBootstrap,
+    fnBroadcast,
+}: {
+    type: SpecialIbGibType,
+    space: IbGibSpaceAny,
+    zeroSpace: IbGibSpaceAny,
+    fnUpdateBootstrap: (newSpace: IbGibSpaceAny) => Promise<void>,
+    fnBroadcast: (info: IbGibTimelineUpdateInfo) => void,
+}): Promise<IbGibAddr | null> {
+    const lc = `[${createSpecial_Autosyncs.name}]`;
+    try {
+        if (!space) { throw new Error(`space required. (E: c7bbafcbe901418db4c6048f17f53091)`); }
+
+        if (logalot) { console.log(`${lc} creating special of type: ${type} (I: 283c8bb30ed6f9698b74b886c6078622)`); }
+
+        let specialAddr: IbGibAddr;
+        const configKey = getSpecialConfigKey({ type });
+
+        const specialIbGib = await createSpecialIbGib({
+            type,
+            space,
+            zeroSpace,
+            fnBroadcast,
+            fnUpdateBootstrap,
+        });
+        specialAddr = h.getIbGibAddr({ ibGib: specialIbGib });
+        await setConfigAddr({ key: configKey, addr: specialAddr, space, zeroSpace, fnUpdateBootstrap });
+
+        return specialAddr;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        return null;
     }
 }
 
