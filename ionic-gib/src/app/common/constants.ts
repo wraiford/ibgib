@@ -423,7 +423,7 @@ export const IBGIB_DATA_REGEX_INDICATES_NEED_TO_ENCODE = /[^\w\s\d`~!@#$%\^&*()_
  *
  * When sanitizing input.
  */
-export const SAFE_SPECIAL_CHARS = `.'",!?`;
+export const SAFE_SPECIAL_CHARS = `.'",!?-`;
 
 export const IB_MAX_LENGTH_DEFAULT = 155;
 /**
@@ -437,6 +437,8 @@ export const IB_MAX_LENGTH_DEFAULT = 155;
  * `^[\\w\\t\\-|=+.&%\$#@!~\` \\[\\]\\(\\)\\{\\}]{1,${IB_MAX_LENGTH_DEFAULT}}$`
  */
 export const IB_REGEXP_DEFAULT = new RegExp(`^[\\w\\t\\-|=+.&%\$#@!~\` \\[\\]\\(\\)\\{\\}]{1,${IB_MAX_LENGTH_DEFAULT}}$`);
+export const COMMA_DELIMITED_SIMPLE_STRINGS_REGEXP = /^[\w\-]+(,?[\w+\-])*$/;
+export const COMMA_DELIMITED_SIMPLE_STRINGS_REGEXP_DESCRIPTION = 'text must only be comma-delimited, no-spaces simple words like "comment,link,pic,x,under_score,hyphens-ok-too"';
 
 export const TAG_TEXT_REGEXP = /^\w[\w .\-?!]{1,30}[\w.?!]$/;
 export const TAG_TEXT_REGEXP_DESCRIPTION = `tag text must start and end with an alphanumeric, and can contain a hyphen, question mark, dot or space.`;

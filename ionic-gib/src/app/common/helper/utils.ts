@@ -398,3 +398,12 @@ export function executeDoCancelModalIfNeeded(): boolean {
         if (logalot) { console.log(`${lc} complete.`); }
     }
 }
+
+/**
+ * picks a random item from an array
+ */
+export function pickRandom<T extends any>({ arr }: { arr: T[] }): T {
+    if ((arr ?? []).length === 0) { return undefined; /* <<<< returns early */ }
+    let randomIndex = Math.floor(Math.random() * arr.length);
+    return arr[randomIndex];
+}

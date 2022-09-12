@@ -52,11 +52,12 @@ import {
   updateBootstrapIbGib, getSpaceArgMetadata, createTagIbGibAndSundry,
   getConfigAddr, setConfigAddr, setCurrentRoot, rel8ToCurrentRoot,
   rel8ToSpecialIbGib, registerNewIbGib, persistTransformResult, getFromSpace,
-  putInSpace, deleteFromSpace, getDependencyGraph, getLatestAddrs, getTjpIbGib,
+  putInSpace, deleteFromSpace, getLatestAddrs, getTjpIbGib,
   getSpecialIbGib, getSpecialRel8dIbGibs, /*createRobbotIbGib, */
-  GetDependencyGraphOptions, getInfoFromSpaceIb,
+  getInfoFromSpaceIb,
   trash, archive,
 } from '../common/helper/space';
+import { getDependencyGraph, GetDependencyGraphOptions } from '../common/helper/graph';
 import { spaceNameIsValid } from '../common/helper/validate';
 import { groupBy } from '../common/helper/utils';
 import { RobbotModalResult } from '../common/modals/robbot-modal-form/robbot-modal-form.component';

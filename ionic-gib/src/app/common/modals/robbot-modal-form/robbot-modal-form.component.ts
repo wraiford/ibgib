@@ -9,13 +9,14 @@ import * as c from '../../constants';
 import { FormItemInfo } from '../../../ibgib-forms/types/form-items';
 import { RobbotData_V1, RobbotIbGib_V1, RobbotRel8ns_V1 } from '../../types/robbot';
 import { CommonService } from '../../../services/common.service';
-import { RandomRobbot_V1, } from '../../witnesses/robbots/random-robbot-v1';
 import { getRegExp } from '../../helper/utils';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
 import { IbGibRobbotAny, } from '../../witnesses/robbots/robbot-base-v1';
 import { ModalDynamicFormComponentBase } from '../../bases/modal-dynamic-form-component-base';
 import { WitnessFactoriesService } from '../../../services/witness-factories.service';
 import { DynamicFormComponent } from '../../../ibgib-forms/dynamic-form/dynamic-form.component';
+import { RandomRobbot_V1, } from '../../witnesses/robbots/random-robbot-v1';
+import { WordyRobbot_V1 } from '../../witnesses/robbots/wordy-robbot-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -126,6 +127,7 @@ export class RobbotModalFormComponent
       this.robbotFactories = [
         // add our list of robbot classnames here,
         RandomRobbot_V1.name,
+        WordyRobbot_V1.name,
       ].map(name => {
         return this.factories.getFactory<
           RobbotData_V1,

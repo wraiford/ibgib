@@ -21,7 +21,7 @@ import { IbgibsService } from '../../services/ibgibs.service';
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 
-export function getRobbotResultMetadata({robbot}: {robbot: IbGibRobbotAny}): string {
+export function getRobbotResultMetadata({ robbot }: { robbot: IbGibRobbotAny }): string {
     return `${robbot.ib} ${getTimestampInTicks()}`;
 }
 
@@ -108,7 +108,7 @@ export function getRobbotIb({
 }): Ib {
     const lc = `[${getRobbotIb.name}]`;
     try {
-        const validationErrors = validateCommonRobbotData({robbotData});
+        const validationErrors = validateCommonRobbotData({ robbotData });
         if (validationErrors.length > 0) { throw new Error(`invalid robbotData: ${validationErrors} (E: 390316b7c4fb0bd104ddc4e6c2e12922)`); }
         if (classname) {
             if (robbotData.classname && robbotData.classname !== classname) { throw new Error(`classname does not match robbotData.classname (E: e21dbc830856fbcee1d3ab260b0c5922)`); }
@@ -204,7 +204,7 @@ export async function createNewRobbot({
         if (!common && !ibgibs) { throw new Error(`(UNEXPECTED) either common or ibgibs service required. (E: 4be5d20dc81fcdabb8d7d4cd47458522)`); }
         ibgibs = ibgibs ?? common.ibgibs;
 
-        space = space ?? await ibgibs.getLocalUserSpace({lock: true});
+        space = space ?? await ibgibs.getLocalUserSpace({ lock: true });
 
         // prompt user to create the ibgib, passing in null because we're
         // creating not editing.
@@ -214,36 +214,45 @@ export async function createNewRobbot({
 
         /** this should be the witness class itself at this point. */
         const newRobbot = <IbGibRobbotAny>resRobbot.newIbGib;
+        let loading = await common.loadingCtrl.create({ message: 'creating...' });
+        try {
+            await loading.present();
+            await h.delay(1000); // ensure that the user sees a creating message
+            let allIbGibs: IbGib_V1[] = [];
+            allIbGibs.push(newRobbot);
+            resRobbot.intermediateIbGibs?.forEach(x => allIbGibs.push(x));
+            resRobbot.dnas?.forEach(x => allIbGibs.push(x));
+            for (let i = 0; i < allIbGibs.length; i++) {
+                const ibGib = allIbGibs[i];
+                const validationErrors = await validateIbGibIntrinsically({ ibGib });
+                if ((validationErrors ?? []).length > 0) { throw new Error(`(unexpected) invalid robbot ibgib created. validationErrors: ${validationErrors}. robbot: ${h.pretty(newRobbot.toIbGibDto())} (E: a683268621cd6dd3dd60310b164c4d22)`); }
+            }
 
-        let allIbGibs: IbGib_V1[] = [];
-        allIbGibs.push(newRobbot);
-        resRobbot.intermediateIbGibs?.forEach(x => allIbGibs.push(x));
-        resRobbot.dnas?.forEach(x => allIbGibs.push(x));
-        for (let i = 0; i < allIbGibs.length; i++) {
-            const ibGib = allIbGibs[i];
-            const validationErrors = await validateIbGibIntrinsically({ibGib});
-            if ((validationErrors ?? []).length > 0) { throw new Error(`(unexpected) invalid robbot ibgib created. validationErrors: ${validationErrors}. robbot: ${h.pretty(newRobbot.toIbGibDto())} (E: a683268621cd6dd3dd60310b164c4d22)`); }
+            await persistTransformResult({ resTransform: resRobbot, isMeta: true, space });
+            const { zeroSpace, fnBroadcast, fnUpdateBootstrap } = ibgibs;
+            await registerNewIbGib({
+                ibGib: newRobbot,
+                space,
+                zeroSpace,
+                fnBroadcast: (x) => fnBroadcast(x),
+                fnUpdateBootstrap: (x) => fnUpdateBootstrap(x),
+            });
+
+            await rel8ToSpecialIbGib({
+                type: "robbots",
+                rel8nName: c.ROBBOT_REL8N_NAME,
+                ibGibsToRel8: [newRobbot],
+                space,
+                zeroSpace,
+                fnUpdateBootstrap,
+                fnBroadcast,
+            });
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            await loading.dismiss();
         }
-
-        await persistTransformResult({resTransform: resRobbot, isMeta: true, space});
-        const { zeroSpace, fnBroadcast, fnUpdateBootstrap } = ibgibs;
-        await registerNewIbGib({
-            ibGib: newRobbot,
-            space,
-            zeroSpace,
-            fnBroadcast: (x) => fnBroadcast(x),
-            fnUpdateBootstrap: (x) => fnUpdateBootstrap(x),
-        });
-
-        await rel8ToSpecialIbGib({
-            type: "robbots",
-            rel8nName: c.ROBBOT_REL8N_NAME,
-            ibGibsToRel8: [newRobbot],
-            space,
-            zeroSpace,
-            fnUpdateBootstrap,
-            fnBroadcast,
-        });
         return newRobbot;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
