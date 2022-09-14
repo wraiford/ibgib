@@ -5,9 +5,6 @@
     <ion-button *ngIf="gib !== 'gib'" [disabled]="refreshing" (click)="handleClick_Refresh()" title="refresh this ibgib locally">
       <ion-icon *ngIf="!refreshing" name="refresh"></ion-icon>
       <ion-spinner *ngIf="refreshing" name="bubbles" color="tertiary"></ion-spinner>
-      <!-- <ion-badge *ngIf="tjpUpdatesAvailableCount_Local" color="primary" slot="end">
-        {{ tjpUpdatesAvailableCount_Local }}
-      </ion-badge> -->
     </ion-button>
 
     <!-- share -->
@@ -24,7 +21,6 @@
     <ion-button *ngIf="ibGib" class="toolbar-title-btn" (click)="handleClick_Trash()" title="trash this ibgib">
       <ion-icon name="trash-outline" ios="trash-outline"></ion-icon>
     </ion-button>
-
 
     <!-- open in new tag -->
     <ion-button *ngIf="ibGib" class="toolbar-title-btn" (click)="handleClick_OpenInNewTab()" title="open in new tab">

@@ -19,7 +19,7 @@ import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { unique } from './utils';
 
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || true;
 
 /**
  * Options when getting dependency graph for ibGib(s).
@@ -72,7 +72,7 @@ export interface GetGraphOptions {
      * grandchild). This will include the grandchild.  If it's not a live graph,
      * then the parent will only have the child and will exclude the grandchild.
      */
-    live: boolean,
+    live?: boolean,
     /**
      * object that will be populated through recursive calls to this function.
      *
@@ -235,7 +235,7 @@ export async function getGraphProjection({
     timeLogName,
     mapTjpAddrToLatestAddrsInSpace,
 }: GetDependencyGraphOptions): Promise<GetGraphResult> {
-    const lc = `[${getDependencyGraph.name}]`;
+    const lc = `[${getGraphProjection.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: 70508d7a5c63eae1f22ae851b32b3d22)`); }
 
@@ -297,6 +297,9 @@ export async function getGraphProjection({
             }
         }
 
+        if (logalot) { console.log(`${lc}[analyze debugging] addrsWeDontHaveAlready_IncomingIbGibAddrs.length: ${addrsWeDontHaveAlready_IncomingIbGibAddrs.length} (I: aa413f9c8fdb04673f663c6cc9de0e22)`); }
+        if (logalot) { console.log(`${lc}[analyze debugging] addrsWeDontHaveAlready_IncomingIbGibAddrs: ${addrsWeDontHaveAlready_IncomingIbGibAddrs.join('|')} (I: b45a2614184b48b694becfd377c789f5)`); }
+
         if (addrsWeDontHaveAlready_IncomingIbGibAddrs.length > 0) {
             // delete this related code when I'm done testing .
             // const primaryKeysDebug: { [addr: string]: string } = {};
@@ -355,9 +358,12 @@ export async function getGraphProjection({
         // at this point, there are two different strategies for diving deeper,
         // depending on if we are building a `live` graph or not.
 
+        let commentIbs = unique(ibGibs.map(x => x.ib).filter(x => x.startsWith('comment ')));
+        if (logalot) { console.log(`${lc}[analyze debugging] ibGibs commentIbs: ${commentIbs.join('\n')} (I: c89dc951315f746954f9bddbe8941122)`); }
+
         if (live) {
             return getGraphProjection_Live({
-                ibGib, ibGibs, ibGibAddr, ibGibAddrs: [],
+                ibGibs, ibGibAddrs: [],
                 live,
                 gotten, tjpAddrsAlreadyAnalyzed,
                 skipAddrs, skipRel8nNames, onlyRel8nNames,
@@ -367,7 +373,7 @@ export async function getGraphProjection({
             });
         } else {
             return getGraphProjection_NonLive({
-                ibGib, ibGibs, ibGibAddr, ibGibAddrs: [],
+                ibGibs, ibGibAddrs: [],
                 live,
                 gotten, /* tjpAddrsAlreadyAnalyzed not used */
                 skipAddrs, skipRel8nNames, onlyRel8nNames,
@@ -403,6 +409,10 @@ async function getGraphProjection_Live({
         mapTjpAddrToLatestAddrsInSpace = mapTjpAddrToLatestAddrsInSpace ?? {};
         tjpAddrsAlreadyAnalyzed = tjpAddrsAlreadyAnalyzed || [];
 
+        if (ibGibs.some(x => x.ib.startsWith('comment a'))) { debugger; }
+        // if (ibGibAddrs.some(x => x.startsWith('comment a1'))) { debugger; }
+        if (Object.keys(gotten).some(x => x.startsWith('comment a'))) { debugger; }
+
         // at this point, our incoming ibGibs are fully populated
 
         // live dependency graph searching requires a timeline-centric approach.
@@ -427,11 +437,13 @@ async function getGraphProjection_Live({
         // };
         // const ibGibsWithTjp = Object.values(mapWithTjp);
         // const ibGibsWithoutTjp = Object.values(mapWithoutTjps);
+        debugger;
         const timelinesPerTjp = getTimelinesGroupedByTjp({
-            ibGibs,
+            ibGibs: [...ibGibs, ...Object.values(gotten)],
             // ibGibs: ibGibsWithTjp,
         });
-        const mapTjpAddrToLatestIbGibInTimelineThatWeHaventAlreadyGotten: { [tjpAddr: IbGibAddr]: IbGib_V1 } = {};
+        if (logalot) { console.log(`${lc}[analyze debugging] timeline tjps(${Object.keys(timelinesPerTjp).length}): ${Object.keys(timelinesPerTjp)} (I: 509f04ac15ca08c5a3f0777b48934622)`); }
+        const mapTjpAddrToLatestIbGibInTimelineThatWeHaventAlreadyAnalyzed: { [tjpAddr: IbGibAddr]: IbGib_V1 } = {};
         /**
          * Convience mapping back from latest addr already gotten back to the tjp addr.
          * Convenience = not strictly necessary, but makes it easier later.
@@ -444,13 +456,13 @@ async function getGraphProjection_Live({
                 const timeline = timelinesPerTjp[tjpAddr];
                 // add to the array we'll send below
                 const latestIbGibAlreadyGotten = timeline[timeline.length - 1];
-                mapTjpAddrToLatestIbGibInTimelineThatWeHaventAlreadyGotten[tjpAddr] = latestIbGibAlreadyGotten;
+                mapTjpAddrToLatestIbGibInTimelineThatWeHaventAlreadyAnalyzed[tjpAddr] = latestIbGibAlreadyGotten;
                 // add to mapping back from addr to tjpaddr for convenience below
                 const latestAddrAlreadyGotten = h.getIbGibAddr({ ibGib: latestIbGibAlreadyGotten });
                 mapLatestAddrAlreadyGottenToTjpAddr[latestAddrAlreadyGotten] = tjpAddr;
             });
         let countOfTimelinesNotYetGotten =
-            Object.keys(mapTjpAddrToLatestIbGibInTimelineThatWeHaventAlreadyGotten).length;
+            Object.keys(mapTjpAddrToLatestIbGibInTimelineThatWeHaventAlreadyAnalyzed).length;
 
         if (countOfTimelinesNotYetGotten > 0) {
             // we have more timelines still to do. get the latest ibGib in each timeline,
@@ -464,17 +476,23 @@ async function getGraphProjection_Live({
              * build this map of latest addr given -> latest addr in space (per timeline/tjp).
              */
             let latestAddrsMap: { [addr: string]: IbGibAddr | null } = {};
-            Object.keys(mapTjpAddrToLatestAddrsInSpace).forEach(tjpAddr => {
-                const latestIbGibCorrespondingToTjpAddr =
-                    mapTjpAddrToLatestIbGibInTimelineThatWeHaventAlreadyGotten[tjpAddr];
-                const latestAddrCorrespondingToTjpAddr =
-                    h.getIbGibAddr({ ibGib: latestIbGibCorrespondingToTjpAddr });
-
-                latestAddrsMap[latestAddrCorrespondingToTjpAddr] = mapTjpAddrToLatestAddrsInSpace[tjpAddr];
-            });
+            Object.keys(mapTjpAddrToLatestAddrsInSpace)
+                .filter(tjpAddr => !tjpAddrsAlreadyAnalyzed.includes(tjpAddr))
+                .forEach(tjpAddr => {
+                    const latestIbGibCorrespondingToTjpAddr =
+                        mapTjpAddrToLatestIbGibInTimelineThatWeHaventAlreadyAnalyzed[tjpAddr];
+                    if (latestIbGibCorrespondingToTjpAddr) {
+                        const latestAddrCorrespondingToTjpAddr =
+                            h.getIbGibAddr({ ibGib: latestIbGibCorrespondingToTjpAddr });
+                        latestAddrsMap[latestAddrCorrespondingToTjpAddr] = mapTjpAddrToLatestAddrsInSpace[tjpAddr];
+                    } else {
+                        debugger;
+                        console.error(`${lc} latestIbGibCorrespondingToTjpAddr is falsy`)
+                    }
+                });
             if (logalot) { console.log(`${lc} latestAddrsMap *before* getLatestAddrs: ${h.pretty(latestAddrsMap)} (I: 427b4bb78595e9e521ecf2c5e5c80722)`); }
             const ibGibsToQuery =
-                Object.values(mapTjpAddrToLatestIbGibInTimelineThatWeHaventAlreadyGotten)
+                Object.values(mapTjpAddrToLatestIbGibInTimelineThatWeHaventAlreadyAnalyzed)
                     .filter(x => !Object.keys(latestAddrsMap).includes(h.getIbGibAddr({ ibGib: x })));
 
             let queriedLatestAddrsMap: { [addr: string]: IbGibAddr | null } = {};
@@ -498,8 +516,13 @@ async function getGraphProjection_Live({
                 };
             }
             if (logalot) { console.log(`${lc} combined latestAddrsMap: ${h.pretty(latestAddrsMap)} (I: e3aedea63f29c5b06a79632f691aa522)`); }
+
+            /**
+             * these addrs are those whose timelines we did not yet have the latest.
+             * this means that we will have to work off of these ibgibs.
+             */
             const newerAddrsFound: IbGibAddr[] = [];
-            Object.values(mapTjpAddrToLatestIbGibInTimelineThatWeHaventAlreadyGotten)
+            Object.values(mapTjpAddrToLatestIbGibInTimelineThatWeHaventAlreadyAnalyzed)
                 .forEach(latestIbGibAlreadyGotten => {
                     const latestAddrAlreadyGotten = h.getIbGibAddr({ ibGib: latestIbGibAlreadyGotten });
                     const tjpAddr = mapLatestAddrAlreadyGottenToTjpAddr[latestAddrAlreadyGotten];
@@ -509,16 +532,16 @@ async function getGraphProjection_Live({
                         // we've already got the latest for this timeline. This
                         // means that we must have already at least queued all
                         // timelines possible, so nothing else to do.
+                        if (logalot) { console.log(`${lc} analyzed ${tjpAddr}(I: afb7960900f04b8a87538f4c7bd903b7)`); }
+                        tjpAddrsAlreadyAnalyzed.push(tjpAddr);
                     } else {
                         // there is a newer "latest" in this timeline that we
                         // haven't gotten yet, so add that addr to the
                         newerAddrsFound.push(latestAddrInSpace);
                     }
-
-                    tjpAddrsAlreadyAnalyzed.push(tjpAddr);
+                    // tjpAddrsAlreadyAnalyzed.push(tjpAddr);
                 });
 
-            // at this point we can go through the rel8d ibgibs
             let rel8dAddrsNotYetGotten: IbGibAddr[] = [];
             for (let i = 0; i < ibGibs.length; i++) {
                 const ibGib = ibGibs[i];
@@ -539,19 +562,35 @@ async function getGraphProjection_Live({
                     });
                 });
             }
+            ibGibAddrs = [...ibGibAddrs, ...rel8dAddrsNotYetGotten];
 
-            if (newerAddrsFound.length === 0 && rel8dAddrsNotYetGotten.length === 0) {
+            // shotgun (ugly and slow)
+            let thisIteration = await getGraphProjection({
+                ibGibs, ibGibAddrs,
+                gotten, /* tjpAddrsAlreadyAnalyzed not used */
+                skipAddrs, skipRel8nNames, onlyRel8nNames,
+                maxRetries, msBetweenRetries,
+                space,
+                timeLogName,
+                live: false,
+            });
+            gotten = { ...gotten, ...thisIteration };
+            ibGibs = [...ibGibs, ...Object.values(gotten)];
+
+            // if (newerAddrsFound.length === 0 && rel8dAddrsNotYetGotten.length === 0) {
+            if (newerAddrsFound.length === 0) {
                 // there were no newer addrs found, necessitating that we have
                 // no additional ibgibs that we don't know about.
 
-                return await getGraphProjection_NonLive({
+
+                return await getGraphProjection({
                     ibGibs, ibGibAddrs,
                     gotten, tjpAddrsAlreadyAnalyzed,
                     skipAddrs, skipRel8nNames, onlyRel8nNames,
                     maxRetries, msBetweenRetries,
                     space,
                     timeLogName,
-                    live: false,
+                    live: true,
                 });
             } else {
                 // there are still newer ibgibs that must be included in the analysis, without yet
@@ -566,10 +605,8 @@ async function getGraphProjection_Live({
                     mapTjpAddrToLatestAddrsInSpace[tjpAddr] = latestAddrNotGotten;
                     ibGibAddrs.push(queriedLatestAddrsMap[latestAddrNotGotten]);
                 });
-                ibGibAddrs = [...ibGibAddrs, ...rel8dAddrsNotYetGotten];
-                // if (ibGibAddrs.some(x => x.startsWith('comment doodle') || x.startsWith('comment wakkado'))) {
-                debugger;
-                // }
+                // ibGibAddrs = unique([...ibGibAddrs, ...rel8dAddrsNotYetGotten]);
+
                 return await getGraphProjection({
                     ibGibs, ibGibAddrs,
                     gotten, tjpAddrsAlreadyAnalyzed,
@@ -807,8 +844,8 @@ async function getGraphProjection_NonLive({
                     // return a recursive call for the newly-gotten ibgibs'
                     // dependencies, passing in the now-larger accumulating
                     // `gotten` map of ibgibs already processed.
-                    if (timeLogName) { console.timeLog(timeLogName, `${lc} call getDependencyGraph recursively starting...`); }
-                    const result = await getDependencyGraph({
+                    if (timeLogName) { console.timeLog(timeLogName, `${lc} call getGraphProjection recursively starting...`); }
+                    const result = await getGraphProjection({
                         ibGibs: resGet.ibGibs,
                         live: false,
                         gotten, /* tjpAddrsAlreadyAnalyzed not used */
@@ -816,7 +853,7 @@ async function getGraphProjection_NonLive({
                         maxRetries, msBetweenRetries,
                         space,
                     });
-                    if (timeLogName) { console.timeLog(timeLogName, `${lc} call getDependencyGraph recursively complete.`); }
+                    if (timeLogName) { console.timeLog(timeLogName, `${lc} call getGraphProjection recursively complete.`); }
                     return result; // <<<< returns early
                 } else if (resGet.ibGibs?.length > 0 && resGet.ibGibs.length < addrsWeDontHaveAlready_Rel8dAddrs.length) {
                     if (logalot) { console.warn(`${lc} got SOME of them (happy-ish path?). not sure what to do here... (W: e3458f61a1ae4979af9e6b18ac935c14)`); }
