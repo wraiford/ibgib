@@ -958,8 +958,9 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     }
 
     async loadTimestamp(item?: TItem): Promise<void> {
-        if (!this.ibGib?.data) { return; }
-        if (item.timestamp) { return; }
+        if (!this.ibGib?.data) { return; /* <<<< returns early */ }
+        if (!item) { return; /* <<<< returns early */ }
+        if (item.timestamp) { return; /* <<<< returns early */ }
         if (this.isComment || this.isLink) {
             item.timestamp = this.ibGib?.data.textTimestamp || this.ibGib?.data.timestamp;
         } else {

@@ -2,19 +2,23 @@ import {
   Component, OnInit, ChangeDetectorRef,
   Input, EventEmitter, Output,
 } from '@angular/core';
-import { Plugins } from '@capacitor/core';
-const { Clipboard } = Plugins;
+import { Capacitor, FilesystemDirectory, FilesystemEncoding, Plugins } from '@capacitor/core';
+const { Clipboard, Modals } = Plugins;
 
+import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr, V1 } from 'ts-gib';
-import { isPrimitive, } from 'ts-gib/dist/V1';
+import { IbGib_V1, isPrimitive, } from 'ts-gib/dist/V1';
 
 import * as c from '../constants';
 import { CommonService } from '../../services/common.service';
 import { IbgibComponentBase } from '../bases/ibgib-component-base';
 import { IbGibTimelineUpdateInfo } from '../types/ux';
-import { getFnAlert } from '../helper/prompt-functions';
+import { getFnAlert, getFnConfirm, getFnPrompt } from '../helper/prompt-functions';
 import { TagIbGib_V1 } from '../types/tag';
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { PicData_V1, PicIbGib_V1 } from '../types/pic';
+import { ensureDirPath, pathExists, writeFile } from '../helper/ionic';
+import { createNewTag } from '../helper/tag';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -40,6 +44,12 @@ export class CommandBarComponent
    */
   @Input()
   tjpUpdatesAvailableCount_Local: number = 0;
+
+  @Input()
+  updatingPic: boolean = false;
+
+  @Input()
+  downloadingPic: boolean = false;
 
   @Output()
   dismissMe = new EventEmitter<void>();
@@ -89,6 +99,10 @@ export class CommandBarComponent
       await super.updateIbGib(addr);
       await this.loadType();
       await this.loadIbGib();
+      await this.loadPic();
+      await this.loadComment();
+      await this.loadLink();
+      await this.loadTimestamp();
       await this.loadTjp();
       await this.updateCommands();
 
@@ -305,5 +319,277 @@ export class CommandBarComponent
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
+
+  async handleUpdatePicClick(): Promise<void> {
+    const lc = `${this.lc}[${this.handleUpdatePicClick.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (this.updatingPic) {
+        console.error(`${lc} (UNEXPECTED) already updating pic. this handler should be disabled yes? returning early. (E: 9cbb5388290a4f33bf8f2919aab9fdaa)`);
+        return; /* <<<< returns early */
+      }
+      this.updatingPic = true;
+
+      await this.common.ibgibs.updatePic({
+        picIbGib: <PicIbGib_V1>this.ibGib,
+        space: undefined, // local user space
+      });
+
+      this.updatingPic = false;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      this.updatingPic = false;
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+      setTimeout(() => this.ref.detectChanges());
+    }
+  }
+
+  async handleDownloadPicClick(): Promise<void> {
+    const lc = `${this.lc}[${this.handleDownloadPicClick.name}]`;
+    const alert = getFnAlert();
+    const prompt = getFnPrompt();
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      const alert = getFnAlert();
+      const confirm = getFnConfirm();
+      const resConfirm = await confirm({
+        title: 'Not implemented well on Android',
+        msg: `On Android, this will download the file as base64-encoded data. This does not display correctly on some (all?) Android device galleries.\n\nDo you want to proceed?`
+      });
+
+      if (!resConfirm) {
+        await alert({ title: 'K', msg: 'Cancelled' });
+        return; /* <<<< returns early */
+      }
+
+      this.downloadingPic = true;
+      const picIbGib = <IbGib_V1<PicData_V1>>this.ibGib;
+      const { data } = picIbGib;
+      if (!this.item?.picSrc) { throw new Error(`this.item?.picSrc is falsy...pic not loaded or not a pic? (E: e6c361e80cbd0f6221c51cd3f4b4fb22)`); }
+      if (!data.binHash) { throw new Error(`invalid pic data. binHash is falsy. (E: f2ac49f8451c2054833069aac44b8222)`); }
+
+      const filename =
+        data.filename ||
+        await prompt({
+          title: `file name?`,
+          msg: `What's the filename? ${data.filename ? `Leave blank to default to ${data.filename}` : ''}`,
+        }) ||
+        data.binHash;
+
+      const ext =
+        data.ext ||
+        await prompt({
+          title: `file extension?`,
+          msg: `What's the file extension? Leave blank to default to ${c.DEFAULT_PIC_FILE_EXTENSION}`,
+        }) ||
+        c.DEFAULT_PIC_FILE_EXTENSION;
+
+      const filenameWithExt = `${filename}.${ext}`;
+
+      let directory: FilesystemDirectory;
+      if (Capacitor.getPlatform() === 'ios') {
+        directory = FilesystemDirectory.External;
+      } else {
+        directory = FilesystemDirectory.Documents;
+      }
+
+      // check to see if file already exists existing file
+      let path: string;
+      let dirPath: string = `${c.IBGIB_BASE_SUBPATH}/${c.IBGIB_DOWNLOADED_PICS_SUBPATH}`;
+      await ensureDirPath({ dirPath, directory });
+      let suffixNum: number = 0;
+      let pathAlreadyExists: boolean;
+      let attempts = 0;
+      do {
+        suffixNum++;
+        path = suffixNum === 1 ?
+          `${dirPath}/${filenameWithExt}` :
+          `${dirPath}/${filename}(${suffixNum}).${ext}`;
+        pathAlreadyExists = await pathExists({
+          path,
+          directory,
+          encoding: FilesystemEncoding.UTF8,
+        });
+        attempts++;
+      } while (pathAlreadyExists && attempts < 10); // just hard-coding this here, very edgy edge case.
+
+      if (pathAlreadyExists) { throw new Error(`Tried 10 times and path ${filenameWithExt} (1-10) already exists. Last path tried: ${path}. (E: 09881b77a62747fbb0c2dd5057ae970a)`); }
+
+      // path does not exist, so write it with our picture data.
+      const dataToWrite = this.item.picSrc.replace(/^data\:image\/(jpeg|jpg|png)\;base64\,/i, '');
+      // THIS DOES NOT "WORK". It successfully downloads the base64 encoded
+      // string, but on my android testing this does not show the picture. I've
+      // wasted enough time on this for now.
+
+      await writeFile({ path, data: dataToWrite, directory: FilesystemDirectory.Documents });
+
+      await h.delay(100); // so user can see visually that write happened
+      await getFnAlert()({ title: 'file downloaded', msg: `Successfully downloaded to ${path} in ${directory}.` });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      await alert({ title: 'download pic...', msg: `hmm, something went wrong. error: ${error.message}` });
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+      this.downloadingPic = false;
+      setTimeout(() => this.ref.detectChanges());
+    }
+  }
+
+  // #region tag modal related
+
+  @Input()
+  tagIbGibs: TagIbGib_V1[] = [];
+
+  @Input()
+  tagging: boolean;
+
+  @Input()
+  showModal_PromptForTag: boolean;
+
+  async handleTagClick(_: MouseEvent): Promise<void> {
+    const lc = `${this.lc}[${this.handleTagClick.name}]`;
+    try {
+      this.tagging = true;
+      setTimeout(() => this.ref.detectChanges());
+
+      if (!this.ibGib) { throw new Error(`There isn't a current ibGib loaded...?`); }
+      if (!this.addr) { throw new Error(`There isn't a current ibGib addr loaded...?`); }
+
+      while (this.common.ibgibs.initializing) {
+        if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 67e795e53b9c4732ab53837bcaa22c1f)`); }
+        await h.delay(109);
+      }
+      this.tagIbGibs = await this.common.ibgibs.getSpecialRel8dIbGibs<TagIbGib_V1>({
+        type: "tags",
+        rel8nName: c.TAG_REL8N_NAME,
+      });
+
+      this.showModal_PromptForTag = !this.showModal_PromptForTag;
+
+      return; /* <<<< returns early */
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      await Modals.alert({ title: 'something went awry...', message: error.message });
+    } finally {
+      this.ref.detectChanges();
+    }
+  }
+
+  async rel8ToTag({
+    tagIbGib,
+  }: {
+    tagIbGib: TagIbGib_V1,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.rel8ToTag.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      const rel8nsToAddByAddr = { [c.TAGGED_REL8N_NAME]: [this.addr] };
+      const resRel8ToTag =
+        await V1.rel8({ src: tagIbGib, rel8nsToAddByAddr, dna: true, nCounter: true });
+      await this.common.ibgibs.persistTransformResult({ resTransform: resRel8ToTag });
+      const { newIbGib: newTag } = resRel8ToTag;
+      await this.common.ibgibs.rel8ToCurrentRoot({ ibGib: newTag, linked: true });
+      await this.common.ibgibs.registerNewIbGib({ ibGib: newTag });
+
+      if (logalot) { console.log(`${lc} tag successful.`); }
+      await Modals.alert({ title: 'yess', message: `Tagged.` });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleSelectTag_ExistingTag(tagIbGib: TagIbGib_V1): Promise<void> {
+    const lc = `${this.lc}[${this.handleSelectTag_ExistingTag.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      this.showModal_PromptForTag = false;
+      setTimeout(() => this.ref.detectChanges());
+
+      if (logalot) { console.log(`${lc} tag with existing tag, but may not be latest addr`); }
+      const rel8dTagIbGibAddr = h.getIbGibAddr({ ibGib: tagIbGib });
+      if (logalot) { console.log(`${lc} the rel8d tag may not be the latest: ${rel8dTagIbGibAddr}`); }
+      const latestTagAddr = await this.common.ibgibs.getLatestAddr({ ibGib: tagIbGib });
+      if (logalot) { console.log(`${lc} latestTagAddr: ${latestTagAddr}`); }
+      if (rel8dTagIbGibAddr === latestTagAddr) {
+        if (logalot) { console.log(`${lc} tag is already the latest (I: b98f190c9d6bc2f5575606ad0b7ff122)`); }
+      } else {
+        if (logalot) { console.log(`${lc} tag is NOT the latest (I: 1a8d0849cdb5b0fc652529146d81db22)`); }
+        const resTagIbGibLatest = await this.common.ibgibs.get({ addr: latestTagAddr });
+        if (resTagIbGibLatest.success && resTagIbGibLatest.ibGibs?.length === 1) {
+          if (logalot) { console.log(`${lc} tag is NOT the latest and we got a new ibgib (I: 9391166b53577630697da4ff810b1b22)`); }
+          tagIbGib = <TagIbGib_V1>resTagIbGibLatest.ibGibs![0];
+        } else {
+          console.warn(`${lc} couldn't find latest tag addr (${latestTagAddr}). using previous tag (${rel8dTagIbGibAddr})`);
+        }
+      }
+
+      await this.rel8ToTag({ tagIbGib });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      this.tagging = false;
+      setTimeout(() => this.ref.detectChanges());
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleSelectTag_New(): Promise<void> {
+    const lc = `${this.lc}[${this.handleSelectTag_New.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      this.showModal_PromptForTag = false;
+      setTimeout(() => this.ref.detectChanges());
+
+      if (logalot) { console.log(`${lc} create new tag`); }
+      let tagIbGib = await createNewTag(this.common);
+      if (!tagIbGib) {
+        if (logalot) { console.log(`${lc} aborting creating new tag.`); }
+        this.tagging = false;
+        this.ref.detectChanges();
+        return;
+      }
+
+      await this.rel8ToTag({ tagIbGib });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      this.tagging = false;
+      setTimeout(() => this.ref.detectChanges());
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleSelectTag_Cancel(): Promise<void> {
+    const lc = `${this.lc}[${this.handleSelectTag_Cancel.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      this.showModal_PromptForTag = false;
+      setTimeout(() => this.ref.detectChanges());
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      this.tagging = false;
+      setTimeout(() => this.ref.detectChanges());
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+
+
+
+  // #endregion tag modal related
 
 }

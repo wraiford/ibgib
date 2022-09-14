@@ -135,7 +135,6 @@
   <div id="container" *ngIf="item?.ibGib" [style.border-color]="debugBorderColor"
     [style.border-width]="debugBorderWidth" [style.border-style]="debugBorderStyle">
 
-      <!-- [ngClass]="{'zero-height': !appBarIsVisible}" -->
     <ib-app-bar #appBar [addr]='addr'
       [hidden]="!appBarIsVisible"
       (appSelected)="handleAppSelected($event)"></ib-app-bar>

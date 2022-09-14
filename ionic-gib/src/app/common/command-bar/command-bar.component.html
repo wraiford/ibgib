@@ -34,6 +34,60 @@
       <ion-icon name="pricetag-outline"></ion-icon>
     </ion-button>
 
+      <!-- update pic -->
+      <ion-button *ngIf="item?.type === 'pic'" class="toolbar-title-btn" [disabled]="syncing || refreshing"
+        (click)="handleUpdatePicClick()">
+        <ion-icon name="camera-reverse-outline"></ion-icon>
+        <ion-spinner *ngIf="updatingPic" name="circles" color="tertiary"></ion-spinner>
+      </ion-button>
+
+      <!-- download pic -->
+      <ion-button *ngIf="item?.type === 'pic' && (ios || android)" class="toolbar-title-btn"
+        [disabled]="syncing || refreshing" (click)="handleDownloadPicClick()">
+        <ion-icon name="download-outline"></ion-icon>
+        <ion-icon name="image-outline"></ion-icon>
+        <ion-spinner *ngIf="downloadingPic" name="circles" color="tertiary"></ion-spinner>
+      </ion-button>
+      <a *ngIf="item?.type === 'pic' && web" [href]="item.picSrc"
+        [download]="'Downloads/' + (item?.filenameWithExt || 'item.binHash.png')">
+        <ion-button [disabled]="syncing || refreshing" class="toolbar-title-btn">
+          <ion-icon name="download-outline"></ion-icon>
+          <ion-icon name="image-outline"></ion-icon>
+        </ion-button>
+      </a>
+
+      <!-- tag -->
+      <ion-button [disabled]="syncing || refreshing || paused || tagging" class="toolbar-title-btn"
+        (click)="handleTagClick($event)">
+        <ion-icon name="pricetag-outline"></ion-icon>
+        <ion-spinner *ngIf="tagging" name="bubbles" color="tertiary"></ion-spinner>
+      </ion-button>
+
   </ion-buttons>
 
 </ion-toolbar>
+
+    <ion-modal [isOpen]="showModal_PromptForTag">
+      <ng-template>
+        <ion-content id="select-tag-content">
+          <ion-title id="select-tag-title">Select tag...</ion-title>
+          <ion-buttons id="select-tag-btns">
+            <ion-button *ngFor="let tag of tagIbGibs" class="select-tag-btn" (click)="handleSelectTag_ExistingTag(tag)"
+              color="primary">
+              <ion-icon [name]="tag.data?.icon || 'help-outline'"></ion-icon>
+              <ion-label>{{ tag.data?.text || '[tag text missing?]' }} </ion-label>
+            </ion-button>
+          </ion-buttons>
+          <ion-buttons id="select-tag-btns-special">
+            <ion-button (click)="handleSelectTag_New()" color="secondary">
+              <ion-icon name="add-outline"></ion-icon>
+              <ion-label>new tag...</ion-label>
+            </ion-button>
+            <ion-button (click)="handleSelectTag_Cancel()" color="danger">
+              <ion-icon name="close-outline"></ion-icon>
+              <ion-label>cancel</ion-label>
+            </ion-button>
+          </ion-buttons>
+        </ion-content>
+      </ng-template>
+    </ion-modal>

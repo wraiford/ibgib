@@ -1517,8 +1517,8 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
     } finally {
       this.ref.detectChanges();
     }
-
   }
+
   async rel8ToTag({
     tagIbGib,
   }: {
