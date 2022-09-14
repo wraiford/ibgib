@@ -13,6 +13,8 @@ import { CommonService } from '../../services/common.service';
 import { IbgibComponentBase } from '../bases/ibgib-component-base';
 import { IbGibTimelineUpdateInfo } from '../types/ux';
 import { getFnAlert } from '../helper/prompt-functions';
+import { TagIbGib_V1 } from '../types/tag';
+import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -85,7 +87,9 @@ export class CommandBarComponent
       let contextIbGib = this.ibGib_Context;
       let contextRel8nName = this.rel8nName_Context;
       await super.updateIbGib(addr);
+      await this.loadType();
       await this.loadIbGib();
+      await this.loadTjp();
       await this.updateCommands();
 
       // reinstate the context ibgib...
@@ -265,6 +269,35 @@ export class CommandBarComponent
       const { origin } = document.location;
       const newUrl = `${origin}/ibgib/${this.addr}`;
       window.open(newUrl, "_blank");
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleClick_MakeTag(): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_MakeTag.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: cac956070bae93da1bd6d867c685bf22)`); }
+
+      // first check that we haven't already added this to the tags
+      const tagsIbGib = <TagIbGib_V1>(await this.common.ibgibs.getSpecialIbGib({ type: "tags" }));
+      let tagAddrs = (tagsIbGib.rel8ns?.tag ?? []);
+      let tagTjpGibs = tagAddrs.map(x => getGibInfo({ ibGibAddr: x }).tjpGib);
+      let thisIbGibTjpGib = getGibInfo({ gib: this.gib }).tjpGib;
+      if (tagTjpGibs.includes(thisIbGibTjpGib)) {
+        console.warn(`${lc} this.ibGib already registered as a tag. (W: 15efdc52a0174a5cbb8ef7f60764467d)`);
+        return; /* <<<< returns early */
+      }
+
+      await this.common.ibgibs.rel8ToSpecialIbGib({
+        type: "tags",
+        rel8nName: c.TAG_REL8N_NAME,
+        ibGibsToRel8: [this.ibGib],
+      });
+
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

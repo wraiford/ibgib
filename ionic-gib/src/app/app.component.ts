@@ -894,7 +894,10 @@ export class AppComponent extends IbgibComponentBase
       }
 
       // give up if we still don't have any tags.
-      if (!tagAddrs || tagAddrs.length === 0) { console.error(`${lc} no tags found?`); return; }
+      if (!tagAddrs || tagAddrs.length === 0) {
+        console.error(`${lc} no tags found?`);
+        return; /* <<<< returns early */
+      }
 
       // load individual tag items
       for (let tagAddr of tagAddrs) {

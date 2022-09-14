@@ -2035,7 +2035,7 @@ async function getLatestAddr_Brute({
  *
  * @param tagIbGib to add to Tags
  */
-function rel8TagToTagsIbGib({
+export function rel8TagToTagsIbGib({
     tagIbGib,
     space,
     zeroSpace,
