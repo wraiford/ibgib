@@ -873,8 +873,9 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       this.item.syncing = false;
       if (!cancelled) { this.syncErrored = true; }
     } finally {
-      if (logalot) { console.log(`${lc} complete. (I: 2334b5444103f24178e4d2d2116de322)`); }
       this.item.syncing = false;
+      setTimeout(() => this.ref.detectChanges());
+      if (logalot) { console.log(`${lc} complete. (I: 2334b5444103f24178e4d2d2116de322)`); }
     }
   }
 

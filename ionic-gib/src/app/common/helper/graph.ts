@@ -225,7 +225,7 @@ export async function getDependencyGraph({
     }
 }
 
-export async function getGraphProjection({
+async function getGraphProjection_initializeOpts({
     ibGib, ibGibs, ibGibAddr, ibGibAddrs,
     live,
     gotten, tjpAddrsAlreadyAnalyzed,
@@ -234,18 +234,15 @@ export async function getGraphProjection({
     space,
     timeLogName,
     mapTjpAddrToLatestAddrsInSpace,
-}: GetDependencyGraphOptions): Promise<GetGraphResult> {
-    const lc = `[${getGraphProjection.name}]`;
+}: GetDependencyGraphOptions): Promise<GetDependencyGraphOptions> {
+    const lc = `[${getGraphProjection_initializeOpts.name}]`;
     try {
-        if (logalot) { console.log(`${lc} starting... (I: 70508d7a5c63eae1f22ae851b32b3d22)`); }
-
-        // #region validate & initialize
+        if (logalot) { console.log(`${lc} starting... (I: bd6807477f679345df9dddefe0b4e922)`); }
 
         if (!space) { throw new Error(`space required. (E: 9f38166ab70340cb919174f8d26af909)`); }
         if (!ibGib && !ibGibAddr && (ibGibs ?? []).length === 0 && (ibGibAddrs ?? []).length === 0) {
             throw new Error(`either ibGib/s or ibGibAddr/s required. (E: b6d08699651f455697f0d05a41edb039)`);
         }
-        if (timeLogName) { console.timeLog(timeLogName, `${lc} starting...`) }
 
         skipRel8nNames = skipRel8nNames || [];
         // do NOT initialize onlyRel8nNames because we do logic based on falsy value
@@ -282,36 +279,66 @@ export async function getGraphProjection({
         ) {
             ibGibAddrs.push(ibGibAddr);
         }
+        return {
+            ibGib, ibGibs, ibGibAddr, ibGibAddrs,
+            live,
+            gotten, tjpAddrsAlreadyAnalyzed,
+            skipAddrs, skipRel8nNames, onlyRel8nNames,
+            maxRetries, msBetweenRetries,
+            space,
+            timeLogName,
+            mapTjpAddrToLatestAddrsInSpace,
+        };
 
-        // #endregion validate & initialize
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
 
-        // #region retrieve any associated ibGibs from the space that we don't already have (if any)
+async function getGraphProjection_getIbGibsInIbGibAddrs({
+    ibGibs,
+    ibGibAddrs,
+    gotten,
+    skipAddrs,
+    maxRetries, msBetweenRetries,
+    timeLogName,
+    space,
+}: GetGraphProjectionOptions): Promise<IbGib_V1[]> {
+    const lc = `[${getGraphProjection_getIbGibsInIbGibAddrs.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 67b2be37ff24393fff56e229304da122)`); }
 
-        const addrsWeDontHaveAlready_IncomingIbGibAddrs: IbGibAddr[] = [];
+        /**
+         * ibgibs that we'll return
+         */
+        const resIbGibs: IbGib_V1[] = [];
+
+        const addrsToGetFromSpace: IbGibAddr[] = [];
         const gottenAddrs: IbGibAddr[] = Object.keys(gotten); // compute once in this closure
         const incomingIbGibAddrs = ibGibs.map(x => h.getIbGibAddr({ ibGib: x }));
-        const noNeedAddrs = [...gottenAddrs, ...incomingIbGibAddrs, ...skipAddrs,];
+        // const noNeedAddrs = [...gottenAddrs, ...incomingIbGibAddrs, ...skipAddrs,];
         for (let i = 0; i < ibGibAddrs.length; i++) {
-            if (!noNeedAddrs.includes(ibGibAddrs[i])) {
-                addrsWeDontHaveAlready_IncomingIbGibAddrs.push(ibGibAddrs[i]);
+            const addr = ibGibAddrs[i];
+            if (skipAddrs.includes(addr) || incomingIbGibAddrs.includes(addr)) {
+                continue;
+            } else if (gottenAddrs.includes(addr)) {
+                // we've already gotten this addr previously and put it into the
+                // gotten object, so we don't need to retrieve it from space
+                resIbGibs.push(gotten[addr]);
+            } else {
+                // if (!noNeedAddrs.includes(ibGibAddrs[i])) {
+                addrsToGetFromSpace.push(ibGibAddrs[i]);
             }
         }
 
-        if (logalot) { console.log(`${lc}[analyze debugging] addrsWeDontHaveAlready_IncomingIbGibAddrs.length: ${addrsWeDontHaveAlready_IncomingIbGibAddrs.length} (I: aa413f9c8fdb04673f663c6cc9de0e22)`); }
-        if (logalot) { console.log(`${lc}[analyze debugging] addrsWeDontHaveAlready_IncomingIbGibAddrs: ${addrsWeDontHaveAlready_IncomingIbGibAddrs.join('|')} (I: b45a2614184b48b694becfd377c789f5)`); }
+        if (logalot) { console.log(`${lc}[analyze debugging] addrsToGetFromSpace (${addrsToGetFromSpace.length}):\n${addrsToGetFromSpace.join('\n')} (I: b45a2614184b48b694becfd377c789f5)`); }
 
-        if (addrsWeDontHaveAlready_IncomingIbGibAddrs.length > 0) {
-            // delete this related code when I'm done testing .
-            // const primaryKeysDebug: { [addr: string]: string } = {};
-            // for (let i = 0; i < addrsWeDontHaveAlready_IncomingIbGibAddrs.length; i++) {
-            //     const addr = addrsWeDontHaveAlready_IncomingIbGibAddrs[i];
-            //     primaryKeysDebug[addr] = await h.hash({s: addr, algorithm: 'SHA-256'});
-            // }
-
-            // get from space those we don't already have, with retries if applicable
-
-            // do multiple retry attempts if necessary and caller sets it.
-            let addrsToGet = addrsWeDontHaveAlready_IncomingIbGibAddrs.concat();
+        if (addrsToGetFromSpace.length > 0) {
+            // get from space, with retries if applicable
+            let addrsToGet = addrsToGetFromSpace.concat();
             let retryCount = 0;
             maxRetries = maxRetries ?? 0;
             while (retryCount <= maxRetries && addrsToGet.length > 0) {
@@ -329,7 +356,8 @@ export async function getGraphProjection({
                 let resGetThese = await getFromSpace({ addrs: addrsToGet, space });
                 if (timeLogName) { console.timeLog(timeLogName, `${lc} getFromSpace complete.`); }
                 if (resGetThese.success && resGetThese.ibGibs?.length > 0) {
-                    resGetThese.ibGibs.forEach(x => ibGibs.push(x));
+                    resGetThese.ibGibs.forEach(x => resIbGibs.push(x));
+                    // resGetThese.ibGibs.forEach(x => ibGibs.push(x));
                     const gottenAddrs = resGetThese.ibGibs.map(x => h.getIbGibAddr({ ibGib: x }));
                     if (gottenAddrs.length === addrsToGet.length) {
                         if (timeLogName) { console.timeLog(timeLogName, `${lc} got all.`) }
@@ -353,7 +381,47 @@ export async function getGraphProjection({
             }
         }
 
-        // #endregion retrieve any associated ibGibs from the space that we don't already have (if any)
+        return resIbGibs;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+export async function getGraphProjection(opts: GetDependencyGraphOptions): Promise<GetGraphResult> {
+    const lc = `[${getGraphProjection.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 70508d7a5c63eae1f22ae851b32b3d22)`); }
+
+        let {
+            ibGib, ibGibs, ibGibAddr, ibGibAddrs,
+            live,
+            gotten, tjpAddrsAlreadyAnalyzed,
+            skipAddrs, skipRel8nNames, onlyRel8nNames,
+            maxRetries, msBetweenRetries,
+            space,
+            timeLogName,
+            mapTjpAddrToLatestAddrsInSpace,
+        } = await getGraphProjection_initializeOpts(opts);
+
+        if (timeLogName) { console.timeLog(timeLogName, `${lc} starting...`) }
+
+        // retrieve ibgibs listed in incoming ibGibAddrs (if any) and put them
+        // in our incoming ibGibs array
+        if (ibGibAddrs.length > 0) {
+            const supplementalIbGibs = await getGraphProjection_getIbGibsInIbGibAddrs({
+                ibGibs, ibGibAddrs,
+                gotten,
+                skipAddrs,
+                maxRetries, msBetweenRetries,
+                timeLogName,
+                space,
+            });
+            ibGibs = [...ibGibs, ...supplementalIbGibs];
+        }
+
 
         // at this point, there are two different strategies for diving deeper,
         // depending on if we are building a `live` graph or not.
@@ -390,7 +458,20 @@ export async function getGraphProjection({
 }
 
 /**
- * NOT EXPORTED
+ *
+ * live dependency graph searching requires a timeline-centric approach.
+ * for each incoming ibGib, we must first determine if it has a
+ * timeline.  if it does, then we get the latest in that timeline and
+ * get all ibgibs in that lineage only. we do NOT YET go through any
+ * rel8d ibgibs that also have timelines
+ *
+ * what we can do is compile our list of ibGib addrs according to each
+ * timeline and then call the nonlive version of the dependency graph.
+ * but we must get the latest in the timeline, then get all associated
+ * timelines and get the latest of those. Then we can call get
+ * dependency graph on the non-live version, passing in all of those
+ * latest ibgibs in the timelines (and everything we've gotten in the
+ * interim so we don't waste time getting more).
  *
  * @see {@link getGraphProjection}
  * @see {@link getDependencyGraph}
@@ -409,40 +490,20 @@ async function getGraphProjection_Live({
         mapTjpAddrToLatestAddrsInSpace = mapTjpAddrToLatestAddrsInSpace ?? {};
         tjpAddrsAlreadyAnalyzed = tjpAddrsAlreadyAnalyzed || [];
 
-        if (ibGibs.some(x => x.ib.startsWith('comment a'))) { debugger; }
-        // if (ibGibAddrs.some(x => x.startsWith('comment a1'))) { debugger; }
-        if (Object.keys(gotten).some(x => x.startsWith('comment a'))) { debugger; }
-
-        // at this point, our incoming ibGibs are fully populated
-
-        // live dependency graph searching requires a timeline-centric approach.
-        // for each incoming ibGib, we must first determine if it has a
-        // timeline.  if it does, then we get the latest in that timeline and
-        // get all ibgibs in that lineage only. we do NOT YET go through any
-        // rel8d ibgibs that also have timelines
-
-        // what we can do is compile our list of ibGib addrs according to each
-        // timeline and then call the nonlive version of the dependency graph.
-        // but we must get the latest in the timeline, then get all associated
-        // timelines and get the latest of those. Then we can call get
-        // dependency graph on the non-live version, passing in all of those
-        // latest ibgibs in the timelines (and everything we've gotten in the
-        // interim so we don't waste time getting more).
-
-        // const {mapWithTjp_NoDna, mapWithTjp_YesDna, mapWithoutTjps} =
-        //     splitPerTjpAndOrDna({ibGibs})
-        // const mapWithTjp: { [addr: IbGibAddr]: IbGib_V1 } = {
-        //     ...mapWithTjp_YesDna,
-        //     ...mapWithTjp_NoDna,
-        // };
-        // const ibGibsWithTjp = Object.values(mapWithTjp);
-        // const ibGibsWithoutTjp = Object.values(mapWithoutTjps);
-        debugger;
+        // ibGibs contains the ones we explicitly are still working on getting
+        // projections within, gotten are the ones we have completed. so we want
+        // to get all of them together so we have a complete (up to this point)
+        // picture of timelines, because we're looking for timelines that we
+        // haven't yet analyzed
+        let allIbGibsSoFar = { ...gotten };
+        ibGibs.forEach(x => allIbGibsSoFar[h.getIbGibAddr({ ibGib: x })] = x);
         const timelinesPerTjp = getTimelinesGroupedByTjp({
-            ibGibs: [...ibGibs, ...Object.values(gotten)],
-            // ibGibs: ibGibsWithTjp,
+            ibGibs: Object.values(allIbGibsSoFar),
         });
         if (logalot) { console.log(`${lc}[analyze debugging] timeline tjps(${Object.keys(timelinesPerTjp).length}): ${Object.keys(timelinesPerTjp)} (I: 509f04ac15ca08c5a3f0777b48934622)`); }
+
+
+        debugger;
         const mapTjpAddrToLatestIbGibInTimelineThatWeHaventAlreadyAnalyzed: { [tjpAddr: IbGibAddr]: IbGib_V1 } = {};
         /**
          * Convience mapping back from latest addr already gotten back to the tjp addr.
@@ -504,11 +565,12 @@ async function getGraphProjection_Live({
                 });
                 queriedLatestAddrsMap = resLatestAddrsMapInEntireSpace?.data?.latestAddrsMap;
                 if (!queriedLatestAddrsMap) { throw new Error(`(UNEXPECTED) getLatestAddrs result latestAddrsMap falsy (E: 088caa1fc95fd3b079108ab63ef33422)`); }
-                if (Object.keys(queriedLatestAddrsMap).length !== countOfTimelinesNotYetGotten) {
-                    // this happens when the space does not have the address, sometimes because of
-                    // not pushing the most recent changes to the sync space...hmmm
-                    throw new Error(`(UNEXPECTED) latestAddrsMap is not the same size as the incoming map (E: 666af512bbd44534983bb28ee8d43fed)`);
-                }
+                // if (Object.keys(queriedLatestAddrsMap).length !== countOfTimelinesNotYetGotten) {
+                //     // this happens when the space does not have the address, sometimes because of
+                //     // not pushing the most recent changes to the sync space...hmmm
+                //     debugger;
+                //     throw new Error(`(UNEXPECTED) latestAddrsMap is not the same size as the incoming map (E: 666af512bbd44534983bb28ee8d43fed)`);
+                // }
                 if (logalot) { console.log(`${lc} queriedLatestAddrsMap: ${h.pretty(queriedLatestAddrsMap)} (I: 7b39a5f7ce9e9d9fabae4be98ed44522)`); }
                 latestAddrsMap = {
                     ...queriedLatestAddrsMap,
@@ -532,14 +594,15 @@ async function getGraphProjection_Live({
                         // we've already got the latest for this timeline. This
                         // means that we must have already at least queued all
                         // timelines possible, so nothing else to do.
-                        if (logalot) { console.log(`${lc} analyzed ${tjpAddr}(I: afb7960900f04b8a87538f4c7bd903b7)`); }
-                        tjpAddrsAlreadyAnalyzed.push(tjpAddr);
+                        // if (logalot) { console.log(`${lc} analyzed ${tjpAddr}(I: afb7960900f04b8a87538f4c7bd903b7)`); }
+                        // tjpAddrsAlreadyAnalyzed.push(tjpAddr);
                     } else {
                         // there is a newer "latest" in this timeline that we
                         // haven't gotten yet, so add that addr to the
                         newerAddrsFound.push(latestAddrInSpace);
                     }
-                    // tjpAddrsAlreadyAnalyzed.push(tjpAddr);
+                    if (logalot) { console.log(`${lc} analyzed ${tjpAddr}(I: afb7960900f04b8a87538f4c7bd903b7)`); }
+                    tjpAddrsAlreadyAnalyzed.push(tjpAddr);
                 });
 
             let rel8dAddrsNotYetGotten: IbGibAddr[] = [];
@@ -562,12 +625,12 @@ async function getGraphProjection_Live({
                     });
                 });
             }
-            ibGibAddrs = [...ibGibAddrs, ...rel8dAddrsNotYetGotten];
+            ibGibAddrs = unique([...ibGibAddrs, ...rel8dAddrsNotYetGotten]);
 
             // shotgun (ugly and slow)
             let thisIteration = await getGraphProjection({
                 ibGibs, ibGibAddrs,
-                gotten, /* tjpAddrsAlreadyAnalyzed not used */
+                gotten: {}, /* tjpAddrsAlreadyAnalyzed not used */
                 skipAddrs, skipRel8nNames, onlyRel8nNames,
                 maxRetries, msBetweenRetries,
                 space,
@@ -576,16 +639,18 @@ async function getGraphProjection_Live({
             });
             gotten = { ...gotten, ...thisIteration };
             ibGibs = [...ibGibs, ...Object.values(gotten)];
+            allIbGibsSoFar = { ...gotten };
+            ibGibs.forEach(x => allIbGibsSoFar[h.getIbGibAddr({ ibGib: x })] = x);
+            ibGibs = Object.values(allIbGibsSoFar);
 
-            // if (newerAddrsFound.length === 0 && rel8dAddrsNotYetGotten.length === 0) {
             if (newerAddrsFound.length === 0) {
                 // there were no newer addrs found, necessitating that we have
                 // no additional ibgibs that we don't know about.
 
-
                 return await getGraphProjection({
                     ibGibs, ibGibAddrs,
                     gotten, tjpAddrsAlreadyAnalyzed,
+                    // gotten, /* tjpAddrsAlreadyAnalyzed not used */
                     skipAddrs, skipRel8nNames, onlyRel8nNames,
                     maxRetries, msBetweenRetries,
                     space,
@@ -605,6 +670,7 @@ async function getGraphProjection_Live({
                     mapTjpAddrToLatestAddrsInSpace[tjpAddr] = latestAddrNotGotten;
                     ibGibAddrs.push(queriedLatestAddrsMap[latestAddrNotGotten]);
                 });
+                ibGibAddrs = unique(ibGibAddrs);
                 // ibGibAddrs = unique([...ibGibAddrs, ...rel8dAddrsNotYetGotten]);
 
                 return await getGraphProjection({
@@ -659,112 +725,6 @@ async function getGraphProjection_NonLive({
 }: GetGraphProjectionOptions): Promise<GetGraphResult> {
     const lc = `[${getGraphProjection_NonLive.name}]`;
     try {
-        // const getAddrsThatWeDontHaveAlready: (addrs: IbGibAddr[]) => IbGibAddr[] =
-        //     (addrs) => {
-        //         const resAddrs: IbGibAddr[] = [];
-        //         const gottenAddrs: IbGibAddr[] = Object.keys(gotten); // compute once in this closure
-        //         const incomingIbGibAddrs = ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
-        //         const noNeedAddrs = [ ...gottenAddrs, ...incomingIbGibAddrs, ...skipAddrs, ];
-        //         for (let i = 0; i < addrs.length; i++) {
-        //             if (!noNeedAddrs.includes(addrs[i])) { resAddrs.push(addrs[i]); }
-        //             // const addrToCheck = addrs[i];
-        //             // if (!gottenAddrs.includes(addrToCheck) && !skipAddrs.includes(addrToCheck)) {
-        //             //     const alreadyGivenIbGibMaybe =
-        //             //         ibGibs.filter(x => h.getIbGibAddr({ibGib: x}) === addrToCheck);
-        //             //     if (alreadyGivenIbGibMaybe.length === 0) {
-        //             //         resAddrs.push(addrToCheck);
-        //             //     }
-        //             // }
-        //         }
-        //         return resAddrs;
-        //     };
-
-        // Sets of addrs that we have to get in this iteration:
-        // 1. the passed in ibGib addrs that we haven't already gotten
-        // 2. the rel8d addrs for the passed in ibgibs
-
-        // So first, go ahead and do the passed in ibGibAddrs.  These are the
-        // addrs that we need to not only get and load if we don't already have
-        // them, but we will check their rel8ns as well.
-        // const addrsWeDontHaveAlready_IncomingIbGibAddrs: IbGibAddr[] =
-        //     getAddrsThatWeDontHaveAlready(ibGibAddrs);
-        // we want to load ibGibs from the space, but not unnecessarily. So we
-        // will add ibGibs that we have already been provided by the caller that
-        // haven't already been added to gotten, and then we will cull the
-        // ibGibAddrs to get to only include those we haven't already.
-
-        // Sets of addrs that we have to get in this iteration:
-        // 1. the passed in ibGib addrs that we haven't already gotten
-        // 2. the rel8d addrs for the passed in ibgibs
-
-        // So first, go ahead and do the passed in ibGibAddrs.  These are the
-        // addrs that we need to not only get and load if we don't already have
-        // them, but we will check their rel8ns as well.
-        // const addrsWeDontHaveAlready_IncomingIbGibAddrs: IbGibAddr[] = [];
-        // const gottenAddrs: IbGibAddr[] = Object.keys(gotten); // compute once in this closure
-        // const incomingIbGibAddrs = ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
-        // const noNeedAddrs = [ ...gottenAddrs, ...incomingIbGibAddrs, ...skipAddrs, ];
-        // for (let i = 0; i < ibGibAddrs.length; i++) {
-        //     if (!noNeedAddrs.includes(ibGibAddrs[i])) {
-        //         addrsWeDontHaveAlready_IncomingIbGibAddrs.push(ibGibAddrs[i]);
-        //     }
-        // }
-
-        // // go ahead and retrieve any associated ibGibs from the space that we
-        // // don't already have (if any)
-        // if (addrsWeDontHaveAlready_IncomingIbGibAddrs.length > 0) {
-        //     // // delete this related code when I'm done testing this.
-        //     // const primaryKeysDebug: { [addr: string]: string } = {};
-        //     // for (let i = 0; i < addrsWeDontHaveAlready_IncomingIbGibAddrs.length; i++) {
-        //     //     const addr = addrsWeDontHaveAlready_IncomingIbGibAddrs[i];
-        //     //     primaryKeysDebug[addr] = await h.hash({s: addr, algorithm: 'SHA-256'});
-        //     // }
-
-        //     // get from space those we don't already have, with retries if applicable
-
-        //     // do multiple retry attempts if necessary and caller sets it.
-        //     let addrsToGet = addrsWeDontHaveAlready_IncomingIbGibAddrs.concat();
-        //     let retryCount = 0;
-        //     maxRetries = maxRetries ?? 0;
-        //     while (retryCount <= maxRetries && addrsToGet.length > 0) {
-        //         if (timeLogName && retryCount === 0) { console.timeLog(timeLogName, `${lc} FIRST try starting...`)}
-        //         if (timeLogName && retryCount > 0) { console.timeLog(timeLogName, `${lc} RETRY starting...`)}
-        //         // delay if applicable
-        //         if (retryCount > 0 && msBetweenRetries) {
-        //             if (timeLogName) { console.timeLog(timeLogName, `${lc} delaying ${msBetweenRetries}ms for retry`); }
-        //             if (logalot) { console.log(`${lc} retrying. addrsToGet (${addrsToGet.length}): ${addrsToGet} (I: 8460694cdd5518472680784c3b96a822)`); }
-        //             await h.delay(msBetweenRetries);
-        //         }
-
-        //         // do the get
-        //         if (timeLogName) { console.timeLog(timeLogName, `${lc} getFromSpace (${addrsToGet?.length}) starting...`); }
-        //         let resGetThese = await getFromSpace({addrs: addrsToGet, space});
-        //         if (timeLogName) { console.timeLog(timeLogName, `${lc} getFromSpace complete.`); }
-        //         if (resGetThese.success && resGetThese.ibGibs?.length > 0) {
-        //             resGetThese.ibGibs.forEach(x => ibGibs.push(x));
-        //             const gottenAddrs = resGetThese.ibGibs.map(x => h.getIbGibAddr({ibGib: x}));
-        //             if (gottenAddrs.length === addrsToGet.length) {
-        //                 if (timeLogName) { console.timeLog(timeLogName, `${lc} got all.`)}
-        //                 // got them all, so we're done
-        //                 addrsToGet = [];
-        //                 break;
-        //             } else {
-        //                 if (timeLogName) { console.timeLog(timeLogName, `${lc} got some.`)}
-        //                 // got only some, prune addrsToGet for next retry (if any)
-        //                 addrsToGet = addrsToGet.filter(x => !gottenAddrs.includes(x));
-        //             }
-        //         } else {
-        //             // failed, addrsToGet stays the same
-        //             if (timeLogName) { console.timeLog(timeLogName, `${lc} failed. addrs: ${addrsToGet?.join(',')}`)}
-        //         }
-        //         retryCount++;
-        //     }
-        //     if (addrsToGet?.length > 0) {
-        //         // console.dir(primaryKeysDebug);
-        //         throw new Error(`unable to retrieve dependency ibgibs from space.\n\nThis is often because downloading failed due to the sync space's server getting temporarily overloaded, OR...it sometimes happens when an ibgib doesn't get fully published to the sync space in the first place.\n\nYou could retry immediately or later, but if the problem persists, then retry from the publishers end (have the publisher sync again). (E: 8413594b6c1b447988781cf3f3e1729d)`);
-        //     }
-        // }
-
         // next, compile what could be a rather large list of rel8d ibgibAddrs
         // which must necessarily be in the past of the futuremost incoming
         // ibGib/ibGibAddr/s as rel8ns only work backwards (whereas tjp's can

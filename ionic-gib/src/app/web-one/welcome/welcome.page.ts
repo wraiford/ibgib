@@ -62,9 +62,6 @@ export class WelcomePage extends WebOnePageBase implements OnInit, AfterViewInit
 
   @Input()
   get goText(): string {
-    // const waitLabel = 'wait for it...';
-    // const tldrLabel = this.goToAddr ? 'tl;dr' : waitLabel;
-    // const goLabel = this.goToAddr ? 'go' : waitLabel;
     const tldrLabel = 'tl;dr';
     const goLabel = 'go';
 
@@ -81,7 +78,6 @@ export class WelcomePage extends WebOnePageBase implements OnInit, AfterViewInit
   verticalSwiperTidbits: { [name: string]: VerticalSwiperTidbit[] } = {
     protocol: IBGIB_PROTOCOL_FEATURES,
     app: IBGIB_APP_FEATURES,
-    // rethinks: IBGIB_RETHINKS,
   };
 
   private _subInitialized: Subscription;
@@ -684,10 +680,6 @@ export class WelcomePage extends WebOnePageBase implements OnInit, AfterViewInit
           tidbit.focused = j === 1;
         }
       }
-      // this.verticalSwiperTidbits.protocol[1].focused = true;
-      // this.verticalSwiperTidbits.app[1].focused = true;
-      // this.verticalSwiperTidbits.rethinks[1].focused = true;
-
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -914,13 +906,28 @@ const IBGIB_PROTOCOL_FEATURES: VerticalSwiperTidbit[] = [
 ];
 
 const IBGIB_APP_FEATURES: VerticalSwiperTidbit[] = [
-  // {
-  //   title: `time is collaboration`,
-  //   body: [
-  //     `n: those pics, comments, link, robbots & more...each evolves over time using the same underlying structure. collaboration emerges from sharing our timelines.`,
-  //     `f: more flexible options on timelines, .`
-  //   ],
-  // },
+  {
+    title: `metadata is data`,
+    body: [
+      `n: synchronize not only your comments/pics/links, but also your robbots, apps, tags`,
+      `f: more space adapters with local db/fs, cloud and p2p implementations`
+    ],
+  },
+  {
+    focused: true,
+    title: `decentralized, offline-first, version-controlled, auditable notes, pics & links`,
+    body: [
+      `(n)ow: keep track of notes, pics & links locally, with full history/audit log, synchronize with the cloud.`,
+      `(f)uture: more complex schemas, enabling collaboration on a level unseen on this planet by humans.`,
+    ],
+  },
+  {
+    title: `pics are folders too`,
+    body: [
+      `n: take a pic of a garden. go "inside" that pic. take a pic of a plant. add a comment. add a link. hey, you can even go "inside" that comment and add another pic.`,
+      `f: ar. vr. the metaverse.`
+    ],
+  },
   {
     title: `robbots`,
     body: [
@@ -929,62 +936,20 @@ const IBGIB_APP_FEATURES: VerticalSwiperTidbit[] = [
     ],
   },
   {
-    focused: true,
-    title: `just a prototype`,
+    title: `real decentralized apps with sovereign data`,
     body: [
-      `(n)ow: can do some things...`,
-      `(f)uture: do all teh things.`,
+      `n: view the same decentralized data from the perspective of other apps, like todo.`,
+      `f: many apps, many flavors, completely sovereign data that moves where you want it.`
     ],
   },
   {
-    title: `offline-first notes, pics & links`,
+    title: `data synchronization among spaces`,
     body: [
-      `n: keep track of notes, pics & links locally, with full history/audit log, synchronize with the cloud.`,
-      `f: more complex schemas, enabling collaboration on a level unseen on this planet by humans.`,
-    ],
-  },
-  {
-    title: `files are folders`,
-    body: [
-      `n: take a pic of a garden. go "inside" that pic. take a pic of a plant. add a comment. add a link. hexx, go inside that comment and add another pic.`,
-      `f: ar. vr. the metaverse.`
-    ],
-  },
-  {
-    title: `data synchronization`,
-    body: [
-      `n: crappy cloud adapter built with user-owned dynamodb, s3, prayers, hopes & dreams (and duct tape)`,
-      `f: self-configuring, self-healing ad hoc replication architectures (with the only protocol that can enable it).`
+      `n: cloud sync adapter built with user-owned aws resources (dynamodb, s3, iam)`,
+      `f: more space adapters with local db/fs, cloud and p2p implementations`
     ],
   },
 ];
-
-
-
-// const IBGIB_RETHINKS: VerticalSwiperTidbit[] = [
-//   {
-//     title: `what is money?`,
-//     body: [`we must rethink money to understand how bitcoin/DLT fit into our future. not being a token, ibgib focuses on "money" as precisely analogous to voltage bias in neural networks in superhuman networks.`],
-//   },
-//   {
-//     focused: true,
-//     title: `wth is or are ibgib(s)?`,
-//     body: [`moving away from an absolute knowledge, an ibgib can be thought of as a snapshot of some pov's belief which inevitably evolves over time. this fundamentally requires a Rethink of truths many of us may take for granted.`],
-//   },
-//   {
-//     focused: false,
-//     title: `what are files & folders?`,
-//     body: [`in the early days of computing, we were taught about files & folders. with ibgib, we rethink this paradigm, remove the training wheels & grow.`],
-//   },
-//   {
-//     title: `what is data?`,
-//     body: [`my data, your data, centralized & decentralized...in ibgib, we rethink data itself from the naive finite Shannon information perspective to living, sovereign & infinite entities.`],
-//   },
-//   {
-//     title: `what are apps?`,
-//     body: [`just as we rethink our data, so too we rethink apps. no longer silos of activity, apps become living views into living data ecosystems.`],
-//   },
-// ];
 
 interface VerticalSwiperTidbit {
   focused?: boolean;
