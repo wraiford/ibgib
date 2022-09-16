@@ -450,34 +450,11 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       } else {
         buttonsList.style.overflowX = 'auto';
       }
-
-      // buttonsList.addEventListener('touchend', () => {
-      //   buttonsList.style.overflowX = 'initial';
-      // });
-      // buttonsList.addEventListener('touchcancel', () => {
-      //   buttonsList.style.overflowX = 'initial';
-      // });
-      // setTimeout(() => {
-
-      //   const initial = buttonsList.scrollLeft;
-      //   if (initial) {
-      //     requestAnimationFrame(() => {
-      //       buttonsList.scrollLeft = 0;
-      //       buttonsList.click();
-      //       this.ref.detectChanges();
-      //     })
-      //   } else {
-      //     requestAnimationFrame(() => { buttonsList.scrollLeft = buttonsList.scrollLeft + 200; this.ref.detectChanges(); })
-      //     buttonsList.click();
-      //   }
-      //   // requestAnimationFrame(() => { buttonsList.scrollLeft = buttonsList.scrollLeft - 1; })
-      //   // requestAnimationFrame(() => { buttonsList.scrollLeft = initial; })
-      // }, 4000);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
-
+      setTimeout(() => this.ref.detectChanges());
     }
   }
 
@@ -932,6 +909,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
     const lc = `${this.lc}[${this.handleIbGib_NewLatest.name}]`;
     try {
       await super.handleIbGib_NewLatest(info);
+      await this.hackScrollButtonsListBecauseOfChromeBug();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     } finally {

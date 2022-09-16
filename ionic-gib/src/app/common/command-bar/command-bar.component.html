@@ -1,5 +1,5 @@
 <ion-toolbar>
-  <ion-buttons id="context-btns" class="hack-overflow-x" slot="end" color="primary">
+  <ion-buttons slot="end" color="primary">
 
     <!-- local refresh -->
     <ion-button *ngIf="gib !== 'gib'" [disabled]="refreshing" (click)="handleClick_Refresh()" title="refresh this ibgib locally">
@@ -22,8 +22,8 @@
       <ion-icon name="trash-outline" ios="trash-outline"></ion-icon>
     </ion-button>
 
-    <!-- open in new tag -->
-    <ion-button *ngIf="ibGib" class="toolbar-title-btn" (click)="handleClick_OpenInNewTab()" title="open in new tab">
+    <!-- open in new tab -->
+    <ion-button *ngIf="ibGib && web" class="toolbar-title-btn" (click)="handleClick_OpenInNewTab()" title="open in new tab">
       <ion-icon name="open-outline"></ion-icon>
     </ion-button>
 

@@ -31,7 +31,7 @@
 
   <!-- ibgib context buttons -->
   <ion-toolbar>
-    <ion-buttons id="context-btns" class="hack-overflow-x" slot="end">
+    <ion-buttons id="context-btns" slot="end">
 
       <!-- local refresh -->
       <ion-button *ngIf="gib !== 'gib'" [disabled]="refreshing" [ngClass]="{'active-btn':!paused}" class="toolbar-title-btn" (click)="handleRefreshClick()">
