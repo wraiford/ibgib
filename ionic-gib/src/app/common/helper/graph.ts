@@ -1,14 +1,10 @@
 import * as h from 'ts-gib/dist/helper';
+import { IbGibAddr, } from 'ts-gib';
 import {
-    Ib, IbGibAddr, TransformResult, V1,
-} from 'ts-gib';
-import {
-    GIB, IbGib_V1, Rel8n,
-    Factory_V1 as factory,
+    GIB, IbGib_V1,
     isPrimitive,
     IBGIB_DELIMITER,
 } from 'ts-gib/dist/V1';
-import { getGib, } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 import * as c from '../../common/constants';
 import { getFromSpace, getLatestAddrs } from './space';
@@ -19,7 +15,7 @@ import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { unique } from './utils';
 
 
-const logalot = c.GLOBAL_LOG_A_LOT || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 /**
  * Options when getting dependency graph for ibGib(s).
@@ -609,8 +605,6 @@ async function getGraphProjection_Live({
                         // haven't gotten yet, so add that addr to the
                         newerAddrsFound.push(latestAddrInSpace);
                     }
-                    // if (logalot) { console.log(`${lc} analyzed ${tjpAddr}(I: afb7960900f04b8a87538f4c7bd903b7)`); }
-                    // tjpAddrsAlreadyAnalyzed.push(tjpAddr);
                 });
 
             let rel8dAddrsNotYetGotten: IbGibAddr[] = [];
