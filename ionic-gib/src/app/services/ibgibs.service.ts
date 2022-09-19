@@ -34,7 +34,7 @@ import { UpdatePicModalResult } from '../common/modals/update-pic-modal-form/upd
 
 import { IbGibRobbotAny } from '../common/witnesses/robbots/robbot-base-v1';
 import { PicIbGib_V1 } from '../common/types/pic';
-import { ParticipantInfo, StatusCode, SyncSagaInfo, SyncSpaceOptionsData, SyncSpaceOptionsIbGib, SyncSpaceResultIbGib, SyncStatusIbGib } from '../common/types/outer-space';
+import { ParticipantInfo, StatusCode, SyncSagaInfo, SyncSpaceOptionsData, SyncSpaceOptionsIbGib, SyncSpaceResultIbGib, SyncStatusData, SyncStatusIbGib } from '../common/types/outer-space';
 import { TjpIbGibAddr } from '../common/types/ibgib';
 import { BootstrapIbGib, SpaceId } from '../common/types/space';
 import { IbGibTimelineUpdateInfo, RootData, SpecialIbGibType } from '../common/types/ux';
@@ -66,6 +66,7 @@ import { AppModalResult } from '../common/modals/app-modal-form/app-modal-form.c
 import { createNewApp, documentLocationIsAtWelcomePage } from '../common/helper/app';
 import { InMemoryIbgibCacheService } from './in-memory-ibgib-cache.service';
 import { IonicStorageLatestIbgibCacheService } from './ionic-storage-latest-ibgib-cache.service';
+import { getStatusIb } from '../common/helper/outer-space';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -2442,6 +2443,7 @@ export class IbgibsService {
     dependencyGraphIbGibs,
     // confirm,
     watch,
+    fnPreSyncProgress,
   }: {
     dependencyGraphIbGibs?: IbGib_V1[],
     // confirm?: boolean,
@@ -2450,6 +2452,14 @@ export class IbgibsService {
      * (tjps).
      */
     watch?: boolean,
+    /**
+     * The meat of the sync process is tracked via a status within the sync
+     * spaces themselves. I'm addign this fn to track the pre and post progress
+     * stuff, since decrypting takes some time, and building the dependency
+     * graphs takes time. Both of these happen before the actual syncing occurs
+     * in the spaces.
+     */
+    fnPreSyncProgress?: (msg: string) => Promise<void>,
   }): Promise<SyncSagaInfo[] | undefined> {
     const lc = `${this.lc}[${this.syncIbGibs.name}]`;
     // map of saga infos across all spaces
@@ -2494,6 +2504,7 @@ export class IbgibsService {
       // #region get sync spaces and build participant infos
       if (logalot) { console.log(`${lc} get sync spaces (returns if none)`); }
       console.timeLog(syncTimelogName, 'getAppSyncSpaces starting (unwrapEncrypted is true) starting...');
+      if (fnPreSyncProgress) { fnPreSyncProgress('getting app sync spaces... (I: aa2e8f32ab26457bad703218aa7fb47d)'); }
       const appSyncSpaces: IbGibSpaceAny[] = await this.getAppSyncSpaces({
         unwrapEncrypted: true,
         createIfNone: true,
@@ -2525,9 +2536,12 @@ export class IbgibsService {
       ];
       // #endregion
 
+      if (fnPreSyncProgress) { fnPreSyncProgress('building dependency graph... (I: ae178a39c2594557b6d0489b02336ecd)'); }
       // get **ALL** ibgibs that we'll need to put/merge
-      const allIbGibsToSync =
-        await this._getAllIbGibsToSyncFromGraph({ dependencyGraphIbGibs, space: localUserSpace });
+      // const allIbGibsToSync: { [addr: string]: IbGib_V1 } = {};
+      // dependencyGraphIbGibs.forEach(x => { allIbGibsToSync[h.getIbGibAddr({ ibGib: x })] = x });
+
+      // await this._getAllIbGibsToSyncFromGraph({ dependencyGraphIbGibs, space: localUserSpace });
 
       // _NOW_ we can finally put/merge into sync spaces.
       // this returns to us the most recent versions which we can update
@@ -2544,7 +2558,7 @@ export class IbgibsService {
         const sagaInfo =
           await this._createNewSyncSagaInfo({
             multiSpaceOpId,
-            allIbGibsToSync,
+            allIbGibsToSync: dependencyGraphIbGibs,
             syncSpace,
             participants,
             sagaId,
@@ -3107,67 +3121,72 @@ export class IbgibsService {
    *
    * @returns all ibgibs related to given ibgibs
    */
-  private async _getAllIbGibsToSyncFromGraph({
-    dependencyGraphIbGibs,
-    space,
-  }: {
-    dependencyGraphIbGibs: IbGib_V1[],
-    space: IbGibSpaceAny,
-  }): Promise<IbGib_V1[]> {
-    const lc = `${this.lc}[${this._getAllIbGibsToSyncFromGraph.name}]`;
-    try {
+  // private async _getAllIbGibsToSyncFromGraph({
+  //   ibGibs,
+  //   dependencyGraphIbGibs,
+  //   space,
+  // }: {
+  //   ibGibs: IbGib_V1[],
+  //   dependencyGraphIbGibs: IbGib_V1[],
+  //   space: IbGibSpaceAny,
+  // }): Promise<IbGib_V1[]> {
+  //   const lc = `${this.lc}[${this._getAllIbGibsToSyncFromGraph.name}]`;
+  //   try {
+  //     if (dependencyGraphIbGibs?.length > 0) {
+  //       // already have the dependecy graph
+  //     }
 
-      // need to get the ibgibs with tjps,
-      // then filter these to just the latest of given dependency graph ibgibs
-      // then get the latest for each of these in the local space.
-      let latestIbGibsWithTjps = await this._getLatestIbGibsWithTjps({ ibGibs: dependencyGraphIbGibs });
-      if (latestIbGibsWithTjps.length === 0) {
-        // we have no ibgib timelines, so the incoming dependency graph is complete.
-        return dependencyGraphIbGibs;
-      }
+  //     // need to get the ibgibs with tjps,
+  //     // then filter these to just the latest of given dependency graph ibgibs
+  //     // then get the latest for each of these in the local space.
+  //     let latestIbGibsWithTjps = await this._getLatestIbGibsWithTjps({ ibGibs: dependencyGraphIbGibs });
+  //     if (latestIbGibsWithTjps.length === 0) {
+  //       // we have no ibgib timelines, so the incoming dependency graph is complete.
+  //       return dependencyGraphIbGibs;
+  //     }
 
-      // An issue arises that each time we get updates to tjp ibgibs, then there is the
-      // possibility of having additional tjps that weren't in the original graph.
-      // So we need to call multiple times until we get the same number in as out.
-      let latestIbGibsWithTjps_CHECK = await this._getLatestIbGibsWithTjps({ ibGibs: latestIbGibsWithTjps });
-      while (latestIbGibsWithTjps_CHECK.length > latestIbGibsWithTjps.length) {
-        console.warn(`${lc} another tjp found. calling getLatestIbGibsWithTjps again to check for more. (W: 9735c4194d1243269d4fe4a4ed93cf59)`);
-        latestIbGibsWithTjps = latestIbGibsWithTjps_CHECK;
-        latestIbGibsWithTjps_CHECK = await this._getLatestIbGibsWithTjps({ ibGibs: latestIbGibsWithTjps });
-      }
+  //     // An issue arises that each time we get updates to tjp ibgibs, then there is the
+  //     // possibility of having additional tjps that weren't in the original graph.
+  //     // So we need to call multiple times until we get the same number in as out.
+  //     let latestIbGibsWithTjps_CHECK = await this._getLatestIbGibsWithTjps({ ibGibs: latestIbGibsWithTjps });
+  //     while (latestIbGibsWithTjps_CHECK.length > latestIbGibsWithTjps.length) {
+  //       console.warn(`${lc} another tjp found. calling getLatestIbGibsWithTjps again to check for more. (W: 9735c4194d1243269d4fe4a4ed93cf59)`);
+  //       latestIbGibsWithTjps = latestIbGibsWithTjps_CHECK;
+  //       latestIbGibsWithTjps_CHECK = await this._getLatestIbGibsWithTjps({ ibGibs: latestIbGibsWithTjps });
+  //     }
 
-      // at this point, we have all of the latest tjp ibgibs, but not their
-      // dependency graphs. We need to get all dependencies from these and
-      // combine them with our given dependency graph.
+  //     // at this point, we have all of the latest tjp ibgibs, but not their
+  //     // dependency graphs. We need to get all dependencies from these and
+  //     // combine them with our given dependency graph.
 
-      // we're going to translate the given dependencyGraphIbGibs that we already have to
-      // a map that `getDependencyGraph` understands so we don't waste time re-getting them.
-      let allIbGibsToMergeMap: { [addr: string]: IbGib_V1 } = {};
-      dependencyGraphIbGibs.forEach(x => { allIbGibsToMergeMap[h.getIbGibAddr(x)] = x; });
+  //     // we're going to translate the given dependencyGraphIbGibs that we already have to
+  //     // a map that `getDependencyGraph` understands so we don't waste time re-getting them.
+  //     let allIbGibsToMergeMap: { [addr: string]: IbGib_V1 } = {};
+  //     dependencyGraphIbGibs.forEach(x => { allIbGibsToMergeMap[h.getIbGibAddr(x)] = x; });
 
-      // now we can combine both these latest ibGibs with the incoming ibgibs
-      for (let i = 0; i < latestIbGibsWithTjps.length; i++) {
-        const latestIbGibWithTjp = latestIbGibsWithTjps[i];
-        // anything that we have in the incoming dependency
-        // graph already has been fully traversed, so we put this in `gotten`
-        allIbGibsToMergeMap = await this.getDependencyGraph({
-          ibGib: latestIbGibWithTjp,
-          live: true,
-          gotten: allIbGibsToMergeMap,
-          maxRetries: c.DEFAULT_MAX_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
-          msBetweenRetries: c.DEFAULT_MS_BETWEEN_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
-          space,
-        });
-      }
+  //     // now we can combine both these latest ibGibs with the incoming ibgibs
+  //     for (let i = 0; i < latestIbGibsWithTjps.length; i++) {
+  //       const latestIbGibWithTjp = latestIbGibsWithTjps[i];
+  //       // anything that we have in the incoming dependency
+  //       // graph already has been fully traversed, so we put this in `gotten`
+  //       allIbGibsToMergeMap = await this.getDependencyGraph({
+  //         ibGib: latestIbGibWithTjp,
+  //         live: true,
+  //         gotten: allIbGibsToMergeMap,
+  //         maxRetries: c.DEFAULT_MAX_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
+  //         msBetweenRetries: c.DEFAULT_MS_BETWEEN_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
+  //         space,
+  //       });
+  //     }
 
-      const allIbGibsToMerge = Object.values(allIbGibsToMergeMap);
+  //     const allIbGibsToMerge = Object.values(allIbGibsToMergeMap);
 
-      return allIbGibsToMerge;
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    }
-  }
+  //     return allIbGibsToMerge;
+  //   } catch (error) {
+  //     console.error(`${lc} ${error.message}`);
+  //     throw error;
+  //   }
+  // }
 
   private async _getLatestIbGibsWithTjps({
     ibGibs,

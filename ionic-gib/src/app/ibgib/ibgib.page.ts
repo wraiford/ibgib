@@ -186,6 +186,19 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
   syncErrored: boolean = false;
 
   @Input()
+  syncSucceeded: boolean = false;
+
+  @Input()
+  syncStatusUpdates: number = 0;
+
+  @Input()
+  syncPresyncMsg: string = '';
+  @Input()
+  get syncDecrypting(): boolean { return this.syncPresyncMsg.includes('aa2e8f32ab26457bad703218aa7fb47d') };
+  @Input()
+  get syncBuildingGraph(): boolean { return this.syncPresyncMsg.includes('ae178a39c2594557b6d0489b02336ecd') };
+
+  @Input()
   showModal_PromptForTag: boolean;
 
   @Input()
@@ -734,6 +747,12 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
   }): Promise<void> {
     const lc = `${this.lc}[${this.execSync.name}]`;
     let cancelled = false;
+    const clearSyncProgressBadges = () => {
+      this.syncErrored = false;
+      this.syncSucceeded = false;
+      this.syncStatusUpdates = 0;
+      this.syncPresyncMsg = '';
+    }
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       if (this.syncing) {
@@ -742,7 +761,9 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       }
       this.item.syncing = true;
 
-      this.syncErrored = false;
+
+      clearSyncProgressBadges();
+
 
       if (!this.ibGib) { throw new Error('this.ibGib falsy'); }
       if (!this.tjpAddr) { console.warn(`${lc} tjpAddr is falsy. (W: 9336c52b8a8745f1b969cac6b4cdf4ca)`); }
@@ -762,9 +783,11 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
             automatic in the near future!).`.replace(/\n/g, ' ').replace(/  /g, '')
         });
         cancelled = true;
+        clearSyncProgressBadges();
         return; /* <<<< returns early */
       }
 
+      // todo: fix this so that the dependency graph isn't gotten twice...eesh (here and later in syncIbgibs call)
       // sync requires the entire dependency graph of the current ibgib
       const dependencyGraph =
         await this.common.ibgibs.getDependencyGraph({ ibGib: this.ibGib, live: true, space: null });
@@ -792,6 +815,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
           setTimeout(() => this.ref.detectChanges(), 1000);
           // this.autosync = false; // unnecessary?
           cancelled = true;
+          clearSyncProgressBadges();
           return; /* <<<< returns early */
         }
 
@@ -804,6 +828,10 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       const sagaInfos = await this.common.ibgibs.syncIbGibs({
         dependencyGraphIbGibs: Object.values(dependencyGraph),
         watch: true,
+        fnPreSyncProgress: async (msg: string) => {
+          this.syncPresyncMsg = msg;
+          setTimeout(() => this.ref.detectChanges());
+        }
       });
       if (sagaInfos) {
         await new Promise<void>((resolve, reject) => {
@@ -813,6 +841,8 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
             info.syncStatus$.subscribe(status => {
               // do nothing atm as this is handled in ibgibs.service
               if (logalot) { console.log(`${lc} status update, code: ${status?.data?.statusCode} (I: 1d26927edd789353bf9350f436d29922)`); }
+              this.syncStatusUpdates += 1;
+              setTimeout(() => { this.ref.detectChanges(); })
             },
               error => {
                 const emsg = typeof error === 'string' ?
@@ -825,17 +855,24 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
                 if (logalot) { console.log(`${lc} syncStatus$ complete handler (I: 7a99f3f44476e0b46892e53cc39d8322)`); }
                 sagaCompleteOrErroredCount++;
                 if (sagaCompleteOrErroredCount === sagaInfos.length) {
+                  if (!this.syncErrored) { this.syncSucceeded = true; }
+                  this.syncStatusUpdates = 0;
                   this.item.syncing = false;
                   setTimeout(() => { this.ref.detectChanges(); })
                   resolve();
                 }
               });
           }
+        }).catch(e => {
+          // wth do I have to rethrow it this way when I'm already inside a
+          // try..catch? seems a language problem
+          throw e;
         });
       } else {
         if (logalot) { console.log(`${lc} user cancelled sync. returning... (I: 7e0cd20a9796ff5b0a8afd2d14ff6a22)`); }
         cancelled = true;
         this.item.syncing = false;
+        clearSyncProgressBadges();
         setTimeout(() => this.ref.detectChanges(), 200);
         return; /* <<<< returns early */
       }
@@ -847,6 +884,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
+      clearSyncProgressBadges();
       this.item.syncing = false;
       if (!cancelled) { this.syncErrored = true; }
     } finally {

@@ -91,9 +91,21 @@
         <ion-badge *ngIf="syncErrored" color="danger" slot="start">
           <ion-icon name="alert-circle-outline"></ion-icon>
         </ion-badge>
+        <ion-badge *ngIf="syncDecrypting" color="dark" slot="start">
+          <ion-icon name="prism-outline"></ion-icon>
+        </ion-badge>
+        <ion-badge *ngIf="syncBuildingGraph" color="light" slot="start">
+          <ion-icon name="football-outline"></ion-icon>
+        </ion-badge>
+        <ion-badge *ngIf="syncStatusUpdates > 0" color="secondary" slot="end">
+          {{ syncStatusUpdates }}
+        </ion-badge>
+        <ion-badge *ngIf="syncSucceeded" color="success" slot="start">
+          <ion-icon name="checkmark-outline"></ion-icon>
+        </ion-badge>
         <ion-label>
           <ion-icon name="rocket-outline"></ion-icon>
-          <ion-icon name="sync-outline"></ion-icon>
+          <ion-icon *ngIf="!syncing" name="sync-outline"></ion-icon>
         </ion-label>
         <ion-spinner *ngIf="syncing" name="circles" color="tertiary"></ion-spinner>
         <ion-badge *ngIf="tjpUpdatesAvailableCount_Store" color="primary" slot="end">

@@ -9,6 +9,7 @@
  * ibgib to maintain the order of transforms.
  */
 
+import { Subject } from 'rxjs/internal/Subject';
 import { ReplaySubject } from 'rxjs/internal/ReplaySubject';
 import { Subscription } from 'rxjs/internal/Subscription';
 
@@ -44,7 +45,9 @@ import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
  *     will error if not present.
  */
 export type StatusCode =
-    'undefined' | 'started' |
+    'undefined' |
+    'preparing' |
+    'started' |
     'inserted' | 'updated' |
     'merged_dna' | 'merged_state' |
     'already_synced' |
@@ -54,6 +57,10 @@ export const StatusCode = {
      * Using this as the code for the parent primitive.
      */
     undefined: 'undefined' as StatusCode,
+    /**
+     * gt
+     */
+    preparing: 'preparing' as StatusCode,
     /**
      * Communication between spaces has just started, but no evaluation as to
      * intrinsic ibgibs shared has been made.
@@ -123,14 +130,17 @@ export const OuterSpaceType = {
 }
 export const VALID_OUTER_SPACE_TYPES = Object.values(OuterSpaceType).concat();
 
-export type OuterSpaceSubtype = SyncSpaceSubtype;
-
 export type SyncSpaceSubtype = 'aws-dynamodb';
 export const SyncSpaceSubtype = {
-
     aws_dynamodb: 'aws-dynamodb' as SyncSpaceSubtype,
 }
-export const VALID_OUTER_SPACE_SUBTYPES = Object.values(SyncSpaceSubtype).concat();
+
+export type OuterSpaceSubtype = 'tbd' | SyncSpaceSubtype;
+export const OuterSpaceSubtype = {
+    tbd: 'tbd' as OuterSpaceSubtype,
+    ...SyncSpaceSubtype,
+}
+export const VALID_OUTER_SPACE_SUBTYPES = Object.values(OuterSpaceSubtype).concat();
 
 export interface OuterSpaceData extends IbGibSpaceData {
     type: OuterSpaceType;
@@ -205,7 +215,7 @@ export interface OuterSpaceOptionsIbGib<
     TOptsData extends OuterSpaceOptionsData = OuterSpaceOptionsData,
     // TOptsRel8ns extends IbGibSpaceOptionsRel8ns = IbGibSpaceOptionsRel8ns
     TOptsRel8ns extends OuterSpaceOptionsRel8ns = OuterSpaceOptionsRel8ns,
-    > extends IbGibSpaceOptionsIbGib<TIbGib, TOptsData, TOptsRel8ns> {
+> extends IbGibSpaceOptionsIbGib<TIbGib, TOptsData, TOptsRel8ns> {
 }
 
 export interface OuterSpaceResultData extends IbGibSpaceResultData {
@@ -283,7 +293,7 @@ export interface SyncSpaceOptionsIbGib<
     TIbGib extends IbGib = IbGib_V1,
     TOptsData extends SyncSpaceOptionsData = SyncSpaceOptionsData,
     TOptsRel8ns extends SyncSpaceOptionsRel8ns = SyncSpaceOptionsRel8ns,
-    > extends OuterSpaceOptionsIbGib<TIbGib, TOptsData, TOptsRel8ns> {
+> extends OuterSpaceOptionsIbGib<TIbGib, TOptsData, TOptsRel8ns> {
     /**
      * Produces status ibgibs or error strings.
      */
@@ -427,7 +437,7 @@ export interface SyncStatusData {
      * best per use case. (i.e. I haven't coded that yet even in this naive
      * first implementation)
      */
-    didMergeMap?: {[oldAddr: string]: IbGibAddr };
+    didMergeMap?: { [oldAddr: string]: IbGibAddr };
     /**
      * List of ibgibs that were actively transmitted to the receiving
      * space.
@@ -525,7 +535,7 @@ export interface SagaInfo<
     TSpaceResultRel8ns extends OuterSpaceResultRel8ns,
     TSpaceResultIbGib extends OuterSpaceResultIbGib<TIbGib, TSpaceResultData, TSpaceResultRel8ns>,
     TStatusIbGib extends TIbGib,
-    > {
+> {
     /**
      * UUID generated at the beginning of a multi-space operation that is common
      * across all spaces.
@@ -561,7 +571,7 @@ export interface SagaInfo<
      * space's `witness` function. This will produce arg & result ibgibs. This
      * is the observable stream/subject of those witness calls.
      */
-    witnessFnArgsAndResults$: ReplaySubject<TSpaceOptionsIbGib|TSpaceResultIbGib>;
+    witnessFnArgsAndResults$: ReplaySubject<TSpaceOptionsIbGib | TSpaceResultIbGib>;
 
     syncIbGibs_All: IbGib_V1[];
     syncAddrs_All: IbGibAddr[];
@@ -614,75 +624,4 @@ export interface StatusIbInfo {
     spaceSubtype: OuterSpaceSubtype,
     sagaId: string,
     delimiter?: string,
-}
-
-/**
- * Composes ib with given params info.
- *
- * @returns ib string with given info encoded
- */
-export function getStatusIb({
-    sagaId,
-    statusCode,
-    spaceType,
-    spaceSubtype,
-    delimiter,
-}: StatusIbInfo): string {
-    const lc = `[${getStatusIb.name}]`;
-    try {
-        if (!sagaId) { throw new Error(`sagaId required. (E: cfc923bb29ee4aa788e947b6416740e6)`); }
-        if (statusCode === null || statusCode === undefined) { throw new Error(`status code required. (E: 4e0d232a9955496695012623c2e17ca2)`); }
-        if (!Object.values(StatusCode).includes(statusCode)) { throw new Error(`invalid status code (${statusCode}) (E: 91d7655424c44d9680fff099ee2b54d2)`); }
-        if (!spaceType) { throw new Error(`spaceType required. (E: 86e98694a56a4f599e98e50abf0eed43)`); }
-        if (!spaceSubtype) { throw new Error(`spaceSubtype required. (E: 4857d4677ee34e95aeb2251dd633909e)`); }
-
-        delimiter = delimiter || c.OUTER_SPACE_DEFAULT_IB_DELIMITER;
-
-        return `status ${sagaId} ${statusCode} ${spaceType} ${spaceSubtype}`;
-    } catch (error) {
-        console.error(`${lc} ${error.message}`);
-        throw error;
-    }
-}
-
-/**
- * Parses the given `statusIb` and returns the info object.
- *
- * @returns info from parsing the status ib
- */
-export function getStatusIbInfo({
-    statusIb,
-    delimiter,
-}: {
-    statusIb: Ib,
-    delimiter?: string,
-}): StatusIbInfo {
-    const lc = `[${getStatusIb.name}]`;
-    try {
-        if (!statusIb) { throw new Error(`statusIb required. (E: 09e23e8622cf456cadb0c3d0aadc3be9)`); }
-
-        delimiter = delimiter || c.OUTER_SPACE_DEFAULT_IB_DELIMITER;
-
-        // atow `status ${sagaId} ${statusCode} ${spaceType} ${spaceSubtype}`;
-        const pieces = statusIb.split(delimiter);
-
-        const sagaId = pieces[1];
-        if (sagaId === null || sagaId === undefined) { throw new Error(`sagaId is null/undefined. (E: 5de2861a6afb48e1a1c89d0402a4ea63)`); }
-
-        const statusCode = <StatusCode>pieces[2]; // tenatively cast as StatusCode
-        if (!Object.values(StatusCode).includes(statusCode)) { throw new Error(`invalid/unknown status code (${statusCode}) (E: 7580860df7b344b3992148552e80a85e)`); }
-
-        const spaceType = <OuterSpaceType>pieces[3];
-        if (spaceType === null || spaceType === undefined) { throw new Error(`spaceType is null/undefined. (E: 12473d35e77b451bb59bb05c03cb8b64)`); }
-        if (!VALID_OUTER_SPACE_TYPES.includes(spaceType)) { throw new Error(`invalid/unknown spaceType (${spaceType}) (E: d3ba9add427f49dda34f265f3225d9db)`); }
-
-        const spaceSubtype = <OuterSpaceSubtype>pieces[4];
-        if (spaceSubtype === null || spaceSubtype === undefined) { throw new Error(`spaceSubtype is null/undefined. (E: 6da7ae919d0b4a22b4ee685520b6c946)`); }
-        if (!VALID_OUTER_SPACE_SUBTYPES.includes(spaceSubtype)) { throw new Error(`invalid/unknown spaceSubtype (${spaceSubtype}) (E: 703ed1aee44447a294b3e1cf0984baba)`); }
-
-        return {statusCode, spaceType, spaceSubtype, sagaId, delimiter};
-    } catch (error) {
-        console.error(`${lc} ${error.message}`);
-        throw error;
-    }
 }

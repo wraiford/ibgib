@@ -13,7 +13,7 @@ import { CommonService } from '../../../services/common.service';
 import { SyncSpaceData_AWSDynamoDB } from '../../witnesses/spaces/aws-dynamo-space-v1';
 import { CiphertextIbGib_V1, EncryptionData_V1, SecretIbGib_V1 } from '../../types/encryption';
 import { FormItemInfo } from '../../../ibgib-forms/types/form-items';
-import { OuterSpaceIbGib, OuterSpaceType, SyncSpaceSubtype, AWSRegion, VALID_OUTER_SPACE_TYPES, VALID_OUTER_SPACE_SUBTYPES, OuterSpaceData, OuterSpaceRel8ns } from '../../types/outer-space';
+import { OuterSpaceIbGib, OuterSpaceType, SyncSpaceSubtype, AWSRegion, VALID_OUTER_SPACE_TYPES, VALID_OUTER_SPACE_SUBTYPES, OuterSpaceData, OuterSpaceRel8ns, OuterSpaceSubtype } from '../../types/outer-space';
 import { getFnPromptPassword_AlertController } from '../../helper/prompt-functions';
 import { getRegExp } from '../../helper/utils';
 import { ModalFormComponentBase } from '../../bases/modal-form-component-base';
@@ -77,9 +77,9 @@ export class OuterspaceModalFormComponent
   type: OuterSpaceType;
 
   @Input()
-  subtypes: SyncSpaceSubtype[] = [];
+  subtypes: OuterSpaceSubtype[] = [];
   @Input()
-  subtype: SyncSpaceSubtype;
+  subtype: OuterSpaceSubtype;
 
   @Input()
   encryptions: IbGib_V1<EncryptionData_V1>[] = [];

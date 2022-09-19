@@ -47,17 +47,6 @@ import {
 import * as h from 'ts-gib/dist/helper';
 
 import { SpaceBase_V1 } from './space-base-v1';
-// import {
-//     SyncSpaceData, SyncSpaceRel8ns,
-//     SyncSpaceOptionsData, SyncSpaceOptionsRel8ns, SyncSpaceOptionsIbGib,
-//     SyncSpaceResultData, SyncSpaceResultRel8ns, SyncSpaceResultIbGib,
-//     IbGibSpaceOptionsCmd, SyncSpaceOptionsCmdModifier,
-//     AWSRegion,
-//     getStatusIb, StatusCode,
-//     SyncStatusData, SyncStatusIbGib,
-//     ParticipantInfo,
-//     SyncSagaInfo,
-// } from '../../types';
 import * as c from '../../constants';
 import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 import {
@@ -66,7 +55,7 @@ import {
     SyncSpaceOptionsData, SyncSpaceOptionsRel8ns, SyncSpaceOptionsIbGib,
     SyncSpaceResultData, SyncSpaceResultRel8ns, SyncSpaceResultIbGib,
     SyncSpaceOptionsCmdModifier, SyncSagaInfo, SyncStatusIbGib,
-    StatusCode, getStatusIb, SyncStatusData, ParticipantInfo,
+    StatusCode, SyncStatusData, ParticipantInfo,
 } from '../../types/outer-space';
 import { IbGibSpaceOptionsCmd } from '../../types/space';
 import { groupBy, unique } from '../../helper/utils';
@@ -74,6 +63,7 @@ import { isBinary, mergeMapsOrArrays_Naive, splitPerTjpAndOrDna } from '../../he
 import { execInSpaceWithLocking, throwIfDuplicates } from '../../helper/space';
 import { getDependencyGraph, } from '../../helper/graph';
 import { validateIbGibIntrinsically } from '../../helper/validate';
+import { getStatusIb } from '../../helper/outer-space';
 
 // #endregion imports
 
@@ -3362,7 +3352,6 @@ export class AWSDynamoSpace_V1<
             // we will mut8/rel8 this status over course of sync.
             const { statusIbGib: syncStatusIbGib_Start, statusIbGibsGraph: statusStartIbGibs } =
                 await this.getStatusIbGibs_Start({
-                    client: client,
                     sagaId: arg.data.sagaId,
                     participants: arg.data.participants,
                     ibGibAddrs: arg.data.ibGibAddrs,
@@ -4907,19 +4896,16 @@ export class AWSDynamoSpace_V1<
      *   after this generation!!
      */
     private async getStatusIbGibs_Start({
-        client,
         sagaId,
         participants,
         ibGibAddrs,
     }: {
-        client: DynamoDBClient,
         sagaId: string,
         participants: ParticipantInfo[],
         ibGibAddrs: IbGibAddr[],
     }): Promise<{ statusIbGib: SyncStatusIbGib, statusIbGibsGraph: IbGib_V1[] }> {
         const lc = `${this.lc}[${this.getStatusIbGibs_Start.name}]`;
         try {
-            if (!client) { throw new Error(`client required. (E: 7e749ecc44f647dc8587c00c334337d4)`); }
             if ((participants ?? []).length === 0) { throw new Error(`participants required. (E: a707efcdd7594a4aa70599e84ffa43c4)`); }
 
             // 1. parent primitive
