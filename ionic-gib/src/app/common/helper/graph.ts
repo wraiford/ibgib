@@ -214,7 +214,6 @@ export async function getDependencyGraph({
                     .map(ibGib => ibGib.ib);
             unique(ibs).forEach(ib => console.log(ib));
         }
-        debugger;
         return graph;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
@@ -552,7 +551,6 @@ async function getGraphProjection_Live({
                             h.getIbGibAddr({ ibGib: latestIbGibCorrespondingToTjpAddr });
                         latestAddrsMap[latestAddrCorrespondingToTjpAddr] = mapTjpAddrToLatestAddrsInSpace[tjpAddr];
                     } else {
-                        debugger;
                         console.error(`${lc} latestIbGibCorrespondingToTjpAddr is falsy`)
                     }
                 });

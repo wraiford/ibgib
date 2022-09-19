@@ -18,7 +18,7 @@ import { IonContent, IonRouterOutlet } from '@ionic/angular';
 import { Subscription, interval, Observable, Subject, } from 'rxjs';
 import { concatMap, debounceTime } from 'rxjs/operators';
 import { Capacitor, FilesystemDirectory, FilesystemEncoding, Plugins } from '@capacitor/core';
-const { Modals, Clipboard, Storage, LocalNotifications } = Plugins;
+const { Modals, Clipboard, Storage, LocalNotifications, Filesystem } = Plugins;
 
 import * as h from 'ts-gib';
 import { IbGibAddr, V1 } from 'ts-gib';
@@ -1135,17 +1135,31 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       // thank you SO, OP and volzotan at https://stackoverflow.com/questions/19721439/download-json-object-as-a-file-from-browser
       // set the anchor's href to a data stream
       var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportIbGib));
-      var dlAnchorElem = document.getElementById('export-ibgib-anchor');
-      dlAnchorElem.setAttribute("href", dataStr);
 
       // get the filename for the anchor to suggest for the "download"
       let exportAddr = h.getIbGibAddr({ ibGib: exportIbGib });
       const filename = `${exportAddr}.json`;
 
-      // trigger the click
-      dlAnchorElem.setAttribute("download", filename);
-      dlAnchorElem.click();
+      if (this.web) {
+        // trigger the click
+        const dlAnchorElem = document.getElementById('export-ibgib-anchor');
+        dlAnchorElem.setAttribute("href", dataStr);
+        dlAnchorElem.setAttribute("download", filename);
+        dlAnchorElem.click();
+      } else {
+        // let res = await Filesystem.requestPermissions();
+        await Filesystem.writeFile({
+          data: dataStr,
+          directory: FilesystemDirectory.ExternalStorage,
+          path: `/Download/${filename}`,
+          encoding: FilesystemEncoding.UTF8,
+          recursive: true,
+        });
+      }
+      await Modals.alert({ title: 'export succeeded', message: 'way to go, the export succeeded' });
     } catch (error) {
+      debugger;
+      await Modals.alert({ title: 'export failed', message: `sorry, the export failed. error: ${error.message}` });
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {

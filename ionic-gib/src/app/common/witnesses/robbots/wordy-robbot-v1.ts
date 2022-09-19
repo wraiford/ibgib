@@ -125,7 +125,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting...`); }
 
-
             // get a comment that we've looked at, analyze it & queue an ibgib
             // that we will speak the next time we are able.
             if (typeof Worker !== 'undefined') {
