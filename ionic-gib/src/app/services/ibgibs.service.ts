@@ -2510,6 +2510,7 @@ export class IbgibsService {
         createIfNone: true,
         space: localUserSpace,
       });
+      if (fnPreSyncProgress) { fnPreSyncProgress('build complete. (I: 391a9aa7749d45b1aecf9a0010d9937f)'); }
       console.timeLog(syncTimelogName, 'getAppSyncSpaces starting (unwrapEncrypted is true) complete.');
       if (appSyncSpaces.length === 0) {
         const msg = `Can't sync without sync spaces...wrong password? Cancelling. Restart app to retry password (I know it sucks!...just me coding this thing right now)`;
@@ -2536,7 +2537,7 @@ export class IbgibsService {
       ];
       // #endregion
 
-      if (fnPreSyncProgress) { fnPreSyncProgress('building dependency graph... (I: ae178a39c2594557b6d0489b02336ecd)'); }
+      // if (fnPreSyncProgress) { fnPreSyncProgress('building dependency graph... (I: ae178a39c2594557b6d0489b02336ecd)'); }
       // get **ALL** ibgibs that we'll need to put/merge
       // const allIbGibsToSync: { [addr: string]: IbGib_V1 } = {};
       // dependencyGraphIbGibs.forEach(x => { allIbGibsToSync[h.getIbGibAddr({ ibGib: x })] = x });

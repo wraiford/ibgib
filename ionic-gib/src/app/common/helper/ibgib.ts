@@ -205,6 +205,27 @@ export function getSpecialIbGibIb({ type }: { type: SpecialIbGibType }): Ib {
     return `meta special ${type}`;
 }
 
+export function getSpecialTypeFromIb({ ib }: { ib: Ib }): SpecialIbGibType {
+    const lc = `[${getSpecialTypeFromIb.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: c82ba222bd345ee6b695df4d63a23322)`); }
+        if (!ib) { throw new Error(`ib required (E: 08897145f7138e644fe01c4a59353322)`); }
+        if (!isSpecial({ ib })) { throw new Error(`ib is not special (E: 174aff63b992adff3ac2394643735922)`); }
+        const pieces = ib.split(' ');
+        if (pieces.length < 3) { throw new Error(`invalid ib. should be space-delimited in form of "meta special [type]" (E: ffd89e2cbe63427f98634ab897aab222)`); }
+        const specialType = pieces[2];
+        if (!Object.values(SpecialIbGibType).some(x => x === specialType)) {
+            console.warn(`unknown special type (${specialType}). This may be expected, but atow I am adding special types to the SpecialIbGibType enum-like. (W: f4e26c3ebb57fe49d69014a4ba32a922)`);
+        }
+        return <SpecialIbGibType>specialType;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
 export function getSpecialIbGibAddr({ type }: { type: SpecialIbGibType }): string {
     const ib = getSpecialIbGibIb({ type });
     return `${ib}^${GIB}`;
@@ -212,6 +233,10 @@ export function getSpecialIbGibAddr({ type }: { type: SpecialIbGibType }): strin
 
 export function getSpecialConfigKey({ type }: { type: SpecialIbGibType }): string {
     return `config_key ${getSpecialIbGibAddr({ type })}`;
+}
+
+export function isSpecial({ ib, ibGib }: { ib?: Ib, ibGib?: IbGib_V1 }): boolean {
+    return (ib ?? ibGib?.ib)?.startsWith('meta special');
 }
 
 /**

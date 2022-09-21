@@ -19,13 +19,14 @@ import {
     DeleteIbGibOpts, DeleteIbGibResult,
 } from '../types/legacy';
 import { validateBootstrapIbGib, validateIbGibAddr, } from './validate';
-import { getRootIb, getSpecialConfigKey, getSpecialIbGibIb, getTimelinesGroupedByTjp, getTjpAddrs, isTjp_Naive, splitPerTjpAndOrDna, tagTextToIb } from './ibgib';
+import { getRootIb, getSpecialConfigKey, getSpecialIbGibIb, getSpecialTypeFromIb, getTimelinesGroupedByTjp, getTjpAddrs, isTjp_Naive, splitPerTjpAndOrDna, tagTextToIb } from './ibgib';
 import { TagData_V1, TagIbGib_V1 } from '../types/tag';
 import { IbGibTimelineUpdateInfo, RootData, SpecialIbGibType } from '../types/ux';
 import { SpaceLockScope, IbGibSpaceLockIbGib, BootstrapIbGib, SpaceId, IbGibSpaceLockOptions, BootstrapData, BootstrapRel8ns, TxId, IbGibSpaceResultIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns } from '../types/space';
 import { isExpired, getExpirationUTCString, getTimestampInTicks } from './utils';
 import { IbGibCacheService, TjpIbGibAddr } from '../types/ibgib';
-import { getAppIb } from './app';
+import { getAppIb, } from './app';
+import { isSpecial } from '../helper/ibgib';
 import { AppIbGib_V1 } from '../types/app';
 import { DEFAULT_CHAT_APP_DATA_V1, DEFAULT_CHAT_APP_REL8NS_V1 } from '../types/chat-app';
 import { DEFAULT_RAW_APP_DATA_V1, DEFAULT_RAW_APP_REL8NS_V1 } from '../types/raw-app';
@@ -451,10 +452,22 @@ export async function getSpecialIbGib({
 
         if (logalot) { console.log(`addr: ${addr}`); }
 
-        let resSpecial = await getFromSpace({ addr: addr, isMeta: true, space });
+        // let specialIbGib: IbGib_V1;
+
+        let resSpecial = await getFromSpace({ addr, isMeta: true, space });
         if (!resSpecial.success) { throw new Error(resSpecial.errorMsg); }
-        if (resSpecial.ibGibs?.length !== 1) { throw new Error(`no ibGib in result`); }
-        return resSpecial.ibGibs![0];
+        if (resSpecial.ibGibs?.length !== 1) { throw new Error(`no ibGib in result (E: 3a42abdddc3648e292d63dc45c560064)`); }
+        const specialIbGib = resSpecial.ibGibs[0];
+
+        if (type !== 'latest') {
+            let resLatest = await getLatestAddrs({ ibGibs: [specialIbGib], space });
+            if (resLatest?.data?.success && resLatest.data.addrs?.length === 1) {
+                if (resLatest.data.addrs[0] !== h.getIbGibAddr({ ibGib: specialIbGib })) {
+                    console.warn(`${lc} latest addr is not the one associated with the local space. (W: 141b69dc3c414efc9645bb76fcf12df9)`)
+                }
+            }
+        }
+        return specialIbGib;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         return null;
@@ -2949,6 +2962,39 @@ export async function getLatestAddrs({
     }
 }
 
+/**
+ * I'm making this because i want to archive on a special tags index ibgib.
+ * But we can't allow archiving on any old special ibgib, like the 'latest' index.
+ * so this checks to see if it's on the forbidden list (winging that atm), and if it
+ * is then this throws.
+ *
+ * use this function inside of commands that act on ibgibs that are special.
+ */
+export function throwIfContextIsSpecial({
+    ibGib_Context,
+}: {
+    ibGib_Context: IbGib_V1,
+}): void {
+    const lc = `[${throwIfContextIsSpecial.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 5f583fd94d27731a65d514e731b8aa22)`); }
+
+        if (!isSpecial({ ibGib: ibGib_Context })) { return; /* <<<< returns early */; }
+
+        const FORBIDDEN_MANUAL_SPECIAL_TYPES: SpecialIbGibType[] = [
+            'latest', 'roots', 'autosyncs'
+        ];
+        if (FORBIDDEN_MANUAL_SPECIAL_TYPES.some(x => ibGib_Context.ib.includes(x))) {
+            throw new Error(`cannot perform a modification of this type on this special ibgib (E: b8fb718a7323fc54454464b973412722)`);
+        }
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
 export async function trash({
     ibGib_Context,
     rel8nName_Context,
@@ -2974,6 +3020,9 @@ export async function trash({
         if (!addr) { throw new Error(`addr required (E: e27df3bdc5a2554697cc9597afc4e422)`); }
         if (!space) { throw new Error(`space required (E: 2e3562486ed2956a770ed9e8d77a3f22)`); }
 
+        const contextIsSpecialIbGib = isSpecial({ ibGib: ibGib_Context });
+        if (contextIsSpecialIbGib) { throwIfContextIsSpecial({ ibGib_Context }); }
+
         const resNewContext = await V1.rel8({
             src: ibGib_Context,
             rel8nsToAddByAddr: { [c.TRASH_REL8N_NAME]: [addr] },
@@ -2983,6 +3032,14 @@ export async function trash({
         });
 
         await persistTransformResult({ resTransform: resNewContext, space });
+
+        if (contextIsSpecialIbGib) {
+            const newSpecialAddr = h.getIbGibAddr({ ibGib: resNewContext.newIbGib });
+            const specialType = getSpecialTypeFromIb({ ib: ibGib_Context.ib });
+            const configKey = getSpecialConfigKey({ type: specialType });
+            await setConfigAddr({ key: configKey, addr: newSpecialAddr, space, zeroSpace, fnUpdateBootstrap });
+        }
+
         if (fnBroadcast && fnUpdateBootstrap) {
             await registerNewIbGib({
                 ibGib: resNewContext.newIbGib,
@@ -2999,6 +3056,7 @@ export async function trash({
         if (logalot) { console.log(`${lc} complete.`); }
     }
 }
+
 
 export async function archive({
     ibGib_Context,
@@ -3025,6 +3083,9 @@ export async function archive({
         if (!addr) { throw new Error(`addr required (E: 7059ebb8ef6149ea94e22f961d6b5c81)`); }
         if (!space) { throw new Error(`space required (E: e19566f2d42347798621447edcae312e)`); }
 
+        const contextIsSpecialIbGib = isSpecial({ ibGib: ibGib_Context });
+        if (contextIsSpecialIbGib) { throwIfContextIsSpecial({ ibGib_Context }); }
+
         const resNewContext = await V1.rel8({
             src: ibGib_Context,
             rel8nsToAddByAddr: { [c.ARCHIVE_REL8N_NAME]: [addr] },
@@ -3034,6 +3095,14 @@ export async function archive({
         });
 
         await persistTransformResult({ resTransform: resNewContext, space });
+
+        if (contextIsSpecialIbGib) {
+            const newSpecialAddr = h.getIbGibAddr({ ibGib: resNewContext.newIbGib });
+            const specialType = getSpecialTypeFromIb({ ib: ibGib_Context.ib });
+            const configKey = getSpecialConfigKey({ type: specialType });
+            await setConfigAddr({ key: configKey, addr: newSpecialAddr, space, zeroSpace, fnUpdateBootstrap });
+        }
+
         if (fnBroadcast && fnUpdateBootstrap) {
             await registerNewIbGib({
                 ibGib: resNewContext.newIbGib,

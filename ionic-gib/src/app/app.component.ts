@@ -30,10 +30,11 @@ import {
 import { createNewTag } from './common/helper/tag';
 import { validateIbGibIntrinsically, spaceNameIsValid } from './common/helper/validate';
 import { environment } from '../environments/environment';
-import { getInfoFromSpaceIb } from './common/helper/space';
+import { getInfoFromSpaceIb, setConfigAddr } from './common/helper/space';
 import { AppIbGib_V1 } from './common/types/app';
 import { createNewApp } from './common/helper/app';
 import { UpdatePwaService } from './services/update-pwa.service';
+import { getSpecialConfigKey, getSpecialTypeFromIb } from './common/helper/ibgib';
 
 // #endregion imports & some init
 
@@ -517,8 +518,31 @@ export class AppComponent extends IbgibComponentBase
         if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 1a41f1e1a28748bc88f913780bd74b4f)`); }
         await h.delay(100);
       }
-      const tagsIbGib = await this.common.ibgibs.getSpecialIbGib({ type: "tags" });
+      let tagsIbGib = await this.common.ibgibs.getSpecialIbGib({ type: "tags" });
       this.tagsAddr = h.getIbGibAddr({ ibGib: tagsIbGib });
+
+      const latestTagsAddr = await this.common.ibgibs.getLatestAddr({ ibGib: tagsIbGib });
+      if (latestTagsAddr !== this.tagsAddr) {
+        console.warn(`${lc} latestTagsAddr is different than the one associated with the space...any command should update the config key in the local space. updating config key now... (W: 9c943b75b0bb4d02a32adf07eaf87497)`)
+        const configKey = getSpecialConfigKey({ type: "tags" });
+        const space = await this.common.ibgibs.getLocalUserSpace({ lock: true });
+        await setConfigAddr({
+          key: configKey,
+          addr: latestTagsAddr,
+          space,
+          zeroSpace: this.common.ibgibs.zeroSpace,
+          fnUpdateBootstrap: (x) => this.common.ibgibs.fnUpdateBootstrap(x)
+        });
+      }
+
+      // just using this as a stop gap for when trashing/archiving a tag it doesn't update
+      // the index to point to the new tags special ibgib.
+      let resGet = await this.common.ibgibs.get({ addr: this.tagsAddr, isMeta: true });
+      if (resGet.success && resGet.ibGibs?.length === 1) {
+        tagsIbGib = resGet.ibGibs[0];
+      } else {
+        throw new Error(`${resGet.errorMsg || 'there was an error getting latest tags ibgib'} (E: 3a49b709090d63be6c8edfc4776a8222)`);
+      }
       return tagsIbGib;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -876,13 +900,14 @@ export class AppComponent extends IbgibComponentBase
       }
 
       // load tags if needed
+      let tagsIbGib: IbGib_V1;
       if (!this.tagsAddr) {
         if (logalot) { console.log(`${lc} this.tagsAddr falsy`); }
-        await this.loadTagsAddrAndGetTagsIbGib();
+        tagsIbGib = await this.loadTagsAddrAndGetTagsIbGib();
       }
 
       // get tags, but don't initialize
-      let tagsIbGib = await this.common.ibgibs.getSpecialIbGib({ type: "tags" });
+      if (!tagsIbGib) { tagsIbGib = await this.common.ibgibs.getSpecialIbGib({ type: "tags" }); }
       let tagAddrs = tagsIbGib?.rel8ns?.tag || [];
 
       // if we have gotten the tags object and there are no associated individual

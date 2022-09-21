@@ -196,7 +196,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
   @Input()
   get syncDecrypting(): boolean { return this.syncPresyncMsg.includes('aa2e8f32ab26457bad703218aa7fb47d') };
   @Input()
-  get syncBuildingGraph(): boolean { return this.syncPresyncMsg.includes('ae178a39c2594557b6d0489b02336ecd') };
+  syncBuildingGraph: boolean;
 
   @Input()
   showModal_PromptForTag: boolean;
@@ -752,6 +752,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       this.syncSucceeded = false;
       this.syncStatusUpdates = 0;
       this.syncPresyncMsg = '';
+      this.syncBuildingGraph = false;
     }
     try {
       if (logalot) { console.log(`${lc} starting...`); }
@@ -787,10 +788,12 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
         return; /* <<<< returns early */
       }
 
-      // todo: fix this so that the dependency graph isn't gotten twice...eesh (here and later in syncIbgibs call)
       // sync requires the entire dependency graph of the current ibgib
+      this.syncBuildingGraph = true;
+      setTimeout(() => this.ref.detectChanges());
       const dependencyGraph =
         await this.common.ibgibs.getDependencyGraph({ ibGib: this.ibGib, live: true, space: null });
+      this.syncBuildingGraph = false;
 
       // pull out the tjp ibgibs, for which we will turn on autosync
       const tjpIbGibs =

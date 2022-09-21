@@ -18,7 +18,8 @@ import { PicData_V1 } from '../types/pic';
 import { IbGibItem, IbGibTimelineUpdateInfo } from '../types/ux';
 import { getInfoFromSpaceIb, isSpaceIb } from '../helper/space';
 import { GetIbGibResult } from '../types/legacy';
-import { registerCancelModalOnBackButton, clearDoCancelModalOnBackButton } from 'src/app/common/helper/utils';
+import { registerCancelModalOnBackButton, clearDoCancelModalOnBackButton } from '../../common/helper/utils';
+import { isSpecial } from '../helper/ibgib';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -102,6 +103,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     get isMeta(): boolean {
         return this.item?.isMeta || c.DEFAULT_META_IB_STARTS.some(x => this.ib?.startsWith(x)); // hack
     }
+    get isSpecial(): boolean { return isSpecial({ ib: this.ib }); }
     get ibGib_Context(): IbGib_V1 { return this.item?.ibGib_Context; }
     @Input()
     set ibGib_Context(value: IbGib_V1) {
