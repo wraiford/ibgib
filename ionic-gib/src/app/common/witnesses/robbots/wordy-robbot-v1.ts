@@ -22,6 +22,9 @@ import { getRobbotIb, RobbotFormBuilder } from '../../helper/robbot';
 import { constantIbGib } from '../../helper/ibgib';
 import { createCommentIbGib } from '../../helper/comment';
 import { DynamicFormBuilder } from '../../helper/form';
+import { getGraphProjection } from '../../helper/graph';
+import { CommentIbGib_V1 } from '../../types/comment';
+import { getLatestAddrs } from '../../helper/space';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -125,22 +128,22 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting...`); }
 
+            // todo: ah, another day we'll get to using web workers for things. i suck.
             // get a comment that we've looked at, analyze it & queue an ibgib
             // that we will speak the next time we are able.
-            if (typeof Worker !== 'undefined') {
-                // Create a new
-                const worker = new Worker(new URL('./brains.worker', import.meta.url));
-                worker.onmessage = ({ data }) => {
-                    console.log(`${lc} page got message: ${h.pretty(data)}`);
-                };
-                worker.postMessage('hello');
-            } else {
-                // Web workers are not supported in this environment.
-                // You should add a fallback so that your program still executes correctly.
-            }
+            // if (typeof Worker !== 'undefined') {
+            //     // Create a new
+            //     const worker = new Worker(new URL('./brains.worker', import.meta.url));
+            //     worker.onmessage = ({ data }) => {
+            //         console.log(`${lc} page got message: ${h.pretty(data)}`);
+            //     };
+            //     worker.postMessage('hello');
+            // } else {
+            //     // Web workers are not supported in this environment.
+            //     // You should add a fallback so that your program still executes correctly.
+            // }
 
-
-            // await this.rel8To({ ibGibs: arg.ibGibs });
+            await this.rel8To({ ibGibs: arg.ibGibs });
 
             // const lookRel8nNames = (this.data.lookRel8nNames ?? '').split(',');
 
@@ -170,72 +173,9 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     }): Promise<IbGib_V1> {
         const lc = `${this.lc}[${this.doCmdGib.name}]`;
         try {
-            if (logalot) { console.log(`${lc} starting...`); }
+            if (logalot) { console.log(`${lc} starting... (I: 5d820b45337bf51c8d0f3daa3013ae22)`); }
+            throw new Error(`not impl yet (E: 8d3b5e2715a8d21f17c0db569a798b22)`);
 
-            const space = await this.ibgibsSvc.getLocalUserSpace({ lock: true });
-
-            // choose from rel8d and post to given context.
-            const rel8nName =
-                this.data?.defaultRel8nName ?? c.DEFAULT_ROBBOT_TARGET_REL8N_NAME;
-            let rel8dAddrs: string[] = (this.rel8ns ?? {})[rel8nName] ?? [];
-
-            // filter the rel8d addrs to those that are comments (for now)
-            // todo: in the future, we want to extract text from pics
-            rel8dAddrs = rel8dAddrs.filter(x => x.startsWith('comment '));
-
-            let ibGibAddrToSpeak = pickRandom({ arr: rel8dAddrs });
-
-            /**
-             * if we create a comment, we don't need to go fetching a more up to
-             * date version, because we just made it and know that it is already
-             * up-to-date.
-             */
-            let upToDateConfirmed = false;
-            if (!ibGibAddrToSpeak) {
-                const text = `${this.data?.outputPrefix ?? ''}I haven't seen anything yet!${this.data?.outputSuffix ?? ''}`;
-                const resComment = await createCommentIbGib({ text, space, saveInSpace: true });
-                await this.ibgibsSvc.registerNewIbGib({ ibGib: resComment.newIbGib });
-                ibGibAddrToSpeak = h.getIbGibAddr({ ibGib: resComment.newIbGib });
-                upToDateConfirmed = true;
-            }
-
-            const contextIbGibAddr = arg.data.ibGibAddrs[0]; // guaranteed by this.validateWitnessArg
-            // let contextTjpGib = getGibInfo({ibGibAddr: contextIbGibAddr}).tjpGib;
-            let resGetContext = await this.ibgibsSvc.get({ addr: contextIbGibAddr, space });
-            if (!resGetContext.success || resGetContext.ibGibs?.length !== 1) { throw new Error(`get context address failed (E: c7d362d3d3b541e4ab9bee9d23c5ffb8)`); }
-            let contextIbGib = resGetContext.ibGibs[0];
-            const contextLatestAddr =
-                await this.ibgibsSvc.getLatestAddr({ ibGib: contextIbGib, space }) ?? contextIbGibAddr;
-            if (contextLatestAddr !== contextIbGibAddr) {
-                // update to the latest context ibgib
-                resGetContext = await this.ibgibsSvc.get({ addr: contextLatestAddr, space });
-                if (!resGetContext.success || resGetContext.ibGibs?.length !== 1) { throw new Error(`get latest context address failed (E: 62d6a2337bcc46819d63887c764cf20c)`); }
-                contextIbGib = resGetContext.ibGibs[0];
-            }
-
-            // extract some of the text from the comment
-
-
-
-            if (!upToDateConfirmed && !isPrimitive({ gib: h.getIbAndGib({ ibGibAddr: ibGibAddrToSpeak }).gib })) {
-                // get the latest ibgib addr to speak
-                let resGetIbGib = await this.ibgibsSvc.get({ addr: ibGibAddrToSpeak, space });
-                if (!resGetIbGib.success || resGetIbGib.ibGibs?.length !== 1) { throw new Error(`get ibGib failed (E: 795f629d932342c7b21f2d2353464514)`); }
-                let ibGibToSpeak = resGetIbGib.ibGibs[0];
-                const ibGibToSpeakLatestAddr =
-                    await this.ibgibsSvc.getLatestAddr({ ibGib: ibGibToSpeak, space }) ?? ibGibAddrToSpeak;
-                if (ibGibToSpeakLatestAddr !== ibGibAddrToSpeak) {
-                    ibGibAddrToSpeak = ibGibToSpeakLatestAddr;
-                }
-            }
-
-            await this.rel8ToIbGib({
-                ibGibAddrToRel8: ibGibAddrToSpeak,
-                contextIbGib,
-                rel8nNames: [rel8nName],
-            });
-
-            return ROOT;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -248,6 +188,20 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     /**
      * In this robbot, the ibgib command will think (analyze known ibgibs) and
      * prepare what it's going to say next (its future output ibgib(s)).
+     *
+     * for this, we need
+     *   * to create intermediate ibgibs
+     *   * track which ibgibs (timelines?) we've analyzed
+     *   * track which ibgibs we've chunked
+     *   * keep stats
+     *     * count internal number of words
+     *     * count internal number of unique words
+     *     * count internal number of phrases
+     *     * ...
+     *
+     * So we need to analyze, create the stats, reassess, shake things up,...
+     * hmm...
+     * output the stats and internal state
      */
     protected async doCmdIbgib({
         arg,
@@ -256,24 +210,34 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     }): Promise<IbGib_V1> {
         const lc = `${this.lc}[${this.doCmdIbgib.name}]`;
         try {
-            if (logalot) { console.log(`${lc} starting...`); }
+            if (logalot) { console.log(`${lc} starting... (I: ae300cb9c18b9014eb9ded1cd5666e22)`); }
 
-            // get a comment that we've looked at, analyze it & queue an ibgib
-            // that we will speak the next time we are able.
-            if (typeof Worker !== 'undefined') {
-                // Create a new
-                const worker = new Worker(new URL('./brains.worker', import.meta.url));
-                worker.onmessage = ({ data }) => {
-                    console.log(`page got message: ${data}`);
-                };
-                worker.postMessage('hello');
-            } else {
-                // Web workers are not supported in this environment.
-                // You should add a fallback so that your program still executes correctly.
-            }
+            const space = await this.ibgibsSvc.getLocalUserSpace({ lock: true });
 
+            const rel8dIbGibsMap = await this.getRel8dIbGibs({});
+            const allRel8dIbGibs = Object.values(rel8dIbGibsMap).flatMap(x => x);
 
-            return ROOT;
+            /**
+             * we want to get all of the children of our ibgibs
+             */
+            const lookProjection = await getGraphProjection({
+                ibGibs: allRel8dIbGibs,
+                onlyRel8nNames: this.data.lookRel8nNames.split(','),
+                space
+            });
+
+            // go through the text-based ibgibs
+            const commentIbGibs = Object.keys(lookProjection)
+                .filter(addr => addr.startsWith('comment '))
+                .map(addr => <CommentIbGib_V1>lookProjection[addr]);
+            const commentAddrs = commentIbGibs.map(ibGib => h.getIbGibAddr({ ibGib }));
+
+            let resGetLatest = await getLatestAddrs({ ibGibs: commentIbGibs, space });
+            resGetLatest.data.latestAddrsMap;
+
+            const commentTexts = commentIbGibs.map(x => x.data.text);
+            throw new Error(`not impl (E: eac59baa4d48b60c83ca23f2e6b32822)`);
+
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -313,11 +277,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 ...await super.validateThis(),
             ];
             const { data } = this;
-            if (data) {
-                // data.outputMode
-                // } else {
-                //     errors.push(`data required`); // checked in super validation
-            }
+            //
             return errors;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -343,6 +303,10 @@ const DEFAULT_WORDY_ROBBOT_DATA_V1: WordyRobbotData_V1 = {
     description: DEFAULT_DESCRIPTION_WORDY_ROBBOT,
     classname: WordyRobbot_V1.name,
     defaultRel8nName: c.DEFAULT_ROBBOT_TARGET_REL8N_NAME,
+    allRel8nNames: [
+        c.DEFAULT_ROBBOT_TARGET_REL8N_NAME,
+        'comment',
+    ],
 
     lookRel8nNames: DEFAULT_SEARCH_REL8N_NAMES_WORDY_ROBBOT,
 

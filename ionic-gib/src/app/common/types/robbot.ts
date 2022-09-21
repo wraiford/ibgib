@@ -129,7 +129,11 @@ export interface RobbotData_V1 extends WitnessData_V1 {
      * @see `RobbotBase_V1.rel8To`
      */
     defaultRel8nName?: string;
-
+    /**
+     * list of all rel8n names, e.g. {@link defaultRel8nName},
+     * that this robbot uses for "my ibgibs".
+     */
+    allRel8nNames?: string[];
 }
 
 
@@ -245,7 +249,7 @@ export interface RobbotCmdIbGib<
     TIbGib extends IbGib_V1 = IbGib_V1,
     TCmdData extends RobbotCmdData = RobbotCmdData,
     TCmdRel8ns extends RobbotCmdRel8ns = RobbotCmdRel8ns,
-    > extends WitnessCmdIbGib<TIbGib, RobbotCmd, RobbotCmdModifier, TCmdData, TCmdRel8ns> {
+> extends WitnessCmdIbGib<TIbGib, RobbotCmd, RobbotCmdModifier, TCmdData, TCmdRel8ns> {
 }
 
 /**
@@ -276,6 +280,6 @@ export interface RobbotResultIbGib<
     TIbGib extends IbGib_V1,
     TResultData extends RobbotResultData,
     TResultRel8ns extends RobbotResultRel8ns
-    >
+>
     extends WitnessResultIbGib<TIbGib, TResultData, TResultRel8ns> {
 }
