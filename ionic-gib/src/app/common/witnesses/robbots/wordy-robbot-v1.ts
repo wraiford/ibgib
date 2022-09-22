@@ -16,11 +16,9 @@ import {
 } from '../../types/robbot';
 import { DynamicForm } from '../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
-import { getIdPool, pickRandom, unique } from '../../helper/utils';
+import { getIdPool, unique } from '../../helper/utils';
 import { WitnessFormBuilder } from '../../helper/witness';
 import { getRobbotIb, RobbotFormBuilder } from '../../helper/robbot';
-import { constantIbGib } from '../../helper/ibgib';
-import { createCommentIbGib } from '../../helper/comment';
 import { DynamicFormBuilder } from '../../helper/form';
 import { getGraphProjection, GetGraphResult } from '../../helper/graph';
 import { CommentIbGib_V1 } from '../../types/comment';
@@ -30,6 +28,52 @@ import { IonicSpace_V1 } from '../spaces/ionic-space-v1';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
+
+export interface UniqueWordInfo {
+    /**
+     * total number of times the corpus contains the word.
+     */
+    totalIncidence: number;
+    /**
+     * number of sentences in all of the corpus that contain the word.
+     */
+    sentenceIncidence: number;
+    /**
+     * number of paragraphs in all of the corpus that contain the word.
+     */
+    paragraphIncidence: number;
+    /**
+     * number of source ibgibs that contain the word.
+     */
+    sourceIncidence: number;
+}
+
+export interface WordyRobbotAnalysisData_V1 {
+    /**
+     * Built by looking at all of the comments (and in the future pics when we
+     * extract text from them).
+     *
+     * Each analysis executed will only add new comment texts.
+     *
+     * If new comment texts exist, then the derivative analyses will be rerun on the
+     * entire comment corpus. But this property will only contain the new texts.
+     *
+     * if a comment text starts with two minus signs, then this means that the text
+     * was dropped (i.e. a rel8d comment ibgib was trashed/unrel8d).
+     */
+    deltaTexts: string[],
+    /**
+     * all unique words in the text corpus, lowercased, sorted, mapped to
+     * each word's info as pertaining to its qualities in the corpus.
+     * @example { "a": { total: 168, sentenceIncidence: 130, paragraphIncidence: 90, sourceIncidence: 60 }, ..., "zebra": { total: 2, sentenceIncidence: 2, paragraphIncidence: 2, sourceIncidence: 2 }}
+     */
+    wordInfoMap: { [word: string]: UniqueWordInfo };
+    sentenceCount: number;
+    paragraphCount: number;
+    sourceCount: number;
+}
+export interface WordyRobbotAnalysisRel8ns_V1 extends IbGibRel8ns_V1 { }
+export interface WordyRobbotAnalysisIbGib_V1 extends IbGib_V1<WordyRobbotAnalysisData_V1, WordyRobbotAnalysisRel8ns_V1> { }
 
 export const DEFAULT_UUID_WORDY_ROBBOT = undefined;
 export const DEFAULT_NAME_WORDY_ROBBOT = 'Wordsworthers';
@@ -44,6 +88,20 @@ export const DEFAULT_SEARCH_REL8N_NAMES_WORDY_ROBBOT = [
 ].join(',');
 
 export interface WordyRobbotData_V1 extends RobbotData_V1 {
+    /**
+     * comma-delimited string of rel8n names.
+     *
+     * These are the rel8n names that the robbot can search through its own
+     * ibgibs that it has seen. I'm sure that's worded poorly, so...
+     *
+     * For example, when you look at a comment ibgib, that ibgib may
+     * have other ibgibs "inside" (rel8d) to it via various rel8n names.
+     * If you want to search for comments within comments, then include
+     * the 'comment' rel8n name. If you want to search for pics also,
+     * include 'pic' rel8n name.
+     *
+     * @see {@link WordyRobbot_V1.getAllIbGibsWeCanLookAt}
+     */
     lookRel8nNames: string;
 }
 
@@ -215,7 +273,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             const space = await this.ibgibsSvc.getLocalUserSpace({ lock: true });
 
-            const lookProjection = await this.getAllIbGibsWeSee({ space });
+            const lookProjection = await this.getAllIbGibsWeCanLookAt({ space });
 
             // go through the text-based ibgibs
             const commentIbGibs = await this.getCommentIbGibs({ lookProjection, space });
@@ -345,12 +403,20 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         return commentIbGibs;
     }
 
-    private async getAllIbGibsWeSee({
+    /**
+     *
+     * builds a projection of ibgibs we can look, starting with the ibgibs we
+     * immediately look at via user interaction. From those ibgibs as the sources, we then look along
+     * their rel8ns via `this.data.lookRel8nNames`.
+     *
+     * @returns graph of ibgibs we can look at, i.e., a map of ibgibs indexed by their addrs.
+     */
+    private async getAllIbGibsWeCanLookAt({
         space
     }: {
         space: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns>
     }): Promise<GetGraphResult> {
-        const lc = `${this.lc}[${this.getAllIbGibsWeSee.name}]`;
+        const lc = `${this.lc}[${this.getAllIbGibsWeCanLookAt.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 57c97de4c513f5007f0a6e0ec8f35922)`); }
             const rel8dIbGibsMap = await this.getRel8dIbGibs({});
@@ -435,6 +501,7 @@ const DEFAULT_WORDY_ROBBOT_DATA_V1: WordyRobbotData_V1 = {
     allRel8nNames: [
         c.DEFAULT_ROBBOT_TARGET_REL8N_NAME,
         'comment',
+        'analysis',
     ],
 
     lookRel8nNames: DEFAULT_SEARCH_REL8N_NAMES_WORDY_ROBBOT,
