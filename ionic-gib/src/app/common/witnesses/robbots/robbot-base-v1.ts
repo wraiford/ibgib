@@ -629,6 +629,11 @@ export abstract class RobbotBase_V1<
         }
     }
 
+    /**
+     * When the robbot has to get some ibgibs, might as well store them here so
+     * we don't have to get them again from storage.
+     */
+    protected cacheIbGibs: { [addr: string]: IbGib_V1 } = {};
 
     protected async getRel8dIbGibs({
         rel8nNames,
@@ -650,6 +655,7 @@ export abstract class RobbotBase_V1<
 
             const rel8dIbGibs: { [rel8nName: string]: IbGib_V1[] } = {};
 
+            // todo: adjust to use the cacheIbGibs (not get them if already have in cache, but still return them in this fn's result)
             for (let i = 0; i < rel8nNames.length; i++) {
                 const rel8nName = rel8nNames[i];
                 const rel8dAddrs = this.rel8ns[rel8nName] ?? [];

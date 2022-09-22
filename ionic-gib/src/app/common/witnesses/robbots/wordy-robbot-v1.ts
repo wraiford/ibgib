@@ -16,15 +16,17 @@ import {
 } from '../../types/robbot';
 import { DynamicForm } from '../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
-import { getIdPool, pickRandom } from '../../helper/utils';
+import { getIdPool, pickRandom, unique } from '../../helper/utils';
 import { WitnessFormBuilder } from '../../helper/witness';
 import { getRobbotIb, RobbotFormBuilder } from '../../helper/robbot';
 import { constantIbGib } from '../../helper/ibgib';
 import { createCommentIbGib } from '../../helper/comment';
 import { DynamicFormBuilder } from '../../helper/form';
-import { getGraphProjection } from '../../helper/graph';
+import { getGraphProjection, GetGraphResult } from '../../helper/graph';
 import { CommentIbGib_V1 } from '../../types/comment';
-import { getLatestAddrs } from '../../helper/space';
+import { getFromSpace, getLatestAddrs } from '../../helper/space';
+import { AppSpaceData, AppSpaceRel8ns } from '../../types/app';
+import { IonicSpace_V1 } from '../spaces/ionic-space-v1';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -175,7 +177,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 5d820b45337bf51c8d0f3daa3013ae22)`); }
             throw new Error(`not impl yet (E: 8d3b5e2715a8d21f17c0db569a798b22)`);
-
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -214,8 +215,147 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             const space = await this.ibgibsSvc.getLocalUserSpace({ lock: true });
 
+            const lookProjection = await this.getAllIbGibsWeSee({ space });
+
+            // go through the text-based ibgibs
+            const commentIbGibs = await this.getCommentIbGibs({ lookProjection, space });
+
+            // at this point, we should have all of the related ibgibs that we
+            // care about loaded into this.cacheIbGibs and this.cachedLatestAddrsMap is populated.
+            // we should be able to do any analysis on them that we wish.
+
+            this.performAnalysis({ commentIbGibs });
+            debugger;
+
+            throw new Error(`not impl (E: eac59baa4d48b60c83ca23f2e6b32822)`);
+
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+    protected cachedLatestAddrsMap: { [addr: string]: string }
+
+    /**
+     *
+     */
+    private async performAnalysis({
+        commentIbGibs,
+    }: {
+        commentIbGibs: CommentIbGib_V1[],
+    }): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            const lc = `${this.lc}[${this.performAnalysis.name}]`;
+            try {
+                if (logalot) { console.log(`${lc} starting... (I: 128d07e8fdc1a1d79a1b54dd83caeb22)`); }
+                const timestamp = h.getTimestamp();
+
+                const commentTexts = commentIbGibs
+                    .map(x => {
+                        let addr = h.getIbGibAddr({ ibGib: x });
+                        let latestAddr = this.cachedLatestAddrsMap[addr];
+                        if (!latestAddr) {
+                            console.error(`${lc} comment ibgib doesn't have a latestAddr entry? will use the (possibly non-latest) comment ibgib itself (E: a474e5d0d0c4428ca1f01f260820a3fe)`);
+                            latestAddr = addr;
+                        }
+                        const latestCommentIbGib = this.cacheIbGibs[latestAddr];
+                        if (!latestCommentIbGib) { throw new Error(`(UNEXPECTED) expected latestCommentIbGib to exist at this point. (E: 369cfa38bd7527f71ea6962c3d037c22)`); }
+                        return latestCommentIbGib;
+                    })
+                    .map(x => x.data.text);
+                const sortedWords = commentTexts
+                    .flatMap((x: string) => x.match(/\b(\w+)['\-]?(\w+)?\b/g))
+                    .map(x => x.toLowerCase())
+                    .sort();
+                const uniqueWords = unique(sortedWords);
+                const mapCountPerWord: { [word: string]: number; } = {};
+                for (let i = 0; i < uniqueWords.length; i++) {
+                    const word = uniqueWords[i];
+                    const i_last = uniqueWords.lastIndexOf(word);
+                    const count = i_last - i + 1;
+                    mapCountPerWord[word] = count;
+                    i = i_last;
+                }
+                resolve();
+            } catch (error) {
+                console.error(`${lc} ${error.message}`);
+                reject(error);
+            } finally {
+                if (logalot) { console.log(`${lc} complete.`); }
+            }
+        });
+
+    }
+
+    private async getCommentIbGibs({
+        lookProjection,
+        space,
+    }: {
+        lookProjection: GetGraphResult,
+        space: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns>
+    }): Promise<CommentIbGib_V1[]> {
+        const lc = `${this.lc}[${this.getCommentIbGibs.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 7c9a3a210d64a292bafc69d3192f6922)`); }
+
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+        const commentIbGibs = Object.keys(lookProjection)
+            .filter(addr => addr.startsWith('comment '))
+            .map(addr => <CommentIbGib_V1>lookProjection[addr]);
+        const commentAddrs = commentIbGibs.map(ibGib => h.getIbGibAddr({ ibGib }));
+
+        let resGetLatestAddrs = await getLatestAddrs({ ibGibs: commentIbGibs, space });
+        const { latestAddrsMap } = resGetLatestAddrs.data;
+        this.cachedLatestAddrsMap = {
+            ...this.cachedLatestAddrsMap,
+            ...latestAddrsMap,
+        };
+        const latestAddrsToGet: IbGibAddr[] = [];
+        for (let i = 0; i < commentAddrs.length; i++) {
+            const commentAddr = commentAddrs[i];
+            let latestAddr = latestAddrsMap[commentAddr];
+            if (!latestAddr) {
+                console.warn(`${lc} (UNEXPECTED) commentAddr falsy in latestAddrsMap? (W: 614c8de84f74490cb9780b20a746db5d)`);
+                latestAddr = commentAddr;
+            }
+            if (!this.cacheIbGibs[latestAddr] && !latestAddrsToGet.includes(latestAddr)) {
+                latestAddrsToGet.push(latestAddr);
+            }
+        }
+        if (latestAddrsToGet.length > 0) {
+            const resGetLatestIbGibs = await getFromSpace({ addrs: latestAddrsToGet, space });
+            if (resGetLatestIbGibs.success && resGetLatestIbGibs.ibGibs?.length === latestAddrsToGet.length) {
+                for (let i = 0; i < resGetLatestIbGibs.ibGibs.length; i++) {
+                    const latestIbGib = resGetLatestIbGibs.ibGibs[i];
+                    this.cacheIbGibs[h.getIbGibAddr({ ibGib: latestIbGib })] = latestIbGib;
+                }
+            } else {
+                console.error(`${lc} full result: `);
+                console.dir(resGetLatestIbGibs);
+                throw new Error(`problem with getting latest ibgibs (E: 9c3ece44132580def2aec55c8da0ae22)`);
+            }
+        }
+        return commentIbGibs;
+    }
+
+    private async getAllIbGibsWeSee({
+        space
+    }: {
+        space: IonicSpace_V1<AppSpaceData, AppSpaceRel8ns>
+    }): Promise<GetGraphResult> {
+        const lc = `${this.lc}[${this.getAllIbGibsWeSee.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 57c97de4c513f5007f0a6e0ec8f35922)`); }
             const rel8dIbGibsMap = await this.getRel8dIbGibs({});
             const allRel8dIbGibs = Object.values(rel8dIbGibsMap).flatMap(x => x);
+            allRel8dIbGibs.forEach(x => { this.cacheIbGibs[h.getIbGibAddr({ ibGib: x })] = x; });
 
             /**
              * we want to get all of the children of our ibgibs
@@ -225,19 +365,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 onlyRel8nNames: this.data.lookRel8nNames.split(','),
                 space
             });
-
-            // go through the text-based ibgibs
-            const commentIbGibs = Object.keys(lookProjection)
-                .filter(addr => addr.startsWith('comment '))
-                .map(addr => <CommentIbGib_V1>lookProjection[addr]);
-            const commentAddrs = commentIbGibs.map(ibGib => h.getIbGibAddr({ ibGib }));
-
-            let resGetLatest = await getLatestAddrs({ ibGibs: commentIbGibs, space });
-            resGetLatest.data.latestAddrsMap;
-
-            const commentTexts = commentIbGibs.map(x => x.data.text);
-            throw new Error(`not impl (E: eac59baa4d48b60c83ca23f2e6b32822)`);
-
+            Object.values(lookProjection).forEach(x => { this.cacheIbGibs[h.getIbGibAddr({ ibGib: x })] = x; });
+            return lookProjection;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;

@@ -440,25 +440,29 @@ export async function getSpecialIbGib({
                 }
             }
         }
-        // if (!addr) {
-        //     if (initialize) {
-        //         addr = await createSpecial({type, space, zeroSpace, fnUpdateBootstrap, fnBroadcast});
-        //     } else {
-        //         throw new Error(`addr not found and initialize is false. (E: 6fc2375c0ba74972aa53da923c963411)`);
-        //     }
-        // }
 
-
-
-        if (logalot) { console.log(`addr: ${addr}`); }
-
-        // let specialIbGib: IbGib_V1;
+        if (logalot) { console.log(`${lc} getting addr: ${addr}`); }
 
         let resSpecial = await getFromSpace({ addr, isMeta: true, space });
+
+        // I'm putting in this check in case we're getting a meta that wasn't
+        // saved into the meta folder.
+        if (!resSpecial.success) {
+            resSpecial = await getFromSpace({ addr, isMeta: false, space });
+            if (resSpecial.success) {
+                console.warn(`${lc} special ibgib was not stored in meta folder...putting in meta folder now for the future (W: e6f5571fd98c449bb2809359be5057cc)`);
+                const resPutInMeta = await putInSpace({ ibGib: resSpecial.ibGibs[0], isMeta: true, space });
+                if (!resPutInMeta.success) {
+                    console.warn(`${lc} (UNEXPECTED) tried to put special in meta but success was false? (W: b934b53571c24057af172c790e6a7240)`)
+                }
+            }
+        }
         if (!resSpecial.success) { throw new Error(resSpecial.errorMsg); }
         if (resSpecial.ibGibs?.length !== 1) { throw new Error(`no ibGib in result (E: 3a42abdddc3648e292d63dc45c560064)`); }
         const specialIbGib = resSpecial.ibGibs[0];
 
+        // I'm putting this check in here because it's bad not to have the
+        // latest special associated with a space
         if (type !== 'latest') {
             let resLatest = await getLatestAddrs({ ibGibs: [specialIbGib], space });
             if (resLatest?.data?.success && resLatest.data.addrs?.length === 1) {
@@ -467,6 +471,7 @@ export async function getSpecialIbGib({
                 }
             }
         }
+
         return specialIbGib;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
@@ -3031,7 +3036,7 @@ export async function trash({
             nCounter: true,
         });
 
-        await persistTransformResult({ resTransform: resNewContext, space });
+        await persistTransformResult({ resTransform: resNewContext, isMeta: contextIsSpecialIbGib, space });
 
         if (contextIsSpecialIbGib) {
             const newSpecialAddr = h.getIbGibAddr({ ibGib: resNewContext.newIbGib });
@@ -3094,7 +3099,7 @@ export async function archive({
             nCounter: true,
         });
 
-        await persistTransformResult({ resTransform: resNewContext, space });
+        await persistTransformResult({ resTransform: resNewContext, isMeta: contextIsSpecialIbGib, space });
 
         if (contextIsSpecialIbGib) {
             const newSpecialAddr = h.getIbGibAddr({ ibGib: resNewContext.newIbGib });
