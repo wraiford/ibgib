@@ -519,13 +519,9 @@ export class AppComponent extends IbgibComponentBase
         await h.delay(100);
       }
       let tagsIbGib = await this.common.ibgibs.getSpecialIbGib({ type: "tags" });
-      if (!tagsIbGib) {
-        debugger;
-        throw new Error(`(UNEXPECTED) tagsIbGib falsy? (E: bbadbbc3416caed9380f06ebeb896d22)`);
-      }
+      if (!tagsIbGib) { throw new Error(`(UNEXPECTED) tagsIbGib falsy? (E: bbadbbc3416caed9380f06ebeb896d22)`); }
       this.tagsAddr = h.getIbGibAddr({ ibGib: tagsIbGib });
 
-      debugger;
       const latestTagsAddr = await this.common.ibgibs.getLatestAddr({ ibGib: tagsIbGib });
       if (latestTagsAddr !== this.tagsAddr) {
         console.warn(`${lc} latestTagsAddr is different than the one associated with the space...any command should update the config key in the local space. updating config key now... (W: 9c943b75b0bb4d02a32adf07eaf87497)`)

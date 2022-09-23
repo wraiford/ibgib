@@ -9,7 +9,9 @@ import { CommonService } from 'src/app/services/common.service';
 import { IbgibComponentBase } from '../../common/bases/ibgib-component-base';
 import { ChatItem, ChatViewComponent } from '../../views/chat-view/chat-view.component';
 import { ChatApp_V1 } from 'src/app/common/witnesses/apps/chat-app-v1';
-import { registerCancelModalOnBackButton, clearDoCancelModalOnBackButton } from 'src/app/common/helper/utils';
+import { registerCancelModalOnBackButton, clearDoCancelModalOnBackButton, selectElementText } from 'src/app/common/helper/utils';
+import { IbGibListItem } from '../../common/types/ux';
+import { ItemViewComponent } from '../../views/item-view/item-view.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -33,6 +35,9 @@ export class ChatAppComponent extends IbgibComponentBase implements OnInit, OnDe
 
   @ViewChild('chatView')
   chatView: ChatViewComponent;
+
+  @ViewChild('modalIbItem')
+  modalIbItem: ItemViewComponent;
 
   constructor(
     protected common: CommonService,
@@ -223,5 +228,29 @@ export class ChatAppComponent extends IbgibComponentBase implements OnInit, OnDe
     }
   }
 
+  handleModalIbItemClicked(item: IbGibListItem): void {
+    const lc = `${this.lc}[${this.handleModalIbItemClicked.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: b686eb73e1aee7d48aabf1abd4612522)`); }
+
+      // only select if a selection doesn't already exist
+      // debugger;
+      if (window.getSelection) {
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0 && selection.type !== 'Caret') {
+          return; /* <<<< returns early */
+        }
+      }
+
+      const ibItemElement = document.getElementById('modal-ib-item');
+      const preElement = ibItemElement.getElementsByTagName('pre').item(0);
+      selectElementText(preElement);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 
 }

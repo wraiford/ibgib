@@ -407,3 +407,35 @@ export function pickRandom<T extends any>({ arr }: { arr: T[] }): T {
     let randomIndex = Math.floor(Math.random() * arr.length);
     return arr[randomIndex];
 }
+
+/**
+ * creates a text selection of the entire element's text.
+ *
+ * ty https://stackoverflow.com/questions/985272/selecting-text-in-an-element-akin-to-highlighting-with-your-mouse
+ *
+ * @param el element whose text we're selecting
+ */
+export function selectElementText(el: HTMLElement): void {
+    const lc = `[${selectElementText.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 0971989c737e5b846894357f671ab322)`); }
+        if ((<any>document.body).createTextRange) {
+            const range = (<any>document.body).createTextRange();
+            range.moveToElementText(el);
+            range.select();
+        } else if (window.getSelection) {
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            selection.addRange(range);
+        } else {
+            throw new Error(`(UNEXPECTED) cannot select element text? (E: 163a1dd811b4f4bc22dd6823db859322)`);
+        }
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}

@@ -510,9 +510,6 @@ export class IonicSpace_V1<
                     if (!isPrimitive({ gib: h.getIbAndGib({ ibGibAddr: addr }).gib }) && this.cacheSvc) {
                         if (logalot) { console.log(`${lc} NOT found in naive cache. Expensive(r) loading of file... TESTING REMOVE THIS YO (I: 7983e6afb9bf440a83b90de64c487be3)`); }
                     }
-                    if (isMeta && addr.startsWith('meta special tags')) {
-                        debugger;
-                    }
                     const getResult = await this.getFile({ addr, isMeta, isDna, });
                     if (getResult?.success && getResult.ibGib) {
                         if (logalot) { console.log(`${lc} ${addr} PUTTING IN in naive cache. Expensive(r) loading of file... TESTING REMOVE THIS YO (I: fe0612406c334aa88bcc51bb35150de3)`); }

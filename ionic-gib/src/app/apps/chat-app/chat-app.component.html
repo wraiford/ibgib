@@ -41,8 +41,10 @@
           </ion-toolbar>
         </ion-header>
         <!-- content ibgib -->
-        <ib-item class="large-item" [addr]="fullscreenIbGibAddr" [isLarge]="true"
-          [disableSelection]="false"></ib-item>
+        <ib-item id="modal-ib-item" class="large-item" [addr]="fullscreenIbGibAddr" [isLarge]="true"
+          (ibItemClicked)="handleModalIbItemClicked($event)"
+          [disableSelection]="false"
+          ></ib-item>
         <ion-footer>
           <!-- commands -->
           <ib-command-bar
