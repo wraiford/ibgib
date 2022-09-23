@@ -5,7 +5,7 @@ import {
     IbGib_V1, ROOT, Factory_V1 as factory, Rel8n,
     IbGibRel8ns_V1, isPrimitive,
 } from 'ts-gib/dist/V1';
-import { Gib, IbGibAddr, TransformResult } from 'ts-gib';
+import { Gib, Ib, IbGibAddr, TransformResult } from 'ts-gib';
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 import * as c from '../../constants';
@@ -25,6 +25,7 @@ import { CommentIbGib_V1 } from '../../types/comment';
 import { getFromSpace, getLatestAddrs } from '../../helper/space';
 import { AppSpaceData, AppSpaceRel8ns } from '../../types/app';
 import { IonicSpace_V1 } from '../spaces/ionic-space-v1';
+import { IbGibSpaceAny } from '../spaces/space-base-v1';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -49,27 +50,36 @@ export interface UniqueWordInfo {
 }
 
 export interface WordyRobbotAnalysisData_V1 {
+    timestamp: string;
     /**
-     * Built by looking at all of the comments (and in the future pics when we
-     * extract text from them).
+     * array of all commentibGib.data.text values.
      *
-     * Each analysis executed will only add new comment texts.
+     * ## comments
      *
-     * If new comment texts exist, then the derivative analyses will be rerun on the
-     * entire comment corpus. But this property will only contain the new texts.
-     *
-     * if a comment text starts with two minus signs, then this means that the text
-     * was dropped (i.e. a rel8d comment ibgib was trashed/unrel8d).
+     * I want to do delta texts, but too much work right now.
      */
-    deltaTexts: string[],
+    allTexts: string[],
+    // /**
+    //  * Built by looking at all of the comments (and in the future pics when we
+    //  * extract text from them).
+    //  *
+    //  * Each analysis executed will only add new comment texts.
+    //  *
+    //  * If new comment texts exist, then the derivative analyses will be rerun on the
+    //  * entire comment corpus. But this property will only contain the new texts.
+    //  *
+    //  * if a comment text starts with two minus signs, then this means that the text
+    //  * was dropped (i.e. a rel8d comment ibgib was trashed/unrel8d).
+    //  */
+    // deltaTexts: string[],
     /**
      * all unique words in the text corpus, lowercased, sorted, mapped to
      * each word's info as pertaining to its qualities in the corpus.
      * @example { "a": { total: 168, sentenceIncidence: 130, paragraphIncidence: 90, sourceIncidence: 60 }, ..., "zebra": { total: 2, sentenceIncidence: 2, paragraphIncidence: 2, sourceIncidence: 2 }}
      */
     wordInfoMap: { [word: string]: UniqueWordInfo };
-    sentenceCount: number;
     paragraphCount: number;
+    lineCount: number;
     sourceCount: number;
 }
 export interface WordyRobbotAnalysisRel8ns_V1 extends IbGibRel8ns_V1 { }
@@ -282,7 +292,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // care about loaded into this.cacheIbGibs and this.cachedLatestAddrsMap is populated.
             // we should be able to do any analysis on them that we wish.
 
-            this.performAnalysis({ commentIbGibs });
+            this.execute_save_andGetAnalysisIbGib({ commentIbGibs, space });
             debugger;
 
             throw new Error(`not impl (E: eac59baa4d48b60c83ca23f2e6b32822)`);
@@ -299,18 +309,22 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     /**
      *
      */
-    private async performAnalysis({
+    private async execute_save_andGetAnalysisIbGib({
         commentIbGibs,
+        space,
     }: {
         commentIbGibs: CommentIbGib_V1[],
-    }): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            const lc = `${this.lc}[${this.performAnalysis.name}]`;
+        space: IbGibSpaceAny,
+    }): Promise<WordyRobbotAnalysisIbGib_V1> {
+        return new Promise<WordyRobbotAnalysisIbGib_V1>(async (resolve, reject) => {
+            const lc = `${this.lc}[${this.execute_save_andGetAnalysisIbGib.name}]`;
             try {
                 if (logalot) { console.log(`${lc} starting... (I: 128d07e8fdc1a1d79a1b54dd83caeb22)`); }
-                const timestamp = h.getTimestamp();
+                if (!commentIbGibs) { throw new Error(`commentIbGibs required (E: c6a983bf16cfe2e5aa48934499f53322)`); }
+                if (commentIbGibs.length === 0) { throw new Error(`${lc} (UNEXPECTED) commentIbGibs.length 0? (E: a433761eed37a831378f654ce8bb4422)`); }
+                if (!space) { throw new Error(`space required (E: 5466baf5559bfe582358d0490b4b5422)`); }
 
-                const commentTexts = commentIbGibs
+                const commentTexts = (commentIbGibs ?? [])
                     .map(x => {
                         let addr = h.getIbGibAddr({ ibGib: x });
                         let latestAddr = this.cachedLatestAddrsMap[addr];
@@ -323,6 +337,17 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                         return latestCommentIbGib;
                     })
                     .map(x => x.data.text);
+
+                const fnCountParagraphs = (text: string) => { return ((text ?? '').trim().match(/\n\n+/g) ?? []).length + 1 };
+                const paragraphCount =
+                    commentTexts
+                        .map(text => fnCountParagraphs(text))
+                        .reduce((a, b) => a + b, 0);
+                const fnCountLines = (text: string) => { return ((text ?? '').trim().match(/^.*\w+.*$/gm) ?? []).length };
+                const lineCount =
+                    commentTexts
+                        .map(text => fnCountLines(text))
+                        .reduce((a, b) => a + b, 0);
                 const sortedWords = commentTexts
                     .flatMap((x: string) => x.match(/\b(\w+)['\-]?(\w+)?\b/g))
                     .map(x => x.toLowerCase())
@@ -336,7 +361,28 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     mapCountPerWord[word] = count;
                     i = i_last;
                 }
-                resolve();
+                const data: WordyRobbotAnalysisData_V1 = {
+                    timestamp: h.getTimestamp(),
+                    allTexts: commentTexts,
+                    paragraphCount,
+                    lineCount,
+                    sourceCount: commentTexts.length,
+                    wordInfoMap: {}
+                }
+
+                // don't need dna or any intermediate ibgibs
+                // these analyses ibgibs are just snapshots.
+                let resAnalysis = await factory.firstGen({
+                    ib: getRobbotAnalysisIb({ robbot: this }),
+                    parentIbGib: factory.primitive({ ib: `robbot_analysis ${this.data.classname}` }),
+                    data,
+                    // dna: false,
+                    // tjp: { uuid: false, timestamp: false },
+                });
+                debugger;// want to see
+
+                const analysisIbGib = <WordyRobbotAnalysisIbGib_V1>resAnalysis.newIbGib;
+                resolve(analysisIbGib);
             } catch (error) {
                 console.error(`${lc} ${error.message}`);
                 reject(error);
@@ -346,6 +392,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         });
 
     }
+
 
     private async getCommentIbGibs({
         lookProjection,
@@ -648,4 +695,13 @@ export class WordyRobbotFormBuilder extends RobbotFormBuilder {
         return this;
     }
 
+}
+
+function getRobbotAnalysisIb({
+    robbot,
+}: {
+    robbot: WordyRobbot_V1,
+}): Ib {
+    let gibInfo = getGibInfo({ gib: robbot.gib });
+    return `robbot_analysis ${robbot.data.classname} ${robbot.data.uuid} ${gibInfo.tjpGib}`;
 }

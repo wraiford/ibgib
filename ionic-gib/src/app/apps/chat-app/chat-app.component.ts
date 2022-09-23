@@ -243,7 +243,7 @@ export class ChatAppComponent extends IbgibComponentBase implements OnInit, OnDe
       }
 
       const ibItemElement = document.getElementById('modal-ib-item');
-      const preElement = ibItemElement.getElementsByTagName('pre').item(0);
+      const preElement = ibItemElement.getElementsByTagName('pre').item(0); // ty https://bobbyhadz.com/blog/javascript-get-child-element-by-id
       selectElementText(preElement);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
