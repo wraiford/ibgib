@@ -6,7 +6,7 @@ import {
     IbGibRel8ns_V1, isPrimitive,
 } from 'ts-gib/dist/V1';
 import { Gib, Ib, IbGibAddr, TransformResult } from 'ts-gib';
-import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 import * as c from '../../constants';
 import { RobbotBase_V1 } from './robbot-base-v1';
@@ -30,15 +30,20 @@ import { IbGibSpaceAny } from '../spaces/space-base-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
-export interface UniqueWordInfo {
+export interface WordyUniqueWordInfo {
     /**
-     * total number of times the corpus contains the word.
+     * total number of times the text contains the word.
      */
     totalIncidence: number;
     /**
-     * number of sentences in all of the corpus that contain the word.
+     * number of lines in all of the text that contain the word.
+     *
+     * ## notes
+     *
+     * Yeah, I'm not doing the sentence thing because it's a tedious thing to
+     * get the regexp correct in that case.
      */
-    sentenceIncidence: number;
+    lineIncidence: number;
     /**
      * number of paragraphs in all of the corpus that contain the word.
      */
@@ -46,41 +51,50 @@ export interface UniqueWordInfo {
     /**
      * number of source ibgibs that contain the word.
      */
-    sourceIncidence: number;
+    srcIncidence: number;
+}
+/**
+ * in the future, we will extract text from pics or other sources.
+ */
+export type WordyTextSourceType = 'comment' | 'pic' | 'other';
+/**
+ * breakdown info of an individual text source (atow a comment ibgib).
+ */
+export interface WordyTextInfo {
+    srcIbGib?: IbGib_V1;
+    srcAddr?: IbGibAddr;
+    srcType?: WordyTextSourceType;
+    /**
+     * for comment ibgibs, this is comment.data.text.
+     */
+    text: string;
+    /**
+     * copy of text but broken out into paragraphs.
+     */
+    paragraphs: string[];
+    /**
+     * copy of text but broken out into lines.
+     */
+    lines: string[];
+    /**
+     * breakdown infos of unique words in text
+     */
+    wordInfos: { [word: string]: WordyUniqueWordInfo };
+    /**
+     * approximate count of non-unique words in the text.
+     */
+    wordCount: number;
 }
 
 export interface WordyRobbotAnalysisData_V1 {
     timestamp: string;
-    /**
-     * array of all commentibGib.data.text values.
-     *
-     * ## comments
-     *
-     * I want to do delta texts, but too much work right now.
-     */
-    allTexts: string[],
-    // /**
-    //  * Built by looking at all of the comments (and in the future pics when we
-    //  * extract text from them).
-    //  *
-    //  * Each analysis executed will only add new comment texts.
-    //  *
-    //  * If new comment texts exist, then the derivative analyses will be rerun on the
-    //  * entire comment corpus. But this property will only contain the new texts.
-    //  *
-    //  * if a comment text starts with two minus signs, then this means that the text
-    //  * was dropped (i.e. a rel8d comment ibgib was trashed/unrel8d).
-    //  */
-    // deltaTexts: string[],
-    /**
-     * all unique words in the text corpus, lowercased, sorted, mapped to
-     * each word's info as pertaining to its qualities in the corpus.
-     * @example { "a": { total: 168, sentenceIncidence: 130, paragraphIncidence: 90, sourceIncidence: 60 }, ..., "zebra": { total: 2, sentenceIncidence: 2, paragraphIncidence: 2, sourceIncidence: 2 }}
-     */
-    wordInfoMap: { [word: string]: UniqueWordInfo };
-    paragraphCount: number;
-    lineCount: number;
-    sourceCount: number;
+    textInfos: WordyTextInfo[];
+    aggInfo: WordyTextInfo;
+    // aggParagraphCount: number;
+    // aggLineCount: number;
+    // aggWordCount: number;
+    // aggUniqueWordCount: number;
+    // aggWordInfos: { [word: string]: WordyUniqueWordInfo };
 }
 export interface WordyRobbotAnalysisRel8ns_V1 extends IbGibRel8ns_V1 { }
 export interface WordyRobbotAnalysisIbGib_V1 extends IbGib_V1<WordyRobbotAnalysisData_V1, WordyRobbotAnalysisRel8ns_V1> { }
@@ -292,8 +306,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // care about loaded into this.cacheIbGibs and this.cachedLatestAddrsMap is populated.
             // we should be able to do any analysis on them that we wish.
 
-            this.execute_save_andGetAnalysisIbGib({ commentIbGibs, space });
+            const analysisIbGib = await this.getAnalysis({ commentIbGibs, saveInSpace: true, space });
+
             debugger;
+            this.rel8To
 
             throw new Error(`not impl (E: eac59baa4d48b60c83ca23f2e6b32822)`);
 
@@ -309,90 +325,164 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     /**
      *
      */
-    private async execute_save_andGetAnalysisIbGib({
+    private async getAnalysis({
         commentIbGibs,
+        saveInSpace,
         space,
     }: {
         commentIbGibs: CommentIbGib_V1[],
-        space: IbGibSpaceAny,
+        saveInSpace?: boolean;
+        space?: IbGibSpaceAny,
     }): Promise<WordyRobbotAnalysisIbGib_V1> {
-        return new Promise<WordyRobbotAnalysisIbGib_V1>(async (resolve, reject) => {
-            const lc = `${this.lc}[${this.execute_save_andGetAnalysisIbGib.name}]`;
-            try {
-                if (logalot) { console.log(`${lc} starting... (I: 128d07e8fdc1a1d79a1b54dd83caeb22)`); }
-                if (!commentIbGibs) { throw new Error(`commentIbGibs required (E: c6a983bf16cfe2e5aa48934499f53322)`); }
-                if (commentIbGibs.length === 0) { throw new Error(`${lc} (UNEXPECTED) commentIbGibs.length 0? (E: a433761eed37a831378f654ce8bb4422)`); }
-                if (!space) { throw new Error(`space required (E: 5466baf5559bfe582358d0490b4b5422)`); }
+        const lc = `${this.lc}[${this.getAnalysis.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 128d07e8fdc1a1d79a1b54dd83caeb22)`); }
+            if (!commentIbGibs) { throw new Error(`commentIbGibs required (E: c6a983bf16cfe2e5aa48934499f53322)`); }
+            if (commentIbGibs.length === 0) { throw new Error(`${lc} (UNEXPECTED) commentIbGibs.length 0? (E: a433761eed37a831378f654ce8bb4422)`); }
+            if (saveInSpace && !space) { throw new Error(`space required to saveInSpace (E: 5466baf5559bfe582358d0490b4b5422)`); }
 
-                const commentTexts = (commentIbGibs ?? [])
-                    .map(x => {
-                        let addr = h.getIbGibAddr({ ibGib: x });
-                        let latestAddr = this.cachedLatestAddrsMap[addr];
-                        if (!latestAddr) {
-                            console.error(`${lc} comment ibgib doesn't have a latestAddr entry? will use the (possibly non-latest) comment ibgib itself (E: a474e5d0d0c4428ca1f01f260820a3fe)`);
-                            latestAddr = addr;
-                        }
-                        const latestCommentIbGib = this.cacheIbGibs[latestAddr];
-                        if (!latestCommentIbGib) { throw new Error(`(UNEXPECTED) expected latestCommentIbGib to exist at this point. (E: 369cfa38bd7527f71ea6962c3d037c22)`); }
-                        return latestCommentIbGib;
-                    })
-                    .map(x => x.data.text);
+            /**
+             * text info per individual text extraction from a source (comment ibgibs only atow)
+             */
+            const textInfos: WordyTextInfo[] = [];
 
-                const fnCountParagraphs = (text: string) => { return ((text ?? '').trim().match(/\n\n+/g) ?? []).length + 1 };
-                const paragraphCount =
-                    commentTexts
-                        .map(text => fnCountParagraphs(text))
-                        .reduce((a, b) => a + b, 0);
-                const fnCountLines = (text: string) => { return ((text ?? '').trim().match(/^.*\w+.*$/gm) ?? []).length };
-                const lineCount =
-                    commentTexts
-                        .map(text => fnCountLines(text))
-                        .reduce((a, b) => a + b, 0);
-                const sortedWords = commentTexts
-                    .flatMap((x: string) => x.match(/\b(\w+)['\-]?(\w+)?\b/g))
-                    .map(x => x.toLowerCase())
-                    .sort();
-                const uniqueWords = unique(sortedWords);
-                const mapCountPerWord: { [word: string]: number; } = {};
-                for (let i = 0; i < uniqueWords.length; i++) {
-                    const word = uniqueWords[i];
-                    const i_last = uniqueWords.lastIndexOf(word);
-                    const count = i_last - i + 1;
-                    mapCountPerWord[word] = count;
-                    i = i_last;
-                }
-                const data: WordyRobbotAnalysisData_V1 = {
-                    timestamp: h.getTimestamp(),
-                    allTexts: commentTexts,
-                    paragraphCount,
-                    lineCount,
-                    sourceCount: commentTexts.length,
-                    wordInfoMap: {}
-                }
-
-                // don't need dna or any intermediate ibgibs
-                // these analyses ibgibs are just snapshots.
-                let resAnalysis = await factory.firstGen({
-                    ib: getRobbotAnalysisIb({ robbot: this }),
-                    parentIbGib: factory.primitive({ ib: `robbot_analysis ${this.data.classname}` }),
-                    data,
-                    // dna: false,
-                    // tjp: { uuid: false, timestamp: false },
-                });
-                debugger;// want to see
-
-                const analysisIbGib = <WordyRobbotAnalysisIbGib_V1>resAnalysis.newIbGib;
-                resolve(analysisIbGib);
-            } catch (error) {
-                console.error(`${lc} ${error.message}`);
-                reject(error);
-            } finally {
-                if (logalot) { console.log(`${lc} complete.`); }
+            debugger;
+            for (let i = 0; i < commentIbGibs.length; i++) {
+                let srcIbGib = commentIbGibs[i];
+                let info = this.getTextInfo({ srcIbGib });
+                textInfos.push(info);
             }
-        });
 
+            // easiest way in code to get most of the info is just combine the text of
+            // the sources and get the aggregate info.
+            const aggText = textInfos.map(x => x.text).join('\n\n');
+            const aggInfo = this.getTextInfo({ srcText: aggText });
+
+            // modify corpusInfo.wordInfos to accurately reflect sourceIncidence
+            const uniqueWords = Object.keys(aggInfo.wordInfos);
+            for (let i = 0; i < uniqueWords.length; i++) {
+                const word = uniqueWords[i];
+                let srcIncidence = textInfos.filter(x => Object.keys(x.wordInfos).includes(word)).length;
+                aggInfo.wordInfos[word].srcIncidence = srcIncidence;
+            }
+
+            // don't need dna or any intermediate ibgibs
+            // these analyses ibgibs are just snapshots.
+            const ib = getRobbotAnalysisIb({ robbot: this });
+            const data: WordyRobbotAnalysisData_V1 = {
+                timestamp: h.getTimestamp(),
+                textInfos: textInfos.map(x => {
+                    // strip the x.srcIbGib
+                    return {
+                        srcType: x.srcType,
+                        srcAddr: x.srcAddr,
+                        text: x.text,
+                        paragraphs: x.paragraphs,
+                        lines: x.lines,
+                        wordInfos: x.wordInfos,
+                        wordCount: x.wordCount,
+                    };
+                }),
+                aggInfo,
+                // aggParagraphCount: aggInfo.paragraphs.length,
+                // aggLineCount: aggInfo.lines.length,
+                // aggUniqueWordCount: Object.keys(aggInfo.wordInfos).length,
+                // aggWordCount: aggInfo.wordCount,
+                // aggWordInfos: aggInfo.wordInfos,
+            }
+            const rel8ns: WordyRobbotAnalysisRel8ns_V1 = {
+                ancestor: [`robbot_analysis ${this.data.classname}^gib`],
+            }
+
+            const analysisIbGib: WordyRobbotAnalysisIbGib_V1 = { ib, data, rel8ns };
+            analysisIbGib.gib = await getGib({ ibGib: analysisIbGib, hasTjp: false });
+
+            debugger;
+
+            if (saveInSpace) { await this.ibgibsSvc.put({ ibGib: analysisIbGib, space }); }
+
+            // resolve(analysisIbGib);
+            return analysisIbGib
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+            // reject(error);
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
     }
 
+    private getTextInfo({
+        srcIbGib,
+        srcText,
+    }: {
+        srcIbGib?: CommentIbGib_V1,
+        srcText?: string,
+    }): WordyTextInfo | null {
+        const lc = `${this.lc}[${this.getTextInfo.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 58f636c57127c87d3cbfbeae4e5acb22)`); }
+
+            if (srcIbGib && srcText) { throw new Error(`provide only srcIbGib or srcText (E: df2863d438f90e49a1fa4cb96d2bdc22)`); }
+
+            let srcAddr = srcIbGib ? h.getIbGibAddr({ ibGib: srcIbGib }) : undefined;
+
+            if (srcIbGib) {
+                let latestAddr = this.cachedLatestAddrsMap[srcAddr];
+                if (!latestAddr) {
+                    console.error(`${lc} comment ibgib doesn't have a latestAddr entry? will use the (possibly non-latest) comment ibgib itself (E: a474e5d0d0c4428ca1f01f260820a3fe)`);
+                    latestAddr = srcAddr;
+                }
+                const latestCommentIbGib = this.cacheIbGibs[latestAddr];
+                if (!latestCommentIbGib) { throw new Error(`(UNEXPECTED) expected latestCommentIbGib to exist at this point. (E: 369cfa38bd7527f71ea6962c3d037c22)`); }
+                srcIbGib = <CommentIbGib_V1>latestCommentIbGib;
+                srcAddr = h.getIbGibAddr({ ibGib: srcIbGib });
+            }
+
+            const text = srcIbGib ? srcIbGib.data.text : srcText;
+
+            if (!text) {
+                console.error(`${lc} text required. either provide srcIbGib or srcText (E: 1958b5ac00c5482ab9b1c059e8d923fb)`);
+                return null;
+            }
+
+            const paragraphs = text.split(/\n\n+/g).map(x => x.trim());
+            const lines = text.trim().split('\n').filter(x => !!x).map(x => x.trim());
+            const wordInfos: { [word: string]: WordyUniqueWordInfo } = {};
+            const sortedWords = text.match(/\b(\w+)['\-]?(\w+)?\b/g).map(x => x.toLowerCase()).sort();
+            const wordCount = sortedWords.length;
+            const uniqueWords = unique(sortedWords);
+            for (let j = 0; j < uniqueWords.length; j++) {
+                const word = uniqueWords[j];
+                const wordInfo: WordyUniqueWordInfo = {
+                    paragraphIncidence: paragraphs.filter(x => x.toLowerCase().includes(word)).length,
+                    lineIncidence: lines.filter(x => x.toLowerCase().includes(word)).length,
+                    srcIncidence: 1,
+                    totalIncidence: (text.toLowerCase().match(new RegExp(`\\b${word}\\b`, 'gm')) ?? []).length,
+                };
+                wordInfos[word] = wordInfo;
+            }
+
+            const info: WordyTextInfo = {
+                srcType: srcIbGib ? 'comment' : undefined,
+                srcIbGib, srcAddr,
+                text, paragraphs, lines,
+                wordInfos, wordCount,
+            };
+
+            if (logalot) {
+                console.log(`${lc} commentInfo: ${h.pretty(info)} (I: 3a36a4f8650efbd4d42d376e24fd0322)`);
+                console.table(info);
+            }
+
+            return info;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
 
     private async getCommentIbGibs({
         lookProjection,
@@ -684,7 +774,7 @@ export class WordyRobbotFormBuilder extends RobbotFormBuilder {
         this.addItem({
             // witness.data.outputPrefix
             name: "lookRel8nNames",
-            description: `Every ibgib relates to other ibgibs via a "rel8n name". When you add a comment, this adds an ibgib via the "comment" rel8n name. So when this robbot "sees" an ibgib, do you want it to see comments? If so, include "comment". Basically, just leave this as-is unless you only want the robbot to look at the ibgib itself and no children, in which case blank this out.`,
+            description: `Every ibgib relates to other ibgibs via a "rel8n name". When you add a comment, this adds an ibgib via the "comment" rel8n name. So when you show your robbot an ibgib, do you want him to see sub-comments "inside" that ibGib? If so, include "comment". What about comments on pics? If so, also include "pic" or it won't see the comment under the pics. Basically, just leave this as-is unless you only want the robbot to look at the ibgib itself and no children, in which case blank this out.`,
             label: "Rel8n Names Visible",
             regexp: c.COMMA_DELIMITED_SIMPLE_STRINGS_REGEXP,
             regexpErrorMsg: c.COMMA_DELIMITED_SIMPLE_STRINGS_REGEXP_DESCRIPTION,

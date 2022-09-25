@@ -45,13 +45,13 @@ export interface RandomRobbotRel8ns_V1 extends RobbotRel8ns_V1 {
  *
  */
 export class RandomRobbot_V1 extends RobbotBase_V1<
-        // in
-        any, IbGibRel8ns_V1, IbGib_V1<any, IbGibRel8ns_V1>,
-        // out
-        any, IbGibRel8ns_V1, IbGib_V1<any, IbGibRel8ns_V1>,
-        // this
-        RandomRobbotData_V1, RandomRobbotRel8ns_V1
-    > {
+    // in
+    any, IbGibRel8ns_V1, IbGib_V1<any, IbGibRel8ns_V1>,
+    // out
+    any, IbGibRel8ns_V1, IbGib_V1<any, IbGibRel8ns_V1>,
+    // this
+    RandomRobbotData_V1, RandomRobbotRel8ns_V1
+> {
     protected lc: string = `[${RandomRobbot_V1.name}]`;
 
     constructor(initialData?: RandomRobbotData_V1, initialRel8ns?: RandomRobbotRel8ns_V1) {
@@ -94,7 +94,7 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[${this.doDefault.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            await this.rel8To({ibGibs: [ibGib]});
+            await this.rel8To({ ibGibs: [ibGib] });
             return ROOT;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -118,7 +118,7 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[${this.doCmdIb.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            await this.rel8To({ibGibs: arg.ibGibs});
+            await this.rel8To({ ibGibs: arg.ibGibs });
             return ROOT;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -143,7 +143,7 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting...`); }
 
-            const space = await this.ibgibsSvc.getLocalUserSpace({lock: true});
+            const space = await this.ibgibsSvc.getLocalUserSpace({ lock: true });
 
             // choose from rel8d and post to given context.
             const rel8nName =
@@ -151,7 +151,7 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
             const rel8dAddrs = (this.rel8ns ?? {})[rel8nName] ?? [];
 
             const contextIbGibAddr = arg.data.ibGibAddrs[0]; // guaranteed by this.validateWitnessArg
-            let contextTjpGib = getGibInfo({ibGibAddr: contextIbGibAddr}).tjpGib;
+            let contextTjpGib = getGibInfo({ ibGibAddr: contextIbGibAddr }).tjpGib;
             /**
              * flag to indicate if one of our rel8d ibgib addrs belongs to the
              * same timeline as the current context.
@@ -162,7 +162,7 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
             let addrPool = rel8dAddrs.filter(x => {
                 // only addrs that are a different timeline from the current context
                 // or any existing rel8d
-                const xTjpGib = getGibInfo({gib: h.getIbAndGib({ibGibAddr: x}).gib}).tjpGib;
+                const xTjpGib = getGibInfo({ gib: h.getIbAndGib({ ibGibAddr: x }).gib }).tjpGib;
                 if (xTjpGib === contextTjpGib) { contextTjpCollision = true; }
                 return xTjpGib !== contextTjpGib;
             });
@@ -181,37 +181,37 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
                 const text = contextTjpCollision ?
                     `${this.data?.outputPrefix ?? ''}I've only seen the current ibgib so far!${this.data?.outputSuffix ?? ''}` :
                     `${this.data?.outputPrefix ?? ''}I haven't seen anything yet!${this.data?.outputSuffix ?? ''}`;
-                const resComment = await createCommentIbGib({text, space, saveInSpace: true});
-                await this.ibgibsSvc.registerNewIbGib({ibGib: resComment.newIbGib});
-                ibGibAddrToSpeak = h.getIbGibAddr({ibGib: resComment.newIbGib});
+                const resComment = await createCommentIbGib({ text, space, saveInSpace: true });
+                await this.ibgibsSvc.registerNewIbGib({ ibGib: resComment.newIbGib });
+                ibGibAddrToSpeak = h.getIbGibAddr({ ibGib: resComment.newIbGib });
                 upToDateConfirmed = true;
             }
 
-            let resGetContext = await this.ibgibsSvc.get({addr: contextIbGibAddr, space});
+            let resGetContext = await this.ibgibsSvc.get({ addr: contextIbGibAddr, space });
             if (!resGetContext.success || resGetContext.ibGibs?.length !== 1) { throw new Error(`get context address failed (E: 7690ec188f9680bd138fe7e1eef87522)`); }
             let contextIbGib = resGetContext.ibGibs[0];
             const contextLatestAddr =
-                await this.ibgibsSvc.getLatestAddr({ibGib: contextIbGib, space}) ?? contextIbGibAddr;
+                await this.ibgibsSvc.getLatestAddr({ ibGib: contextIbGib, space }) ?? contextIbGibAddr;
             if (contextLatestAddr !== contextIbGibAddr) {
                 // update to the latest context ibgib
-                resGetContext = await this.ibgibsSvc.get({addr: contextLatestAddr, space});
+                resGetContext = await this.ibgibsSvc.get({ addr: contextLatestAddr, space });
                 if (!resGetContext.success || resGetContext.ibGibs?.length !== 1) { throw new Error(`get latest context address failed (E: 3f4c44173af34cb5a6e93ae631c73de0)`); }
                 contextIbGib = resGetContext.ibGibs[0];
             }
 
-            if (!upToDateConfirmed && !isPrimitive({gib: h.getIbAndGib({ibGibAddr: ibGibAddrToSpeak}).gib})) {
+            if (!upToDateConfirmed && !isPrimitive({ gib: h.getIbAndGib({ ibGibAddr: ibGibAddrToSpeak }).gib })) {
                 // get the latest ibgib addr to speak
-                let resGetIbGib = await this.ibgibsSvc.get({addr: ibGibAddrToSpeak, space});
+                let resGetIbGib = await this.ibgibsSvc.get({ addr: ibGibAddrToSpeak, space });
                 if (!resGetIbGib.success || resGetIbGib.ibGibs?.length !== 1) { throw new Error(`get ibGib failed (E: 0afd345445b248b2aac60267fc57249a)`); }
                 let ibGibToSpeak = resGetIbGib.ibGibs[0];
                 const ibGibToSpeakLatestAddr =
-                    await this.ibgibsSvc.getLatestAddr({ibGib: ibGibToSpeak, space}) ?? ibGibAddrToSpeak;
+                    await this.ibgibsSvc.getLatestAddr({ ibGib: ibGibToSpeak, space }) ?? ibGibAddrToSpeak;
                 if (ibGibToSpeakLatestAddr !== ibGibAddrToSpeak) {
                     ibGibAddrToSpeak = ibGibToSpeakLatestAddr;
                 }
             }
 
-            await this.rel8ToIbGib({
+            await this.rel8ToContextIbGib({
                 ibGibAddrToRel8: ibGibAddrToSpeak,
                 contextIbGib,
                 rel8nNames: [rel8nName],
@@ -277,8 +277,8 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
             const { data } = this;
             if (data) {
                 // data.outputMode
-            // } else {
-            //     errors.push(`data required`); // checked in super validation
+                // } else {
+                //     errors.push(`data required`); // checked in super validation
             }
             return errors;
         } catch (error) {
@@ -322,7 +322,7 @@ const DEFAULT_RANDOM_ROBBOT_REL8NS_V1: RandomRobbotRel8ns_V1 = undefined;
  *
  * @see {@link DynamicFormFactoryBase}
  */
-@Injectable({providedIn: 'root'})
+@Injectable({ providedIn: 'root' })
 export class RandomRobbot_V1_Factory
     extends DynamicFormFactoryBase<RandomRobbotData_V1, RandomRobbotRel8ns_V1, RandomRobbot_V1> {
 
@@ -343,13 +343,13 @@ export class RandomRobbot_V1_Factory
             data = data ?? h.clone(DEFAULT_RANDOM_ROBBOT_DATA_V1);
             rel8ns = rel8ns ?? DEFAULT_RANDOM_ROBBOT_REL8NS_V1 ? h.clone(DEFAULT_RANDOM_ROBBOT_REL8NS_V1) : undefined;
             data.uuid = data.uuid ?? await h.getUUID();
-            let {classname} = data;
+            let { classname } = data;
 
-            const ib = getRobbotIb({robbotData: data, classname});
+            const ib = getRobbotIb({ robbotData: data, classname });
 
             const resRobbot = <TransformResult<RobbotIbGib_V1>>await factory.firstGen({
                 ib,
-                parentIbGib: factory.primitive({ib: `robbot ${classname}`}),
+                parentIbGib: factory.primitive({ ib: `robbot ${classname}` }),
                 data: data,
                 rel8ns,
                 dna: true,
@@ -379,24 +379,24 @@ export class RandomRobbot_V1_Factory
         const lc = `${this.lc}[${this.witnessToForm.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            let {data} = witness;
+            let { data } = witness;
             // We do the RobbotFormBuilder specific functions first, because of
             if (logalot) { console.log(`${lc} data: ${h.pretty(data)} (I: d4dc7619a4da932badbd7738bb4ebd22)`); }
-            const idPool = await getIdPool({n: 100});
+            const idPool = await getIdPool({ n: 100 });
             // type inference in TS! eesh...
             let form = new RobbotFormBuilder()
-                .with({idPool})
-                .name({of: data.name, required: true})
-                .description({of: data.description})
+                .with({ idPool })
+                .name({ of: data.name, required: true })
+                .description({ of: data.description })
                 .and<RobbotFormBuilder>()
-                .outputPrefix({of: data.outputPrefix})
-                .outputSuffix({of: data.outputSuffix})
+                .outputPrefix({ of: data.outputPrefix })
+                .outputSuffix({ of: data.outputSuffix })
                 // .outputMode({of: data.outputMode})
                 .and<DynamicFormBuilder>()
-                .uuid({of: data.uuid, required: true})
-                .classname({of: data.classname})
+                .uuid({ of: data.uuid, required: true })
+                .classname({ of: data.classname })
                 .and<WitnessFormBuilder>()
-                .commonWitnessFields({data})
+                .commonWitnessFields({ data })
                 .outputForm({
                     formName: 'form',
                     label: 'Random Robbot',
@@ -413,8 +413,8 @@ export class RandomRobbot_V1_Factory
     async formToWitness({ form }: { form: DynamicForm; }): Promise<TransformResult<RandomRobbot_V1>> {
         // let robbot = new RandomRobbot_V1(null, null);
         let data: RobbotData_V1 = h.clone(DEFAULT_RANDOM_ROBBOT_DATA_V1);
-        this.patchDataFromItems({data, items: form.items, pathDelimiter: c.DEFAULT_DATA_PATH_DELIMITER});
-        let resRobbot = await this.newUp({data});
+        this.patchDataFromItems({ data, items: form.items, pathDelimiter: c.DEFAULT_DATA_PATH_DELIMITER });
+        let resRobbot = await this.newUp({ data });
         return resRobbot;
     }
 

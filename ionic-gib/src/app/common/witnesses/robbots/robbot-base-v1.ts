@@ -439,8 +439,6 @@ export abstract class RobbotBase_V1<
 
             // #endregion initialize, validate args and this
 
-
-
             // we want to rel8 only to the ibGibs whose timelines we're not
             // already related to. So we look to see if we already have the tjpGib
             // per our rel8nName.
@@ -582,7 +580,7 @@ export abstract class RobbotBase_V1<
         return result;
     }
 
-    protected async rel8ToIbGib({
+    protected async rel8ToContextIbGib({
         ibGibToRel8,
         ibGibAddrToRel8,
         contextIbGib,
@@ -593,7 +591,7 @@ export abstract class RobbotBase_V1<
         contextIbGib: IbGib_V1,
         rel8nNames: string[],
     }): Promise<void> {
-        const lc = `${this.lc}[${this.rel8ToIbGib.name}]`;
+        const lc = `${this.lc}[${this.rel8ToContextIbGib.name}]`;
         try {
             if (!ibGibToRel8 && !ibGibAddrToRel8) { throw new Error(`ibGibToRel8 or ibGibAddrToRel8 required (E: 3ee14659fd22355a5ba0e537a477be22)`); }
             if (!contextIbGib) { throw new Error(`contextIbGib required (E: 85f27c7cbf713704c21084c141cd8822)`); }

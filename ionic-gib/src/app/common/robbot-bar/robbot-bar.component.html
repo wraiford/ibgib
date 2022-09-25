@@ -43,6 +43,11 @@
       >
       <ion-icon name="chatbubbles-outline"></ion-icon>
     </ion-button>
+    <ion-button *ngIf="selectedRobbot" (click)="handleRobbotThink($event)"
+      title="Ask the robbot to think about what he/she's seen so far."
+      >
+      <ion-icon name="school-outline"></ion-icon>
+    </ion-button>
     <ion-button (click)="handleAddRobbot()"
       title="Create a new robbot. You can create more than one instance of any particular type of Robbot. The new Robbot will have its own (often new) memory and experience through time."
       >

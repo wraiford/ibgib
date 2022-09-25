@@ -271,6 +271,41 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
     }
   }
 
+  async handleRobbotThink(event: MouseEvent): Promise<void> {
+    const lc = `${this.lc}[${this.handleRobbotThink.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      event.stopImmediatePropagation();
+      event.stopPropagation();
+
+      const robbot = await this.getSelectedRobbot_FullWitness();
+
+      // setting ibgibsSvc is necessary to hook up plumbing atow,
+      // but in the future this is essentially assigning a local space
+      // to an ibgib witness (robbot in this case).
+      robbot.ibgibsSvc = this.common.ibgibs;
+
+      const cmdIbGib = await robbot.argy({
+        argData: {
+          cmd: 'ibgib', // speak (in this context I'm passing you)
+          ibGibAddrs: [this.addr],
+        },
+        ibGibs: [this.ibGib],
+      });
+      const resCmd = await robbot.witness(cmdIbGib);
+      if (!resCmd) { throw new Error(`resCmd is falsy. (E:ea742d97ed2f463792e6e8862d8f6b55 )`); }
+      if (isError({ ibGib: resCmd })) {
+        const errIbGib = <ErrorIbGib_V1>resCmd;
+        throw new Error(`errIbGib: ${h.pretty(errIbGib)} (E: f164a5a7c826453da5dd260c02134f6e)`);
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 
   async getSelectedRobbot_IbGibOnly(): Promise<RobbotIbGib_V1> {
     const lc = `${this.lc}[${this.getSelectedRobbot_IbGibOnly.name}]`;
