@@ -54,9 +54,10 @@ export interface WordyUniqueWordInfo {
     srcIncidence: number;
 }
 /**
- * in the future, we will extract text from pics or other sources.
+ * in the future, we will extract text from pics or other sources, but for now
+ * this will primarily be from comments or aggregate.
  */
-export type WordyTextSourceType = 'comment' | 'pic' | 'other';
+export type WordyTextSourceType = 'agg' | 'comment' | 'pic' | 'other';
 /**
  * breakdown info of an individual text source (atow a comment ibgib).
  */
@@ -90,11 +91,6 @@ export interface WordyRobbotAnalysisData_V1 {
     timestamp: string;
     textInfos: WordyTextInfo[];
     aggInfo: WordyTextInfo;
-    // aggParagraphCount: number;
-    // aggLineCount: number;
-    // aggWordCount: number;
-    // aggUniqueWordCount: number;
-    // aggWordInfos: { [word: string]: WordyUniqueWordInfo };
 }
 export interface WordyRobbotAnalysisRel8ns_V1 extends IbGibRel8ns_V1 { }
 export interface WordyRobbotAnalysisIbGib_V1 extends IbGib_V1<WordyRobbotAnalysisData_V1, WordyRobbotAnalysisRel8ns_V1> { }
@@ -110,6 +106,7 @@ export const DEFAULT_SEARCH_REL8N_NAMES_WORDY_ROBBOT = [
     c.TAGGED_REL8N_NAME,
     c.DEFAULT_ROOT_REL8N_NAME,
 ].join(',');
+export const WORDY_V1_ANALYSIS_REL8N_NAME = 'analysis';
 
 export interface WordyRobbotData_V1 extends RobbotData_V1 {
     /**
@@ -129,9 +126,8 @@ export interface WordyRobbotData_V1 extends RobbotData_V1 {
     lookRel8nNames: string;
 }
 
-
 export interface WordyRobbotRel8ns_V1 extends RobbotRel8ns_V1 {
-
+    analysis?: IbGibAddr[];
 }
 
 /**
@@ -146,6 +142,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     WordyRobbotData_V1, WordyRobbotRel8ns_V1
 > {
     protected lc: string = `[${WordyRobbot_V1.name}]`;
+
+    private _analysis: WordyRobbotAnalysisIbGib_V1;
 
     constructor(initialData?: WordyRobbotData_V1, initialRel8ns?: WordyRobbotRel8ns_V1) {
         super(initialData, initialRel8ns);
@@ -258,6 +256,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[${this.doCmdGib.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 5d820b45337bf51c8d0f3daa3013ae22)`); }
+
+            if ((this.rel8ns.analysis ?? []).length > 0) {
+
+            }
             throw new Error(`not impl yet (E: 8d3b5e2715a8d21f17c0db569a798b22)`);
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -308,11 +310,24 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             const analysisIbGib = await this.getAnalysis({ commentIbGibs, saveInSpace: true, space });
 
-            debugger;
-            this.rel8To
+            await this.rel8To({
+                ibGibs: [analysisIbGib],
+                rel8nName: WORDY_V1_ANALYSIS_REL8N_NAME,
+                linked: true, // only keep the most recent analysis
+                space,
+            });
 
-            throw new Error(`not impl (E: eac59baa4d48b60c83ca23f2e6b32822)`);
+            this._analysis = analysisIbGib;
 
+            const analysisText = await this.getAnalysisText({ analysisIbGib });
+
+            await this.createCommentAndRel8ToContextIbGib({
+                text: analysisText,
+                contextIbGib: arg.ibGibs[0],
+                space,
+            });
+
+            return ROOT;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -346,7 +361,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
              */
             const textInfos: WordyTextInfo[] = [];
 
-            debugger;
             for (let i = 0; i < commentIbGibs.length; i++) {
                 let srcIbGib = commentIbGibs[i];
                 let info = this.getTextInfo({ srcIbGib });
@@ -357,12 +371,13 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // the sources and get the aggregate info.
             const aggText = textInfos.map(x => x.text).join('\n\n');
             const aggInfo = this.getTextInfo({ srcText: aggText });
+            aggInfo.srcType = 'agg';
 
             // modify corpusInfo.wordInfos to accurately reflect sourceIncidence
             const uniqueWords = Object.keys(aggInfo.wordInfos);
             for (let i = 0; i < uniqueWords.length; i++) {
                 const word = uniqueWords[i];
-                let srcIncidence = textInfos.filter(x => Object.keys(x.wordInfos).includes(word)).length;
+                const srcIncidence = textInfos.filter(x => Object.keys(x.wordInfos).includes(word)).length;
                 aggInfo.wordInfos[word].srcIncidence = srcIncidence;
             }
 
@@ -372,23 +387,14 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             const data: WordyRobbotAnalysisData_V1 = {
                 timestamp: h.getTimestamp(),
                 textInfos: textInfos.map(x => {
-                    // strip the x.srcIbGib
+                    // exclude the x.srcIbGib
                     return {
-                        srcType: x.srcType,
-                        srcAddr: x.srcAddr,
-                        text: x.text,
-                        paragraphs: x.paragraphs,
-                        lines: x.lines,
-                        wordInfos: x.wordInfos,
-                        wordCount: x.wordCount,
+                        srcType: x.srcType, srcAddr: x.srcAddr,
+                        text: x.text, paragraphs: x.paragraphs, lines: x.lines,
+                        wordInfos: x.wordInfos, wordCount: x.wordCount,
                     };
                 }),
                 aggInfo,
-                // aggParagraphCount: aggInfo.paragraphs.length,
-                // aggLineCount: aggInfo.lines.length,
-                // aggUniqueWordCount: Object.keys(aggInfo.wordInfos).length,
-                // aggWordCount: aggInfo.wordCount,
-                // aggWordInfos: aggInfo.wordInfos,
             }
             const rel8ns: WordyRobbotAnalysisRel8ns_V1 = {
                 ancestor: [`robbot_analysis ${this.data.classname}^gib`],
@@ -397,16 +403,12 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             const analysisIbGib: WordyRobbotAnalysisIbGib_V1 = { ib, data, rel8ns };
             analysisIbGib.gib = await getGib({ ibGib: analysisIbGib, hasTjp: false });
 
-            debugger;
-
             if (saveInSpace) { await this.ibgibsSvc.put({ ibGib: analysisIbGib, space }); }
 
-            // resolve(analysisIbGib);
-            return analysisIbGib
+            return analysisIbGib;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
-            // reject(error);
         } finally {
             if (logalot) { console.log(`${lc} complete.`); }
         }
@@ -476,6 +478,20 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             }
 
             return info;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    private async getAnalysisText({ analysisIbGib }: { analysisIbGib: WordyRobbotAnalysisIbGib_V1 }): Promise<string> {
+        const lc = `${this.lc}[${this.getAnalysisText.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 29368d76e897c905e4c8bcbbe53d2f22)`); }
+            const analysisText = h.pretty(analysisIbGib.data);
+            return `${this.data.outputPrefix}\n\nanalysis:\n\n${analysisText}\n\n${this.data.outputSuffix}`;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;

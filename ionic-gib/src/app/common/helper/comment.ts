@@ -29,8 +29,8 @@ export function getCommentIb(commentText: string): string {
   const lc = `[${getCommentIb.name}]`;
   try {
     if (!commentText) { throw new Error(`commentText required. (E: 22fdfd0aa0524a18b63a9405b312c99e)`); }
-    let saferText = getSaferSubstring({ text: commentText, length: c.DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH });
-    let ibCommentText = commentText.replace(/\W/g, '');
+    let ibCommentText = getSaferSubstring({ text: commentText, length: c.DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH });
+    // let ibCommentText = commentText.replace(/\W/g, '');
     // let ibCommentText: string;
     // if (saferText.length > c.DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH) {
     //     ibCommentText =

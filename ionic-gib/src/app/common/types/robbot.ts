@@ -283,3 +283,5 @@ export interface RobbotResultIbGib<
 >
     extends WitnessResultIbGib<TIbGib, TResultData, TResultRel8ns> {
 }
+
+export const ROBBOT_MY_COMMENT_REL8N_NAME = 'my_comment';

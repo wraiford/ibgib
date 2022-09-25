@@ -9,7 +9,7 @@ import {
     RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1,
     RobbotCmd,
     RobbotCmdData, RobbotCmdRel8ns, RobbotCmdIbGib,
-    RobbotResultData, RobbotResultRel8ns, RobbotResultIbGib,
+    RobbotResultData, RobbotResultRel8ns, RobbotResultIbGib, ROBBOT_MY_COMMENT_REL8N_NAME,
 } from '../../types/robbot';
 import { WitnessBase_V1, } from '../witness-base-v1';
 import { CommentIbGib_V1 } from '../../types/comment';
@@ -23,6 +23,8 @@ import { getFromSpace, persistTransformResult } from '../../helper/space';
 import { ErrorIbGib_V1 } from '../../types/error';
 import { errorIbGib } from '../../helper/error';
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { createCommentIbGib } from '../../helper/comment';
+import { WORDY_V1_ANALYSIS_REL8N_NAME } from './wordy-robbot-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -385,6 +387,7 @@ export abstract class RobbotBase_V1<
     protected async rel8To({
         ibGibs,
         rel8nName,
+        linked,
         ibgibsSvc,
         space,
     }: {
@@ -399,6 +402,11 @@ export abstract class RobbotBase_V1<
          * If not given, will use the `robbot.data`'s {@link RobbotData_V1.defaultRel8nName} value.
          */
         rel8nName?: string,
+        /**
+         * If true, will include the `rel8nName` as a linked rel8n in the `rel8`
+         * transform.
+         */
+        linked?: boolean,
         /**
          * If provided, will register the newly created ibgib.
          */
@@ -437,6 +445,8 @@ export abstract class RobbotBase_V1<
                 }
             }
 
+            if (!space) { throw new Error(`(UNEXPECTED) space required and ibgibsSvc couldn't get it? (E: a3b9f9b72f6f6f18883199a19d38c622)`); }
+
             // #endregion initialize, validate args and this
 
             // we want to rel8 only to the ibGibs whose timelines we're not
@@ -459,7 +469,7 @@ export abstract class RobbotBase_V1<
             const resNewRobbot = await V1.rel8({
                 src: this.toIbGibDto(),
                 rel8nsToAddByAddr: { [rel8nName]: addrs },
-                linkedRel8ns: ["past", "ancestor"], // we only want the most recent key address
+                linkedRel8ns: linked ? ["past", "ancestor", rel8nName] : ["past", "ancestor"],
                 dna: true,
                 nCounter: true,
             });
@@ -585,16 +595,21 @@ export abstract class RobbotBase_V1<
         ibGibAddrToRel8,
         contextIbGib,
         rel8nNames,
+        space,
     }: {
         ibGibToRel8?: IbGib_V1,
         ibGibAddrToRel8?: IbGibAddr,
         contextIbGib: IbGib_V1,
         rel8nNames: string[],
+        space?: IbGibSpaceAny,
     }): Promise<void> {
         const lc = `${this.lc}[${this.rel8ToContextIbGib.name}]`;
         try {
             if (!ibGibToRel8 && !ibGibAddrToRel8) { throw new Error(`ibGibToRel8 or ibGibAddrToRel8 required (E: 3ee14659fd22355a5ba0e537a477be22)`); }
             if (!contextIbGib) { throw new Error(`contextIbGib required (E: 85f27c7cbf713704c21084c141cd8822)`); }
+
+            space = space ?? await this.ibgibsSvc.getLocalUserSpace({ lock: true });
+            if (!space) { throw new Error(`space required (E: 267ad87c148942cda641349df0bbbd22)`); }
 
             if ((rel8nNames ?? []).length === 0) {
                 if (!this.data?.defaultRel8nName) { throw new Error(`either rel8nNames or this.data.defaultRel8nName required (E: a14ab4b3e479d9274c61bc5a30bc2222)`); }
@@ -616,14 +631,58 @@ export abstract class RobbotBase_V1<
                 });
 
             // ...persist it...
-            await this.ibgibsSvc.persistTransformResult({ resTransform: resRel8ToContext });
+            await this.ibgibsSvc.persistTransformResult({ resTransform: resRel8ToContext, space });
 
             // ...register the context.
             const { newIbGib: newContext } = resRel8ToContext;
-            await this.ibgibsSvc.registerNewIbGib({ ibGib: newContext });
+            await this.ibgibsSvc.registerNewIbGib({ ibGib: newContext, space });
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
+        }
+    }
+
+    protected async createCommentAndRel8ToContextIbGib({
+        text,
+        contextIbGib,
+        space,
+    }: {
+        text: string,
+        contextIbGib: IbGib_V1,
+        ibgibsSvc?: IbgibsService,
+        /**
+         * If given (which atow is most likely the case), then the {@link TransformResult} will
+         * be persisted in this `space`.
+         */
+        space?: IbGibSpaceAny,
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.createCommentAndRel8ToContextIbGib.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: c3a005f7d323468a5b4e1b2710901d22)`); }
+
+            if (!this.ibgibsSvc) { throw new Error(`this.ibgibsSvc required (E: 5dbb1a7f0ff5469b8ce3cb1be175e521)`); }
+
+            space = space ?? await this.ibgibsSvc.getLocalUserSpace({ lock: true });
+            if (!space) { throw new Error(`(UNEXPECTED) space required and wasn't able to get it from ibgibsSvc? (E: 7159f9893a66c28a7e09b61384545622)`); }
+
+            let resComment = await createCommentIbGib({ text, saveInSpace: true, space });
+            const commentIbGib = <CommentIbGib_V1>resComment.newIbGib;
+            if (!commentIbGib) { throw new Error(`(UNEXPECTED) failed to create comment? (E: 6d668f4e55198e654324622eabaac922)`); }
+            await this.ibgibsSvc.registerNewIbGib({ ibGib: commentIbGib, space });
+
+            await this.rel8ToContextIbGib({ ibGibToRel8: commentIbGib, contextIbGib, rel8nNames: ['comment'], space });
+            await this.rel8To({
+                ibGibs: [commentIbGib],
+                ibgibsSvc: this.ibgibsSvc,
+                rel8nName: ROBBOT_MY_COMMENT_REL8N_NAME,
+                space,
+            })
+            await this.loadNewerSelfIfAvailable(); // needed?
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
         }
     }
 
