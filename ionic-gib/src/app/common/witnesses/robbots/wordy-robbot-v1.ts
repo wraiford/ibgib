@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { Subscription } from 'rxjs';
 
 import * as h from 'ts-gib/dist/helper';
 import {
@@ -16,7 +17,7 @@ import {
 } from '../../types/robbot';
 import { DynamicForm } from '../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
-import { getIdPool, unique } from '../../helper/utils';
+import { getIdPool, pickRandom, unique } from '../../helper/utils';
 import { WitnessFormBuilder } from '../../helper/witness';
 import { getRobbotIb, RobbotFormBuilder } from '../../helper/robbot';
 import { DynamicFormBuilder } from '../../helper/form';
@@ -26,9 +27,10 @@ import { getFromSpace, getLatestAddrs } from '../../helper/space';
 import { AppSpaceData, AppSpaceRel8ns } from '../../types/app';
 import { IonicSpace_V1 } from '../spaces/ionic-space-v1';
 import { IbGibSpaceAny } from '../spaces/space-base-v1';
+import { IbGibTimelineUpdateInfo } from '../../types/ux';
 
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || true;
 
 export interface WordyUniqueWordInfo {
     /**
@@ -85,6 +87,14 @@ export interface WordyTextInfo {
      * approximate count of non-unique words in the text.
      */
     wordCount: number;
+}
+
+export type WordyInteractionType = 'line_blank';
+export interface WordyInteraction {
+    strategyType: WordyInteractionType;
+}
+export interface WordyInteraction_LineBlank extends WordyInteraction {
+    lineNumBlanked: number;
 }
 
 export interface WordyRobbotAnalysisData_V1 {
@@ -227,12 +237,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             await this.rel8To({ ibGibs: arg.ibGibs });
 
-            // const lookRel8nNames = (this.data.lookRel8nNames ?? '').split(',');
-
-            // for (let i = 0; i < lookRel8nNames.length; i++) {
-            //     const element = lookRel8nNames[i];
-
-            // }
             return ROOT;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -242,9 +246,105 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
+    private _currentWorkingContextIbGib: IbGib_V1;
+    private _currentWorkingLookProjection: GetGraphResult;
+    private _currentWorkingCommentIbGibs: CommentIbGib_V1[];
+    private _currentWorkingComment: CommentIbGib_V1;
+    private _currentWorkingCommentInteractions: WordyInteraction[];
+
+    private async getCurrentWorkingComment({ clearFirst }: { clearFirst?: boolean }): Promise<CommentIbGib_V1> {
+        const lc = `${this.lc}[${this.getCurrentWorkingComment.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: c3a5aadc40ebcb63da6adbe67dca3a22)`); }
+
+            if (clearFirst) {
+                delete this._currentWorkingLookProjection;
+                delete this._currentWorkingCommentIbGibs;
+                delete this._currentWorkingComment;
+            }
+
+            const space = await this.ibgibsSvc.getLocalUserSpace({ lock: true });
+
+            if (!this._currentWorkingLookProjection) {
+                this._currentWorkingLookProjection = await this.getAllIbGibsWeCanLookAt({ space });
+            }
+            if (!this._currentWorkingLookProjection) { throw new Error(`(UNEXPECTED) unable to get current working look projection? (E: ef1d13fdc201ceb612f7339578c65622)`); }
+
+            if (!this._currentWorkingCommentIbGibs) {
+                this._currentWorkingCommentIbGibs = await this.getCommentIbGibs({
+                    lookProjection: this._currentWorkingLookProjection,
+                    space
+                });
+            }
+            if (!this._currentWorkingCommentIbGibs) { throw new Error(`(UNEXPECTED) unable to get current working comment ibgibs? (E: 474bc448ee974f0cb17d85a225d63191)`); }
+
+            if (!this._currentWorkingComment) {
+                this._currentWorkingComment = pickRandom({ x: this._currentWorkingCommentIbGibs });
+                if (logalot) { console.log(`${lc} just set current working comment. addr: ${h.getIbGibAddr({ ibGib: this._currentWorkingComment })} (I: 78a694ba366f1c3871710dbfd9b75122)`); }
+            }
+
+            return this._currentWorkingComment;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    private _subLatestContext: Subscription;
+
+    private _updatingContext: boolean;
+
+    private async handleContextUpdate({ update }: { update: IbGibTimelineUpdateInfo }): Promise<void> {
+        const lc = `${this.lc}[${this.handleContextUpdate.name}]`;
+        // I don't see this as really being very likely in the near future,
+        // but putting in a wait delay in case there are multiple updates
+        while (this._updatingContext) {
+            console.warn(`${lc} already updating context? delaying... (W: 19d2ebeaaf2340fb91a7d6c717e9cb41)`);
+            await h.delay(1000);
+        }
+        this._updatingContext = true;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 3eeaa40cad49094f125f9f5cd6ff6e22)`); }
+
+            // if it's caused by this robbot speaking, then we don't really need
+            // it. but if it's from the user, then we want to respond.
+            console.table(update);
+            if (!update.latestIbGib) {
+                debugger;
+            }
+            this._currentWorkingContextIbGib = update.latestIbGib;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            this._updatingContext = false;
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
     /**
-     * "Speak" one of the memorized ibgibs using the given arg.data.ibGibAddrs[0] as the context
-     * ibGib.
+     * Using our analysis, provide a comment based on what we've said in the past.
+     *
+     * ## notes
+     *
+     * there are many possibilities for this.
+     *
+     * * show individual words
+     * * show individual words and a random neighbor of that word
+     * * show some % of common words vs % uncmomon words within texts
+     *   * "common" WRT individual ibgib texts or aggregate corpus
+     * * show phrases with blanked out words
+     * * show words with blanked out letters
+     * * show paragraphs with blanked out lines
+     *
+     * * show based on a fixed time schedule
+     * * show % review vs already shown
+     * * somehow hook up NN (just listing here for sngs)
+     * * hard code strategy in robbot
+     * * configurable strategy but robbot-pervasive
+     * * configurable at time of review/speaking.
      *
      * @returns ROOT if all goes well, otherwise throws an error.
      */
@@ -257,10 +357,64 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 5d820b45337bf51c8d0f3daa3013ae22)`); }
 
+            if (this._subLatestContext) {
+                this._subLatestContext.unsubscribe();
+                delete this._subLatestContext;
+            }
+
+            this._currentWorkingContextIbGib = this.getContextIbGibFromArg({ arg });
+            // need to get latest context
+            throw new Error(`need to get latest conetxt leaving off here... (E: 6f2b8890e56579ae470a981331b5ea22)`);
+
+            const contextAddr = h.getIbGibAddr({ ibGib: this._currentWorkingContextIbGib });
+            let gibInfo = getGibInfo({ gib: this._currentWorkingContextIbGib.gib });
+            if (gibInfo.tjpGib) {
+                this.ibgibsSvc.latestObs
+                    .subscribe(update => {
+                        if (!update.tjpAddr) { return; /* <<<< returns early */ }
+                        if (h.getIbAndGib({ ibGibAddr: update.tjpAddr }).gib !== gibInfo.tjpGib) { return; /* <<<< returns early */ }
+                        if (update.latestAddr === h.getIbGibAddr({ ibGib: this._currentWorkingContextIbGib })) {
+                            if (logalot) { console.log(`${lc} already have that context... (I: a6e17ec40d620f0bd5b231db39eaa522)`); }
+                            return; /* <<<< returns early */
+                        }
+                        if (this._updatingContext) {
+                            if (logalot) { console.log(`${lc} already updating context (I: f856f9414627ab00418dccd285b55822)`); }
+                            return; /* <<<< returns early */
+                        }
+                        this.handleContextUpdate({ update });
+                    });
+            }
+
             if ((this.rel8ns.analysis ?? []).length > 0) {
 
             }
-            throw new Error(`not impl yet (E: 8d3b5e2715a8d21f17c0db569a798b22)`);
+
+            const currentComment = await this.getCurrentWorkingComment({ clearFirst: false });
+
+            const textInfo = this.getTextInfo({ srcIbGib: currentComment });
+
+            if (textInfo.lines.length === 1) {
+                // just a single line comment, do a fill-in-the-blank for now and clear the current ibgib.
+                let words = textInfo.text
+                    .split(/\b/) // split into words
+                    .map(x => x.trim()) // trim those that are just blank spaces
+                    .filter(x => x.length > 2)
+                    ; // filter out those blank space trimmed, now-empty strings
+                if (words.length > 0) {
+                    // we have a decent enough word
+                    let aWord = pickRandom({ x: words });
+                    let textWithBlank = textInfo.text.replace(aWord, '______');
+                    await this.createCommentAndRel8ToContextIbGib({ text: textWithBlank, contextIbGib: this._currentWorkingContextIbGib });
+                } else {
+                    // only short words or just empty space
+                }
+
+                // since it's just a one liner, we're done working this particular comment.
+                delete this._currentWorkingComment;
+            }
+
+            return ROOT;
+
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -268,6 +422,25 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
 
+    }
+
+    private getContextIbGibFromArg({
+        arg,
+    }: {
+        arg: RobbotCmdIbGib<IbGib_V1, RobbotCmdData, RobbotCmdRel8ns>,
+    }): IbGib_V1 {
+        const lc = `${this.lc}[${this.getContextIbGibFromArg.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: c13f7cb92133984048f606075efb8a22)`); }
+            if ((arg.ibGibs ?? []).length === 0) { throw new Error(`(UNEXPECTED) invalid arg? no context ibgib on arg (E: 89997eb4bdeb3885bee9de5d33ee0f22)`); }
+            if ((arg.ibGibs ?? []).length !== 1) { throw new Error(`(UNEXPECTED) invalid arg? only expected one ibgib on arg.ibGibs (E: 1a1498af668740fe9439f4953a74ea8a)`); }
+            return arg.ibGibs[0];
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
     }
 
     /**
@@ -299,26 +472,28 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             const space = await this.ibgibsSvc.getLocalUserSpace({ lock: true });
 
-            const lookProjection = await this.getAllIbGibsWeCanLookAt({ space });
+            const currentComment = await this.getCurrentWorkingComment({ clearFirst: true });
+
+            // const lookProjection = await this.getAllIbGibsWeCanLookAt({ space });
+            // const lookProjection =
 
             // go through the text-based ibgibs
-            const commentIbGibs = await this.getCommentIbGibs({ lookProjection, space });
+            // const commentIbGibs = await this.getCommentIbGibs({ lookProjection, space });
+            // const commentIbGibs = this._currentWorkingCommentIbGibs;
+            // const currentComment = this._currentWorkingComment;
 
             // at this point, we should have all of the related ibgibs that we
             // care about loaded into this.cacheIbGibs and this.cachedLatestAddrsMap is populated.
             // we should be able to do any analysis on them that we wish.
 
-            const analysisIbGib = await this.getAnalysis({ commentIbGibs, saveInSpace: true, space });
-
+            const analysisIbGib = await this.getAnalysis({ commentIbGibs: this._currentWorkingCommentIbGibs, saveInSpace: true, space });
             await this.rel8To({
                 ibGibs: [analysisIbGib],
                 rel8nName: WORDY_V1_ANALYSIS_REL8N_NAME,
                 linked: true, // only keep the most recent analysis
                 space,
             });
-
             this._analysis = analysisIbGib;
-
             const analysisText = await this.getAnalysisText({ analysisIbGib });
 
             await this.createCommentAndRel8ToContextIbGib({
@@ -572,7 +747,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[${this.getAllIbGibsWeCanLookAt.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 57c97de4c513f5007f0a6e0ec8f35922)`); }
-            const rel8dIbGibsMap = await this.getRel8dIbGibs({});
+            const rel8dIbGibsMap = await this.getRel8dIbGibs({ rel8nNames: [this.data.defaultRel8nName] });
             const allRel8dIbGibs = Object.values(rel8dIbGibsMap).flatMap(x => x);
             allRel8dIbGibs.forEach(x => { this.cacheIbGibs[h.getIbGibAddr({ ibGib: x })] = x; });
 

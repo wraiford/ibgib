@@ -196,6 +196,7 @@ export class IbgibsService {
     const lc = `${this.lc}[${this.getLocalUserSpace.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
+      // debugger;
 
       // if we're not explicit with skipLock, go by platform
       // we only need to lock when doing the web, because we could
@@ -456,6 +457,7 @@ export class IbgibsService {
     const lc = `${this.lc}[${this.initialize.name}]`;
     try {
       this.instanceId = await h.getUUID();
+      // debugger;
 
       this.fnPromptSecret = fnPromptSecret;
       this.fnPromptEncryption = fnPromptEncryption;
@@ -1555,6 +1557,7 @@ export class IbgibsService {
         if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 497d4becb94f4515a2ec389630420d6c)`); }
         await h.delay(100);
       }
+      // debugger;
 
       return getSpecialIbGib({
         type,

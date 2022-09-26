@@ -275,7 +275,6 @@ export class ActionBarComponent extends IbgibComponentBase
       }
       if (!text) { console.log(`${lc} text is empty.`); return; /* <<<< returns early */ }
 
-
       const space = await this.common.ibgibs.getLocalUserSpace({ lock: true });
       const resCommentIbGib = await createCommentIbGib({
         text,

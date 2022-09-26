@@ -402,10 +402,10 @@ export function executeDoCancelModalIfNeeded(): boolean {
 /**
  * picks a random item from an array
  */
-export function pickRandom<T extends any>({ arr }: { arr: T[] }): T {
-    if ((arr ?? []).length === 0) { return undefined; /* <<<< returns early */ }
-    let randomIndex = Math.floor(Math.random() * arr.length);
-    return arr[randomIndex];
+export function pickRandom<T extends any>({ x }: { x: T[] }): T {
+    if ((x ?? []).length === 0) { return undefined; /* <<<< returns early */ }
+    let randomIndex = Math.floor(Math.random() * x.length);
+    return x[randomIndex];
 }
 
 /**

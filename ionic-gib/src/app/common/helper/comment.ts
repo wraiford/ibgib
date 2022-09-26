@@ -29,18 +29,10 @@ export function getCommentIb(commentText: string): string {
   const lc = `[${getCommentIb.name}]`;
   try {
     if (!commentText) { throw new Error(`commentText required. (E: 22fdfd0aa0524a18b63a9405b312c99e)`); }
-    let ibCommentText = getSaferSubstring({ text: commentText, length: c.DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH });
-    // let ibCommentText = commentText.replace(/\W/g, '');
-    // let ibCommentText: string;
-    // if (saferText.length > c.DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH) {
-    //     ibCommentText =
-    //         saferText.substring(0, c.DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH);
-    // } else if (saferText.length > 0) {
-    //     ibCommentText = saferText;
-    // } else {
-    //     // comment text only has characters/nonalphanumerics.
-    //     ibCommentText = c.ONLY_HAS_NON_ALPHANUMERICS;
-    // }
+
+    // get a safe slice of the comment text to add to the ib
+    const ibCommentText =
+      getSaferSubstring({ text: commentText, length: c.DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH });
 
     return `comment ${ibCommentText}`;
   } catch (error) {
