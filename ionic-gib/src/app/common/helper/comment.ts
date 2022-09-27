@@ -1,15 +1,10 @@
 import * as h from 'ts-gib/dist/helper';
-import { Factory_V1 as factory, IbGibRel8ns_V1, IBGIB_DELIMITER, IbGib_V1 } from 'ts-gib/dist/V1';
-import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
-// import { hash, getIbGibAddr, getTimestamp, pretty } from 'ts-gib/dist/helper';
+import { Ib, TransformResult } from 'ts-gib';
+import { Factory_V1 as factory, IbGib_V1 } from 'ts-gib/dist/V1';
 
 import * as c from '../constants';
-import { IconItem } from '../types/ux';
-import { CommonService } from '../../services/common.service';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
-import { BinIbGib_V1 } from '../types/bin';
-import { persistTransformResult, putInSpace } from './space';
-import { TransformResult } from 'ts-gib';
+import { persistTransformResult, } from './space';
 import { CommentData_V1, CommentIbGib_V1 } from '../types/comment';
 import { getSaferSubstring } from './utils';
 
@@ -25,7 +20,19 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
  * @param commentText comment text
  * @returns comment ib for the given comment text
  */
-export function getCommentIb(commentText: string): string {
+export function getCommentIb({
+  commentText,
+  addlMetadataText,
+}: {
+  commentText: string;
+  /**
+   * Optional metadata string to be included in the comment's ib.
+   * Should be underscore-delimited but not a hard rule atow.
+   *
+   * @example "comment thisisacomm here_is_addl_metadata"
+   */
+  addlMetadataText?: string;
+}): string {
   const lc = `[${getCommentIb.name}]`;
   try {
     if (!commentText) { throw new Error(`commentText required. (E: 22fdfd0aa0524a18b63a9405b312c99e)`); }
@@ -34,10 +41,44 @@ export function getCommentIb(commentText: string): string {
     const ibCommentText =
       getSaferSubstring({ text: commentText, length: c.DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH });
 
-    return `comment ${ibCommentText}`;
+    if (addlMetadataText) {
+      if (addlMetadataText.length > c.DEFAULT_COMMENT_METADATA_IB_SUBSTRING_LENGTH) {
+        console.warn(`${lc} addlMetadataText (${addlMetadataText.length}) is too long. Max length: ${c.DEFAULT_COMMENT_METADATA_IB_SUBSTRING_LENGTH}`);
+      }
+      const ibCommentMetadata =
+        getSaferSubstring({ text: addlMetadataText, length: c.DEFAULT_COMMENT_METADATA_IB_SUBSTRING_LENGTH });
+      if (!ibCommentMetadata) { throw new Error(`(UNEXPECTED) addlMetadataText contains no safe characters? (E: dd03c578ada2836b05c94a4aa1785222)`); }
+      return `comment ${ibCommentText} ${ibCommentMetadata}`;
+    } else {
+      return `comment ${ibCommentText}`;
+    }
+
   } catch (error) {
     console.error(`${lc} ${error.message}`);
     throw error;
+  }
+}
+
+export function parseCommentIb({
+  ib
+}: {
+  ib: Ib
+}): {
+  safeIbCommentText: string;
+  safeIbCommentMetadataText?: string;
+} {
+  const lc = `${parseCommentIb.name}]`;
+  try {
+    if (logalot) { console.log(`${lc} starting... (I: 1a16f5e3134599eeb585eae77ee6af22)`); }
+
+    if (!ib) { throw new Error(`ib required (E: d89f8c4df46b970585c82bc89c1c6322)`); }
+    const [_, safeIbCommentText, safeIbCommentMetadataText] = ib;
+    return { safeIbCommentText, safeIbCommentMetadataText };
+  } catch (error) {
+    console.error(`${lc} ${error.message}`);
+    throw error;
+  } finally {
+    if (logalot) { console.log(`${lc} complete.`); }
   }
 }
 
@@ -47,6 +88,7 @@ export function getCommentIb(commentText: string): string {
  */
 export async function createCommentIbGib({
   text,
+  addlMetadataText,
   saveInSpace,
   space,
 }: {
@@ -54,6 +96,13 @@ export async function createCommentIbGib({
    * comment text
    */
   text: string,
+  /**
+   * Optional metadata string to be included in the comment's ib.
+   * Should be underscore-delimited but not a hard rule atow.
+   *
+   * @example "comment thisisacomm here_is_addl_metadata"
+   */
+  addlMetadataText?: string;
   /**
    * If true, will save the ibgibs created in the given {@link space}.
    */
@@ -79,7 +128,7 @@ export async function createCommentIbGib({
     // create an ibgib with the filename and ext
     const opts: any = {
       parentIbGib: factory.primitive({ ib: 'comment' }),
-      ib: getCommentIb(text),
+      ib: getCommentIb({ commentText: text, addlMetadataText }),
       data,
       dna: true,
       tjp: { uuid: true, timestamp: true },

@@ -296,6 +296,12 @@ export const MENU_ITEM_IB_SUBSTRING_LENGTH = 15;
  * comment ibs atow are comment [commentText substring]
  */
 export const DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH = 10;
+/**
+ * comment ib can have additional metadata string,
+ *
+ * @example "comment thisisacomm here_is_addl_metadata"
+ */
+export const DEFAULT_COMMENT_METADATA_IB_SUBSTRING_LENGTH = 64;
 export const DEFAULT_LINK_TEXT_IB_SUBSTRING_LENGTH = 10;
 
 /**

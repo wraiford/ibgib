@@ -91,7 +91,7 @@ export interface WordyTextInfo {
 
 export type WordyInteractionType = 'line_blank';
 export interface WordyInteraction {
-    strategyType: WordyInteractionType;
+    interactionType: WordyInteractionType;
 }
 export interface WordyInteraction_LineBlank extends WordyInteraction {
     lineNumBlanked: number;
@@ -154,6 +154,15 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     protected lc: string = `[${WordyRobbot_V1.name}]`;
 
     private _analysis: WordyRobbotAnalysisIbGib_V1;
+
+    private _currentWorkingContextIbGib: IbGib_V1;
+    private _currentWorkingLookProjection: GetGraphResult;
+    private _currentWorkingCommentIbGibs: CommentIbGib_V1[];
+    private _currentWorkingComment: CommentIbGib_V1;
+    private _currentWorkingCommentInteractions: WordyInteraction[];
+
+    private _subLatestContext: Subscription;
+    private _updatingContext: boolean;
 
     constructor(initialData?: WordyRobbotData_V1, initialRel8ns?: WordyRobbotRel8ns_V1) {
         super(initialData, initialRel8ns);
@@ -220,21 +229,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting...`); }
 
-            // todo: ah, another day we'll get to using web workers for things. i suck.
-            // get a comment that we've looked at, analyze it & queue an ibgib
-            // that we will speak the next time we are able.
-            // if (typeof Worker !== 'undefined') {
-            //     // Create a new
-            //     const worker = new Worker(new URL('./brains.worker', import.meta.url));
-            //     worker.onmessage = ({ data }) => {
-            //         console.log(`${lc} page got message: ${h.pretty(data)}`);
-            //     };
-            //     worker.postMessage('hello');
-            // } else {
-            //     // Web workers are not supported in this environment.
-            //     // You should add a fallback so that your program still executes correctly.
-            // }
-
             await this.rel8To({ ibGibs: arg.ibGibs });
 
             return ROOT;
@@ -245,12 +239,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
-
-    private _currentWorkingContextIbGib: IbGib_V1;
-    private _currentWorkingLookProjection: GetGraphResult;
-    private _currentWorkingCommentIbGibs: CommentIbGib_V1[];
-    private _currentWorkingComment: CommentIbGib_V1;
-    private _currentWorkingCommentInteractions: WordyInteraction[];
 
     private async getCurrentWorkingComment({ clearFirst }: { clearFirst?: boolean }): Promise<CommentIbGib_V1> {
         const lc = `${this.lc}[${this.getCurrentWorkingComment.name}]`;
@@ -292,10 +280,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    private _subLatestContext: Subscription;
-
-    private _updatingContext: boolean;
-
     private async handleContextUpdate({ update }: { update: IbGibTimelineUpdateInfo }): Promise<void> {
         const lc = `${this.lc}[${this.handleContextUpdate.name}]`;
         // I don't see this as really being very likely in the near future,
@@ -313,8 +297,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             console.table(update);
             if (!update.latestIbGib) {
                 debugger;
+                throw new Error(`(unexpected) update.latestIbGib falsy? (E: e18a048d7e95757238396ddd84748f22)`);
+            } else {
+                this._currentWorkingContextIbGib = update.latestIbGib;
             }
-            this._currentWorkingContextIbGib = update.latestIbGib;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -333,7 +319,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
      *
      * * show individual words
      * * show individual words and a random neighbor of that word
-     * * show some % of common words vs % uncmomon words within texts
+     * * show some % of common words vs % uncommon words within texts
      *   * "common" WRT individual ibgib texts or aggregate corpus
      * * show phrases with blanked out words
      * * show words with blanked out letters
@@ -362,11 +348,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 delete this._subLatestContext;
             }
 
-            this._currentWorkingContextIbGib = this.getContextIbGibFromArg({ arg });
-            // need to get latest context
-            throw new Error(`need to get latest conetxt leaving off here... (E: 6f2b8890e56579ae470a981331b5ea22)`);
+            this._currentWorkingContextIbGib = await this.getContextIbGibFromArg({ arg, latest: true });
 
-            const contextAddr = h.getIbGibAddr({ ibGib: this._currentWorkingContextIbGib });
+            // need to get latest context
+
             let gibInfo = getGibInfo({ gib: this._currentWorkingContextIbGib.gib });
             if (gibInfo.tjpGib) {
                 this.ibgibsSvc.latestObs
@@ -424,17 +409,35 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
     }
 
-    private getContextIbGibFromArg({
+    private async getContextIbGibFromArg({
         arg,
+        latest,
     }: {
         arg: RobbotCmdIbGib<IbGib_V1, RobbotCmdData, RobbotCmdRel8ns>,
-    }): IbGib_V1 {
+        /**
+         * if true, after extracting the context from the arg, will get the
+         * latest ibgib (if there is a newer version).
+         */
+        latest?: boolean,
+    }): Promise<IbGib_V1> {
         const lc = `${this.lc}[${this.getContextIbGibFromArg.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: c13f7cb92133984048f606075efb8a22)`); }
             if ((arg.ibGibs ?? []).length === 0) { throw new Error(`(UNEXPECTED) invalid arg? no context ibgib on arg (E: 89997eb4bdeb3885bee9de5d33ee0f22)`); }
             if ((arg.ibGibs ?? []).length !== 1) { throw new Error(`(UNEXPECTED) invalid arg? only expected one ibgib on arg.ibGibs (E: 1a1498af668740fe9439f4953a74ea8a)`); }
-            return arg.ibGibs[0];
+            let contextIbGib = arg.ibGibs[0];
+            if (latest) {
+                const resLatestAddr = await this.ibgibsSvc.getLatestAddr({ ibGib: contextIbGib });
+                if (resLatestAddr !== h.getIbGibAddr({ ibGib: contextIbGib })) {
+                    const resGet = await this.ibgibsSvc.get({ addr: resLatestAddr });
+                    if (resGet.success && resGet.ibGibs?.length === 1) {
+                        contextIbGib = resGet.ibGibs[0];
+                    } else {
+                        throw new Error(`unable to get resLatestAddr (${resLatestAddr}) (E: ce1e1297743e9a16c8f082321e52a122)`);
+                    }
+                }
+            }
+            return contextIbGib;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -666,7 +669,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 29368d76e897c905e4c8bcbbe53d2f22)`); }
             const analysisText = h.pretty(analysisIbGib.data);
-            return `${this.data.outputPrefix}\n\nanalysis:\n\n${analysisText}\n\n${this.data.outputSuffix}`;
+            return await this.getOutputText({ text: `analysis:\n\n${analysisText}` });
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;

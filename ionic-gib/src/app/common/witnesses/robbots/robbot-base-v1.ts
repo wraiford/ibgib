@@ -1,5 +1,5 @@
 import * as h from 'ts-gib/dist/helper';
-import { IbGibAddr, V1 } from 'ts-gib';
+import { Ib, IbGibAddr, V1 } from 'ts-gib';
 import {
     IbGib_V1, IbGibRel8ns_V1, ROOT,
 } from 'ts-gib/dist/V1';
@@ -23,7 +23,7 @@ import { getFromSpace, persistTransformResult } from '../../helper/space';
 import { ErrorIbGib_V1 } from '../../types/error';
 import { errorIbGib } from '../../helper/error';
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
-import { createCommentIbGib } from '../../helper/comment';
+import { createCommentIbGib, parseCommentIb } from '../../helper/comment';
 import { WORDY_V1_ANALYSIS_REL8N_NAME } from './wordy-robbot-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -115,6 +115,12 @@ export abstract class RobbotBase_V1<
      * local user space.
      */
     ibgibsSvc: IbgibsService;
+
+    /**
+     * When the robbot has to get some ibgibs, might as well store them here so
+     * we don't have to get them again from storage.
+     */
+    protected cacheIbGibs: { [addr: string]: IbGib_V1 } = {};
 
     constructor(initialData?: TData, initialRel8ns?: TRel8ns) {
         super(initialData, initialRel8ns);
@@ -665,7 +671,8 @@ export abstract class RobbotBase_V1<
             space = space ?? await this.ibgibsSvc.getLocalUserSpace({ lock: true });
             if (!space) { throw new Error(`(UNEXPECTED) space required and wasn't able to get it from ibgibsSvc? (E: 7159f9893a66c28a7e09b61384545622)`); }
 
-            let resComment = await createCommentIbGib({ text, saveInSpace: true, space });
+            /** tag this comment with metadata to show it came from this robbot */
+            let resComment = await createCommentIbGib({ text, addlMetadataText: this.getAddlMetadata(), saveInSpace: true, space });
             const commentIbGib = <CommentIbGib_V1>resComment.newIbGib;
             if (!commentIbGib) { throw new Error(`(UNEXPECTED) failed to create comment? (E: 6d668f4e55198e654324622eabaac922)`); }
             await this.ibgibsSvc.registerNewIbGib({ ibGib: commentIbGib, space });
@@ -677,7 +684,6 @@ export abstract class RobbotBase_V1<
                 rel8nName: ROBBOT_MY_COMMENT_REL8N_NAME,
                 space,
             })
-            await this.loadNewerSelfIfAvailable(); // needed?
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -687,11 +693,56 @@ export abstract class RobbotBase_V1<
     }
 
     /**
-     * When the robbot has to get some ibgibs, might as well store them here so
-     * we don't have to get them again from storage.
+     * used to identify when comments are made by these robbots.
+     *
+     * atow this is `robbot_${this.data.classname}_${this.data.name}_${this.data.uuid.slice(0, 8)}`;
+     *
+     * @returns addlmetadata string to be used in comment ib's
      */
-    protected cacheIbGibs: { [addr: string]: IbGib_V1 } = {};
+    protected getAddlMetadata(): string {
+        const lc = `${this.lc}[${this.getAddlMetadata.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 7800732facf3783943fdf1b2423b0c22)`); }
+            const classnameIsh = this.data.classname.replace(/[_]/mg, '');
+            const robbotNameIsh = this.data.name.slice(0, 8).replace(/[__]/mg, '');
+            const robbotIdIsh = this.data.uuid.slice(0, 8);
+            const addlMetadataText = `robbot_${classnameIsh}_${robbotNameIsh}_${robbotIdIsh}`;
+            if (logalot) { console.log(`${lc} addlMetadataText: ${addlMetadataText} (I: 53c0044671dc99fb75635367d2e63c22)`); }
+            debugger;
+            return addlMetadataText;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
 
+    protected parseAddlMetadataString({ ib }: { ib: Ib }): {
+        robbotClassnameIsh: string;
+        robbotNameIsh: string;
+        robbotIdIsh: string;
+    } {
+        const lc = `${this.lc}[${this.parseAddlMetadataString.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: d0cf162bc5f4cbf65bf1f7e29e3bd922)`); }
+            const { safeIbCommentMetadataText } = parseCommentIb({ ib });
+            const [_, robbotClassnameIsh, robbotNameIsh, robbotIdIsh] = safeIbCommentMetadataText.split('__');
+            debugger;
+            return { robbotClassnameIsh, robbotNameIsh, robbotIdIsh };
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    /**
+     * gets ibgibs to which this robbot is directly rel8d WRT rel8nNames.
+     *
+     * @returns map of rel8nName -> ibgibs that this robbot is related to.
+     */
     protected async getRel8dIbGibs({
         rel8nNames,
     }: {
@@ -730,6 +781,46 @@ export abstract class RobbotBase_V1<
             }
 
             return rel8dIbGibs;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    /**
+     * helper function to wrap text in outputPrefix/Suffix
+     *
+     * @returns wrapped text, depending on param values.
+     */
+    protected async getOutputText({
+        text,
+        skipPrefix,
+        skipSuffix,
+        prefixOverride,
+        suffixOverride,
+    }: {
+        text: string,
+        skipPrefix?: boolean,
+        skipSuffix?: boolean,
+        prefixOverride?: string,
+        suffixOverride?: string,
+    }): Promise<string> {
+        const lc = `${this.lc}[${this.getOutputText.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 7107ae1bcbee485e96123ea1733cc191)`); }
+            if (!text) {
+                console.error(`${lc} text required. (E: e1f5716c2a5744b5b5ca22dee6af8a85)`);
+                text = 'urmm, something went awry...the text is empty at this point.';
+            }
+
+            let resText = skipPrefix || !this.data.outputPrefix ? text : `${prefixOverride ?? this.data.outputPrefix}\n\n${text}`;
+            if (!skipSuffix && this.data.outputSuffix) {
+                resText += `\n\n${suffixOverride ?? this.data.outputSuffix}`;
+            }
+
+            return resText;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
