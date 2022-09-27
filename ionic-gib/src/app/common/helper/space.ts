@@ -2906,7 +2906,7 @@ export async function getLatestAddrs({
     addrs?: IbGibAddr[],
     tjps?: IbGib_V1[],
     tjpAddrs?: IbGibAddr[],
-    space?: SpaceBase_V1<IbGib_V1>,
+    space: SpaceBase_V1<IbGib_V1>,
 }): Promise<IbGibSpaceResultIbGib<IbGib_V1, IbGibSpaceResultData, IbGibSpaceResultRel8ns>> {
     let lc = `[${getLatestAddrs.name}]`;
     try {

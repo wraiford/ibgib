@@ -26,7 +26,7 @@ import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { createCommentIbGib, parseCommentIb } from '../../helper/comment';
 import { WORDY_V1_ANALYSIS_REL8N_NAME } from './wordy-robbot-v1';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || true;
 
 /**
  * ## distinguishing characteristics of robbots
@@ -395,7 +395,7 @@ export abstract class RobbotBase_V1<
         rel8nName,
         linked,
         ibgibsSvc,
-        space,
+        // space,
     }: {
         /**
          * The ibgib to which we are relating.
@@ -417,11 +417,11 @@ export abstract class RobbotBase_V1<
          * If provided, will register the newly created ibgib.
          */
         ibgibsSvc?: IbgibsService,
-        /**
-         * If given (which atow is most likely the case), then the {@link TransformResult} will
-         * be persisted in this `space`.
-         */
-        space?: IbGibSpaceAny,
+        // /**
+        //  * If given (which atow is most likely the case), then the {@link TransformResult} will
+        //  * be persisted in this `space`.
+        //  */
+        // space?: IbGibSpaceAny,
     }): Promise<void> {
         const lc = `${this.lc}[${this.rel8To.name}]`;
         try {
@@ -437,21 +437,24 @@ export abstract class RobbotBase_V1<
             const thisValidationErrors = await this.validateThis();
             if (thisValidationErrors?.length > 0) { throw new Error(`this is an invalid ibGib. thisValidationErrors: ${thisValidationErrors.join('|')} (E: 8f08716866cd13bf254222ee9e6a6722)`); }
 
+            ibgibsSvc = ibgibsSvc ?? this.ibgibsSvc;
+
             if (!ibgibsSvc) {
-                if (this.ibgibsSvc) {
-                    if (logalot) { console.log(`${lc} ibgibsSvc arg falsy, but we have a reference on this object, which we will use. (I: ee0d39a47ee8aee8ffd797721fea4322)`); }
-                    ibgibsSvc = this.ibgibsSvc;
-                }
+                // if (this.ibgibsSvc) {
+                //     if (logalot) { console.log(`${lc} ibgibsSvc arg falsy, but we have a reference on this object, which we will use. (I: ee0d39a47ee8aee8ffd797721fea4322)`); }
+                //     ibgibsSvc = this.ibgibsSvc;
+                // }
+                throw new Error(`either ibgibsSvc or this.ibgibsSvc required (E: b5f9453ddb394a2b76dec74c7304df22)`);
             }
 
-            if (!space) {
-                if (ibgibsSvc) {
-                    if (logalot) { console.log(`${lc} space arg falsy, but ibgibsSvc truthy, so we'll use ibgibsSvc's local user space for persistence. (I: 37a4b4c1406556cb23831671755b0d22)`); }
-                    space = await ibgibsSvc.getLocalUserSpace({ lock: true });
-                }
-            }
+            // if (!space) {
+            //     if (ibgibsSvc) {
+            //         if (logalot) { console.log(`${lc} space arg falsy, but ibgibsSvc truthy, so we'll use ibgibsSvc's local user space for persistence. (I: 37a4b4c1406556cb23831671755b0d22)`); }
+            //         space = await ibgibsSvc.getLocalUserSpace({ lock: true });
+            //     }
+            // }
 
-            if (!space) { throw new Error(`(UNEXPECTED) space required and ibgibsSvc couldn't get it? (E: a3b9f9b72f6f6f18883199a19d38c622)`); }
+            // if (!space) { throw new Error(`(UNEXPECTED) space required and ibgibsSvc couldn't get it? (E: a3b9f9b72f6f6f18883199a19d38c622)`); }
 
             // #endregion initialize, validate args and this
 
@@ -485,19 +488,19 @@ export abstract class RobbotBase_V1<
             if (newRobbotValidationErrors?.length > 0) { throw new Error(`new robbot would have validation errors. aborting. newRobbotValidationErrors: ${newRobbotValidationErrors.join('|')} (E: eb816a27156c246c121ef55e37d59322)`); }
 
             // if space is given, perform the persistence
-            if (space) {
-                await persistTransformResult({ resTransform: resNewRobbot, space });
-            } else {
-                if (logalot) { console.log(`${lc} space falsy, skipping persistence (I: 90aa3553e92ad1d02bce61f83648ea22)`); }
-            }
+            // if (space) {
+            await ibgibsSvc.persistTransformResult({ resTransform: resNewRobbot });
+            // } else {
+            //     if (logalot) { console.log(`${lc} space falsy, skipping persistence (I: 90aa3553e92ad1d02bce61f83648ea22)`); }
+            // }
 
             // if ibgibs svc is given, register the new ibgib
             // (in the future, need to revisit the ibgibs service to the idea of locality/ies).
-            if (ibgibsSvc) {
-                await ibgibsSvc.registerNewIbGib({ ibGib: newRobbotIbGib, space });
-            } else {
-                if (logalot) { console.log(`${lc} ibgibsSvc falsy so skipping registerNewIbGib for new robbot (I: eda4f68fffaf2435eba25cd39d4f2922)`); }
-            }
+            // if (ibgibsSvc) {
+            await ibgibsSvc.registerNewIbGib({ ibGib: newRobbotIbGib });
+            // } else {
+            //     if (logalot) { console.log(`${lc} ibgibsSvc falsy so skipping registerNewIbGib for new robbot (I: eda4f68fffaf2435eba25cd39d4f2922)`); }
+            // }
 
             // update this witness' primary ibGib properties (ib, gib, data, rel8ns).
             //   override `loadIbGibDto` to update secondary/derivative properties
@@ -601,21 +604,22 @@ export abstract class RobbotBase_V1<
         ibGibAddrToRel8,
         contextIbGib,
         rel8nNames,
-        space,
+        // space,
     }: {
         ibGibToRel8?: IbGib_V1,
         ibGibAddrToRel8?: IbGibAddr,
         contextIbGib: IbGib_V1,
         rel8nNames: string[],
-        space?: IbGibSpaceAny,
+        // space?: IbGibSpaceAny,
     }): Promise<void> {
         const lc = `${this.lc}[${this.rel8ToContextIbGib.name}]`;
         try {
             if (!ibGibToRel8 && !ibGibAddrToRel8) { throw new Error(`ibGibToRel8 or ibGibAddrToRel8 required (E: 3ee14659fd22355a5ba0e537a477be22)`); }
             if (!contextIbGib) { throw new Error(`contextIbGib required (E: 85f27c7cbf713704c21084c141cd8822)`); }
+            if (!this.ibgibsSvc) { throw new Error(`this.ibgibsSvc required (E: 6a38c4274bdefc8d44cafd2d6faaa222)`); }
 
-            space = space ?? await this.ibgibsSvc.getLocalUserSpace({ lock: true });
-            if (!space) { throw new Error(`space required (E: 267ad87c148942cda641349df0bbbd22)`); }
+            // space = space ?? await this.ibgibsSvc.getLocalUserSpace({ lock: true });
+            // if (!space) { throw new Error(`space required (E: 267ad87c148942cda641349df0bbbd22)`); }
 
             if ((rel8nNames ?? []).length === 0) {
                 if (!this.data?.defaultRel8nName) { throw new Error(`either rel8nNames or this.data.defaultRel8nName required (E: a14ab4b3e479d9274c61bc5a30bc2222)`); }
@@ -637,11 +641,11 @@ export abstract class RobbotBase_V1<
                 });
 
             // ...persist it...
-            await this.ibgibsSvc.persistTransformResult({ resTransform: resRel8ToContext, space });
+            await this.ibgibsSvc.persistTransformResult({ resTransform: resRel8ToContext });
 
             // ...register the context.
             const { newIbGib: newContext } = resRel8ToContext;
-            await this.ibgibsSvc.registerNewIbGib({ ibGib: newContext, space });
+            await this.ibgibsSvc.registerNewIbGib({ ibGib: newContext });
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -673,16 +677,16 @@ export abstract class RobbotBase_V1<
 
             /** tag this comment with metadata to show it came from this robbot */
             let resComment = await createCommentIbGib({ text, addlMetadataText: this.getAddlMetadata(), saveInSpace: true, space });
+            space = await this.ibgibsSvc.getLocalUserSpace({ lock: true });
             const commentIbGib = <CommentIbGib_V1>resComment.newIbGib;
             if (!commentIbGib) { throw new Error(`(UNEXPECTED) failed to create comment? (E: 6d668f4e55198e654324622eabaac922)`); }
-            await this.ibgibsSvc.registerNewIbGib({ ibGib: commentIbGib, space });
+            await this.ibgibsSvc.registerNewIbGib({ ibGib: commentIbGib });
 
-            await this.rel8ToContextIbGib({ ibGibToRel8: commentIbGib, contextIbGib, rel8nNames: ['comment'], space });
+            await this.rel8ToContextIbGib({ ibGibToRel8: commentIbGib, contextIbGib, rel8nNames: ['comment'] });
+            debugger;
             await this.rel8To({
                 ibGibs: [commentIbGib],
-                ibgibsSvc: this.ibgibsSvc,
                 rel8nName: ROBBOT_MY_COMMENT_REL8N_NAME,
-                space,
             })
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -708,7 +712,6 @@ export abstract class RobbotBase_V1<
             const robbotIdIsh = this.data.uuid.slice(0, 8);
             const addlMetadataText = `robbot_${classnameIsh}_${robbotNameIsh}_${robbotIdIsh}`;
             if (logalot) { console.log(`${lc} addlMetadataText: ${addlMetadataText} (I: 53c0044671dc99fb75635367d2e63c22)`); }
-            debugger;
             return addlMetadataText;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
