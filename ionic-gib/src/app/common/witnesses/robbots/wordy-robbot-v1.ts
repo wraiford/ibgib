@@ -32,24 +32,6 @@ import { IbGibTimelineUpdateInfo } from '../../types/ux';
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
 
-export type ConversationState = 'started' | 'asked' | 'told' | 'completed';
-export const ConversationState = {
-    started: 'started' as ConversationState,
-    /**
-     * asked the user something, expecting a direct response
-     */
-    asked: 'asked' as ConversationState,
-    /**
-     * told the user something, without expecting a response
-     */
-    told: 'told' as ConversationState,
-    /**
-     * Just completed a session
-     */
-    completed: 'completed' as ConversationState,
-}
-export type ConversationCommand = 'yes' | 'no' | 'cancel' | 'answer';
-
 export interface WordyUniqueWordInfo {
     /**
      * total number of times the text contains the word.
@@ -136,6 +118,22 @@ export const DEFAULT_SEARCH_REL8N_NAMES_WORDY_ROBBOT = [
 ].join(',');
 export const WORDY_V1_ANALYSIS_REL8N_NAME = 'analysis';
 
+
+export type UserChatResponse = 'yes' | 'no' | 'cancel'
+export const UserChatResponse = {
+    yes: 'yes' as UserChatResponse,
+    y: 'yes' as UserChatResponse,
+    yeah: 'yes' as UserChatResponse,
+    : '' as UserChatResponse,
+    : '' as UserChatResponse,
+    : '' as UserChatResponse,
+    : '' as UserChatResponse,
+    : '' as UserChatResponse,
+    : '' as UserChatResponse,
+    : '' as UserChatResponse,
+    : '' as UserChatResponse,
+    : '' as UserChatResponse,
+}
 export interface WordyRobbotData_V1 extends RobbotData_V1 {
     /**
      * comma-delimited string of rel8n names.
@@ -181,6 +179,24 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
     private _subLatestContext: Subscription;
     private _updatingContext: boolean;
+
+
+    /**
+     * If this robbot has asked a question, then this will be the text asked.
+     *
+     * So if a new ibgib comes to the context, and that ibgib is our asked text, then we're
+     * not going to worry about it because we're going to assume it came from us.
+     * (There are lots of ways to do this...)
+     *
+     * If we asked a question and a
+     */
+    private _askedText: string;
+    /**
+     * If a new context update comes down the pipeline and we confirm it's equal to our
+     * `_askedText`, then we know that our question has been posted.
+     */
+    private _askedTextPosted: boolean;
+    private _expectedResponses: string;
 
     constructor(initialData?: WordyRobbotData_V1, initialRel8ns?: WordyRobbotRel8ns_V1) {
         super(initialData, initialRel8ns);
