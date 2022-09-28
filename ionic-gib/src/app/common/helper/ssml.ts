@@ -4,60 +4,6 @@ const logalot = c.GLOBAL_LOG_A_LOT || true;
 
 export declare class SsmlTypes {
     /**
-     * Represents a pause in the speech. Set the length of the pause
-     * with the strength or time attributes.
-     *
-     * https://developer.amazon.com/public/solutions/alexa/alexa-skills-kit/docs/speech-synthesis-markup-language-ssml-reference#break
-     *
-     * @param param0
-     */
-    static break({ strength, s, ms }: {
-        /**
-         * none:     No pause should be outputted. This can be used to remove a pause that would normally occur (such as after a period).
-         *
-         * x-weak:   No pause should be outputted (same as none).
-         *
-         * weak:      Treat adjacent words as if separated by a single comma (equivalent to medium).
-         *
-         * medium:   Treat adjacent words as if separated by a single comma.
-         *
-         * strong:   Make a sentence break (equivalent to using the <s> tag).
-         *
-         * x-strong: Make a paragraph break (equivalent to using the <p> tag).
-         */
-        strength?: BreakStrengthType;
-        /**
-         * Duration of the pause in seconds; up to 10 seconds.
-         */
-        s?: number;
-        /**
-         * Duration of the pause in milliseconds; up to 10000 milliseconds.
-         */
-        ms?: number;
-    }): string;
-    /**
-     * Takes a given text that will be written and provides an alias
-     * for it when it's actually spoken.
-     *
-     * For example, if the written text is the element symbol "Mg", then
-     * you probably want to verbally say the entire word: "Magnesium".
-     * In this case, the "text" is "Mg" and the "alias" is "Magnesium".
-     *
-     * @see (@link https://developer.amazon.com/public/solutions/alexa/alexa-skills-kit/docs/speech-synthesis-markup-language-ssml-reference#sub)
-     *
-     * @param text Written text that will be substituted when spoken, e.g. "Mg"
-     * @param alias Spoken alias that will be spoken, e.g. "Magnesium"
-     */
-    static sub(text: string, alias: string): string;
-    /**
-     * Similar to <say-as>, this tag customizes the pronunciation of
-     * words by specifying the word’s part of speech.
-     *
-     * @param text Text that requires clarity.
-     * @param partOfSpeech Context provided for the given text.
-     */
-    static w(text: string, partOfSpeech: PartOfSpeech): string;
-    /**
      * Describes how the text should be interpreted. This lets you
      * provide additional context to the text and eliminate any
      * ambiguity on how Alexa should render the text. Indicate how
@@ -129,7 +75,7 @@ export const As = {
     /**
      * Spell out each letter.
      */
-    characters: "characters" as InterpretAs,
+    characters: "characters",
     /**
      * Spell out each letter.
      */
@@ -840,7 +786,8 @@ export const PartOfSpeech = {
     sense1: "amazon:SENSE_1" as PartOfSpeech,
 };
 
-class Ssml {
+export class Ssml {
+    private static lc: string = `[${Ssml.name}]`;
     /**
      * Wraps a given list of paragraph strings in `<speak>` tags, with
      * optional paragraph `<p>` tags.
@@ -965,7 +912,7 @@ class Ssml {
         pitch?: ProsodyPitchType;
         volume?: ProsodyVolumeType;
     }): string {
-        let t = this, lc = `prosody`;
+        const lc = `${Ssml.lc}${Ssml.prosody.name}`;
         let attrs = "";
         // adds the + to positive numbers
         if (rate || rate === 0) {
@@ -1104,11 +1051,10 @@ class Ssml {
          */
         ms?: number;
     }): string {
-        const lc = `Ssml.break`;
+        const lc = `${Ssml.lc}${Ssml.break.name}`;
         if (strength) {
             return `<break strength="${strength}"/>`;
-        }
-        else if (s || s === 0) {
+        } else if (s || s === 0) {
             const min = 0;
             const max = 10;
             if (s < min) {
@@ -1136,6 +1082,7 @@ class Ssml {
             throw new Error('Unknown break parameters (E: 1ae569301a354c28a54cc06b58c93b87)');
         }
     }
+
     /**
      * Takes a given text that will be written and provides an alias
      * for it when it's actually spoken.
@@ -1149,9 +1096,10 @@ class Ssml {
      * @param text Written text that will be substituted when spoken, e.g. "Mg"
      * @param alias Spoken alias that will be spoken, e.g. "Magnesium"
      */
-    static sub(text, alias) {
+    static sub(text: string, alias: string): string {
         return `<sub alias="${alias}">${text}</sub>`;
     }
+
     /**
      * Similar to <say-as>, this tag customizes the pronunciation of
      * words by specifying the word’s part of speech.
@@ -1159,9 +1107,10 @@ class Ssml {
      * @param text Text that requires clarity.
      * @param partOfSpeech Context provided for the given text.
      */
-    static w(text, partOfSpeech) {
+    static w(text: string, partOfSpeech: PartOfSpeech): string {
         return `<w role="${partOfSpeech}">${text}</w>`;
     }
+
     /**
      * Describes how the text should be interpreted. This lets you
      * provide additional context to the text and eliminate any
@@ -1189,16 +1138,53 @@ class Ssml {
      * @see
      * https://developer.amazon.com/public/solutions/alexa/alexa-skills-kit/docs/speech-synthesis-markup-language-ssml-reference#say-as
      */
-    static sayAs({ text, interpret, format }) {
-        let lc = `Ssml.sayAs`;
-        if (format) {
-            if (interpret !== exports.As.date) {
-                throw new Error(`${lc} format is only valid when InterpretAs is "date"`);
+    static sayAs({ text, interpret, format }: {
+        /**
+         * Text to specify interpretation.
+         */
+        text: string;
+        /**
+         * Value that indicates how text should be interpreted.
+         *
+         * @see {InterpretAs}
+         */
+        interpret: InterpretAs;
+        /**
+         * Only used when interpret-as is set to date. Set to one of
+         * the following to indicate format of the date:
+         *
+         *     mdy
+         *     dmy
+         *     ymd
+         *     md
+         *     dm
+         *     ym
+         *     my
+         *     d
+         *     m
+         *     y
+         *
+         * Alternatively, if you provide the date in YYYYMMDD format,
+         * the format attribute is ignored. You can include question
+         * marks (?) for portions of the date to leave out. For
+         * instance, Alexa would speak <say-as interpret-as="date">????
+         * 0922</say-as> as “September 22nd”.
+         */
+        format?: SayAsDate;
+    }): string {
+        const lc = `${Ssml.lc}[${Ssml.sayAs.name}]`;
+        try {
+            if (format) {
+                if (interpret !== As.date) {
+                    throw new Error(`\`format\` arg requires (implies) \`interpret\` === "date" (E: 2a470b25ac284ec4bec9eb3e6a704b6b)`);
+                }
+                return `<say-as interpret-as="${interpret}" format="${format}">${text}</say-as>`;
+            } else {
+                return `<say-as interpret-as="${interpret}">${text}</say-as>`;
             }
-            return `<say-as interpret-as="${interpret}" format="${format}">${text}</say-as>`;
-        }
-        else {
-            return `<say-as interpret-as="${interpret}">${text}</say-as>`;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
         }
     }
 }
