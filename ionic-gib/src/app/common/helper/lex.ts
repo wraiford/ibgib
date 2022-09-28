@@ -1,4 +1,5 @@
 import * as c from '../constants';
+import { Ssml } from './ssml';
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
 
@@ -154,9 +155,7 @@ export interface LexGetOptions<TProps = PropsData> {
      * would be e.g. "Welcome back, Cotter!"
      * (equivalent to `Welcome back, ${username}!`)
      */
-    vars?: {
-        [key: string]: string;
-    };
+    vars?: { [key: string]: string; };
     /**
      * Same as vars option, but will only replace template variables
      * in the `ssmls`.
@@ -425,226 +424,6 @@ export type LexData<TProps = PropsData> = {
         ]
     }
     ```
- *
- * You can get at these languages multiple ways:
- *
- *   1) Choose the language when instantiating Lex.
- *      `let lex = new Lex(data, "de-DE");`
- *      Now, when you call `lex._(...)`, you will only return German
- *      data.
- *   2) Override the default language upon calling for data:
- *      `lex._('hi', { language: "en-US" }).text;`
- */
-export abstract class LexT<TProps = PropsData> {
-    data: LexData<TProps>;
-    /**
-     * This is the language that your data will default to.
-     *
-     * This means that entries defined in the Lex data that do not
-     * have an explicit 'language' set will be interpreted as this
-     * language.
-     *
-     * So basically, if you're an American with American data, leave
-     * this as en-US. If you're a German speaker writing a skill
-     * that is primarily targeted at a German-speaking audience,
-     * then set this to de-DE and you don't need to explicitly
-     * set each entry to this.
-     *
-     * Then, when you go to translate into other languages, you can
-     * add on the explicit language markers in data. The overall
-     * mechanism allows you to skip this for the first language
-     * you write the skill in.
-     *
-     * @see requestLanguage
-     */
-    defaultLanguage: LanguageCode;
-    /**
-     * Defaults to delim & "" because most of the time, I find I
-     * just have a single line and want the single thing returned.
-     * This helps with templating, chunking, etc.
-     *
-     * BREAKING CHANGE: This formerly defaulted to paragraphs, as
-     * I thought lines would mean paragraphs. No longer the case.
-     */
-    defaultLineConcat: LexLineConcat;
-    /**
-     * Defaults to delim & "" because most of the time, I find I
-     * just have a single line and want the single thing returned.
-     * This helps with templating, chunking, etc.
-     *
-     * BREAKING CHANGE: This formerly defaulted to paragraphs, as
-     * I thought lines would mean paragraphs. No longer the case.
-     */
-    defaultDelim: string;
-    defaultCapitalize: LexCapitalize;
-    /**
-     * Exposed for configuration of logging.
-     */
-    /**
-    * Exposed for configuration of logging.
-    */
-    // helper: help.Helper;
-    /**
-     * This is the language that is coming in from the request.
-     *
-     * @see defaultLanguage
-     */
-    requestLanguage: LanguageCode;
-    defaultKeywordMode: KeywordMode;
-    defaultPropsMode: PropsFilterMode;
-    /**
-     * @param data This is the initial lexical data that you want Alexa to be able to say. You can always change this dynamically at runtime as well.
-     * @param defaultLanguage If a language isn't specified in `get`, `text`, or `ssml`, then this is used.
-     * @param defaultLineConcat Default setting when concatenating lines. This will depend on how most of your data is structured. For example, it's designed so that you input your data separated by paragraphs, so the concat would be "paragraph". But if you already have data with <p> tags in your ssml, then you may want to set this to "delim" and do your own interpretation of using the multiple strings for the data.
-     * @param defaultDelim Default delimiter user as `lineConcatDelim`.
-     * @param defaultCapitalize Default capitalization action when getting texts/ssmls.
-     */
-    constructor(
-        data: LexData<TProps>,
-        /**
-         * This is the language that your data will default to.
-         *
-         * This means that entries defined in the Lex data that do not
-         * have an explicit 'language' set will be interpreted as this
-         * language.
-         *
-         * So basically, if you're an American with American data, leave
-         * this as en-US. If you're a German speaker writing a skill
-         * that is primarily targeted at a German-speaking audience,
-         * then set this to de-DE and you don't need to explicitly
-         * set each entry to this.
-         *
-         * Then, when you go to translate into other languages, you can
-         * add on the explicit language markers in data. The overall
-         * mechanism allows you to skip this for the first language
-         * you write the skill in.
-         *
-         * @see requestLanguage
-         */
-        defaultLanguage?: LanguageCode,
-        /**
-         * Defaults to delim & "" because most of the time, I find I
-         * just have a single line and want the single thing returned.
-         * This helps with templating, chunking, etc.
-         *
-         * BREAKING CHANGE: This formerly defaulted to paragraphs, as
-         * I thought lines would mean paragraphs. No longer the case.
-         */
-        defaultLineConcat?: LexLineConcat,
-        /**
-         * Defaults to delim & "" because most of the time, I find I
-         * just have a single line and want the single thing returned.
-         * This helps with templating, chunking, etc.
-         *
-         * BREAKING CHANGE: This formerly defaulted to paragraphs, as
-         * I thought lines would mean paragraphs. No longer the case.
-         */
-        defaultDelim?: string, defaultCapitalize?: LexCapitalize) {
-
-    }
-    /**
-     * Gets a string or array of strings of text or ssml.
-     * Builds the string or obj depending on the passed in options.
-     *
-     * NOTE: You'll probably want to actually use the `text` or `ssml`
-     * functions instead of this one.
-     *
-     * @param id Lexical items with the same id are considered alternatives for the equivalent message, e.g. "Hello" and "Howdy".
-     * @see LexGetOptions
-     */
-    abstract _(id: string, { language, specifier, keywords, keywordMode, lineIndex, lineConcat, lineConcatDelim, capitalize, vars, ssmlVars, props, propsMode, }?: LexGetOptions<TProps>): LexResultObj<TProps>;
-    /**
-     * Pulls out lines from the datum, based on the what is wanted
-     * and what exists in the data.
-     *
-     * For example, you may be trying to extract text but only ssml
-     * is defined in the data. So you'll have to strip the ssml and
-     * return that. Or if you want ssml and only text exists in the
-     * data, then you'll simply return the texts.
-     *
-     * If you only want a single line out of multiple strings in the
-     * texts/ssmls array, then use lineIndex.
-     *
-     * @param param0 info
-     */
-    private extractLines;
-    /**
-     * Replaces any embedded template variables, e.g. $name, $0, etc.
-     * Note the format is "$" proceeded by any word characters
-     * ([a-zA-Z0-9_]).
-     *
-     * This is different than template references.
-     *
-     * @see {replaceTemplateRefs}
-     */
-    private replaceTemplateVars;
-    /**
-     * Replaces any embedded template references, e.g. $(hi).
-     * Note the parenthesis around "hi". This means it is a reference to
-     * another lex datum.
-     *
-     * This is different than template variables, e.g. $name, $0, etc.
-     *
-     * The template refs can be recursive, i.e. datum A can include a
-     * ref to datum B which includes a template to datum C.
-     * But these cannot be self-referencing, i.e. C cannot then include
-     * a reference back to A.
-     *
-     * @see {replaceTemplateVars}
-     *
-     * @param param0
-     */
-    private replaceTemplateRefs;
-    /**
-     * Capitalizes the given lines depending on the given
-     * capitalize options.
-     *
-     * @param param0
-     */
-    private capitalizeLines;
-    /**
-     * Concatenates lines depending on given params.
-     *
-     * @param param0
-     */
-    private concatLines;
-    /**
-     * Filters the given lexData per the language, specifier,
-     * and keywords.
-     *
-     * @param param0 Filter params
-     */
-    private filterLexData;
-    abstract filterProps({ result, props, propsMode }: {
-        result: LexDatum<TProps>[];
-        props: PropsFilter<TProps>;
-        propsMode: PropsFilterMode;
-    }): LexDatum<TProps>[];
-    abstract filterLanguage(result: LexDatum<TProps>[], language: string): LexDatum<TProps>[];
-    /**
-     * Picks a randomesque datum from the given lexData, taking into
-     * account the weighting of each datum.
-     *
-     * @param lexData Filtered lexData from which to choose a random item, per the item's weighting
-     *
-     * @see LexDatum.weighting
-     */
-    private pickDatum;
-}
-
-// 'use strict';
-// function __export(m) {
-// for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
-// }
-// Object.defineProperty(exports, "__esModule", { value: true });
-// __export(require("./types"));
-// const types_1 = require("./types");
-/**
- * Imports helper that has logging, among other things.
- */
-// const help = require("helper-gib");
-// const ssml_gib_1 = require("ssml-gib");
-// let h = new help.Helper();
 /**
  * Lex is a helper for your lexical data, i.e. the things that you get
  * Alexa to say. This can be used for i18n, but really it's a broader
@@ -743,7 +522,7 @@ export abstract class LexT<TProps = PropsData> {
  *      `lex._('hi', { language: "en-US" }).text;`
  */
 export class Lex<TProps = PropsData> {
-    lc: string = `[${Lex.name}]`;
+    protected lc: string = `[${Lex.name}]`;
 
     data: LexData<TProps>;
     /**
@@ -787,13 +566,6 @@ export class Lex<TProps = PropsData> {
     defaultDelim: string;
     defaultCapitalize: LexCapitalize;
     /**
-     * Exposed for configuration of logging.
-     */
-    /**
-    * Exposed for configuration of logging.
-    */
-    // helper: help.Helper;
-    /**
      * This is the language that is coming in from the request.
      *
      * @see defaultLanguage
@@ -830,7 +602,7 @@ export class Lex<TProps = PropsData> {
          *
          * @see requestLanguage
          */
-        defaultLanguage?: LanguageCode,
+        defaultLanguage: LanguageCode = "en-US",
         /**
          * Defaults to delim & "" because most of the time, I find I
          * just have a single line and want the single thing returned.
@@ -839,7 +611,7 @@ export class Lex<TProps = PropsData> {
          * BREAKING CHANGE: This formerly defaulted to paragraphs, as
          * I thought lines would mean paragraphs. No longer the case.
          */
-        defaultLineConcat?: LexLineConcat,
+        defaultLineConcat: LexLineConcat = LexLineConcat.delim,
         /**
          * Defaults to delim & "" because most of the time, I find I
          * just have a single line and want the single thing returned.
@@ -848,7 +620,8 @@ export class Lex<TProps = PropsData> {
          * BREAKING CHANGE: This formerly defaulted to paragraphs, as
          * I thought lines would mean paragraphs. No longer the case.
          */
-        defaultDelim?: string, defaultCapitalize?: LexCapitalize
+        defaultDelim: string = "",
+        defaultCapitalize: LexCapitalize = "none"
     ) {
         this.data = data;
         this.defaultLanguage = defaultLanguage;
@@ -864,6 +637,7 @@ export class Lex<TProps = PropsData> {
         this.defaultKeywordMode = "any";
         this.defaultPropsMode = "prop";
     }
+
     /**
      * Gets a string or array of strings of text or ssml.
      * Builds the string or obj depending on the passed in options.
@@ -876,18 +650,24 @@ export class Lex<TProps = PropsData> {
      */
     _(
         id: string,
-        opts: LexGetOptions<TProps> = {
-            // simplest case default options
-            language: this.requestLanguage,
-            keywordMode: this.defaultKeywordMode,
-            lineConcat: this.defaultLineConcat,
-            lineConcatDelim: this.defaultDelim,
-            capitalize: this.defaultCapitalize,
-            propsMode: this.defaultPropsMode,
-        }): LexResultObj<TProps> {
-        let { language, specifier, keywords, keywordMode, lineIndex,
-            lineConcat, lineConcatDelim, capitalize, vars, ssmlVars, props, propsMode,
-        } = opts;
+        {
+            language = this.requestLanguage,
+            specifier,
+            keywords, keywordMode = this.defaultKeywordMode,
+            lineIndex,
+            lineConcat = this.defaultLineConcat, lineConcatDelim = this.defaultDelim,
+            capitalize = this.defaultCapitalize,
+            vars, ssmlVars,
+            props, propsMode = this.defaultPropsMode,
+        }: LexGetOptions = {
+                // simplest case default options
+                language: this.requestLanguage,
+                keywordMode: this.defaultKeywordMode,
+                lineConcat: this.defaultLineConcat,
+                lineConcatDelim: this.defaultDelim,
+                capitalize: this.defaultCapitalize,
+                propsMode: this.defaultPropsMode,
+            }): LexResultObj<TProps> {
         const lc = `${this.lc}[${this._.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: e4e76a6bb301010fc13cf4456efcdc22)`); }
@@ -900,53 +680,35 @@ export class Lex<TProps = PropsData> {
                 lexData,
                 language, specifier,
                 keywords, keywordMode,
-                props, propsMode
+                props: <PropsFilter<TProps>>props, propsMode
             });
             if (lexData.length === 0) {
                 // no data found matching filtering.
                 // just return null and do not error.
                 return null;
             }
-            let lexDatum = this.pickDatum(lexData);
-            let textLines = this.extractLines({
-                lexDatum,
-                resultAs: "text",
-                lineIndex
-            });
-            textLines =
-                this.replaceTemplateRefs({ lines: textLines, resultAs: "text" });
+            const lexDatum = this.pickDatum(lexData);
+            let textLines = this.extractLines({ lexDatum, resultAs: "text", lineIndex });
+            textLines = this.replaceTemplateRefs({ lines: textLines, resultAs: "text" });
             // Replace vars after references, so all text is fully
             // expanded first.
-            textLines =
-                this.replaceTemplateVars({ lines: textLines, vars: vars });
-            textLines =
-                this.capitalizeLines({ lines: textLines, resultAs: "text", capitalize });
-            let text = this.concatLines({
+            textLines = this.replaceTemplateVars({ lines: textLines, vars: vars });
+            textLines = this.capitalizeLines({ lines: textLines, resultAs: "text", capitalize });
+            const text = this.concatLines({
                 lines: textLines,
                 lineType: "text",
                 lineConcat,
                 lineConcatDelim
             });
             let ssmlLines = this.extractLines({ lexDatum, resultAs: "ssml", lineIndex });
-            ssmlLines =
-                this.replaceTemplateRefs({ lines: ssmlLines, resultAs: "ssml" });
+            ssmlLines = this.replaceTemplateRefs({ lines: ssmlLines, resultAs: "ssml" });
             // Replace vars after references, so all text is fully
             // expanded first.
-            ssmlLines =
-                this.replaceTemplateVars({ lines: ssmlLines, vars: ssmlVars || vars });
-            ssmlLines = this.capitalizeLines({
-                lines: ssmlLines,
-                resultAs: "ssml",
-                capitalize
-            });
-            let ssml = this.concatLines({
-                lines: ssmlLines,
-                lineType: "ssml",
-                lineConcat,
-                lineConcatDelim
-            });
-            return { text, ssml, datum: lexDatum, rawData: lexData };
+            ssmlLines = this.replaceTemplateVars({ lines: ssmlLines, vars: ssmlVars || vars });
+            ssmlLines = this.capitalizeLines({ lines: ssmlLines, resultAs: "ssml", capitalize });
+            const ssml = this.concatLines({ lines: ssmlLines, lineType: "ssml", lineConcat, lineConcatDelim });
 
+            return { text, ssml, datum: lexDatum, rawData: lexData };
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -968,15 +730,25 @@ export class Lex<TProps = PropsData> {
      *
      * @param param0 info
      */
-    extractLines({ lexDatum, resultAs, lineIndex }) {
-        let lc = `Lex.extractLines`;
-        let f = () => {
+    extractLines({
+        lexDatum,
+        resultAs,
+        lineIndex
+    }: {
+        lexDatum: LexDatum<TProps>,
+        resultAs: "text" | "ssml",
+        lineIndex: number,
+    }) {
+        const lc = `${this.lc}[${this.extractLines.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 0c21a7ed7c1b56251f39342380c47922)`); }
+
             // ensure that either texts or ssmls is defined in data
             if ((!lexDatum.texts || lexDatum.texts.length === 0) &&
                 (!lexDatum.ssmls || lexDatum.ssmls.length === 0)) {
                 throw new Error(`Invalid lexDatum. Datum texts and ssmls are both undefined. lexDatum: ${JSON.stringify(lexDatum)}.`);
             }
-            let lines;
+            // let lines;
             let useLineIndex = lineIndex || lineIndex === 0;
             if (resultAs === "text" &&
                 lexDatum.texts && lexDatum.texts.length > 0) {
@@ -984,29 +756,31 @@ export class Lex<TProps = PropsData> {
                 return useLineIndex ?
                     [lexDatum.texts[lineIndex]] :
                     lexDatum.texts;
-            }
-            else if (resultAs === "text") {
+            } else if (resultAs === "text") {
                 // text wanted, but no text defined in data
-                h.log(`building text lines from ssml`, 'warn', 1, lc);
+                console.warn(`building text lines from ssml (W: cfb59a05efda475ab7511acc659a5ee3)`);
                 return useLineIndex ?
-                    [ssml_gib_1.Ssml.stripSsml(lexDatum.ssmls[lineIndex])] :
-                    lexDatum.ssmls.map(ssml => ssml_gib_1.Ssml.stripSsml(ssml));
-            }
-            else if (lexDatum.ssmls && lexDatum.ssmls.length > 0) {
+                    [Ssml.stripSsml(lexDatum.ssmls[lineIndex])] :
+                    lexDatum.ssmls.map(ssml => Ssml.stripSsml(ssml));
+            } else if (lexDatum.ssmls && lexDatum.ssmls.length > 0) {
                 // ssml wanted, ssml defined in data
                 return useLineIndex ?
                     [lexDatum.ssmls[lineIndex]] :
                     lexDatum.ssmls;
-            }
-            else {
+            } else {
                 // ssml wanted, but no ssml defined in data
                 return useLineIndex ?
                     [lexDatum.texts[lineIndex]] :
                     lexDatum.texts;
             }
-        };
-        return h.gib(this, f, /*args*/ null, lc);
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
     }
+
     /**
      * Replaces any embedded template variables, e.g. $name, $0, etc.
      * Note the format is "$" proceeded by any word characters
@@ -1016,25 +790,36 @@ export class Lex<TProps = PropsData> {
      *
      * @see {replaceTemplateRefs}
      */
-    replaceTemplateVars({ lines, vars }) {
-        let lc = `Lex.replaceTemplateVars`;
-        let replaceVarsSingleLine = (line) => {
-            let varNames = Object.keys(vars);
-            h.log(`varNames: ${JSON.stringify(varNames)}`, "debug", 0, lc);
-            return varNames.reduce((l, varName) => {
-                h.log(`varName: ${varName}`, "debug", 0, lc);
-                return l.replace(new RegExp('\\$' + varName, "g"), vars[varName]);
-            }, line);
-        };
-        let f = () => {
+    replaceTemplateVars({
+        lines,
+        vars,
+    }: {
+        lines: string[],
+        vars?: { [key: string]: string; },
+    }): string[] {
+        const lc = `${this.lc}[${this.replaceTemplateVars.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: a756e7603d03d427c60c202cb4f6dd22)`); }
+
+            let replaceVarsSingleLine = (line: string) => {
+                let varNames = Object.keys(vars);
+                if (logalot) { console.log(`${lc} varNames: ${JSON.stringify(varNames)} (I: d9351cf582420b35eb3eceb923e64f22)`); }
+                return varNames.reduce((l, varName) => {
+                    if (logalot) { console.log(`${lc} varName: ${varName} (I: 8c0e4261972945d2bb4624efad14870b)`); }
+                    return l.replace(new RegExp('\\$' + varName, "g"), vars[varName]);
+                }, line);
+            };
             if (vars) {
                 return lines.map(line => replaceVarsSingleLine(line));
-            }
-            else {
+            } else {
                 return lines;
             }
-        };
-        return h.gib(this, f, /*args*/ null, lc);
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
     }
     /**
      * Replaces any embedded template references, e.g. $(hi).
@@ -1049,165 +834,206 @@ export class Lex<TProps = PropsData> {
      * a reference back to A.
      *
      * @see {replaceTemplateVars}
-     *
-     * @param param0
      */
-    replaceTemplateRefs({ lines, resultAs }) {
-        let lc = `Lex.replaceTemplateRefs`;
-        let regex = /\$\([\w-]+\|?[\w-|\{\}:'"\s,\[\].,<>]+\)/;
-        let replaceRefsSingleLine = (line) => {
-            let match = regex.exec(line);
-            if (match) {
-                let template = match[0];
-                // strip the $()
-                template = template.substring(2, template.length - 1);
-                // id|options
-                let idAndOptions = template.split('|');
-                let id = idAndOptions[0];
-                let options = idAndOptions.length === 2 ?
-                    JSON.parse(idAndOptions[1]) :
-                    {};
-                if (!options.lineConcat) {
-                    options.lineConcat = types_1.LexLineConcat.delim;
-                    options.lineConcatDelim = "";
+    replaceTemplateRefs({
+        lines,
+        resultAs,
+    }: {
+        /**
+         * source lines from data
+         */
+        lines: string[],
+        /**
+         * how do you want the lines back?
+         */
+        resultAs: "ssml" | "text",
+    }): string[] {
+        const lc = `${this.lc}[${this.replaceTemplateRefs.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 548949b651bbec84de5b25f3c01cf422)`); }
+            const regex = /\$\([\w-]+\|?[\w-|\{\}:'"\s,\[\].,<>]+\)/;
+
+            let replaceRefsSingleLine = (line: string) => {
+                let match = regex.exec(line);
+                if (match) {
+                    let template = match[0];
+                    // strip the $()
+                    template = template.substring(2, template.length - 1);
+                    // id|options
+                    const idAndOptions = template.split('|');
+                    const id = idAndOptions[0];
+                    const options = idAndOptions.length === 2 ?
+                        JSON.parse(idAndOptions[1]) :
+                        {};
+                    if (!options.lineConcat) {
+                        options.lineConcat = LexLineConcat.delim;
+                        options.lineConcatDelim = "";
+                    }
+                    const replacementResult = this._(id, options);
+                    const replacement = resultAs === "text" ?
+                        replacementResult.text :
+                        replacementResult.ssml;
+                    line = line.replace(regex, replacement);
+                    // recursively call if more templates in line
+                    return regex.test(line) ?
+                        replaceRefsSingleLine(line) :
+                        line;
+                } else {
+                    return line;
                 }
-                let replacementResult = this._(id, options);
-                let replacement = resultAs === "text" ?
-                    replacementResult.text :
-                    replacementResult.ssml;
-                line = line.replace(regex, replacement);
-                // recursively call if more templates in line
-                return regex.test(line) ?
-                    replaceRefsSingleLine(line) :
-                    line;
-            }
-            else {
-                return line;
-            }
-        };
-        let f = () => {
+            };
+
             return lines.map(line => replaceRefsSingleLine(line));
-        };
-        return h.gib(this, f, /*args*/ null, lc);
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
     }
+
     /**
      * Capitalizes the given lines depending on the given
      * capitalize options.
      *
      * @param param0
      */
-    capitalizeLines({ lines, resultAs, capitalize }) {
-        let lc = `Lex.capitalizeLines`;
-        let replaceAt = (s, i, replacement) => {
-            return s.substr(0, i) +
-                replacement +
-                s.substr(i + replacement.length);
-        };
-        let upperText = (line) => {
-            if (line === "") {
-                return "";
-            }
-            // Thanks https://paulund.co.uk/capitalize-first-letter-string-javascript
-            return line.charAt(0).toUpperCase() + line.slice(1);
-        };
-        let upperSsml = (line) => {
-            if (line === "") {
-                return "";
-            }
-            if (line.charAt(0) === "<") {
-                let iFirstLetter = line.indexOf(">") + 1;
-                return replaceAt(line, iFirstLetter, line[iFirstLetter].toUpperCase());
-            }
-            else {
-                return upperText(line);
-            }
-        };
-        let lowerText = (line) => {
-            if (line === "") {
-                return "";
-            }
-            // Thanks https://paulund.co.uk/capitalize-first-letter-string-javascript
-            return line.charAt(0).toLowerCase() + line.slice(1);
-        };
-        let lowerSsml = (line) => {
-            if (line === "") {
-                return "";
-            }
-            if (line.charAt(0) === "<") {
-                let iFirstLetter = line.indexOf(">") + 1;
-                return replaceAt(line, iFirstLetter, line[iFirstLetter].toLowerCase());
-            }
-            else {
-                return lowerText(line);
-            }
-        };
-        let f = () => {
-            let firstLine = lines[0];
+    capitalizeLines({
+        lines,
+        resultAs,
+        capitalize,
+    }: {
+        lines: string[],
+        resultAs: "ssml" | "text",
+        capitalize: LexCapitalize,
+    }) {
+        const lc = `${this.lc}[${this.capitalizeLines.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: b0ec8263fd94c68ee53fdf61534c8322)`); }
+
+            const replaceAt = (s: string, i: number, replacement: string) => {
+                // todo: change substr to use substring
+                return s.substr(0, i) +
+                    replacement +
+                    s.substr(i + replacement.length);
+            };
+            const upperText = (line: string) => {
+                if (line === "") {
+                    return "";
+                }
+                // Thanks https://paulund.co.uk/capitalize-first-letter-string-javascript
+                return line.charAt(0).toUpperCase() + line.slice(1);
+            };
+            const upperSsml = (line: string) => {
+                if (line === "") {
+                    return "";
+                }
+                if (line.charAt(0) === "<") {
+                    let iFirstLetter = line.indexOf(">") + 1;
+                    return replaceAt(line, iFirstLetter, line[iFirstLetter].toUpperCase());
+                } else {
+                    return upperText(line);
+                }
+            };
+            const lowerText = (line: string) => {
+                if (line === "") {
+                    return "";
+                }
+                // Thanks https://paulund.co.uk/capitalize-first-letter-string-javascript
+                return line.charAt(0).toLowerCase() + line.slice(1);
+            };
+            const lowerSsml = (line: string) => {
+                if (line === "") {
+                    return "";
+                }
+                if (line.charAt(0) === "<") {
+                    let iFirstLetter = line.indexOf(">") + 1;
+                    return replaceAt(line, iFirstLetter, line[iFirstLetter].toLowerCase());
+                } else {
+                    return lowerText(line);
+                }
+            };
+            const firstLine = lines[0];
             switch (capitalize) {
-                case types_1.LexCapitalize.upperfirst:
+                case LexCapitalize.upperfirst:
                     lines[0] =
                         resultAs === "text" ?
                             upperText(firstLine) :
                             upperSsml(firstLine);
                     return lines;
-                case types_1.LexCapitalize.uppereach:
+                case LexCapitalize.uppereach:
                     return lines.map(l => {
                         return resultAs === "text" ?
                             upperText(l) :
                             upperSsml(l);
                     });
-                case types_1.LexCapitalize.lowerfirst:
+                case LexCapitalize.lowerfirst:
                     lines[0] =
                         resultAs === "text" ?
                             lowerText(firstLine) :
                             lowerSsml(firstLine);
                     return lines;
-                case types_1.LexCapitalize.lowereach:
+                case LexCapitalize.lowereach:
                     return lines.map(l => {
                         return resultAs === "text" ?
                             lowerText(l) :
                             lowerSsml(l);
                     });
-                case types_1.LexCapitalize.none:
+                case LexCapitalize.none:
                     return lines;
                 default:
                     throw new Error(`Unknown LexCapitalize: ${capitalize}`);
             }
-        };
-        return h.gib(this, f, /*args*/ null, lc);
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
     }
+
     /**
      * Concatenates lines depending on given params.
      *
      * @param param0
      */
-    concatLines({ lines, lineType, lineConcat, lineConcatDelim }) {
-        let lc = `Lex.concatLines`;
-        let firstLine = lines[0];
-        // This used in both LexLineConcat.p and .n
-        let concatSsmlP = () => {
-            const pTag = "<p>";
-            if (firstLine.length < pTag.length ||
-                firstLine.substring(0, pTag.length).toLowerCase() !== pTag) {
-                return lines.map(l => `<p>${l}</p>`).join('');
-            }
-            else {
-                // First line starts with <p> so
-                // we will simply concat all lines,
-                // assuming the user has wrapped all lines.
-                return lines.join('');
-            }
-        };
-        let f = () => {
+    concatLines({
+        lines,
+        lineType,
+        lineConcat,
+        lineConcatDelim
+    }: {
+        lines: string[],
+        lineType: "ssml" | "text",
+        lineConcat: LexLineConcat,
+        lineConcatDelim: string,
+    }): string {
+        const lc = `${this.lc}[${this.concatLines.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 59e0a7b89457283751b376295b61bb22)`); }
+
+            const firstLine = lines[0];
+            // This used in both LexLineConcat.p and .n
+            const concatSsmlP = () => {
+                const pTag = "<p>";
+                if (firstLine.length < pTag.length ||
+                    firstLine.substring(0, pTag.length).toLowerCase() !== pTag) {
+                    return lines.map(l => `<p>${l}</p>`).join('');
+                } else {
+                    // First line starts with <p> so
+                    // we will simply concat all lines,
+                    // assuming the user has wrapped all lines.
+                    return lines.join('');
+                }
+            };
             switch (lineConcat) {
-                case types_1.LexLineConcat.p:
+                case LexLineConcat.p:
                     if (lineType === "text") {
                         return lines.join("\n\n");
-                    }
-                    else {
+                    } else {
                         return concatSsmlP();
                     }
-                case types_1.LexLineConcat.s:
+                case LexLineConcat.s:
                     if (lineType === "text") {
                         // Append period if not in data.
                         // e.g. Data may just be "hello" and we want to
@@ -1218,51 +1044,70 @@ export class Lex<TProps = PropsData> {
                                 l :
                                 l + ".";
                         }).join(' ');
-                    }
-                    else {
+                    } else {
                         const sTag = "<s>";
                         if (firstLine.length < sTag.length ||
                             firstLine.substring(0, sTag.length).toLowerCase() !== sTag) {
                             return lines.map(l => `<s>${l}</s>`).join('');
-                        }
-                        else {
+                        } else {
                             // First line starts with <s> so
                             // we will simply concat all lines,
                             // assuming the user has wrapped all lines.
                             return lines.join('');
                         }
                     }
-                case types_1.LexLineConcat.n:
+                case LexLineConcat.n:
                     if (lineType === "text") {
                         return lines.join('\n');
-                    }
-                    else {
+                    } else {
                         return concatSsmlP();
                     }
-                case types_1.LexLineConcat.delim:
+                case LexLineConcat.delim:
                     return lines.join(lineConcatDelim);
                 default:
-                    throw new Error(`Unknown LexLineConcat: ${lineConcat}`);
+                    throw new Error(`Unknown LexLineConcat: ${lineConcat} (E: e19f9c44217f4eb5999e2085d3f77b5c)`);
             }
-        };
-        return h.gib(this, f, /*args*/ null, lc);
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
     }
+
     /**
      * Filters the given lexData per the language, specifier,
      * and keywords.
      *
      * @param param0 Filter params
+     * @returns filtered datum array
      */
-    filterLexData({ lexData, language, specifier, keywords, keywordMode, props, propsMode }) {
-        let lc = `Lex.filterLexData`;
-        let f = () => {
-            let result = lexData.slice();
+    filterLexData({
+        lexData,
+        language,
+        specifier,
+        keywords,
+        keywordMode,
+        props,
+        propsMode
+    }: {
+        lexData: LexDatum<TProps>[],
+        language: LanguageCode,
+        specifier: string,
+        keywords: string[],
+        keywordMode: KeywordMode,
+        props: PropsFilter<TProps>,
+        propsMode: PropsFilterMode,
+    }): LexDatum<TProps>[] {
+        const lc = `${this.lc}[${this.filterLexData.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 1091755e98f390954d296575d1096722)`); }
+            let result = lexData.concat(); // makes a copy
             if (language) {
                 result = this.filterLanguage(result, language);
             }
             if (specifier) {
-                result =
-                    result.filter(d => d.specifier && d.specifier === specifier);
+                result = result.filter(d => d.specifier && d.specifier === specifier);
             }
             if (keywords && keywords.length > 0) {
                 // Datum must contain keywords that overlap with given
@@ -1291,7 +1136,7 @@ export class Lex<TProps = PropsData> {
                         });
                         break;
                     default:
-                        h.log(`Unknown keywordMode: ${keywordMode}`, "error", 3, lc);
+                        console.error(`${lc} Unknown keywordMode: ${keywordMode}`);
                         break;
                 }
             }
@@ -1299,28 +1144,55 @@ export class Lex<TProps = PropsData> {
                 result = this.filterProps({ result, props, propsMode });
             }
             return result;
-        };
-        return h.gib(this, f, /*args*/ null, lc);
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
     }
-    filterProps({ result, props, propsMode }) {
+
+    /**
+     * executes the property filter on the given (intermediate) result.
+     */
+    private filterProps({
+        result,
+        props,
+        propsMode
+    }: {
+        result: LexDatum<TProps>[],
+        /**
+         * Filters either per prop or per the entire props object.
+         *
+         * Here are how they're defined atow. (see them for reference)
+         * PropsData = { [propName: string]: string; };
+         * PropsFilter<TProps> = FilterPerProp | FilterPerProps<TProps>;
+         * PropertyPredicate = (propName: string) => boolean;
+         * FilterPerProp = { [propName: string]: PropertyPredicate; };
+         * FilterPerProps<TProps> = (props: TProps) => boolean;
+         */
+        props: PropsFilter<TProps>,
+        propsMode: PropsFilterMode,
+    }): LexDatum<TProps>[] {
+        // not within a try...catch because used in a tight loop within another fn that catches it
         if (propsMode === "prop") {
+            const propsFilter = <FilterPerProp>props;
             return result.filter(d => {
-                return Object.keys(props).every(propName => {
-                    let propFn = props[propName];
-                    let dPropValue = d.props ? d.props[propName] : undefined;
+                return Object.keys(propsFilter).every(propName => {
+                    const propFn = propsFilter[propName];
+                    const dPropValue = d.props ? d.props[propName] : undefined;
                     return propFn(dPropValue);
                 });
             });
-        }
-        else if (propsMode === "props") {
-            let propsFn = props;
+        } else if (propsMode === "props") {
+            let propsFn = <FilterPerProps<TProps>>props;
             return result.filter(d => propsFn(d.props));
-        }
-        else {
-            throw new Error(`Invalid propsMode: ${propsMode}`);
+        } else {
+            throw new Error(`Invalid propsMode: ${propsMode} (E: 216a926144d2436a900b81ffe0aa6174)`);
         }
     }
-    filterLanguage(result, language) {
+
+    filterLanguage(result: LexDatum<TProps>[], language: string): LexDatum<TProps>[] {
         result = result.filter(d =>
             // explicit language given
             (d.language && d.language === language) ||
@@ -1332,6 +1204,7 @@ export class Lex<TProps = PropsData> {
             (!d.language && this.defaultLanguage === language));
         return result;
     }
+
     /**
      * Picks a randomesque datum from the given lexData, taking into
      * account the weighting of each datum.
@@ -1340,37 +1213,40 @@ export class Lex<TProps = PropsData> {
      *
      * @see LexDatum.weighting
      */
-    pickDatum(lexData) {
-        let lc = `Lex.pickDatum`;
-        let f = () => {
-            if (lexData.length === 1) {
+    pickDatum(lexData: LexDatum<TProps>[]): LexDatum<TProps> {
+        const lc = `${this.lc}[${this.pickDatum.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: f95c8585a8274f78a1e724d6ab58ff22)`); }
+            if (!lexData) { throw new Error(`lexData required (E: cedb1fd9b67856c33b41c7dd4aab7c22)`); }
+            if (lexData.length === 0) {
+                return null;
+            } else if (lexData.length === 1) {
                 return lexData[0];
-            }
-            else {
-                let totalWeight = lexData.reduce((agg, item) => {
+            } else {
+                const totalWeight = lexData.reduce((agg, item) => {
                     return agg + (item.weighting ? item.weighting : 1);
                 }, 0);
                 // normalized random number
-                let randomNumber = Math.random() * totalWeight;
-                let result = null;
+                const randomNumber = Math.random() * totalWeight;
+                let result: LexDatum<TProps> = null;
                 lexData.reduce((runningWeight, item) => {
                     if (result) {
                         // already got a result
                         return -1;
-                    }
-                    else {
-                        runningWeight +=
-                            (item.weighting ? item.weighting : 1);
-                        if (runningWeight >= randomNumber) {
-                            result = item;
-                        }
+                    } else {
+                        runningWeight += (item.weighting ? item.weighting : 1);
+                        if (runningWeight >= randomNumber) { result = item; }
                         return runningWeight;
                     }
                 }, 0);
                 return result;
             }
-        };
-        return h.gib(this, f, /*args*/ null, lc);
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
     }
+
 }
-exports.Lex = Lex;

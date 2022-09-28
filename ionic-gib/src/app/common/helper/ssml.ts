@@ -1060,8 +1060,7 @@ export class Ssml {
             if (s < min) {
                 console.warn(`${lc} min: ${min}, actual: ${s} (W: 6ff97060a6734f20b16a81a20d06630e)`);
                 s = min;
-            }
-            else if (s > max) {
+            } else if (s > max) {
                 console.warn(`${lc} max: ${max}, actual: ${s} (W: d57ed120e09c4fcaa19b864bdf9f1fc7)`);
                 s = max;
             }
@@ -1072,8 +1071,7 @@ export class Ssml {
             if (ms < min) {
                 console.warn(`min: ${min}, actual: ${ms} (W: 0addf6dbab1844a9906bd18a859be3d7)`);
                 ms = 0;
-            }
-            else if (ms > max) {
+            } else if (ms > max) {
                 console.warn(`max: ${max}, actual: ${ms} (W: f46b9868ec6d4ef2abd4f2aefe879427)`);
                 ms = max;
             }
