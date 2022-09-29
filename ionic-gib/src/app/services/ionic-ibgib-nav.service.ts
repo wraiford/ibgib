@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Directive, Injectable } from '@angular/core';
 import { IbgibNav, NavInfo } from './common.service';
 import { NavController } from '@ionic/angular';
 

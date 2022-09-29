@@ -1,6 +1,7 @@
 import { IbGib_V1 } from "ts-gib/dist/V1";
 
 import * as c from '../constants';
+import { Lex, LexData } from "../helper/lex";
 import { TjpIbGibAddr } from "./ibgib";
 import {
     WitnessData_V1, WitnessRel8ns_V1,
@@ -285,3 +286,60 @@ export interface RobbotResultIbGib<
 }
 
 export const ROBBOT_MY_COMMENT_REL8N_NAME = 'my_comment';
+
+
+
+export type UserLexId = 'yes' | 'no' | 'cancel';
+export const UserLexId = {
+    yes: 'yes' as UserLexId,
+    no: 'no' as UserLexId,
+    cancel: 'cancel' as UserLexId,
+}
+
+export const DEFAULT_USER_LEX_DATA: LexData = {
+    [UserLexId.yes]: [
+        {
+            texts: [
+                'yes', 'y', 'yeah', 'yea', 'aye', 'yup', 'yep', 'sure', 'ok',
+                'sounds good', 'go for it', 'yes please', 'yes thanks', 'ok thanks',
+                'uh huh', 'god yes',
+            ],
+            language: 'en-US',
+        }
+    ],
+    [UserLexId.no]: [
+        {
+            texts: [
+                'no', 'n', 'nah', 'nay', 'nope', 'uh uh', 'no thanks', 'ick', 'nuh uh',
+                'god no', 'no way', 'not at all',
+            ],
+            language: 'en-US',
+        }
+    ],
+    [UserLexId.cancel]: [
+        {
+            texts: [
+                'cancel', 'nm', 'nevermind', 'cancel that', 'forget it', 'forget that',
+                'don\'t worry about it'
+            ],
+            language: 'en-US',
+        }
+    ],
+}
+
+/**
+ * This lex is to be used for parsing user responses.
+ *
+ * Also, you can use this in the robbot's responses, if you initialize the
+ * robbot's lex to include this. This way, the robbot speaks as he/she expects
+ * to be spoken to.
+ *
+ * So when a user says 'yes', we can interpret it via a lookup in the lex data.
+ * we will find the id filter via keywords.
+ */
+export const DEFAULT_USER_LEX = new Lex(DEFAULT_USER_LEX_DATA, {
+    requestLanguage: "en-US", defaultLanguage: "en-US",
+    defaultCapitalize: "none",
+    defaultLineConcat: "delim", defaultDelim: "\n\n",
+    defaultKeywordMode: "any", defaultPropsMode: "prop",
+});

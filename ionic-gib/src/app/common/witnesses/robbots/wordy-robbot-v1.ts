@@ -13,7 +13,7 @@ import * as c from '../../constants';
 import { RobbotBase_V1 } from './robbot-base-v1';
 import {
     RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1,
-    RobbotCmdData, RobbotCmdIbGib, RobbotCmdRel8ns, RobbotCmd,
+    RobbotCmdData, RobbotCmdIbGib, RobbotCmdRel8ns, RobbotCmd, UserLexId,
 } from '../../types/robbot';
 import { DynamicForm } from '../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
@@ -28,6 +28,7 @@ import { AppSpaceData, AppSpaceRel8ns } from '../../types/app';
 import { IonicSpace_V1 } from '../spaces/ionic-space-v1';
 import { IbGibSpaceAny } from '../spaces/space-base-v1';
 import { IbGibTimelineUpdateInfo } from '../../types/ux';
+import { Lex, LexData, LexLineConcat } from '../../helper/lex';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
@@ -119,21 +120,14 @@ export const DEFAULT_SEARCH_REL8N_NAMES_WORDY_ROBBOT = [
 export const WORDY_V1_ANALYSIS_REL8N_NAME = 'analysis';
 
 
-export type UserChatResponse = 'yes' | 'no' | 'cancel'
-export const UserChatResponse = {
-    yes: 'yes' as UserChatResponse,
-    y: 'yes' as UserChatResponse,
-    yeah: 'yes' as UserChatResponse,
-    // : '' as UserChatResponse,
-    // : '' as UserChatResponse,
-    // : '' as UserChatResponse,
-    // : '' as UserChatResponse,
-    // : '' as UserChatResponse,
-    // : '' as UserChatResponse,
-    // : '' as UserChatResponse,
-    // : '' as UserChatResponse,
-    // : '' as UserChatResponse,
+export type WordyChatId = UserLexId;
+export const WordyChatId = {
+    yes: 'yes' as WordyChatId,
+    no: 'no' as WordyChatId,
+    cancel: 'cancel' as WordyChatId,
 }
+
+
 export interface WordyRobbotData_V1 extends RobbotData_V1 {
     /**
      * comma-delimited string of rel8n names.

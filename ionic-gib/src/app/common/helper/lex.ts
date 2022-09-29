@@ -236,7 +236,7 @@ export const PropertyPredicateLevel = {
  * Result object when using `Lex._`
  *
  * @see Lex
- * @see Lex._
+ * @see Lex.get
  */
 export interface LexResultObj<TProps = PropsData> {
     /**
@@ -327,6 +327,77 @@ export type LexData<TProps = PropsData> = {
     [key: string]: LexDatum<TProps>[];
 };
 
+/**
+ * These options control mostly the default behavior for filtering lex results
+ * when consuming via the `Lex._(someIdentifier, opts)` call.  When you don't
+ * specify in the `opts` how to filter, these values will be used.
+ *
+ * These options are in the constructor of the {@link Lex} class.
+ */
+export interface LexCtorOpts {
+    /**
+     * This is the language that your data will default to.
+     *
+     * This means that entries defined in the Lex data that do not
+     * have an explicit 'language' set will be interpreted as this
+     * language.
+     *
+     * So basically, if you're an American with American data, leave
+     * this as en-US. If you're a German speaker writing a skill
+     * that is primarily targeted at a German-speaking audience,
+     * then set this to de-DE and you don't need to explicitly
+     * set each entry to this.
+     *
+     * Then, when you go to translate into other languages, you can
+     * add on the explicit language markers in data. The overall
+     * mechanism allows you to skip this for the first language
+     * you write the skill in.
+     *
+     * @see requestLanguage
+     */
+    defaultLanguage?: LanguageCode;
+    /**
+     * This is the language that is coming in from the request.
+     *
+     * @see defaultLanguage
+     */
+    requestLanguage?: LanguageCode;
+    /**
+     * Default setting when concatenating lines. This will depend on how most of
+     * your data is structured. For example, it's designed so that you input
+     * your data separated by paragraphs, so the concat would be "paragraph".
+     * But if you already have data with <p> tags in your ssml, then you may
+     * want to set this to "delim" and do your own interpretation of using the
+     * multiple strings for the data.
+     *
+     * Defaults to delim & "" because most of the time, I find I
+     * just have a single line and want the single thing returned.
+     * This helps with templating, chunking, etc.
+     */
+    defaultLineConcat?: LexLineConcat;
+    /**
+     * Default delimiter used when using `lineConcatDelim`.
+     *
+     * Defaults to delim & "" because most of the time, I find I just have a
+     * single line and want the single thing returned.  This helps with
+     * templating, chunking, etc.
+     */
+    defaultDelim?: string;
+    /**
+     * Default capitalization action when getting texts/ssmls.
+     */
+    defaultCapitalize?: LexCapitalize;
+    /**
+     * When using keyword filtering, this is the default mode to be used
+     * when not explicitly set in the lex consumer.
+     */
+    defaultKeywordMode?: KeywordMode;
+    /**
+     * When using props filtering, this is the default mode to be used
+     * when not explicitly set in the lex consumer.
+     */
+    defaultPropsMode?: PropsFilterMode;
+}
 
 
 
@@ -525,35 +596,7 @@ export class Lex<TProps = PropsData> {
     protected lc: string = `[${Lex.name}]`;
 
     data: LexData<TProps>;
-    /**
-     * This is the language that your data will default to.
-     *
-     * This means that entries defined in the Lex data that do not
-     * have an explicit 'language' set will be interpreted as this
-     * language.
-     *
-     * So basically, if you're an American with American data, leave
-     * this as en-US. If you're a German speaker writing a skill
-     * that is primarily targeted at a German-speaking audience,
-     * then set this to de-DE and you don't need to explicitly
-     * set each entry to this.
-     *
-     * Then, when you go to translate into other languages, you can
-     * add on the explicit language markers in data. The overall
-     * mechanism allows you to skip this for the first language
-     * you write the skill in.
-     *
-     * @see requestLanguage
-     */
     defaultLanguage: LanguageCode;
-    /**
-     * Defaults to delim & "" because most of the time, I find I
-     * just have a single line and want the single thing returned.
-     * This helps with templating, chunking, etc.
-     *
-     * BREAKING CHANGE: This formerly defaulted to paragraphs, as
-     * I thought lines would mean paragraphs. No longer the case.
-     */
     defaultLineConcat: LexLineConcat;
     /**
      * Defaults to delim & "" because most of the time, I find I
@@ -573,69 +616,70 @@ export class Lex<TProps = PropsData> {
     requestLanguage: LanguageCode;
     defaultKeywordMode: KeywordMode;
     defaultPropsMode: PropsFilterMode;
-    /**
-     * @param data This is the initial lexical data that you want Alexa to be able to say. You can always change this dynamically at runtime as well.
-     * @param defaultLanguage If a language isn't specified in `get`, `text`, or `ssml`, then this is used.
-     * @param defaultLineConcat Default setting when concatenating lines. This will depend on how most of your data is structured. For example, it's designed so that you input your data separated by paragraphs, so the concat would be "paragraph". But if you already have data with <p> tags in your ssml, then you may want to set this to "delim" and do your own interpretation of using the multiple strings for the data.
-     * @param defaultDelim Default delimiter user as `lineConcatDelim`.
-     * @param defaultCapitalize Default capitalization action when getting texts/ssmls.
-     */
+
     constructor(
+        /**
+         * This is the initial lexical data that you want Alexa to be able to
+         * say. You can always change this dynamically at runtime as well.
+         */
         data: LexData<TProps>,
-        /**
-         * This is the language that your data will default to.
-         *
-         * This means that entries defined in the Lex data that do not
-         * have an explicit 'language' set will be interpreted as this
-         * language.
-         *
-         * So basically, if you're an American with American data, leave
-         * this as en-US. If you're a German speaker writing a skill
-         * that is primarily targeted at a German-speaking audience,
-         * then set this to de-DE and you don't need to explicitly
-         * set each entry to this.
-         *
-         * Then, when you go to translate into other languages, you can
-         * add on the explicit language markers in data. The overall
-         * mechanism allows you to skip this for the first language
-         * you write the skill in.
-         *
-         * @see requestLanguage
-         */
-        defaultLanguage: LanguageCode = "en-US",
-        /**
-         * Defaults to delim & "" because most of the time, I find I
-         * just have a single line and want the single thing returned.
-         * This helps with templating, chunking, etc.
-         *
-         * BREAKING CHANGE: This formerly defaulted to paragraphs, as
-         * I thought lines would mean paragraphs. No longer the case.
-         */
-        defaultLineConcat: LexLineConcat = LexLineConcat.delim,
-        /**
-         * Defaults to delim & "" because most of the time, I find I
-         * just have a single line and want the single thing returned.
-         * This helps with templating, chunking, etc.
-         *
-         * BREAKING CHANGE: This formerly defaulted to paragraphs, as
-         * I thought lines would mean paragraphs. No longer the case.
-         */
-        defaultDelim: string = "",
-        defaultCapitalize: LexCapitalize = "none"
+        /** optional opts */
+        {
+            /**
+             * This is the language that your data will default to.
+             * If a language isn't specified in `get`, `text`, or `ssml`, then this is used.
+             *
+             * This means that entries defined in the Lex data that do not
+             * have an explicit 'language' set will be interpreted as this
+             * language.
+             *
+             * So basically, if you're an American with American data, leave
+             * this as en-US. If you're a German speaker writing a skill
+             * that is primarily targeted at a German-speaking audience,
+             * then set this to de-DE and you don't need to explicitly
+             * set each entry to this.
+             *
+             * Then, when you go to translate into other languages, you can
+             * add on the explicit language markers in data. The overall
+             * mechanism allows you to skip this for the first language
+             * you write the skill in.
+             *
+             * @see requestLanguage
+             */
+            defaultLanguage = "en-US",
+            requestLanguage = "en-US",
+            /**
+             * Defaults to delim & "" because most of the time, I find I
+             * just have a single line and want the single thing returned.
+             * This helps with templating, chunking, etc.
+             *
+             * BREAKING CHANGE: This formerly defaulted to paragraphs, as
+             * I thought lines would mean paragraphs. No longer the case.
+             */
+            defaultLineConcat = LexLineConcat.delim,
+            /**
+             * Defaults to delim & "" because most of the time, I find I
+             * just have a single line and want the single thing returned.
+             * This helps with templating, chunking, etc.
+             *
+             * BREAKING CHANGE: This formerly defaulted to paragraphs, as
+             * I thought lines would mean paragraphs. No longer the case.
+             */
+            defaultDelim = "",
+            defaultCapitalize = "none",
+            defaultKeywordMode = "any",
+            defaultPropsMode = "prop",
+        }: LexCtorOpts
     ) {
+        if (!data) { throw new Error(`data required (E: 2f8db30fa9d71d76db616ab110392c22)`); }
         this.data = data;
-        this.defaultLanguage = defaultLanguage;
-        this.defaultLineConcat = defaultLineConcat;
-        this.defaultDelim = defaultDelim;
-        this.defaultCapitalize = defaultCapitalize;
-        /**
-         * This is the language that is coming in from the request.
-         *
-         * @see defaultLanguage
-         */
-        this.requestLanguage = "en-US";
-        this.defaultKeywordMode = "any";
-        this.defaultPropsMode = "prop";
+        this.defaultLanguage = defaultLanguage ?? "en-US";
+        this.defaultLineConcat = defaultLineConcat ?? LexLineConcat.delim;
+        this.defaultDelim = defaultDelim ?? "";
+        this.defaultCapitalize = defaultCapitalize ?? "none";
+        this.requestLanguage = requestLanguage ?? "en-US";
+        this.defaultKeywordMode = defaultKeywordMode ?? "any";
+        this.defaultPropsMode = defaultPropsMode ?? "prop";
     }
 
     /**
@@ -648,7 +692,7 @@ export class Lex<TProps = PropsData> {
      * @param id Lexical items with the same id are considered alternatives for the equivalent message, e.g. "Hello" and "Howdy".
      * @see LexGetOptions
      */
-    _(
+    get(
         id: string,
         {
             language = this.requestLanguage,
@@ -668,7 +712,7 @@ export class Lex<TProps = PropsData> {
                 capitalize: this.defaultCapitalize,
                 propsMode: this.defaultPropsMode,
             }): LexResultObj<TProps> {
-        const lc = `${this.lc}[${this._.name}]`;
+        const lc = `${this.lc}[${this.get.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: e4e76a6bb301010fc13cf4456efcdc22)`); }
 
@@ -716,6 +760,70 @@ export class Lex<TProps = PropsData> {
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
+
+    /**
+     * This is the original single function. it is just for backwards compatibility at this point.
+     * Probably not needed...
+     *
+     * @deprecated
+     */
+    _(id: string, opts: LexGetOptions): LexResultObj<TProps> {
+        return this.get(id, opts);
+    }
+
+    // #region syntactic sugar calls for `get`
+
+    /**
+     * just syntactic sugar for {@link Lex.get} .
+     */
+    getVariant(id: string, opts: LexGetOptions): LexResultObj<TProps> {
+        return this.get(id, opts);
+    }
+    /**
+     * just syntactic sugar for {@link Lex.get} .
+     */
+    variant(id: string, opts: LexGetOptions): LexResultObj<TProps> {
+        return this.get(id, opts);
+    }
+    /**
+     * just syntactic sugar for {@link Lex.get} .
+     */
+    getTranslation(id: string, opts: LexGetOptions): LexResultObj<TProps> {
+        return this.get(id, opts);
+    }
+    /**
+     * just syntactic sugar for {@link Lex.get} .
+     */
+    translate(id: string, opts: LexGetOptions): LexResultObj<TProps> {
+        return this.get(id, opts);
+    }
+    /**
+     * just syntactic sugar for {@link Lex.get} .
+     */
+    getSynonym(id: string, opts: LexGetOptions): LexResultObj<TProps> {
+        return this.get(id, opts);
+    }
+    /**
+     * just syntactic sugar for {@link Lex.get} .
+     */
+    synonym(id: string, opts: LexGetOptions): LexResultObj<TProps> {
+        return this.get(id, opts);
+    }
+    /**
+     * just syntactic sugar for {@link Lex.get} .
+     */
+    getI18n(id: string, opts: LexGetOptions): LexResultObj<TProps> {
+        return this.get(id, opts);
+    }
+    /**
+     * just syntactic sugar for {@link Lex.get} .
+     */
+    i18n(id: string, opts: LexGetOptions): LexResultObj<TProps> {
+        return this.get(id, opts);
+    }
+
+    // #endregion syntactic sugar calls for `get`
+
     /**
      * Pulls out lines from the datum, based on the what is wanted
      * and what exists in the data.
@@ -730,7 +838,7 @@ export class Lex<TProps = PropsData> {
      *
      * @param param0 info
      */
-    extractLines({
+    private extractLines({
         lexDatum,
         resultAs,
         lineIndex
@@ -790,7 +898,7 @@ export class Lex<TProps = PropsData> {
      *
      * @see {replaceTemplateRefs}
      */
-    replaceTemplateVars({
+    private replaceTemplateVars({
         lines,
         vars,
     }: {
@@ -835,7 +943,7 @@ export class Lex<TProps = PropsData> {
      *
      * @see {replaceTemplateVars}
      */
-    replaceTemplateRefs({
+    private replaceTemplateRefs({
         lines,
         resultAs,
     }: {
@@ -869,7 +977,7 @@ export class Lex<TProps = PropsData> {
                         options.lineConcat = LexLineConcat.delim;
                         options.lineConcatDelim = "";
                     }
-                    const replacementResult = this._(id, options);
+                    const replacementResult = this.get(id, options);
                     const replacement = resultAs === "text" ?
                         replacementResult.text :
                         replacementResult.ssml;
@@ -898,7 +1006,7 @@ export class Lex<TProps = PropsData> {
      *
      * @param param0
      */
-    capitalizeLines({
+    private capitalizeLines({
         lines,
         resultAs,
         capitalize,
@@ -997,7 +1105,7 @@ export class Lex<TProps = PropsData> {
      *
      * @param param0
      */
-    concatLines({
+    private concatLines({
         lines,
         lineType,
         lineConcat,
@@ -1082,22 +1190,18 @@ export class Lex<TProps = PropsData> {
      * @param param0 Filter params
      * @returns filtered datum array
      */
-    filterLexData({
+    private filterLexData({
         lexData,
         language,
         specifier,
-        keywords,
-        keywordMode,
-        props,
-        propsMode
+        keywords, keywordMode,
+        props, propsMode
     }: {
         lexData: LexDatum<TProps>[],
         language: LanguageCode,
         specifier: string,
-        keywords: string[],
-        keywordMode: KeywordMode,
-        props: PropsFilter<TProps>,
-        propsMode: PropsFilterMode,
+        keywords: string[], keywordMode: KeywordMode,
+        props: PropsFilter<TProps>, propsMode: PropsFilterMode,
     }): LexDatum<TProps>[] {
         const lc = `${this.lc}[${this.filterLexData.name}]`;
         try {
@@ -1192,7 +1296,7 @@ export class Lex<TProps = PropsData> {
         }
     }
 
-    filterLanguage(result: LexDatum<TProps>[], language: string): LexDatum<TProps>[] {
+    private filterLanguage(result: LexDatum<TProps>[], language: string): LexDatum<TProps>[] {
         result = result.filter(d =>
             // explicit language given
             (d.language && d.language === language) ||
@@ -1213,7 +1317,7 @@ export class Lex<TProps = PropsData> {
      *
      * @see LexDatum.weighting
      */
-    pickDatum(lexData: LexDatum<TProps>[]): LexDatum<TProps> {
+    private pickDatum(lexData: LexDatum<TProps>[]): LexDatum<TProps> {
         const lc = `${this.lc}[${this.pickDatum.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: f95c8585a8274f78a1e724d6ab58ff22)`); }

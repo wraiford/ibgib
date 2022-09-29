@@ -7,9 +7,10 @@ import { IbgibsService } from 'src/app/services/ibgibs.service';
 import { IonicIbgibNavService } from 'src/app/services/ionic-ibgib-nav.service';
 import { IbGibItem } from '../types/ux'; // refactoring to not use types/index
 import { IbgibListComponentBase } from './ibgib-list-component-base';
-import { AlertController, ModalController, NavController, Platform } from '@ionic/angular';
+import { AlertController, LoadingController, MenuController, ModalController, NavController, Platform } from '@ionic/angular';
 import { WitnessFactoriesService } from 'src/app/services/witness-factories.service';
 import { InMemoryIbgibCacheService } from 'src/app/services/in-memory-ibgib-cache.service';
+import { IonicStorageLatestIbgibCacheService } from 'src/app/services/ionic-storage-latest-ibgib-cache.service';
 
 
 class TestList extends IbgibListComponentBase<IbGibItem> {
@@ -34,20 +35,28 @@ describe('IbgibListComponentBase', () => {
   let factories: WitnessFactoriesService;
   let alertController: AlertController;
   let cache: InMemoryIbgibCacheService;
+  let getLatestCache: IonicStorageLatestIbgibCacheService;
+  let menuCtrl: MenuController;
+  let loadingCtrl: LoadingController;
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [
-      HttpHandler, Router, HttpClient,
-      UrlSerializer,
-      NavController,
-      { provide: 'IbgibNav', useClass: IonicIbgibNavService, },
-      IbgibsService,
-      ChangeDetectorRef,
-      ModalController,
-      Platform,
-      WitnessFactoriesService,
-      AlertController,
-      InMemoryIbgibCacheService,
-    ]});
+    TestBed.configureTestingModule({
+      providers: [
+        HttpHandler, Router, HttpClient,
+        UrlSerializer,
+        NavController,
+        { provide: 'IbgibNav', useClass: IonicIbgibNavService, },
+        IbgibsService,
+        ChangeDetectorRef,
+        ModalController,
+        Platform,
+        WitnessFactoriesService,
+        AlertController,
+        InMemoryIbgibCacheService,
+        { provide: 'IbGibCacheService', useClass: IonicStorageLatestIbgibCacheService },
+        MenuController,
+        LoadingController
+      ]
+    });
 
     ibgibs = TestBed.inject(IbgibsService);
     modalController = TestBed.inject(ModalController);
@@ -56,9 +65,13 @@ describe('IbgibListComponentBase', () => {
     factories = TestBed.inject(WitnessFactoriesService);
     alertController = TestBed.inject(AlertController);
     cache = TestBed.inject(InMemoryIbgibCacheService);
+    getLatestCache = TestBed.inject(IonicStorageLatestIbgibCacheService);
+    menuCtrl = TestBed.inject(MenuController);
+    loadingCtrl = TestBed.inject(LoadingController);
 
     common = new CommonService(
-      ibgibs, modalController, nav, platform, factories, alertController, cache
+      ibgibs, modalController, nav, platform, factories, alertController, cache,
+      getLatestCache, menuCtrl, loadingCtrl
     );
     changeDetectorRef = TestBed.inject(ChangeDetectorRef);
   });
