@@ -1,5 +1,5 @@
 import {
-  AfterViewInit, Component, Input, OnDestroy, OnInit
+  AfterContentInit, Component, Input, OnDestroy, OnInit
 } from '@angular/core';
 import { LoadingController, ModalController } from '@ionic/angular';
 import { AlertController } from '@ionic/angular';
@@ -60,7 +60,7 @@ const EXAMPLE_SYNC_SPACE_AWSDYNAMODB: SyncSpaceData_AWSDynamoDB = {
 })
 export class OuterspaceModalFormComponent
   extends ModalFormComponentBase<TransformResult<OuterSpaceIbGib>>
-  implements OnInit, OnDestroy, AfterViewInit {
+  implements OnInit, OnDestroy, AfterContentInit {
 
   protected lc: string = `[${OuterspaceModalFormComponent.name}]`;
 
@@ -231,7 +231,7 @@ export class OuterspaceModalFormComponent
     this.skipLoadingSpinnerOnCreate = true;
   }
 
-  async ngAfterViewInit(): Promise<void> {
+  async ngAfterContentInit(): Promise<void> {
     this.types = VALID_OUTER_SPACE_TYPES.concat();
     this.type = this.types[0];
     this.subtypes = VALID_OUTER_SPACE_SUBTYPES.concat();

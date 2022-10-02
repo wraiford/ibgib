@@ -13,7 +13,7 @@ import { ListViewComponent } from '../list-view/list-view.component';
 import { ChatApp_V1 } from 'src/app/common/witnesses/apps/chat-app-v1';
 import { IbgibComponentBase } from 'src/app/common/bases/ibgib-component-base';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || true;
 
 export interface ChatItem extends IbGibItem {
 
@@ -71,7 +71,6 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
-
 
       this.ibGibItemClicked.emit(item);
 

@@ -1,5 +1,6 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
+import { getTestBedConfig_Component } from 'src/karma.global';
 
 import { RootViewComponent } from './root-view.component';
 
@@ -8,10 +9,9 @@ describe('RootViewComponent', () => {
   let fixture: ComponentFixture<RootViewComponent>;
 
   beforeEach(async(() => {
-    TestBed.configureTestingModule({
-      declarations: [ RootViewComponent ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    TestBed.configureTestingModule(
+      getTestBedConfig_Component({ componentType: RootViewComponent })
+    ).compileComponents();
 
     fixture = TestBed.createComponent(RootViewComponent);
     component = fixture.componentInstance;

@@ -14,7 +14,7 @@ import { IbgibComponentBase } from './ibgib-component-base';
 import { CommonService } from '../../services/common.service';
 import { unique } from '../helper/utils';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || true;
 
 @Directive()
 export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGibListItem>

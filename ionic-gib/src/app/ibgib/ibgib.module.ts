@@ -91,8 +91,6 @@ import { OmniAnimationGestureDirective } from '../common/directives/animations/o
 
     IbGibPage,
 
-
-
     ChooseIconModalComponent,
     IbgibFullscreenModalComponent,
     SecretModalFormComponent,

@@ -4,24 +4,18 @@ import { IbgibsService } from './ibgibs.service';
 import { CommonService } from './common.service';
 // import { FilesService } from './files.service';
 import { ChangeDetectorRef } from '@angular/core';
+import { getGlobalInjections, getTestBedConfig } from 'src/karma.global';
 
 describe('IbgibsService', () => {
-  // let files: FilesService;
-  let ibgibs: IbgibsService;
-  let common: CommonService;
-  let changeDetectorRef: ChangeDetectorRef;
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [
-      // FilesService,
-      IbgibsService, CommonService, ChangeDetectorRef
-    ]});
-    // files = TestBed.inject(FilesService);
-    ibgibs = TestBed.inject(IbgibsService);
-    common = TestBed.inject(CommonService);
-    changeDetectorRef = TestBed.inject(ChangeDetectorRef);
+    TestBed.configureTestingModule(
+      getTestBedConfig()
+    );
   });
 
   it('should be created', () => {
+    let { ibgibs } = getGlobalInjections();
+
     expect(ibgibs).toBeTruthy();
   });
 });

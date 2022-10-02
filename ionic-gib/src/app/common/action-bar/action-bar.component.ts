@@ -1,8 +1,8 @@
 import {
   Component, OnInit, ChangeDetectorRef,
-  Input, ViewChild, AfterViewInit, EventEmitter, Output, ElementRef,
+  Input, ViewChild, AfterContentInit, EventEmitter, Output, ElementRef,
 } from '@angular/core';
-import { IonInput, IonText, IonTextarea } from '@ionic/angular';
+import { IonTextarea } from '@ionic/angular';
 import { Plugins, } from '@capacitor/core';
 const { Modals } = Plugins;
 
@@ -37,20 +37,9 @@ const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
   styleUrls: ['./action-bar.component.scss'],
 })
 export class ActionBarComponent extends IbgibComponentBase
-  implements OnInit, AfterViewInit {
+  implements OnInit, AfterContentInit {
 
   protected lc = `[${ActionBarComponent.name}]`;
-
-  // @Input()
-  // get addr(): IbGibAddr { return super.addr; }
-  // set addr(value: IbGibAddr) {
-  //   let lc = `${this.lc}[set addr(value: ${value})]`;
-  //   super.addr = value;
-  // }
-
-  // @Input()
-  // get ibGib_Context(): IbGib_V1 { return super.ibGib_Context; }
-  // set ibGib_Context(value: IbGib_V1) { super.ibGib_Context = value; }
 
   /**
    * temporary hack
@@ -184,7 +173,7 @@ export class ActionBarComponent extends IbgibComponentBase
     await super.ngOnInit();
   }
 
-  ngAfterViewInit() {
+  ngAfterContentInit() {
     this.focusDetail();
   }
 
@@ -945,6 +934,7 @@ export class ActionBarComponent extends IbgibComponentBase
       //  mobile mobileweb desktop hybrid
       const autoFocusPlatforms = ['ipad', 'phablet', 'tablet', 'electron', 'desktop'];
       const platforms = this.common.platform.platforms();
+      console.log(`${lc} TESTING platforms: ${platforms}`)
       const doAutoFocus = autoFocusPlatforms.some(x => platforms.includes(x));
       if (!doAutoFocus && !force) { return; }
 

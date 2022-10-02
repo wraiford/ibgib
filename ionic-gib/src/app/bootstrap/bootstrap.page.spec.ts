@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
+import { getTestBedConfig_Component } from 'src/karma.global';
 
 import { BootstrapPage } from './bootstrap.page';
 
@@ -8,10 +9,9 @@ describe('BootstrapPage', () => {
   let fixture: ComponentFixture<BootstrapPage>;
 
   beforeEach(waitForAsync(() => {
-    TestBed.configureTestingModule({
-      declarations: [ BootstrapPage ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    TestBed.configureTestingModule(
+      getTestBedConfig_Component({ componentType: BootstrapPage })
+    ).compileComponents();
 
     fixture = TestBed.createComponent(BootstrapPage);
     component = fixture.componentInstance;

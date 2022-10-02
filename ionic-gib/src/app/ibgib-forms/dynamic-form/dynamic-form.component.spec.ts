@@ -1,5 +1,7 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
+import { FormBuilder } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
+import { COMMON_TEST_PROVIDERS, getTestBedConfig_Component } from 'src/karma.global';
 
 import { DynamicFormComponent } from './dynamic-form.component';
 
@@ -8,10 +10,9 @@ describe('DynamicFormComponent', () => {
   let fixture: ComponentFixture<DynamicFormComponent>;
 
   beforeEach(waitForAsync(() => {
-    TestBed.configureTestingModule({
-      declarations: [ DynamicFormComponent ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    TestBed.configureTestingModule(
+      getTestBedConfig_Component({ componentType: DynamicFormComponent })
+    ).compileComponents();
 
     fixture = TestBed.createComponent(DynamicFormComponent);
     component = fixture.componentInstance;

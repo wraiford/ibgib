@@ -145,6 +145,7 @@ export class WelcomePage extends WebOnePageBase implements OnInit, AfterViewInit
         this.common.menuCtrl.enable(true);
       }
 
+
       this.activatedRoute.queryParams.subscribe(async (params: Params) => {
         console.log(`${lc} query params: `);
         console.dir(params);

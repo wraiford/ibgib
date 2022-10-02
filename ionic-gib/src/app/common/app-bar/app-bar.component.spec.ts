@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
+import { getTestBedConfig_Component } from 'src/karma.global';
 
 import { AppBarComponent } from './app-bar.component';
 
@@ -8,10 +9,9 @@ describe('AppBarComponent', () => {
   let fixture: ComponentFixture<AppBarComponent>;
 
   beforeEach(waitForAsync(() => {
-    TestBed.configureTestingModule({
-      declarations: [ AppBarComponent ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    TestBed.configureTestingModule(
+      getTestBedConfig_Component({ componentType: AppBarComponent })
+    ).compileComponents();
 
     fixture = TestBed.createComponent(AppBarComponent);
     component = fixture.componentInstance;
