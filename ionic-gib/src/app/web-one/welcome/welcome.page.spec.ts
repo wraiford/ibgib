@@ -1,8 +1,8 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { ActivatedRoute } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import { IonicModule } from '@ionic/angular';
-import { COMMON_TEST_PROVIDERS, getTestBedConfig, getTestBedConfig_Component } from 'src/karma.global';
+import { AngularDelegate, ModalController } from '@ionic/angular';
+import { IonicIbgibNavService } from 'src/app/services/ionic-ibgib-nav.service';
+import { getTestBedConfig_Component } from 'src/karma.global';
 
 import { WelcomePage } from './welcome.page';
 
@@ -12,15 +12,13 @@ describe('WelcomePage', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule(
-      getTestBedConfig({
-        declarations: [WelcomePage],
+      getTestBedConfig_Component({
+        componentType: WelcomePage,
+        imports: [RouterTestingModule,],
         providers: [
-          ...COMMON_TEST_PROVIDERS,
-          ActivatedRoute,
-        ],
-        imports: [
-          IonicModule.forRoot(),
-          RouterTestingModule.withRoutes([{ path: 'welcome', component: WelcomePage }])
+          { provide: 'IbgibNav', useValue: new IonicIbgibNavService(null), }, // not sure when this will make a difference
+          ModalController,
+          AngularDelegate,
         ]
       })
     ).compileComponents();

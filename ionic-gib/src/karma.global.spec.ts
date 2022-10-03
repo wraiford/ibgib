@@ -4,6 +4,12 @@
 // import { ChangeDetectorRef } from '@angular/core';
 // import { Router, UrlSerializer } from '@angular/router';
 
+import { Capacitor, Plugins } from '@capacitor/core';
+const { Storage } = Plugins;
+import { waitForAsync } from "@angular/core/testing";
+
+import * as c from 'src/app/common/constants';
+
 // import { ROOT, ROOT_ADDR } from 'ts-gib/dist/V1';
 // import * as h from 'ts-gib/dist/helper';
 
@@ -110,3 +116,8 @@
 //     // globalIbGibTest.component = globalIbGibTest.fixture.componentInstance;
 //     // globalIbGibTest.fixture.detectChanges();
 // });
+
+beforeEach(waitForAsync(async () => {
+    console.log('hmm');
+    await Storage.set({ key: c.STORAGE_KEY_APP_USES_STUFF, value: 'accepted' });
+}));

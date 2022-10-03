@@ -11,9 +11,6 @@ describe('ListViewComponent', () => {
   let fixture: ComponentFixture<ListViewComponent>;
 
   beforeEach(waitForAsync(() => {
-    // TestBed.configureTestingModule(
-    //   getTestBedConfig_Component({ componentType: ListViewComponent })
-    // ).compileComponents();
     TestBed.configureTestingModule(
       getTestBedConfig({
         declarations: [ListViewComponent, ListViewComponent],
@@ -35,7 +32,7 @@ describe('ListViewComponent', () => {
 
     fixture = TestBed.createComponent(ListViewComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
+    // fixture.detectChanges();
   }));
 
   it('should create', () => {

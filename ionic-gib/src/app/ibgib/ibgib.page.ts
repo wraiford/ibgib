@@ -14,7 +14,8 @@ import {
   ChangeDetectorRef, ChangeDetectionStrategy, Input, ViewChild
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { IonContent, IonRouterOutlet } from '@ionic/angular';
+// import { IonContent, IonRouterOutlet } from '@ionic/angular';
+import { IonContent } from '@ionic/angular';
 import { Subscription, interval, Observable, Subject, } from 'rxjs';
 import { concatMap, debounceTime } from 'rxjs/operators';
 import { Capacitor, FilesystemDirectory, FilesystemEncoding, Plugins } from '@capacitor/core';
@@ -227,7 +228,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
     private activatedRoute: ActivatedRoute,
-    public routerOutlet: IonRouterOutlet,
+    // public routerOutlet: IonRouterOutlet,
   ) {
     super(common, ref);
 

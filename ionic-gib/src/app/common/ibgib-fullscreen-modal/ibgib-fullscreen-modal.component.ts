@@ -1,6 +1,5 @@
 import { ChangeDetectorRef, Component, Input, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
 import SwiperCore, {
-  // properties
   Zoom,
   Swiper,
 } from 'swiper';
@@ -10,13 +9,13 @@ SwiperCore.use([
   IonicSlides,
 ]);
 
-
 import { IbGibAddr } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 
+import * as c from '../constants';
 import { CommonService } from '../../services/common.service';
 import { IbgibComponentBase } from '../bases/ibgib-component-base';
-import * as c from '../constants';
+
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -59,20 +58,7 @@ export class IbgibFullscreenModalComponent
   async ngOnInit(): Promise<void> {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
     await super.ngOnInit();
-    // setTimeout(async () => {
-    //   console.log(` dismissing`)
-    //   await this.modalController.dismiss({x: 1});
-    // }, 2000);
-
-    // this.ioniconItems = IONICONS.map(iconText => {
-    //   if (logalot) { console.log(`${lc} ${iconText}`); }
-    //   return {
-    //     title: iconText,
-    //     icon: iconText,
-    //   };
-    // });
-    // this.ref.detectChanges();
-    setTimeout(() => { this.ref.detectChanges(); }, 5000)
+    setTimeout(() => { this.ref.detectChanges(); }, 1000) // why am I doing this?
   }
 
   async ngOnDestroy(): Promise<void> {

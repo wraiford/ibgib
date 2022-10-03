@@ -67,7 +67,7 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
 
     if (logalot) { console.log(`${lc}${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }
 
-    setTimeout(() => { this.ref.detectChanges(); }, 5000); // no idea
+    setTimeout(() => { this.ref.detectChanges(); }, 3000); // no idea
   }
 
   async updateIbGib_NewerTimelineFrame(info: IbGibTimelineUpdateInfo): Promise<void> {

@@ -1,20 +1,26 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
+import { ActivatedRoute, } from '@angular/router';
 import { IbGibPage } from './ibgib.page';
-import { COMMON_TEST_PROVIDERS, getTestBedConfig, getTestBedConfig_Component } from 'src/karma.global';
+import { ANGULAR_TEST_PROVIDERS, COMMON_TEST_PROVIDERS, DEFAULT_TEST_IMPORTS, getTestBedConfig, getTestBedConfig_Component, IBGIB_TEST_PROVIDERS, IONIC_TEST_PROVIDERS } from 'src/karma.global';
+import { RouterTestingModule } from '@angular/router/testing';
+import { AngularDelegate, IonRouterOutlet, ModalController } from '@ionic/angular';
 
 describe('IbGibPage', () => {
   let component: IbGibPage;
   let fixture: ComponentFixture<IbGibPage>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule(
       getTestBedConfig({
         declarations: [IbGibPage],
+        imports: [
+          ...DEFAULT_TEST_IMPORTS,
+          RouterTestingModule,
+        ],
         providers: [
-          ...COMMON_TEST_PROVIDERS,
-          ActivatedRoute,
+          ...IBGIB_TEST_PROVIDERS,
+          ...ANGULAR_TEST_PROVIDERS,
+          AngularDelegate,
         ]
       })
     ).compileComponents();

@@ -19,12 +19,11 @@ export class ChooseIconModalComponent implements OnInit, OnDestroy {
 
   @Input()
   items: IconItem[] = c.IONICONS.map(iconText => {
-      // if (logalot) { console.log(`${this.lc} ${iconText}`); }
-      return {
-        title: iconText,
-        icon: iconText,
-      };
-    });
+    return {
+      title: iconText,
+      icon: iconText,
+    };
+  });
 
 
   constructor(
@@ -35,8 +34,7 @@ export class ChooseIconModalComponent implements OnInit, OnDestroy {
   async ngOnInit(): Promise<void> {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
     if (logalot) { console.log(`${this.lc}`); }
-    setTimeout(() => { this.ref.detectChanges(); }, 5000)
-    // await super.ngOnInit();
+    setTimeout(() => { this.ref.detectChanges(); }, 1000)
   }
 
   ngOnDestroy() {
