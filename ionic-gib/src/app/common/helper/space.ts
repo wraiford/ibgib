@@ -19,7 +19,7 @@ import {
     DeleteIbGibOpts, DeleteIbGibResult,
 } from '../types/legacy';
 import { validateBootstrapIbGib, validateIbGibAddr, } from './validate';
-import { getRootIb, getSpecialConfigKey, getSpecialIbGibIb, getSpecialTypeFromIb, getTimelinesGroupedByTjp, getTjpAddrs, isTjp_Naive, splitPerTjpAndOrDna, tagTextToIb } from './ibgib';
+import { getRootIb, getSpecialConfigKey, getSpecialIbGibIb, getSpecialTypeFromIb, getTimelinesGroupedByTjp, getTjpAddr, isTjp_Naive, splitPerTjpAndOrDna, tagTextToIb } from './ibgib';
 import { TagData_V1, TagIbGib_V1 } from '../types/tag';
 import { IbGibTimelineUpdateInfo, RootData, SpecialIbGibType } from '../types/ux';
 import { SpaceLockScope, IbGibSpaceLockIbGib, BootstrapIbGib, SpaceId, IbGibSpaceLockOptions, BootstrapData, BootstrapRel8ns, TxId, IbGibSpaceResultIbGib, IbGibSpaceResultData, IbGibSpaceResultRel8ns } from '../types/space';
@@ -1036,8 +1036,9 @@ export async function rel8ToSpecialIbGib({
 
         // return the new special address (not the incoming new ibGib)
         const newSpecialAddr = h.getIbGibAddr({ ibGib: newSpecialIbGib });
-        const specialTjpAddrs = getTjpAddrs({ ibGibs: [newSpecialIbGib] });
-        const specialTjpAddr = specialTjpAddrs?.length > 0 ? specialTjpAddrs[0] : null;
+        // const specialTjpAddrs = getTjpAddrs({ ibGibs: [newSpecialIbGib] });
+        // const specialTjpAddr = specialTjpAddrs?.length > 0 ? specialTjpAddrs[0] : null;
+        const specialTjpAddr = getTjpAddr({ ibGib: newSpecialIbGib });
 
         // update the space ibgib which contains the special/config information
         await setConfigAddr({ key: configKey, addr: newSpecialAddr, space, zeroSpace, fnUpdateBootstrap });

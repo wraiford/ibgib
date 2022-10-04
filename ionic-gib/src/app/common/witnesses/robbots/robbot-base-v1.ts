@@ -655,16 +655,10 @@ export abstract class RobbotBase_V1<
     protected async createCommentAndRel8ToContextIbGib({
         text,
         contextIbGib,
-        space,
     }: {
         text: string,
         contextIbGib: IbGib_V1,
         ibgibsSvc?: IbgibsService,
-        /**
-         * If given (which atow is most likely the case), then the {@link TransformResult} will
-         * be persisted in this `space`.
-         */
-        space?: IbGibSpaceAny,
     }): Promise<void> {
         const lc = `${this.lc}[${this.createCommentAndRel8ToContextIbGib.name}]`;
         try {
@@ -672,12 +666,16 @@ export abstract class RobbotBase_V1<
 
             if (!this.ibgibsSvc) { throw new Error(`this.ibgibsSvc required (E: 5dbb1a7f0ff5469b8ce3cb1be175e521)`); }
 
-            space = space ?? await this.ibgibsSvc.getLocalUserSpace({ lock: true });
-            if (!space) { throw new Error(`(UNEXPECTED) space required and wasn't able to get it from ibgibsSvc? (E: 7159f9893a66c28a7e09b61384545622)`); }
+            // space = space ?? await this.ibgibsSvc.getLocalUserSpace({ lock: true });
+            // if (!space) { throw new Error(`(UNEXPECTED) space required and wasn't able to get it from ibgibsSvc? (E: 7159f9893a66c28a7e09b61384545622)`); }
+            let space = await this.ibgibsSvc.getLocalUserSpace({ lock: true });
 
             /** tag this comment with metadata to show it came from this robbot */
             let resComment = await createCommentIbGib({ text, addlMetadataText: this.getAddlMetadata(), saveInSpace: true, space });
+
+            // get again to be sure it's the latest space.
             space = await this.ibgibsSvc.getLocalUserSpace({ lock: true });
+
             const commentIbGib = <CommentIbGib_V1>resComment.newIbGib;
             if (!commentIbGib) { throw new Error(`(UNEXPECTED) failed to create comment? (E: 6d668f4e55198e654324622eabaac922)`); }
             await this.ibgibsSvc.registerNewIbGib({ ibGib: commentIbGib });

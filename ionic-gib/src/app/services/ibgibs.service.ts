@@ -45,7 +45,7 @@ import {
 } from '../common/types/encryption';
 import { RobbotData_V1, RobbotIbGib_V1 } from '../common/types/robbot';
 import { AppData_V1, AppIbGib_V1 } from '../common/types/app';
-import { hasTjp, getTimelinesGroupedByTjp, getTjpAddrs } from '../common/helper/ibgib';
+import { hasTjp, getTimelinesGroupedByTjp, getTjpAddr } from '../common/helper/ibgib';
 import { getFnPrompt, getFnAlert, getFnPromptPassword_AlertController } from '../common/helper/prompt-functions';
 import {
   getValidatedBootstrapIbGib, getLocalSpace, execInSpaceWithLocking,
@@ -1141,7 +1141,7 @@ export class IbgibsService {
       // we tried to use cache but it wasn't there, so put it for the next time.
       setTimeout(async () => {
         if (ibGib) {
-          const [tjpAddr] = getTjpAddrs({ ibGibs: [ibGib] });
+          const tjpAddr = getTjpAddr({ ibGib });
           await this.latestCacheSvc.put({
             addr: tjpAddr,
             ibGib: ibGib,
@@ -1233,7 +1233,7 @@ export class IbgibsService {
         if (info?.ibGib) {
           latestIbGib = info.ibGib;
           latestAddr = h.getIbGibAddr({ ibGib: latestIbGib });
-          [tjpAddr] = info.tjpAddr ? [info.tjpAddr] : getTjpAddrs({ ibGibs: [info.ibGib] });
+          tjpAddr = info.tjpAddr ? info.tjpAddr : getTjpAddr({ ibGib: info.ibGib });
         }
       }
 

@@ -4,7 +4,7 @@ import { Subscription } from 'rxjs';
 import * as h from 'ts-gib/dist/helper';
 import {
     IbGib_V1, ROOT, Factory_V1 as factory, Rel8n,
-    IbGibRel8ns_V1, isPrimitive,
+    IbGibRel8ns_V1, isPrimitive, IbGibData_V1,
 } from 'ts-gib/dist/V1';
 import { Gib, Ib, IbGibAddr, TransformResult } from 'ts-gib';
 import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
@@ -13,11 +13,11 @@ import * as c from '../../constants';
 import { RobbotBase_V1 } from './robbot-base-v1';
 import {
     RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1,
-    RobbotCmdData, RobbotCmdIbGib, RobbotCmdRel8ns, RobbotCmd, UserLexId,
+    RobbotCmdData, RobbotCmdIbGib, RobbotCmdRel8ns, RobbotCmd, SemanticId, DEFAULT_ROBBOT_LEX_DATA, RobbotPropsData,
 } from '../../types/robbot';
 import { DynamicForm } from '../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
-import { getIdPool, pickRandom, unique } from '../../helper/utils';
+import { getIdPool, getTimestampInTicks, pickRandom, unique } from '../../helper/utils';
 import { WitnessFormBuilder } from '../../helper/witness';
 import { getRobbotIb, RobbotFormBuilder } from '../../helper/robbot';
 import { DynamicFormBuilder } from '../../helper/form';
@@ -29,6 +29,7 @@ import { IonicSpace_V1 } from '../spaces/ionic-space-v1';
 import { IbGibSpaceAny } from '../spaces/space-base-v1';
 import { IbGibTimelineUpdateInfo } from '../../types/ux';
 import { Lex, LexData, LexLineConcat } from '../../helper/lex';
+import { getTjpAddr } from '../../helper/ibgib';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
@@ -90,6 +91,25 @@ export interface WordyTextInfo {
     wordCount: number;
 }
 
+export const ROBBOT_SESSION_ATOM = 'robbot_session';
+
+export interface WordyRobbotSessionData_V1 extends IbGibData_V1 {
+    timestamp: string;
+    /**
+     * Soft link to the context address where the session takes place.
+     */
+    '@context': IbGibAddr;
+    /**
+     * Soft link to the context's tjp address where the session takes place.
+     */
+    '@contextTjp': IbGibAddr;
+}
+export interface WordyRobbotSessionRel8ns_V1 extends IbGibRel8ns_V1 {
+    interaction?: IbGibAddr[];
+}
+export interface WordyRobbotSessionIbGib_V1 extends IbGib_V1<WordyRobbotSessionData_V1, WordyRobbotSessionRel8ns_V1> { }
+
+
 export type WordyInteractionType = 'line_blank';
 export interface WordyInteraction {
     interactionType: WordyInteractionType;
@@ -97,6 +117,54 @@ export interface WordyInteraction {
 export interface WordyInteraction_LineBlank extends WordyInteraction {
     lineNumBlanked: number;
 }
+
+/**
+ * There are various ways to stimulate an ibgib.
+ */
+export type StimulationType = 'just_show' | 'blank_word' | 'next_line' | 'demand_expand';
+export const StimulationType = {
+    /**
+     * The user is just shown the source ibgib raw.
+     */
+    'just_show': 'just_show' as StimulationType,
+    /**
+     * The user is shown a source comment text/line/paragraph with a single
+     * blanked out word.  The user must type in the blanked out word.
+     */
+    'blank_word': 'blank_word' as StimulationType,
+    /**
+     * The user is shown one or more lines and a blank. the user must type in
+     * the line.
+     */
+    'next_line': 'next_line' as StimulationType,
+    /**
+     * the user has to say something that will be added to the target ibgib.
+     * if the user says "skip" or "no" or "no thanks", etc., then it will be
+     * skipped.
+     */
+    'demand_expand': 'demand_expand' as StimulationType,
+}
+
+export interface WordyRobbotInteractionData_V1 {
+    timestamp: string;
+    /**
+     * Soft link to the source address of the ibgib being stimulated.
+     */
+    '@stimulated': IbGibAddr;
+    /**
+     * Soft link to the source's tjp address of the ibgib being stimulated.
+     */
+    '@stimluatedTjp': IbGibAddr;
+    /**
+     * type of stimulation, like is it a fill in the blank or just showing the
+     * ibgib.
+     */
+    type: StimulationType;
+}
+export interface WordyRobbotInteractionRel8ns_V1 extends IbGibRel8ns_V1 {
+}
+export interface WordyRobbotInteractionIbGib_V1
+    extends IbGib_V1<WordyRobbotInteractionData_V1, WordyRobbotInteractionRel8ns_V1> { }
 
 export interface WordyRobbotAnalysisData_V1 {
     timestamp: string;
@@ -120,7 +188,7 @@ export const DEFAULT_SEARCH_REL8N_NAMES_WORDY_ROBBOT = [
 export const WORDY_V1_ANALYSIS_REL8N_NAME = 'analysis';
 
 
-export type WordyChatId = UserLexId;
+export type WordyChatId = SemanticId;
 export const WordyChatId = {
     yes: 'yes' as WordyChatId,
     no: 'no' as WordyChatId,
@@ -191,6 +259,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
      */
     private _askedTextPosted: boolean;
     private _expectedResponses: string;
+
+    private _robbotLex: Lex<RobbotPropsData> = new Lex<RobbotPropsData>(DEFAULT_ROBBOT_LEX_DATA, {});
 
     constructor(initialData?: WordyRobbotData_V1, initialRel8ns?: WordyRobbotRel8ns_V1) {
         super(initialData, initialRel8ns);
@@ -338,6 +408,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     }
 
     /**
+     * Start speaking...
+     *
      * Using our analysis, provide a comment based on what we've said in the past.
      *
      * ## notes
@@ -368,6 +440,19 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
      *   * word/phrase/song/poem meaning/reverse translation in parent comment
      * * link to url (non-comment link ibgib)
      *
+     *
+     * ### simplified first run
+     *
+     * 1. choose a source ibgib
+     *   a. keep track of source ibgibs
+     *   b. keep track of interpreted metadata per source ibgib
+     *   c. choose based on interpreted data and settings of robbot.
+     * 2. stimulate ibgib connection
+     *   a. choose strategy based on source ibgib and its metadata
+     * 3. listen for response
+     *   a. if user "spoke", interpret based on state
+     *   b. handle if robbot spoke
+     * 4. repeat #2 or end conversation with summary
      *
      * @returns ROOT if all goes well, otherwise throws an error.
      */
@@ -439,9 +524,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[${this.initializeContextIbGibSubscription.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: d93429c85b0a494388f66fba3eece922)`); }
-            if (this._subLatestContext) {
-                this._subLatestContext.unsubscribe();
-                delete this._subLatestContext;
+            if (this._currentWorkingContextIbGib) {
+                await this.closeCurrentWorkingContext();
             }
 
             debugger;
@@ -468,6 +552,29 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     });
             }
 
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    async closeCurrentWorkingContext(): Promise<void> {
+        const lc = `${this.lc}[${this.closeCurrentWorkingContext.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: d2b97975687bdc822c4974d153dfde22)`); }
+            if (this._subLatestContext) {
+                this._subLatestContext.unsubscribe();
+                delete this._subLatestContext;
+            }
+            if (this._currentWorkingContextIbGib) {
+                await this.createCommentAndRel8ToContextIbGib({
+                    text: 'end of line',
+                    contextIbGib: this._currentWorkingContextIbGib,
+                });
+                delete this._currentWorkingContextIbGib;
+            }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -626,9 +733,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             // don't need dna or any intermediate ibgibs
             // these analyses ibgibs are just snapshots.
-            const ib = getRobbotAnalysisIb({ robbot: this });
+            const timestamp = getTimestampInTicks();
+            const ib = getRobbotAnalysisIb({ robbot: this, timestamp });
             const data: WordyRobbotAnalysisData_V1 = {
-                timestamp: h.getTimestamp(),
+                timestamp,
                 textInfos: textInfos.map(x => {
                     // exclude the x.srcIbGib
                     return {
@@ -879,6 +987,124 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
+    protected session: WordyRobbotSessionIbGib_V1;
+    protected interactions: WordyRobbotInteractionIbGib_V1[];
+
+    protected async startSession(): Promise<void> {
+        const lc = `${this.lc}[${this.startSession.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 78762a22d30c12d23ca01465f2d6ce22)`); }
+
+            if (this.session || this.interactions) { await this.completeSession({ sayBye: true }); }
+
+            if (!this._currentWorkingContextIbGib) { throw new Error(`current working context should already be initialized (E: 9163e7cc8cc68d63d7d29954b688f222)`); }
+
+            const contextIbGib = this._currentWorkingContextIbGib;
+
+            const timestamp = getTimestampInTicks();
+            const contextTjpAddr = getTjpAddr({ ibGib: contextIbGib });
+            const contextTjpGib = h.getIbAndGib({ ibGibAddr: contextTjpAddr }).gib;
+            const sessionId = await h.getUUID();
+
+            // build custom ibgib (always remember to calculate the gib!)
+            // no dna for sessions, because it doesn't make sense
+            let data: WordyRobbotSessionData_V1 = {
+                timestamp,
+                uuid: sessionId,
+                n: 0,
+                isTjp: true,
+                '@context': h.getIbGibAddr({ ibGib: contextIbGib }),
+                '@contextTjp': contextTjpAddr,
+            };
+            let rel8ns: WordyRobbotSessionRel8ns_V1 = {
+                ancestor: [`${ROBBOT_SESSION_ATOM}^gib`],
+            }
+            let sessionIbGib: WordyRobbotSessionIbGib_V1 = {
+                ib: getRobbotSessionIb({ robbot: this, timestamp, contextTjpGib, sessionId }),
+                data,
+                rel8ns,
+            };
+            sessionIbGib.gib = await getGib({ ibGib: sessionIbGib, hasTjp: true })
+
+            this.session = sessionIbGib;
+
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    /**
+     * save the current session if there are any interactions. if not, then warn
+     * and just delete it. (there should be interactions unless there were
+     * intermediate exceptions thrown)
+     *
+     * adds to the context
+     *
+     * this function will delete this.session and this.interactions, even if it throws.
+     */
+    protected async completeSession({ sayBye }: { sayBye: boolean }): Promise<void> {
+        const lc = `${this.lc}[${this.completeSession.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: c87e977729f64268bcc400934dce64c6)`); }
+            if (!this.session) {
+                if (logalot) { console.log(`${lc} no session active. returning early... (I: 15e9224f49fabda9da212e123ba3e922)`); }
+                if (this.interactions) { throw new Error(`(UNEXPECTED) this.session falsy but this.interactions truthy? (E: cfd11408e779b3797fb8519b267a8522)`); }
+                return; /* <<<< returns early */
+            }
+
+            if ((this.interactions ?? []).length === 0) {
+                if (logalot) { console.log(`${lc} this.session is truthy but no interactions, so deleting without saving. (I: 66788b63af12ad2095992c56a3668122)`); }
+                return; /* <<<< returns early */
+            }
+
+            // we have a session and at least one interaction.
+            // so save the interactions, and then save the entire session.
+            let resPut = await this.ibgibsSvc.put({
+                ibGibs: [
+                    ...this.interactions,
+                    this.session,
+                ]
+            });
+            if (!resPut.success) { throw new Error(`put session/interactions failed: ${resPut.errorMsg ?? 'unknown error 101ee5e794bf49788664d280d17c30f0'} (E: 3b9ab24eade77938c213f888949eac22)`); }
+
+            if (sayBye) {
+                if (logalot) { console.log(`${lc} saying bye... (I: fc02b62d8fa9a5498fbffafecac75522)`); }
+                let { text } = this._robbotLex.get(SemanticId.bye);
+                if (!text) {
+                    console.error(`${lc} (UNEXPECTED) lex didn't work? tried to get 'bye' and text is falsy. (E: 3e77e1f771caad72cc52c881cb46da22)`);
+                    text = 'bye';
+                }
+                await this.createCommentAndRel8ToContextIbGib({ text, contextIbGib: this._currentWorkingContextIbGib })
+            }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} deleting session/interactions (I: d863ced4302ba54933177ba908983322)`); }
+            delete this.session;
+            delete this.interactions;
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    protected async addInteraction(): Promise<void> {
+        const lc = `${this.lc}[${this.addInteraction.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 37ba4f1dfd8fa4f7bcd814f2ab159222)`); }
+
+            // create an interaction and rel8 it to the current session.
+
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
 }
 
 /**
@@ -1049,9 +1275,130 @@ export class WordyRobbotFormBuilder extends RobbotFormBuilder {
 
 function getRobbotAnalysisIb({
     robbot,
+    timestamp,
 }: {
     robbot: WordyRobbot_V1,
+    timestamp: string,
 }): Ib {
-    let gibInfo = getGibInfo({ gib: robbot.gib });
-    return `robbot_analysis ${robbot.data.classname} ${robbot.data.uuid} ${gibInfo.tjpGib}`;
+    const lc = `[${getRobbotAnalysisIb.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 1d5127e648d3b9ff9c0f44a7b978f422)`); }
+
+        if (!robbot) { throw new Error(`robbot required (E: 86c35c658ed247e8a08804dffd4b55c2)`); }
+        if (!robbot.data?.name) { throw new Error(`robbot.data.name required (E: 41770e7d9100499ba8e2da7770f241fc)`); }
+        if (!robbot.data.classname) { throw new Error(`robbot.data.classname required (E: f9285fff1b0d4270857c9638c3f5c16a)`); }
+        if (!robbot.data.uuid) { throw new Error(`robbot.data.uuid required (E: ef4629170e6b4a0a97098fb49c5a9ccf)`); }
+        if (!timestamp) { throw new Error(`timestamp required (E: baaab4f1ba124870aeec7f202801274e)`); }
+
+        const { name, classname, uuid } = robbot.data;
+        const robbotTjpGib = getGibInfo({ gib: robbot.gib }).tjpGib;
+
+        return `robbot_analysis ${timestamp} ${name} ${classname} ${uuid} ${robbotTjpGib}`;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+function parseRobbotAnalysisIb({
+    ib,
+}: {
+    ib: Ib,
+}): {
+    timestamp: string,
+    robbotName: string,
+    robbotClassname: string,
+    robbotId: string,
+    robbotTjpGib: Gib,
+} {
+    const lc = `[${parseRobbotAnalysisIb.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 510f894a603f4f998e82cb8c9236cd15)`); }
+        if (!ib) { throw new Error(`ib required (E: 0635525070dd4f07b1a4f439151d9fab)`); }
+
+        const pieces = ib.split(' ');
+        if (pieces.length !== 6) { throw new Error(`invalid ib. should be space-delimited with 6 pieces, but there were ${pieces.length}. Expected pieces: atom, timestamp, robbotName, robbotClassname, robbotId, robbotTjpGib, sessionId, contextTjpGib. (E: b3f44a263c8540f7a9eacd1cecd0e93d)`); }
+
+        const [_, timestamp, robbotName, robbotClassname, robbotId, robbotTjpGib] = ib;
+        return { timestamp, robbotName, robbotClassname, robbotId, robbotTjpGib, };
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+
+function getRobbotSessionIb({
+    robbot,
+    timestamp,
+    sessionId,
+    contextTjpGib,
+}: {
+    robbot: WordyRobbot_V1,
+    timestamp: string,
+    sessionId: string,
+    contextTjpGib: Gib,
+}): string {
+    const lc = `[${getRobbotSessionIb.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 21206e0defe4bf23db96979fb456e822)`); }
+        if (!robbot) { throw new Error(`robbot required (E: 200b32bbc4cac516e56d9561a9ffae22)`); }
+        if (!robbot.data?.name) { throw new Error(`robbot.data.name required (E: d6470d5a146a1794811b9577ce881522)`); }
+        if (!robbot.data.classname) { throw new Error(`robbot.data.classname required (E: 42077779c80889f1079e582d45932e22)`); }
+        if (!robbot.data.uuid) { throw new Error(`robbot.data.uuid required (E: 34222f5639c329c99a2007ba6789bb22)`); }
+        if (!timestamp) { throw new Error(`timestamp required (E: 17447cb30277af2beea8f2b13266c722)`); }
+        if (!sessionId) { throw new Error(`sessionId required (E: 37a1737920996a55f311e79efe558422)`); }
+        if (!contextTjpGib) { throw new Error(`contextTjpGib required (E: ad967964b764b077f448121e8b63c822)`); }
+
+        const { name, classname, uuid } = robbot.data;
+        const robbotTjpGib = getGibInfo({ gib: robbot.gib }).tjpGib;
+
+        return `${ROBBOT_SESSION_ATOM} ${timestamp} ${name} ${classname} ${uuid} ${robbotTjpGib} ${sessionId} ${contextTjpGib}`;
+
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+function parseRobbotSessionIb({
+    ib,
+}: {
+    ib: Ib,
+}): {
+    timestamp: string,
+    robbotName: string,
+    robbotClassname: string,
+    robbotId: string,
+    robbotTjpGib: Gib,
+    sessionId: string,
+    contextTjpGib: Gib,
+} {
+    const lc = `[${parseRobbotSessionIb.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 21206e0defe4bf23db96979fb456e822)`); }
+        if (!ib) { throw new Error(`ib required (E: c99627d871dbada4745474d9b63d4822)`); }
+
+        const pieces = ib.split(' ');
+        if (pieces.length !== 8) { throw new Error(`invalid ib. should be space-delimited with 8 pieces, but there were ${pieces.length}. Expected pieces: atom, timestamp, robbotName, robbotClassname, robbotId, robbotTjpGib, sessionId, contextTjpGib. (E: 239ba7f599ce02a20271dd288c187d22)`); }
+
+        const [_, timestamp, robbotName, robbotClassname, robbotId, robbotTjpGib, sessionId, contextTjpGib] = ib;
+        return {
+            timestamp,
+            robbotName, robbotClassname, robbotId, robbotTjpGib,
+            sessionId,
+            contextTjpGib,
+        };
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
 }

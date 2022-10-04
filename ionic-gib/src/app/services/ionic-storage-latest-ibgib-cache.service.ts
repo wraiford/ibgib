@@ -7,7 +7,7 @@ import { IbGibAddr } from 'ts-gib';
 
 import * as c from '../common/constants';
 import { IbGibCacheInfo, IbGibCacheService } from '../common/types/ibgib';
-import { getTjpAddrs } from '../common/helper/ibgib';
+import { getTjpAddr } from '../common/helper/ibgib';
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -84,7 +84,7 @@ export class IonicStorageLatestIbgibCacheService implements IbGibCacheService {
       if (!ibGib) { throw new Error(`ibGib required (E: 1e05d46831ce4d93b351b572d8b04633)`); }
 
       if (!tjpAddr) {
-        [tjpAddr] = getTjpAddrs({ ibGibs: [ibGib] });
+        tjpAddr = getTjpAddr({ ibGib });
         if (!tjpAddr) {
           if (logalot) { console.warn(`${lc} putting ibgib in getlatest with no tjp addr? (W: 233224682577331c5c45440e9ca4c222)`); }
           tjpAddr = h.getIbGibAddr({ ibGib });

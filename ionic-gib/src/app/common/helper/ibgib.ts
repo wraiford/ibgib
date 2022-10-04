@@ -451,29 +451,62 @@ export function hasDna({ ibGib }: { ibGib: IbGib_V1 }): boolean {
     return (ibGib.rel8ns?.dna ?? []).length > 0;
 }
 
+/**
+ * Extracts the tjp addr from the ibgib record. If there is no tjp addr found,
+ * then refers to `defaultIfNone` arg to determine if it returns undefined or
+ * the incoming ibgib's addr.
+ * @returns extracted tjp addr or undefined, depending on if found and defaultIfNone value
+ */
+export function getTjpAddr({
+    ibGib,
+    defaultIfNone = 'undefined',
+}: {
+    ibGib: IbGib_V1,
+    defaultIfNone?: 'incomingAddr' | 'undefined',
+}): IbGibAddr {
+    const lc = `[${getTjpAddr.name}]`;
+    try {
+        const tjpMap = getTjpAddrs({ ibGibs: [ibGib], defaultIfNone });
+        return Object.values(tjpMap)[0];
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    }
+}
+
+/**
+ * builds a map of the given ibgib's addrs to each's corresponding tjp addr.
+ *
+ * @returns a map of ibgib addr -> tjp addr
+ */
 export function getTjpAddrs({
     ibGibs,
+    defaultIfNone = 'undefined',
 }: {
     ibGibs: IbGib_V1[],
-}): IbGibAddr[] {
+    defaultIfNone?: 'incomingAddr' | 'undefined',
+}): { [ibGibAddr: IbGibAddr]: IbGibAddr } {
     const lc = `[${getTjpAddrs.name}]`;
     try {
-        // get only the tjps for those with the same timeline.
-        let tjpIbGibsByTjpGib =
-            groupBy({
-                items: ibGibs,
-                keyFn: x => x.data!.isTjp ? x.gib : getGibInfo({ gib: x.gib }).tjpGib,
-            });
-        let tjpAddrs: IbGibAddr[] = [];
-        Object.keys(tjpIbGibsByTjpGib).forEach(tjpGib => {
-            let groupIbGibs = tjpIbGibsByTjpGib[tjpGib]; // guaranteed to be at least one member
-            let x = groupIbGibs[0];
-            let tjpAddr = x.data.isTjp || (x.rel8ns?.tjp ?? []).length === 0 ?
-                h.getIbGibAddr({ ibGib: x }) :
-                x.rel8ns.tjp[x.rel8ns.tjp.length - 1];
-            tjpAddrs.push(tjpAddr);
+        const resultMap: { [ibGibAddr: IbGibAddr]: IbGibAddr } = {};
+
+        ibGibs.forEach(ibGib => {
+            let ibGibAddr = h.getIbGibAddr({ ibGib });
+            let tjpAddr: IbGibAddr;
+            if (ibGib.rel8ns?.tjp?.length > 0) {
+                // get the last tjp addr atow
+                tjpAddr = ibGib.rel8ns.tjp[ibGib.rel8ns.tjp.length - 1];
+            } else if (ibGib.data?.isTjp || defaultIfNone === 'incomingAddr') {
+                // either the incoming addr is the tjp or we're defaulting to it per defaultIfNone arg
+                tjpAddr = ibGibAddr;
+            } else {
+                // explicitly set to undefined per defaultIfNone arg
+                tjpAddr = undefined;
+            }
+            resultMap[ibGibAddr] = tjpAddr;
         });
-        return tjpAddrs;
+
+        return resultMap;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

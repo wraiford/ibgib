@@ -1,7 +1,8 @@
 import { IbGib_V1 } from "ts-gib/dist/V1";
 
 import * as c from '../constants';
-import { Lex, LexData } from "../helper/lex";
+import { Lex, LexData, LexDatum } from "../helper/lex";
+import { Ssml } from "../helper/ssml";
 import { TjpIbGibAddr } from "./ibgib";
 import {
     WitnessData_V1, WitnessRel8ns_V1,
@@ -285,46 +286,86 @@ export interface RobbotResultIbGib<
     extends WitnessResultIbGib<TIbGib, TResultData, TResultRel8ns> {
 }
 
+/**
+ * When a robbot creates a comment on a context ibgib, he/she also relates it to
+ * itself via this rel8nName.
+ */
 export const ROBBOT_MY_COMMENT_REL8N_NAME = 'my_comment';
 
 
 
-export type UserLexId = 'yes' | 'no' | 'cancel';
-export const UserLexId = {
-    yes: 'yes' as UserLexId,
-    no: 'no' as UserLexId,
-    cancel: 'cancel' as UserLexId,
+/**
+ * These are used for specific lex commands/intents/whatevers. Synonyms and
+ * equivalency phrases ultimately get resolved to these.
+ */
+export type SemanticId = 'hello' | 'yes' | 'no' | 'cancel' | 'skip' | 'next' | 'please' | 'bye';
+export const SemanticId = {
+    hello: 'hello' as SemanticId,
+    yes: 'yes' as SemanticId,
+    no: 'no' as SemanticId,
+    cancel: 'cancel' as SemanticId,
+    skip: 'skip' as SemanticId,
+    next: 'next' as SemanticId,
+    please: 'please' as SemanticId,
+    bye: 'bye' as SemanticId,
+};
+
+export interface RobbotPropsData {
+    semanticId?: SemanticId;
 }
 
-export const DEFAULT_USER_LEX_DATA: LexData = {
-    [UserLexId.yes]: [
-        {
-            texts: [
-                'yes', 'y', 'yeah', 'yea', 'aye', 'yup', 'yep', 'sure', 'ok',
-                'sounds good', 'go for it', 'yes please', 'yes thanks', 'ok thanks',
-                'uh huh', 'god yes',
-            ],
+function toLexDatums(semanticId: SemanticId, texts: string[]): LexDatum<RobbotPropsData>[] {
+    return texts.map(t => {
+        return <LexDatum<RobbotPropsData>>{
+            texts: [t],
             language: 'en-US',
-        }
+            props: { semanticId },
+        };
+    });
+}
+
+export const DEFAULT_HUMAN_LEX_DATA_ENGLISH: LexData<RobbotPropsData> = {
+    [SemanticId.yes]: [
+        ...toLexDatums(SemanticId.yes, [
+            'yes', 'y', 'yeah', 'yea', 'aye', 'yup', 'yep', 'sure', 'ok',
+            'sounds good', 'go for it', 'yes please', 'yes thanks', 'ok thanks',
+            'uh huh', 'god yes', 'affirmative', 'ten four', '10-4', 'roger',
+        ]),
     ],
-    [UserLexId.no]: [
-        {
-            texts: [
-                'no', 'n', 'nah', 'nay', 'nope', 'uh uh', 'no thanks', 'ick', 'nuh uh',
-                'god no', 'no way', 'not at all',
-            ],
-            language: 'en-US',
-        }
+    [SemanticId.no]: [
+        ...toLexDatums(SemanticId.no, [
+            'no', 'n', 'nah', 'nay', 'nope', 'uh uh', 'no thanks', 'ick', 'nuh uh',
+            'god no', 'no way', 'not at all', 'negative', 'that\'s a negative', 'nein',
+        ])
     ],
-    [UserLexId.cancel]: [
-        {
-            texts: [
-                'cancel', 'nm', 'nevermind', 'cancel that', 'forget it', 'forget that',
-                'don\'t worry about it'
-            ],
-            language: 'en-US',
-        }
+    [SemanticId.cancel]: [
+        ...toLexDatums(SemanticId.cancel, [
+            'cancel', 'nm', 'nevermind', 'cancel that', 'forget it', 'forget that',
+            'don\'t worry about it'
+        ])
     ],
+    [SemanticId.skip]: [
+        ...toLexDatums(SemanticId.skip, [
+            'skip', 'sk',
+        ])
+    ],
+    [SemanticId.next]: [
+        ...toLexDatums(SemanticId.next, [
+            'next', // 'next $(please)' /* need to get this kind of thing working */
+        ])
+    ],
+    [SemanticId.bye]: [
+        ...toLexDatums(SemanticId.bye, [
+            'bye', 'bye bye', 'see you later', 'see you',
+        ])
+    ],
+};
+export const DEFAULT_HUMAN_LEX_DATA: LexData<RobbotPropsData> = {
+    ...DEFAULT_HUMAN_LEX_DATA_ENGLISH,
+};
+
+export const DEFAULT_USER_LEX_DATA: LexData<RobbotPropsData> = {
+    ...DEFAULT_HUMAN_LEX_DATA,
 }
 
 /**
@@ -337,9 +378,33 @@ export const DEFAULT_USER_LEX_DATA: LexData = {
  * So when a user says 'yes', we can interpret it via a lookup in the lex data.
  * we will find the id filter via keywords.
  */
-export const DEFAULT_USER_LEX = new Lex(DEFAULT_USER_LEX_DATA, {
+export const DEFAULT_USER_LEX = new Lex<RobbotPropsData>(DEFAULT_USER_LEX_DATA, {
     requestLanguage: "en-US", defaultLanguage: "en-US",
     defaultCapitalize: "none",
     defaultLineConcat: "delim", defaultDelim: "\n\n",
     defaultKeywordMode: "any", defaultPropsMode: "prop",
 });
+
+/**
+ * default phrases for the robbot to use when chatting.
+ */
+export const DEFAULT_ROBBOT_LEX_DATA: LexData<RobbotPropsData> = {
+    ...DEFAULT_HUMAN_LEX_DATA,
+};
+// adjust for robbot-ness a bit
+DEFAULT_ROBBOT_LEX_DATA[SemanticId.bye].push(
+    {
+        texts: [
+            'end of line', 'EOL',
+        ],
+        ssmls: [
+            'end of line', Ssml.sayAs({ interpret: 'spell-out', text: 'EOL' }),
+        ],
+        language: 'en-US',
+        props: {
+            semanticId: SemanticId.bye,
+        },
+        weighting: 100,
+    }
+)
+
