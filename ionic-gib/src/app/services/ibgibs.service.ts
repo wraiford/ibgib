@@ -1334,6 +1334,7 @@ export class IbgibsService {
    */
   async get({
     addr,
+    addrs,
     isMeta,
     isDna,
     space,
@@ -1343,7 +1344,7 @@ export class IbgibsService {
       space = space ?? await this.getLocalUserSpace({});
       if (!space) { throw new Error(`space falsy and localUserSpace not initialized (?) (E: 86ccdcf3417a45b4a3a8c280fb9a6df7)`); }
 
-      return getFromSpace({ addr, isMeta, isDna, space });
+      return getFromSpace({ addr, addrs, isMeta, isDna, space });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       return Promise.resolve({ errorMsg: error.message });

@@ -340,8 +340,7 @@ export const DEFAULT_HUMAN_LEX_DATA_ENGLISH: LexData<RobbotPropsData> = {
     ],
     [SemanticId.cancel]: [
         ...toLexDatums(SemanticId.cancel, [
-            'cancel', 'nm', 'nevermind', 'cancel that', 'forget it', 'forget that',
-            'don\'t worry about it'
+            'cancel', 'nm', 'nevermind', 'cancel that', 'don\'t worry about it'
         ])
     ],
     [SemanticId.skip]: [

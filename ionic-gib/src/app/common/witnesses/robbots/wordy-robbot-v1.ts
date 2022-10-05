@@ -234,6 +234,16 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     private _analysis: WordyRobbotAnalysisIbGib_V1;
 
     private _currentWorkingContextIbGib: IbGib_V1;
+    /**
+     * when we get an update to the context, we want to know what the _new_
+     * children are in order to interpret comments from the user that may be
+     * directed at us.
+     *
+     * So we will get an initial snapshot of children that we will diff against.
+     * We could go via the dna, but ultimately a diff is what is needed.
+     */
+    protected _currentWorkingContextIbGib_PriorChildrenAddrs: IbGibAddr[] = [];
+
     private _currentWorkingLookProjection: GetGraphResult;
     private _currentWorkingCommentIbGibs: CommentIbGib_V1[];
     private _currentWorkingComment: CommentIbGib_V1;
@@ -261,6 +271,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     private _expectedResponses: string;
 
     private _robbotLex: Lex<RobbotPropsData> = new Lex<RobbotPropsData>(DEFAULT_ROBBOT_LEX_DATA, {});
+
+    // protected contextChild$: Subject<IbGib_V1> = new Subject
 
     constructor(initialData?: WordyRobbotData_V1, initialRel8ns?: WordyRobbotRel8ns_V1) {
         super(initialData, initialRel8ns);
@@ -338,16 +350,14 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    private async getCurrentWorkingComment({ clearFirst }: { clearFirst?: boolean }): Promise<CommentIbGib_V1> {
-        const lc = `${this.lc}[${this.getCurrentWorkingComment.name}]`;
+    private async initializeCurrentWorkingComment(): Promise<void> {
+        const lc = `${this.lc}[${this.initializeCurrentWorkingComment.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: c3a5aadc40ebcb63da6adbe67dca3a22)`); }
 
-            if (clearFirst) {
-                delete this._currentWorkingLookProjection;
-                delete this._currentWorkingCommentIbGibs;
-                delete this._currentWorkingComment;
-            }
+            delete this._currentWorkingLookProjection;
+            delete this._currentWorkingCommentIbGibs;
+            delete this._currentWorkingComment;
 
             const space = await this.ibgibsSvc.getLocalUserSpace({ lock: true });
 
@@ -367,8 +377,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 this._currentWorkingComment = pickRandom({ x: this._currentWorkingCommentIbGibs });
                 if (logalot) { console.log(`${lc} just set current working comment. addr: ${h.getIbGibAddr({ ibGib: this._currentWorkingComment })} (I: 78a694ba366f1c3871710dbfd9b75122)`); }
             }
-
-            return this._currentWorkingComment;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -377,6 +385,23 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
+    /**
+     * Handles a new ibgib in the current working context.
+     *
+     * If it originated from the robbot him/herself, then we will ignore it.
+     * Otherwise this is interpreted either as a "command" or something to remember.
+     *
+     * ## notes
+     *
+     * If the user says something and we're listening (this is triggered), then
+     * it should be either interpreted as a "command" or ignored. I put
+     * "command" in quotes because the word is a very short-sighted
+     * understanding of the conversational aspect. Or perhaps I speak to the
+     * connotations to current belief's regarding robbots and commands.
+     *
+     * This is complicated by the possibility in the future of multiple robbots
+     * being engaged in a conversation within the same context.
+     */
     private async handleContextUpdate({ update }: { update: IbGibTimelineUpdateInfo }): Promise<void> {
         const lc = `${this.lc}[${this.handleContextUpdate.name}]`;
         // I don't see this as really being very likely in the near future,
@@ -394,15 +419,61 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             console.table(update);
             if (!update.latestIbGib) {
                 debugger;
-                throw new Error(`(unexpected) update.latestIbGib falsy? (E: e18a048d7e95757238396ddd84748f22)`);
-            } else {
-                this._currentWorkingContextIbGib = update.latestIbGib;
+                throw new Error(`(UNEXPECTED) update.latestIbGib falsy? (E: e18a048d7e95757238396ddd84748f22)`);
             }
+
+            const oldContext = this._currentWorkingContextIbGib;
+            const newContext = update.latestIbGib;
+            const newChildrenIbGibs = this.getNewChildrenIbGibs({ newContext });
+            // should normally be just one (would be very edge casey if not)
+
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
         } finally {
             this._updatingContext = false;
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    async getNewChildrenIbGibs({ newContext }: { newContext: IbGib_V1 }): Promise<IbGib_V1[]> {
+        const lc = `${this.lc}[${this.getNewChildrenIbGibs.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 1b3d1cf908489087fa3b281f55b9a522)`); }
+            // get a diff of the new addrs vs. the old addrs.
+            /** all of the children addrs of the new context */
+            const newContextChildrenAddrs = [
+                ...newContext.rel8ns?.comment ?? [],
+                ...newContext.rel8ns?.pic ?? [],
+                ...newContext.rel8ns?.link ?? [],
+            ];
+            /** just the new addrs from the context  */
+            const newChildrenAddrs = newContextChildrenAddrs.filter(x =>
+                !this._currentWorkingContextIbGib_PriorChildrenAddrs.includes(x)
+            );
+            if (newChildrenAddrs.length === 0) {
+                // no new children
+                if (logalot) { console.log(`${lc} no new children addrs in newContext. returning early... (I: 8f9c3658c194c472cb1e2bc19d847b22)`); }
+                return []; /* <<<< returns early */
+            }
+
+            // get the latest addrs for those children
+            const space = await this.ibgibsSvc.getLocalUserSpace({});
+            const resLatestAddrs = await getLatestAddrs({ addrs: newChildrenAddrs, space, });
+            const latestAddrs = Object.values(resLatestAddrs?.data?.latestAddrsMap ?? {});
+            if (!resLatestAddrs?.data?.success || latestAddrs.length !== newChildrenAddrs.length) { throw new Error(`could not get latest addrs. (E: 2e1619e7e2e166696fe8ff78cb02cc22)`); }
+
+            // get the addrs' corresponding ibgibs
+            const resGet = await this.ibgibsSvc.get({ addrs: latestAddrs });
+            if (!resGet.success || resGet.ibGibs?.length !== newChildrenAddrs.length) {
+                throw new Error(`failed to get newChildren with addrs: ${newChildrenAddrs.join('|')}. Error: ${resGet.errorMsg ?? 'unknown error 5737bd0996d5445b8bd80975bedc0d57'} (E: 05722e11350ec6ffffdb5c7d0caa2922)`);
+            }
+
+            return resGet.ibGibs;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
@@ -465,20 +536,15 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 5d820b45337bf51c8d0f3daa3013ae22)`); }
 
-            // check to see if we're already in the middle of a conversation
-            // if we're in the middle of a conversation, then why have they hit the button?
-            // see if the context has changed
+            await this.completeSessionIfNeeded({ sayBye: true });
+            await this.closeCurrentWorkingContextIfNeeded();
+            await this.initializeContext({ arg });
+            await this.startSession();
+            await this.initializeCurrentWorkingComment();
 
-            // initialize
-            await this.initializeContextIbGibSubscription({ arg });
 
-            if ((this.rel8ns.analysis ?? []).length > 0) {
 
-            }
-
-            const currentComment = await this.getCurrentWorkingComment({ clearFirst: false });
-
-            const textInfo = this.getTextInfo({ srcIbGib: currentComment });
+            const textInfo = this.getTextInfo({ srcIbGib: this._currentWorkingComment });
 
             if (textInfo.lines.length === 1) {
                 // just a single line comment, do a fill-in-the-blank for now and clear the current ibgib.
@@ -516,23 +582,26 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
     }
 
-    private async initializeContextIbGibSubscription({
+    protected async initializeContext({
         arg,
     }: {
         arg: RobbotCmdIbGib<IbGib_V1, RobbotCmdData, RobbotCmdRel8ns>,
     }): Promise<void> {
-        const lc = `${this.lc}[${this.initializeContextIbGibSubscription.name}]`;
+        const lc = `${this.lc}[${this.initializeContext.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: d93429c85b0a494388f66fba3eece922)`); }
-            if (this._currentWorkingContextIbGib) {
-                await this.closeCurrentWorkingContext();
-            }
 
             debugger;
             this._currentWorkingContextIbGib = await this.getContextIbGibFromArg({ arg, latest: true });
+            this._currentWorkingContextIbGib_PriorChildrenAddrs = [
+                ...this._currentWorkingContextIbGib?.rel8ns?.comment ?? [],
+                ...this._currentWorkingContextIbGib?.rel8ns?.pic ?? [],
+                ...this._currentWorkingContextIbGib?.rel8ns?.link ?? [],
+            ];
 
-            // need to get latest context
-
+            // subscribe to receive updates to the context so we can participate
+            // in the conversation (i.e. interpret incoming ibgibs like commands
+            // if needed)
             let gibInfo = getGibInfo({ gib: this._currentWorkingContextIbGib.gib });
             if (gibInfo.tjpGib) {
                 this.ibgibsSvc.latestObs
@@ -551,7 +620,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                         this.handleContextUpdate({ update });
                     });
             }
-
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -560,8 +628,25 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    async closeCurrentWorkingContext(): Promise<void> {
-        const lc = `${this.lc}[${this.closeCurrentWorkingContext.name}]`;
+
+    protected async initializeContext_PreexistingChildren(): Promise<void> {
+        const lc = `${this.lc}[${this.initializeContext_PreexistingChildren.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 428a267b4da318737a7a832f3fd07c22)`); }
+            // this._currentWorkingContextIbGib
+            // go through and get the comments/pics/links that the context
+            // already has and capture these in a property that we can check
+            // against later.
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    async closeCurrentWorkingContextIfNeeded(): Promise<void> {
+        const lc = `${this.lc}[${this.closeCurrentWorkingContextIfNeeded.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: d2b97975687bdc822c4974d153dfde22)`); }
             if (this._subLatestContext) {
@@ -649,7 +734,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             // const space = await this.ibgibsSvc.getLocalUserSpace({ lock: true });
 
-            const currentComment = await this.getCurrentWorkingComment({ clearFirst: true });
+            const currentComment = await this.initializeCurrentWorkingComment({ clearFirst: true });
 
             // const lookProjection = await this.getAllIbGibsWeCanLookAt({ space });
             // const lookProjection =
@@ -995,8 +1080,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 78762a22d30c12d23ca01465f2d6ce22)`); }
 
-            if (this.session || this.interactions) { await this.completeSession({ sayBye: true }); }
-
             if (!this._currentWorkingContextIbGib) { throw new Error(`current working context should already be initialized (E: 9163e7cc8cc68d63d7d29954b688f222)`); }
 
             const contextIbGib = this._currentWorkingContextIbGib;
@@ -1045,8 +1128,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
      *
      * this function will delete this.session and this.interactions, even if it throws.
      */
-    protected async completeSession({ sayBye }: { sayBye: boolean }): Promise<void> {
-        const lc = `${this.lc}[${this.completeSession.name}]`;
+    protected async completeSessionIfNeeded({ sayBye }: { sayBye: boolean }): Promise<void> {
+        const lc = `${this.lc}[${this.completeSessionIfNeeded.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: c87e977729f64268bcc400934dce64c6)`); }
             if (!this.session) {
