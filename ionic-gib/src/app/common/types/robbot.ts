@@ -136,7 +136,19 @@ export interface RobbotData_V1 extends WitnessData_V1 {
      * that this robbot uses for "my ibgibs".
      */
     allRel8nNames?: string[];
+    /**
+     * escape sequence when requesting something from a robbot.
+     *
+     * So if a comment starts with this, then it's someone asking a robbot to do
+     * something.
+     */
+    requestEscapeString?: string;
 }
+/**
+ * default value for a robbot request escape string (that string to signify
+ * a comment is a request of a robbot)
+ */
+export const DEFAULT_ROBBOT_REQUEST_ESCAPE_STRING = '?';
 
 
 // /**

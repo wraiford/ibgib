@@ -297,28 +297,78 @@ export async function getIdPool({
 export function getSaferSubstring({
     text,
     length,
+    keepLiterals = ['?', '-', '#', '@'],
 }: {
     text: string;
     length?: number,
+    /**
+     * list of strings that you want to keep in the resultant string verbatim (without alteration).
+     *
+     * ## driving use case
+     *
+     * I want user comments that start with a question mark (?) to signify a
+     * request to a robbot, e.g. "?start someAddr^gib" or whatever. So I want to
+     * keep the question mark.  I thought of an encoding mapping, like ? =>
+     * "__qstmark__" but it's easier just to keep it, as this function was
+     * originally intended to just nerf text in general because there was no
+     * reason not to. well now there is a reason.
+     *
+     * I'm adding in a couple other characters in common use for whenever I get around
+     * to making those mean something in the app (#, @)
+     */
+    keepLiterals?: string[],
 }): string {
     const lc = `[${getSaferSubstring.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: 27437e312e5aa621adfebb84e059c822)`); }
         if (!text) { throw new Error(`text required (E: 87e0493613c8b30dfade83e1d2862a22)`); }
 
-        let saferText = text.replace(/\W/g, '');
-        let resText: string;
-        if (saferText.length > length) {
-            resText =
-                saferText.substring(0, length);
-        } else if (saferText.length > 0) {
-            resText = saferText;
-        } else {
-            // text only has characters/nonalphanumerics ("unsafe").
-            resText = c.ONLY_HAS_NON_ALPHANUMERICS;
+        let saferText: string = text;
+
+        // before stripping "unsafe" characters, replace all instances of
+        // keepLiterals with a temporary token if applicable
+        let tokenToKeepMap: { [token: string]: string } = {};
+        keepLiterals = keepLiterals ?? [];
+        for (let i = 0; i < keepLiterals.length; i++) {
+            const keep = keepLiterals[i];
+            let tmpToken: string;
+            do {
+                tmpToken = pickRandom_Letters({ count: 10 });
+            } while (tmpToken.includes(keep) || keep.includes(tmpToken) || text.includes(tmpToken));
+
+            // replace instances of keep literals with our token
+            if (saferText.includes(keep)) {
+                tokenToKeepMap[tmpToken] = keep;
+                while (saferText.includes(keep)) {
+                    saferText = saferText.replace(keep, tmpToken);
+                }
+            }
         }
 
-        return resText;
+        // now remove every non-alphanumeric
+        saferText = saferText.replace(/\W/g, '');
+
+        // before checking length, put back in our keep literals (if any)
+        const tokens = Object.keys(tokenToKeepMap);
+        for (let i = 0; i < tokens.length; i++) {
+            const token = tokens[i];
+            while (saferText.includes(token)) {
+                saferText = saferText.replace(token, tokenToKeepMap[token]);
+            }
+        }
+
+        // trim the text to length if specified
+        if (length && length > 0) {
+            // let resText: string;
+            if (saferText.length > length) {
+                saferText = saferText.substring(0, length);
+            }
+        }
+
+        // replace if text only has characters/nonalphanumerics ("unsafe").
+        if (saferText.length === 0) { saferText = c.ONLY_HAS_NON_ALPHANUMERICS; }
+
+        return saferText;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -406,6 +456,29 @@ export function pickRandom<T extends any>({ x }: { x: T[] }): T {
     if ((x ?? []).length === 0) { return undefined; /* <<<< returns early */ }
     let randomIndex = Math.floor(Math.random() * x.length);
     return x[randomIndex];
+}
+
+/**
+ * NOT strong crypto!
+ *
+ * returns `count` number of letters concatenated into a string.
+ */
+export function pickRandom_Letters({ count }: { count: number }): string {
+    const lc = `${pickRandom_Letters.name}]`;
+    try {
+        if (!Number.isInteger(count)) { throw new Error(`count required to be a number. (E: c0a21d884ebd9afc4b2e8025207e0522)`); }
+        let result: string = "";
+        for (let i = 0; i < count; i++) {
+            result += pickRandom({ x: 'a b c d e f g h i j k l m n o p q r s t u v w x y z'.split(' ') });
+        }
+        if (result.length !== count) { throw new Error(`${lc} (UNEXPECTED) result.length !== count ? (E: 9bec4ec8f78610d8055e565415392a22)`); }
+        return result;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
 }
 
 /**

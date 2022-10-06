@@ -6,6 +6,7 @@ import { getRegExp, getTimestampInTicks } from './utils';
 import { IbGibRobbotAny } from '../witnesses/robbots/robbot-base-v1';
 import { CommonService } from '../../services/common.service';
 import {
+    DEFAULT_ROBBOT_REQUEST_ESCAPE_STRING,
     RobbotData_V1, RobbotIbGib_V1,
     // RobbotOutputMode, VALID_ROBBOT_OUTPUT_MODES
 } from '../types/robbot';
@@ -14,8 +15,9 @@ import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { WitnessFormBuilder } from './witness';
 import { validateIbGibIntrinsically } from './validate';
 import { persistTransformResult, registerNewIbGib, rel8ToSpecialIbGib } from './space';
-import { IbGib_V1 } from 'ts-gib/dist/V1';
+import { IB, IbGib_V1 } from 'ts-gib/dist/V1';
 import { IbgibsService } from '../../services/ibgibs.service';
+import { isComment, parseCommentIb } from './comment';
 // import { validateWitnessClassname } from '../witnesses/witness-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -312,4 +314,37 @@ export class RobbotFormBuilder extends WitnessFormBuilder {
         return this;
     }
 
+}
+
+/**
+ * checks to see if the comment is an ibgib and if that comment starts
+ * with the escape sequence.
+ */
+export function isRequestComment({
+    ibGib,
+    requestEscapeString = DEFAULT_ROBBOT_REQUEST_ESCAPE_STRING,
+}: {
+    ibGib: IbGib_V1,
+    requestEscapeString?: string,
+}): boolean {
+    const lc = `${isRequestComment.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: d7c49619ffb7a9c26d9d74959b91ae22)`); }
+
+        if (!isComment({ ibGib })) { return false; /* <<<< returns early */ }
+
+        let { ib } = ibGib;
+        if (ib) { throw new Error(`ib or ibGib.ib required (E: d92c26b15fc143977955a167b8b67522)`); }
+
+        requestEscapeString = requestEscapeString || DEFAULT_ROBBOT_REQUEST_ESCAPE_STRING;
+
+        let { safeIbCommentText } = parseCommentIb({ ib });
+
+        return safeIbCommentText.startsWith(requestEscapeString);
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
 }

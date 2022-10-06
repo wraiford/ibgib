@@ -19,7 +19,7 @@ import { DynamicForm } from '../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
 import { getIdPool, getTimestampInTicks, pickRandom, unique } from '../../helper/utils';
 import { WitnessFormBuilder } from '../../helper/witness';
-import { getRobbotIb, RobbotFormBuilder } from '../../helper/robbot';
+import { getRobbotIb, isRequestComment, RobbotFormBuilder } from '../../helper/robbot';
 import { DynamicFormBuilder } from '../../helper/form';
 import { getGraphProjection, GetGraphResult } from '../../helper/graph';
 import { CommentIbGib_V1 } from '../../types/comment';
@@ -30,6 +30,7 @@ import { IbGibSpaceAny } from '../spaces/space-base-v1';
 import { IbGibTimelineUpdateInfo } from '../../types/ux';
 import { Lex, LexData, LexLineConcat } from '../../helper/lex';
 import { getTjpAddr } from '../../helper/ibgib';
+import { isComment } from '../../helper/comment';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
@@ -339,7 +340,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting...`); }
 
-            await this.rel8To({ ibGibs: arg.ibGibs });
+            await this.lookAt({ ibGibs: arg.ibGibs })
 
             return ROOT;
         } catch (error) {
@@ -348,6 +349,28 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         } finally {
             if (logalot) { console.log(`${lc} complete.`); }
         }
+    }
+
+    /**
+     * By default, this rel8s to the given ibgibs via this.data.defaultRel8nName
+     */
+    protected async lookAt({
+        ibGibs
+    }: {
+        ibGibs: IbGib_V1[]
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.lookAt.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: ea0e0ed92756ca339b8c03b700599722)`); }
+
+            await this.rel8To({ ibGibs });
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+
     }
 
     private async initializeCurrentWorkingComment(): Promise<void> {
@@ -416,22 +439,58 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             // if it's caused by this robbot speaking, then we don't really need
             // it. but if it's from the user, then we want to respond.
-            console.table(update);
+            if (logalot) {
+                console.log(`${lc} update: (I: ad0abae7de472e3b4d3891ea0b937322)`);
+                console.table(update);
+            }
             if (!update.latestIbGib) {
                 debugger;
                 throw new Error(`(UNEXPECTED) update.latestIbGib falsy? (E: e18a048d7e95757238396ddd84748f22)`);
             }
 
-            const oldContext = this._currentWorkingContextIbGib;
             const newContext = update.latestIbGib;
-            const newChildrenIbGibs = this.getNewChildrenIbGibs({ newContext });
-            // should normally be just one (would be very edge casey if not)
+            const newChildrenIbGibs = await this.getNewChildrenIbGibs({ newContext });
+            // should normally be just one (would be very edge casey if not atow)
+            let newChild: IbGib_V1;
+            if (newChildrenIbGibs.length === 1) {
+                newChild = newChildrenIbGibs[0];
+            } else if (newChildrenIbGibs.length > 1) {
+                console.warn(`${lc} (UNEXPECTED) found multiple new children in conversation? Using only the last. (W: 02d82a8f755f418d95fa30f0f52ad58e)`);
+                newChild = newChildrenIbGibs[newChildrenIbGibs.length - 1];
+            } else {
+                // no new children, so maybe the user deleted something or who knows.
+                if (logalot) { console.log(`${lc} no new children in context update. returning early... (I: 31397b04965351ab29bb3f78cb709122)`); }
+                return; /* <<<< returns early */
+            }
 
+            // if it's not a comment, then we're just going to look at it/remember it,
+            // i.e. add it to our rel8d ibgibs. if it IS a comment, then we need to
+            // handle it depending on what our state is. Usually it's either a request for
+            // us or an answer/response to something we've done.
+            if (isRequestComment({ ibGib: newChild, requestEscapeString: this.data.requestEscapeString })) {
+                await this.handleRequestIbGib({ ibGib: newChild });
+            } else {
+                // remember it for future. ()
+                await this.lookAt({ ibGibs: [newChild] });
+            }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
         } finally {
             this._updatingContext = false;
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    async handleRequestIbGib({ ibGib }: { ibGib: IbGib_V1 }): Promise<void> {
+        const lc = `${this.lc}[${this.handleRequestIbGib.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: e594c9c637a8be26a669fefd5800d322)`); }
+            throw new Error(`not impl (E: c9ac49b454b16b790c9b9f0ac33ec522)`);
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
@@ -734,15 +793,9 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             // const space = await this.ibgibsSvc.getLocalUserSpace({ lock: true });
 
-            const currentComment = await this.initializeCurrentWorkingComment({ clearFirst: true });
-
-            // const lookProjection = await this.getAllIbGibsWeCanLookAt({ space });
-            // const lookProjection =
-
-            // go through the text-based ibgibs
-            // const commentIbGibs = await this.getCommentIbGibs({ lookProjection, space });
-            // const commentIbGibs = this._currentWorkingCommentIbGibs;
-            // const currentComment = this._currentWorkingComment;
+            if (!this._currentWorkingCommentIbGibs) {
+                await this.initializeCurrentWorkingComment();
+            }
 
             // at this point, we should have all of the related ibgibs that we
             // care about loaded into this.cacheIbGibs and this.cachedLatestAddrsMap is populated.
@@ -1215,6 +1268,7 @@ const DEFAULT_WORDY_ROBBOT_DATA_V1: WordyRobbotData_V1 = {
     // tagOutput: false,
     outputPrefix: '👀: ',
     outputSuffix: '-🤖 W',
+    requestEscapeString: '?',
 
     persistOptsAndResultIbGibs: false,
     allowPrimitiveArgs: true,
