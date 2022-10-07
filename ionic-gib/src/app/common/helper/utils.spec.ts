@@ -1,25 +1,39 @@
-import { waitForAsync } from "@angular/core/testing";
-import { pickRandom, pickRandom_Letters } from "./utils";
+import { getSaferSubstring, pickRandom, pickRandom_Letters } from "./utils";
 
 describe('utils', () => {
 
-    beforeEach(waitForAsync(() => {
+    describe('getSaferSubstring', () => {
 
-    }));
+        const textsWithQuestionMarks = ['????yo?', '?start', 'end?', 'i?got?questions',];
+        const textsWithOnlyNonAlphanumerics = ['(*^*%$%#%^#^%#??//', ':";\' "'];
+        const textsWithCharacters = [...textsWithQuestionMarks, ...textsWithOnlyNonAlphanumerics, 'i have spaces', 'i-have-hyphens', 'i/got/slashes', 'got\\back\\slashes'];
+
+        describe('with keepliterals empty', () => {
+
+            fit('should remove non alphanumerics', () => {
+                for (let i = 0; i < textsWithCharacters.length; i++) {
+                    const text = textsWithCharacters[i];
+                    const saferText = getSaferSubstring({ text, keepLiterals: [] });
+                    expect(saferText.match(/^\w+$/)).toBeTruthy(`nope: ${text}`);
+                }
+            });
+        });
+
+    });
 
     describe('pickRandom', () => {
 
-        fit('should pick a random letter from an array of letters', () => {
+        it('should pick a random letter from an array of letters', () => {
             const letters = ['a', 'b', 'c', 'd', 'E'];
             const letter = pickRandom({ x: letters });
             expect(letters.includes(letter)).toBeTruthy();
         });
-        fit('should pick a random number from an array of numbers', () => {
+        it('should pick a random number from an array of numbers', () => {
             const numbers = [0, 1, 2, 3, 4, 5, 6, 42];
             const n = pickRandom({ x: numbers });
             expect(numbers.includes(n)).toBeTruthy();
         });
-        fit('should ultimately pick each of the items over many iterations (m=10, i=1000)', () => {
+        it('should ultimately pick each of the items over many iterations (m=10, i=1000)', () => {
             const numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 42];
             const numbersPicked: Set<number> = new Set<number>();
             for (let i = 0; i < 1000; i++) {
@@ -32,7 +46,7 @@ describe('utils', () => {
 
     describe('pickRandom_Letters', () => {
 
-        fit('should pick some random letters the size of count', () => {
+        it('should pick some random letters the size of count', () => {
             const counts = [1, 4, 15, 30, 100];
             for (let i = 0; i < counts.length; i++) {
                 const count = counts[i];
@@ -42,7 +56,7 @@ describe('utils', () => {
                 expect(letters.match(/^\w+$/)).toBeTruthy();
             }
         });
-        fit('should NOT pick the same letters in tight loop (counts=10,15 i=100)', () => {
+        it('should NOT pick the same letters in tight loop (counts=10,15 i=100)', () => {
             const counts = [10, 15];
             const iterations = 100;
             const alreadyPicked: Set<string> = new Set<string>();
