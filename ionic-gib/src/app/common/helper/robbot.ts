@@ -330,11 +330,12 @@ export function isRequestComment({
     const lc = `${isRequestComment.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: d7c49619ffb7a9c26d9d74959b91ae22)`); }
+        debugger;
 
         if (!isComment({ ibGib })) { return false; /* <<<< returns early */ }
 
         let { ib } = ibGib;
-        if (ib) { throw new Error(`ib or ibGib.ib required (E: d92c26b15fc143977955a167b8b67522)`); }
+        if (!ib) { throw new Error(`ib or ibGib.ib required (E: d92c26b15fc143977955a167b8b67522)`); }
 
         requestEscapeString = requestEscapeString || DEFAULT_ROBBOT_REQUEST_ESCAPE_STRING;
 

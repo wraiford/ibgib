@@ -19,12 +19,14 @@ import { argy_, isArg, resulty_ } from '../witness-helper';
 import { IbGibSpaceAny } from '../spaces/space-base-v1';
 import { IbgibsService } from '../../../services/ibgibs.service';
 import { validateIbGibIntrinsically } from '../../helper/validate';
-import { getFromSpace, persistTransformResult } from '../../helper/space';
+import { getFromSpace, getLatestAddrs, persistTransformResult } from '../../helper/space';
 import { ErrorIbGib_V1 } from '../../types/error';
 import { errorIbGib } from '../../helper/error';
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { createCommentIbGib, parseCommentIb } from '../../helper/comment';
 import { WORDY_V1_ANALYSIS_REL8N_NAME } from './wordy-robbot-v1';
+import { Subscription } from 'rxjs';
+import { IbGibTimelineUpdateInfo } from '../../types/ux';
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
 
@@ -97,18 +99,6 @@ export abstract class RobbotBase_V1<
      * Log context for convenience with logging. (Ignore if you don't want to use this.)
      */
     protected lc: string = `${super.lc}[${RobbotBase_V1.name}]`;
-    // protected lc: string = `[${RobbotBase_V1.name}]`;
-
-    // getRobbotIb(classname: string): string {
-    //     const lc = `${this.lc}[${this.getRobbotIb.name}]`;
-    //     if (!classname) {
-    //         classname = this.lc?.replace('[','').replace(']','') || RobbotBase_V1.name+'_descendant';
-    //         console.warn(`${lc} classname is falsy. Using ${classname}.`);
-    //     }
-    //     const name = this.data?.name || c.IBGIB_SPACE_NAME_DEFAULT;
-    //     const id = this.data?.uuid || undefined;
-    //     return `witness space ${classname} ${name} ${id}`;
-    // }
 
     /**
      * Reference to the local ibgibs service, which is one way at getting at the
@@ -121,6 +111,21 @@ export abstract class RobbotBase_V1<
      * we don't have to get them again from storage.
      */
     protected cacheIbGibs: { [addr: string]: IbGib_V1 } = {};
+
+
+    protected _currentWorkingContextIbGib: IbGib_V1;
+    /**
+     * when we get an update to the context, we want to know what the _new_
+     * children are in order to interpret comments from the user that may be
+     * directed at us.
+     *
+     * So we will get an initial snapshot of children that we will diff against.
+     * We could go via the dna, but ultimately a diff is what is needed.
+     */
+    protected _currentWorkingContextIbGib_PriorChildrenAddrs: IbGibAddr[] = [];
+
+    protected _subLatestContext: Subscription;
+    protected _updatingContext: boolean;
 
     constructor(initialData?: TData, initialRel8ns?: TRel8ns) {
         super(initialData, initialRel8ns);
@@ -827,6 +832,258 @@ export abstract class RobbotBase_V1<
             throw error;
         } finally {
             if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    /**
+     * By default, this rel8s to the given ibgibs via this.data.defaultRel8nName
+     */
+    protected async lookAt({
+        ibGibs
+    }: {
+        ibGibs: IbGib_V1[]
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.lookAt.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: ea0e0ed92756ca339b8c03b700599722)`); }
+            await this.rel8To({ ibGibs });
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+
+    }
+
+    private async getContextIbGibFromArg({
+        arg,
+        latest,
+    }: {
+        arg: RobbotCmdIbGib<IbGib_V1, RobbotCmdData, RobbotCmdRel8ns>,
+        /**
+         * if true, after extracting the context from the arg, will get the
+         * latest ibgib (if there is a newer version).
+         */
+        latest?: boolean,
+    }): Promise<IbGib_V1> {
+        const lc = `${this.lc}[${this.getContextIbGibFromArg.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: c13f7cb92133984048f606075efb8a22)`); }
+            if ((arg.ibGibs ?? []).length === 0) { throw new Error(`(UNEXPECTED) invalid arg? no context ibgib on arg (E: 89997eb4bdeb3885bee9de5d33ee0f22)`); }
+            if ((arg.ibGibs ?? []).length !== 1) { throw new Error(`(UNEXPECTED) invalid arg? only expected one ibgib on arg.ibGibs (E: 1a1498af668740fe9439f4953a74ea8a)`); }
+            let contextIbGib = arg.ibGibs[0];
+            if (latest) {
+                const resLatestAddr = await this.ibgibsSvc.getLatestAddr({ ibGib: contextIbGib });
+                if (resLatestAddr !== h.getIbGibAddr({ ibGib: contextIbGib })) {
+                    const resGet = await this.ibgibsSvc.get({ addr: resLatestAddr });
+                    if (resGet.success && resGet.ibGibs?.length === 1) {
+                        contextIbGib = resGet.ibGibs[0];
+                    } else {
+                        throw new Error(`unable to get resLatestAddr (${resLatestAddr}) (E: ce1e1297743e9a16c8f082321e52a122)`);
+                    }
+                }
+            }
+            return contextIbGib;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    /**
+     * The context is the ibgib where we are interacting with the user(s) (only
+     * singlular atow).
+     *
+     * When we initialize, we are setting state on this robbot as well as subscribing
+     * to the context ibgib's updates in `this.ibgibsSvc`.
+     */
+    protected async initializeContext({
+        arg,
+    }: {
+        arg: RobbotCmdIbGib<IbGib_V1, RobbotCmdData, RobbotCmdRel8ns>,
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.initializeContext.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: d93429c85b0a494388f66fba3eece922)`); }
+
+            debugger;
+            this._currentWorkingContextIbGib = await this.getContextIbGibFromArg({ arg, latest: true });
+            this._currentWorkingContextIbGib_PriorChildrenAddrs = [
+                ...this._currentWorkingContextIbGib?.rel8ns?.comment ?? [],
+                ...this._currentWorkingContextIbGib?.rel8ns?.pic ?? [],
+                ...this._currentWorkingContextIbGib?.rel8ns?.link ?? [],
+            ];
+
+            // subscribe to receive updates to the context so we can participate
+            // in the conversation (i.e. interpret incoming ibgibs like commands
+            // if needed)
+            let gibInfo = getGibInfo({ gib: this._currentWorkingContextIbGib.gib });
+            if (gibInfo.tjpGib) {
+                this.ibgibsSvc.latestObs
+                    .subscribe(update => {
+                        if (!update.tjpAddr) { return; /* <<<< returns early */ }
+                        if (h.getIbAndGib({ ibGibAddr: update.tjpAddr }).gib !== gibInfo.tjpGib) { return; /* <<<< returns early */ }
+                        if (update.latestAddr === h.getIbGibAddr({ ibGib: this._currentWorkingContextIbGib })) {
+                            if (logalot) { console.log(`${lc} already have that context... (I: a6e17ec40d620f0bd5b231db39eaa522)`); }
+                            return; /* <<<< returns early */
+                        }
+                        if (this._updatingContext) {
+                            if (logalot) { console.log(`${lc} already updating context (I: f856f9414627ab00418dccd285b55822)`); }
+                            return; /* <<<< returns early */
+                        }
+                        this.handleContextUpdate({ update });
+                    });
+            }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    protected async closeCurrentWorkingContextIfNeeded(): Promise<void> {
+        const lc = `${this.lc}[${this.closeCurrentWorkingContextIfNeeded.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: d2b97975687bdc822c4974d153dfde22)`); }
+            if (this._subLatestContext) {
+                this._subLatestContext.unsubscribe();
+                delete this._subLatestContext;
+            }
+            if (this._currentWorkingContextIbGib) {
+                await this.createCommentAndRel8ToContextIbGib({
+                    text: 'end of line',
+                    contextIbGib: this._currentWorkingContextIbGib,
+                });
+                delete this._currentWorkingContextIbGib;
+            }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    /**
+     * Handles a new ibgib in the current working context.
+     *
+     * If it originated from the robbot him/herself, then we will ignore it.
+     * Otherwise this is interpreted either as a "command" or something to remember.
+     *
+     * ## notes
+     *
+     * If the user says something and we're listening (this is triggered), then
+     * it should be either interpreted as a "command" or ignored. I put
+     * "command" in quotes because the word is a very short-sighted
+     * understanding of the conversational aspect. Or perhaps I speak to the
+     * connotations to current belief's regarding robbots and commands.
+     *
+     * This is complicated by the possibility in the future of multiple robbots
+     * being engaged in a conversation within the same context.
+     */
+    private async handleContextUpdate({ update }: { update: IbGibTimelineUpdateInfo }): Promise<void> {
+        const lc = `${this.lc}[${this.handleContextUpdate.name}]`;
+        // I don't see this as really being very likely in the near future,
+        // but putting in a wait delay in case there are multiple updates
+        while (this._updatingContext) {
+            console.warn(`${lc} already updating context? delaying... (W: 19d2ebeaaf2340fb91a7d6c717e9cb41)`);
+            await h.delay(1000);
+        }
+        this._updatingContext = true;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 3eeaa40cad49094f125f9f5cd6ff6e22)`); }
+
+            // if it's caused by this robbot speaking, then we don't really need
+            // it. but if it's from the user, then we want to respond.
+            if (logalot) {
+                console.log(`${lc} update: (I: ad0abae7de472e3b4d3891ea0b937322)`);
+                console.table(update);
+            }
+            if (!update.latestIbGib) {
+                debugger;
+                throw new Error(`(UNEXPECTED) update.latestIbGib falsy? (E: e18a048d7e95757238396ddd84748f22)`);
+            }
+
+            const newContext = update.latestIbGib;
+            const newChildrenIbGibs = await this.getNewChildrenIbGibs({ newContext });
+            // should normally be just one (would be very edge casey if not atow)
+            let newChild: IbGib_V1;
+            if (newChildrenIbGibs.length === 1) {
+                newChild = newChildrenIbGibs[0];
+            } else if (newChildrenIbGibs.length > 1) {
+                console.warn(`${lc} (UNEXPECTED) found multiple new children in conversation? Using only the last. (W: 02d82a8f755f418d95fa30f0f52ad58e)`);
+                newChild = newChildrenIbGibs[newChildrenIbGibs.length - 1];
+            } else {
+                // no new children, so maybe the user deleted something or who knows.
+                if (logalot) { console.log(`${lc} no new children in context update. returning early... (I: 31397b04965351ab29bb3f78cb709122)`); }
+                return; /* <<<< returns early */
+            }
+
+            // we have a new chidl inthe context.
+            await this.handleNewContextChild({ newChild });
+
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            this._updatingContext = false;
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    async getNewChildrenIbGibs({ newContext }: { newContext: IbGib_V1 }): Promise<IbGib_V1[]> {
+        const lc = `${this.lc}[${this.getNewChildrenIbGibs.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 1b3d1cf908489087fa3b281f55b9a522)`); }
+            // get a diff of the new addrs vs. the old addrs.
+            /** all of the children addrs of the new context */
+            const newContextChildrenAddrs = [
+                ...newContext.rel8ns?.comment ?? [],
+                ...newContext.rel8ns?.pic ?? [],
+                ...newContext.rel8ns?.link ?? [],
+            ];
+            /** just the new addrs from the context  */
+            const newChildrenAddrs = newContextChildrenAddrs.filter(x =>
+                !this._currentWorkingContextIbGib_PriorChildrenAddrs.includes(x)
+            );
+            if (newChildrenAddrs.length === 0) {
+                // no new children
+                if (logalot) { console.log(`${lc} no new children addrs in newContext. returning early... (I: 8f9c3658c194c472cb1e2bc19d847b22)`); }
+                return []; /* <<<< returns early */
+            }
+
+            // get the latest addrs for those children
+            const space = await this.ibgibsSvc.getLocalUserSpace({});
+            const resLatestAddrs = await getLatestAddrs({ addrs: newChildrenAddrs, space, });
+            const latestAddrs = Object.values(resLatestAddrs?.data?.latestAddrsMap ?? {});
+            if (!resLatestAddrs?.data?.success || latestAddrs.length !== newChildrenAddrs.length) { throw new Error(`could not get latest addrs. (E: 2e1619e7e2e166696fe8ff78cb02cc22)`); }
+
+            // get the addrs' corresponding ibgibs
+            const resGet = await this.ibgibsSvc.get({ addrs: latestAddrs });
+            if (!resGet.success || resGet.ibGibs?.length !== newChildrenAddrs.length) {
+                throw new Error(`failed to get newChildren with addrs: ${newChildrenAddrs.join('|')}. Error: ${resGet.errorMsg ?? 'unknown error 5737bd0996d5445b8bd80975bedc0d57'} (E: 05722e11350ec6ffffdb5c7d0caa2922)`);
+            }
+
+            return resGet.ibGibs;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    protected async handleNewContextChild({ newChild }: { newChild: IbGib_V1 }): Promise<void> {
+        const lc = `${this.lc}[${this.handleNewContextChild.name}]`;
+        try {
+            throw new Error(`not implemented in base class (E: 833038a17d04e38b9b97be19ed010922)`);
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
         }
     }
 }

@@ -10,7 +10,7 @@ describe('utils', () => {
 
         describe('with keepliterals empty', () => {
 
-            fit('should remove non alphanumerics', () => {
+            it('should remove non alphanumerics', () => {
                 for (let i = 0; i < textsWithCharacters.length; i++) {
                     const text = textsWithCharacters[i];
                     const saferText = getSaferSubstring({ text, keepLiterals: [] });
