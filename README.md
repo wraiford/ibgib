@@ -1,5 +1,7 @@
 # ibgib
 
+https://ibgib.space - atow you can check out the prototype in action
+
 This monorepo holds multiple projects building up a web3 DLT protocol for
 distributed, decentralized and inevitably sovereign computation.
 
