@@ -3558,4 +3558,20 @@ export class IbgibsService {
     }
   }
 
+  async logErrorAboutIbGib({
+    erroredIbGib,
+  }: {
+    erroredIbGib: IbGib_V1,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.logErrorAboutIbGib.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 1fc81697520592c51b17529d97b5a522)`); }
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 }

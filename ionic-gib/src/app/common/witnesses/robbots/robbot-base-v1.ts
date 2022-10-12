@@ -10,6 +10,7 @@ import {
     RobbotCmd,
     RobbotCmdData, RobbotCmdRel8ns, RobbotCmdIbGib,
     RobbotResultData, RobbotResultRel8ns, RobbotResultIbGib, ROBBOT_MY_COMMENT_REL8N_NAME,
+    ROBBOT_MY_CONVO_REL8N_NAME,
 } from '../../types/robbot';
 import { WitnessBase_V1, } from '../witness-base-v1';
 import { CommentIbGib_V1 } from '../../types/comment';
@@ -690,7 +691,7 @@ export abstract class RobbotBase_V1<
             await this.rel8To({
                 ibGibs: [commentIbGib],
                 rel8nName: ROBBOT_MY_COMMENT_REL8N_NAME,
-            })
+            });
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -916,6 +917,12 @@ export abstract class RobbotBase_V1<
                 ...this._currentWorkingContextIbGib?.rel8ns?.pic ?? [],
                 ...this._currentWorkingContextIbGib?.rel8ns?.link ?? [],
             ];
+
+            // rel8 to the context (conversation)
+            await this.rel8To({
+                ibGibs: [this._currentWorkingContextIbGib],
+                rel8nName: ROBBOT_MY_CONVO_REL8N_NAME,
+            });
 
             // subscribe to receive updates to the context so we can participate
             // in the conversation (i.e. interpret incoming ibgibs like commands

@@ -297,6 +297,7 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       if (!resCmd) { throw new Error(`resCmd is falsy. (E:ea742d97ed2f463792e6e8862d8f6b55 )`); }
       if (isError({ ibGib: resCmd })) {
         const errIbGib = <ErrorIbGib_V1>resCmd;
+        // await this.common.ibgibs.put({ibGib: errIbGib}); // hmm
         throw new Error(`errIbGib: ${h.pretty(errIbGib)} (E: f164a5a7c826453da5dd260c02134f6e)`);
       }
     } catch (error) {

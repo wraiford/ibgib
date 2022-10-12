@@ -7,7 +7,6 @@ import * as c from '../constants';
 import { WitnessData_V1, WitnessRel8ns_V1, Witness_V1, } from '../types/witness';
 import { validateGib, validateIb, validateIbGibIntrinsically } from '../helper/validate';
 import { ErrorIbGib_V1 } from '../types/error';
-import { errorIbGib } from '../helper/error';
 import { toDto } from '../helper/ibgib';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -21,12 +20,12 @@ export abstract class WitnessBase_V1<
     TResultIbGib extends IbGib_V1<TResultData, TResultRel8ns> | ErrorIbGib_V1,
     TData extends WitnessData_V1 = any,
     TRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1
-    >
+>
     implements Witness_V1<
         TOptionsData, TOptionsRel8ns, TOptionsIbGib, // options arg
         TResultData, TResultRel8ns, TResultIbGib,    // result
         TData, TRel8ns                   // this witness itself
-        > {
+    > {
 
     /**
      * Log context for convenience with logging. (Ignore if you don't want to use this.)
@@ -73,7 +72,7 @@ export abstract class WitnessBase_V1<
     protected get catchAllErrors(): boolean {
         const lc = `${this.lc}[catchAllErrors]`;
         const result = this.data?.catchAllErrors || false;
-        if (logalot || this.trace) { console.log(`${lc} result: ${result}`)}
+        if (logalot || this.trace) { console.log(`${lc} result: ${result}`) }
         return result;
     }
 
@@ -142,7 +141,7 @@ export abstract class WitnessBase_V1<
      * @see {loadIbGibDto}
      */
     toIbGibDto(): IbGib_V1<TData, TRel8ns> {
-        return toDto({ibGib: this});
+        return toDto({ ibGib: this });
         // const lc = `${this.lc}[${this.toIbGibDto.name}]`;
         // if (!this.ib) { console.warn(`${lc} this.ib is falsy. (W: 60162e3ab42941e9a68cd6adc8d23387)`); }
         // if (!this.gib) { console.warn(`${lc} this.gib is falsy. (W: 61dc535639dc410d874635013fce5b8a)`); }
@@ -233,7 +232,7 @@ export abstract class WitnessBase_V1<
             // persist the arg and result if we're configured to do so it is up
             // to the implementation whether or not to throw on this.
             if (this.data?.persistOptsAndResultIbGibs) {
-                await this.persistOptsAndResultIbGibs({arg, result});
+                await this.persistOptsAndResultIbGibs({ arg, result });
             }
 
             return result;
@@ -259,18 +258,18 @@ export abstract class WitnessBase_V1<
             const errors: string[] = [];
             if (!arg) { errors.push(`arg required (E: a222db3b668e4bb09cfd82e75c07bfa6)`); }
 
-            const ibErrors = validateIb({ib: arg?.ib});
+            const ibErrors = validateIb({ ib: arg?.ib });
             if (ibErrors?.length > 0) { errors.push(`invalid arg.ib (E: 2ae362ef274d4c3bb9716800f2106d28) errors: ${ibErrors.join('\n')}`); }
 
-            const gibErrors = validateGib({gib: arg?.gib});
+            const gibErrors = validateGib({ gib: arg?.gib });
             if (gibErrors?.length > 0) { errors.push(`invalid arg.gib (E: 73be275058084d768a39299337f2ce34) errors: ${gibErrors.join('\n')}`); }
 
-            const intrinsicErrors = await validateIbGibIntrinsically({ibGib: arg});
+            const intrinsicErrors = await validateIbGibIntrinsically({ ibGib: arg });
             if (intrinsicErrors?.length > 0) {
                 errors.push(`arg ibgib invalid intrinsically (E: 73be275058084d768a39299337f2ce34) errors: ${intrinsicErrors.join('\n')}`);
             } else if (!this.data?.allowPrimitiveArgs) {
                 // further check to see if primitive
-                const gibInfo = getGibInfo({gib: arg.gib});
+                const gibInfo = getGibInfo({ gib: arg.gib });
                 if (gibInfo.isPrimitive) { errors.push(`arg is primitive (i.e. gib === "gib") and witness.data.allowPrimitiveArgs is falsy. (E: d0aa3d7ad4f54b01bd0023300d15ecd9)`) }
             }
 

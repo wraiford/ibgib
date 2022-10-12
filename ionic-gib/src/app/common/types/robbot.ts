@@ -303,6 +303,11 @@ export interface RobbotResultIbGib<
  * itself via this rel8nName.
  */
 export const ROBBOT_MY_COMMENT_REL8N_NAME = 'my_comment';
+/**
+ * When a robbot participates in a conversation, that context is related via
+ * this rel8n name.
+ */
+export const ROBBOT_MY_CONVO_REL8N_NAME = 'my_convo';
 
 
 

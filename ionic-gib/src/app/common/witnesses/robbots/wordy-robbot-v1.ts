@@ -111,56 +111,23 @@ export interface WordyRobbotSessionRel8ns_V1 extends IbGibRel8ns_V1 {
 export interface WordyRobbotSessionIbGib_V1 extends IbGib_V1<WordyRobbotSessionData_V1, WordyRobbotSessionRel8ns_V1> { }
 
 
-export type WordyInteractionType = 'line_blank';
-export interface WordyInteraction {
-    interactionType: WordyInteractionType;
-}
-export interface WordyInteraction_LineBlank extends WordyInteraction {
-    lineNumBlanked: number;
-}
-
-/**
- * There are various ways to stimulate an ibgib.
- */
-export type StimulationType = 'just_show' | 'blank_word' | 'next_line' | 'demand_expand';
-export const StimulationType = {
-    /**
-     * The user is just shown the source ibgib raw.
-     */
-    'just_show': 'just_show' as StimulationType,
-    /**
-     * The user is shown a source comment text/line/paragraph with a single
-     * blanked out word.  The user must type in the blanked out word.
-     */
-    'blank_word': 'blank_word' as StimulationType,
-    /**
-     * The user is shown one or more lines and a blank. the user must type in
-     * the line.
-     */
-    'next_line': 'next_line' as StimulationType,
-    /**
-     * the user has to say something that will be added to the target ibgib.
-     * if the user says "skip" or "no" or "no thanks", etc., then it will be
-     * skipped.
-     */
-    'demand_expand': 'demand_expand' as StimulationType,
+export type WordyInteractionType = 'stimulated';
+export const WordyInteractionType = {
+    stimulated: 'stimulated' as WordyInteractionType,
 }
 
 export interface WordyRobbotInteractionData_V1 {
     timestamp: string;
+    type: WordyInteractionType;
     /**
-     * Soft link to the source address of the ibgib being stimulated.
+     * should be an interfaced data object that represents the details of the
+     * interaction, e.g. if a stimulation, then here is the simulation interface data.
+     *
+     * ## notes
+     *
+     * to create another generic interface here would be too unwieldy. (already may be!)
      */
-    '@stimulated': IbGibAddr;
-    /**
-     * Soft link to the source's tjp address of the ibgib being stimulated.
-     */
-    '@stimluatedTjp': IbGibAddr;
-    /**
-     * type of stimulation, like is it a fill in the blank or just showing the
-     * ibgib.
-     */
-    type: StimulationType;
+    details?: any;
 }
 export interface WordyRobbotInteractionRel8ns_V1 extends IbGibRel8ns_V1 {
 }
@@ -174,6 +141,63 @@ export interface WordyRobbotAnalysisData_V1 {
 }
 export interface WordyRobbotAnalysisRel8ns_V1 extends IbGibRel8ns_V1 { }
 export interface WordyRobbotAnalysisIbGib_V1 extends IbGib_V1<WordyRobbotAnalysisData_V1, WordyRobbotAnalysisRel8ns_V1> { }
+
+/**
+ * There are various ways to stimulate an ibgib.
+ */
+export type StimulationType = 'just_show' | 'blank_words'
+    // | 'next_line'
+    // | 'demand_expand'
+    ;
+export const StimulationType = {
+    /**
+     * The user is just shown the source ibgib raw.
+     */
+    'just_show': 'just_show' as StimulationType,
+    /**
+     * The user is shown a source comment text/line/paragraph with a single
+     * blanked out word.  The user must type in the blanked out word.
+     */
+    'blank_words': 'blank_words' as StimulationType,
+    /**
+     * The user is shown one or more lines and a blank. the user must type in
+     * the line.
+     */
+    // 'next_line': 'next_line' as StimulationType,
+    /**
+     * the user has to say something that will be added to the target ibgib.
+     * if the user says "skip" or "no" or "no thanks", etc., then it will be
+     * skipped.
+     */
+    // 'demand_expand': 'demand_expand' as StimulationType,
+}
+export interface WordyRobbotInteractionData_V1_StimulationDetails {
+    /**
+     * type of stimulation, like is it a fill in the blank or just showing the
+     * ibgib.
+     */
+    stimulationType: StimulationType;
+}
+export interface WordyRobbotInteractionData_V1_Stimulation extends WordyRobbotInteractionData_V1 {
+    /**
+     * Soft link to the source address of the ibgib being stimulated.
+     */
+    '@stimulated': IbGibAddr;
+    /**
+     * Soft link to the source's tjp address of the ibgib being stimulated.
+     */
+    '@stimluatedTjp': IbGibAddr;
+}
+/**
+ * We're stimulating the ibgib via blanking out one or more words in the ibgib's
+ * text.
+ */
+export interface WordyRobbotStimulation_V1_BlankWordsDetails {
+    /**
+     * List of words blanked out
+     */
+    blankedWords: string[];
+}
 
 export const DEFAULT_UUID_WORDY_ROBBOT = undefined;
 export const DEFAULT_NAME_WORDY_ROBBOT = 'Wordsworthers';
@@ -237,7 +261,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     protected _currentWorkingLookProjection: GetGraphResult;
     protected _currentWorkingCommentIbGibs: CommentIbGib_V1[];
     protected _currentWorkingComment: CommentIbGib_V1;
-    private _currentWorkingCommentInteractions: WordyInteraction[];
+    protected _currentWorkingCommentTjpAddr: IbGibAddr;
+    private _currentWorkingCommentInteractions: WordyRobbotInteractionIbGib_V1[];
 
 
 
@@ -263,6 +288,15 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
     protected session: WordyRobbotSessionIbGib_V1;
     protected interactions: WordyRobbotInteractionIbGib_V1[];
+    protected get prevInteraction(): WordyRobbotInteractionIbGib_V1 {
+        return this.interactions?.length > 0 ?
+            this.interactions[this.interactions.length - 1] :
+            undefined;
+    }
+    protected get stimulations(): WordyRobbotStimulation_V1[] {
+        return this.interactions?.filter(x => !!x.data?.stimulation)
+            .map(x => { return <WordyRobbotStimulation_V1>x.data.stimulation }) ?? [];
+    }
 
     protected cachedLatestAddrsMap: { [addr: string]: string }
 
@@ -405,6 +439,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             await this.initializeContext({ arg });
             await this.startSession();
             await this.initializeCurrentWorkingComment();
+            await this.promptNextInteraction({});
 
 
 
@@ -532,7 +567,9 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (!this._currentWorkingComment) {
                 this._currentWorkingComment = pickRandom({ x: this._currentWorkingCommentIbGibs });
                 if (logalot) { console.log(`${lc} just set current working comment. addr: ${h.getIbGibAddr({ ibGib: this._currentWorkingComment })} (I: 78a694ba366f1c3871710dbfd9b75122)`); }
+                this._currentWorkingCommentTjpAddr = getTjpAddr({ ibGib: this._currentWorkingComment, defaultIfNone: 'incomingAddr' })
             }
+
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -541,21 +578,38 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
+    protected alreadyHandledContextChildrenAddrs: IbGibAddr[] = [];
+
     protected async handleNewContextChild({ newChild }: { newChild: IbGib_V1 }): Promise<void> {
         const lc = `${this.lc}[${this.handleNewContextChild.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 6845a434406d716d13b853e71d3a8f22)`); }
             debugger;
 
+            const addr = h.getIbGibAddr({ ibGib: newChild });
+            if (this.alreadyHandledContextChildrenAddrs.includes(addr)) {
+                if (logalot) { console.log(`${lc} already handled, returning early: ${addr} (I: b706438b6da5744575efa3e2abc3dd22)`); }
+                return; /* <<<< returns early */
+            } else {
+                this.alreadyHandledContextChildrenAddrs.push(addr);
+            }
+
             // if it's not a comment, then we're just going to look at it/remember it,
             // i.e. add it to our rel8d ibgibs. if it IS a comment, then we need to
             // handle it depending on what our state is. Usually it's either a request for
             // us or an answer/response to something we've done.
             if (isRequestComment({ ibGib: newChild, requestEscapeString: this.data.requestEscapeString })) {
-                await this.handleRequestIbGib({ ibGib: newChild });
-            } else {
-                // remember it for future. ()
-                await this.lookAt({ ibGibs: [newChild] });
+                await this.handleRequest({ ibGib: newChild });
+            } else if (isComment({ ibGib: newChild }) && this.session) {
+                // are we in the middle of a session? If so, then this is an interaction comment.
+
+
+                // } else {
+                // remember it for future...nah, I don't like this. Instead we
+                // will remember the converesation as a whole if we wish to
+                // replay it/reference it/nav to it for some reason. (seems much
+                // more reasonable/useful)
+                // await this.lookAt({ ibGibs: [newChild] });
             }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -568,12 +622,46 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     /**
      * the user has said something to us. we should nobly consider their request.
      */
-    async handleRequestIbGib({ ibGib }: { ibGib: IbGib_V1 }): Promise<void> {
-        const lc = `${this.lc}[${this.handleRequestIbGib.name}]`;
+    async handleRequest({ ibGib }: { ibGib: IbGib_V1 }): Promise<void> {
+        const lc = `${this.lc}[${this.handleRequest.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: e594c9c637a8be26a669fefd5800d322)`); }
             debugger;
+            console.table(ibGib);
+            debugger;
             throw new Error(`not impl (E: c9ac49b454b16b790c9b9f0ac33ec522)`);
+
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    async handleRequest_Start({ ibGib }: { ibGib: IbGib_V1 }): Promise<void> {
+        const lc = `${this.lc}[${this.handleRequest_Start.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: d85e0231ff293b2e3c1222049744ed22)`); }
+            await this.startSession();
+            await this.initializeCurrentWorkingComment();
+            await this.promptNextInteraction({ request: ibGib });
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    async handleRequest_FillInTheBlankResponse({ ibGib }: { ibGib: IbGib_V1 }): Promise<void> {
+        const lc = `${this.lc}[${this.handleRequest_FillInTheBlankResponse.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: aad32cf70a560e6661887d68679edb22)`); }
+            // if it's exactly correct
+            // if it's practically correct (ignore case, punctuation)
+            // if it's largely correct (includes letters above threshold)
+            // if it's wrong
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -980,12 +1068,64 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    protected async addInteraction(): Promise<void> {
-        const lc = `${this.lc}[${this.addInteraction.name}]`;
+    protected async promptNextInteraction({
+        request,
+    }: {
+        request?: IbGib_V1,
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.promptNextInteraction.name}]`;
         try {
-            if (logalot) { console.log(`${lc} starting... (I: 37ba4f1dfd8fa4f7bcd814f2ab159222)`); }
+            if (logalot) { console.log(`${lc} starting... (I: 5e9f1b368c7a059a3d944b1be153c922)`); }
 
-            // create an interaction and rel8 it to the current session.
+            if (request) {
+                // typed in a request comment
+            } else {
+                // just hit the button to start, didn't type in a request comment
+            }
+
+            // get the type of interaction we will have
+            // instantiate that interaction type
+
+            let interactionType: WordyInteractionType = await this.getNextInteractionType();
+
+            // await this.instantiateInteraction({interactionType});
+            let interaction: WordyRobbotInteractionIbGib_V1;
+            switch (interactionType) {
+                case 'stimulated':
+                    interaction = await this.getInteraction_Stimulated()
+                    break;
+                default:
+                    throw new Error(`(UNEXPECTED) unknown interactionType?: ${interactionType} (E: 6281b997cc845e05b1fb86596ee75a22)`);
+            }
+
+            // add the interaction output to the context (atow always a comment)
+
+            // save the interaction, no need to register with local space
+            // (because we don't need a timeline as we are not intending on
+            // updating the interaction going forward)
+            await this.ibgibsSvc.put({ ibGib: interaction });
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    protected async getInteraction_Stimulated(): Promise<WordyRobbotInteractionIbGib_V1> {
+        const lc = `${this.lc}[${this.getInteraction_Stimulated.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: d29c1eee6a2ee289698374ef48bc0322)`); }
+
+            let stimulation: WordyRobbotInteractionData_V1_Stimulation = await this.getNextStimulation();
+            let data: WordyRobbotInteractionData_V1 = {
+                timestamp: getTimestampInTicks(),
+                // "@stimulated": h.getIbGibAddr({ ibGib: this._currentWorkingComment }),
+                // "@stimluatedTjp": this._currentWorkingCommentTjpAddr,
+                // type: 'stimulation',
+
+            }
+
 
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -995,6 +1135,111 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
+    protected async getNextStimulation(): Promise<WordyRobbotInteractionData_V1_Stimulation> {
+        const lc = `${this.lc}[${this.getNextStimulation.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 3b5112795cebe1d56a9a11c624180322)`); }
+
+            let stimulation: WordyRobbotInteractionData_V1_Stimulation;
+            let stimulatedAddr = h.getIbGibAddr({ ibGib: this._currentWorkingComment });
+            let stimulatedTjpAddr = this._currentWorkingCommentTjpAddr;
+            stimulation = {
+                type: 'stimulated',
+                '@stimulated': stimulatedAddr,
+                '@stimluatedTjp': stimulatedTjpAddr,
+                timestamp: getTimestampInTicks(),
+            }
+
+            let randomStimulationType = pickRandom<StimulationType>({ x: Object.values(StimulationType) });
+            let details: any;
+            switch (randomStimulationType) {
+                case 'just_show':
+                    // stimulation = await this.getNextStimulation_JustShow();
+                    // no details
+                    break;
+                case 'blank_words':
+                    // stimulation = await this.getNextStimulation_BlankWords();
+                    details = await this.getNextStimulationDetails_BlankWords();
+                    break;
+                default:
+                    throw new Error(`unknown stimulation type: ${randomStimulationType} (E: 19d29e48868ec7cc4b3d2fa9ab5ac622)`);
+            }
+            return stimulation;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    protected async getNextStimulation_JustShow(): Promise<WordyRobbotInteractionData_V1_Stimulation> {
+        const lc = `${this.lc}[${this.getNextStimulation_JustShow.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 3e375d090dbb52c5865381c90ee09122)`); }
+            let result: WordyRobbotInteractionData_V1_Stimulation = {
+                type: 'stimulated',
+                stimulationType: 'just_show',
+                timestamp: getTimestampInTicks(),
+                "@stimulated"
+            };
+
+
+
+
+            throw new Error(`not impl (E: b3b22b2184ab7a642be577eec7be3522)`);
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+    protected async getNextStimulationDetails_BlankWords(): Promise<WordyRobbotStimulation_V1_BlankWordsDetails> {
+        const lc = `${this.lc}[${this.getNextStimulationDetails_BlankWords.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 3e375d090dbb52c5865381c90ee09122)`); }
+
+            throw new Error(`not impl yet (E: 8c1456e5242595ac162c1398c2888722)`);
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    protected async getNextInteractionType(): Promise<WordyInteractionType> {
+        const lc = `${this.lc}[${this.getNextInteractionType.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: e12984bfb94e5fa4fff95bdf57a3dd22)`); }
+
+
+            // choose interaction type based on previous interaction
+            if (!this.interactions) { this.interactions = []; } // inits here, maybe should elsewhere?
+            const prevInteraction = this.interactions.length > 0 ?
+                this.interactions[this.interactions.length - 1] :
+                null;
+
+            const allInteractionTypes: WordyInteractionType[] = Object.values(WordyInteractionType);
+            const unusedInteractionTypes =
+                allInteractionTypes.filter(x => !this.interactions.some(action => action.data.type === x))
+            let interactionType: WordyInteractionType;
+            if (prevInteraction) {
+
+            } else {
+                // first interaction, choose any
+                interactionType = pickRandom({ x: });
+            }
+
+            return interactionType;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
 }
 
 /**
@@ -1212,7 +1457,7 @@ function parseRobbotAnalysisIb({
         const pieces = ib.split(' ');
         if (pieces.length !== 6) { throw new Error(`invalid ib. should be space-delimited with 6 pieces, but there were ${pieces.length}. Expected pieces: atom, timestamp, robbotName, robbotClassname, robbotId, robbotTjpGib, sessionId, contextTjpGib. (E: b3f44a263c8540f7a9eacd1cecd0e93d)`); }
 
-        const [_, timestamp, robbotName, robbotClassname, robbotId, robbotTjpGib] = ib;
+        const [_, timestamp, robbotName, robbotClassname, robbotId, robbotTjpGib] = ib.split(' ');
         return { timestamp, robbotName, robbotClassname, robbotId, robbotTjpGib, };
     } catch (error) {
         console.error(`${lc} ${error.message}`);
@@ -1279,7 +1524,7 @@ function parseRobbotSessionIb({
         const pieces = ib.split(' ');
         if (pieces.length !== 8) { throw new Error(`invalid ib. should be space-delimited with 8 pieces, but there were ${pieces.length}. Expected pieces: atom, timestamp, robbotName, robbotClassname, robbotId, robbotTjpGib, sessionId, contextTjpGib. (E: 239ba7f599ce02a20271dd288c187d22)`); }
 
-        const [_, timestamp, robbotName, robbotClassname, robbotId, robbotTjpGib, sessionId, contextTjpGib] = ib;
+        const [_, timestamp, robbotName, robbotClassname, robbotId, robbotTjpGib, sessionId, contextTjpGib] = ib.split(' ');
         return {
             timestamp,
             robbotName, robbotClassname, robbotId, robbotTjpGib,
