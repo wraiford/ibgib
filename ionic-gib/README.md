@@ -1,5 +1,7 @@
 # quick and dirty ibgib mvp
 
+atow you can check this out in action at https://ibgib.space
+
 ibgib in code is at heart a decentralized DLT protocol [^1]. Its strength is in
 its ability ability to live **simply** at a high application level, regardless
 of the execution/communication substrate, with as little local pre-optimization
