@@ -1,4 +1,4 @@
-import { getSaferSubstring, pickRandom, pickRandom_Letters } from "./utils";
+import { getSaferSubstring, pickRandom, pickRandom_Letters, replaceCharAt } from "./utils";
 
 describe('utils', () => {
 
@@ -70,5 +70,23 @@ describe('utils', () => {
             }
         });
 
+    });
+
+    describe('replaceCharAt', () => {
+
+        it('should replace chars in strings', () => {
+            let test = 'this is a string (1) here woohoo!\nAnd this is (2) the second line.';
+            let newChar = '_';
+
+            let index1 = test.indexOf('1');
+            let manuallyReplaced1 = `this is a string (${newChar}) here woohoo!\nAnd this is (2) the second line.`;
+            let result1 = replaceCharAt({ s: test, pos: index1, newChar: '_' });
+            expect(result1).toEqual(manuallyReplaced1);
+
+            let index2 = test.indexOf('2');
+            let manuallyReplaced2 = `this is a string (1) here woohoo!\nAnd this is (${newChar}) the second line.`;
+            let result2 = replaceCharAt({ s: test, pos: index2, newChar: '_' });
+            expect(result2).toEqual(manuallyReplaced2);
+        });
     });
 });

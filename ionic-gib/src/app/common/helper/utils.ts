@@ -512,3 +512,27 @@ export function selectElementText(el: HTMLElement): void {
         if (logalot) { console.log(`${lc} complete.`); }
     }
 }
+
+/**
+ * replaces an individual character at a position.
+ *
+ * ## driving use case
+ *
+ * part of functionality to replace entire words with underscores (_'s) for blanking out
+ * stimulations in wordy robbot.
+ *
+ * @returns string with replaced characters
+ */
+export function replaceCharAt({
+    s,
+    pos,
+    newChar,
+}: {
+    s: string,
+    pos: number,
+    newChar: string,
+}): string {
+    const chars = s.split('');
+    chars[pos] = newChar;
+    return chars.join();
+}

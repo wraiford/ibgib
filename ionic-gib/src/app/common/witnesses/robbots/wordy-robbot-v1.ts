@@ -17,7 +17,7 @@ import {
 } from '../../types/robbot';
 import { DynamicForm } from '../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
-import { getIdPool, getTimestampInTicks, pickRandom, unique } from '../../helper/utils';
+import { getIdPool, getTimestampInTicks, pickRandom, replaceCharAt, unique } from '../../helper/utils';
 import { WitnessFormBuilder } from '../../helper/witness';
 import { getRobbotIb, isRequestComment, RobbotFormBuilder } from '../../helper/robbot';
 import { DynamicFormBuilder } from '../../helper/form';
@@ -111,14 +111,17 @@ export interface WordyRobbotSessionRel8ns_V1 extends IbGibRel8ns_V1 {
 export interface WordyRobbotSessionIbGib_V1 extends IbGib_V1<WordyRobbotSessionData_V1, WordyRobbotSessionRel8ns_V1> { }
 
 
-export type WordyInteractionType = 'stimulated';
+export type WordyInteractionType = 'greeting' | 'stimulation' | 'farewell';
 export const WordyInteractionType = {
-    stimulated: 'stimulated' as WordyInteractionType,
+    greeting: 'greeting' as WordyInteractionType,
+    stimulation: 'stimulation' as WordyInteractionType,
+    farewell: 'farewell' as WordyInteractionType,
 }
 
 export interface WordyRobbotInteractionData_V1 {
     timestamp: string;
     type: WordyInteractionType;
+    commentText?: string;
     /**
      * should be an interfaced data object that represents the details of the
      * interaction, e.g. if a stimulation, then here is the simulation interface data.
@@ -171,30 +174,53 @@ export const StimulationType = {
      */
     // 'demand_expand': 'demand_expand' as StimulationType,
 }
-export interface WordyRobbotInteractionData_V1_StimulationDetails {
+export interface StimulationDetails {
     /**
      * type of stimulation, like is it a fill in the blank or just showing the
      * ibgib.
      */
     stimulationType: StimulationType;
-}
-export interface WordyRobbotInteractionData_V1_Stimulation extends WordyRobbotInteractionData_V1 {
     /**
      * Soft link to the source address of the ibgib being stimulated.
      */
-    '@stimulated': IbGibAddr;
+    '@toStimulate': IbGibAddr;
     /**
      * Soft link to the source's tjp address of the ibgib being stimulated.
      */
-    '@stimluatedTjp': IbGibAddr;
+    '@toStimulateTjp': IbGibAddr;
+    /**
+     * If we are making a comment ourselves (and not, e.g., just presenting some
+     * other ibgib without additional comment), then here is the text for it.
+     *
+     * This should also be included in the comment.
+     */
+    commentText?: string;
+}
+/**
+ * interaction specifically for stimulating an ibgib.
+ *
+ * for example, when you review words inside of a comment ibgib, you are
+ * stimulating that comment (not the context ibgib that you're currently in)
+ */
+export interface WordyRobbotInteractionData_V1_Stimulation
+    extends WordyRobbotInteractionData_V1 {
+    /**
+     * narrow down the type a bit for stimulations
+     */
+    type: 'stimulation',
+    /**
+     * narrow down the type a bit for stimulations
+     */
+    details: StimulationDetails;
 }
 /**
  * We're stimulating the ibgib via blanking out one or more words in the ibgib's
  * text.
  */
-export interface WordyRobbotStimulation_V1_BlankWordsDetails {
+export interface StimulationDetails_BlankWords extends StimulationDetails {
+    stimulationType: 'blank_words';
     /**
-     * List of words blanked out
+     * List of words that were blanked out in this stimulation
      */
     blankedWords: string[];
 }
@@ -1091,14 +1117,14 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // await this.instantiateInteraction({interactionType});
             let interaction: WordyRobbotInteractionIbGib_V1;
             switch (interactionType) {
-                case 'stimulated':
-                    interaction = await this.getInteraction_Stimulated()
+                case 'stimulation': interaction = await this.getInteraction_Stimulation();
                     break;
                 default:
                     throw new Error(`(UNEXPECTED) unknown interactionType?: ${interactionType} (E: 6281b997cc845e05b1fb86596ee75a22)`);
             }
 
             // add the interaction output to the context (atow always a comment)
+            await this.applyInteractionToContext({ interaction });
 
             // save the interaction, no need to register with local space
             // (because we don't need a timeline as we are not intending on
@@ -1111,19 +1137,42 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
+    protected async applyInteractionToContext({
+        interaction,
+    }: {
+        interaction: WordyRobbotInteractionIbGib_V1,
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.applyInteractionToContext.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: e49db27e155bc20bb360a5bc36269422)`); }
+            let text = interaction.data.
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
 
-    protected async getInteraction_Stimulated(): Promise<WordyRobbotInteractionIbGib_V1> {
-        const lc = `${this.lc}[${this.getInteraction_Stimulated.name}]`;
+    protected async getInteraction_Stimulation(): Promise<WordyRobbotInteractionIbGib_V1> {
+        const lc = `${this.lc}[${this.getInteraction_Stimulation.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: d29c1eee6a2ee289698374ef48bc0322)`); }
 
             let stimulation: WordyRobbotInteractionData_V1_Stimulation = await this.getNextStimulation();
-            let data: WordyRobbotInteractionData_V1 = {
-                timestamp: getTimestampInTicks(),
-                // "@stimulated": h.getIbGibAddr({ ibGib: this._currentWorkingComment }),
-                // "@stimluatedTjp": this._currentWorkingCommentTjpAddr,
-                // type: 'stimulation',
+            // let details: StimulationDetails = stimulation.details;
+            // let data: WordyRobbotInteractionData_V1 = {
+            //     timestamp: getTimestampInTicks(),
+            //     type: 'stimulation',
+            //     // "@toStimulate": h.getIbGibAddr({ ibGib: this._currentWorkingComment }),
+            //     // "@toStimulateTjp": this._currentWorkingCommentTjpAddr,
+            //     details: stimulation,
+            // }
 
+            stimulation.commentText
+
+            let ibgib: WordyRobbotInteractionIbGib_V1 = {
+                ib: 'interaction stimulation '
             }
 
 
@@ -1141,29 +1190,30 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} starting... (I: 3b5112795cebe1d56a9a11c624180322)`); }
 
             let stimulation: WordyRobbotInteractionData_V1_Stimulation;
-            let stimulatedAddr = h.getIbGibAddr({ ibGib: this._currentWorkingComment });
-            let stimulatedTjpAddr = this._currentWorkingCommentTjpAddr;
-            stimulation = {
-                type: 'stimulated',
-                '@stimulated': stimulatedAddr,
-                '@stimluatedTjp': stimulatedTjpAddr,
-                timestamp: getTimestampInTicks(),
-            }
+            let toStimulateAddr = h.getIbGibAddr({ ibGib: this._currentWorkingComment });
+            let toStimulateTjpAddr = this._currentWorkingCommentTjpAddr;
 
             let randomStimulationType = pickRandom<StimulationType>({ x: Object.values(StimulationType) });
-            let details: any;
+            let details: StimulationDetails;
             switch (randomStimulationType) {
                 case 'just_show':
-                    // stimulation = await this.getNextStimulation_JustShow();
                     // no details
+                    details = await this.getNextStimulation_JustShow({ toStimulateAddr, toStimulateTjpAddr });
                     break;
                 case 'blank_words':
-                    // stimulation = await this.getNextStimulation_BlankWords();
-                    details = await this.getNextStimulationDetails_BlankWords();
+                    details =
+                        await this.getNextStimulationDetails_BlankWords({ toStimulateAddr, toStimulateTjpAddr });
                     break;
                 default:
                     throw new Error(`unknown stimulation type: ${randomStimulationType} (E: 19d29e48868ec7cc4b3d2fa9ab5ac622)`);
             }
+            stimulation = {
+                type: 'stimulation',
+                timestamp: getTimestampInTicks(),
+                details,
+            }
+            if (details.commentText) { stimulation.commentText = details.commentText; }
+
             return stimulation;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -1173,21 +1223,22 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    protected async getNextStimulation_JustShow(): Promise<WordyRobbotInteractionData_V1_Stimulation> {
+    protected async getNextStimulation_JustShow({
+        toStimulateAddr,
+        toStimulateTjpAddr,
+    }: {
+        toStimulateAddr: IbGibAddr,
+        toStimulateTjpAddr: IbGibAddr,
+    }): Promise<StimulationDetails> {
         const lc = `${this.lc}[${this.getNextStimulation_JustShow.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 3e375d090dbb52c5865381c90ee09122)`); }
-            let result: WordyRobbotInteractionData_V1_Stimulation = {
-                type: 'stimulated',
+            const details: StimulationDetails = {
                 stimulationType: 'just_show',
-                timestamp: getTimestampInTicks(),
-                "@stimulated"
+                "@toStimulate": toStimulateAddr,
+                "@toStimulateTjp": toStimulateTjpAddr,
             };
-
-
-
-
-            throw new Error(`not impl (E: b3b22b2184ab7a642be577eec7be3522)`);
+            return details;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -1195,12 +1246,103 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
-    protected async getNextStimulationDetails_BlankWords(): Promise<WordyRobbotStimulation_V1_BlankWordsDetails> {
+    protected async getNextStimulationDetails_BlankWords({
+        toStimulateAddr,
+        toStimulateTjpAddr,
+    }: {
+        toStimulateAddr: IbGibAddr,
+        toStimulateTjpAddr: IbGibAddr,
+    }): Promise<StimulationDetails> {
         const lc = `${this.lc}[${this.getNextStimulationDetails_BlankWords.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 3e375d090dbb52c5865381c90ee09122)`); }
+            const { text } = this._currentWorkingComment.data;
+            if (!text) { throw new Error(`currentWorkingComment.data.text required (E: 732341ddc7ba531a1aaf465c95d9a322)`); }
 
-            throw new Error(`not impl yet (E: 8c1456e5242595ac162c1398c2888722)`);
+            const regexWords = /[\w\-']+/g;
+            const words = text.match(regexWords)
+                .filter(x => !!x)
+                .filter(x => !x.startsWith('http'))
+                .filter(x => !x.startsWith('www'))
+                .map(x => x.toLowerCase());
+
+            const uniqueWords = unique(words);
+
+            const blankedWords: string[] = [];
+
+            // to blank out a word, we need at least 2! Otherwise, abort blank out and do a different stimulation,
+            // and return early!
+            if (uniqueWords.length < 2) {
+                /* <<<< returns early */
+                return await this.getNextStimulation_JustShow({ toStimulateAddr, toStimulateTjpAddr });
+            }
+
+            if (uniqueWords.length <= 5) {
+                // arbitrary small-ish number of words so just blank out one
+                blankedWords.push(pickRandom({ x: uniqueWords }))
+            } else {
+                // arbitrary large-ish number of words so blank out more than one
+                const numToBlankOut = Math.ceil(uniqueWords.length / 5);
+                const maxBlanksPerBlankOut = 3;
+                for (let i = 0; i < numToBlankOut; i++) {
+                    const uniqueWordPool = uniqueWords.filter(x => !blankedWords.includes(x));
+                    blankedWords.push(pickRandom({ x: uniqueWordPool }))
+                    if (blankedWords.length === maxBlanksPerBlankOut) { break; }
+                }
+            }
+
+            // now that we have our blanked words, take the incoming text,
+            // replace those words with the blanks, and include this in our
+            // details.
+
+            /**
+             * output from original text that includes possible uppercases that
+             * do not match the unique words (since those are all lowercased).
+             */
+            let textWithBlanks: string = text.concat();
+            /**
+             * we will update this for finding the indexes and go by position,
+             * because the original text will have uppercases that we want to
+             * replace.
+             */
+            let lowerText = text.toLowerCase();
+            /**
+             *
+             * @param word lowercased word that provides the length
+             * @param pos position of the word
+             */
+            const fnBlankOutWord: (s: string, word: string, pos: number) => string = (s, word, pos) => {
+                let res: string = s.concat();
+                for (let i = 0; i < word.length; i++) {
+                    res = replaceCharAt({ s: res, pos, newChar: '_' });
+                }
+                return res;
+            };
+
+            // execute the blanking out of words
+            for (let i = 0; i < blankedWords.length; i++) {
+                const wordToBlank = blankedWords[i];
+                while (lowerText.includes(wordToBlank)) {
+                    let pos = lowerText.indexOf(wordToBlank);
+                    // replace in our lowerText so we don't find it again next iteration
+                    lowerText = fnBlankOutWord(lowerText, wordToBlank, pos);
+                    // mirror in our output text which may have uppercased letters (and not match exactly)
+                    textWithBlanks = fnBlankOutWord(textWithBlanks, wordToBlank, pos);
+                }
+            }
+
+            // at this point, the textWithBlanks should have the same exact text
+            // as the incoming text, but with word(s) blanked out.
+
+            const details: StimulationDetails_BlankWords = {
+                stimulationType: 'blank_words',
+                "@toStimulate": toStimulateAddr,
+                "@toStimulateTjp": toStimulateTjpAddr,
+                blankedWords,
+                commentText: textWithBlanks,
+            };
+
+            return details;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -1214,23 +1356,21 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: e12984bfb94e5fa4fff95bdf57a3dd22)`); }
 
-
-            // choose interaction type based on previous interaction
             if (!this.interactions) { this.interactions = []; } // inits here, maybe should elsewhere?
-            const prevInteraction = this.interactions.length > 0 ?
-                this.interactions[this.interactions.length - 1] :
-                null;
 
+            // create an interaction pool to choose from, but avoid using one
+            // we've already done at least one go round
             const allInteractionTypes: WordyInteractionType[] = Object.values(WordyInteractionType);
             const unusedInteractionTypes =
                 allInteractionTypes.filter(x => !this.interactions.some(action => action.data.type === x))
-            let interactionType: WordyInteractionType;
-            if (prevInteraction) {
+            const interactionPool = unusedInteractionTypes.length > 0 ?
+                unusedInteractionTypes :
+                allInteractionTypes;
+            if (logalot) { console.log(`${lc} interactionPool: ${interactionPool} (I: 4cc146d253575e64f6803f663bc59622)`); }
 
-            } else {
-                // first interaction, choose any
-                interactionType = pickRandom({ x: });
-            }
+            // for now, we're just picking a random type from the pool (without more advanced weighting)
+            const interactionType = pickRandom({ x: interactionPool });
+            if (logalot) { console.log(`${lc} chose interactionType ${interactionType} (I: dfdbca363c92b44467333ff6774e5a22)`); }
 
             return interactionType;
         } catch (error) {
