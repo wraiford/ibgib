@@ -30,7 +30,7 @@ import { IbGibSpaceAny } from '../spaces/space-base-v1';
 import { IbGibTimelineUpdateInfo } from '../../types/ux';
 import { Lex, LexData, LexLineConcat } from '../../helper/lex';
 import { getTjpAddr } from '../../helper/ibgib';
-import { isComment } from '../../helper/comment';
+import { isComment, parseCommentIb } from '../../helper/comment';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
@@ -319,9 +319,9 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             this.interactions[this.interactions.length - 1] :
             undefined;
     }
-    protected get stimulations(): WordyRobbotStimulation_V1[] {
-        return this.interactions?.filter(x => !!x.data?.stimulation)
-            .map(x => { return <WordyRobbotStimulation_V1>x.data.stimulation }) ?? [];
+    protected get stimulations(): WordyRobbotInteractionData_V1_Stimulation[] {
+        return this.interactions?.filter(x => x.data?.type === 'stimulation')
+            .map(x => { return <WordyRobbotInteractionData_V1_Stimulation>x.data }) ?? [];
     }
 
     protected cachedLatestAddrsMap: { [addr: string]: string }
@@ -466,8 +466,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             await this.startSession();
             await this.initializeCurrentWorkingComment();
             await this.promptNextInteraction({});
-
-
 
             const textInfo = this.getTextInfo({ srcIbGib: this._currentWorkingComment });
 
@@ -620,22 +618,25 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 this.alreadyHandledContextChildrenAddrs.push(addr);
             }
 
+            if (this.isMyComment({ ibGib: newChild })) {
+                if (logalot) { console.log(`${lc} my comment, returning early: ${addr} (I: 6c67d24b946f455fafaaf7069d702191)`); }
+                return; /* <<<< returns early */
+            }
+
             // if it's not a comment, then we're just going to look at it/remember it,
             // i.e. add it to our rel8d ibgibs. if it IS a comment, then we need to
             // handle it depending on what our state is. Usually it's either a request for
             // us or an answer/response to something we've done.
             if (isRequestComment({ ibGib: newChild, requestEscapeString: this.data.requestEscapeString })) {
-                await this.handleRequest({ ibGib: newChild });
+                await this.promptNextInteraction({ request: newChild });
             } else if (isComment({ ibGib: newChild }) && this.session) {
-                // are we in the middle of a session? If so, then this is an interaction comment.
-
-
-                // } else {
-                // remember it for future...nah, I don't like this. Instead we
-                // will remember the converesation as a whole if we wish to
-                // replay it/reference it/nav to it for some reason. (seems much
-                // more reasonable/useful)
-                // await this.lookAt({ ibGibs: [newChild] });
+                // in the middle of a session and someone else's comment has come to us
+                // there will be an issue if the robbot chooses to import a request ibgib...hmm
+                await this.promptNextInteraction({ prompt: newChild });
+            } else {
+                // not a request and not in a session
+                debugger;
+                console.warn(`${lc} (UNEXPECTED) hmm, i thought this would only trigger while a session is in play... (W: c54c7d472cca423aae01b10ef95785a45)`)
             }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -1095,29 +1096,32 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     }
 
     protected async promptNextInteraction({
+        prompt,
         request,
     }: {
+        prompt?: IbGib_V1,
         request?: IbGib_V1,
     }): Promise<void> {
         const lc = `${this.lc}[${this.promptNextInteraction.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 5e9f1b368c7a059a3d944b1be153c922)`); }
 
-            if (request) {
-                // typed in a request comment
+            if (prompt) {
+                // user clicked a button or typed in an answer/some comment/ibgib.
+            } else if (request) {
+                // user typed in a request comment
             } else {
-                // just hit the button to start, didn't type in a request comment
+                // no incoming prompt, so user pressed a button or something.
             }
 
-            // get the type of interaction we will have
-            // instantiate that interaction type
+            // choose what to do based on the request
+            let interactionType: WordyInteractionType = await this.getNextInteractionType({ prompt, request });
 
-            let interactionType: WordyInteractionType = await this.getNextInteractionType();
-
-            // await this.instantiateInteraction({interactionType});
+            // execute what we chose to do based on the request
             let interaction: WordyRobbotInteractionIbGib_V1;
             switch (interactionType) {
-                case 'stimulation': interaction = await this.getInteraction_Stimulation();
+                case 'stimulation':
+                    interaction = await this.getInteraction_Stimulation({ prompt, request });
                     break;
                 default:
                     throw new Error(`(UNEXPECTED) unknown interactionType?: ${interactionType} (E: 6281b997cc845e05b1fb86596ee75a22)`);
@@ -1145,7 +1149,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[${this.applyInteractionToContext.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: e49db27e155bc20bb360a5bc36269422)`); }
-            let text = interaction.data.
+            await this.createCommentAndRel8ToContextIbGib({
+                text: await this.getOutputText({ text: interaction.data.commentText }),
+                contextIbGib: this._currentWorkingContextIbGib,
+            });
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -1154,7 +1161,16 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    protected async getInteraction_Stimulation(): Promise<WordyRobbotInteractionIbGib_V1> {
+    protected async getInteraction_Stimulation({
+        prompt,
+        request,
+    }: {
+        prompt?: IbGib_V1,
+        /**
+         * unused atow
+         */
+        request?: IbGib_V1,
+    }): Promise<WordyRobbotInteractionIbGib_V1> {
         const lc = `${this.lc}[${this.getInteraction_Stimulation.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: d29c1eee6a2ee289698374ef48bc0322)`); }
@@ -1169,11 +1185,13 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             //     details: stimulation,
             // }
 
-            stimulation.commentText
+            // stimulation.commentText
 
             let ibgib: WordyRobbotInteractionIbGib_V1 = {
                 ib: 'interaction stimulation '
             }
+
+            throw new Error(`not impl (E: e95946d9ec5e3bce3be5a5e91f848522)`);
 
 
         } catch (error) {
@@ -1351,10 +1369,24 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    protected async getNextInteractionType(): Promise<WordyInteractionType> {
+    protected async getNextInteractionType({
+        prompt,
+        request,
+    }: {
+        prompt?: IbGib_V1,
+        request?: IbGib_V1,
+    }): Promise<WordyInteractionType> {
         const lc = `${this.lc}[${this.getNextInteractionType.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: e12984bfb94e5fa4fff95bdf57a3dd22)`); }
+
+            // if (this.isRequest_Stimulation({ prompt, request })) {
+
+            // } else if (this.isRequest_Greeting({ prompt, request })) {
+
+            // } else if (this.isRequest_Farewell({ prompt, request })) {
+
+            // }
 
             if (!this.interactions) { this.interactions = []; } // inits here, maybe should elsewhere?
 

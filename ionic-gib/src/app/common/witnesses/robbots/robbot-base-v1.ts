@@ -746,6 +746,26 @@ export abstract class RobbotBase_V1<
     }
 
     /**
+     * by default in base class, this compares exactly the metadata string in a comment
+     * with this robbot.getaddlmetadata result.
+     */
+    protected isMyComment({ ibGib }: { ibGib: IbGib_V1 }): boolean {
+        const lc = `${this.lc}[${this.isMyComment.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 18fc0c7132e2b5297a9c00df7f79e622)`); }
+            const { safeIbCommentMetadataText } = parseCommentIb({ ib: ibGib.ib });
+            const isMine = safeIbCommentMetadataText === this.getAddlMetadata();
+            if (logalot) { console.log(`${lc} metadata (${safeIbCommentMetadataText ?? 'undefined'}) isMine: ${isMine} (I: 1915fc7fd20e0ee8a2f8b554741b6622)`); }
+            return isMine;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    /**
      * gets ibgibs to which this robbot is directly rel8d WRT rel8nNames.
      *
      * @returns map of rel8nName -> ibgibs that this robbot is related to.
