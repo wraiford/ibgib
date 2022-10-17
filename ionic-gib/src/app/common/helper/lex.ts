@@ -177,6 +177,20 @@ export interface LexGetOptions<TProps = PropsData> {
      * @see PropertyPredicateLevel
      */
     propsMode?: PropsFilterMode;
+    /**
+     * "Catchall" predicate filter that acts on the entire lex datum.
+     *
+     * So if you don't have a specific filter option in the params list, use this as
+     * a backup to just filter against the entire datum in a custom way.
+     *
+     * ## driving use case
+     *
+     * I want to reverse get where the `LexDatum.texts` property is exactly a
+     * certain value and get the reverse mapping to the "semantic id".  So a user
+     * says some natural language, and I map that back to the possibility(s) for the
+     * semantic id of that user word/phrase.
+     */
+    fnDatumPredicate?: LexDatumPredicate<TProps>,
 }
 /** This is the type in the LexDatum.props */
 export type PropsData = { [propName: string]: string; };
@@ -188,6 +202,15 @@ export type PropertyPredicate = (propName: string) => boolean;
 export type FilterPerProp = { [propName: string]: PropertyPredicate; };
 /** Filter at the entire props object level (`LexDatum.props`). */
 export type FilterPerProps<TProps> = (props: TProps) => boolean;
+
+export interface LexFindOptions<TProps = PropsData> {
+    fnDatumPredicate?: LexDatumPredicate<TProps>,
+}
+
+/**
+ * filter against the entier lex datum entry. see the LexGet options.
+ */
+export type LexDatumPredicate<TProps> = (value: LexDatum<TProps>) => boolean;
 
 /**
  * keywords are used to filter lex items. this sets how those keywords are
@@ -703,7 +726,8 @@ export class Lex<TProps = PropsData> {
             capitalize = this.defaultCapitalize,
             vars, ssmlVars,
             props, propsMode = this.defaultPropsMode,
-        }: LexGetOptions = {
+            fnDatumPredicate,
+        }: LexGetOptions<TProps> = {
                 // simplest case default options
                 language: this.requestLanguage,
                 keywordMode: this.defaultKeywordMode,
@@ -724,7 +748,8 @@ export class Lex<TProps = PropsData> {
                 lexData,
                 language, specifier,
                 keywords, keywordMode,
-                props: <PropsFilter<TProps>>props, propsMode
+                props: <PropsFilter<TProps>>props, propsMode,
+                fnDatumPredicate,
             });
             if (lexData.length === 0) {
                 // no data found matching filtering.
@@ -762,12 +787,49 @@ export class Lex<TProps = PropsData> {
     }
 
     /**
+     * Does a reverse lookup for lex data ids that correspond to the find
+     * criteria.
+     *
+     * @returns array of data ids that have at least one LexDatum entry that matches criteria.
+     */
+    find({ fnDatumPredicate }: LexFindOptions<TProps>): string[] {
+        const lc = `${this.lc}[${this.find.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 35e26d234ca2d0e987b39ee939f29c22)`); }
+            if (!fnDatumPredicate) { throw new Error(`only fnDatumPredicate implemented atow (E: 8c8babd2fa6fc4cb223b7b8c10ad5c22)`); }
+
+            const resultIds: string[] = [];
+
+            const ids = Object.keys(this.data);
+            for (let i = 0; i < ids.length; i++) {
+                const id = ids[i];
+                /**
+                 * this.data means the data construct as a whole, datums here
+                 * indicates the individual value array that corresponds to the
+                 * id.
+                 */
+                const datums = this.data[id];
+                if (datums.some(d => fnDatumPredicate(d))) {
+                    resultIds.push(id);
+                }
+            }
+
+            return resultIds;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    /**
      * This is the original single function. it is just for backwards compatibility at this point.
      * Probably not needed...
      *
      * @deprecated
      */
-    _(id: string, opts: LexGetOptions): LexResultObj<TProps> {
+    _(id: string, opts: LexGetOptions<TProps>): LexResultObj<TProps> {
         return this.get(id, opts);
     }
 
@@ -776,49 +838,49 @@ export class Lex<TProps = PropsData> {
     /**
      * just syntactic sugar for {@link Lex.get} .
      */
-    getVariant(id: string, opts: LexGetOptions): LexResultObj<TProps> {
+    getVariant(id: string, opts: LexGetOptions<TProps>): LexResultObj<TProps> {
         return this.get(id, opts);
     }
     /**
      * just syntactic sugar for {@link Lex.get} .
      */
-    variant(id: string, opts: LexGetOptions): LexResultObj<TProps> {
+    variant(id: string, opts: LexGetOptions<TProps>): LexResultObj<TProps> {
         return this.get(id, opts);
     }
     /**
      * just syntactic sugar for {@link Lex.get} .
      */
-    getTranslation(id: string, opts: LexGetOptions): LexResultObj<TProps> {
+    getTranslation(id: string, opts: LexGetOptions<TProps>): LexResultObj<TProps> {
         return this.get(id, opts);
     }
     /**
      * just syntactic sugar for {@link Lex.get} .
      */
-    translate(id: string, opts: LexGetOptions): LexResultObj<TProps> {
+    translate(id: string, opts: LexGetOptions<TProps>): LexResultObj<TProps> {
         return this.get(id, opts);
     }
     /**
      * just syntactic sugar for {@link Lex.get} .
      */
-    getSynonym(id: string, opts: LexGetOptions): LexResultObj<TProps> {
+    getSynonym(id: string, opts: LexGetOptions<TProps>): LexResultObj<TProps> {
         return this.get(id, opts);
     }
     /**
      * just syntactic sugar for {@link Lex.get} .
      */
-    synonym(id: string, opts: LexGetOptions): LexResultObj<TProps> {
+    synonym(id: string, opts: LexGetOptions<TProps>): LexResultObj<TProps> {
         return this.get(id, opts);
     }
     /**
      * just syntactic sugar for {@link Lex.get} .
      */
-    getI18n(id: string, opts: LexGetOptions): LexResultObj<TProps> {
+    getI18n(id: string, opts: LexGetOptions<TProps>): LexResultObj<TProps> {
         return this.get(id, opts);
     }
     /**
      * just syntactic sugar for {@link Lex.get} .
      */
-    i18n(id: string, opts: LexGetOptions): LexResultObj<TProps> {
+    i18n(id: string, opts: LexGetOptions<TProps>): LexResultObj<TProps> {
         return this.get(id, opts);
     }
 
@@ -1195,13 +1257,15 @@ export class Lex<TProps = PropsData> {
         language,
         specifier,
         keywords, keywordMode,
-        props, propsMode
+        props, propsMode,
+        fnDatumPredicate,
     }: {
         lexData: LexDatum<TProps>[],
         language: LanguageCode,
         specifier: string,
         keywords: string[], keywordMode: KeywordMode,
         props: PropsFilter<TProps>, propsMode: PropsFilterMode,
+        fnDatumPredicate: LexDatumPredicate<TProps>,
     }): LexDatum<TProps>[] {
         const lc = `${this.lc}[${this.filterLexData.name}]`;
         try {
@@ -1246,6 +1310,9 @@ export class Lex<TProps = PropsData> {
             }
             if (props) {
                 result = this.filterProps({ result, props, propsMode });
+            }
+            if (fnDatumPredicate) {
+                result = result.filter(x => fnDatumPredicate(x));
             }
             return result;
         } catch (error) {
