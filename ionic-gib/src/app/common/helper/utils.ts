@@ -534,5 +534,5 @@ export function replaceCharAt({
 }): string {
     const chars = s.split('');
     chars[pos] = newChar;
-    return chars.join();
+    return chars.join('');
 }
