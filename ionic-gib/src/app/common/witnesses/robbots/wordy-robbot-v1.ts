@@ -19,7 +19,7 @@ import { DynamicForm } from '../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
 import { getIdPool, getTimestampInTicks, pickRandom, replaceCharAt, unique } from '../../helper/utils';
 import { WitnessFormBuilder } from '../../helper/witness';
-import { getRobbotIb, isRequestComment, RobbotFormBuilder } from '../../helper/robbot';
+import { getRequestTextFromComment, getRobbotIb, isRequestComment, RobbotFormBuilder } from '../../helper/robbot';
 import { DynamicFormBuilder } from '../../helper/form';
 import { getGraphProjection, GetGraphResult } from '../../helper/graph';
 import { CommentIbGib_V1 } from '../../types/comment';
@@ -111,11 +111,13 @@ export interface WordyRobbotSessionRel8ns_V1 extends IbGibRel8ns_V1 {
 export interface WordyRobbotSessionIbGib_V1 extends IbGib_V1<WordyRobbotSessionData_V1, WordyRobbotSessionRel8ns_V1> { }
 
 
-export type WordyInteractionType = 'greeting' | 'stimulation' | 'farewell';
+export type WordyInteractionType = 'greeting' | 'stimulation' | 'farewell' | 'clarification' | 'help';
 export const WordyInteractionType = {
     greeting: 'greeting' as WordyInteractionType,
     stimulation: 'stimulation' as WordyInteractionType,
     farewell: 'farewell' as WordyInteractionType,
+    clarification: 'clarification' as WordyInteractionType,
+    help: 'help' as WordyInteractionType,
 }
 
 export interface WordyRobbotInteractionData_V1 {
@@ -237,6 +239,7 @@ export const DEFAULT_SEARCH_REL8N_NAMES_WORDY_ROBBOT = [
     c.DEFAULT_ROOT_REL8N_NAME,
 ].join(',');
 export const WORDY_V1_ANALYSIS_REL8N_NAME = 'analysis';
+export const WORDY_V1_DEFAULT_REQUEST_TEXT = 'help';
 
 
 export type WordyChatId = SemanticId;
@@ -309,8 +312,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     private _askedTextPosted: boolean;
     private _expectedResponses: string;
 
-    private _robbotLex: Lex<RobbotPropsData> = new Lex<RobbotPropsData>(DEFAULT_ROBBOT_LEX_DATA, {});
-    private _userLex: Lex<RobbotPropsData> = new Lex<RobbotPropsData>(DEFAULT_HUMAN_LEX_DATA, {});
+    private _robbotLex: Lex<RobbotPropsData> = new Lex<RobbotPropsData>(h.clone(DEFAULT_ROBBOT_LEX_DATA), {});
+    private _userLex: Lex<RobbotPropsData> = new Lex<RobbotPropsData>(h.clone(DEFAULT_HUMAN_LEX_DATA), {});
 
     protected session: WordyRobbotSessionIbGib_V1;
     protected interactions: WordyRobbotInteractionIbGib_V1[];
@@ -632,7 +635,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             } else if (isComment({ ibGib: newChild }) && this.session) {
                 // in the middle of a session and someone else's comment has come to us
                 // there will be an issue if the robbot chooses to import a request ibgib...hmm
-                await this.promptNextInteraction({ prompt: newChild });
+                await this.promptNextInteraction({ nonRequest: newChild });
             } else {
                 // not a request and not in a session
                 debugger;
@@ -1096,44 +1099,41 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     }
 
     protected async promptNextInteraction({
-        prompt,
+        nonRequest,
         request,
     }: {
-        prompt?: IbGib_V1,
+        nonRequest?: IbGib_V1,
         request?: IbGib_V1,
     }): Promise<void> {
         const lc = `${this.lc}[${this.promptNextInteraction.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 5e9f1b368c7a059a3d944b1be153c922)`); }
 
-            if (prompt) {
-                // user clicked a button or typed in an answer/some comment/ibgib.
-            } else if (request) {
-                // user typed in a request comment
-            } else {
-                // no incoming prompt, so user pressed a button or something.
-            }
-
             // choose what to do based on the request
-            let interactionType: WordyInteractionType = await this.getNextInteractionType({ prompt, request });
+            let interactionType: WordyInteractionType = await this.getNextInteractionType({ nonRequest, request });
 
             // execute what we chose to do based on the request
             let interaction: WordyRobbotInteractionIbGib_V1;
             switch (interactionType) {
                 case 'stimulation':
-                    interaction = await this.getInteraction_Stimulation({ prompt, request });
+                    interaction = await this.getInteraction_Stimulation({ nonRequest, request });
                     break;
                 default:
                     throw new Error(`(UNEXPECTED) unknown interactionType?: ${interactionType} (E: 6281b997cc845e05b1fb86596ee75a22)`);
             }
 
-            // add the interaction output to the context (atow always a comment)
+            // create the interaction output and apply it to the current
+            // context. atow, this means create a comment with text based on the
+            // interaction and relate that comment to the context.
             await this.applyInteractionToContext({ interaction });
 
             // save the interaction, no need to register with local space
             // (because we don't need a timeline as we are not intending on
             // updating the interaction going forward)
             await this.ibgibsSvc.put({ ibGib: interaction });
+
+            // update the session with the interaction
+            await this.updateSessionWithInteraction({ interaction });
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -1161,11 +1161,29 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
+    protected async updateSessionWithInteraction({
+        interaction
+    }: {
+        interaction: WordyRobbotInteractionIbGib_V1
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.updateSessionWithInteraction.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: f0035587214223f7eb31d7550be27722)`); }
+            debugger;
+            throw new Error(`not impl yet (E: f0a2146c074fa40abd98d99399191922)`);
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
     protected async getInteraction_Stimulation({
-        prompt,
+        nonRequest,
         request,
     }: {
-        prompt?: IbGib_V1,
+        nonRequest?: IbGib_V1,
         /**
          * unused atow
          */
@@ -1370,23 +1388,161 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     }
 
     protected async getNextInteractionType({
-        prompt,
+        nonRequest,
         request,
     }: {
-        prompt?: IbGib_V1,
+        nonRequest?: IbGib_V1,
         request?: IbGib_V1,
     }): Promise<WordyInteractionType> {
         const lc = `${this.lc}[${this.getNextInteractionType.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: e12984bfb94e5fa4fff95bdf57a3dd22)`); }
 
-            // if (this.isRequest_Stimulation({ prompt, request })) {
+            /**
+             * User clicked a button to start a convo
+             */
+            const isClickStart = !nonRequest && !request;
+            if (isClickStart && !this.session) {
+                if (logalot) { console.log(`${lc} click starting new session (I: 582603f1e0813798edbb86baeb3f7e22)`); }
+                // user has clicked the talk button to start a new session
+            } else if (isClickStart && !this.session) {
+                // user has clicked the talk button but a session is already in progress
+            } else if (request) {
+                // someone has issued a request
+                return await this.getNextInteractionType_Request({ request });
+            } else if (nonRequest) {
+                // someone has added an ibgib that may be a response to a question, or is not relevant
+                return await this.getNextInteractionType_Prompt({ nonRequest });
+            } else {
+                debugger;
+                throw new Error(`(UNEXPECTED) not a start, request or nonRequest? (E: 6507ff5c7164c3f22be92bdc31b31222)`);
+            }
 
-            // } else if (this.isRequest_Greeting({ prompt, request })) {
+            // if (!this.interactions) { this.interactions = []; } // inits here, maybe should elsewhere?
 
-            // } else if (this.isRequest_Farewell({ prompt, request })) {
+            // // create an interaction pool to choose from, but avoid using one
+            // // we've already done at least one go round
+            // const allInteractionTypes: WordyInteractionType[] = Object.values(WordyInteractionType);
+            // const unusedInteractionTypes =
+            //     allInteractionTypes.filter(x => !this.interactions.some(action => action.data.type === x))
+            // const interactionPool = unusedInteractionTypes.length > 0 ?
+            //     unusedInteractionTypes :
+            //     allInteractionTypes;
+            // if (logalot) { console.log(`${lc} interactionPool: ${interactionPool} (I: 4cc146d253575e64f6803f663bc59622)`); }
 
+            // // for now, we're just picking a random type from the pool (without more advanced weighting)
+            // const interactionType = pickRandom({ x: interactionPool });
+            // if (logalot) { console.log(`${lc} chose interactionType ${interactionType} (I: dfdbca363c92b44467333ff6774e5a22)`); }
+
+            // return interactionType;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+    protected async getNextInteractionType_Request({
+        request,
+    }: {
+        request?: IbGib_V1,
+    }): Promise<WordyInteractionType> {
+        const lc = `${this.lc}[${this.getNextInteractionType_Request.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: e12984bfb94e5fa4fff95bdf57a3dd22)`); }
+
+            const requestText =
+                getRequestTextFromComment({ ibGib: request }) || WORDY_V1_DEFAULT_REQUEST_TEXT;
+
+            // map from the request text to a semantic id
+            let semanticId: SemanticId;
+            // const semanticId: SemanticId = SemanticId.help;
+            let resRequestText = this._userLex.find({
+                fnDatumPredicate: d => d.texts.join('') === requestText
+            });
+            if (resRequestText?.length === 1) {
+                const resId = resRequestText[0];
+                // id found, but is it semantic id?
+                if (Object.values(SemanticId).includes(<any>resId)) {
+                    // semantic id found
+                    semanticId = <SemanticId>resId;
+                } else {
+                    // text found but not a semantic id? equate this with not found
+                    console.warn(`${lc} id found but not a known semantic id: ${resId} (W: 01729fb7a4e94f20a42436f3c957bb44)`)
+                    semanticId = SemanticId.unknown;
+                }
+            } else if (resRequestText?.length > 1) {
+                // multiple found? this is a problem with the data
+                throw new Error(`(UNEXPECTED) multiple ids found from user requestText (${requestText})? todo: confirm what user said workflow not implemented yet (E: 8e1f4c7c0e757b5e9126bf4f5213ca22)`);
+            } else {
+                // not found
+                semanticId = SemanticId.unknown;
+            }
+
+            throw new Error(`not implemented...working on this leaving off here etc.. and so on (E: f32bbbfe48e72fb32c910b9464149122)`);
+
+
+            // switch (semanticId) {
+            //     case SemanticId.help:
+            //         return WordyInteractionType.help;
+            //     case SemanticId.hello:
+            //         return WordyInteractionType.hello;
+            //     case SemanticId.yes:
+            //         return WordyInteractionType.yes;
+            //     case SemanticId.no:
+            //         return WordyInteractionType.no;
+            //     case SemanticId.cancel:
+            //         return WordyInteractionType.cancel;
+            //     case SemanticId.skip:
+            //         return WordyInteractionType.skip;
+            //     case SemanticId.next:
+            //         return WordyInteractionType.next;
+            //     case SemanticId.please:
+            //         return WordyInteractionType.please;
+            //     case SemanticId.bye:
+            //         return WordyInteractionType.bye;
+            //     case SemanticId.unknown:
+            //         return WordyInteractionType.unknown;
+            //     default:
+            //         return WordyInteractionType.default;
             // }
+
+            // if (!this.interactions) { this.interactions = []; } // inits here, maybe should elsewhere?
+
+            // // create an interaction pool to choose from, but avoid using one
+            // // we've already done at least one go round
+            // const allInteractionTypes: WordyInteractionType[] = Object.values(WordyInteractionType);
+            // const unusedInteractionTypes =
+            //     allInteractionTypes.filter(x => !this.interactions.some(action => action.data.type === x))
+            // const interactionPool = unusedInteractionTypes.length > 0 ?
+            //     unusedInteractionTypes :
+            //     allInteractionTypes;
+            // if (logalot) { console.log(`${lc} interactionPool: ${interactionPool} (I: 4cc146d253575e64f6803f663bc59622)`); }
+
+            // // for now, we're just picking a random type from the pool (without more advanced weighting)
+            // const interactionType = pickRandom({ x: interactionPool });
+            // if (logalot) { console.log(`${lc} chose interactionType ${interactionType} (I: dfdbca363c92b44467333ff6774e5a22)`); }
+
+            // return interactionType;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+    protected async getNextInteractionType_Prompt({
+        nonRequest,
+        request,
+    }: {
+        nonRequest?: IbGib_V1,
+        request?: IbGib_V1,
+    }): Promise<WordyInteractionType> {
+        const lc = `${this.lc}[${this.getNextInteractionType_Prompt.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 6bc390410be642518ff0babfc888d220)`); }
+
+
 
             if (!this.interactions) { this.interactions = []; } // inits here, maybe should elsewhere?
 
@@ -1398,13 +1554,38 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             const interactionPool = unusedInteractionTypes.length > 0 ?
                 unusedInteractionTypes :
                 allInteractionTypes;
-            if (logalot) { console.log(`${lc} interactionPool: ${interactionPool} (I: 4cc146d253575e64f6803f663bc59622)`); }
+            if (logalot) { console.log(`${lc} interactionPool: ${interactionPool} (I: ba94059a6a80473ca26db7bc340ed4515)`); }
 
             // for now, we're just picking a random type from the pool (without more advanced weighting)
             const interactionType = pickRandom({ x: interactionPool });
-            if (logalot) { console.log(`${lc} chose interactionType ${interactionType} (I: dfdbca363c92b44467333ff6774e5a22)`); }
+            if (logalot) { console.log(`${lc} chose interactionType ${interactionType} (I: 53eb344bf7e146f6b256b4a0d820f35a)`); }
 
             return interactionType;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    isRequest_Greeting({ request }: { request: IbGib_V1; }) {
+        const lc = `${this.lc}[${this.isRequest_Greeting.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 8323ecb7e4eac9ed0d7e6e92cffbaf22)`); }
+            throw new Error(`not impl (E: ff1dd7a60f86edd32128d8e2731d6622)`);
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+    isRequest_Farewell({ request }: { request: IbGib_V1; }) {
+        const lc = `${this.lc}[${this.isRequest_Farewell.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 8358fda7139cf94ea760c9670ebd8822)`); }
+            throw new Error(`not impl (E: 23ff09277521ea123188a5ce1a7dc422)`);
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;

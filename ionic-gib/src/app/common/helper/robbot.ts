@@ -2,7 +2,7 @@ import * as h from 'ts-gib/dist/helper';
 import { Ib, } from 'ts-gib';
 
 import * as c from '../constants';
-import { getRegExp, getTimestampInTicks } from './utils';
+import { getRegExp, getSaferSubstring, getTimestampInTicks } from './utils';
 import { IbGibRobbotAny } from '../witnesses/robbots/robbot-base-v1';
 import { CommonService } from '../../services/common.service';
 import {
@@ -18,6 +18,7 @@ import { persistTransformResult, registerNewIbGib, rel8ToSpecialIbGib } from './
 import { IB, IbGib_V1 } from 'ts-gib/dist/V1';
 import { IbgibsService } from '../../services/ibgibs.service';
 import { isComment, parseCommentIb } from './comment';
+import { CommentIbGib_V1 } from '../types/comment';
 // import { validateWitnessClassname } from '../witnesses/witness-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -342,6 +343,41 @@ export function isRequestComment({
         let { safeIbCommentText } = parseCommentIb({ ib });
 
         return safeIbCommentText.startsWith(requestEscapeString);
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+/**
+ *
+ */
+export function getRequestTextFromComment({
+    ibGib,
+    requestEscapeString = DEFAULT_ROBBOT_REQUEST_ESCAPE_STRING,
+}: {
+    ibGib: IbGib_V1,
+    requestEscapeString?: string,
+}): string {
+    const lc = `${getRequestTextFromComment.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: b4cbe054fe254414b77204ad80e519aa)`); }
+
+        if (!isComment({ ibGib })) { throw new Error(`ibGib is not a comment (E: ab34df44eb57c170cec6c6db6f4f5722)`); }
+
+        let { data } = ibGib;
+        if (!data) { throw new Error(`ibGib.data required (E: 6155a49a0c1286c0bb8aa6f81c396522)`); }
+
+        let { text } = data;
+
+        requestEscapeString = requestEscapeString || DEFAULT_ROBBOT_REQUEST_ESCAPE_STRING;
+
+        text = getSaferSubstring({ text: text, length: 100, keepLiterals: [requestEscapeString] });
+
+        const subText = text.substring(requestEscapeString.length).trim();
+        return subText;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

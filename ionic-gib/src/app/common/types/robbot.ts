@@ -1,3 +1,4 @@
+import * as h from 'ts-gib/dist/helper';
 import { IbGib_V1 } from "ts-gib/dist/V1";
 
 import * as c from '../constants';
@@ -315,8 +316,9 @@ export const ROBBOT_MY_CONVO_REL8N_NAME = 'my_convo';
  * These are used for specific lex commands/intents/whatevers. Synonyms and
  * equivalency phrases ultimately get resolved to these.
  */
-export type SemanticId = 'hello' | 'yes' | 'no' | 'cancel' | 'skip' | 'next' | 'please' | 'bye';
+export type SemanticId = 'help' | 'yes' | 'no' | 'cancel' | 'skip' | 'next' | 'please' | 'bye' | 'unknown' | 'default';
 export const SemanticId = {
+    help: 'help' as SemanticId,
     hello: 'hello' as SemanticId,
     yes: 'yes' as SemanticId,
     no: 'no' as SemanticId,
@@ -325,14 +327,22 @@ export const SemanticId = {
     next: 'next' as SemanticId,
     please: 'please' as SemanticId,
     bye: 'bye' as SemanticId,
+    unknown: 'unknown' as SemanticId,
+    default: 'default' as SemanticId,
 };
+
+export interface SemanticInfo {
+    id: SemanticId;
+}
+
+export type SemanticHandler = (semanticInfo: SemanticInfo) => Promise<void>;
 
 export interface RobbotPropsData {
     semanticId?: SemanticId;
 }
 
 function toLexDatums(semanticId: SemanticId, texts: string[]): LexDatum<RobbotPropsData>[] {
-    return texts.map(t => {
+    return texts.flatMap(t => {
         return <LexDatum<RobbotPropsData>>{
             texts: [t],
             language: 'en-US',
@@ -342,6 +352,11 @@ function toLexDatums(semanticId: SemanticId, texts: string[]): LexDatum<RobbotPr
 }
 
 export const DEFAULT_HUMAN_LEX_DATA_ENGLISH: LexData<RobbotPropsData> = {
+    [SemanticId.help]: [
+        ...toLexDatums(SemanticId.help, [
+            'help', 'help me',
+        ]),
+    ],
     [SemanticId.yes]: [
         ...toLexDatums(SemanticId.yes, [
             'yes', 'y', 'yeah', 'yea', 'aye', 'yup', 'yep', 'sure', 'ok',
@@ -375,13 +390,18 @@ export const DEFAULT_HUMAN_LEX_DATA_ENGLISH: LexData<RobbotPropsData> = {
             'bye', 'bye bye', 'see you later', 'see you',
         ])
     ],
+    [SemanticId.unknown]: [
+        ...toLexDatums(SemanticId.unknown, [
+            'are you mocking me, human?', 'mmhmm...', 'i see...', 'does not compute...', 'indeed'
+        ])
+    ],
 };
 export const DEFAULT_HUMAN_LEX_DATA: LexData<RobbotPropsData> = {
-    ...DEFAULT_HUMAN_LEX_DATA_ENGLISH,
+    ...h.clone(DEFAULT_HUMAN_LEX_DATA_ENGLISH),
 };
 
 export const DEFAULT_USER_LEX_DATA: LexData<RobbotPropsData> = {
-    ...DEFAULT_HUMAN_LEX_DATA,
+    ...h.clone(DEFAULT_HUMAN_LEX_DATA),
 }
 
 /**
@@ -405,22 +425,20 @@ export const DEFAULT_USER_LEX = new Lex<RobbotPropsData>(DEFAULT_USER_LEX_DATA, 
  * default phrases for the robbot to use when chatting.
  */
 export const DEFAULT_ROBBOT_LEX_DATA: LexData<RobbotPropsData> = {
-    ...DEFAULT_HUMAN_LEX_DATA,
+    ...h.clone(DEFAULT_HUMAN_LEX_DATA),
 };
 // adjust for robbot-ness a bit
 DEFAULT_ROBBOT_LEX_DATA[SemanticId.bye].push(
     {
-        texts: [
-            'end of line', 'EOL',
-        ],
-        ssmls: [
-            'end of line', Ssml.sayAs({ interpret: 'spell-out', text: 'EOL' }),
-        ],
+        texts: ['EOL',],
+        ssmls: [Ssml.sub('EOL', 'end of line'),],
         language: 'en-US',
-        props: {
-            semanticId: SemanticId.bye,
-        },
+        props: { semanticId: SemanticId.bye, },
         weighting: 100,
     }
 )
-
+DEFAULT_ROBBOT_LEX_DATA[SemanticId.unknown] = [
+    ...toLexDatums(SemanticId.unknown, [
+        'i\'m not quite sure what you mean', 'does not compute',
+    ])
+];

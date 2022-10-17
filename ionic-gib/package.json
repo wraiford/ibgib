@@ -1,6 +1,6 @@
 {
   "name": "ionicgib",
-  "version": "0.2.585",
+  "version": "0.2.587",
   "author": "William Raiford",
   "repository": {
     "url": "https://github.com/wraiford/ibgib",
@@ -62,7 +62,7 @@
     "ff": "npm run ff:0",
     "man:ff:0": "echo 'runs web-ext ff with a temporary, clean session profile, i.e., does not keep data between sessions.'",
     "preff:0:ext": "npm run build:ff",
-    "ff:0": "web-ext run -s './www' -t firefox-desktop --browser-console",
+    "ff:0": "web-ext run -s './www' -t firefox-desktop --browser-console --devtools --verbose",
     "ff:prodtest": "web-ext run -s './www' -t firefox-desktop --browser-console",
     "ff:noprofile": "npm run ff:0",
     "man:ff:1": "echo 'runs web-ext ff with ibgibtest1 profile. use ff:createprofiles to do create this'",
