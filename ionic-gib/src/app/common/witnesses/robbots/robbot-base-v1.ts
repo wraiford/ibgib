@@ -11,11 +11,17 @@ import {
     RobbotCmdData, RobbotCmdRel8ns, RobbotCmdIbGib,
     RobbotResultData, RobbotResultRel8ns, RobbotResultIbGib, ROBBOT_MY_COMMENT_REL8N_NAME,
     ROBBOT_MY_CONVO_REL8N_NAME,
+    SemanticHandler,
+    SemanticId,
+    SemanticInfo,
+    RobbotInteractionIbGib_V1,
+    RobbotInteractionData_V1,
+    RobbotInteractionType,
 } from '../../types/robbot';
 import { WitnessBase_V1, } from '../witness-base-v1';
 import { CommentIbGib_V1 } from '../../types/comment';
 import { PicIbGib_V1 } from '../../types/pic';
-import { validateCommonRobbotData } from '../../helper/robbot';
+import { getInteractionIbGib_V1, validateCommonRobbotData } from '../../helper/robbot';
 import { argy_, isArg, resulty_ } from '../witness-helper';
 import { IbGibSpaceAny } from '../spaces/space-base-v1';
 import { IbgibsService } from '../../../services/ibgibs.service';
@@ -28,6 +34,7 @@ import { createCommentIbGib, parseCommentIb } from '../../helper/comment';
 import { WORDY_V1_ANALYSIS_REL8N_NAME } from './wordy-robbot-v1';
 import { Subscription } from 'rxjs';
 import { IbGibTimelineUpdateInfo } from '../../types/ux';
+import { getTimestampInTicks } from '../../helper/utils';
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
 
@@ -127,6 +134,46 @@ export abstract class RobbotBase_V1<
 
     protected _subLatestContext: Subscription;
     protected _updatingContext: boolean;
+
+    protected semanticHandlers: { [semanticId: string]: SemanticHandler[] } = {
+        [SemanticId.default]: [
+            {
+                handlerId: "c8054c0b77fb4b37bff693e54e1f66bd",
+                semanticId: SemanticId.default,
+                fnExec: (info) => { return this.handleSemanticDefault(info); },
+            }
+        ]
+    };
+
+    protected async handleSemanticDefault(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
+        const lc = `${this.lc}[${this.handleSemanticDefault.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 01a2d1781851cc36b674f44b4fb69522)`); }
+
+            const commentText = 'huh?'; // a bit silly here...
+
+            if (!this._currentWorkingContextIbGib) { throw new Error(`no current context and no default semantic handler implemented in child class. (E: dcc146b015c83e409411d47623857c22)`); }
+
+            await this.createCommentAndRel8ToContextIbGib({
+                text: await this.getOutputText({ text: commentText }),
+                contextIbGib: this._currentWorkingContextIbGib,
+            });
+
+            let data: RobbotInteractionData_V1 = {
+                timestamp: getTimestampInTicks(),
+                type: RobbotInteractionType.clarification,
+                commentText,
+            };
+
+            const interaction = await getInteractionIbGib_V1({ data });
+            return interaction;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
 
     constructor(initialData?: TData, initialRel8ns?: TRel8ns) {
         super(initialData, initialRel8ns);

@@ -1,5 +1,6 @@
 import * as h from 'ts-gib/dist/helper';
 import { Ib, } from 'ts-gib';
+import { Factory_V1 as factory } from 'ts-gib/dist/V1';
 
 import * as c from '../constants';
 import { getRegExp, getSaferSubstring, getTimestampInTicks } from './utils';
@@ -7,7 +8,7 @@ import { IbGibRobbotAny } from '../witnesses/robbots/robbot-base-v1';
 import { CommonService } from '../../services/common.service';
 import {
     DEFAULT_ROBBOT_REQUEST_ESCAPE_STRING,
-    RobbotData_V1, RobbotIbGib_V1,
+    RobbotData_V1, RobbotIbGib_V1, RobbotInteractionData_V1, RobbotInteractionIbGib_V1, RobbotInteractionRel8ns_V1,
     // RobbotOutputMode, VALID_ROBBOT_OUTPUT_MODES
 } from '../types/robbot';
 import { getFn_promptRobbotIbGib } from './prompt-functions';
@@ -15,10 +16,11 @@ import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { WitnessFormBuilder } from './witness';
 import { validateIbGibIntrinsically } from './validate';
 import { persistTransformResult, registerNewIbGib, rel8ToSpecialIbGib } from './space';
-import { IB, IbGib_V1 } from 'ts-gib/dist/V1';
+import { GIB, IB, IbGib_V1 } from 'ts-gib/dist/V1';
 import { IbgibsService } from '../../services/ibgibs.service';
 import { isComment, parseCommentIb } from './comment';
 import { CommentIbGib_V1 } from '../types/comment';
+import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 // import { validateWitnessClassname } from '../witnesses/witness-helper';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -378,6 +380,115 @@ export function getRequestTextFromComment({
 
         const subText = text.substring(requestEscapeString.length).trim();
         return subText;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+export const ROBBOT_INTERACTION_IB_ATOM = 'robbot_interaction';
+
+export function getInteractionIb({
+    data,
+    addlDetailsText,
+}: {
+    data: RobbotInteractionData_V1,
+    addlDetailsText?: string,
+}): Ib {
+    const lc = `[${getInteractionIb.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 9ac657cab7e292e2bd587595757ab622)`); }
+        const atom = 'robbot_interaction';
+        if (!data) { throw new Error(`data required (E: 8fac6ce2ae6dd521255dc8ba241a5222)`); }
+        if (!data.type) { throw new Error(`data.type required (E: 77786fe653be04c9fa33e30ac3b77f22)`); }
+        let saferType = getSaferSubstring({ text: data.type, length: 32 });
+        if (data.type !== saferType) { throw new Error(`invalid data.type (${data.type}). Should be safer like (${saferType}) (E: efe7888da08f148c8972c0923356b122)`); }
+
+        if (!data.timestamp) { throw new Error(`data.timestamp required (E: 8682a5af1cd48d0cb372b7f519a61e22)`); }
+        let saferTimestamp = getSaferSubstring({ text: data.timestamp, length: 64 });
+        if (data.timestamp !== saferTimestamp) { throw new Error(`data.timestamp is expected to be safe. this usually means should be in ticks, i.e. no spaces or special characters. (E: 3a0f627ec632272ee62da7ddf6a78422)`); }
+
+        if (addlDetailsText) {
+            let saferAddlDetailsText = getSaferSubstring({ text: addlDetailsText, length: 64 });
+            if (saferAddlDetailsText !== addlDetailsText) {
+                console.warn(`${lc} using safer version of addlDetailsText: ${saferAddlDetailsText}. (W: b5516dabaeab4c93996e726e8feffe7f)`)
+                addlDetailsText = saferAddlDetailsText;
+            }
+        }
+
+        return addlDetailsText ?
+            `${atom} ${data.type} ${data.timestamp} ${addlDetailsText}` :
+            `${atom} ${data.type} ${data.timestamp}`;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+export function isInteraction({
+    ibGib,
+    ib,
+}: {
+    ibGib?: IbGib_V1,
+    ib?: Ib,
+}): boolean {
+    ib = ib ?? ibGib.ib;
+
+    if (!ib) { throw new Error(`either ib or ibGib required (E: 15786fe75a5219ec7d925189f22d9f22)`); }
+
+    const [atom, _type, _timestamp, _metadata] = ib;
+    return atom === ROBBOT_INTERACTION_IB_ATOM
+}
+
+/**
+ * creates an ibgib stone (no tjp) that contains the interaction info.
+ *
+ * @returns interaction ibgib stone
+ */
+export async function getInteractionIbGib_V1({
+    data,
+    rel8ns,
+    addlDetailsText,
+}: {
+    /**
+     * beginning data that may be mutated in this function.
+     */
+    data: RobbotInteractionData_V1,
+    /**
+     * beginning rel8ns that may be mutated in this function.
+     */
+    rel8ns?: RobbotInteractionRel8ns_V1,
+    /**
+     * for use in creating the ib per use case, if provided
+     *
+     * atow, I'm not using this.
+     */
+    addlDetailsText?: string,
+}): Promise<RobbotInteractionIbGib_V1> {
+    const lc = `[${getInteractionIbGib_V1.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 138e6a406e1c600aad5b64e58a250922)`); }
+
+        if (!data) { throw new Error(`data required (E: 7bdc46e1cfca9c286fc0dad9e8d60722)`); }
+
+        if (!data.uuid) { data.uuid = await h.getUUID(); }
+
+        rel8ns = rel8ns ?? {};
+        rel8ns.ancestor = [`${ROBBOT_INTERACTION_IB_ATOM}^${GIB}`];
+        delete rel8ns.past;
+
+        const ib = getInteractionIb({ data, addlDetailsText });
+
+        const ibGib: RobbotInteractionIbGib_V1 = {
+            ib, data, rel8ns,
+        };
+        ibGib.gib = await getGib({ ibGib, hasTjp: false });
+
+        return ibGib;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

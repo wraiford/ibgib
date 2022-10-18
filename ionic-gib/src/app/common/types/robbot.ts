@@ -1,5 +1,5 @@
 import * as h from 'ts-gib/dist/helper';
-import { IbGib_V1 } from "ts-gib/dist/V1";
+import { IbGibData_V1, IbGibRel8ns_V1, IbGib_V1 } from "ts-gib/dist/V1";
 
 import * as c from '../constants';
 import { Lex, LexData, LexDatum } from "../helper/lex";
@@ -310,6 +310,60 @@ export const ROBBOT_MY_COMMENT_REL8N_NAME = 'my_comment';
  */
 export const ROBBOT_MY_CONVO_REL8N_NAME = 'my_convo';
 
+/**
+ * This is stimulus that is coming over the Context that a robbot is being
+ * stimulated with.
+ *
+ * This is different than stimulus that the robbot provides for a given ibgib.
+ */
+export interface StimulusForRobbot {
+    /**
+     * The actual ibgib that is the stimulus.
+     *
+     * If falsy, `isClick` should be true.
+     */
+    ibGib?: IbGib_V1;
+    /**
+     * should be true if the user has typed in a request and added the
+     * comment to the context.
+     */
+    isRequest?: boolean;
+    /**
+     * The stimulus was generated from a click on a button, as opposed to a
+     * comment typed in or a picture/link/comment added/imported in a context.
+     *
+     * Should be true if `ibGib` is falsy.
+     */
+    isClick?: boolean;
+}
+
+export type RobbotInteractionType = 'greeting' | 'stimulation' | 'farewell' | 'clarification' | 'help';
+export const RobbotInteractionType = {
+    greeting: 'greeting' as RobbotInteractionType,
+    stimulation: 'stimulation' as RobbotInteractionType,
+    farewell: 'farewell' as RobbotInteractionType,
+    clarification: 'clarification' as RobbotInteractionType,
+    help: 'help' as RobbotInteractionType,
+}
+
+export interface RobbotInteractionData_V1 extends IbGibData_V1 {
+    timestamp: string;
+    type: RobbotInteractionType | string;
+    commentText?: string;
+    /**
+     * should be an interfaced data object that represents the details of the
+     * interaction, e.g. if a stimulation, then here is the simulation interface data.
+     *
+     * ## notes
+     *
+     * to create another generic interface here would be too unwieldy. (already may be!)
+     */
+    details?: any;
+}
+export interface RobbotInteractionRel8ns_V1 extends IbGibRel8ns_V1 {
+}
+export interface RobbotInteractionIbGib_V1
+    extends IbGib_V1<RobbotInteractionData_V1, RobbotInteractionRel8ns_V1> { }
 
 
 /**
@@ -332,10 +386,45 @@ export const SemanticId = {
 };
 
 export interface SemanticInfo {
-    id: SemanticId;
+    semanticId: SemanticId;
+    request?: IbGib_V1;
+    other?: IbGib_V1;
 }
 
-export type SemanticHandler = (semanticInfo: SemanticInfo) => Promise<void>;
+export interface SemanticHandler {
+    /**
+     * This should be a unique id for this handler.
+     */
+    handlerId: string;
+    /**
+     * The semanticId that this handler is associated with.
+     */
+    semanticId: SemanticId;
+    /**
+     * If truthy, the robbot should execute this filter before
+     * attempting to execute this handler's {@link fnExec}
+     */
+    fnCanExec?: (info: SemanticInfo) => Promise<boolean>;
+    /**
+     * Actual function of handler that gets executed if context is
+     * correct ({@link fnCanExec} is true).
+     */
+    fnExec?: (info: SemanticInfo) => Promise<RobbotInteractionIbGib_V1>;
+    // /**
+    //  * If set, then this handler will execute these before this handler's
+    //  * {@link fnExec} call.
+    //  *
+    //  * (only if {@link fnCanExec} of course)
+    //  */
+    // preExecHandlers?: SemanticHandler<TResult>[];
+    // /**
+    //  * If set, then this handler will execute these after this handler's
+    //  * {@link fnExec} call.
+    //  *
+    //  * (only if {@link fnCanExec} of course)
+    //  */
+    // postExecHandlers?: SemanticHandler<TResult>[];
+}
 
 export interface RobbotPropsData {
     semanticId?: SemanticId;
