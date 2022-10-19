@@ -135,15 +135,28 @@ export abstract class RobbotBase_V1<
     protected _subLatestContext: Subscription;
     protected _updatingContext: boolean;
 
-    protected semanticHandlers: { [semanticId: string]: SemanticHandler[] } = {
-        [SemanticId.default]: [
-            {
-                handlerId: "c8054c0b77fb4b37bff693e54e1f66bd",
-                semanticId: SemanticId.default,
-                fnExec: (info) => { return this.handleSemanticDefault(info); },
+    protected semanticHandlers: { [semanticId: string]: SemanticHandler[] };
+
+    protected initialize_semanticHandlers() {
+        const lc = `${this.lc}[${this.initialize_semanticHandlers.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: a0f2a11688963b0156e337e7f8604f22)`); }
+            this.semanticHandlers = {
+                [SemanticId.default]: [
+                    {
+                        handlerId: "c8054c0b77fb4b37bff693e54e1f66bd",
+                        semanticId: SemanticId.default,
+                        fnExec: (info) => { return this.handleSemanticDefault(info); },
+                    }
+                ]
             }
-        ]
-    };
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
 
     protected async handleSemanticDefault(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
         const lc = `${this.lc}[${this.handleSemanticDefault.name}]`;
@@ -177,6 +190,23 @@ export abstract class RobbotBase_V1<
 
     constructor(initialData?: TData, initialRel8ns?: TRel8ns) {
         super(initialData, initialRel8ns);
+        this.initialize();
+    }
+
+    /**
+     * Initializes to default space values.
+     */
+    protected initialize(): void {
+        const lc = `${this.lc}[${this.initialize.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+
+            this.initialize_semanticHandlers();
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
     }
 
     protected async loadNewerSelfIfAvailable(): Promise<void> {

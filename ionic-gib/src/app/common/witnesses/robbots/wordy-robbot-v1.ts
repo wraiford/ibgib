@@ -273,9 +273,9 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
      * handlers semantic requests, usually (always?) prompted by the user or
      * another robbot...
      */
-    protected semanticHandlers: { [semanticId: string]: SemanticHandler[] } = {
-        ...super.semanticHandlers,
-    };
+    // protected semanticHandlers: { [semanticId: string]: SemanticHandler[] } = {
+    //     ...super.semanticHandlers,
+    // };
 
     // protected async handleSemanticDefault({
     //     semanticId,
@@ -316,7 +316,12 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
     protected session: WordyRobbotSessionIbGib_V1;
     protected interactions: RobbotInteractionIbGib_V1[];
-    protected get prevInteraction(): RobbotInteractionIbGib_V1 {
+    /**
+     * syntactic sugar for getting the most recent interaction.
+     *
+     * @returns most recent interaction if there are any, else returns undefined
+     */
+    protected get prevInteraction(): RobbotInteractionIbGib_V1 | undefined {
         return this.interactions?.length > 0 ?
             this.interactions[this.interactions.length - 1] :
             undefined;
@@ -329,11 +334,14 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     protected cachedLatestAddrsMap: { [addr: string]: string }
 
     constructor(initialData?: WordyRobbotData_V1, initialRel8ns?: WordyRobbotRel8ns_V1) {
-        super(initialData, initialRel8ns);
+        super(initialData, initialRel8ns); // calls initialize
         const lc = `${this.lc}[ctor]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            this.initialize();
+            // for other things...
+            console.log(`${lc}`)
+            console.dir(this.semanticHandlers);
+            debugger;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -348,6 +356,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     protected initialize(): void {
         const lc = `${this.lc}[${this.initialize.name}]`;
         try {
+            super.initialize();
+
             if (logalot) { console.log(`${lc} starting...`); }
             if (!this.data) { this.data = h.clone(DEFAULT_WORDY_ROBBOT_DATA_V1); }
             if (!this.rel8ns && DEFAULT_WORDY_ROBBOT_REL8NS_V1) {
@@ -355,6 +365,25 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    protected initialize_semanticHandlers() {
+        const lc = `${this.lc}[${this.initialize_semanticHandlers.name}]`;
+        try {
+            super.initialize_semanticHandlers();
+            debugger;
+            if (logalot) { console.log(`${lc} starting... (I: 8a9f396f796d456e97a7b6ec7cc352d1)`); }
+            this.semanticHandlers = {
+                ...this.semanticHandlers,
+                // fill in here
+            }
+            debugger;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
         } finally {
             if (logalot) { console.log(`${lc} complete.`); }
         }
@@ -1367,6 +1396,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             if (isClick) {
                 if (!this.session) { throw new Error(`(unexpected) session expected to exist at this point (E: 15c5cf99f4864942fbc8e6b42da4d922)`); }
+                return await this.getNextInteraction_Click();
             } else if (isRequest) {
                 // someone has issued a request
                 return await this.getNextInteraction_Request({ request: ibGib });
@@ -1382,6 +1412,35 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
+
+    protected async getNextInteraction_Click(): Promise<RobbotInteractionIbGib_V1> {
+        const lc = `${this.lc}[${this.getNextInteraction_Click.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: d7cc990ac49b1c6ac7ad37485b0e7f22)`); }
+
+            debugger;
+
+            if (this.prevInteraction) {
+                // the user doesn't know there is already a session started? Or
+                // something else? just ping the user that a session is in
+                // progress and ask what's up, give the short help command
+                return await this.getNextInteraction_Request({
+                    semanticId: SemanticId.lil_help,
+                });
+            } else {
+                // just starting session.
+                return await this.getNextInteraction_Request({
+                    semanticId: SemanticId.hello,
+                });
+            }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
     protected async getNextInteraction_Request({
         request,
         semanticId,
@@ -1393,44 +1452,98 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: e12984bfb94e5fa4fff95bdf57a3dd22)`); }
 
+            // validate
             if (!request && !semanticId) { throw new Error(`either request or semanticId required (E: 47bb984a4214c2cde6c7b5ef1c195b22)`); }
 
-            if (!semanticId) {
-                const requestText =
-                    getRequestTextFromComment({ ibGib: request }) || WORDY_V1_DEFAULT_REQUEST_TEXT;
-
-                // map from the request text to a semantic id
-                // const semanticId: SemanticId = SemanticId.help;
-                let resRequestText = this._userLex.find({
-                    fnDatumPredicate: d => d.texts.join('') === requestText
-                });
-                if (resRequestText?.length === 1) {
-                    const resId = resRequestText[0];
-                    // id found, but is it semantic id?
-                    if (Object.values(SemanticId).includes(<any>resId)) {
-                        // semantic id found
-                        semanticId = <SemanticId>resId;
-                    } else {
-                        // text found but not a semantic id? equate this with not found
-                        console.warn(`${lc} id found but not a known semantic id: ${resId} (W: 01729fb7a4e94f20a42436f3c957bb44)`)
-                        semanticId = SemanticId.unknown;
-                    }
-                } else if (resRequestText?.length > 1) {
-                    // multiple found? this is a problem with the data
-                    throw new Error(`(UNEXPECTED) multiple ids found from user requestText (${requestText})? todo: confirm what user said workflow not implemented yet (E: 8e1f4c7c0e757b5e9126bf4f5213ca22)`);
-                } else {
-                    // not found
-                    semanticId = SemanticId.unknown;
-                }
-            }
-
+            // get the semanticId
+            if (!semanticId) { semanticId = this.getSemanticIdFromRequest({ request }); }
             if (!semanticId) { throw new Error(`(UNEXPECTED) semanticId not provided and not able to be gotten? (E: a03c04f2d5b16a05ff05cfcb10b60c22)`); }
 
-            let handlers = this.semanticHandlers[semanticId] ?? [];
-            if (handlers.length === 0) { handlers = this.semanticHandlers[SemanticId.default]; }
-            if (handlers.length === 0) { throw new Error(`semanticId (${semanticId}) not found and no SemanticId.default handler found either. (E: 39a1cd4803e999df8e26512418ac0f22)`); }
-
+            // get our handlers that correspond to this semanticId at this point in time
             const info: SemanticInfo = { semanticId, request, };
+            const handlersThatCanExecute =
+                await this.getHandlersThatCanExecute({ semanticId, info });
+            if (handlersThatCanExecute.length === 0) { throw new Error(`no handlers anywhere and what up with no default handler? (E: e1fc96c2ea63abbe1c02fffff4f41322)`); }
+
+            debugger;
+
+            // get the first interaction produced in our pipeline of handlers
+            // that can execute
+            const interaction = await this.getInteractionFromHandlerPipeline({
+                info,
+                handlerPipeline: handlersThatCanExecute,
+            });
+            if (!interaction) { throw new Error(`no interaction produced. (E: d839ef8709d1793868ce9a2f8558e622)`); }
+
+            return interaction;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    protected getSemanticIdFromRequest({
+        request,
+    }: {
+        request: IbGib_V1,
+    }): SemanticId {
+        const lc = `${this.lc}[${this.getSemanticIdFromRequest.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 55f29fba4f37d2749bfc83d51bea4822)`); }
+
+            let semanticId: SemanticId;
+            const requestText =
+                getRequestTextFromComment({ ibGib: request }) || WORDY_V1_DEFAULT_REQUEST_TEXT;
+
+            // map from the request text to a semantic id
+            // const semanticId: SemanticId = SemanticId.help;
+            let resRequestText = this._userLex.find({
+                fnDatumPredicate: d => d.texts.join('') === requestText
+            });
+            if (resRequestText?.length === 1) {
+                const resId = resRequestText[0];
+                // id found, but is it semantic id?
+                if (Object.values(SemanticId).includes(<any>resId)) {
+                    // semantic id found
+                    semanticId = <SemanticId>resId;
+                } else {
+                    // text found but not a semantic id? equate this with not found
+                    console.warn(`${lc} id found but not a known semantic id: ${resId} (W: 01729fb7a4e94f20a42436f3c957bb44)`)
+                    semanticId = SemanticId.unknown;
+                }
+            } else if (resRequestText?.length > 1) {
+                // multiple found? this is a problem with the data
+                throw new Error(`(UNEXPECTED) multiple ids found from user requestText (${requestText})? todo: confirm what user said workflow not implemented yet (E: 8e1f4c7c0e757b5e9126bf4f5213ca22)`);
+            } else {
+                // not found
+                semanticId = SemanticId.unknown;
+            }
+
+            return semanticId;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    protected async getHandlersThatCanExecute({
+        semanticId,
+        info,
+    }: {
+        semanticId: string,
+        info: SemanticInfo,
+    }): Promise<SemanticHandler[]> {
+        const lc = `${this.lc}[${this.getHandlersThatCanExecute.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: c272043e6dd6697f0f07367bc4917622)`); }
+
+            let handlers = this.semanticHandlers[semanticId] ?? [];
+            if (handlers.length === 0) { handlers = this.semanticHandlers[SemanticId.default] ?? []; }
+            if (handlers.length === 0) { throw new Error(`semanticId (${semanticId}) not found and no SemanticId.default handler found either. (E: 39a1cd4803e999df8e26512418ac0f22)`); }
 
             /** first determine which handlers can execute */
             const handlersThatCanExecute: SemanticHandler[] = [];
@@ -1451,32 +1564,49 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 handlers = this.semanticHandlers[SemanticId.default] ?? [];
                 if (handlers.length === 0) { throw new Error(`found no handlers that could execute and default handler not found (E: d82f110cd447068cbe8b994c5b3a7122)`); }
                 await getHandlersThatCanExecute();
-
-                // if still none that can execute, throw
-                if (handlersThatCanExecute.length === 0) { throw new Error(`no handlers anywhere and what up with no default handler? (E: e1fc96c2ea63abbe1c02fffff4f41322)`); }
             }
+            return handlersThatCanExecute;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
 
-            debugger;
-            // leaving off here...
+    protected async getInteractionFromHandlerPipeline({
+        info,
+        handlerPipeline,
+    }: {
+        info: SemanticInfo,
+        handlerPipeline: SemanticHandler[],
+    }): Promise<RobbotInteractionIbGib_V1 | undefined> {
+        const lc = `${this.lc}[${this.getInteractionFromHandlerPipeline.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 32002e238b66cc222d5cf52dce141822)`); }
+
             let interaction: RobbotInteractionIbGib_V1;
-            for (let i = 0; i < handlersThatCanExecute.length; i++) {
-                const handler = handlersThatCanExecute[i];
+            for (let i = 0; i < handlerPipeline.length; i++) {
+                const handler = handlerPipeline[i];
                 const lcHandler = `${lc}[handler][${handler.handlerId}]`
+                if (logalot) { console.group(lcHandler); } // just trying out the grouping...
                 try {
+                    if (logalot) { console.log(`${lc} starting... (I: 4e952477f1e1554be6d5c0063a6a8822)`); }
                     interaction = await handler.fnExec(info);
                     if (interaction) {
-                        if (logalot) { console.log(`${lcHandler} YES interaction found from handler (${handler.handlerId}). breaking for loop... (I: 994337ed6936ad16dddb0c7cec8ec622)`); }
+                        if (logalot) { console.log(`${lcHandler} complete. YES interaction found from handler (${handler.handlerId}). breaking for loop... (I: 994337ed6936ad16dddb0c7cec8ec622)`); }
                         break;
                     } else {
-                        if (logalot) { console.log(`${lcHandler} NO interaction not found for handler (${handler.handlerId}) (I: f76ff3fb1a1b1a0976ac6e53e2d90b22)`); }
+                        if (logalot) { console.log(`${lcHandler} complete. NO interaction not found for handler (${handler.handlerId}) (I: f76ff3fb1a1b1a0976ac6e53e2d90b22)`); }
                     }
                 } catch (error) {
                     console.error(`${lcHandler} ${error.message}`);
                     throw error;
+                } finally {
+                    if (logalot) { console.groupEnd(); }
                 }
             }
-
-            throw new Error(`not implemented still...yet...encore. (E: 7750c728b1f6cae41c61af66acf91d22)`);
+            return interaction;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;

@@ -370,17 +370,23 @@ export interface RobbotInteractionIbGib_V1
  * These are used for specific lex commands/intents/whatevers. Synonyms and
  * equivalency phrases ultimately get resolved to these.
  */
-export type SemanticId = 'help' | 'yes' | 'no' | 'cancel' | 'skip' | 'next' | 'please' | 'bye' | 'unknown' | 'default';
+export type SemanticId = 'help' | 'lil_help' |
+    'hello' | 'bye' |
+    'yes' | 'no' | 'cancel' |
+    'skip' | 'next' |
+    'please' |
+    'unknown' | 'default';
 export const SemanticId = {
     help: 'help' as SemanticId,
+    lil_help: 'lil_help' as SemanticId,
     hello: 'hello' as SemanticId,
+    bye: 'bye' as SemanticId,
     yes: 'yes' as SemanticId,
     no: 'no' as SemanticId,
     cancel: 'cancel' as SemanticId,
     skip: 'skip' as SemanticId,
     next: 'next' as SemanticId,
     please: 'please' as SemanticId,
-    bye: 'bye' as SemanticId,
     unknown: 'unknown' as SemanticId,
     default: 'default' as SemanticId,
 };
@@ -444,6 +450,11 @@ export const DEFAULT_HUMAN_LEX_DATA_ENGLISH: LexData<RobbotPropsData> = {
     [SemanticId.help]: [
         ...toLexDatums(SemanticId.help, [
             'help', 'help me',
+        ]),
+    ],
+    [SemanticId.lil_help]: [
+        ...toLexDatums(SemanticId.help, [
+            'little help', 'lil help',
         ]),
     ],
     [SemanticId.yes]: [
