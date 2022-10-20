@@ -4,7 +4,7 @@ import { Subscription } from 'rxjs';
 import * as h from 'ts-gib/dist/helper';
 import {
     IbGib_V1, ROOT, Factory_V1 as factory, Rel8n,
-    IbGibRel8ns_V1, isPrimitive, IbGibData_V1,
+    IbGibRel8ns_V1, isPrimitive, IbGibData_V1, Factory_V1, rel8,
 } from 'ts-gib/dist/V1';
 import { Gib, Ib, IbGibAddr, TransformResult } from 'ts-gib';
 import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
@@ -17,13 +17,16 @@ import {
     RobbotCmd,
     StimulusForRobbot,
     SemanticId, SemanticHandler, RobbotPropsData,
-    DEFAULT_ROBBOT_LEX_DATA, DEFAULT_HUMAN_LEX_DATA, SemanticInfo, RobbotInteractionData_V1, RobbotInteractionIbGib_V1,
+    DEFAULT_ROBBOT_LEX_DATA, DEFAULT_HUMAN_LEX_DATA, SemanticInfo,
+    RobbotInteractionData_V1, RobbotInteractionIbGib_V1,
+    RobbotInteractionType,
+    ROBBOT_INTERACTION_REL8N_NAME,
 } from '../../types/robbot';
 import { DynamicForm } from '../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
 import { getIdPool, getTimestampInTicks, pickRandom, replaceCharAt, unique } from '../../helper/utils';
 import { WitnessFormBuilder } from '../../helper/witness';
-import { getRequestTextFromComment, getRobbotIb, isRequestComment, RobbotFormBuilder } from '../../helper/robbot';
+import { getInteractionIbGib_V1, getRequestTextFromComment, getRobbotIb, isRequestComment, RobbotFormBuilder } from '../../helper/robbot';
 import { DynamicFormBuilder } from '../../helper/form';
 import { getGraphProjection, GetGraphResult } from '../../helper/graph';
 import { CommentIbGib_V1 } from '../../types/comment';
@@ -35,6 +38,7 @@ import { IbGibTimelineUpdateInfo } from '../../types/ux';
 import { Lex, LexData, LexLineConcat } from '../../helper/lex';
 import { getTjpAddr } from '../../helper/ibgib';
 import { isComment, parseCommentIb } from '../../helper/comment';
+import { Ssml } from '../../helper/ssml';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
@@ -248,10 +252,23 @@ export interface WordyRobbotRel8ns_V1 extends RobbotRel8ns_V1 {
     analysis?: IbGibAddr[];
 }
 
+export interface WordyRobbotPropsData extends RobbotPropsData {
+    /**
+     * Only use this lex if YES there is an active session in progress.
+     */
+    onlyInSession?: boolean;
+    /**
+     * Only use this lex if there is NOT an active session in progress.
+     */
+    onlyNotInSession?: boolean;
+}
+
 /**
  *
  */
 export class WordyRobbot_V1 extends RobbotBase_V1<
+    // lex props type
+    WordyRobbotPropsData,
     // in
     any, IbGibRel8ns_V1, IbGib_V1<any, IbGibRel8ns_V1>,
     // out
@@ -311,8 +328,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     private _askedTextPosted: boolean;
     private _expectedResponses: string;
 
-    private _robbotLex: Lex<RobbotPropsData> = new Lex<RobbotPropsData>(h.clone(DEFAULT_ROBBOT_LEX_DATA), {});
-    private _userLex: Lex<RobbotPropsData> = new Lex<RobbotPropsData>(h.clone(DEFAULT_HUMAN_LEX_DATA), {});
 
     protected session: WordyRobbotSessionIbGib_V1;
     protected interactions: RobbotInteractionIbGib_V1[];
@@ -338,10 +353,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[ctor]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
-            // for other things...
-            console.log(`${lc}`)
-            console.dir(this.semanticHandlers);
-            debugger;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -353,10 +364,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     /**
      * Initializes to default space values.
      */
-    protected initialize(): void {
+    protected async initialize(): Promise<void> {
         const lc = `${this.lc}[${this.initialize.name}]`;
         try {
-            super.initialize();
+            await super.initialize();
 
             if (logalot) { console.log(`${lc} starting...`); }
             if (!this.data) { this.data = h.clone(DEFAULT_WORDY_ROBBOT_DATA_V1); }
@@ -370,17 +381,23 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    protected initialize_semanticHandlers() {
-        const lc = `${this.lc}[${this.initialize_semanticHandlers.name}]`;
+    protected async initialize_lex(): Promise<void> {
+        const lc = `${this.lc}[${this.initialize_lex.name}]`;
         try {
-            super.initialize_semanticHandlers();
-            debugger;
-            if (logalot) { console.log(`${lc} starting... (I: 8a9f396f796d456e97a7b6ec7cc352d1)`); }
-            this.semanticHandlers = {
-                ...this.semanticHandlers,
-                // fill in here
-            }
-            debugger;
+            if (logalot) { console.log(`${lc} starting... (I: a4668a7473027e56df42909c09f70822)`); }
+            await super.initialize_lex();
+
+            this.robbotLex.data[SemanticId.hello] = [
+                {
+                    texts: [
+                        '$(hi). our session is in progress...yada yadaa...',
+                    ],
+                    props: {
+                        semanticId: SemanticId.hello,
+                        onlyInSession: true,
+                    },
+                }
+            ];
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -388,6 +405,68 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
+
+    protected async initialize_semanticHandlers(): Promise<void> {
+        const lc = `${this.lc}[${this.initialize_semanticHandlers.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 8a9f396f796d456e97a7b6ec7cc352d1)`); }
+
+            super.initialize_semanticHandlers();
+
+            this.semanticHandlers = {
+                // atow this is just mapping the default to the default handler method
+                ...this.semanticHandlers,
+
+                [SemanticId.hello]: [
+                    {
+                        handlerId: '0f97304634d1446f8b12d62ce9adf8b1',
+                        semanticId: SemanticId.hello,
+                        fnCanExec: async () => !!this.session,
+                        fnExec: (info) => this.handleSemantic_hello_inSession(info),
+                    },
+                ]
+                // more handlers here
+            }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    // #region semantic handlers
+
+    private async handleSemantic_hello_inSession(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
+        const lc = `${this.lc}[${this.handleSemantic_hello_inSession.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 5632af01149bc9c3af56346c2fbda622)`); }
+
+            const hello = this.robbotLex.get(SemanticId.hello, {
+                props: props =>
+                    props.semanticId === SemanticId.hello &&
+                    props.onlyInSession === true,
+            });
+
+            const data: RobbotInteractionData_V1 = {
+                uuid: await h.getUUID(),
+                timestamp: getTimestampInTicks(),
+                type: RobbotInteractionType.clarification,
+                commentText: hello.text,
+            };
+
+            const ibGib = await getInteractionIbGib_V1({ data });
+            return ibGib;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    // #endregion semantic handlers
+
 
     protected async doDefault({
         ibGib,
@@ -421,6 +500,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[${this.doCmdIb.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
+
+            await this.ready;
 
             await this.lookAt({ ibGibs: arg.ibGibs })
 
@@ -491,6 +572,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 5d820b45337bf51c8d0f3daa3013ae22)`); }
 
+            await this.ready;
+
             await this.completeSessionIfNeeded({ sayBye: true });
             await this.closeCurrentWorkingContextIfNeeded();
             await this.initializeContext({ arg });
@@ -498,32 +581,31 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             await this.initializeCurrentWorkingComment();
             await this.promptNextInteraction({ isClick: true });
 
-            const textInfo = this.getTextInfo({ srcIbGib: this._currentWorkingComment });
+            // const textInfo = this.getTextInfo({ srcIbGib: this._currentWorkingComment });
 
-            if (textInfo.lines.length === 1) {
-                // just a single line comment, do a fill-in-the-blank for now and clear the current ibgib.
-                let words = textInfo.text
-                    .split(/\b/) // split into words
-                    .map(x => x.trim()) // trim those that are just blank spaces
-                    .filter(x => x.length > 2)
-                    ; // filter out those blank space trimmed, now-empty strings
-                if (words.length > 0) {
-                    // we have a decent enough word
-                    let aWord = pickRandom({ x: words });
-                    let textWithBlank = textInfo.text.replace(aWord, '______');
-                    await this.createCommentAndRel8ToContextIbGib({ text: textWithBlank, contextIbGib: this._currentWorkingContextIbGib });
-                } else {
-                    // only short words or just empty space
-                }
+            // if (textInfo.lines.length === 1) {
+            //     // just a single line comment, do a fill-in-the-blank for now and clear the current ibgib.
+            //     let words = textInfo.text
+            //         .split(/\b/) // split into words
+            //         .map(x => x.trim()) // trim those that are just blank spaces
+            //         .filter(x => x.length > 2)
+            //         ; // filter out those blank space trimmed, now-empty strings
+            //     if (words.length > 0) {
+            //         // we have a decent enough word
+            //         let aWord = pickRandom({ x: words });
+            //         let textWithBlank = textInfo.text.replace(aWord, '______');
+            //         await this.createCommentAndRel8ToContextIbGib({ text: textWithBlank, contextIbGib: this._currentWorkingContextIbGib });
+            //     } else {
+            //         // only short words or just empty space
+            //     }
 
-                // since it's just a one liner, we're done working this particular comment.
-                debugger;
-                delete this._currentWorkingComment;
-            } else if (textInfo.paragraphs.length === 1) {
-                // multiple lines, single paragraph
-            } else {
-                // multiple lines & paragraphs
-            }
+            //     // since it's just a one liner, we're done working this particular comment.
+            //     delete this._currentWorkingComment;
+            // } else if (textInfo.paragraphs.length === 1) {
+            //     // multiple lines, single paragraph
+            // } else {
+            //     // multiple lines & paragraphs
+            // }
 
             return ROOT;
 
@@ -562,6 +644,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[${this.doCmdIbgib.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: ae300cb9c18b9014eb9ded1cd5666e22)`); }
+
+            await this.ready;
 
             // const space = await this.ibgibsSvc.getLocalUserSpace({ lock: true });
 
@@ -639,7 +723,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[${this.handleNewContextChild.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 6845a434406d716d13b853e71d3a8f22)`); }
-            debugger;
 
             const addr = h.getIbGibAddr({ ibGib: newChild });
             if (this.alreadyHandledContextChildrenAddrs.includes(addr)) {
@@ -1029,7 +1112,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             // build custom ibgib (always remember to calculate the gib!)
             // no dna for sessions, because it doesn't make sense
-            let data: WordyRobbotSessionData_V1 = {
+            const data: WordyRobbotSessionData_V1 = {
                 timestamp,
                 uuid: sessionId,
                 n: 0,
@@ -1037,10 +1120,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 '@context': h.getIbGibAddr({ ibGib: contextIbGib }),
                 '@contextTjp': contextTjpAddr,
             };
-            let rel8ns: WordyRobbotSessionRel8ns_V1 = {
+            const rel8ns: WordyRobbotSessionRel8ns_V1 = {
                 ancestor: [`${ROBBOT_SESSION_ATOM}^gib`],
             }
-            let sessionIbGib: WordyRobbotSessionIbGib_V1 = {
+            const sessionIbGib: WordyRobbotSessionIbGib_V1 = {
                 ib: getRobbotSessionIb({ robbot: this, timestamp, contextTjpGib, sessionId }),
                 data,
                 rel8ns,
@@ -1049,6 +1132,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             this.session = sessionIbGib;
 
+            this.interactions = [];
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -1093,7 +1177,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             if (sayBye) {
                 if (logalot) { console.log(`${lc} saying bye... (I: fc02b62d8fa9a5498fbffafecac75522)`); }
-                let { text } = this._robbotLex.get(SemanticId.bye);
+                let { text } = this.robbotLex.get(SemanticId.bye);
                 if (!text) {
                     console.error(`${lc} (UNEXPECTED) lex didn't work? tried to get 'bye' and text is falsy. (E: 3e77e1f771caad72cc52c881cb46da22)`);
                     text = 'bye';
@@ -1129,6 +1213,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // going forward.
             await this.ibgibsSvc.put({ ibGib: interaction });
 
+            debugger;
             // create the interaction output and apply it to the current
             // context. atow, this means create a comment with text based on the
             // interaction and relate that comment to the context.
@@ -1173,7 +1258,26 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: f0035587214223f7eb31d7550be27722)`); }
             debugger;
-            throw new Error(`not impl yet (E: f0a2146c074fa40abd98d99399191922)`);
+
+            const interactionAddr = h.getIbGibAddr({ ibGib: interaction });
+
+            // rel8 interaction to the current session
+            let resRel8Interaction = await rel8({
+                type: 'rel8',
+                src: this.session,
+                rel8nsToAddByAddr: { [ROBBOT_INTERACTION_REL8N_NAME]: [interactionAddr], },
+                dna: true,
+                linkedRel8ns: [Rel8n.ancestor, Rel8n.past],
+                nCounter: true,
+            });
+
+            // save the session (to the current local user space)
+            await this.ibgibsSvc.persistTransformResult({ resTransform: resRel8Interaction });
+            const newSession = <WordyRobbotSessionIbGib_V1>resRel8Interaction.newIbGib;
+            this.session = newSession;
+
+            // update the properties for this robbot
+            this.interactions.push(h.clone(interaction)); // interaction should be state only, no refs
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -1499,7 +1603,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             // map from the request text to a semantic id
             // const semanticId: SemanticId = SemanticId.help;
-            let resRequestText = this._userLex.find({
+            let resRequestText = this.userLex.find({
                 fnDatumPredicate: d => d.texts.join('') === requestText
             });
             if (resRequestText?.length === 1) {

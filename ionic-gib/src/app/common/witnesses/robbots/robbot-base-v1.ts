@@ -17,6 +17,9 @@ import {
     RobbotInteractionIbGib_V1,
     RobbotInteractionData_V1,
     RobbotInteractionType,
+    RobbotPropsData,
+    DEFAULT_ROBBOT_LEX_DATA,
+    DEFAULT_HUMAN_LEX_DATA,
 } from '../../types/robbot';
 import { WitnessBase_V1, } from '../witness-base-v1';
 import { CommentIbGib_V1 } from '../../types/comment';
@@ -35,6 +38,7 @@ import { WORDY_V1_ANALYSIS_REL8N_NAME } from './wordy-robbot-v1';
 import { Subscription } from 'rxjs';
 import { IbGibTimelineUpdateInfo } from '../../types/ux';
 import { getTimestampInTicks } from '../../helper/utils';
+import { Lex } from '../../helper/lex';
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
 
@@ -86,6 +90,7 @@ const logalot = c.GLOBAL_LOG_A_LOT || true;
  * old-fashioned "ProcessMessages/DoEvents" hack.
  */
 export abstract class RobbotBase_V1<
+    TLexPropsData extends RobbotPropsData = RobbotPropsData,
     TOptionsData extends any = any,
     TOptionsRel8ns extends IbGibRel8ns_V1 = IbGibRel8ns_V1,
     TOptionsIbGib extends IbGib_V1<TOptionsData, TOptionsRel8ns>
@@ -137,27 +142,6 @@ export abstract class RobbotBase_V1<
 
     protected semanticHandlers: { [semanticId: string]: SemanticHandler[] };
 
-    protected initialize_semanticHandlers() {
-        const lc = `${this.lc}[${this.initialize_semanticHandlers.name}]`;
-        try {
-            if (logalot) { console.log(`${lc} starting... (I: a0f2a11688963b0156e337e7f8604f22)`); }
-            this.semanticHandlers = {
-                [SemanticId.default]: [
-                    {
-                        handlerId: "c8054c0b77fb4b37bff693e54e1f66bd",
-                        semanticId: SemanticId.default,
-                        fnExec: (info) => { return this.handleSemanticDefault(info); },
-                    }
-                ]
-            }
-        } catch (error) {
-            console.error(`${lc} ${error.message}`);
-            throw error;
-        } finally {
-            if (logalot) { console.log(`${lc} complete.`); }
-        }
-    }
-
     protected async handleSemanticDefault(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
         const lc = `${this.lc}[${this.handleSemanticDefault.name}]`;
         try {
@@ -188,26 +172,101 @@ export abstract class RobbotBase_V1<
         }
     }
 
+    /**
+     * lex that the robbot uses to speak.
+     */
+    protected robbotLex: Lex<TLexPropsData>;
+    /**
+     * lex that the robbot uses to interpret humans.
+     */
+    protected userLex: Lex<TLexPropsData>;
+
+    /**
+     * This should be awaited before dealing with the robbot.
+     *
+     * I'm keeping this named `ready` as a shout out to
+     * https://stackoverflow.com/a/45070748/3897838
+     * (https://stackoverflow.com/questions/35743426/async-constructor-functions-in-typescript).
+     *
+     * ## comments
+     *
+     * I've been considering going forward whether or not to have robbots'
+     * properties all be observables to allow for subscribing to events or
+     * similar in the future. But this may fight against the single `witness`
+     * point of contact, which of course itself is somewhat experimental. One
+     * grand experiment.
+     *
+     * I do have an observable as a property for the aws sync space saga
+     * updates.  This kind of observable can be passed around while still using
+     * the single `witness` access point, but of course these runtime aspects
+     * won't be memoized if storing the ibgib.
+     */
+    public ready: Promise<void>;
+
     constructor(initialData?: TData, initialRel8ns?: TRel8ns) {
         super(initialData, initialRel8ns);
-        this.initialize();
+        this.ready = this.initialize();
     }
+
+    // #region initialize
 
     /**
      * Initializes to default space values.
      */
-    protected initialize(): void {
+    protected async initialize(): Promise<void> {
         const lc = `${this.lc}[${this.initialize.name}]`;
         try {
-            if (logalot) { console.log(`${lc} starting...`); }
+            if (logalot) { console.log(`${lc} starting... (I: f0e65ab0f80046a59668ddfbf9f47a4a5)`); }
 
-            this.initialize_semanticHandlers();
+            await this.initialize_semanticHandlers();
+            await this.initialize_lex();
         } catch (error) {
             console.error(`${lc} ${error.message}`);
         } finally {
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
+
+    protected async initialize_semanticHandlers(): Promise<void> {
+        const lc = `${this.lc}[${this.initialize_semanticHandlers.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: a0f2a11688963b0156e337e7f8604f22)`); }
+            this.semanticHandlers = {
+                [SemanticId.default]: [
+                    {
+                        handlerId: "c8054c0b77fb4b37bff693e54e1f66bd",
+                        semanticId: SemanticId.default,
+                        fnExec: (info) => { return this.handleSemanticDefault(info); },
+                    }
+                ]
+            }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    protected async initialize_lex(): Promise<void> {
+        const lc = `${this.lc}[${this.initialize_lex.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: a4668a7473027e56df42909c09f70822)`); }
+            this.robbotLex = new Lex<TLexPropsData>(h.clone(DEFAULT_ROBBOT_LEX_DATA), {
+                defaultPropsMode: 'props',
+            });
+            this.userLex = new Lex<TLexPropsData>(h.clone(DEFAULT_HUMAN_LEX_DATA), {
+                defaultPropsMode: 'props',
+            });
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    // #endregion initialize
 
     protected async loadNewerSelfIfAvailable(): Promise<void> {
         const lc = `${this.lc}[${this.loadNewerSelfIfAvailable.name}]`;
@@ -764,7 +823,6 @@ export abstract class RobbotBase_V1<
             await this.ibgibsSvc.registerNewIbGib({ ibGib: commentIbGib });
 
             await this.rel8ToContextIbGib({ ibGibToRel8: commentIbGib, contextIbGib, rel8nNames: ['comment'] });
-            debugger;
             await this.rel8To({
                 ibGibs: [commentIbGib],
                 rel8nName: ROBBOT_MY_COMMENT_REL8N_NAME,
@@ -812,7 +870,6 @@ export abstract class RobbotBase_V1<
             if (logalot) { console.log(`${lc} starting... (I: d0cf162bc5f4cbf65bf1f7e29e3bd922)`); }
             const { safeIbCommentMetadataText } = parseCommentIb({ ib });
             const [_, robbotClassnameIsh, robbotNameIsh, robbotIdIsh] = safeIbCommentMetadataText.split('__');
-            debugger;
             return { robbotClassnameIsh, robbotNameIsh, robbotIdIsh };
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -1007,7 +1064,6 @@ export abstract class RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: d93429c85b0a494388f66fba3eece922)`); }
 
-            debugger;
             this._currentWorkingContextIbGib = await this.getContextIbGibFromArg({ arg, latest: true });
             this._currentWorkingContextIbGib_PriorChildrenAddrs = [
                 ...this._currentWorkingContextIbGib?.rel8ns?.comment ?? [],

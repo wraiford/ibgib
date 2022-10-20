@@ -12,7 +12,7 @@ import * as c from '../../constants';
 import { RobbotBase_V1 } from './robbot-base-v1';
 import {
     RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1,
-    RobbotCmdData, RobbotCmdIbGib, RobbotCmdRel8ns, RobbotCmd,
+    RobbotCmdData, RobbotCmdIbGib, RobbotCmdRel8ns, RobbotCmd, RobbotPropsData,
 } from '../../types/robbot';
 import { DynamicForm } from '../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
@@ -45,6 +45,8 @@ export interface RandomRobbotRel8ns_V1 extends RobbotRel8ns_V1 {
  *
  */
 export class RandomRobbot_V1 extends RobbotBase_V1<
+    //
+    RobbotPropsData,
     // in
     any, IbGibRel8ns_V1, IbGib_V1<any, IbGibRel8ns_V1>,
     // out
@@ -71,10 +73,11 @@ export class RandomRobbot_V1 extends RobbotBase_V1<
     /**
      * Initializes to default space values.
      */
-    protected initialize(): void {
+    protected async initialize(): Promise<void> {
         const lc = `${this.lc}[${this.initialize.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
+            await super.initialize();
             if (!this.data) { this.data = h.clone(DEFAULT_RANDOM_ROBBOT_DATA_V1); }
             if (!this.rel8ns && DEFAULT_RANDOM_ROBBOT_REL8NS_V1) {
                 this.rel8ns = h.clone(DEFAULT_RANDOM_ROBBOT_REL8NS_V1);

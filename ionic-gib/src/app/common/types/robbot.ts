@@ -309,6 +309,11 @@ export const ROBBOT_MY_COMMENT_REL8N_NAME = 'my_comment';
  * this rel8n name.
  */
 export const ROBBOT_MY_CONVO_REL8N_NAME = 'my_convo';
+/**
+ * Used to rel8 interaction to sessions,
+ * i.e. session.rel8ns.interaction = ['interaction^ABC'];
+ */
+export const ROBBOT_INTERACTION_REL8N_NAME = 'interaction';
 
 /**
  * This is stimulus that is coming over the Context that a robbot is being
@@ -367,28 +372,49 @@ export interface RobbotInteractionIbGib_V1
 
 
 /**
+ * These are used for raw words/phrases that compose larger, more complex
+ * semantic ideas that use SemanticId.
+ */
+export type AtomicId = 'hi' | 'bye' | 'yes';
+export const AtomicId = {
+    hi: 'hi' as AtomicId,
+    bye: 'bye' as AtomicId,
+    yes: 'yes' as AtomicId,
+}
+
+/**
  * These are used for specific lex commands/intents/whatevers. Synonyms and
  * equivalency phrases ultimately get resolved to these.
+ *
+ * These are complex concepts, as opposed to the smaller atomic words/phrases, that
+ * a robbot will use when interacting with users.
+ *
+ * ## example
+ *
+ * A robbot may say in a semantic greeting (SemanticId.hello) that incorporates
+ * a lot of context-specific text. However, these individual greetings will
+ * most likely include the usage of individual phrases like 'hi' or 'good day'.
+ * These are small, raw "atomic" lexical atoms.
  */
-export type SemanticId = 'help' | 'lil_help' |
-    'hello' | 'bye' |
-    'yes' | 'no' | 'cancel' |
-    'skip' | 'next' |
-    'please' |
-    'unknown' | 'default';
+export type SemanticId = 'semantic_help' | 'semantic_lil_help' |
+    'semantic_hello' | 'semantic_bye' |
+    'semantic_yes' | 'semantic_no' | 'semantic_cancel' |
+    'semantic_skip' | 'semantic_next' |
+    'semantic_please' |
+    'semantic_unknown' | 'semantic_default';
 export const SemanticId = {
-    help: 'help' as SemanticId,
-    lil_help: 'lil_help' as SemanticId,
-    hello: 'hello' as SemanticId,
-    bye: 'bye' as SemanticId,
-    yes: 'yes' as SemanticId,
-    no: 'no' as SemanticId,
-    cancel: 'cancel' as SemanticId,
-    skip: 'skip' as SemanticId,
-    next: 'next' as SemanticId,
-    please: 'please' as SemanticId,
-    unknown: 'unknown' as SemanticId,
-    default: 'default' as SemanticId,
+    help: 'semantic_help' as SemanticId,
+    lil_help: 'semantic_lil_help' as SemanticId,
+    hello: 'semantic_hello' as SemanticId,
+    bye: 'semantic_bye' as SemanticId,
+    yes: 'semantic_yes' as SemanticId,
+    no: 'semantic_no' as SemanticId,
+    cancel: 'semantic_cancel' as SemanticId,
+    skip: 'semantic_skip' as SemanticId,
+    next: 'semantic_next' as SemanticId,
+    please: 'semantic_please' as SemanticId,
+    unknown: 'semantic_unknown' as SemanticId,
+    default: 'semantic_default' as SemanticId,
 };
 
 export interface SemanticInfo {
@@ -416,27 +442,18 @@ export interface SemanticHandler {
      * correct ({@link fnCanExec} is true).
      */
     fnExec?: (info: SemanticInfo) => Promise<RobbotInteractionIbGib_V1>;
-    // /**
-    //  * If set, then this handler will execute these before this handler's
-    //  * {@link fnExec} call.
-    //  *
-    //  * (only if {@link fnCanExec} of course)
-    //  */
-    // preExecHandlers?: SemanticHandler<TResult>[];
-    // /**
-    //  * If set, then this handler will execute these after this handler's
-    //  * {@link fnExec} call.
-    //  *
-    //  * (only if {@link fnCanExec} of course)
-    //  */
-    // postExecHandlers?: SemanticHandler<TResult>[];
 }
 
 export interface RobbotPropsData {
+    /**
+     * If assigned, then this lex datum is a semantic entry, and this is the corresponding
+     * semantic id.
+     */
     semanticId?: SemanticId;
+    atomicId?: AtomicId;
 }
 
-function toLexDatums(semanticId: SemanticId, texts: string[]): LexDatum<RobbotPropsData>[] {
+function toLexDatums_Semantics(semanticId: SemanticId, texts: string[]): LexDatum<RobbotPropsData>[] {
     return texts.flatMap(t => {
         return <LexDatum<RobbotPropsData>>{
             texts: [t],
@@ -445,57 +462,89 @@ function toLexDatums(semanticId: SemanticId, texts: string[]): LexDatum<RobbotPr
         };
     });
 }
+function toLexDatums_Atomics(atomicId: AtomicId, texts: string[]): LexDatum<RobbotPropsData>[] {
+    return texts.flatMap(t => {
+        return <LexDatum<RobbotPropsData>>{
+            texts: [t],
+            language: 'en-US',
+            props: { atomicId },
+        };
+    });
+}
 
-export const DEFAULT_HUMAN_LEX_DATA_ENGLISH: LexData<RobbotPropsData> = {
+export const DEFAULT_HUMAN_LEX_DATA_ENGLISH_SEMANTICS: LexData<RobbotPropsData> = {
     [SemanticId.help]: [
-        ...toLexDatums(SemanticId.help, [
+        ...toLexDatums_Semantics(SemanticId.help, [
             'help', 'help me',
         ]),
     ],
     [SemanticId.lil_help]: [
-        ...toLexDatums(SemanticId.help, [
+        ...toLexDatums_Semantics(SemanticId.help, [
             'little help', 'lil help',
         ]),
     ],
     [SemanticId.yes]: [
-        ...toLexDatums(SemanticId.yes, [
+        ...toLexDatums_Semantics(SemanticId.yes, [
             'yes', 'y', 'yeah', 'yea', 'aye', 'yup', 'yep', 'sure', 'ok',
             'sounds good', 'go for it', 'yes please', 'yes thanks', 'ok thanks',
             'uh huh', 'god yes', 'affirmative', 'ten four', '10-4', 'roger',
         ]),
     ],
     [SemanticId.no]: [
-        ...toLexDatums(SemanticId.no, [
+        ...toLexDatums_Semantics(SemanticId.no, [
             'no', 'n', 'nah', 'nay', 'nope', 'uh uh', 'no thanks', 'ick', 'nuh uh',
             'god no', 'no way', 'not at all', 'negative', 'that\'s a negative', 'nein',
         ])
     ],
     [SemanticId.cancel]: [
-        ...toLexDatums(SemanticId.cancel, [
+        ...toLexDatums_Semantics(SemanticId.cancel, [
             'cancel', 'nm', 'nevermind', 'cancel that', 'don\'t worry about it'
         ])
     ],
     [SemanticId.skip]: [
-        ...toLexDatums(SemanticId.skip, [
+        ...toLexDatums_Semantics(SemanticId.skip, [
             'skip', 'sk',
         ])
     ],
     [SemanticId.next]: [
-        ...toLexDatums(SemanticId.next, [
+        ...toLexDatums_Semantics(SemanticId.next, [
             'next', // 'next $(please)' /* need to get this kind of thing working */
         ])
     ],
     [SemanticId.bye]: [
-        ...toLexDatums(SemanticId.bye, [
+        ...toLexDatums_Semantics(SemanticId.bye, [
             'bye', 'bye bye', 'see you later', 'see you',
         ])
     ],
     [SemanticId.unknown]: [
-        ...toLexDatums(SemanticId.unknown, [
+        ...toLexDatums_Semantics(SemanticId.unknown, [
             'are you mocking me, human?', 'mmhmm...', 'i see...', 'does not compute...', 'indeed'
         ])
     ],
 };
+export const DEFAULT_HUMAN_LEX_DATA_ENGLISH_ATOMICS: LexData<RobbotPropsData> = {
+    [AtomicId.hi]: [
+        ...toLexDatums_Atomics(AtomicId.hi, [
+            'hi', 'howdy', 'hello', 'greetings', 'good day', 'hello there', 'good day to you',
+        ]),
+    ],
+    [AtomicId.yes]: [
+        ...toLexDatums_Atomics(AtomicId.yes, [
+            'yes', 'y', 'yeah', 'yea', 'aye', 'yup', 'yep', 'sure', 'ok',
+            'sounds good', 'go for it', 'yes please', 'yes thanks', 'ok thanks',
+            'uh huh', 'god yes', 'affirmative', 'ten four', '10-4', 'roger',
+        ]),
+    ],
+    [AtomicId.bye]: [
+        ...toLexDatums_Atomics(AtomicId.bye, [
+            'bye', 'bye bye', 'adios', 'ciao', 'later',
+        ]),
+    ],
+}
+export const DEFAULT_HUMAN_LEX_DATA_ENGLISH: LexData<RobbotPropsData> = {
+    ...DEFAULT_HUMAN_LEX_DATA_ENGLISH_SEMANTICS,
+    ...DEFAULT_HUMAN_LEX_DATA_ENGLISH_ATOMICS,
+}
 export const DEFAULT_HUMAN_LEX_DATA: LexData<RobbotPropsData> = {
     ...h.clone(DEFAULT_HUMAN_LEX_DATA_ENGLISH),
 };
@@ -538,7 +587,7 @@ DEFAULT_ROBBOT_LEX_DATA[SemanticId.bye].push(
     }
 )
 DEFAULT_ROBBOT_LEX_DATA[SemanticId.unknown] = [
-    ...toLexDatums(SemanticId.unknown, [
+    ...toLexDatums_Semantics(SemanticId.unknown, [
         'i\'m not quite sure what you mean', 'does not compute',
     ])
 ];
