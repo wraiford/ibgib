@@ -3,7 +3,7 @@ import { waitForAsync } from "@angular/core/testing";
 import * as h from 'ts-gib/dist/helper';
 
 import { DEFAULT_HUMAN_LEX_DATA_ENGLISH, SemanticId } from "../types/robbot";
-import { Lex, LexData } from "./lex";
+import { Lex, LexData, PropsData } from "./lex";
 
 describe('lex', () => {
     let testData: LexData<any>;
@@ -26,6 +26,48 @@ describe('lex', () => {
                 expect(firstRawDatum.props).toBeTruthy();
                 expect(firstRawDatum.props.semanticId).toBeTruthy();
                 expect(firstRawDatum.props.semanticId).toEqual(id);
+            });
+        });
+
+        describe('template refs', () => {
+
+            type Term = 'aloha_specifier' | 'fancy' | 'short';
+            const Term = {
+                'aloha_specifier': 'aloha_specifier' as Term,
+                'fancy': 'fancy' as Term,
+                'short': 'short' as Term,
+            }
+
+            let refTestData: LexData<PropsData> = {
+                'hi': [
+                    { texts: ['hi'] },
+                    { texts: ['aloha'], specifier: Term.aloha_specifier },
+                    { texts: ['ciao'], keywords: [Term.fancy, Term.short] },
+                    { texts: ['greetings'], keywords: [Term.fancy,] }
+                ],
+                'example_refs': [
+                    {
+                        specifier: 'bare',
+                        texts: ['$(hi)'],
+                    },
+                    {
+                        specifier: 'specified',
+                        texts: [`$(hi|{"specifier":"${Term.aloha_specifier}"})`],
+                    },
+                    {
+                        specifier: 'keywords_fancyshort',
+                        texts: [`$(hi|{"keywords":["${Term.fancy}"]})`],
+                    },
+                ],
+            }
+
+            let lex = new Lex(refTestData, {});
+            fit('should get bare', () => {
+                // multiple times to be sure it is always the same thing
+                for (let i = 0; i < 50; i++) {
+                    let result = lex.get('example_refs', { specifier: 'bare' });
+                    expect(result.text).toEqual('hi');
+                }
             });
         });
     });

@@ -1,3 +1,5 @@
+import * as h from 'ts-gib/dist/helper';
+
 import * as c from '../constants';
 import { Ssml } from './ssml';
 
@@ -170,6 +172,12 @@ export interface LexGetOptions<TProps = PropsData> {
      *
      * Currently, I'm doing x=123 in keywords, and this is meant to
      * improve upon that.
+     *
+     * ## notes
+     *
+     * These property filters require lambda functions, and as such,
+     * these cannot be used from within template references in
+     * lex data. see {@link Lex.replaceTemplateRefs}
      */
     props?: PropsFilter<TProps>;
     /**
@@ -192,8 +200,20 @@ export interface LexGetOptions<TProps = PropsData> {
      */
     fnDatumPredicate?: LexDatumPredicate<TProps>,
 }
-/** This is the type in the LexDatum.props */
-export type PropsData = { [propName: string]: string; };
+/**
+ * Contains properties per datum that allow for more complex filtering with
+ * two strategies:
+ * 1. per property name via a lambda
+ * 2. per entire props object via a lambda
+ *
+ * This is the type in the LexDatum.props property.
+ *
+ * NOTE: atow this must be just a flat dictionary, i.e. cannot contain nested
+ * objects. However, if you want to use FilterPerProps filtering, I believe you
+ * can just `any` cast this and do your filtering predicate against the entire
+ * props object as you like.
+ * */
+export type PropsData = { [propName: string]: string | boolean | number; };
 /** This is the type used in LexGetOptions.prFilter either per property or per the entire prop data object. */
 export type PropsFilter<TProps> = FilterPerProp | FilterPerProps<TProps>;
 /** Individual property predicate */
@@ -992,16 +1012,18 @@ export class Lex<TProps = PropsData> {
         }
     }
     /**
-     * Replaces any embedded template references, e.g. $(hi).
-     * Note the parenthesis around "hi". This means it is a reference to
-     * another lex datum.
+     * Replaces any embedded template references, e.g. $(hi).  Note the
+     * parenthesis around "hi". This means it is a reference to another lex
+     * datum.
      *
      * This is different than template variables, e.g. $name, $0, etc.
      *
-     * The template refs can be recursive, i.e. datum A can include a
-     * ref to datum B which includes a template to datum C.
-     * But these cannot be self-referencing, i.e. C cannot then include
-     * a reference back to A.
+     * The template refs can be recursive, i.e. datum A can include a ref to
+     * datum B which includes a template to datum C.  But these cannot be
+     * self-referencing, i.e. C cannot then include a reference back to A.
+     *
+     * Template refs CANNOT work with props for filtering, as these require
+     * lambda functions.
      *
      * @see {replaceTemplateVars}
      */
@@ -1032,8 +1054,8 @@ export class Lex<TProps = PropsData> {
                     // id|options
                     const idAndOptions = template.split('|');
                     const id = idAndOptions[0];
-                    const options = idAndOptions.length === 2 ?
-                        JSON.parse(idAndOptions[1]) :
+                    const options: LexGetOptions<TProps> = idAndOptions.length === 2 ?
+                        <LexGetOptions<TProps>>JSON.parse(idAndOptions[1]) :
                         {};
                     if (!options.lineConcat) {
                         options.lineConcat = LexLineConcat.delim;
@@ -1419,5 +1441,264 @@ export class Lex<TProps = PropsData> {
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
+}
 
+/**
+ * Contains a unit of speech, represented either by text, ssml, or both.
+ * */
+export interface OutputSpeech {
+    /**
+     * A string containing the type of output speech to render. Valid types are:
+     *   "PlainText": Indicates that the output speech is defined as plain text.
+     *   "SSML": Indicatesthat the output speech is text marked up with SSML.
+     */
+    type: OutputSpeechType;
+    /** A string containing the speech to render to the user. Use this when type is "PlainText" */
+    text?: string;
+    /** A string containing text marked up with SSML to render to the user. Use this when type is "SSML" */
+    ssml?: string;
+}
+
+/**
+ * output speech is either text or ssml.
+ */
+export declare type OutputSpeechType = 'PlainText' | 'SSML';
+export declare const OutputSpeechType: {
+    /**
+     * Indicates that the output speech is defined as plain text.
+     */
+    PlainText: OutputSpeechType;
+    /**
+     * Indicates that the output speech is text marked up with SSML.
+     */
+    SSML: OutputSpeechType;
+};
+
+/**
+ * Builds an OutputSpeech object that contains both text and ssml.  The text is
+ * convenient for showing information on cards, while building the ssml at the
+ * same time.
+ *
+ * The OutputSpeech.type is always ssml.
+ */
+export class SpeechBuilder {
+    private lc: string = `[${SpeechBuilder.name}]`;
+
+    /**
+     * The builder accumulates speech bits and then composes these together when
+     * outputting.
+     */
+    private _bits: SpeechBit[];
+
+    constructor() {
+        const lc = `${this.lc}[ctor]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 38d63eb021d971a24d532aec75b60e22)`); }
+            this._bits = [];
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    /**
+     * Static factory function for fluent-style speech building.
+     */
+    static with(): SpeechBuilder { return new SpeechBuilder(); }
+
+    /**
+     * Adds a bit of speech corresponding to bare (non-ssml/tagged) text.
+     *
+     * @param text text to add to the builder
+     */
+    text(text: string): SpeechBuilder {
+        let bit: SpeechBit = {
+            type: "text",
+            value: text + ""
+        };
+        this._bits.push(bit);
+        return this;
+    }
+    /**
+     * Adds a bit of speech corresponding to existing ssml.
+     *
+     * NOTE: This ssml should **NOT** contain a `<speak>` tag, as this
+     * is not automatically stripped. Also, if you choose
+     * `newParagraph`, ssml should **NOT** contain any hard-coded <p>
+     * tags
+     *
+     * @param ssml ssml to add to the builder. See NOTE in function description.
+     * @param newParagraph if true, wraps ssml in <p> tags. See NOTE in function description.
+     */
+    ssml(ssml: string, newParagraph: boolean = false): SpeechBuilder {
+        const bit = {
+            type: SpeechBitType.ssml,
+            value: newParagraph ? `<p>${ssml}</p>` : ssml
+        };
+        this._bits.push(bit);
+        return this;
+    }
+    /**
+     * Adds a pause (<break> tag) in the speech builder.
+     * Equivalent to `<break='${seconds}s'/>` ATOW.
+     *
+     * @param seconds amount of time to pause.
+     */
+    pause(seconds: number): SpeechBuilder {
+        const bit = {
+            type: SpeechBitType.break,
+            value: seconds
+        };
+        this._bits.push(bit);
+        return this;
+    }
+
+    /**
+     * Syntactic sugar for adding text of '\n'
+     */
+    newLine(): SpeechBuilder {
+        const bit: SpeechBit = {
+            type: 'text',
+            value: '\n'
+        };
+        this._bits.push(bit);
+        return this;
+    }
+
+    /**
+     * Syntactic sugar for adding text of '\n\n'
+     */
+    newParagraph(): SpeechBuilder {
+        const bit: SpeechBit = {
+            type: 'text',
+            value: '\n\n'
+        };
+        this._bits.push(bit);
+        return this;
+    }
+
+    /**
+     * Takes text and/or ssml from existing `OutputSpeech`
+     * object and adds it to the builder.
+     *
+     * For example, say you already have an outputSpeech and you just
+     * want to add an intro text to it. You would create the builder,
+     * add the intro text via `text` function and then call this
+     * function with your existing outputSpeech.
+     *
+     * @example `let outputWithIntro = SpeechBuilder.with().text('Some intro text').existing(prevOutputSpeech).outputSpeech();`
+     * @param outputSpeech existing `OutputSpeech` to weave into the builder.
+     */
+    existing(outputSpeech: OutputSpeech): SpeechBuilder {
+        const bit: SpeechBit = {
+            type: SpeechBitType.existingOutputSpeech,
+            value: outputSpeech
+        };
+        this._bits.push(bit);
+        return this;
+    }
+    /**
+     * Creates an `OutputSpeech` from the builder's state.
+     */
+    outputSpeech({
+        outputType = 'PlainText',
+    }: {
+        outputType: OutputSpeechType,
+    }): OutputSpeech {
+        const lc = `${this.lc}[${this.outputSpeech.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 3820fa4816d7ca999489b45fff5e2622)`); }
+
+            let text = "", ssml = "";
+            if (logalot) { console.log(`${lc} about to do bits...`); }
+            if (logalot) { console.log(`${lc} bits: ${JSON.stringify(this._bits)}`); }
+            this._bits.forEach(bit => {
+                if (logalot) { console.log(`${lc} ssml: ${ssml}`); }
+                if (text || ssml) {
+                    text = text + " ";
+                    ssml = ssml + " ";
+                }
+                if (logalot) { console.log(`${lc} bit: ${JSON.stringify(bit)}`); }
+                switch (bit.type) {
+                    case "text":
+                        if (logalot) { console.log(`${lc} text in case`); }
+                        text += bit.value;
+                        ssml += bit.value;
+                        break;
+                    case "ssml":
+                        if (logalot) { console.log(`${lc} ssml in case`); }
+                        // do these in two steps to fully strip ssml.
+                        text += bit.value;
+                        text = Ssml.stripSsml(text);
+                        ssml += bit.value;
+                        break;
+                    case "break":
+                        if (logalot) { console.log(`${lc} break in case`); }
+                        // ridic edge case, if pause before any text/ssml.
+                        if (ssml === " ") { ssml = ""; }
+                        // text doesn't change
+                        ssml += `<break time='${bit.value}s'/>`;
+                        break;
+                    case "existingOutputSpeech":
+                        if (logalot) { console.log(`${lc} existing in case`); }
+                        const existing = <OutputSpeech>bit.value;
+                        if (existing.text && (existing as OutputSpeech).ssml) {
+                            if (logalot) { console.log(`${lc} existing text and ssml`); }
+                            text += existing.text;
+                            ssml += Ssml.unwrapSsmlSpeak(existing.ssml);
+                        } else if (existing.text) {
+                            if (logalot) { console.log(`${lc} existing text only`); }
+                            text += existing.text;
+                            ssml += text;
+                        } else { // existing ssml
+                            if (logalot) { console.log(`${lc} existing ssml only`); }
+                            let unwrapped = Ssml.unwrapSsmlSpeak(existing.ssml);
+                            // do these in two steps to fully strip ssml.
+                            text += unwrapped;
+                            text = Ssml.stripSsml(text);
+                            ssml += unwrapped;
+                        }
+                        break;
+                    case "phoneme":
+                        throw new Error("phoneme case not implemented");
+                    // break
+                    default:
+                        throw new Error(`Unknown bit.type: ${bit.type}`);
+                }
+            });
+            if (logalot) {
+                console.log(`${lc} text: ${JSON.stringify(text)}`);
+                console.log(`${lc} ssml: ${JSON.stringify(ssml)}`);
+            }
+            const output: OutputSpeech = {
+                type: outputType, //OutputSpeechType.SSML,
+                text: text,
+                ssml: Ssml.wrapSsmlSpeak([ssml], /*addParaTags*/ false)
+            };
+            // console.log(`${lc} output: ${JSON.stringify(output)}`);
+            return output;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+}
+export declare type SpeechBitType = "text" | "ssml" | "break" | "phoneme" | "existingOutputSpeech";
+export declare const SpeechBitType: {
+    text: SpeechBitType;
+    ssml: SpeechBitType;
+    break: SpeechBitType;
+    phoneme: SpeechBitType;
+    existingOutputSpeech: SpeechBitType;
+};
+/**
+ * OutputSpeech objects are basically just arrays of these.
+ */
+export interface SpeechBit {
+    type: SpeechBitType;
+    value: string | number | OutputSpeech;
 }

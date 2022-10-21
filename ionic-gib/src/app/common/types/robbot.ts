@@ -2,7 +2,7 @@ import * as h from 'ts-gib/dist/helper';
 import { IbGibData_V1, IbGibRel8ns_V1, IbGib_V1 } from "ts-gib/dist/V1";
 
 import * as c from '../constants';
-import { Lex, LexData, LexDatum } from "../helper/lex";
+import { Lex, LexData, LexDatum, PropsData } from "../helper/lex";
 import { Ssml } from "../helper/ssml";
 import { TjpIbGibAddr } from "./ibgib";
 import {
@@ -353,6 +353,9 @@ export const RobbotInteractionType = {
 
 export interface RobbotInteractionData_V1 extends IbGibData_V1 {
     timestamp: string;
+    /**
+     * type of this interaction
+     */
     type: RobbotInteractionType | string;
     commentText?: string;
     /**
@@ -375,9 +378,12 @@ export interface RobbotInteractionIbGib_V1
  * These are used for raw words/phrases that compose larger, more complex
  * semantic ideas that use SemanticId.
  */
-export type AtomicId = 'hi' | 'bye' | 'yes';
+export type AtomicId =
+    'hi' | 'welcome' | 'bye' |
+    'yes';
 export const AtomicId = {
     hi: 'hi' as AtomicId,
+    welcome: 'welcome' as AtomicId,
     bye: 'bye' as AtomicId,
     yes: 'yes' as AtomicId,
 }
@@ -396,23 +402,26 @@ export const AtomicId = {
  * most likely include the usage of individual phrases like 'hi' or 'good day'.
  * These are small, raw "atomic" lexical atoms.
  */
-export type SemanticId = 'semantic_help' | 'semantic_lil_help' |
+export type SemanticId =
+    'semantic_help' |
     'semantic_hello' | 'semantic_bye' |
     'semantic_yes' | 'semantic_no' | 'semantic_cancel' |
-    'semantic_skip' | 'semantic_next' |
+    'semantic_skip' | 'semantic_forget' | 'semantic_next' |
     'semantic_please' |
+    'semantic_in_progress' |
     'semantic_unknown' | 'semantic_default';
 export const SemanticId = {
     help: 'semantic_help' as SemanticId,
-    lil_help: 'semantic_lil_help' as SemanticId,
     hello: 'semantic_hello' as SemanticId,
     bye: 'semantic_bye' as SemanticId,
     yes: 'semantic_yes' as SemanticId,
     no: 'semantic_no' as SemanticId,
     cancel: 'semantic_cancel' as SemanticId,
     skip: 'semantic_skip' as SemanticId,
+    forget: 'semantic_forget' as SemanticId,
     next: 'semantic_next' as SemanticId,
     please: 'semantic_please' as SemanticId,
+    in_progress: 'semantic_in_progress' as SemanticId,
     unknown: 'semantic_unknown' as SemanticId,
     default: 'semantic_default' as SemanticId,
 };
@@ -444,13 +453,25 @@ export interface SemanticHandler {
     fnExec?: (info: SemanticInfo) => Promise<RobbotInteractionIbGib_V1>;
 }
 
-export interface RobbotPropsData {
+export interface RobbotPropsData extends PropsData {
     /**
      * If assigned, then this lex datum is a semantic entry, and this is the corresponding
      * semantic id.
      */
     semanticId?: SemanticId;
     atomicId?: AtomicId;
+    /**
+     * Only use this lex datum if YES there is an active session in progress.
+     */
+    onlyInSession?: boolean;
+    /**
+     * Only use this lex datum if there is NOT an active session in progress.
+     */
+    onlyNotInSession?: boolean;
+    /**
+     * The robbot hasn't seen anything so has no knowledge.
+     */
+    blankSlate?: boolean;
 }
 
 function toLexDatums_Semantics(semanticId: SemanticId, texts: string[]): LexDatum<RobbotPropsData>[] {
@@ -478,11 +499,6 @@ export const DEFAULT_HUMAN_LEX_DATA_ENGLISH_SEMANTICS: LexData<RobbotPropsData> 
             'help', 'help me',
         ]),
     ],
-    [SemanticId.lil_help]: [
-        ...toLexDatums_Semantics(SemanticId.help, [
-            'little help', 'lil help',
-        ]),
-    ],
     [SemanticId.yes]: [
         ...toLexDatums_Semantics(SemanticId.yes, [
             'yes', 'y', 'yeah', 'yea', 'aye', 'yup', 'yep', 'sure', 'ok',
@@ -506,6 +522,11 @@ export const DEFAULT_HUMAN_LEX_DATA_ENGLISH_SEMANTICS: LexData<RobbotPropsData> 
             'skip', 'sk',
         ])
     ],
+    [SemanticId.forget]: [
+        ...toLexDatums_Semantics(SemanticId.forget, [
+            'forget', 'forget this', 'forget this one',
+        ])
+    ],
     [SemanticId.next]: [
         ...toLexDatums_Semantics(SemanticId.next, [
             'next', // 'next $(please)' /* need to get this kind of thing working */
@@ -526,6 +547,11 @@ export const DEFAULT_HUMAN_LEX_DATA_ENGLISH_ATOMICS: LexData<RobbotPropsData> = 
     [AtomicId.hi]: [
         ...toLexDatums_Atomics(AtomicId.hi, [
             'hi', 'howdy', 'hello', 'greetings', 'good day', 'hello there', 'good day to you',
+        ]),
+    ],
+    [AtomicId.welcome]: [
+        ...toLexDatums_Atomics(AtomicId.welcome, [
+            'welcome',
         ]),
     ],
     [AtomicId.yes]: [

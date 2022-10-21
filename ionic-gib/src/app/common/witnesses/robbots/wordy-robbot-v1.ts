@@ -224,9 +224,7 @@ export const WORDY_V1_DEFAULT_REQUEST_TEXT = 'help';
 
 export type WordyChatId = SemanticId;
 export const WordyChatId = {
-    yes: 'yes' as WordyChatId,
-    no: 'no' as WordyChatId,
-    cancel: 'cancel' as WordyChatId,
+
 }
 
 
@@ -253,14 +251,12 @@ export interface WordyRobbotRel8ns_V1 extends RobbotRel8ns_V1 {
 }
 
 export interface WordyRobbotPropsData extends RobbotPropsData {
-    /**
-     * Only use this lex if YES there is an active session in progress.
-     */
-    onlyInSession?: boolean;
-    /**
-     * Only use this lex if there is NOT an active session in progress.
-     */
-    onlyNotInSession?: boolean;
+}
+
+export type WordyLexKeywords =
+    'blankSlate';
+export const WordyLexKeywords = {
+    blankSlate: 'blankSlate' as WordyLexKeywords,
 }
 
 /**
@@ -281,6 +277,11 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     private _analysis: WordyRobbotAnalysisIbGib_V1;
 
     protected _currentWorkingLookProjection: GetGraphResult;
+    /**
+     * When we go to get the current working ibgib, if there are none available, then this
+     * will be set.
+     */
+    protected nothingToWorkOnAvailable: boolean;
     protected _currentWorkingCommentIbGibs: CommentIbGib_V1[];
     protected _currentWorkingComment: CommentIbGib_V1;
     protected _currentWorkingCommentTjpAddr: IbGibAddr;
@@ -390,14 +391,41 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             this.robbotLex.data[SemanticId.hello] = [
                 {
                     texts: [
-                        '$(hi). our session is in progress...yada yadaa...',
+                        `$(hi)!`,
+                        `It looks like I haven't seen anything yet.`,
+                        `Navigate somewhere and let me look at that ibgib by clicking 👀.`,
+                        `$(lil_help)`
+                    ],
+                    props: {
+                        semanticId: SemanticId.hello,
+                        blankSlate: true,
+                    },
+                    keywords: [WordyLexKeywords.blankSlate],
+                },
+                {
+                    texts: [
+                        `$(hi). our session is in progress`,
+                        `$(session_in_progress)`,
+                        `$(lil_help)`
                     ],
                     props: {
                         semanticId: SemanticId.hello,
                         onlyInSession: true,
                     },
+                },
+            ];
+            this.robbotLex.data[SemanticId.help] = [
+                {
+                    texts: [
+                        ''
+                    ],
+                    props: {
+                        semanticId: SemanticId.help,
+                        blankSlate: true,
+                    }
                 }
             ];
+
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -421,8 +449,14 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     {
                         handlerId: '0f97304634d1446f8b12d62ce9adf8b1',
                         semanticId: SemanticId.hello,
-                        fnCanExec: async () => !!this.session,
+                        fnCanExec: async () => !!this.session && !this.nothingToWorkOnAvailable,
                         fnExec: (info) => this.handleSemantic_hello_inSession(info),
+                    },
+                    {
+                        handlerId: '8b6fbaa737834ce6b43258de4558eafd',
+                        semanticId: SemanticId.hello,
+                        fnCanExec: async () => !!this.session && this.nothingToWorkOnAvailable,
+                        fnExec: (info) => this.handleSemantic_hello_inSession_NothingToWorkOn(info),
                     },
                 ]
                 // more handlers here
@@ -439,6 +473,34 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
     private async handleSemantic_hello_inSession(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
         const lc = `${this.lc}[${this.handleSemantic_hello_inSession.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 5632af01149bc9c3af56346c2fbda622)`); }
+
+            const hello = this.robbotLex.get(SemanticId.hello, {
+                props: props =>
+                    props.semanticId === SemanticId.hello &&
+                    props.onlyInSession === true,
+            });
+
+            const data: RobbotInteractionData_V1 = {
+                uuid: await h.getUUID(),
+                timestamp: getTimestampInTicks(),
+                type: RobbotInteractionType.clarification,
+                commentText: hello.text,
+            };
+
+            const ibGib = await getInteractionIbGib_V1({ data });
+            return ibGib;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    private async handleSemantic_hello_inSession_NothingToWorkOn(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
+        const lc = `${this.lc}[${this.handleSemantic_hello_inSession_NothingToWorkOn.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 5632af01149bc9c3af56346c2fbda622)`); }
 
@@ -702,13 +764,15 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 });
             }
             if (!this._currentWorkingCommentIbGibs) { throw new Error(`(UNEXPECTED) unable to get current working comment ibgibs? (E: 474bc448ee974f0cb17d85a225d63191)`); }
-
-            if (!this._currentWorkingComment) {
+            if (this._currentWorkingCommentIbGibs.length > 0) {
+                this.nothingToWorkOnAvailable = false;
                 this._currentWorkingComment = pickRandom({ x: this._currentWorkingCommentIbGibs });
-                if (logalot) { console.log(`${lc} just set current working comment. addr: ${h.getIbGibAddr({ ibGib: this._currentWorkingComment })} (I: 78a694ba366f1c3871710dbfd9b75122)`); }
+                if (logalot) { console.log(`${lc} current working comment set. addr: ${h.getIbGibAddr({ ibGib: this._currentWorkingComment })} (I: 78a694ba366f1c3871710dbfd9b75122)`); }
                 this._currentWorkingCommentTjpAddr = getTjpAddr({ ibGib: this._currentWorkingComment, defaultIfNone: 'incomingAddr' })
+            } else {
+                console.info(`${lc} nothing available to work on.`);
+                this.nothingToWorkOnAvailable = true;
             }
-
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -1213,7 +1277,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // going forward.
             await this.ibgibsSvc.put({ ibGib: interaction });
 
-            debugger;
             // create the interaction output and apply it to the current
             // context. atow, this means create a comment with text based on the
             // interaction and relate that comment to the context.
@@ -1229,6 +1292,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
+
     protected async applyInteractionToContext({
         interaction,
     }: {
@@ -1257,12 +1321,11 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[${this.updateSessionWithInteraction.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: f0035587214223f7eb31d7550be27722)`); }
-            debugger;
 
             const interactionAddr = h.getIbGibAddr({ ibGib: interaction });
 
             // rel8 interaction to the current session
-            let resRel8Interaction = await rel8({
+            const resRel8Interaction = await rel8({
                 type: 'rel8',
                 src: this.session,
                 rel8nsToAddByAddr: { [ROBBOT_INTERACTION_REL8N_NAME]: [interactionAddr], },
@@ -1496,7 +1559,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} starting... (I: e12984bfb94e5fa4fff95bdf57a3dd22)`); }
             if (!ibGib && !isClick) { throw new Error(`either ibGib or isClick required. (E: 6d148b641d322ae44f5cd8fe0bda1d22)`); }
             if (ibGib && isClick) { throw new Error(`(UNEXPECTED) ibGib expected to be falsy if isClick is true. (E: 9062f682e9aa40247fdfb7d7eebf6922)`); }
-            debugger;
 
             if (isClick) {
                 if (!this.session) { throw new Error(`(unexpected) session expected to exist at this point (E: 15c5cf99f4864942fbc8e6b42da4d922)`); }
@@ -1522,14 +1584,12 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: d7cc990ac49b1c6ac7ad37485b0e7f22)`); }
 
-            debugger;
-
             if (this.prevInteraction) {
                 // the user doesn't know there is already a session started? Or
                 // something else? just ping the user that a session is in
                 // progress and ask what's up, give the short help command
                 return await this.getNextInteraction_Request({
-                    semanticId: SemanticId.lil_help,
+                    semanticId: SemanticId.help,
                 });
             } else {
                 // just starting session.
@@ -1568,8 +1628,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             const handlersThatCanExecute =
                 await this.getHandlersThatCanExecute({ semanticId, info });
             if (handlersThatCanExecute.length === 0) { throw new Error(`no handlers anywhere and what up with no default handler? (E: e1fc96c2ea63abbe1c02fffff4f41322)`); }
-
-            debugger;
 
             // get the first interaction produced in our pipeline of handlers
             // that can execute
