@@ -762,7 +762,7 @@ export class Lex<TProps = PropsData> {
 
             let lexData = this.data[id];
 
-            if (!lexData) { throw new Error('Data id not found. (E: 4a79897167714dd5a34df77953072aaf)'); }
+            if (!lexData) { throw new Error(`Data id not found: ${id} (E: 4a79897167714dd5a34df77953072aaf)`); }
 
             lexData = this.filterLexData({
                 lexData,
@@ -1605,11 +1605,17 @@ export class SpeechBuilder {
     outputSpeech({
         outputType = 'PlainText',
     }: {
-        outputType: OutputSpeechType,
+        /**
+         * Somewhat vestigial, originally for use with Alexa skills (I had
+         * created ask-gib and this builder before Amazon's sdk was created.)
+         */
+        outputType?: OutputSpeechType,
     }): OutputSpeech {
         const lc = `${this.lc}[${this.outputSpeech.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 3820fa4816d7ca999489b45fff5e2622)`); }
+
+            outputType = outputType || 'PlainText';
 
             let text = "", ssml = "";
             if (logalot) { console.log(`${lc} about to do bits...`); }
@@ -1673,7 +1679,7 @@ export class SpeechBuilder {
                 console.log(`${lc} ssml: ${JSON.stringify(ssml)}`);
             }
             const output: OutputSpeech = {
-                type: outputType, //OutputSpeechType.SSML,
+                type: outputType,
                 text: text,
                 ssml: Ssml.wrapSsmlSpeak([ssml], /*addParaTags*/ false)
             };

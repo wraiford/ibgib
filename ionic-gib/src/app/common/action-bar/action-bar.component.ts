@@ -154,6 +154,27 @@ export class ActionBarComponent extends IbgibComponentBase
     return !this.sending && !this.addingPic;
   }
 
+  /**
+   * When a user hits the "enter" key, we want to automatically send when we're
+   * on a desktop system. Otherwise, we don't (like when we're on a phone or
+   * tablet).
+   *
+   * This is the list of platforms (via capacitor `platform.platforms()`) that
+   * will trigger a send when the `Enter` key is pressed and shift is not used.
+   */
+  @Input()
+  sendOnReturnPlatforms: string[] = ['electron', 'desktop'];
+  /**
+   * @see {@link sendOnReturnPlatforms}
+   */
+  private platforms: string[] = this.common.platform.platforms();
+  /**
+   * @see {@link sendOnReturnPlatforms}
+   */
+  private get doSendOnEnterKey(): boolean {
+    return this.sendOnReturnPlatforms.some(x => this.platforms.includes(x));
+  }
+
   @Output()
   actionBtnClick = new EventEmitter<ActionItem>();
 
@@ -887,8 +908,7 @@ export class ActionBarComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.handleCommentDetailInput}]`;
     if (!this.actionDetailVisible) { this.actionDetailVisible = true; }
     if ((!event.shiftKey) &&
-      this.platform === 'web' &&
-      event.key === 'Enter' &&
+      this.doSendOnEnterKey && event.key === 'Enter' &&
       this.actionDetailCommentText
     ) {
       event.stopPropagation(); // doesn't work
@@ -901,7 +921,7 @@ export class ActionBarComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.handleLinkDetailInput}]`;
     if (!this.actionDetailVisible) { this.actionDetailVisible = true; }
     if ((!event.shiftKey) &&
-      this.platform === 'web' &&
+      this.doSendOnEnterKey && event.key === 'Enter' &&
       event.key === 'Enter' &&
       this.actionDetailLinkText
     ) {

@@ -302,16 +302,29 @@ export interface RobbotResultIbGib<
 /**
  * When a robbot creates a comment on a context ibgib, he/she also relates it to
  * itself via this rel8nName.
+ *
+ * @example robbot.rel8ns.my_comment = 'comment myawesomeopinion wordyrobbot123^ABC'
+ *
+ * ## notes
+ *
+ * * "my" prefix is used to differentiate between the robbot's comments and comments
+ *   on the robbot itself.
  */
-export const ROBBOT_MY_COMMENT_REL8N_NAME = 'my_comment';
+export const ROBBOT_MY_COMMENTS_REL8N_NAME = 'my_comment';
 /**
  * When a robbot participates in a conversation, that context is related via
  * this rel8n name.
+ * @example robbot.rel8ns.context = 'comment someconvo^ABC'
  */
-export const ROBBOT_MY_CONVO_REL8N_NAME = 'my_convo';
+export const ROBBOT_CONTEXT_REL8N_NAME = 'context';
+/**
+ * Used to rel8 session ibgibs to robbots.
+ * @example robbot.rel8ns.session = ['session 123^ABC'];
+ */
+export const ROBBOT_SESSION_REL8N_NAME = 'session';
 /**
  * Used to rel8 interaction to sessions,
- * i.e. session.rel8ns.interaction = ['interaction^ABC'];
+ * @example session.rel8ns.interaction = ['interaction 123^ABC'];
  */
 export const ROBBOT_INTERACTION_REL8N_NAME = 'interaction';
 
@@ -409,6 +422,8 @@ export type SemanticId =
     'semantic_skip' | 'semantic_forget' | 'semantic_next' |
     'semantic_please' |
     'semantic_in_progress' |
+    'semantic_request_list' |
+    'semantic_options' |
     'semantic_unknown' | 'semantic_default';
 export const SemanticId = {
     help: 'semantic_help' as SemanticId,
@@ -422,6 +437,8 @@ export const SemanticId = {
     next: 'semantic_next' as SemanticId,
     please: 'semantic_please' as SemanticId,
     in_progress: 'semantic_in_progress' as SemanticId,
+    request_list: 'semantic_request_list' as SemanticId,
+    options: 'semantic_options' as SemanticId,
     unknown: 'semantic_unknown' as SemanticId,
     default: 'semantic_default' as SemanticId,
 };
@@ -472,6 +489,10 @@ export interface RobbotPropsData extends PropsData {
      * The robbot hasn't seen anything so has no knowledge.
      */
     blankSlate?: boolean;
+    /**
+     * Just starting a new session, i.e. no prev interactions exist.
+     */
+    freshStart?: boolean;
 }
 
 function toLexDatums_Semantics(semanticId: SemanticId, texts: string[]): LexDatum<RobbotPropsData>[] {

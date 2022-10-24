@@ -9,8 +9,8 @@ import {
     RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1,
     RobbotCmd,
     RobbotCmdData, RobbotCmdRel8ns, RobbotCmdIbGib,
-    RobbotResultData, RobbotResultRel8ns, RobbotResultIbGib, ROBBOT_MY_COMMENT_REL8N_NAME,
-    ROBBOT_MY_CONVO_REL8N_NAME,
+    RobbotResultData, RobbotResultRel8ns, RobbotResultIbGib, ROBBOT_MY_COMMENTS_REL8N_NAME,
+    ROBBOT_CONTEXT_REL8N_NAME,
     SemanticHandler,
     SemanticId,
     SemanticInfo,
@@ -254,9 +254,11 @@ export abstract class RobbotBase_V1<
             if (logalot) { console.log(`${lc} starting... (I: a4668a7473027e56df42909c09f70822)`); }
             this.robbotLex = new Lex<TLexPropsData>(h.clone(DEFAULT_ROBBOT_LEX_DATA), {
                 defaultPropsMode: 'props',
+                defaultKeywordMode: 'all',
             });
             this.userLex = new Lex<TLexPropsData>(h.clone(DEFAULT_HUMAN_LEX_DATA), {
                 defaultPropsMode: 'props',
+                defaultKeywordMode: 'all',
             });
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -825,7 +827,7 @@ export abstract class RobbotBase_V1<
             await this.rel8ToContextIbGib({ ibGibToRel8: commentIbGib, contextIbGib, rel8nNames: ['comment'] });
             await this.rel8To({
                 ibGibs: [commentIbGib],
-                rel8nName: ROBBOT_MY_COMMENT_REL8N_NAME,
+                rel8nName: ROBBOT_MY_COMMENTS_REL8N_NAME,
             });
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -1074,7 +1076,7 @@ export abstract class RobbotBase_V1<
             // rel8 to the context (conversation)
             await this.rel8To({
                 ibGibs: [this._currentWorkingContextIbGib],
-                rel8nName: ROBBOT_MY_CONVO_REL8N_NAME,
+                rel8nName: ROBBOT_CONTEXT_REL8N_NAME,
             });
 
             // subscribe to receive updates to the context so we can participate
