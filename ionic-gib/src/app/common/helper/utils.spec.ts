@@ -3,7 +3,7 @@ import { getSaferSubstring, getTimestampInTicks, pickRandom, pickRandom_Letters,
 
 describe('utils', () => {
 
-    fdescribe('getTimestampInTicks', () => {
+    describe('getTimestampInTicks', () => {
         it('result in ticks should be an integer string', () => {
             for (let i = 0; i < 1000; i++) {
                 const ticks = getTimestampInTicks();

@@ -328,6 +328,10 @@ export const ROBBOT_SESSION_REL8N_NAME = 'session';
  */
 export const ROBBOT_INTERACTION_REL8N_NAME = 'interaction';
 
+export const ROBBOT_SESSION_ATOM = 'robbot_session';
+
+export const ROBBOT_ANALYSIS_ATOM = 'robbot_analysis';
+
 /**
  * This is stimulus that is coming over the Context that a robbot is being
  * stimulated with.

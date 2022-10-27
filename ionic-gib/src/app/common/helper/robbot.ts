@@ -1,14 +1,15 @@
 import * as h from 'ts-gib/dist/helper';
-import { Ib, } from 'ts-gib';
-import { Factory_V1 as factory } from 'ts-gib/dist/V1';
+import { Gib, Ib, } from 'ts-gib';
+import { GIB, IbGib_V1 } from 'ts-gib/dist/V1';
+import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 import * as c from '../constants';
-import { getRegExp, getSaferSubstring, getTimestampInTicks } from './utils';
+import { getSaferSubstring, getTimestampInTicks } from './utils';
 import { IbGibRobbotAny } from '../witnesses/robbots/robbot-base-v1';
 import { CommonService } from '../../services/common.service';
 import {
     DEFAULT_ROBBOT_REQUEST_ESCAPE_STRING,
-    RobbotData_V1, RobbotIbGib_V1, RobbotInteractionData_V1, RobbotInteractionIbGib_V1, RobbotInteractionRel8ns_V1,
+    RobbotData_V1, RobbotIbGib_V1, RobbotInteractionData_V1, RobbotInteractionIbGib_V1, RobbotInteractionRel8ns_V1, ROBBOT_SESSION_ATOM,
     // RobbotOutputMode, VALID_ROBBOT_OUTPUT_MODES
 } from '../types/robbot';
 import { getFn_promptRobbotIbGib } from './prompt-functions';
@@ -16,12 +17,10 @@ import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { WitnessFormBuilder } from './witness';
 import { validateIbGibIntrinsically } from './validate';
 import { persistTransformResult, registerNewIbGib, rel8ToSpecialIbGib } from './space';
-import { GIB, IB, IbGib_V1 } from 'ts-gib/dist/V1';
 import { IbgibsService } from '../../services/ibgibs.service';
 import { isComment, parseCommentIb } from './comment';
 import { CommentIbGib_V1 } from '../types/comment';
-import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
-// import { validateWitnessClassname } from '../witnesses/witness-helper';
+
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -489,6 +488,90 @@ export async function getInteractionIbGib_V1({
         ibGib.gib = await getGib({ ibGib, hasTjp: false });
 
         return ibGib;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+export function getRobbotSessionIb({
+    robbot,
+    timestampInTicks,
+    sessionId,
+    contextTjpGib,
+    addlMetadata,
+}: {
+    robbot: IbGibRobbotAny,
+    timestampInTicks: string,
+    sessionId: string,
+    contextTjpGib: Gib,
+    addlMetadata?: string,
+}): string {
+    const lc = `[${getRobbotSessionIb.name}]`;
+    try {
+        // validate
+        if (logalot) { console.log(`${lc} starting... (I: 21206e0defe4bf23db96979fb456e822)`); }
+        if (!robbot) { throw new Error(`robbot required (E: 200b32bbc4cac516e56d9561a9ffae22)`); }
+        if (!robbot.data?.name) { throw new Error(`robbot.data.name required (E: d6470d5a146a1794811b9577ce881522)`); }
+        if (!robbot.data.classname) { throw new Error(`robbot.data.classname required (E: 42077779c80889f1079e582d45932e22)`); }
+        if (!robbot.data.uuid) { throw new Error(`robbot.data.uuid required (E: 34222f5639c329c99a2007ba6789bb22)`); }
+        if (!timestampInTicks) { throw new Error(`timestampInTicks required (E: 17447cb30277af2beea8f2b13266c722)`); }
+        if (!sessionId) { throw new Error(`sessionId required (E: 37a1737920996a55f311e79efe558422)`); }
+        if (!contextTjpGib) { throw new Error(`contextTjpGib required (E: ad967964b764b077f448121e8b63c822)`); }
+        if (addlMetadata) { if (!addlMetadata.match(/^\w+$/)) { throw new Error(`addlMetadata must be alphanumerics only (E: 26f52b1378d1ad01f20f8ef5a5441722)`); } }
+
+        // prepare
+        const { name, classname, uuid } = robbot.data;
+        const robbotTjpGib = getGibInfo({ gib: robbot.gib }).tjpGib;
+
+        // main ib string
+        let resultIb = `${ROBBOT_SESSION_ATOM} ${timestampInTicks} ${name} ${classname} ${uuid} ${robbotTjpGib} ${sessionId} ${contextTjpGib}`;
+
+        // amend if addlMetadata provided
+        if (addlMetadata) { resultIb += ` ${addlMetadata}`; }
+
+        // returns
+        return resultIb;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+export function parseRobbotSessionIb({
+    ib,
+}: {
+    ib: Ib,
+}): {
+    timestamp: string,
+    robbotName: string,
+    robbotClassname: string,
+    robbotId: string,
+    robbotTjpGib: Gib,
+    sessionId: string,
+    contextTjpGib: Gib,
+    addlMetadata: string,
+} {
+    const lc = `[${parseRobbotSessionIb.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 21206e0defe4bf23db96979fb456e822)`); }
+        if (!ib) { throw new Error(`ib required (E: c99627d871dbada4745474d9b63d4822)`); }
+
+        const pieces = ib.split(' ');
+        if (pieces.length !== 8 && pieces.length !== 9) { throw new Error(`invalid ib. should be space-delimited with 8 or 9 pieces, but there were ${pieces.length}. Expected pieces: atom, timestamp, robbotName, robbotClassname, robbotId, robbotTjpGib, sessionId, contextTjpGib, and optional addlMetadata. (E: 239ba7f599ce02a20271dd288c187d22)`); }
+
+        const [_, timestamp, robbotName, robbotClassname, robbotId, robbotTjpGib, sessionId, contextTjpGib, addlMetadata] = ib.split(' ');
+        return {
+            timestamp,
+            robbotName, robbotClassname, robbotId, robbotTjpGib,
+            sessionId,
+            contextTjpGib,
+            addlMetadata
+        };
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
