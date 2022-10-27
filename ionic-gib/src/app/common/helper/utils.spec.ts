@@ -1,6 +1,41 @@
-import { getSaferSubstring, pickRandom, pickRandom_Letters, replaceCharAt } from "./utils";
+import * as h from 'ts-gib/dist/helper';
+import { getSaferSubstring, getTimestampInTicks, pickRandom, pickRandom_Letters, replaceCharAt } from "./utils";
 
 describe('utils', () => {
+
+    fdescribe('getTimestampInTicks', () => {
+        it('result in ticks should be an integer string', () => {
+            for (let i = 0; i < 1000; i++) {
+                const ticks = getTimestampInTicks();
+                const x: number = Number.parseInt(ticks);
+                expect(Number.isInteger(x)).toBeTrue();
+            }
+        });
+
+        it('timestamp arg should provide known ticks value', () => {
+            const timestamp = "Thu Oct 27 2022 11:54:10 GMT-0500 (Central Daylight Time)";
+            const knownTicks = 1666889650000;
+            const ticksAsString = getTimestampInTicks(timestamp);
+            const ticksAsInt = Number.parseInt(ticksAsString);
+            expect(ticksAsInt).toEqual(knownTicks);
+        });
+        it('real use case of timestamp to ticks to timestamp', () => {
+            // from timestamp
+            const timestamp = h.getTimestamp(); // UTC String
+            const dateFromTimestamp = new Date(timestamp);
+
+            // get ticks from that timestamp
+            const ticks = getTimestampInTicks(timestamp);
+
+            // get a completely new date object using the ticks
+            const dateFromTicks = new Date();
+            dateFromTicks.setTime(Number.parseInt(ticks));
+
+            // both date objects should output the same UTC string
+            expect(timestamp).toEqual(dateFromTicks.toUTCString());
+            expect(dateFromTimestamp.toUTCString()).toEqual(dateFromTicks.toUTCString());
+        });
+    });
 
     describe('getSaferSubstring', () => {
 

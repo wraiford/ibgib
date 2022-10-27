@@ -6,7 +6,7 @@ import { DEFAULT_HUMAN_LEX_DATA_ENGLISH, SemanticId } from "../types/robbot";
 import { Lex, LexData, PropsData } from "./lex";
 import { unique } from "./utils";
 
-fdescribe('lex', () => {
+describe('lex', () => {
     let testData: LexData<any>;
     let testLex: Lex<any>;
 
