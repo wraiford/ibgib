@@ -54,8 +54,17 @@ export function getRegExp({
  * syntactic sugar for `(new Date()).getTime().toString()`
  * @returns ticks string
  */
-export function getTimestampInTicks(): string {
-    return (new Date()).getTime().toString();
+export function getTimestampInTicks(timestamp?: string): string {
+    let date: Date;
+    if (timestamp) {
+        date = new Date(timestamp);
+        if (date.toString() === "Invalid Date") {
+            throw new Error(`invalid date created by timestamp (${timestamp}) (E: cbd6aeefe00708184e276ea3c2532b22)`);
+        }
+    } else {
+        date = new Date();
+    }
+    return date.getTime().toString();
 }
 
 /**
