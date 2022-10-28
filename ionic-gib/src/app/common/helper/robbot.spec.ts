@@ -38,7 +38,7 @@ describe('RobbotSessionIb', () => {
     // multiple times to get async working, which doesn't scale, so it's a bad
     // design no matter what.
     // https://github.com/jasmine/jasmine/issues/1487 (?)
-    fit('get/parse', async () => {
+    it('get/parse', async () => {
         let f: WordyRobbot_V1_Factory = new WordyRobbot_V1_Factory();
         let robbot = (await f.newUp({})).newIbGib;
         let timestampInTicks = getTimestampInTicks();

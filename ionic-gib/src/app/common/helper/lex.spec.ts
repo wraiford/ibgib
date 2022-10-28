@@ -78,7 +78,7 @@ describe('lex', () => {
             it('should get all hi\'s eventually', async () => {
                 let allGotten: string[] = [];
                 // many times to ensure we get each one at least once (probably)
-                for (let i = 0; i < 50; i++) {
+                for (let i = 0; i < 60; i++) {
                     allGotten.push(lex.get('example_refs', {}).text)
                 }
                 allGotten = unique(allGotten);
