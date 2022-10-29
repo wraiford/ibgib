@@ -4,7 +4,7 @@ import { Subscription } from 'rxjs';
 import * as h from 'ts-gib/dist/helper';
 import {
     IbGib_V1, ROOT, Factory_V1 as factory, Rel8n,
-    IbGibRel8ns_V1, isPrimitive, IbGibData_V1, Factory_V1, rel8,
+    IbGibRel8ns_V1, isPrimitive, IbGibData_V1, Factory_V1, rel8, mut8,
 } from 'ts-gib/dist/V1';
 import { Gib, Ib, IbGibAddr, TransformResult } from 'ts-gib';
 import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
@@ -120,8 +120,7 @@ export interface WordyRobbotSessionRel8ns_V1 extends IbGibRel8ns_V1 {
 }
 export interface WordyRobbotSessionIbGib_V1 extends IbGib_V1<WordyRobbotSessionData_V1, WordyRobbotSessionRel8ns_V1> { }
 
-export interface WordyAnalysisData_V1_Text {
-    timestamp: string;
+export interface WordyAnalysisData_V1_Text extends IbGibData_V1 {
     /**
      * Breakdown of the text.
      */
@@ -130,19 +129,13 @@ export interface WordyAnalysisData_V1_Text {
      * Here duplicates in textInfo.srcAddr.
      */
     srcAddr?: IbGibAddr;
-    /**
-     * timestamp of last interaction in ticks
-     */
-    lastInteractionInTicks: number;
-    /**
-     *
-     */
-    lastStimulationInTicks: number;
+    timestamp_LastInteraction: string;
+    timestamp_LastStimulation: string;
     stimulationCount: number;
     /**
      * timestamp after which the source is scheduled to be stimulated.
      */
-    reminderTimestamp?: string;
+    timestamp_Scheduled?: string;
     /**
      * Total number of interactions regarding the src ibgib.
      */
@@ -164,7 +157,7 @@ export interface WordyAnalysisRel8ns_V1_Robbot extends IbGibRel8ns_V1 {
      *
      * @see {@link getTextIbGibAnalysisIb}
      */
-    analysis: IbGibAddr[];
+    analysis?: IbGibAddr[];
 }
 export interface WordyAnalysisIbGib_V1_Robbot extends IbGib_V1<WordyAnalysisData_V1_Robbot, WordyAnalysisRel8ns_V1_Robbot> { }
 
@@ -248,7 +241,7 @@ export const WORDY_V1_DEFAULT_REQUEST_TEXT = 'help';
 
 export type WordyChatId = SemanticId;
 export const WordyChatId = {
-
+    here_is_first: "wordy_here_is_first" as WordyChatId,
 }
 
 
@@ -310,6 +303,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     protected _currentWorkingCommentIbGibs: CommentIbGib_V1[];
     protected _currentWorkingComment: CommentIbGib_V1;
     protected _currentWorkingCommentTjpAddr: IbGibAddr;
+    protected _currentWorkingCommentAnalysis: WordyAnalysisIbGib_V1_Text;
     private _currentWorkingCommentInteractions: RobbotInteractionIbGib_V1[];
 
     /**
@@ -374,6 +368,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
     protected cachedLatestAddrsMap: { [addr: string]: string }
 
+    protected alreadyHandledContextChildrenAddrs: IbGibAddr[] = [];
+
     constructor(initialData?: WordyRobbotData_V1, initialRel8ns?: WordyRobbotRel8ns_V1) {
         super(initialData, initialRel8ns); // calls initialize
         const lc = `${this.lc}[ctor]`;
@@ -400,6 +396,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (!this.rel8ns && DEFAULT_WORDY_ROBBOT_REL8NS_V1) {
                 this.rel8ns = h.clone(DEFAULT_WORDY_ROBBOT_REL8NS_V1);
             }
+
+            await this.initialize_loadAnalysisIfExists();
         } catch (error) {
             console.error(`${lc} ${error.message}`);
         } finally {
@@ -439,13 +437,14 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             ];
             this.robbotLex.data['session_in_progress'] = [
                 {
-                    texts: ['Session is in progress...']
+                    texts: ['Session is in progress...'],
                 }
             ];
             this.robbotLex.data[SemanticId.help] = [
                 {
                     texts: [
-                        'You can give me a request '
+                        `You can give me a request including the following: `,
+                        `$(${SemanticId.request_list}|{"lineConcat":"newline"})`, // todo: change this to a function call that takes current context into account
                     ],
                     props: {
                         semanticId: SemanticId.help,
@@ -516,6 +515,35 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
+    protected async initialize_loadAnalysisIfExists(): Promise<void> {
+        const lc = `${this.lc}[${this.initialize_loadAnalysisIfExists.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: d7c2eba5e6345cdd3a9939834eb7f522)`); }
+            const analysisAddrs = this.rel8ns[WORDY_V1_ANALYSIS_REL8N_NAME] ?? [];
+            if (analysisAddrs.length === 0) {
+                if (logalot) { console.log(`${lc} no analysis found in this.rel8ns. returning early. (I: 76e8a28c82b93754673d8b8fa84af222)`); }
+                return; /* <<<< returns early */
+            };
+
+            // get the most recent one
+            let analysisAddr = analysisAddrs[analysisAddrs.length - 1];
+            analysisAddr = await this.ibgibsSvc.getLatestAddr({ addr: analysisAddr }) ?? analysisAddr;
+
+            let resAnalysis = await this.ibgibsSvc.get({ addr: analysisAddr });
+            if (!resAnalysis.success || resAnalysis.ibGibs?.length !== 1) {
+                throw new Error(`error getting analysisAddr registered with this robbot. addr: ${analysisAddr}. error: ${resAnalysis.errorMsg ?? 'unknown error'} (E: 622945c064d3b54487b94f871c4a8722)`);
+            }
+
+            this._analysis = <WordyAnalysisIbGib_V1_Robbot>resAnalysis.ibGibs[0];
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+
+    }
+
     // #region semantic handlers
 
     /**
@@ -539,6 +567,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             });
 
             // get the first stimulation for the current comment
+
+
 
             const sb = SpeechBuilder.with()
                 .text(hello.text)
@@ -812,19 +842,19 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // care about loaded into this.cacheIbGibs and this.cachedLatestAddrsMap is populated.
             // we should be able to do any analysis on them that we wish.
 
-            const analysisIbGib = await this.analyze({ commentIbGibs: this._currentWorkingCommentIbGibs, saveInSpace: true });
-            await this.rel8To({
-                ibGibs: [analysisIbGib],
-                rel8nName: WORDY_V1_ANALYSIS_REL8N_NAME,
-                linked: true, // only keep the most recent analysis
-            });
-            this._analysis = analysisIbGib;
-            const analysisText = await this.getAnalysisText({ analysisIbGib });
 
-            await this.createCommentAndRel8ToContextIbGib({
-                text: analysisText,
-                contextIbGib: arg.ibGibs[0],
-            });
+            if (!this._analysis) {
+                // no existing analysis yet, so create and rel8 to it
+                await this.analyze_Robbot({ saveInSpace: true });
+                const analysisText = await this.getAnalysisText({ analysisIbGib: this._analysis });
+
+                await this.createCommentAndRel8ToContextIbGib({
+                    text: analysisText,
+                    contextIbGib: arg.ibGibs[0],
+                });
+            } else {
+                // previous analysis exists,
+            }
 
             return ROOT;
         } catch (error) {
@@ -846,7 +876,12 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 783cdaf1b9d5eab059879f3791ed7d22)`); }
 
+            // first check to see if an analysis already exists in local space
+            if (!this._analysis) {
+                await this.analyze_Robbot({})
+            }
             this._analysis
+            getTextIbGibAnalysisIb
 
             // const analysisIb = getTextIbGibAnalysisIb({ ibGib, robbot: this });
 
@@ -887,6 +922,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             delete this._currentWorkingLookProjection;
             delete this._currentWorkingCommentIbGibs;
             delete this._currentWorkingComment;
+            delete this._currentWorkingCommentAnalysis;
 
             const space = await this.ibgibsSvc.getLocalUserSpace({ lock: true });
 
@@ -908,6 +944,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 console.info(`${lc} nothing available to work on.`);
                 this.nothingToWorkOnAvailable = true;
             }
+
+            // load/create the analysis for the current working comment
+            this._currentWorkingCommentAnalysis =
+                await this.getTextAnalysisForIbGib({ ibGib: this._currentWorkingComment, createIfNone: true });
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -938,8 +978,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
-
-    protected alreadyHandledContextChildrenAddrs: IbGibAddr[] = [];
 
     protected async handleNewContextChild({ newChild }: { newChild: IbGib_V1 }): Promise<void> {
         const lc = `${this.lc}[${this.handleNewContextChild.name}]`;
@@ -1022,18 +1060,21 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
      * Performs aggregate analysis across all of given `commentIbGibs`, as well
      * as individual analyses per individual ibgib.
      */
-    private async analyze({
-        commentIbGibs,
+    private async analyze_Robbot({
+        // commentIbGibs,
         saveInSpace,
         // space,
     }: {
-        commentIbGibs: CommentIbGib_V1[],
+        // commentIbGibs: CommentIbGib_V1[],
         saveInSpace?: boolean;
         // space?: IbGibSpaceAny,
-    }): Promise<WordyAnalysisIbGib_V1_Robbot> {
-        const lc = `${this.lc}[${this.analyze.name}]`;
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.analyze_Robbot.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 128d07e8fdc1a1d79a1b54dd83caeb22)`); }
+
+            let commentIbGibs = this._currentWorkingCommentIbGibs;
+
             if (!commentIbGibs) { throw new Error(`commentIbGibs required (E: c6a983bf16cfe2e5aa48934499f53322)`); }
             if (commentIbGibs.length === 0) { throw new Error(`${lc} (UNEXPECTED) commentIbGibs.length 0? (E: a433761eed37a831378f654ce8bb4422)`); }
             // if (saveInSpace && !space) { throw new Error(`space required to saveInSpace (E: 5466baf5559bfe582358d0490b4b5422)`); }
@@ -1080,18 +1121,47 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 }),
                 aggInfo,
             }
-            throw new Error(`analyais is empty array for dev...maybe should make optional rel8n... (E: e2cdea24de48ecde678f17d492500922)`);
-            const rel8ns: WordyAnalysisRel8ns_V1_Robbot = {
-                ancestor: [`robbot_analysis ${this.data.classname}^gib`],
-                analysis: [],
+
+            // at this point, if we already have an analysis we want to mut8 its data.
+            // if we don't have an existing analysis, then we want to create a new one.
+
+            // let analysisIbGib: WordyAnalysisIbGib_V1_Robbot;
+            let resTransform: TransformResult<IbGib_V1>;
+            if (this._analysis) {
+                // yes existing analysis, mut8 that
+                resTransform = await mut8({
+                    type: 'mut8',
+                    src: this._analysis,
+                    dataToAddOrPatch: data,
+                    linkedRel8ns: [Rel8n.ancestor],
+                    dna: false,
+                    nCounter: true,
+                });
+
+            } else {
+                // no existing analysis, create new
+                const rel8ns: WordyAnalysisRel8ns_V1_Robbot = {
+                    ancestor: [`robbot_analysis ${this.data.classname}^gib`],
+                };
+
+                resTransform = await factory.firstGen<WordyAnalysisData_V1_Robbot>({
+                    parentIbGib: factory.primitive({ ib: ROBBOT_ANALYSIS_ATOM }),
+                    ib, data, rel8ns,
+                    linkedRel8ns: [Rel8n.ancestor],
+                    dna: false,
+                    nCounter: true,
+                    tjp: { timestamp: true, uuid: true },
+                });
             }
+            this._analysis = <WordyAnalysisIbGib_V1_Robbot>resTransform.newIbGib;
 
-            const analysisIbGib: WordyAnalysisIbGib_V1_Robbot = { ib, data, rel8ns };
-            analysisIbGib.gib = await getGib({ ibGib: analysisIbGib, hasTjp: false });
+            if (saveInSpace) { await this.ibgibsSvc.persistTransformResult({ resTransform }); }
 
-            if (saveInSpace) { await this.ibgibsSvc.put({ ibGib: analysisIbGib }); }
-
-            return analysisIbGib;
+            await this.rel8To({
+                ibGibs: [this._analysis],
+                rel8nName: WORDY_V1_ANALYSIS_REL8N_NAME,
+                linked: true, // only keep the most recent analysis
+            });
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -1519,47 +1589,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    // protected async getInteraction_Stimulation({
-    //     nonRequest,
-    //     request,
-    // }: {
-    //     nonRequest?: IbGib_V1,
-    //     /**
-    //      * unused atow
-    //      */
-    //     request?: IbGib_V1,
-    // }): Promise<RobbotInteractionIbGib_V1> {
-    //     const lc = `${this.lc}[${this.getInteraction_Stimulation.name}]`;
-    //     try {
-    //         if (logalot) { console.log(`${lc} starting... (I: d29c1eee6a2ee289698374ef48bc0322)`); }
-
-    //         // let stimulation: WordyRobbotInteractionData_V1_Stimulation = await this.getNextStimulation();
-    //         // let details: StimulationDetails = stimulation.details;
-    //         // let data: WordyRobbotInteractionData_V1 = {
-    //         //     timestamp: getTimestampInTicks(),
-    //         //     type: 'stimulation',
-    //         //     // "@toStimulate": h.getIbGibAddr({ ibGib: this._currentWorkingComment }),
-    //         //     // "@toStimulateTjp": this._currentWorkingCommentTjpAddr,
-    //         //     details: stimulation,
-    //         // }
-
-    //         // stimulation.commentText
-
-    //         let ibgib: RobbotInteractionIbGib_V1 = {
-    //             ib: 'interaction stimulation '
-    //         }
-
-    //         throw new Error(`not impl (E: e95946d9ec5e3bce3be5a5e91f848522)`);
-
-
-    //     } catch (error) {
-    //         console.error(`${lc} ${error.message}`);
-    //         throw error;
-    //     } finally {
-    //         if (logalot) { console.log(`${lc} complete.`); }
-    //     }
-    // }
-
     protected async getNextStimulation(): Promise<StimulationDetails> {
         const lc = `${this.lc}[${this.getNextStimulation.name}]`;
         try {
@@ -1568,6 +1597,15 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             let details: StimulationDetails;
             let toStimulateAddr = h.getIbGibAddr({ ibGib: this._currentWorkingComment });
             let toStimulateTjpAddr = this._currentWorkingCommentTjpAddr;
+
+
+            if (!this._currentWorkingCommentAnalysis) {
+                this._currentWorkingCommentAnalysis =
+                    await this.getTextAnalysisForIbGib({ ibGib: this._currentWorkingComment, createIfNone: true });
+            }
+            let analysis = this._currentWorkingCommentAnalysis // shorter variable
+
+            // use analysis to get the next stimulation
 
             let randomStimulationType = pickRandom<StimulationType>({ x: Object.values(StimulationType) });
             switch (randomStimulationType) {
@@ -1732,7 +1770,19 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             if (isClick) {
                 if (!this.session) { throw new Error(`(unexpected) session expected to exist at this point (E: 15c5cf99f4864942fbc8e6b42da4d922)`); }
-                return await this.getNextInteraction_Click();
+                if (this.prevInteraction) {
+                    // the user doesn't know there is already a session started? Or
+                    // something else? just ping the user that a session is in
+                    // progress and ask what's up, give the short help command
+                    return await this.getNextInteraction_PerRequest({
+                        semanticId: SemanticId.help,
+                    });
+                } else {
+                    // just starting session.
+                    return await this.getNextInteraction_PerRequest({
+                        semanticId: SemanticId.hello,
+                    });
+                }
             } else if (isRequest) {
                 // someone has issued a request
                 return await this.getNextInteraction_PerRequest({ request: ibGib });
@@ -1740,32 +1790,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 // ibgib added to context that may be a response to a
                 // question, or is not relevant (but it isn't a request)
                 return await this.getNextInteraction_PerNonRequest({ nonRequest: ibGib });
-            }
-        } catch (error) {
-            console.error(`${lc} ${error.message}`);
-            throw error;
-        } finally {
-            if (logalot) { console.log(`${lc} complete.`); }
-        }
-    }
-
-    protected async getNextInteraction_Click(): Promise<RobbotInteractionIbGib_V1> {
-        const lc = `${this.lc}[${this.getNextInteraction_Click.name}]`;
-        try {
-            if (logalot) { console.log(`${lc} starting... (I: d7cc990ac49b1c6ac7ad37485b0e7f22)`); }
-
-            if (this.prevInteraction) {
-                // the user doesn't know there is already a session started? Or
-                // something else? just ping the user that a session is in
-                // progress and ask what's up, give the short help command
-                return await this.getNextInteraction_PerRequest({
-                    semanticId: SemanticId.help,
-                });
-            } else {
-                // just starting session.
-                return await this.getNextInteraction_PerRequest({
-                    semanticId: SemanticId.hello,
-                });
             }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -1799,14 +1823,18 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 await this.getHandlersThatCanExecute({ semanticId, info });
             if (handlersThatCanExecute.length === 0) { throw new Error(`no handlers anywhere and what up with no default handler? (E: e1fc96c2ea63abbe1c02fffff4f41322)`); }
 
-            // get the first interaction produced in our pipeline of handlers
-            // that can execute
+            // get the interaction produced in our pipeline of handlers that can
+            // execute. in the future, this can be smarter than simply returning
+            // the first truthy interaction, including executing multiple paths
+            // concurrently and choosing among them depending on, e.g., an
+            // evaluation metric
             const interaction = await this.getInteractionFromHandlerPipeline({
                 info,
                 handlerPipeline: handlersThatCanExecute,
             });
             if (!interaction) { throw new Error(`no interaction produced. (E: d839ef8709d1793868ce9a2f8558e622)`); }
 
+            // we're done
             return interaction;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -1879,7 +1907,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             /** first determine which handlers can execute */
             const handlersThatCanExecute: SemanticHandler[] = [];
-            const getHandlersThatCanExecute = async () => {
+            const fnGetHandlers = async () => {
                 for (let i = 0; i < handlers.length; i++) {
                     const handler = handlers[i];
                     const canExec = handler.fnCanExec ?
@@ -1889,13 +1917,13 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 }
             };
 
-            await getHandlersThatCanExecute();
+            await fnGetHandlers();
 
             if (handlersThatCanExecute.length === 0) {
                 // try again with semanticId of default
                 handlers = this.semanticHandlers[SemanticId.default] ?? [];
                 if (handlers.length === 0) { throw new Error(`found no handlers that could execute and default handler not found (E: d82f110cd447068cbe8b994c5b3a7122)`); }
-                await getHandlersThatCanExecute();
+                await fnGetHandlers();
             }
             return handlersThatCanExecute;
         } catch (error) {
@@ -2224,7 +2252,6 @@ function getTextIbGibAnalysisIb({
     const lc = `${getTextIbGibAnalysisIb.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: d807cf7306def33e0af721868996c122)`); }
-        robbot.data.name
 
         if (!ibGib) { throw new Error(`ibGib required (E: bab0f7a75db440e0b0817c56652026d3)`); }
 

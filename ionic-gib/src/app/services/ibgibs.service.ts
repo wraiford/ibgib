@@ -1442,11 +1442,13 @@ export class IbgibsService {
    */
   async getLatestAddr({
     ibGib,
+    addr,
     tjpAddr,
     tjp,
     space,
   }: {
     ibGib?: IbGib_V1<any>,
+    addr?: IbGibAddr,
     tjpAddr?: IbGibAddr,
     tjp?: IbGib_V1<any>,
     space?: IbGibSpaceAny,
@@ -1463,6 +1465,7 @@ export class IbgibsService {
 
       const resGetLatest = await getLatestAddrs({
         ibGibs: ibGib ? [ibGib] : undefined,
+        addrs: addr ? [addr] : undefined,
         tjpAddrs: tjpAddr ? [tjpAddr] : undefined,
         tjps: tjp ? [tjp] : undefined,
         space,

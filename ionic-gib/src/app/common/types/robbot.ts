@@ -361,10 +361,25 @@ export interface StimulusForRobbot {
 
 export type RobbotInteractionType = 'greeting' | 'stimulation' | 'farewell' | 'clarification' | 'help';
 export const RobbotInteractionType = {
+    /**
+     * opening statement of a robbot
+     */
     greeting: 'greeting' as RobbotInteractionType,
+    /**
+     * stimulates a certain ibgib.
+     */
     stimulation: 'stimulation' as RobbotInteractionType,
+    /**
+     * closing statements of a robbot
+     */
     farewell: 'farewell' as RobbotInteractionType,
+    /**
+     * small nudges of info, including possibly repeating previous statement.
+     */
     clarification: 'clarification' as RobbotInteractionType,
+    /**
+     * providing info about context to aid the user in their options.
+     */
     help: 'help' as RobbotInteractionType,
 }
 
