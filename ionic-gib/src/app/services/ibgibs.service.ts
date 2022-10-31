@@ -67,6 +67,8 @@ import { createNewApp, documentLocationIsAtWelcomePage } from '../common/helper/
 import { InMemoryIbgibCacheService } from './in-memory-ibgib-cache.service';
 import { IonicStorageLatestIbgibCacheService } from './ionic-storage-latest-ibgib-cache.service';
 import { getStatusIb } from '../common/helper/outer-space';
+import { CommentIbGib_V1 } from '../common/types/comment';
+import { UpdateCommentModalResult } from '../common/modals/update-comment-modal-form/update-comment-modal-form.component';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -349,6 +351,7 @@ export class IbgibsService {
   private fnPromptEncryption: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>;
   private fnPromptOuterSpace: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>;
   private fnPromptUpdatePic: (space: IbGibSpaceAny, picIbGib: PicIbGib_V1) => Promise<UpdatePicModalResult | undefined>;
+  private fnPromptUpdateComment: (space: IbGibSpaceAny, commentIbGib: CommentIbGib_V1) => Promise<UpdateCommentModalResult | undefined>;
   fnPromptRobbot: (space: IbGibSpaceAny, ibGib: RobbotIbGib_V1) => Promise<RobbotModalResult | undefined>;
   fnPromptApp: (space: IbGibSpaceAny, ibGib: AppIbGib_V1) => Promise<AppModalResult | undefined>;
 
@@ -444,6 +447,7 @@ export class IbgibsService {
     fnPromptEncryption,
     fnPromptOuterSpace,
     fnPromptUpdatePic,
+    fnPromptUpdateComment,
     fnPromptRobbot,
     fnPromptApp,
   }: {
@@ -451,6 +455,7 @@ export class IbgibsService {
     fnPromptEncryption: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>,
     fnPromptOuterSpace: (space: IbGibSpaceAny) => Promise<IbGib_V1 | undefined>,
     fnPromptUpdatePic: (space: IbGibSpaceAny, picIbGib: PicIbGib_V1) => Promise<UpdatePicModalResult | undefined>,
+    fnPromptUpdateComment: (space: IbGibSpaceAny, commentIbGib: CommentIbGib_V1) => Promise<UpdateCommentModalResult | undefined>,
     fnPromptRobbot: (space: IbGibSpaceAny, ibGib: RobbotIbGib_V1) => Promise<RobbotModalResult | undefined>,
     fnPromptApp: (space: IbGibSpaceAny, ibGib: AppIbGib_V1) => Promise<AppModalResult | undefined>,
   }): Promise<void> {
@@ -463,6 +468,7 @@ export class IbgibsService {
       this.fnPromptEncryption = fnPromptEncryption;
       this.fnPromptOuterSpace = fnPromptOuterSpace;
       this.fnPromptUpdatePic = fnPromptUpdatePic;
+      this.fnPromptUpdateComment = fnPromptUpdateComment;
       this.fnPromptRobbot = fnPromptRobbot;
       this.fnPromptApp = fnPromptApp;
 
@@ -3561,6 +3567,45 @@ export class IbgibsService {
     }
   }
 
+  async updateComment({
+    commentIbGib,
+    space,
+  }: {
+    /**
+     * commentIbGib to update with a new text
+     */
+    commentIbGib: CommentIbGib_V1,
+    /**
+     * space within which we are working, i.e., where the incoming `commentIbGib` is
+     * and where we will save any new ibgibs.
+     */
+    space?: IbGibSpaceAny,
+  }): Promise<void> {
+    const lc = `${this.lc}[${this.updateComment.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (this.isPrompting) { throw new Error(`(UNEXPECTED) already prompting (E: 551cc47d1e9e421097b5e154c813ac5f)`); }
+
+      space = space ?? await this.getLocalUserSpace({ lock: true });
+      if (!space) { throw new Error(`(UNEXPECTED) space falsy and localUserSpace not initialized (E: 6e600ba21b864c2c90f0e05e715a739e)`); }
+
+      let resUpdateComment = await this.fnPromptUpdateComment(space, commentIbGib);
+      if (resUpdateComment) {
+        // save the ibgibs
+        await this.persistTransformResult({ resTransform: resUpdateComment, space });
+
+        // register the new comment ibgib (should be the only created ibgib with a timeline)
+        await this.registerNewIbGib({ ibGib: resUpdateComment.newIbGib, space });
+      } else {
+        await getFnAlert()({ title: 'k', msg: 'update comment cancelled.' });
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
   async logErrorAboutIbGib({
     erroredIbGib,
   }: {

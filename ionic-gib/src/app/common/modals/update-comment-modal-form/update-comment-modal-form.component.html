@@ -1,0 +1,100 @@
+<ion-header translucent>
+  <ion-toolbar>
+    <ion-title title="Update Comment...">Update Comment...</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="handleSaveClick()">Save Updated Comment</ion-button>
+      <ion-button (click)="handleCancelClick()">Cancel</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content #formContainer fullscreen>
+  <ion-item-group>
+    <ion-item-divider>
+      <ion-text color="danger">{{ validationErrors.length > 0 ? "Errors: " : ""}}{{ validationErrors.join("\n") }}</ion-text>
+    </ion-item-divider>
+    <ion-item>
+      <ion-text color="primary" position="start">
+        Update the comment text for edits or change logs.
+      </ion-text>
+      <ion-button position="end" (click)="handleShowHelpClick()">
+        <ion-icon name="information-circle-outline"></ion-icon>
+      </ion-button>
+    </ion-item>
+    <ion-item *ngIf="showHelp">
+      <ion-text color="primary">
+        <p>
+          If you make a mistake or just want to update a comment on a regular basis, change the text this way.
+        </p>
+      </ion-text>
+    </ion-item>
+  </ion-item-group>
+
+  <!-- Update details -->
+  <ion-item-group>
+    <!-- updated comment section -->
+    <ion-item-divider>
+      <ion-label>New Comment Text: </ion-label>
+    </ion-item-divider>
+
+    <!-- updated comment img -->
+    <ion-item>
+      <ion-card fullscreen>
+        <ion-card-header>
+          <ion-card-content>
+            <ion-textarea #editTextarea debounce="1000"
+              color="primary"
+              (ionChange)="handleCommentEdited($event)"></ion-textarea>
+            <ion-spinner *ngIf="handlingCommentUpdate" name="circles" color="tertiary"></ion-spinner>
+          </ion-card-content>
+          <ion-card-subtitle class='comment-timestamp'>
+              {{ updatedItem?.timestamp }}
+          </ion-card-subtitle>
+
+        </ion-card-header>
+      </ion-card>
+    </ion-item>
+
+    <!-- current comment section -->
+    <ion-item-divider>
+      <ion-label>Current Comment: </ion-label>
+    </ion-item-divider>
+
+    <ion-item *ngIf="addr">
+      <comment-view
+        class="comment-item"
+        [addr]="addr"
+        [isTitleOrJustSmall]="false"
+        (click)="handleCommentClicked()"
+        [style.border-color]="debugBorderColor"
+        [style.border-width]="debugBorderWidth"
+        [style.border-style]="debugBorderStyle"
+        >
+      </comment-view>
+    </ion-item>
+    <ion-item *ngIf="!addr">
+      <p>...</p>
+      <ion-spinner name="circles" color="tertiary"></ion-spinner>
+    </ion-item>
+
+    <!-- name -->
+    <ion-item [title]="fields.name.description" >
+      <ion-label
+        position="floating">{{ fields.name.label }}: </ion-label>
+      <ion-input [(ngModel)]="name"
+        [placeholder]="fields.name.placeholder"
+        readonly
+        ></ion-input>
+    </ion-item>
+
+    <!-- timestamp -->
+    <ion-item [title]="fields.timestamp.description" >
+      <ion-label
+        position="floating">{{ fields.timestamp.label }}: </ion-label>
+      <ion-input [(ngModel)]="timestamp"
+        [placeholder]="fields.timestamp.placeholder"
+        readonly
+        ></ion-input>
+    </ion-item>
+
+  </ion-item-group>
+</ion-content>

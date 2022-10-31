@@ -24,7 +24,9 @@ import { RootData, SpecialIbGibType } from './common/types/ux';
 import { SpaceId } from './common/types/space';
 import {
   getFn_promptCreateSecretIbGib, getFn_promptCreateEncryptionIbGib,
-  getFn_promptCreateOuterSpaceIbGib, getFn_promptUpdatePicIbGib,
+  getFn_promptCreateOuterSpaceIbGib,
+  getFn_promptUpdatePicIbGib,
+  getFn_promptUpdateCommentIbGib,
   getFnAlert, getFn_promptRobbotIbGib, getFn_promptAppIbGib
 } from './common/helper/prompt-functions';
 import { createNewTag } from './common/helper/tag';
@@ -286,6 +288,7 @@ export class AppComponent extends IbgibComponentBase
               fnPromptEncryption: getFn_promptCreateEncryptionIbGib(this.common),
               fnPromptOuterSpace: getFn_promptCreateOuterSpaceIbGib(this.common),
               fnPromptUpdatePic: getFn_promptUpdatePicIbGib(this.common),
+              fnPromptUpdateComment: getFn_promptUpdateCommentIbGib(this.common),
               fnPromptRobbot: getFn_promptRobbotIbGib(this.common),
               fnPromptApp: getFn_promptAppIbGib(this.common),
             });

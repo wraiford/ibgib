@@ -12,6 +12,7 @@ import { EncryptionModalFormComponent } from '../modals/encryption-modal-form/en
 import { OuterspaceModalFormComponent } from '../modals/outerspace-modal-form/outerspace-modal-form.component';
 import { CommonService } from '../../services/common.service';
 import { UpdatePicModalFormComponent, UpdatePicModalResult } from '../modals/update-pic-modal-form/update-pic-modal-form.component';
+import { UpdateCommentModalFormComponent, UpdateCommentModalResult } from '../modals/update-comment-modal-form/update-comment-modal-form.component';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { SecretIbGib_V1, EncryptionData_V1 } from '../types/encryption';
 import { OuterSpaceIbGib } from '../types/outer-space';
@@ -25,6 +26,7 @@ import {
     AppModalFormComponent, AppModalResult
 } from '../modals/app-modal-form/app-modal-form.component';
 import { clearDoCancelModalOnBackButton, registerCancelModalOnBackButton } from './utils';
+import { CommentIbGib_V1 } from '../types/comment';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -289,6 +291,45 @@ export function getFn_promptUpdatePicIbGib(
     }
 }
 
+/**
+ * Creates a function with a single `space` arg. This fn when called shows a
+ * modal to mutate a comment ibgib. If the user chooses to save, then the modal will
+ * perform the mutation, save the transform result in the given `space`, and
+ * return the new comment ibgib.
+ */
+export function getFn_promptUpdateCommentIbGib(
+    common: CommonService,
+): (space: IbGibSpaceAny, commentIbGib: CommentIbGib_V1) => Promise<UpdateCommentModalResult | undefined> {
+    const lc = `[${getFn_promptUpdateCommentIbGib.name}]`;
+    return async (space: IbGibSpaceAny, commentIbGib: CommentIbGib_V1) => {
+        try {
+            const modal = await common.modalController.create({
+                component: UpdateCommentModalFormComponent,
+                componentProps: { commentIbGib, space },
+            });
+            // have to register/clear modal for cancelling in case the user
+            // presses the back button while the modal is still visible
+            registerCancelModalOnBackButton(modal);
+            await modal.present();
+            let resModal = await modal.onWillDismiss();
+            // clear the cancel since it dismissed naturally
+            clearDoCancelModalOnBackButton();
+            if (resModal.data) {
+                const resCreateComment = <UpdateCommentModalResult>resModal.data;
+                const addr = h.getIbGibAddr({ ibGib: resCreateComment.newIbGib });
+                if (logalot) { console.log(`${lc} updated comment. addr: ${addr}`); }
+                return resCreateComment;
+            } else {
+                // didn't create one
+                console.warn(`${lc} didn't create at this time.`);
+                return undefined;
+            }
+        } catch (error) {
+            console.error(`${lc} error: ${error.message}`);
+            return undefined;
+        }
+    }
+}
 /**
  * Creates a function with a single `space` arg. This fn when called shows a
  * modal to create a robbot ibgib. If the user chooses to save, then the modal will

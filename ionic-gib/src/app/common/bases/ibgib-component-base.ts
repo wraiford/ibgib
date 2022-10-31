@@ -930,7 +930,7 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             if (logalot) { console.log(`${lc} !this.ibGib?.data?.text (I: 3f042c7067a2f6a8a949b49ebf6b8922)`); }
             return; /* <<<< returns early */
         }
-        if (item.text) {
+        if (item.text && item.text === this.ibGib?.data?.text) {
             if (logalot) { console.log(`${lc} item.text already loaded (I: 4b277f3ac1d953cf4fcc5cf9c9dc1a22)`); }
             return; /* <<<< returns early */
         }

@@ -42,6 +42,7 @@ import { OuterspaceModalFormComponent } from '../common/modals/outerspace-modal-
 import { RobbotModalFormComponent } from '../common/modals/robbot-modal-form/robbot-modal-form.component';
 import { AppModalFormComponent } from '../common/modals/app-modal-form/app-modal-form.component';
 import { TagModalFormComponent } from '../common/modals/tag-modal-form/tag-modal-form.component';
+import { UpdateCommentModalFormComponent } from '../common/modals/update-comment-modal-form/update-comment-modal-form.component';
 import { UpdatePicModalFormComponent } from '../common/modals/update-pic-modal-form/update-pic-modal-form.component';
 import { IbgibFormsModule } from '../ibgib-forms/ibgib-forms.module';
 
@@ -99,6 +100,7 @@ import { OmniAnimationGestureDirective } from '../common/directives/animations/o
     TagModalFormComponent,
     RobbotModalFormComponent,
     AppModalFormComponent,
+    UpdateCommentModalFormComponent,
     UpdatePicModalFormComponent,
   ],
   exports: [

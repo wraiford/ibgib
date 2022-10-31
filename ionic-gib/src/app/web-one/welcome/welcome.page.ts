@@ -40,7 +40,7 @@ import { ExtensionLaunchInfo, ExtensionSelectionInfo } from '../../common/types/
 import {
   getFn_promptCreateSecretIbGib, getFn_promptCreateEncryptionIbGib,
   getFn_promptCreateOuterSpaceIbGib, getFn_promptUpdatePicIbGib,
-  getFnAlert, getFn_promptRobbotIbGib, getFn_promptAppIbGib
+  getFnAlert, getFn_promptRobbotIbGib, getFn_promptAppIbGib, getFn_promptUpdateCommentIbGib
 } from '../../common/helper/prompt-functions';
 import { documentLocationIsAtWelcomePage } from '../../common/helper/app';
 import { WebOnePageBase } from '../../common/bases/web-one-page-base';
@@ -809,6 +809,7 @@ export class WelcomePage extends WebOnePageBase implements OnInit, AfterViewInit
           fnPromptEncryption: getFn_promptCreateEncryptionIbGib(this.common),
           fnPromptOuterSpace: getFn_promptCreateOuterSpaceIbGib(this.common),
           fnPromptUpdatePic: getFn_promptUpdatePicIbGib(this.common),
+          fnPromptUpdateComment: getFn_promptUpdateCommentIbGib(this.common),
           fnPromptRobbot: getFn_promptRobbotIbGib(this.common),
           fnPromptApp: getFn_promptAppIbGib(this.common),
         });

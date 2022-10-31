@@ -46,6 +46,7 @@ import { AppBarComponent } from '../common/app-bar/app-bar.component';
 import { RawExportData_V1, RawExportIbGib_V1 } from '../common/types/import-export';
 import { clearDoCancelModalOnBackButton, executeDoCancelModalIfNeeded, getSaferSubstring, registerCancelModalOnBackButton } from '../common/helper/utils';
 import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
+import { CommentIbGib_V1 } from '../common/types/comment';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -126,6 +127,8 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
 
   @Input()
   updatingPic: boolean = false;
+  @Input()
+  updatingComment: boolean = false;
 
   @Input()
   get autoRefresh(): boolean { return !this.paused; }
@@ -563,6 +566,29 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
     }
   }
 
+  async handleUpdateCommentClick(): Promise<void> {
+    const lc = `${this.lc}[${this.handleUpdatePicClick.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (this.updatingComment) {
+        console.error(`${lc} (UNEXPECTED) already updating pic. this handler should be disabled yes? returning early. (E: 8c9b536c463a4b339a339cdb348c6f45)`);
+        return; /* <<<< returns early */
+      }
+      this.updatingComment = true;
+
+      await this.common.ibgibs.updateComment({
+        commentIbGib: <CommentIbGib_V1>this.ibGib,
+        space: undefined, // local user space
+      });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+      this.updatingComment = false;
+      setTimeout(() => this.ref.detectChanges());
+    }
+  }
   async handleUpdatePicClick(): Promise<void> {
     const lc = `${this.lc}[${this.handleUpdatePicClick.name}]`;
     try {
