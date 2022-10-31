@@ -1126,6 +1126,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // if we don't have an existing analysis, then we want to create a new one.
 
             // let analysisIbGib: WordyAnalysisIbGib_V1_Robbot;
+            debugger;
             let resTransform: TransformResult<IbGib_V1>;
             if (this._analysis) {
                 // yes existing analysis, mut8 that
@@ -1133,21 +1134,20 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     type: 'mut8',
                     src: this._analysis,
                     dataToAddOrPatch: data,
-                    linkedRel8ns: [Rel8n.ancestor],
+                    // linkedRel8ns: [Rel8n.ancestor],
                     dna: false,
                     nCounter: true,
                 });
 
             } else {
                 // no existing analysis, create new
-                const rel8ns: WordyAnalysisRel8ns_V1_Robbot = {
-                    ancestor: [`robbot_analysis ${this.data.classname}^gib`],
-                };
+                // const rel8ns: WordyAnalysisRel8ns_V1_Robbot = {
+                // ancestor: [`robbot_analysis ${this.data.classname}^gib`],
+                // };
 
                 resTransform = await factory.firstGen<WordyAnalysisData_V1_Robbot>({
-                    parentIbGib: factory.primitive({ ib: ROBBOT_ANALYSIS_ATOM }),
-                    ib, data, rel8ns,
-                    linkedRel8ns: [Rel8n.ancestor],
+                    parentIbGib: factory.primitive({ ib: `${ROBBOT_ANALYSIS_ATOM} ${this.data.classname}` }),
+                    ib, data, // rel8ns,
                     dna: false,
                     nCounter: true,
                     tjp: { timestamp: true, uuid: true },
@@ -1570,7 +1570,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 src: this.session,
                 rel8nsToAddByAddr: { [ROBBOT_INTERACTION_REL8N_NAME]: [interactionAddr], },
                 dna: true,
-                linkedRel8ns: [Rel8n.ancestor, Rel8n.past],
+                // linkedRel8ns: [Rel8n.ancestor, Rel8n.past],
                 nCounter: true,
             });
 
