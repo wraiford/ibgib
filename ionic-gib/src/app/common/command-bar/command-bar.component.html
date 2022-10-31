@@ -41,6 +41,13 @@
         <ion-spinner *ngIf="updatingPic" name="circles" color="tertiary"></ion-spinner>
       </ion-button>
 
+      <!-- edit comment -->
+      <ion-button *ngIf="item?.type === 'comment'" class="toolbar-title-btn" [disabled]="syncing || refreshing"
+        (click)="handleUpdateCommentClick()">
+        <ion-icon name="pencil-outline"></ion-icon>
+        <ion-spinner *ngIf="updatingComment" name="circles" color="tertiary"></ion-spinner>
+      </ion-button>
+
       <!-- download pic -->
       <ion-button *ngIf="item?.type === 'pic' && (ios || android)" class="toolbar-title-btn"
         [disabled]="syncing || refreshing" (click)="handleDownloadPicClick()">

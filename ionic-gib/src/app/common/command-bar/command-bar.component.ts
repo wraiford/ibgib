@@ -19,6 +19,7 @@ import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { PicData_V1, PicIbGib_V1 } from '../types/pic';
 import { ensureDirPath, pathExists, writeFile } from '../helper/ionic';
 import { createNewTag } from '../helper/tag';
+import { CommentIbGib_V1 } from '../types/comment';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -47,6 +48,9 @@ export class CommandBarComponent
 
   @Input()
   updatingPic: boolean = false;
+
+  @Input()
+  updatingComment: boolean = false;
 
   @Input()
   downloadingPic: boolean = false;
@@ -339,6 +343,32 @@ export class CommandBarComponent
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       this.updatingPic = false;
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+      setTimeout(() => this.ref.detectChanges());
+    }
+  }
+
+  async handleUpdateCommentClick(): Promise<void> {
+    const lc = `${this.lc}[${this.handleUpdateCommentClick.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (this.updatingComment) {
+        console.error(`${lc} (UNEXPECTED) already updating comment. this handler should be disabled yes? returning early. (E: 1e13f174b35c47029db1e4ccfd3925eb)`);
+        return; /* <<<< returns early */
+      }
+      this.updatingComment = true;
+
+      await this.common.ibgibs.updateComment({
+        commentIbGib: <CommentIbGib_V1>this.ibGib,
+        space: undefined, // local user space
+      });
+
+      this.updatingComment = false;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      this.updatingComment = false;
       throw error;
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
