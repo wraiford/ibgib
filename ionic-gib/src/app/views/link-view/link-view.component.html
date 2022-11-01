@@ -5,8 +5,15 @@
   [style.border-style]="debugBorderStyle"
   >
   <!-- <pre class="link-text">{{ item?.text }}</pre> -->
-  <ion-item>
+  <ion-item *ngIf="!isYoutubeLink">
     <a [style.maxHeight]="'100px'" class="link-text" [href]="item?.text" target="_blank">{{item?.text}}</a>
+  </ion-item>
+  <ion-item *ngIf="isYoutubeLink && youtubeEmbedSrc">
+    <iframe width="560" height="315" [src]="youtubeEmbedSrc" title="youtube video"
+      frameborder="0"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen>
+    </iframe>
   </ion-item>
   <!-- <ion-card-content *ngIf='!isTitle'> </ion-card-content> -->
   <ion-card-subtitle class='timestamp'>{{ item?.timestamp }}</ion-card-subtitle>
@@ -15,7 +22,7 @@
 <!-- title link -->
 <div *ngIf='ibGib && isTitleOrJustSmall' [title]="item?.text || item?.ib || '[html title binding error!]'"
   >
-  <a [style.maxHeight]="'100px'" class="is-title" [href]="item?.text">{{item?.text}}</a>
+  <a [style.maxHeight]="'100px'" class="is-title" [href]="item?.text" target="_blank">{{item?.text}}</a>
 </div>
 
 <!-- placeholder/loading -->

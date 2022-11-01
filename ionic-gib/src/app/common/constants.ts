@@ -1630,3 +1630,5 @@ export const APP_REL8N_NAME = 'app';
 export const DEFAULT_APP_ICON = 'apps-outline';
 
 // #endregion app
+
+export const YOUTUBE_LINK_REG_EXP = /^https:\/\/youtu\.be\/\w+$/;

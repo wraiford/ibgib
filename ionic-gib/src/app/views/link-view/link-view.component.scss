@@ -4,7 +4,7 @@
 }
 
 .is-title {
-  font-size: small;
+  font-size: large;
 }
 
 ion-card {
@@ -50,5 +50,6 @@ ion-card-subtitle {
 
 a {
   overflow-y: auto;
+  cursor: pointer;
   // width: auto;
 }
