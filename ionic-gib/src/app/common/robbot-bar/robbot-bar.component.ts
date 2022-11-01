@@ -1,4 +1,5 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
+import { Plugins } from '@capacitor/core';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib/dist/types';
@@ -215,18 +216,8 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
         throw new Error(`errIbGib: ${h.pretty(errIbGib)} (E: bbd032d860ff710973dc1f24f6446122)`);
       }
 
-      let robbotName = robbot.data?.name ?? 'robbot';
-      let alerty = await this.common.alertController.create({
-        header: robbotName,
-        message: `${robbot.data?.outputPrefix ?? ''}got it...${robbot.data?.outputSuffix ?? ''}`,
-        buttons: [
-          {
-            text: `ok ${robbotName}`,
-            role: 'cancel',
-          }
-        ]
-      })
-      await alerty.present();
+      let gotIt = `${robbot.data?.outputPrefix ?? ''}got it...${robbot.data?.outputSuffix ?? ''}`;
+      Plugins.Toast.show({ text: gotIt, duration: "long" }); // spins off...
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
