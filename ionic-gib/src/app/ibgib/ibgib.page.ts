@@ -13,7 +13,7 @@ import {
   Component, OnInit, OnDestroy,
   ChangeDetectorRef, ChangeDetectionStrategy, Input, ViewChild
 } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, ParamMap } from '@angular/router';
 // import { IonContent, IonRouterOutlet } from '@ionic/angular';
 import { IonContent } from '@ionic/angular';
 import { Subscription, interval, Observable, Subject, } from 'rxjs';
@@ -382,12 +382,38 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
         return; /* <<<< returns early */
       }
 
-      this.activeApp = this.appBar.selectedApp;
+      if (!this.appId) {
+        if (logalot) { console.log(`${lc} this.appId falsy (I: e91b2cfe08b5f36555fdbf17e7235b22)`); }
+        return; /* <<<< returns early */
+      }
+      // we're going to take the appId in the url and select it in the app bar
+      await this.appBar.selectApp({ appId: this.appId });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
       setTimeout(() => this.ref.detectChanges());
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async updateActivatedRouteIfNecessary(): Promise<void> {
+    const lc = `${this.lc}[${this.updateActivatedRouteIfNecessary.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 41fbb7068c8d9c4f187c2fecb2fd9122)`); }
+      let appIdInUrl = this.activatedRoute.snapshot.paramMap.get('appId')
+      if (logalot) { console.log(`${lc} appIdInUrl: ${appIdInUrl} (I: c10a634cc271616a3cdf31ab5964ce22)`); }
+      let activeAppId = this.activeApp?.data?.uuid;
+      if (logalot) { console.log(`${lc} activeAppId: ${activeAppId} (I: 26cc35bf1f544185929eefe94f2f7c22)`); }
+      if (activeAppId && activeAppId !== appIdInUrl) {
+        let newURL = `app/${activeAppId}/ibgib/${this.addr}`;
+        window.history.pushState(/*nextState*/ {}, /*nextTitle*/ document.title, /*nextURL*/ newURL);
+      }
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
@@ -399,11 +425,29 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
     this.paused = (this.activatedRoute.snapshot.queryParams[c.QUERY_PARAM_PAUSED] || 'false') === 'true';
   }
 
+  @Input()
+  appId: string;
+  // @Input()
+  // appClassname: string;
+
   subscribeParamMap() {
     let lc = `${this.lc}[${this.subscribeParamMap.name}]`;
 
-    this.paramMapSub = this.activatedRoute.paramMap.subscribe(async map => {
-      let addr = map.get('addr');
+    this.paramMapSub = this.activatedRoute.paramMap.subscribe(async paramMap => {
+      // do the app part first
+      let { appId, appClassname } = this.getAppInfoFromParamMap(paramMap);
+      // let appId = paramMap.get('appId');
+      if (appId) {
+        this.appId = appId;
+        // this.appClassname = appClassname;
+        // this.updateActiveApp();
+      } else {
+        // no app specified
+        delete this.appId;
+      }
+
+      // do the address after setting the app
+      let addr = paramMap.get('addr');
       lc = `${lc}[paramMapSub]`;
       if (logalot) { console.log(`${lc} new addr: ${addr}`); }
 
@@ -419,6 +463,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
         }
       } else {
         // default special non-ibgib handler, go to the tags ibGib
+        Plugins.Toast.show({ text: `Redirecting to your tags because I don't understand the address.` }); // spins off
         while (this.common.ibgibs.initializing) {
           if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 936911af9f942cbdde7de4bf65fef822)`); }
           await h.delay(50);
@@ -653,14 +698,52 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
     }
   }
 
+  getAppInfoFromParamMap(paramMap?: ParamMap): { appId: string, appClassname: string } {
+    const lc = `${this.lc}[${this.getAppInfoFromParamMap.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 93ca6ba7f62610bf5ec83ff3f896d222)`); }
+      paramMap = paramMap ?? this.activatedRoute.snapshot.paramMap;
+      const appId = paramMap.get('appId');
+      const appClassname = paramMap.get('appClassname');
+      return { appId, appClassname };
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
   async handleAppSelected(app: AppIbGib_V1): Promise<void> {
     const lc = `${this.lc}[${this.handleAppSelected.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 1df5978e051c48a9ad1bb2b773502e44)`); }
       console.log(`${lc} app: ${h.pretty(app)}`);
 
-      this.activeApp = app;
+      if (!app) { return; /* <<<< returns early */ }
+      if (!app.data?.uuid) { throw new Error(`invalid app (app.data.uuid is falsy) (E: d422ed43707b0eeb1ea45c9e9e4aad22)`); }
+      if (!app.data.classname) { throw new Error(`invalid app (app.data.classname falsy) (E: 232a6fdcb5ecfd463ac2c52ca8978d22)`); }
 
+      // navigate to the new app
+      let { appId: urlAppId, } = this.getAppInfoFromParamMap();
+      let selectedAppId = app.data?.uuid;
+      let selectedAppClassname = app.data?.classname;
+      let selectedAppName = app.data.name;
+      let activeAppId = this.activeApp?.data.uuid;
+
+      if (selectedAppId !== urlAppId || urlAppId !== activeAppId) {
+        // let newUrl = `app/${selectedAppClassname}/${selectedAppId}/ibgib/${this.addr}`;
+        let newUrl = `ibgib/${this.addr}/app/${selectedAppClassname}/${selectedAppId}`;
+        // window.location.assign(newURL);
+        window.history.replaceState(/*nextState*/ {}, /*nextTitle often unused*/ this.title, /*nextURL*/ newUrl);
+        document.title = `${this.title} (${selectedAppName})`;
+      }
+
+      if (selectedAppId !== activeAppId) {
+        this.activeApp = app;
+      }
+
+      // await this.updateActivatedRouteIfNecessary();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

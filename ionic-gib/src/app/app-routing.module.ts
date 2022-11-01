@@ -36,6 +36,10 @@ const routes: Routes = [
     pathMatch: 'full'
   },
   {
+    path: 'ibgib/:addr/app/:appClassname/:appId',
+    loadChildren: () => import('./ibgib/ibgib.module').then(m => m.IbGibPageModule)
+  },
+  {
     path: 'ibgib/:addr',
     loadChildren: () => import('./ibgib/ibgib.module').then(m => m.IbGibPageModule)
   },

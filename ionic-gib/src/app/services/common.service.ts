@@ -64,7 +64,14 @@ export interface NavInfo {
    * explicitly skip the navigation stack
    */
   skipStack?: boolean;
-
+  /**
+   * If applicable, this is the app's id in the url
+   */
+  appId?: string;
+  /**
+   * If applicable, this is the app's classname in the url
+   */
+  appClassname?: string;
 }
 
 export interface IbgibNav {

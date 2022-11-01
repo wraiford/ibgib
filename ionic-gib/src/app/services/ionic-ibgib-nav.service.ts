@@ -172,6 +172,18 @@ export class IonicIbgibNavService implements IbgibNav {
 
       if (logalot) { console.log(`${lc} BEFORE stack: ${h.pretty(this.stack)}`); }
 
+      let appId: string, appClassname: string;
+      // if (window.location.pathname.startsWith('/app')) { // if we use the route of app/appclass/appid/ibgib/addr ...but i'm trying other shapes now
+
+      if (window.location.pathname.match(/^\/ibgib\/.+\/app\/.+\/\w+$/)) { // path: 'ibgib/:addr/app/:appClassname/:appId',
+        // set appId/Classname
+        let pieces = window.location.pathname.split('/');
+        // appClassname = pieces[2]; // if app is at start of route path
+        // appId = pieces[3];
+        appClassname = pieces[4];
+        appId = pieces[5];
+      }
+
       if (this.stack.length > 0 && this.stack[this.stack.length - 1].toAddr === toAddr) {
         // currently there is a bug with pressing the back button
         // based on a mismatch being registered with pics...
@@ -232,7 +244,7 @@ export class IonicIbgibNavService implements IbgibNav {
             toAddr, toAddr_TjpGib,
             fromAddr, fromAddr_TjpGib,
             queryParams, queryParamsHandling,
-            isModal,
+            isModal, appId, appClassname,
           });
           pushedToStack = true;
         }
@@ -247,11 +259,19 @@ export class IonicIbgibNavService implements IbgibNav {
         fromAddr_TjpGib = fromInfo.tjpGib ?? undefined;
       }
 
+      // there are two distinct strategies for choosing app:
+      // 1. use current app always
+      // 2. use app that is on the stack
+
       // since we are handling our own stack information, we use `navigateRoot`
       // which clears the stack with ionic nav. atow, see app.routing to see
       // that this instantiates an ibgib page component, which from testing
       // creates a new ibgib page component each nav.
-      await this.nav?.navigateRoot(['ibgib', toAddr], {
+      const urlPieces = appId && appClassname ?
+        // ['app', appClassname, appId, 'ibgib', toAddr] :
+        ['ibgib', toAddr, 'app', appClassname, appId] :
+        ['ibgib', toAddr];
+      await this.nav?.navigateRoot(urlPieces, {
         queryParamsHandling,
         animated: false,
         animationDirection: 'forward',
@@ -297,8 +317,13 @@ export class IonicIbgibNavService implements IbgibNav {
       } else if (this.stack.length === 1) {
         const existing = this.stack[this.stack.length - 1];
         if (existing.fromAddr) {
-          let { fromAddr, queryParamsHandling, queryParams } = this.stack.pop();
-          await this.nav.navigateRoot(['ibgib', fromAddr], {
+          let { fromAddr, queryParamsHandling, queryParams, appId, appClassname } = this.stack.pop();
+          // routing path: 'app/:appClassname/:appId/ibgib/:addr',
+          const urlPieces = appId && appClassname ?
+            // ['app', appClassname, appId, 'ibgib', toAddr] :
+            ['ibgib', fromAddr, 'app', appClassname, appId,] :
+            ['ibgib', fromAddr];
+          await this.nav.navigateRoot(urlPieces, {
             queryParamsHandling,
             animated: false,
             animationDirection: 'back',
@@ -309,6 +334,8 @@ export class IonicIbgibNavService implements IbgibNav {
             fromAddr: '',
             queryParams,
             queryParamsHandling,
+            appId,
+            appClassname,
           });
         } else if (existing.fromRawLocation?.length > 0) {
           const { fromRawLocation } = this.stack.pop();

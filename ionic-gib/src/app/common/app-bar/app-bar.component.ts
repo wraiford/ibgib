@@ -133,23 +133,32 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
 
   async selectApp({
     appAddr,
+    appId,
   }: {
-    appAddr: IbGibAddr,
+    appAddr?: IbGibAddr,
+    appId?: string,
   }): Promise<void> {
     const lc = `${this.lc}[${this.selectApp.name}]`;
     try {
-      // delete this.selectedApp;
       if (logalot) { console.log(`${lc} starting... (I: b8a84271414d46b28008a1a7268b64be)`); }
       if ((this.apps ?? []).length === 0) { await this.updateApps(); }
       if ((this.apps ?? []).length === 0) { throw new Error(`app selected but this.apps is falsy/empty even after updating (E: 39dad954e37642568ab5f2ca08326612)`); }
+
+      if (!appAddr && !appId) { throw new Error(`either appAddr or appId required (E: b76cd780668836e6abac4b16e35d4522)`); }
+
+      const predicate = appAddr ?
+        // match by app address
+        (app: AppIbGib_V1) => {
+          return [h.getIbGibAddr({ ibGib: app }), ...(app.rel8ns?.past ?? [])].includes(appAddr);
+        } :
+        // match by app id
+        (app: AppIbGib_V1) => {
+          return app.data?.uuid === appId;
+        };
       let appToSelect: AppIbGib_V1;
       for (let i = 0; i < this.apps.length; i++) {
         const app = this.apps[i];
-        const appAddrs = [
-          h.getIbGibAddr({ ibGib: app }),
-          ...(app.rel8ns?.past ?? [])
-        ];
-        if (appAddrs.includes(appAddr)) {
+        if (predicate(app)) {
           appToSelect = app;
           break;
         }
@@ -172,12 +181,14 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
       this.apps = await this.common.ibgibs.getAppAppIbGibs({ createIfNone: false }) ?? [];
       if (this.apps?.length > 0) {
         this.appNames = this.apps.map(r => r.data.name);
-        let lastSelectedAppId = (await Storage.get({ key: this.lastAppStorageKey }))?.value;
-        if (lastSelectedAppId && this.apps.some(x => x.data?.uuid === lastSelectedAppId)) {
-          this.selectedApp = this.apps.filter(x => x.data?.uuid === lastSelectedAppId)[0];
-        } else {
-          this.selectedApp = this.apps[0];
-        }
+        // if (!this.selectedApp && loadLastSelected) {
+        //   let lastSelectedAppId = (await Storage.get({ key: this.lastAppStorageKey }))?.value;
+        //   if (lastSelectedAppId && this.apps.some(x => x.data?.uuid === lastSelectedAppId)) {
+        //     this.selectedApp = this.apps.filter(x => x.data?.uuid === lastSelectedAppId)[0];
+        //   } else {
+        //     this.selectedApp = this.apps[0];
+        //   }
+        // }
       } else {
         this.appNames = [];
       }

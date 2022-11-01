@@ -105,7 +105,7 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
         if (newURL.endsWith('?')) {
           newURL = newURL.slice(0, newURL.length - 1);
         }
-        window.location.replace(newURL)
+        window.location.replace(newURL);
         this.paused = false;
         return true;
       } else {
