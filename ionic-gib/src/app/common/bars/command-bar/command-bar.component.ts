@@ -8,18 +8,18 @@ const { Clipboard, Modals } = Plugins;
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr, V1 } from 'ts-gib';
 import { IbGib_V1, isPrimitive, } from 'ts-gib/dist/V1';
-
-import * as c from '../constants';
-import { CommonService } from '../../services/common.service';
-import { IbgibComponentBase } from '../bases/ibgib-component-base';
-import { IbGibTimelineUpdateInfo } from '../types/ux';
-import { getFnAlert, getFnConfirm, getFnPrompt } from '../helper/prompt-functions';
-import { TagIbGib_V1 } from '../types/tag';
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
-import { PicData_V1, PicIbGib_V1 } from '../types/pic';
-import { ensureDirPath, pathExists, writeFile } from '../helper/ionic';
-import { createNewTag } from '../helper/tag';
-import { CommentIbGib_V1 } from '../types/comment';
+
+import * as c from '../../constants';
+import { CommonService } from '../../../services/common.service';
+import { IbgibComponentBase } from '../../bases/ibgib-component-base';
+import { IbGibTimelineUpdateInfo } from '../../types/ux';
+import { getFnAlert, getFnConfirm, getFnPrompt } from '../../helper/prompt-functions';
+import { TagIbGib_V1 } from '../../types/tag';
+import { PicData_V1, PicIbGib_V1 } from '../../types/pic';
+import { ensureDirPath, pathExists, writeFile } from '../../helper/ionic';
+import { createNewTag } from '../../helper/tag';
+import { CommentIbGib_V1 } from '../../types/comment';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;

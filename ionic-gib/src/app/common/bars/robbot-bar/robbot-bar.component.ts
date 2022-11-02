@@ -4,15 +4,14 @@ import { Plugins } from '@capacitor/core';
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib/dist/types';
 
-import * as c from '../constants';
-import { CommonService } from '../../services/common.service';
-import { IbgibComponentBase } from '../bases/ibgib-component-base';
-import { createNewRobbot } from '../helper/robbot';
-import { IbGibRobbotAny } from '../witnesses/robbots/robbot-base-v1';
-import { RobbotIbGib_V1 } from '../types/robbot';
-import { isError } from '../helper/error';
-import { ErrorIbGib_V1 } from '../types/error';
-import { IonSelect } from '@ionic/angular';
+import * as c from '../../constants';
+import { CommonService } from '../../../services/common.service';
+import { IbgibComponentBase } from '../../bases/ibgib-component-base';
+import { createNewRobbot } from '../../helper/robbot';
+import { IbGibRobbotAny } from '../../witnesses/robbots/robbot-base-v1';
+import { RobbotIbGib_V1 } from '../../types/robbot';
+import { isError } from '../../helper/error';
+import { ErrorIbGib_V1 } from '../../types/error';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;

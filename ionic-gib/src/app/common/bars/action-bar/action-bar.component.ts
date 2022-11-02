@@ -10,22 +10,22 @@ import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr, TransformResult, V1 } from 'ts-gib';
 import { IbGibRel8ns_V1, IbGib_V1, isDna } from 'ts-gib/dist/V1';
 
-import * as c from '../constants';
-import { CommonService } from '../../services/common.service';
-import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
-import { IbgibComponentBase } from '../bases/ibgib-component-base';
-import { ActionItem, ActionItemName } from '../types/ux';
-import { createPicAndBinIbGibsFromInputFilePickedEvent } from '../helper/pic';
-import { createCommentIbGib } from '../helper/comment';
-import { createLinkIbGib } from '../helper/link';
-import { getFnAlert, getFnPrompt } from '../helper/prompt-functions';
-import { getFromSpace, putInSpace } from '../helper/space';
-import { getDependencyGraph, } from '../helper/graph';
-import { validateIbGibAddr, validateIbGibIntrinsically } from '../helper/validate';
-import { PicIbGib_V1 } from '../types/pic';
-import { BinIbGib_V1 } from '../types/bin';
-import { RawExportIbGib_V1 } from '../types/import-export';
-import { getTimelinesGroupedByTjp, } from '../helper/ibgib';
+import * as c from '../../constants';
+import { CommonService } from '../../../services/common.service';
+import { IbGibSpaceAny } from '../../witnesses/spaces/space-base-v1';
+import { IbgibComponentBase } from '../../bases/ibgib-component-base';
+import { ActionItem, ActionItemName } from '../../types/ux';
+import { createPicAndBinIbGibsFromInputFilePickedEvent } from '../../helper/pic';
+import { createCommentIbGib } from '../../helper/comment';
+import { createLinkIbGib } from '../../helper/link';
+import { getFnAlert, getFnPrompt } from '../../helper/prompt-functions';
+import { getFromSpace, putInSpace } from '../../helper/space';
+import { getDependencyGraph, } from '../../helper/graph';
+import { validateIbGibAddr, validateIbGibIntrinsically } from '../../helper/validate';
+import { PicIbGib_V1 } from '../../types/pic';
+import { BinIbGib_V1 } from '../../types/bin';
+import { RawExportIbGib_V1 } from '../../types/import-export';
+import { getTimelinesGroupedByTjp, } from '../../helper/ibgib';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;

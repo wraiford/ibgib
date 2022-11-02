@@ -7,10 +7,10 @@ import { SwiperModule } from 'swiper/angular';
 import { IbGibPageRoutingModule } from './ibgib-routing.module';
 
 
-import { ActionBarComponent } from '../common/action-bar/action-bar.component';
-import { CommandBarComponent } from '../common/command-bar/command-bar.component';
-import { RobbotBarComponent } from '../common/robbot-bar/robbot-bar.component';
-import { AppBarComponent } from '../common/app-bar/app-bar.component';
+import { ActionBarComponent } from '../common/bars/action-bar/action-bar.component';
+import { CommandBarComponent } from '../common/bars/command-bar/command-bar.component';
+import { RobbotBarComponent } from '../common/bars/robbot-bar/robbot-bar.component';
+import { AppBarComponent } from '../common/bars/app-bar/app-bar.component';
 
 import { FallbackViewComponent } from '../views/fallback-view/fallback-view.component';
 import { TagViewComponent } from '../views/tag-view/tag-view.component';
