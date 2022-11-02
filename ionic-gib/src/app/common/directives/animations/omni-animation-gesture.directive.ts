@@ -9,7 +9,7 @@ import * as c from '../../constants';
 import { ItemViewComponent } from '../../../views/item-view/item-view.component';
 import { AnimationWithGestureDirectiveBase } from '../../bases/animation-with-gesture-directive-base';
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT;
 
 @Directive({
     selector: '[ibOmni]'
@@ -106,6 +106,8 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
     @Output()
     omniLongClick = new EventEmitter<void>();
 
+    private targetIsAnchorTag: boolean;
+
     constructor(
         protected el: ElementRef,
         protected ref: ChangeDetectorRef,
@@ -182,6 +184,15 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
                 return; /* <<<< returns early */
             }
 
+            // return early (ignore gesture) if we're interacting with a link.
+            // This is the simplest way to allow for clicking on links and not
+            // doing other crap to the containing items
+            if (document.elementsFromPoint(detail.currentX, detail.currentY).some(x => x.tagName?.toUpperCase() === "A")) {
+                if (logalot) { console.log(`${lc} clicking on anchor tag <a> so ignoring gesture (I: a6c8c407d6c6506778990c63a03f8522)`); }
+                this.targetIsAnchorTag = true;
+                return; /* <<<< returns early */
+            }
+
             this.aborting = false;
             this._cancelGesture = false;
 
@@ -223,6 +234,12 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
         const lc = `${this.lc}[${this.onEnd.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 579e247323e34d87b59e79bd62e1d6d3)`); }
+
+            if (this.targetIsAnchorTag) {
+                delete this.targetIsAnchorTag;
+                if (logalot) { console.log(`${lc} targetIsAnchorTag is true, returning early. (I: 0b6c7aa867ee961e7609cbc11c5e4722)`); }
+                return; /* <<<< returns early */
+            }
 
             if (this._cancelClickSetTimeoutRef) {
                 clearTimeout(this._cancelClickSetTimeoutRef);
@@ -297,6 +314,12 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
         try {
             // if (logalot) { console.log(`${lc} triggered. sansEvent(detail): ${h.pretty(this.sansEvent(detail))} (I: 6c6eb37a67b94a73adad99b063e68dd8)`); }
             if (logalot) { console.log(`${lc} starting... (I: 54a44548d1a86e8efb3e0488505d8522)`); }
+
+            if (this.targetIsAnchorTag) {
+                if (logalot) { console.log(`${lc} target is anchor tag, so ignoring and returning early. (I: 35c0785ecf126f6b46530b1318fab922)`); }
+                return; /* <<<< returns early */
+            }
+
             const { deltaX, deltaY } = detail;
             const { abs } = Math;
 
