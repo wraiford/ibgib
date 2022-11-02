@@ -134,36 +134,72 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
   async selectApp({
     appAddr,
     appId,
+    appClassname,
   }: {
     appAddr?: IbGibAddr,
     appId?: string,
-  }): Promise<void> {
+    /**
+     * If given, will select the first app found of this classname if the given `appId` is not found.
+     *
+     * ## notes
+     *
+     * this is useful for when the link comes from one person who has one
+     * reified app and they share the link with another space (maybe their own
+     * space, maybe another person/entity's space). If it didn't have this
+     * fallback, then we wouldn't be able to specify the particular app instance.
+     */
+    appClassname?: string,
+  } = {}): Promise<void> {
     const lc = `${this.lc}[${this.selectApp.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: b8a84271414d46b28008a1a7268b64be)`); }
       if ((this.apps ?? []).length === 0) { await this.updateApps(); }
       if ((this.apps ?? []).length === 0) { throw new Error(`app selected but this.apps is falsy/empty even after updating (E: 39dad954e37642568ab5f2ca08326612)`); }
 
-      if (!appAddr && !appId) { throw new Error(`either appAddr or appId required (E: b76cd780668836e6abac4b16e35d4522)`); }
-
-      const predicate = appAddr ?
-        // match by app address
-        (app: AppIbGib_V1) => {
-          return [h.getIbGibAddr({ ibGib: app }), ...(app.rel8ns?.past ?? [])].includes(appAddr);
-        } :
-        // match by app id
-        (app: AppIbGib_V1) => {
-          return app.data?.uuid === appId;
-        };
+      /** this is the app that we're going to select */
       let appToSelect: AppIbGib_V1;
-      for (let i = 0; i < this.apps.length; i++) {
-        const app = this.apps[i];
-        if (predicate(app)) {
-          appToSelect = app;
-          break;
+
+      // if (!appAddr && !appId) { throw new Error(`either appAddr or appId required (E: b76cd780668836e6abac4b16e35d4522)`); }
+      if (!appAddr && !appId && !appClassname) {
+        if (logalot) { console.log(`${lc} addr, id nor classname provided. selecting any (first) app. (I: d63c23cc9372f43a5316b70362248f22)`); }
+        appToSelect = this.apps[0];
+      }
+
+      /** * we will adjust this predicate depending on situation */
+      let fnPredicate: (app: AppIbGib_V1) => boolean;
+
+      // first check by either id or address as these are most specific
+      if (!appToSelect && (appAddr || appId)) {
+
+        fnPredicate = appAddr ?
+          // match by app address
+          (app: AppIbGib_V1) =>
+            [h.getIbGibAddr({ ibGib: app }), ...(app.rel8ns?.past ?? [])].includes(appAddr) :
+          // match by app id
+          (app: AppIbGib_V1) => app.data?.uuid === appId;
+
+        for (let i = 0; i < this.apps.length; i++) {
+          const app = this.apps[i];
+          if (fnPredicate(app)) { appToSelect = app; break; }
         }
       }
-      if (!appToSelect) { throw new Error(`appAddr (${appAddr}) not found among apps. (E: c7124fff5628412f907825a6d1fa997b)`); }
+
+      // if we didn't find a matching app, try by classname if given
+      if (!appToSelect && appClassname) {
+        fnPredicate =
+          (app: AppIbGib_V1) => app.data?.classname === appClassname;
+        for (let i = 0; i < this.apps.length; i++) {
+          const app = this.apps[i];
+          if (fnPredicate(app)) { appToSelect = app; break; }
+        }
+      }
+
+      // if we still didn't find an app, just select the first one.
+      if (!appToSelect) {
+        if (logalot) { console.log(`${lc} no corresponding app found. Selecting any app (first one) (I: 009ab833faac9e791dfb431c32213c22)`); }
+        appToSelect = this.apps[0];
+      }
+
       this.selectedApp = appToSelect;
     } catch (error) {
       console.error(`${lc} ${error.message}`);

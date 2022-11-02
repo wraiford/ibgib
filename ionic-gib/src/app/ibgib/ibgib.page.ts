@@ -227,11 +227,22 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
    */
   private userHasCanceledAutoSyncPasswordWhenPrompted: boolean;
 
+  /**
+   * atow set via the param map for the current route.
+   */
+  @Input()
+  appId: string;
+  /**
+   * atow set via the param map for the current route.
+   */
+  @Input()
+  appClassname: string;
+
+
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
     private activatedRoute: ActivatedRoute,
-    // public routerOutlet: IonRouterOutlet,
   ) {
     super(common, ref);
 
@@ -241,16 +252,6 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
     const lc = `${this.lc}[${this.ngOnInit.name}]`;
     if (logalot) { console.log(`${lc} called.`) }
     try {
-      // if (!this.common.ibgibs.initialized) {
-      //   await this.common.ibgibs.initialize({
-      //     fnPromptSecret: getFn_promptCreateSecretIbGib(this.common),
-      //     fnPromptEncryption: getFn_promptCreateEncryptionIbGib(this.common),
-      //     fnPromptOuterSpace: getFn_promptCreateOuterSpaceIbGib(this.common),
-      //     fnPromptUpdatePic: getFn_promptUpdatePicIbGib(this.common),
-      //     fnPromptRobbot: getFn_promptRobbotIbGib(this.common),
-      //     fnPromptApp: getFn_promptAppIbGib(this.common),
-      //   });
-      // }
       while (this.common.ibgibs.initializing) {
         if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: a44efa21a33b41f4b27732d38a65530f)`); }
         await h.delay(100);
@@ -382,38 +383,21 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
         return; /* <<<< returns early */
       }
 
-      if (!this.appId) {
-        if (logalot) { console.log(`${lc} this.appId falsy (I: e91b2cfe08b5f36555fdbf17e7235b22)`); }
-        return; /* <<<< returns early */
+      if (this.appId) {
+        if (logalot) { console.log(`${lc} selecting app by id (I: 9d4d9e4e8bec75be29c43453ba950a22)`); }
+        await this.appBar.selectApp({ appId: this.appId, appClassname: this.appClassname });
+      } else if (this.appClassname) {
+        if (logalot) { console.log(`${lc} selecting app by classname (I: 9d4d9e4e8bec75be29c43453ba950a22)`); }
+        await this.appBar.selectApp({ appId: this.appId, appClassname: this.appClassname });
+      } else {
+        if (logalot) { console.log(`${lc} this.appId and this.appClassname falsy. doing default (I: e91b2cfe08b5f36555fdbf17e7235b22)`); }
+        await this.appBar.selectApp();
       }
-      // we're going to take the appId in the url and select it in the app bar
-      await this.appBar.selectApp({ appId: this.appId });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
       setTimeout(() => this.ref.detectChanges());
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
-
-  async updateActivatedRouteIfNecessary(): Promise<void> {
-    const lc = `${this.lc}[${this.updateActivatedRouteIfNecessary.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting... (I: 41fbb7068c8d9c4f187c2fecb2fd9122)`); }
-      let appIdInUrl = this.activatedRoute.snapshot.paramMap.get('appId')
-      if (logalot) { console.log(`${lc} appIdInUrl: ${appIdInUrl} (I: c10a634cc271616a3cdf31ab5964ce22)`); }
-      let activeAppId = this.activeApp?.data?.uuid;
-      if (logalot) { console.log(`${lc} activeAppId: ${activeAppId} (I: 26cc35bf1f544185929eefe94f2f7c22)`); }
-      if (activeAppId && activeAppId !== appIdInUrl) {
-        let newURL = `app/${activeAppId}/ibgib/${this.addr}`;
-        window.history.pushState(/*nextState*/ {}, /*nextTitle*/ document.title, /*nextURL*/ newURL);
-      }
-
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
@@ -425,11 +409,6 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
     this.paused = (this.activatedRoute.snapshot.queryParams[c.QUERY_PARAM_PAUSED] || 'false') === 'true';
   }
 
-  @Input()
-  appId: string;
-  // @Input()
-  // appClassname: string;
-
   subscribeParamMap() {
     let lc = `${this.lc}[${this.subscribeParamMap.name}]`;
 
@@ -439,11 +418,22 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       // let appId = paramMap.get('appId');
       if (appId) {
         this.appId = appId;
-        // this.appClassname = appClassname;
+        this.appClassname = appClassname;
         // this.updateActiveApp();
       } else {
         // no app specified
         delete this.appId;
+        delete this.appClassname;
+        // show the app bar to let the user know they can change/add apps
+        // (though of course atow this is a completely new paradigm for apps)
+        setTimeout(async () => {
+          while (!this.appBarIsVisible) {
+            console.log('appBarIsVisible false still')
+            this.appBarIsVisible = true;
+            await h.delay(100);
+          }
+          this.ref.detectChanges()
+        });
       }
 
       // do the address after setting the app
@@ -725,16 +715,15 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       if (!app.data.classname) { throw new Error(`invalid app (app.data.classname falsy) (E: 232a6fdcb5ecfd463ac2c52ca8978d22)`); }
 
       // navigate to the new app
-      let { appId: urlAppId, } = this.getAppInfoFromParamMap();
-      let selectedAppId = app.data?.uuid;
-      let selectedAppClassname = app.data?.classname;
-      let selectedAppName = app.data.name;
-      let activeAppId = this.activeApp?.data.uuid;
+      const { appId: urlAppId, } = this.getAppInfoFromParamMap();
+      const selectedAppId = app.data?.uuid;
+      const selectedAppClassname = app.data?.classname;
+      const selectedAppName = app.data.name;
+      const activeAppId = this.activeApp?.data.uuid;
 
       if (selectedAppId !== urlAppId || urlAppId !== activeAppId) {
         // let newUrl = `app/${selectedAppClassname}/${selectedAppId}/ibgib/${this.addr}`;
-        let newUrl = `ibgib/${this.addr}/app/${selectedAppClassname}/${selectedAppId}`;
-        // window.location.assign(newURL);
+        const newUrl = `ibgib/${this.addr}/app/${selectedAppClassname}/${selectedAppId}`;
         window.history.replaceState(/*nextState*/ {}, /*nextTitle often unused*/ this.title, /*nextURL*/ newUrl);
         document.title = `${this.title} (${selectedAppName})`;
       }
@@ -742,8 +731,6 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       if (selectedAppId !== activeAppId) {
         this.activeApp = app;
       }
-
-      // await this.updateActivatedRouteIfNecessary();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -1220,8 +1207,6 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
   async handleInfoClick(event: MouseEvent): Promise<void> {
     const lc = `${this.lc}[${this.handleInfoClick.name}]`;
     try {
-      // let info = JSON.stringify(this.ibGib_Context, null, 2);
-      // let addr = h.getIbGibAddr({ibGib: this.ibGib_Context});
       let info = JSON.stringify(this.ibGib, null, 2);
       let addr = h.getIbGibAddr({ ibGib: this.ibGib });
       await Modals.alert({ title: addr, message: info });
@@ -1597,19 +1582,6 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
   }
 
   // #endregion Polling
-
-  // // #region test accordion
-
-  // @ViewChild(IonAccordionGroup, { static: true }) accordionGroup: IonAccordionGroup;
-
-  // logAccordionValue() {
-  //   console.log(this.accordionGroup.value);
-  // }
-
-  // closeAccordion() {
-  //   this.accordionGroup.value = undefined;
-  // }
-  // // #endregion test accordion
 
   async handleChatItemsAdded(): Promise<void> {
     const lc = `${this.lc}[${this.handleChatItemsAdded.name}]`;
