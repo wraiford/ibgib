@@ -45,13 +45,13 @@ export function validateDisplayData({
 
         if (sorts?.length > 0) { }
 
-        if (uuid) {
-            if (!uuid.match(c.UUID_REGEXP)) {
-                errors.push(`uuid must match regexp: ${c.UUID_REGEXP}`);
-            }
-        } else {
-            errors.push(`uuid required.`);
-        }
+        // if (uuid) {
+        //     if (!uuid.match(c.UUID_REGEXP)) {
+        //         errors.push(`uuid must match regexp: ${c.UUID_REGEXP}`);
+        //     }
+        // } else {
+        //     errors.push(`uuid required.`);
+        // }
 
         return errors;
     } catch (error) {

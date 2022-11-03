@@ -13,7 +13,11 @@ import { IbGibListItem, IbGibTimelineUpdateInfo } from '../types/ux';
 import { IbgibComponentBase } from './ibgib-component-base';
 import { CommonService } from '../../services/common.service';
 import { unique } from '../helper/utils';
-import { DisplayIbGib_V1 } from '../types/display';
+import { DisplayIbGib_V1, FilterInfo } from '../types/display';
+import { isComment } from '../helper/comment';
+import { isPic } from '../helper/pic';
+import { isLink } from '../helper/link';
+import { IbGib_V1 } from 'ts-gib/dist/V1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -410,7 +414,7 @@ export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGib
             // check filtering
             if (this.display?.data?.filters?.length > 0) {
                 // filter per display settings
-                itemsToAdd = await this.filter
+                itemsToAdd = await this.filterPerDisplay({ itemsToAdd });
             }
 
 
@@ -433,6 +437,112 @@ export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGib
             this._updatingItems = false;
             setTimeout(() => this.ref.detectChanges());
             if (logalot) { console.log(`${lc} updated.`); }
+        }
+    }
+    async filterPerDisplay({ itemsToAdd }: { itemsToAdd: TItem[]; }): Promise<TItem[]> {
+        const lc = `${this.lc}[${this.filterPerDisplay.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 949a399ada07cc95b34fbb7f376a4c22)`); }
+            // may use ticks in the future when doing filtering in time range,
+            // just leaving it here to remind myself
+            const { ticks, filters } = this.display?.data;
+
+            debugger;
+            const resFilteredItems: TItem[] = [];
+
+            for (let i = 0; i < itemsToAdd.length; i++) {
+                const item = itemsToAdd[i];
+                let passesAllFilters = true;
+                for (let j = 0; j < filters.length; j++) {
+                    const filter = filters[j];
+                    const passes = await this.itemPassesFilter({ item, filter });
+                    if (!passes) { passesAllFilters = false; break; }
+                }
+                if (passesAllFilters) { resFilteredItems.push(item); }
+            }
+
+            return resFilteredItems;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    async itemPassesFilter({
+        item,
+        filter,
+    }: {
+        item: TItem,
+        filter: FilterInfo,
+    }): Promise<boolean> {
+        const lc = `${this.lc}[${this.itemPassesFilter.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 1f897c93285c089f922a4ed8bf072122)`); }
+
+            // we only do keyword filters atm
+            if (filter.filterType !== 'keyword') {
+                console.warn(`${lc} filterType (${filter.filterType}) not implemented yet. returning true and ignoring filter (W: 0b797e77f9d14c38a6205a3edeae74a4)`);
+                return true; /* <<<< returns early */
+            }
+
+            // will use the full ibGib record both for determining what kind of
+            // ibGib it is, as well as doing the actual filtering.
+            let { ibGib } = item;
+            if (!ibGib) {
+                await this.loadIbGib({ item });
+                await this.loadItem(item);
+                ibGib = item.ibGib;
+            }
+            if (!ibGib.data) {
+                console.warn(`${lc} ibGib.data falsy? returning false (i.e. doesn't pass filter) (W: 1426f70bbcf94164b9f73d0c36b72e84)`)
+                return false; /* <<<< returns early */
+            }
+
+            // need the data paths in order to get the value(s) to filter against.
+            let dataPaths: string[] = filter.dataPaths ?? [];
+            if (dataPaths.length === 0) {
+                // know what kind of ibGib we'er dealing with in order to know what
+                // we're filtering against.
+                if (isComment({ ibGib })) {
+                    dataPaths = ['text'];
+                } else if (isPic({ ibGib })) {
+                    dataPaths = ['filename', 'ext'];
+                } else if (isLink({ ibGib })) {
+                    dataPaths = ['text'];
+                } else {
+                    console.warn(`${lc} unknown ibGib type and dataPaths not provided. Defaulting to ['text'] (W: 335b8aefc2c24a3b811ca7448e1319da)`);
+                    dataPaths = ['text'];
+                }
+            }
+
+            // now that we have the data path(s), we can apply the keyword filters
+            let passes = true;
+            for (let i = 0; i < dataPaths.length; i++) {
+                const dataPath = dataPaths[i];
+                let value: any = ibGib.data[dataPath] ?? "";
+                if (typeof value !== 'string') {
+                    console.warn(`${lc} (unexpected) value at dataPath (${dataPath}) is not a string. does not pass filter by default. (W: 7477321a03b54ff79152893c202f40d1)`);
+                    passes = false;
+                    break;
+                }
+                const str = filter.caseSensitive ? <string>value : <string>value.toLowerCase();
+                if (filter.hasAllKeywords?.length > 0) {
+                    // if (filter.hasAllKeywords.some(x => !str.match))
+                }
+                if (filter.hasAnyKeywords?.length > 0) {
+                }
+                if (filter.hasNoKeywords?.length > 0) {
+                }
+            }
+
+            return passes;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
         }
     }
 

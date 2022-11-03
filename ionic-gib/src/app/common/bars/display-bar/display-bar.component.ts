@@ -224,6 +224,9 @@ export class DisplayBarComponent extends IbgibComponentBase {
           throw new Error(`unknown addingType: ${this.addingType} (E: be6261c506ed4de09244fdd4d020c822)`);
       }
 
+      delete this.addingText;
+      delete this.addingType;
+
       await this.emitDisplayChanged();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -259,12 +262,14 @@ export class DisplayBarComponent extends IbgibComponentBase {
     const lc = `${this.lc}[${this.emitDisplayChanged.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: afddd410f2c42b777307124b6c5ec622)`); }
-
-      const displayIbGib =
+      debugger;
+      const resDisplayIbgib =
         await this.createDisplayIbGibFromThis({ srcIbGib: this.displayIbGib });
 
-      this.displayChanged.emit(displayIbGib);
+      debugger;
+      this.displayChanged.emit(resDisplayIbgib);
     } catch (error) {
+      debugger;
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {

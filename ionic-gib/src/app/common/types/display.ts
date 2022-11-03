@@ -43,6 +43,21 @@ export type FilterType = 'keyword' | 'time';
 
 export interface FilterInfo {
     filterType: FilterType;
+    /**
+     * if provided, uses custom data path(s) into the ibgib.data object to
+     * filter against.
+     *
+     * If not provided, this defaults to whatever makes sense for the ibgib. For
+     * example, a comment or link ibgib will default to the 'text' path. A pic
+     * will look in filename, extension, and maybe some others that I haven't
+     * implemented yet.
+     */
+    dataPaths?: string[];
+
+    /**
+     * self explanatory
+     */
+    caseSensitive?: boolean;
     hasAllKeywords?: string[];
     hasNoKeywords?: string[];
     hasAnyKeywords?: string[];
