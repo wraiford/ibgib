@@ -2,6 +2,7 @@
 <chat-view #chatView [addr]='addr' [ibGib_Context]='ibGib'
   [activeApp]="activeApp"
   [disableSelection]="true"
+  [display]="display"
   (chatViewScrolled)="handleChatViewScroll($event)"
   (chatViewItemsAdded)="handleChatViewItemsAdded($event)"
   (ibGibItemClicked)="handleClick_IbGibItem($event)"

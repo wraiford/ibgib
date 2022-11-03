@@ -13,6 +13,7 @@ import { IbGibListItem, IbGibTimelineUpdateInfo } from '../types/ux';
 import { IbgibComponentBase } from './ibgib-component-base';
 import { CommonService } from '../../services/common.service';
 import { unique } from '../helper/utils';
+import { DisplayIbGib_V1 } from '../types/display';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -57,6 +58,9 @@ export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGib
 
     @Input()
     batchSize: number = 5;
+
+    @Input()
+    display: DisplayIbGib_V1;
 
     /**
      * trying this out to let consumer know when items have been added to effect
@@ -402,6 +406,13 @@ export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGib
             //     null;
 
             // add the items to the list, which will change our bound view
+
+            // check filtering
+            if (this.display?.data?.filters?.length > 0) {
+                // filter per display settings
+                itemsToAdd = await this.filter
+            }
+
 
             await this.addItems({ itemsToAdd, direction });
 

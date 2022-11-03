@@ -12,6 +12,7 @@ import { ChatApp_V1 } from 'src/app/common/witnesses/apps/chat-app-v1';
 import { registerCancelModalOnBackButton, clearDoCancelModalOnBackButton, selectElementText } from 'src/app/common/helper/utils';
 import { IbGibListItem } from '../../common/types/ux';
 import { ItemViewComponent } from '../../views/item-view/item-view.component';
+import { DisplayIbGib_V1 } from 'src/app/common/types/display';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -26,6 +27,9 @@ export class ChatAppComponent extends IbgibComponentBase implements OnInit, OnDe
 
   @Input()
   activeApp: ChatApp_V1;
+
+  @Input()
+  display: DisplayIbGib_V1;
 
   @Output()
   chatScrolled = new EventEmitter<ScrollBaseCustomEvent>();

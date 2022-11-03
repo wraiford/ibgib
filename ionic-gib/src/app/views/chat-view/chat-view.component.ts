@@ -12,6 +12,7 @@ import { IbgibListComponentBase } from '../../common/bases/ibgib-list-component-
 import { ListViewComponent } from '../list-view/list-view.component';
 import { ChatApp_V1 } from 'src/app/common/witnesses/apps/chat-app-v1';
 import { IbgibComponentBase } from 'src/app/common/bases/ibgib-component-base';
+import { DisplayIbGib_V1 } from 'src/app/common/types/display';
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
 
@@ -30,6 +31,9 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
 
   @Input()
   activeApp: ChatApp_V1;
+
+  @Input()
+  display: DisplayIbGib_V1;
 
   @Input()
   disableSelection: boolean;

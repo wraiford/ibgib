@@ -1,0 +1,74 @@
+<ion-toolbar
+  [style.border-color]="debugBorderColor"
+  [style.border-width]="debugBorderWidth"
+  [style.border-style]="debugBorderStyle"
+  >
+
+  <ion-items>
+
+    <!-- little label at the start -->
+    <!-- ionic has a bug with floating labels + ion-select -->
+    <ion-anchor slot="start">
+      <ion-label id="display-bar-label" color="primary">
+        <ion-icon name="filter-outline"></ion-icon>
+      </ion-label>
+    </ion-anchor>
+
+    <div class="keywords-all">
+      <ion-label>ALL: </ion-label>
+      <ion-buttons *ngFor="let keyword of hasAllKeywords">
+        <ion-button>{{keyword}}</ion-button>
+      </ion-buttons>
+      <ion-input *ngIf="addingText !== undefined && addingType === 'all'" class="keyword-input"
+        [debounce]="debounceMs"
+        [(ngModel)]="addingText"
+        (ionChange)="handleInputChange($event)"
+        (ionBlur)="handleInputBlur()"
+        (keydown)="handleInputKeydown($event)"
+        >
+      </ion-input>
+      <ion-button class="add-keyword-btn-all" (click)="handleAddFilterClick('all')">
+        <ion-icon name="add-outline"></ion-icon>
+      </ion-button>
+    </div>
+    <div class="keywords-any">
+      <ion-label>ANY: </ion-label>
+      <ion-buttons *ngFor="let keyword of hasAnyKeywords">
+        <ion-button>{{keyword}}</ion-button>
+      </ion-buttons>
+      <ion-input *ngIf="addingText !== undefined && addingType === 'any'" class="keyword-input"
+        [debounce]="debounceMs"
+        [(ngModel)]="addingText"
+        (ionChange)="handleInputChange($event)"
+        (ionBlur)="handleInputBlur()"
+        (keydown)="handleInputKeydown($event)"
+        >
+      </ion-input>
+      <ion-button class="add-keyword-btn-any" (click)="handleAddFilterClick('any')">
+        <ion-icon name="add-outline"></ion-icon>
+      </ion-button>
+    </div>
+    <div class="keywords-none">
+      <ion-label>NONE: </ion-label>
+      <ion-buttons *ngFor="let keyword of hasNoKeywords">
+        <ion-button>{{keyword}}</ion-button>
+      </ion-buttons>
+      <ion-input *ngIf="addingText !== undefined && addingType === 'none'" class="keyword-input"
+        [debounce]="debounceMs"
+        [(ngModel)]="addingText"
+        (ionChange)="handleInputChange($event)"
+        (ionBlur)="handleInputBlur()"
+        (keydown)="handleInputKeydown($event)"
+        >
+      </ion-input>
+      <ion-button class="add-keyword-btn-none" (click)="handleAddFilterClick('none')">
+        <ion-icon name="add-outline"></ion-icon>
+      </ion-button>
+    </div>
+  </ion-items>
+
+  <!-- filter actions -->
+
+
+
+</ion-toolbar>

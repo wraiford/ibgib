@@ -22,7 +22,7 @@ import { Capacitor, FilesystemDirectory, FilesystemEncoding, Plugins } from '@ca
 const { Modals, Clipboard, Storage, LocalNotifications, Filesystem } = Plugins;
 
 import * as h from 'ts-gib';
-import { IbGibAddr, V1 } from 'ts-gib';
+import { IbGibAddr, TransformResult, V1 } from 'ts-gib';
 import { IbGibData_V1, IbGib_V1, isPrimitive } from 'ts-gib/dist/V1';
 
 import * as c from '../common/constants';
@@ -47,6 +47,7 @@ import { RawExportData_V1, RawExportIbGib_V1 } from '../common/types/import-expo
 import { clearDoCancelModalOnBackButton, executeDoCancelModalIfNeeded, getSaferSubstring, registerCancelModalOnBackButton } from '../common/helper/utils';
 import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { CommentIbGib_V1 } from '../common/types/comment';
+import { DisplayIbGib_V1 } from '../common/types/display';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -134,6 +135,9 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
   get autoRefresh(): boolean { return !this.paused; }
   set autoRefresh(value: boolean) { this.paused = value; }
 
+  @Input()
+  display: DisplayIbGib_V1;
+
   @ViewChild('appBar')
   appBar: AppBarComponent
 
@@ -160,6 +164,15 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
 
   @ViewChild('robbotBar')
   robbotBar: RobbotBarComponent
+
+  _displayBarIsVisible: boolean = true;
+  @Input()
+  get displayBarIsVisible(): boolean {
+    return this._displayBarIsVisible && !!this.ibGib && !this.refreshing;
+  }
+  set displayBarIsVisible(value: boolean) {
+    this._displayBarIsVisible = value;
+  }
 
   hidePerScroll: boolean = true;
 
@@ -749,11 +762,11 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
 
       this.robbotBarIsVisible = !this.robbotBarIsVisible;
       await Storage.set({ key: c.SIMPLE_CONFIG_KEY_ROBBOT_VISIBLE, value: this.robbotBarIsVisible ? 'true' : 'false' });
-      setTimeout(() => this.ref.detectChanges());
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
+      setTimeout(() => this.ref.detectChanges());
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }
@@ -772,6 +785,39 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       } else {
         await Storage.remove({ key: c.SIMPLE_CONFIG_KEY_ROBBOT_SELECTED_ADDR });
       }
+
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleDisplayClick(): Promise<void> {
+    const lc = `${this.lc}[${this.handleDisplayClick.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+
+      this.displayBarIsVisible = !this.displayBarIsVisible;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      setTimeout(() => this.ref.detectChanges());
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleDisplayChanged(resDisplayIbGib: TransformResult<DisplayIbGib_V1>): Promise<void> {
+    const lc = `${this.lc}[${this.handleDisplayChanged.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: b0b02263a29e4ec663218b61acd14122)`); }
+
+      // hmm i think when saving the display will regenerate entire transform
+      // result?  currently not saving the display or its generating transform
+      // dependencies.
+      this.display = resDisplayIbGib.newIbGib;
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);

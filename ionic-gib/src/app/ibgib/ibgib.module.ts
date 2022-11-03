@@ -11,6 +11,7 @@ import { ActionBarComponent } from '../common/bars/action-bar/action-bar.compone
 import { CommandBarComponent } from '../common/bars/command-bar/command-bar.component';
 import { RobbotBarComponent } from '../common/bars/robbot-bar/robbot-bar.component';
 import { AppBarComponent } from '../common/bars/app-bar/app-bar.component';
+import { DisplayBarComponent } from '../common/bars/display-bar/display-bar.component';
 
 import { FallbackViewComponent } from '../views/fallback-view/fallback-view.component';
 import { TagViewComponent } from '../views/tag-view/tag-view.component';
@@ -89,6 +90,7 @@ import { OmniAnimationGestureDirective } from '../common/directives/animations/o
     CommandBarComponent,
     RobbotBarComponent,
     AppBarComponent,
+    DisplayBarComponent,
 
     IbGibPage,
 

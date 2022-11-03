@@ -91,6 +91,12 @@
         <ion-icon name="body-outline"></ion-icon>
       </ion-button>
 
+      <!-- display (filter/sort) -->
+      <ion-button *ngIf="ibGib" [disabled]="refreshing" class="toolbar-title-btn" (click)="handleDisplayClick()"
+        [ngClass]="{'active-btn':displayBarIsVisible}">
+        <ion-icon name="filter-outline"></ion-icon>
+      </ion-button>
+
       <!-- space sparkles -->
       <ion-button *ngIf="tjp" [disabled]="syncing || refreshing" [ngClass]="{'active-btn': autosync}" class="toolbar-title-btn" (click)="handleSpaceClick()">
         <ion-icon name="sparkles-outline"></ion-icon>
@@ -164,9 +170,12 @@
       [hidden]="!robbotBarIsVisible"
       [addr]='addr' [selectedRobbotAddr]="selectedRobbotAddr"
       (robbotSelected)="handleRobbotSelected($event)"></ib-robbot-bar>
+    <ib-display-bar #displayBar [addr]='addr'
+      [hidden]="!displayBarIsVisible"
+      (displayChanged)="handleDisplayChanged($event)"></ib-display-bar>
 
     <ng-container [ngSwitch]="activeApp?.data.classname">
-      <ib-chat-app *ngSwitchCase="'ChatApp_V1'" [addr]="addr" [activeApp]="activeAppAny"></ib-chat-app>
+      <ib-chat-app *ngSwitchCase="'ChatApp_V1'" [addr]="addr" [activeApp]="activeAppAny" [display]="display"></ib-chat-app>
       <ib-raw-app *ngSwitchCase="'RawApp_V1'" [addr]="addr" [activeApp]="activeAppAny"></ib-raw-app>
       <ib-todo-app *ngSwitchCase="'TodoApp_V1'" [addr]="addr" [activeApp]="activeAppAny"></ib-todo-app>
       <ib-chat-app *ngSwitchDefault [addr]="addr"></ib-chat-app>

@@ -1,0 +1,125 @@
+$ALL_COLOR: #5fed3b;
+$ANY_COLOR: #3bc0ed;
+$NONE_COLOR: #dd4129;
+
+ion-toolbar {
+  justify-content: stretch;
+  flex-direction: column;
+}
+
+ion-button:hover,
+ion-menu-button:hover,
+#display-name:hover {
+  border-width: 2px;
+  background-color: rgba(var(--ion-color-primary-rgb), 0.14);
+}
+
+.add-keyword-btn {
+  --border-radius: 50% !important;
+}
+
+.add-keyword-btn-all {
+  @extend .add-keyword-btn;
+  color: $ALL_COLOR;
+  border-color: $ALL_COLOR;
+  // background-color: $ALL_COLOR;
+}
+
+.add-keyword-btn-any {
+  @extend .add-keyword-btn;
+  color: $ANY_COLOR;
+  border-color: $ANY_COLOR;
+  // background-color: $ANY_COLOR;
+}
+
+.add-keyword-btn-none {
+  @extend .add-keyword-btn;
+  color: $NONE_COLOR;
+  border-color: $NONE_COLOR;
+  border-width: 2px;
+  // background-color: $NONE_COLOR;
+}
+
+ion-buttons {
+  justify-content: stretch;
+  align-items: stretch;
+}
+
+#display-name {
+  // display: flex;
+  // flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+  margin: 0px 0px 0px -18px;
+  padding: 6px 6px 6px 18px;
+}
+
+
+#display-bar-label {
+  height: 100%;
+  padding: 6px 6px 6px 6px;
+  margin-right: 2px;
+}
+
+@media (max-width: 350px) {
+  #display-name {
+    width: 100%;
+    overflow: hidden;
+    margin: 0px 0px 0px -18px;
+    padding: 6px 6px 6px 18px;
+  }
+}
+
+@media (min-width: 350px) and (max-width: 900px) {
+  #display-name {
+    width: 100%;
+    overflow: hidden;
+    margin: 0px 0px 0px -22px;
+    padding: 6px 6px 6px 22px;
+  }
+}
+
+@media (min-width: 900px) {
+  #display-name {
+    width: 100%;
+    overflow: hidden;
+    margin: 0px 0px 0px -23px;
+    padding: 6px 6px 6px 23px;
+  }
+}
+
+.bordered {
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 10px;
+}
+
+.keyword-group {
+  @extend .bordered;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  // justify-content: center;
+}
+
+.keywords-all {
+  @extend .keyword-group;
+  color: $ALL_COLOR;
+  border-color: $ALL_COLOR;
+}
+
+.keywords-any {
+  @extend .keyword-group;
+  color: $ANY_COLOR;
+  border-color: $ANY_COLOR;
+}
+
+.keywords-none {
+  @extend .keyword-group;
+  color: $NONE_COLOR;
+  border-color: $NONE_COLOR;
+}
+
+.keyword-input {
+  @extend .bordered;
+}

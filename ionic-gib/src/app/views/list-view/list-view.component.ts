@@ -1,14 +1,15 @@
 import { Component, ChangeDetectorRef, Output, Input, ViewChild } from '@angular/core';
 import { EventEmitter } from '@angular/core';
+import { IonCheckbox, IonContent, IonInfiniteScroll } from '@ionic/angular';
 
 import * as h from 'ts-gib/dist/helper';
 
 import * as c from '../../common/constants';
 import { IbGibItem, IbGibListItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
 import { CommonService } from '../../services/common.service';
-import { IonCheckbox, IonContent, IonInfiniteScroll } from '@ionic/angular';
-import { IbgibScrollingListComponentBase } from 'src/app/common/bases/ibgib-scrolling-list-component-base';
-import { IbgibComponentBase } from 'src/app/common/bases/ibgib-component-base';
+import { IbgibScrollingListComponentBase } from '../../common/bases/ibgib-scrolling-list-component-base';
+import { IbgibComponentBase } from '../../common/bases/ibgib-component-base';
+import { DisplayIbGib_V1 } from '../../common/types/display';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
