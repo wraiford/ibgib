@@ -11,3 +11,4 @@
   (ionScroll)='handleScroll($event)'
   (itemsAdded)='handleItemsAdded($event)'
   ></list-view>
+<ion-note *ngIf="filteredItemsCount">filtered: {{filteredItemsCount}}</ion-note>

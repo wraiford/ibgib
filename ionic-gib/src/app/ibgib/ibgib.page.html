@@ -176,42 +176,10 @@
 
     <ng-container [ngSwitch]="activeApp?.data.classname">
       <ib-chat-app *ngSwitchCase="'ChatApp_V1'" [addr]="addr" [activeApp]="activeAppAny" [display]="display"></ib-chat-app>
-      <ib-raw-app *ngSwitchCase="'RawApp_V1'" [addr]="addr" [activeApp]="activeAppAny"></ib-raw-app>
-      <ib-todo-app *ngSwitchCase="'TodoApp_V1'" [addr]="addr" [activeApp]="activeAppAny"></ib-todo-app>
-      <ib-chat-app *ngSwitchDefault [addr]="addr"></ib-chat-app>
-      <!-- <p *ngSwitchDefault>default</p> -->
+      <ib-raw-app *ngSwitchCase="'RawApp_V1'" [addr]="addr" [activeApp]="activeAppAny" [display]="display"></ib-raw-app>
+      <ib-todo-app *ngSwitchCase="'TodoApp_V1'" [addr]="addr" [activeApp]="activeAppAny" [display]="display"></ib-todo-app>
+      <ib-chat-app *ngSwitchDefault [addr]="addr" [display]="display"></ib-chat-app>
     </ng-container>
-
-
-
-
-    <!-- using ngIf/then/else... -->
-    <!-- <ng-container *ngIf="activeApp?.data.classname === 'ChatApp_V1';then chatApp; else defaultApp">
-    </ng-container>
-    <ng-template #chatApp>
-      <ib-chat-app [addr]="addr"></ib-chat-app>
-    </ng-template>
-    <ng-template #defaultApp>
-      <ib-chat-app [addr]="addr"></ib-chat-app>
-    </ng-template> -->
-
-    <!-- <tag-list *ngIf='isTags' [addr]='addr' [ibGib_Context]='ibGib' (scroll)="scrollSubject.next($event)">
-    </tag-list> -->
-    <!-- <root-list *ngIf='isRoots' [addr]='addr' [ibGib_Context]='ibGib' (scroll)="scrollSubject.next($event)">
-    </root-list> -->
-    <!-- <chat-view #chatView *ngIf='!(isTags || isRoots) && !showHeart' [addr]='addr' [ibGib_Context]='ibGib'
-      (scroll)="scrollSubject.next($event)" (itemsAdded)="handleChatItemsAdded()">
-    </chat-view> -->
-
-    <!-- show pics in svg view -->
-    <!-- everything else linear chat -->
-    <!-- <div id="heart-div" *ngIf='!(isTags || isRoots) && showHeart'>
-      <svg-view #ibgibpageSvgView [addr]='addr' [ibGib_Context]='ibGib'>
-      </svg-view>
-      <chat-view #chatViewHeart [addr]='addr' [ibGib_Context]='ibGib' [rel8nNames]="chatViewRel8nNamesNoPics"
-        (scroll)="scrollSubject.next($event)" (itemsAdded)="handleChatItemsAdded()">
-      </chat-view>
-    </div> -->
 
     <ion-modal [isOpen]="showModal_PromptForTag">
       <ng-template>

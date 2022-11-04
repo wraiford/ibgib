@@ -63,8 +63,28 @@ export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGib
     @Input()
     batchSize: number = 5;
 
+    _display: DisplayIbGib_V1;
     @Input()
-    display: DisplayIbGib_V1;
+    get display(): DisplayIbGib_V1 {
+        return this._display;
+    }
+    set display(value: DisplayIbGib_V1) {
+        const lc = `${this.lc}[set display]`
+        // debugger;
+        if (value?.gib === this._display?.gib) {
+            if (logalot) { console.log(`${lc} display already set. returning early. (I: 43359480238c7a6c0ba70252fef96622)`); }
+            return; /* <<<< returns early */
+        }
+        this._display = value;
+        this.updateAllItemFilters(); // spins off
+        setTimeout(() => { this.ref.detectChanges(); })
+    }
+    protected updatingFilters: boolean;
+
+    @Input()
+    get filteredItemsCount(): number {
+        return this.items?.filter(x => x.filtered).length ?? 0;
+    }
 
     /**
      * trying this out to let consumer know when items have been added to effect
@@ -390,6 +410,7 @@ export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGib
                 if (!item.ibGib) {
                     await this.loadIbGib({ item });
                     await this.loadItem(item);
+                    await this.loadItemFiltered({ item });
                 }
             }
             this.sortItems(itemsToAdd);
@@ -410,13 +431,6 @@ export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGib
             //     null;
 
             // add the items to the list, which will change our bound view
-
-            // check filtering
-            if (this.display?.data?.filters?.length > 0) {
-                // filter per display settings
-                itemsToAdd = await this.filterPerDisplay({ itemsToAdd });
-            }
-
 
             await this.addItems({ itemsToAdd, direction });
 
@@ -439,29 +453,50 @@ export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGib
             if (logalot) { console.log(`${lc} updated.`); }
         }
     }
-    async filterPerDisplay({ itemsToAdd }: { itemsToAdd: TItem[]; }): Promise<TItem[]> {
-        const lc = `${this.lc}[${this.filterPerDisplay.name}]`;
+
+    async updateAllItemFilters(): Promise<void> {
+        const lc = `${this.lc}[${this.updateAllItemFilters.name}]`;
         try {
-            if (logalot) { console.log(`${lc} starting... (I: 949a399ada07cc95b34fbb7f376a4c22)`); }
-            // may use ticks in the future when doing filtering in time range,
-            // just leaving it here to remind myself
-            const { ticks, filters } = this.display?.data;
+            if (logalot) { console.log(`${lc} starting... (I: a3f6e787a535e84037a6e4bc61b2da22)`); }
 
-            debugger;
-            const resFilteredItems: TItem[] = [];
-
-            for (let i = 0; i < itemsToAdd.length; i++) {
-                const item = itemsToAdd[i];
-                let passesAllFilters = true;
-                for (let j = 0; j < filters.length; j++) {
-                    const filter = filters[j];
-                    const passes = await this.itemPassesFilter({ item, filter });
-                    if (!passes) { passesAllFilters = false; break; }
-                }
-                if (passesAllFilters) { resFilteredItems.push(item); }
+            while (this.updatingFilters) {
+                await h.delay(100);
+                if (logalot) { console.log(`${lc} already updating filters. waiting to try again... (I: 4388a6b0e0adc278464e35313e552f22)`); }
             }
 
-            return resFilteredItems;
+            this.updatingFilters = true;
+
+            for (let i = 0; i < this.items.length; i++) {
+                const item = this.items[i];
+                await this.loadItemFiltered({ item });
+            }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            this.updatingFilters = false;
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    async loadItemFiltered({ item }: { item: TItem }): Promise<void> {
+        const lc = `${this.lc}[${this.loadItemFiltered.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: a762866aa8d2cc91b8ce3bcd62832822)`); }
+            if ((this.display?.data?.filters ?? []).length === 0) {
+                item.filtered = false;
+                return; /* <<<< returns early */
+            }
+
+            const { filters } = this.display?.data;
+
+            let passesAllFilters = true;
+            for (let j = 0; j < filters.length; j++) {
+                const filter = filters[j];
+                const passes = await this.itemPassesFilter({ item, filter });
+                if (!passes) { passesAllFilters = false; break; }
+            }
+            item.filtered = !passesAllFilters;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -519,6 +554,7 @@ export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGib
 
             // now that we have the data path(s), we can apply the keyword filters
             let passes = true;
+            // debugger;
             for (let i = 0; i < dataPaths.length; i++) {
                 const dataPath = dataPaths[i];
                 let value: any = ibGib.data[dataPath] ?? "";
@@ -527,13 +563,40 @@ export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGib
                     passes = false;
                     break;
                 }
-                const str = filter.caseSensitive ? <string>value : <string>value.toLowerCase();
+
+
+                /** This is the value in the ibgib that we will apply the filter to */
+                const valueString =
+                    filter.caseSensitive ? <string>value : <string>value.toLowerCase();
+
+
+                // now go through each keyword filter list
+
+                /** use this var for each case for simplicity/uniformity. */
+                let keywords: string[];
                 if (filter.hasAllKeywords?.length > 0) {
-                    // if (filter.hasAllKeywords.some(x => !str.match))
+                    keywords = filter.caseSensitive ?
+                        filter.hasAllKeywords :
+                        filter.hasAllKeywords.map(x => x.toLowerCase());
+                    if (!keywords.every(x => valueString.match(x))) {
+                        passes = false; break;
+                    }
                 }
                 if (filter.hasAnyKeywords?.length > 0) {
+                    keywords = filter.caseSensitive ?
+                        filter.hasAnyKeywords :
+                        filter.hasAnyKeywords.map(x => x.toLowerCase());
+                    if (!keywords.some(x => valueString.match(x))) {
+                        passes = false; break;
+                    }
                 }
-                if (filter.hasNoKeywords?.length > 0) {
+                if (filter.hasNoneKeywords?.length > 0) {
+                    keywords = filter.caseSensitive ?
+                        filter.hasNoneKeywords :
+                        filter.hasNoneKeywords.map(x => x.toLowerCase());
+                    if (keywords.some(x => valueString.match(x))) {
+                        passes = false; break;
+                    }
                 }
             }
 
@@ -600,6 +663,20 @@ export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGib
         try {
             if (logalot) { console.log(`${lc} starting... (I: 4095aa8792efdc12e5e7cba9879fba22)`); }
 
+            // // first add to the unfiltered list
+            // this.unfilteredItems = direction === 'insert' ?
+            //     [...itemsToAdd, ...this.unfilteredItems] :
+            //     [...this.unfilteredItems, ...itemsToAdd];
+            // this.sortItems(this.unfilteredItems);
+
+            // // now apply filter if applicable
+            // if (this.display?.data?.filters?.length > 0) {
+            //     // filter per display settings
+            //     itemsToAdd = await this.filterPerDisplay({ itemsToAdd });
+            // }
+
+            // apply possibly filtered items to this.items, which is what the
+            // views are bound to
             this.items = direction === 'insert' ?
                 [...itemsToAdd, ...this.items] :
                 [...this.items, ...itemsToAdd];

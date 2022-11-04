@@ -5,6 +5,13 @@
 
   height: 100%;
   width: 100%;
-  display: flex;
   overflow-y: none;
+  display: flex;
+  flex-direction: column;
+}
+
+ion-note {
+  font-size: smaller;
+  font-style: italic;
+  align-self: center;
 }

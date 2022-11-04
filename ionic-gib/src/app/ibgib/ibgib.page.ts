@@ -813,13 +813,11 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
     const lc = `${this.lc}[${this.handleDisplayChanged.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: b0b02263a29e4ec663218b61acd14122)`); }
-      debugger;
 
       // hmm i think when saving the display will regenerate entire transform
       // result?  currently not saving the display or its generating transform
       // dependencies.
       this.display = resDisplayIbGib.newIbGib;
-
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

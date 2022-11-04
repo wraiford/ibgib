@@ -4,28 +4,29 @@
     </ion-infinite-scroll-content>
   </ion-infinite-scroll>
   <ion-list (ionScroll)="handleScroll($event)">
-    <ion-item *ngFor='let item of items;let i = index;trackBy: trackByAddr' class="list-item-row">
-      <ion-checkbox *ngIf="isTodo" [checked]="item.checked" [id]="'ib-primary-checkbox_'+i"(ionChange)="handleCheckboxChange($event, item)"></ion-checkbox>
-      <ib-item #itemRef
-        [addr]='item.addr'
-        [isTodo]="isTodo"
-        [ibOmni]="itemRef"
-        [disableSelection]="disableSelection"
-        [ibGib_Context]="ibGib"
-        [rel8nName_Context]="item.rel8nName_Context"
-        (omniClick)="handleOmniIbItemClicked(item, itemRef)"
-        (omniLongClick)="handleOmniIbItemLongClicked(item, itemRef)"
-        (omniSwipeRight)="handleOmniIbItemSwipeRight(item, itemRef)"
-        (omniSwipeLeft)="handleOmniIbItemSwipeLeft(item, itemRef)"
-        [style.border-color]="debugBorderColor"
-        [style.border-width]="debugBorderWidth"
-        [style.border-style]="debugBorderStyle"
-        [ngClass]="{'item-done':item.checked}"
-        >
-        <!-- [ibClickAnimation]="itemRef" -->
-        <!-- (ibItemClicked)='handleIbItemClicked(item, itemRef)' -->
-      </ib-item>
-      <ion-checkbox *ngIf="isTodo" [checked]="item.checked" (ionChange)="handleCheckboxChange_Secondary($event, item, i)"></ion-checkbox>
+    <ion-item *ngFor='let item of items;let i = index;trackBy: trackByAddr' class="list-item-row"
+      [hidden]="item.filtered">
+        <ion-checkbox *ngIf="isTodo" [checked]="item.checked" [id]="'ib-primary-checkbox_'+i"(ionChange)="handleCheckboxChange($event, item)"></ion-checkbox>
+        <ib-item #itemRef
+          [addr]='item.addr'
+          [isTodo]="isTodo"
+          [ibOmni]="itemRef"
+          [disableSelection]="disableSelection"
+          [ibGib_Context]="ibGib"
+          [rel8nName_Context]="item.rel8nName_Context"
+          (omniClick)="handleOmniIbItemClicked(item, itemRef)"
+          (omniLongClick)="handleOmniIbItemLongClicked(item, itemRef)"
+          (omniSwipeRight)="handleOmniIbItemSwipeRight(item, itemRef)"
+          (omniSwipeLeft)="handleOmniIbItemSwipeLeft(item, itemRef)"
+          [style.border-color]="debugBorderColor"
+          [style.border-width]="debugBorderWidth"
+          [style.border-style]="debugBorderStyle"
+          [ngClass]="{'item-done':item.checked}"
+          >
+          <!-- [ibClickAnimation]="itemRef" -->
+          <!-- (ibItemClicked)='handleIbItemClicked(item, itemRef)' -->
+        </ib-item>
+        <ion-checkbox *ngIf="isTodo" [checked]="item.checked" (ionChange)="handleCheckboxChange_Secondary($event, item, i)"></ion-checkbox>
     </ion-item>
   </ion-list>
 </ion-content>

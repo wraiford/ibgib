@@ -127,6 +127,11 @@ export interface IbGibItem {
      */
     hasChildren?: boolean;
     checked?: boolean;
+    /**
+     * If true, then this item is not passing some filter and the view may
+     * decide to hide it (like in a list).
+     */
+    filtered?: boolean;
 }
 
 export interface IbGibListItem extends IbGibItem {

@@ -59,7 +59,7 @@ export interface FilterInfo {
      */
     caseSensitive?: boolean;
     hasAllKeywords?: string[];
-    hasNoKeywords?: string[];
+    hasNoneKeywords?: string[];
     hasAnyKeywords?: string[];
 
     /**

@@ -7,6 +7,16 @@ ion-toolbar {
   flex-direction: column;
 }
 
+ion-items {
+  display: flex;
+  flex-direction: row;
+}
+
+.keyword-btn {
+  // font-family: 'Courier New', Courier, monospace;
+  text-transform: none;
+}
+
 ion-button:hover,
 ion-menu-button:hover,
 #display-name:hover {
@@ -16,27 +26,33 @@ ion-menu-button:hover,
 
 .add-keyword-btn {
   --border-radius: 50% !important;
+  --border-width: 2px;
+  --border-style: solid;
+  height: 80%;
 }
 
 .add-keyword-btn-all {
   @extend .add-keyword-btn;
-  color: $ALL_COLOR;
-  border-color: $ALL_COLOR;
-  // background-color: $ALL_COLOR;
+  --color: $ALL_COLOR;
+  --border-color: rgba(0, 128, 0, 0.841);
+  --background: rgba(0, 128, 0, 0.331);
 }
 
 .add-keyword-btn-any {
   @extend .add-keyword-btn;
   color: $ANY_COLOR;
-  border-color: $ANY_COLOR;
+  --border-color: #3bc0edc3;
+  --background: #3bc0ed39;
   // background-color: $ANY_COLOR;
 }
 
 .add-keyword-btn-none {
   @extend .add-keyword-btn;
   color: $NONE_COLOR;
-  border-color: $NONE_COLOR;
   border-width: 2px;
+  --border-color: #dd4129c5;
+  --background: #dd412943;
+
   // background-color: $NONE_COLOR;
 }
 

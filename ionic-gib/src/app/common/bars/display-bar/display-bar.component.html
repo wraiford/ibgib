@@ -17,9 +17,10 @@
     <div class="keywords-all">
       <ion-label>ALL: </ion-label>
       <ion-buttons *ngFor="let keyword of hasAllKeywords">
-        <ion-button>{{keyword}}</ion-button>
+        <ion-button class="keyword-btn" (click)="handleKeywordClick('all', keyword)">{{keyword}}</ion-button>
       </ion-buttons>
-      <ion-input *ngIf="addingText !== undefined && addingType === 'all'" class="keyword-input"
+      <ion-input *ngIf="addingText !== undefined && addingType === 'all'"
+        id="keyword-input-all" class="keyword-input"
         [debounce]="debounceMs"
         [(ngModel)]="addingText"
         (ionChange)="handleInputChange($event)"
@@ -28,15 +29,16 @@
         >
       </ion-input>
       <ion-button class="add-keyword-btn-all" (click)="handleAddFilterClick('all')">
-        <ion-icon name="add-outline"></ion-icon>
+        <ion-icon name="add-outline" color="primary"></ion-icon>
       </ion-button>
     </div>
     <div class="keywords-any">
       <ion-label>ANY: </ion-label>
       <ion-buttons *ngFor="let keyword of hasAnyKeywords">
-        <ion-button>{{keyword}}</ion-button>
+        <ion-button class="keyword-btn" (click)="handleKeywordClick('any', keyword)">{{keyword}}</ion-button>
       </ion-buttons>
-      <ion-input *ngIf="addingText !== undefined && addingType === 'any'" class="keyword-input"
+      <ion-input *ngIf="addingText !== undefined && addingType === 'any'"
+        id="keyword-input-any" class="keyword-input"
         [debounce]="debounceMs"
         [(ngModel)]="addingText"
         (ionChange)="handleInputChange($event)"
@@ -45,15 +47,16 @@
         >
       </ion-input>
       <ion-button class="add-keyword-btn-any" (click)="handleAddFilterClick('any')">
-        <ion-icon name="add-outline"></ion-icon>
+        <ion-icon name="add-outline" color="primary"></ion-icon>
       </ion-button>
     </div>
     <div class="keywords-none">
       <ion-label>NONE: </ion-label>
-      <ion-buttons *ngFor="let keyword of hasNoKeywords">
-        <ion-button>{{keyword}}</ion-button>
+      <ion-buttons *ngFor="let keyword of hasNoneKeywords">
+        <ion-button class="keyword-btn" (click)="handleKeywordClick('none', keyword)">{{keyword}}</ion-button>
       </ion-buttons>
-      <ion-input *ngIf="addingText !== undefined && addingType === 'none'" class="keyword-input"
+      <ion-input *ngIf="addingText !== undefined && addingType === 'none'"
+        id="keyword-input-none" class="keyword-input"
         [debounce]="debounceMs"
         [(ngModel)]="addingText"
         (ionChange)="handleInputChange($event)"
@@ -62,13 +65,11 @@
         >
       </ion-input>
       <ion-button class="add-keyword-btn-none" (click)="handleAddFilterClick('none')">
-        <ion-icon name="add-outline"></ion-icon>
+        <ion-icon name="add-outline" color="primary"></ion-icon>
       </ion-button>
     </div>
+
+    <ion-button *ngIf="hasFilters" (click)="clearFilters()">clear</ion-button>
   </ion-items>
-
-  <!-- filter actions -->
-
-
 
 </ion-toolbar>

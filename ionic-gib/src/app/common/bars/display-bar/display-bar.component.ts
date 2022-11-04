@@ -15,6 +15,7 @@ import { ReplaySubject } from 'rxjs/internal/ReplaySubject';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 import { getTimestampInTicks } from '../../helper/utils';
 import { getDisplayIb } from '../../helper/display';
+import { IonInput } from '@ionic/angular';
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
@@ -66,13 +67,20 @@ export class DisplayBarComponent extends IbgibComponentBase {
   @Input()
   hasAnyKeywords: string[] = [];
   @Input()
-  hasNoKeywords: string[] = [];
+  hasNoneKeywords: string[] = [];
+
+  @Input()
+  get hasFilters(): boolean {
+    return this.hasAllKeywords?.length > 0 ||
+      this.hasAnyKeywords?.length > 0 ||
+      this.hasNoneKeywords?.length > 0;
+  }
 
   @Input()
   sortInfos: SortInfo[] = [];
 
   @Input()
-  debounceMs: number = 1000;
+  debounceMs: number = 300;
 
   @Output()
   displayChanged = new EventEmitter<TransformResult<DisplayIbGib_V1>>();
@@ -92,7 +100,6 @@ export class DisplayBarComponent extends IbgibComponentBase {
       await this.loadIbGib();
       await this.loadTjp();
       await this.loadItem();
-      await this.updateDisplays();
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);
       this.clearItem();
@@ -102,11 +109,16 @@ export class DisplayBarComponent extends IbgibComponentBase {
     }
   }
 
-  async updateDisplays(): Promise<void> {
-    const lc = `${this.lc}[${this.updateDisplays.name}]`;
+  async clearFilters(): Promise<void> {
+    const lc = `${this.lc}[${this.clearFilters.name}]`;
     try {
-      if (logalot) { console.log(`${lc} starting... (I: 4a90829eb8f1ea539ee6f53c01653322)`); }
-      throw new Error(`not impl (E: 32cb228c002d2816e152167b3a5be322)`);
+      if (logalot) { console.log(`${lc} starting... (I: 755fdce3f4cf4022ec38d0843665a622)`); }
+      delete this.addingText;
+      delete this.addingType;
+      this.hasAllKeywords = [];
+      this.hasAnyKeywords = [];
+      this.hasNoneKeywords = [];
+      await this.emitDisplayChanged();
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -128,14 +140,51 @@ export class DisplayBarComponent extends IbgibComponentBase {
     }
   }
 
+  /**
+   * when user hits an add btn on one of the keyword filters
+   */
   async handleAddFilterClick(addingType: AddingType): Promise<void> {
     const lc = `${this.lc}[${this.handleAddFilterClick.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: )`); }
-      if (this.addingText) { await this.commitAddingText(); }
-      this.addingText = '';
-      this.addingType = addingType;
-      // debugger;
+
+      const resetAndFocusAddInput = () => {
+        this.addingText = '';
+        this.addingType = addingType;
+        setTimeout(() => {
+          (<IonInput><any>document
+            .getElementById(`keyword-input-${addingType}`))
+            .setFocus();
+        });
+      };
+
+      if (this.addingType && this.addingText) {
+        if (this.addingType === addingType) {
+          // user has hit the same add btn, with text in the field, so we
+          // interpret this to mean that they want to commit but not necessarily
+          // add another.
+          await this.commitAddingText();
+        } else {
+          // user has hit different add btn, with text in the field, so we
+          // interpret this to mean that they want to commit and add another.
+          await this.commitAddingText();
+          resetAndFocusAddInput();
+        }
+      } else if (this.addingType && !this.addingText) {
+        if (this.addingType === addingType) {
+          // user has hit add btn WITHOUT text in the field, so we interpret this
+          // as they want to cancel
+          delete this.addingText;
+          delete this.addingType;
+        } else {
+          // user has hit a different add btn without text in the field, which we
+          // interpret as canceling the current add and starting the other
+          resetAndFocusAddInput();
+        }
+      } else {
+        // user has hit the add btn fresh
+        resetAndFocusAddInput();
+      }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -144,13 +193,43 @@ export class DisplayBarComponent extends IbgibComponentBase {
     }
   }
 
+  async handleKeywordClick(addingType: AddingType, keyword: string): Promise<void> {
+    const lc = `${this.lc}[${this.handleKeywordClick.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 2db65d21826faa1ea6a161b51ce3bc22)`); }
+      switch (addingType) {
+        case 'all':
+          this.hasAllKeywords = this.hasAllKeywords.filter(x => x !== keyword);
+          break;
+        case 'any':
+          this.hasAnyKeywords = this.hasAnyKeywords.filter(x => x !== keyword);
+          break;
+        case 'none':
+          this.hasNoneKeywords = this.hasNoneKeywords.filter(x => x !== keyword);
+          break;
+        default:
+          throw new Error(`unknown addingType: ${addingType} (E: 7fd0ad92a143d86d9fe00b3ee3560322)`);
+      }
+
+      this.addingType = addingType;
+      this.addingText = keyword;
+
+      await this.emitDisplayChanged();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+
   async handleInputChange(event: any): Promise<void> {
     const lc = `${this.lc}[${this.handleInputChange.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: )`); }
 
       // do nothing atow
-      // debugger;
       // console.dir(event);
       // await this.updateDisplayIbGib_Working();
     } catch (error) {
@@ -184,14 +263,20 @@ export class DisplayBarComponent extends IbgibComponentBase {
       const KEYCODE_ESC = 27;
       const KEYCODE_ENTER = 13;
       if (event.keyCode === KEYCODE_ESC) {
+        if (logalot) { console.log(`${lc} escape keycode (I: 079b86ca94fddf2366341514e0bef822)`); }
         // cancel
         delete this.addingType;
         delete this.addingText;
       } else if (event.keyCode === KEYCODE_ENTER) {
-        // commit
-        await this.commitAddingText();
+        if (logalot) { console.log(`${lc} enter keycode (I: f31d88db97a13e5fd5c02be8b26fb622)`); }
+        if (this.addingText) {
+          // commit
+          await this.commitAddingText();
+        } else {
+          delete this.addingText;
+          delete this.addingType;
+        }
       }
-      // debugger;
       console.dir(event);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -212,13 +297,19 @@ export class DisplayBarComponent extends IbgibComponentBase {
 
       switch (this.addingType) {
         case 'all':
-          this.hasAllKeywords.push(this.addingText);
+          if (!this.hasAllKeywords.includes(this.addingText)) {
+            this.hasAllKeywords.push(this.addingText);
+          }
           break;
         case 'any':
-          this.hasAnyKeywords.push(this.addingText);
+          if (!this.hasAnyKeywords.includes(this.addingText)) {
+            this.hasAnyKeywords.push(this.addingText);
+          }
           break;
         case 'none':
-          this.hasNoKeywords.push(this.addingText);
+          if (!this.hasNoneKeywords.includes(this.addingText)) {
+            this.hasNoneKeywords.push(this.addingText);
+          }
           break;
         default:
           throw new Error(`unknown addingType: ${this.addingType} (E: be6261c506ed4de09244fdd4d020c822)`);
@@ -236,40 +327,14 @@ export class DisplayBarComponent extends IbgibComponentBase {
     }
   }
 
-  async initDisplayIbGibIfNeeded(): Promise<void> {
-    const lc = `${this.lc}[${this.initDisplayIbGibIfNeeded.name}]`;
-    try {
-      if (logalot) { console.log(`${lc} starting... (I: 32bcfd556062f24e6b07aca601644e22)`); }
-      if (this.displayIbGib_Working) {
-        if (logalot) { console.log(`${lc} working ibgib already created, returning early. (I: dfcf798e9c0a6137d57ce13946e0dc22)`); }
-        return; /* <<<< returns early */
-      }
-
-      throw new Error(`not impl (E: 8abf6c4ff3848551717007eeeae95c22)`);
-
-      // const resDisplay = factory.firstGen({
-      //   ib: getDisplayIb
-      // })
-    } catch (error) {
-      console.error(`${lc} ${error.message}`);
-      throw error;
-    } finally {
-      if (logalot) { console.log(`${lc} complete.`); }
-    }
-  }
-
   async emitDisplayChanged(): Promise<void> {
     const lc = `${this.lc}[${this.emitDisplayChanged.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: afddd410f2c42b777307124b6c5ec622)`); }
-      debugger;
       const resDisplayIbgib =
         await this.createDisplayIbGibFromThis({ srcIbGib: this.displayIbGib });
-
-      debugger;
       this.displayChanged.emit(resDisplayIbgib);
     } catch (error) {
-      debugger;
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
@@ -290,13 +355,13 @@ export class DisplayBarComponent extends IbgibComponentBase {
       if (
         this.hasAllKeywords?.length > 0 ||
         this.hasAnyKeywords?.length > 0 ||
-        this.hasNoKeywords?.length > 0
+        this.hasNoneKeywords?.length > 0
       ) {
         filter = {
           filterType: 'keyword',
           hasAllKeywords: this.hasAllKeywords?.concat(),
           hasAnyKeywords: this.hasAnyKeywords?.concat(),
-          hasNoKeywords: this.hasNoKeywords?.concat(),
+          hasNoneKeywords: this.hasNoneKeywords?.concat(),
         };
       }
 

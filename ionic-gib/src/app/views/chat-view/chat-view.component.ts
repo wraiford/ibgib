@@ -33,9 +33,6 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
   activeApp: ChatApp_V1;
 
   @Input()
-  display: DisplayIbGib_V1;
-
-  @Input()
   disableSelection: boolean;
 
   @Output()
@@ -53,22 +50,6 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
   ) {
     super(common, ref);
   }
-
-  // async updateIbGib_NewerTimelineFrame(info: IbGibTimelineUpdateInfo): Promise<void> {
-  //   const lc = `${this.lc}[${this.updateIbGib_NewerTimelineFrame.name}]`;
-  //   try {
-  //     if (logalot) { console.log(`${lc} starting...`); }
-
-  //     await super.updateIbGib_NewerTimelineFrame(info);
-  //     if (logalot) { console.log(`${lc}[testing] this.items.length: ${this.items?.length ?? -1}`); }
-
-  //   } catch (error) {
-  //     console.error(`${lc} ${error.message}`);
-  //     throw error;
-  //   } finally {
-  //     if (logalot) { console.log(`${lc} complete.`); }
-  //   }
-  // }
 
   async handleClick_ListItem(item: IbGibItem): Promise<void> {
     const lc = `${this.lc}[${this.handleClick_ListItem.name}]`;
@@ -96,13 +77,7 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
       if (logalot) { console.log(`${lc} starting...`); }
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
 
-
       this.ibGibItemLongClicked.emit(item);
-
-      // await this.go({
-      //   toAddr: item.addr,
-      //   fromAddr: h.getIbGibAddr({ ibGib: this.ibGib_Context }),
-      // });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -118,11 +93,6 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
 
       this.ibGibItemSwipedRight.emit([item, itemRef]);
-
-      // await this.go({
-      //   toAddr: item.addr,
-      //   fromAddr: h.getIbGibAddr({ ibGib: this.ibGib_Context }),
-      // });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -138,11 +108,6 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
       if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
 
       this.ibGibItemSwipedLeft.emit([item, itemRef]);
-
-      // await this.go({
-      //   toAddr: item.addr,
-      //   fromAddr: h.getIbGibAddr({ ibGib: this.ibGib_Context }),
-      // });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
