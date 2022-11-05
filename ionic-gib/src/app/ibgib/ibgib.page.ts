@@ -165,7 +165,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
   @ViewChild('robbotBar')
   robbotBar: RobbotBarComponent
 
-  _displayBarIsVisible: boolean = true;
+  _displayBarIsVisible: boolean;
   @Input()
   get displayBarIsVisible(): boolean {
     return this._displayBarIsVisible && !!this.ibGib && !this.refreshing;
