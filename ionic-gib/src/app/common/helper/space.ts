@@ -466,8 +466,10 @@ export async function getSpecialIbGib({
         if (type !== 'latest') {
             let resLatest = await getLatestAddrs({ ibGibs: [specialIbGib], space });
             if (resLatest?.data?.success && resLatest.data.addrs?.length === 1) {
-                if (resLatest.data.addrs[0] !== h.getIbGibAddr({ ibGib: specialIbGib })) {
-                    console.warn(`${lc} latest addr is not the one associated with the local space. (W: 141b69dc3c414efc9645bb76fcf12df9)`)
+                let specialAddr = h.getIbGibAddr({ ibGib: specialIbGib });
+                let latestAddr = resLatest.data.addrs[0];
+                if (latestAddr !== specialAddr) {
+                    console.warn(`${lc} latest addr is not the one associated with the local space.\nspecialAddr: ${specialAddr}\nlatestAddr: ${latestAddr} (W: 141b69dc3c414efc9645bb76fcf12df9)`)
                 }
             }
         }

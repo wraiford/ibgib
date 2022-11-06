@@ -1,6 +1,5 @@
 import { ChangeDetectorRef, Injectable, Input, OnDestroy, OnInit } from "@angular/core";
-import { Capacitor, Plugins } from '@capacitor/core';
-const { Storage } = Plugins;
+import { Storage } from "@capacitor/storage";
 
 import * as c from '../constants';
 import { CommonService } from '../../services/common.service';

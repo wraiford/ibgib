@@ -1,5 +1,4 @@
-import { Plugins } from '@capacitor/core';
-const { Storage } = Plugins;
+import { Storage } from "@capacitor/storage";
 import { waitForAsync } from "@angular/core/testing";
 
 import * as c from 'src/app/common/constants';

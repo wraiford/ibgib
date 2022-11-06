@@ -1,11 +1,10 @@
-import {
-    Plugins, FilesystemEncoding, FileReadResult, FilesystemDirectory, Capacitor, FileWriteResult
-} from '@capacitor/core';
-const { Filesystem } = Plugins;
+import { Filesystem, Directory, Encoding, WriteFileResult, ReadFileResult } from '@capacitor/filesystem';
 
 import * as c from '../constants';
 
+
 const logalot = c.GLOBAL_LOG_A_LOT || false;
+
 
 export async function tryRead({
     path,
@@ -13,9 +12,9 @@ export async function tryRead({
     encoding,
 }: {
     path: string,
-    directory: FilesystemDirectory,
-    encoding: FilesystemEncoding,
-}): Promise<FileReadResult> {
+    directory: Directory,
+    encoding: Encoding,
+}): Promise<ReadFileResult> {
     const lc = `[${tryRead.name}]`;
     try {
         if (logalot) {
@@ -43,8 +42,8 @@ export async function pathExists({
     encoding,
 }: {
     path: string,
-    directory: FilesystemDirectory,
-    encoding: FilesystemEncoding,
+    directory: Directory,
+    encoding: Encoding,
 }): Promise<boolean> {
     const lc = `[${pathExists.name}]`;
     try {
@@ -77,9 +76,9 @@ export async function writeFile({
 }: {
     path: string,
     data: string,
-    directory: FilesystemDirectory,
-    encoding?: FilesystemEncoding,
-}): Promise<FileWriteResult> {
+    directory: Directory,
+    encoding?: Encoding,
+}): Promise<WriteFileResult> {
     const lc = `[${writeFile.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting...`); }
@@ -87,13 +86,13 @@ export async function writeFile({
         if (!data) { throw new Error(`data required (E: f2cf8ad9d118eaeaba9982a5395bcc22)`); }
         if (!directory) { throw new Error(`directory required (E: 71897de292b2a1ff219d9ddb01855722)`); }
 
-        encoding = encoding || FilesystemEncoding.UTF8;
+        encoding = encoding || Encoding.UTF8;
 
         const resWrite = await Filesystem.writeFile({
             path,
             data,
             directory,
-            encoding: FilesystemEncoding.UTF8,
+            encoding: Encoding.UTF8,
         });
 
         if (logalot) { console.log(`${lc} resWrite?.uri: ${resWrite?.uri} (I: 85e54f5172153f2c1fc7d54dda44a122)`); }
@@ -114,13 +113,13 @@ export async function ensureDirPath({
     directory,
 }: {
     dirPath: string,
-    directory: FilesystemDirectory,
+    directory: Directory,
 }): Promise<void> {
     const lc = `[${ensureDirPath.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting...`); }
-        const exists = await dirPathExists({dirPath, directory});
-        if (!exists) { await mkdir({dirPath, directory}); }
+        const exists = await dirPathExists({ dirPath, directory });
+        if (!exists) { await mkdir({ dirPath, directory }); }
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -143,7 +142,7 @@ export async function dirPathExists({
     directory,
 }: {
     dirPath: string,
-    directory: FilesystemDirectory,
+    directory: Directory,
 }): Promise<boolean> {
     const lc = `[${dirPathExists.name}]`;
     try {
@@ -165,7 +164,7 @@ export async function mkdir({
     directory,
 }: {
     dirPath: string,
-    directory: FilesystemDirectory,
+    directory: Directory,
 }): Promise<void> {
     const lc = `[${mkdir.name}]`;
     try {
@@ -179,7 +178,7 @@ export async function mkdir({
     }
 }
 
-export function getBlob (b64Data: string): Blob {
+export function getBlob(b64Data: string): Blob {
     let contentType = '';
     let sliceSize = 512;
 
@@ -190,17 +189,17 @@ export function getBlob (b64Data: string): Blob {
     let byteArrays = [];
 
     for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
-      const slice = byteCharacters.slice(offset, offset + sliceSize);
+        const slice = byteCharacters.slice(offset, offset + sliceSize);
 
-      const byteNumbers = new Array(slice.length);
-      for (let i = 0; i < slice.length; i++) {
-          byteNumbers[i] = slice.charCodeAt(i);
-      }
+        const byteNumbers = new Array(slice.length);
+        for (let i = 0; i < slice.length; i++) {
+            byteNumbers[i] = slice.charCodeAt(i);
+        }
 
-      let byteArray = new Uint8Array(byteNumbers);
-      byteArrays.push(byteArray);
+        let byteArray = new Uint8Array(byteNumbers);
+        byteArrays.push(byteArray);
     }
 
-    let blob = new Blob(byteArrays, {type: contentType});
+    let blob = new Blob(byteArrays, { type: contentType });
     return blob;
 }

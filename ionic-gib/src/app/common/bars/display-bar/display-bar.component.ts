@@ -1,5 +1,4 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, Output, } from '@angular/core';
-import { Plugins } from '@capacitor/core';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr, TransformResult } from 'ts-gib/dist/types';
@@ -9,9 +8,6 @@ import * as c from '../../constants';
 import { CommonService } from '../../../services/common.service';
 import { DisplayData_V1, DisplayRel8ns_V1, DisplayIbGib_V1, FilterInfo, SortInfo, DISPLAY_ATOM } from '../../types/display';
 import { IbgibComponentBase } from '../../bases/ibgib-component-base';
-import { isError } from '../../helper/error';
-import { ErrorIbGib_V1 } from '../../types/error';
-import { ReplaySubject } from 'rxjs/internal/ReplaySubject';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 import { getTimestampInTicks } from '../../helper/utils';
 import { getDisplayIb } from '../../helper/display';

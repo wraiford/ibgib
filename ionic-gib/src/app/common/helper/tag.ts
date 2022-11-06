@@ -1,5 +1,4 @@
-import { Plugins } from '@capacitor/core';
-const { Modals } = Plugins;
+import { Dialog } from '@capacitor/dialog';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
@@ -65,7 +64,7 @@ async function chooseTagText(): Promise<string | undefined> {
     let tagText: string;
     try {
         for (let i = 0; i < 10; i++) {
-            let resTagText = await Modals.prompt({
+            let resTagText = await Dialog.prompt({
                 title: 'Tag Text?',
                 message: `What's the tag called?`,
                 cancelButtonTitle: 'Cancel',
@@ -78,7 +77,7 @@ async function chooseTagText(): Promise<string | undefined> {
             }
 
             if (c.ILLEGAL_TAG_TEXT_CHARS.some(x => resTagText.value.includes(x))) {
-                await Modals.alert({
+                await Dialog.alert({
                     title: 'Nope...',
                     message: `Tag Text can't contain spaces or ${c.ILLEGAL_TAG_TEXT_CHARS}`,
                 });
@@ -126,7 +125,7 @@ async function chooseTagDescription(tagText: string): Promise<string | undefined
     let tagDesc: string;
     try {
         for (let i = 0; i < 10; i++) {
-            let resTagDesc = await Modals.prompt({
+            let resTagDesc = await Dialog.prompt({
                 title: 'Tag Description?',
                 message: `What's the tag description?`,
                 inputPlaceholder: tagText,
@@ -140,7 +139,7 @@ async function chooseTagDescription(tagText: string): Promise<string | undefined
             }
 
             if (c.ILLEGAL_TAG_DESC_CHARS.some(x => resTagDesc.value.includes(x))) {
-                await Modals.alert({
+                await Dialog.alert({
                     title: 'Nope...',
                     message: `Description can't contain ${c.ILLEGAL_TAG_DESC_CHARS}`,
                 });

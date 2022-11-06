@@ -2,8 +2,6 @@ import {
   Component, ChangeDetectorRef, Output, EventEmitter, ViewChild, Input, ElementRef
 } from '@angular/core';
 import { LoadingController } from '@ionic/angular';
-import { Plugins } from "@capacitor/core";
-const { Clipboard, } = Plugins;
 
 import * as h from 'ts-gib/dist/helper';
 

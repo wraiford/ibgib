@@ -1,6 +1,5 @@
 import { AlertController, } from '@ionic/angular';
-import { Plugins } from '@capacitor/core';
-const { Modals } = Plugins;
+import { Dialog } from '@capacitor/dialog';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
@@ -38,7 +37,7 @@ const logalot = c.GLOBAL_LOG_A_LOT || false;
  */
 export function getFnAlert(): ({ title, msg }: { title: string, msg: string }) => Promise<void> {
     return async ({ title, msg }: { title: string, msg: string }) => {
-        await Modals.alert({ title, message: msg });
+        await Dialog.alert({ title, message: msg });
     };
 }
 
@@ -49,7 +48,7 @@ export function getFnAlert(): ({ title, msg }: { title: string, msg: string }) =
  */
 export function getFnPrompt(): ({ title, msg }: { title: string, msg: string }) => Promise<string | null> {
     return async ({ title, msg }: { title: string, msg: string }) => {
-        const resPrompt = await Modals.prompt({ title, message: msg });
+        const resPrompt = await Dialog.prompt({ title, message: msg });
         if (resPrompt.cancelled) {
             return null;
         } else {
@@ -71,7 +70,7 @@ export function getFnConfirm():
         { title: string, msg: string, okButtonTitle?: string, cancelButtonTitle?: string }) => {
         okButtonTitle = okButtonTitle || 'Ok';
         cancelButtonTitle = cancelButtonTitle || 'Cancel';
-        const resConfirm = await Modals.confirm({
+        const resConfirm = await Dialog.confirm({
             title, message: msg, okButtonTitle, cancelButtonTitle
         });
         return resConfirm.value;

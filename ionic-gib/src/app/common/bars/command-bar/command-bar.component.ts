@@ -2,8 +2,11 @@ import {
   Component, OnInit, ChangeDetectorRef,
   Input, EventEmitter, Output,
 } from '@angular/core';
-import { Capacitor, FilesystemDirectory, FilesystemEncoding, Plugins } from '@capacitor/core';
-const { Clipboard, Modals } = Plugins;
+import { Capacitor, } from '@capacitor/core';
+// const { Clipboard, Modals } = Plugins;
+import { Dialog } from '@capacitor/dialog';
+import { Directory, Encoding, } from '@capacitor/filesystem';
+import { Clipboard } from '@capacitor/clipboard';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr, V1 } from 'ts-gib';
@@ -418,11 +421,11 @@ export class CommandBarComponent
 
       const filenameWithExt = `${filename}.${ext}`;
 
-      let directory: FilesystemDirectory;
+      let directory: Directory;
       if (Capacitor.getPlatform() === 'ios') {
-        directory = FilesystemDirectory.External;
+        directory = Directory.External;
       } else {
-        directory = FilesystemDirectory.Documents;
+        directory = Directory.Documents;
       }
 
       // check to see if file already exists existing file
@@ -440,7 +443,7 @@ export class CommandBarComponent
         pathAlreadyExists = await pathExists({
           path,
           directory,
-          encoding: FilesystemEncoding.UTF8,
+          encoding: Encoding.UTF8,
         });
         attempts++;
       } while (pathAlreadyExists && attempts < 10); // just hard-coding this here, very edgy edge case.
@@ -453,7 +456,7 @@ export class CommandBarComponent
       // string, but on my android testing this does not show the picture. I've
       // wasted enough time on this for now.
 
-      await writeFile({ path, data: dataToWrite, directory: FilesystemDirectory.Documents });
+      await writeFile({ path, data: dataToWrite, directory: Directory.Documents });
 
       await h.delay(100); // so user can see visually that write happened
       await getFnAlert()({ title: 'file downloaded', msg: `Successfully downloaded to ${path} in ${directory}.` });
@@ -501,7 +504,7 @@ export class CommandBarComponent
       return; /* <<<< returns early */
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-      await Modals.alert({ title: 'something went awry...', message: error.message });
+      await Dialog.alert({ title: 'something went awry...', message: error.message });
     } finally {
       this.ref.detectChanges();
     }
@@ -525,7 +528,7 @@ export class CommandBarComponent
       await this.common.ibgibs.registerNewIbGib({ ibGib: newTag });
 
       if (logalot) { console.log(`${lc} tag successful.`); }
-      await Modals.alert({ title: 'yess', message: `Tagged.` });
+      await Dialog.alert({ title: 'yess', message: `Tagged.` });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

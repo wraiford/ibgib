@@ -1,7 +1,8 @@
 import { ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
 import { CommonService } from '../services/common.service';
-import { Capacitor, Plugins } from '@capacitor/core';
-const { Modals, Filesystem } = Plugins;
+import { Capacitor } from '@capacitor/core';
+import { Dialog } from '@capacitor/dialog';
+import { Filesystem } from '@capacitor/filesystem';
 
 import * as h from 'ts-gib/dist/helper';
 import { IBGIB_DELIMITER } from 'ts-gib/dist/V1';
@@ -272,7 +273,7 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
         createBootstrap: false,
       });
       if (!newLocalSpace) {
-        await Modals.alert({ title: 'canceled...', message: 'add space canceled.' });
+        await Dialog.alert({ title: 'canceled...', message: 'add space canceled.' });
         return; /* <<<< returns early */
       }
 
@@ -293,7 +294,7 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
     try {
       if (logalot) { console.log(`${lc} starting... (I: d0f5dda9f57adfabfc9ad8f74e121f22)`); }
 
-      const resConfirmImport = await Modals.confirm({
+      const resConfirmImport = await Dialog.confirm({
         title: `attach ${this.browseInfos.filter(x => x.selected).length === 1 ? 'space' : 'spaces'} to bootstrap?`,
         message: `Importing these spaces will attach them to the bootstrap so that they will be available as local spaces.
 
@@ -308,7 +309,7 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
         cancelButtonTitle: 'NO, cancel'
       });
       if (!resConfirmImport.value) {
-        await Modals.alert({ title: 'canceled...', message: 'import canceled. ' })
+        await Dialog.alert({ title: 'canceled...', message: 'import canceled. ' })
         return; /* <<<< returns early */
       }
 
@@ -326,12 +327,12 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
           await this.importSpace({ info });
           importCount++;
         } else {
-          await Modals.alert({ title: 'space already imported', message: `The space (${info.name}) has already been imported. Skipping... (full info: ${h.pretty(info)})` });
+          await Dialog.alert({ title: 'space already imported', message: `The space (${info.name}) has already been imported. Skipping... (full info: ${h.pretty(info)})` });
         }
       }
 
       if (importCount > 0) {
-        await Modals.alert({ title: `import complete`, message: `We imported ${importCount} ${importCount > 1 ? 'spaces' : 'space'}. We will now reload the page.` })
+        await Dialog.alert({ title: `import complete`, message: `We imported ${importCount} ${importCount > 1 ? 'spaces' : 'space'}. We will now reload the page.` })
         window.location.reload();
       }
     } catch (error) {

@@ -2,8 +2,8 @@ import {
   Component, ChangeDetectorRef, Output, EventEmitter, ViewChild, Input, ElementRef
 } from '@angular/core';
 import { ScrollBaseCustomEvent } from '@ionic/angular';
-import { Plugins } from "@capacitor/core";
-const { Clipboard, } = Plugins;
+import { Clipboard } from '@capacitor/clipboard';
+import { Toast } from '@capacitor/toast';
 
 import * as h from 'ts-gib/dist/helper';
 
@@ -129,7 +129,7 @@ export class RawViewComponent extends IbgibListComponentBase<RawItem> {
 
       // debugger;
       await Clipboard.write({ string: rel8dAddr });
-      await Plugins.Toast.show({ text: 'copied!', duration: 'short' });
+      await Toast.show({ text: 'copied!', duration: 'short' });
 
       if (rel8dListItem) {
         const el = rel8dListItem;

@@ -1,7 +1,4 @@
-import {
-    Plugins, FilesystemEncoding, FileReadResult, FilesystemDirectory, Capacitor
-} from '@capacitor/core';
-const { Filesystem } = Plugins;
+import { Filesystem, Directory, Encoding, } from '@capacitor/filesystem';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGib_V1, IbGibRel8ns_V1, GIB, ROOT, isPrimitive, } from 'ts-gib/dist/V1';
@@ -32,8 +29,8 @@ export interface IonicSpaceData_V1 extends IbGibSpaceData {
      * Redeclared here to make this required (not optional)
      */
     uuid: string;
-    baseDir: FilesystemDirectory;
-    encoding: FilesystemEncoding;
+    baseDir: Directory;
+    encoding: Encoding;
     baseSubPath: string;
     spaceSubPath: string;
     ibgibsSubPath: string;
@@ -1140,18 +1137,31 @@ export class IonicSpace_V1<
         try {
             const requested = localStorage.getItem(keyPermissionRequested);
             if (!requested && Filesystem.requestPermissions) {
+                // const resPermissions = await Filesystem.requestPermissions();
+                // localStorage.setItem(keyPermissionRequested, 'true');
+                // if (resPermissions?.results) {
+                //     if (logalot) { console.log(`${lc} resPermissions: ${JSON.stringify(resPermissions.results)} falsy`); }
+                //     return true;
+                // } else {
+                //     console.warn(`${lc} resPermissions?.results falsy but that's ok, didn't throw.`);
+                //     return true;
+                // }
                 const resPermissions = await Filesystem.requestPermissions();
                 localStorage.setItem(keyPermissionRequested, 'true');
-                if (resPermissions?.results) {
-                    if (logalot) { console.log(`${lc} resPermissions: ${JSON.stringify(resPermissions.results)} falsy`); }
-                    return true;
+                if (resPermissions?.publicStorage) {
+                    if (logalot) { console.log(`${lc} resPermissions: ${JSON.stringify(resPermissions)}`); }
+                    let denied = resPermissions.publicStorage === 'denied';
+                    if (denied) {
+                        throw new Error(`resPermissions.publicStorage === 'denied' (E: ac378c6279b55d62791405661b64ad22)`);
+                    } else {
+                        return true;
+                    }
                 } else {
-                    console.warn(`${lc} resPermissions?.results falsy but that's ok, didn't throw.`);
-                    return true;
+                    throw new Error(`resPermissions?.publicStorage falsy (E: f90a27aab8c3851588ef8845b4bcef22)`);
                 }
             } else {
                 localStorage.setItem(keyPermissionRequested, 'true');
-                console.warn(`${lc} Filesystem.requestPermissions falsy but that's ok, didn't throw.`);
+                console.warn(`${lc} Filesystem.requestPermissions so just assuming we have permission... (W: e92ec8efa53040dabf9517e990c86351)`);
                 return true;
             }
         } catch (error) {

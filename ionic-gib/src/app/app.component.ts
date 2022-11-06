@@ -5,8 +5,7 @@ import { NavigationEnd, Router, } from '@angular/router';
 import { MenuController, } from '@ionic/angular';
 import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
-import { Capacitor, Plugins } from '@capacitor/core';
-const { Storage } = Plugins;
+import { Storage } from '@capacitor/storage';
 import { Subscription } from 'rxjs';
 import { concatMap, filter } from 'rxjs/operators';
 
@@ -200,8 +199,6 @@ export class AppComponent extends IbgibComponentBase
   @Input()
   addingApp: boolean;
 
-  private debugInterval: any;
-
   constructor(
     private splashScreen: SplashScreen,
     private statusBar: StatusBar,
@@ -243,6 +240,9 @@ export class AppComponent extends IbgibComponentBase
         } else {
           if (logalot) { console.log(`${lc} this.initializing is falsy`); }
         }
+
+        await Storage.migrate();
+
         let consented = await this.userConsentedToUsingStorageEtc();
         if (!consented) {
           // navigate to more info

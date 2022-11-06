@@ -3,7 +3,8 @@
  */
 
 
-import { FilesystemDirectory, FilesystemEncoding } from '@capacitor/core';
+import { Directory, Encoding } from '@capacitor/filesystem';
+
 
 import { GIB } from 'ts-gib/dist/V1';
 import { Ib, } from 'ts-gib';
@@ -82,10 +83,10 @@ export const SPACE_NAME_REGEXP = /^[a-zA-Z][\w\-]{0,62}[a-zA-Z]$/;
  * Ionic-specific folder that represents OS directory.
  *
  * Can't seem to find the files in emulator when I use the Data folder.
- * {@link FilesystemDirectory}
+ * {@link Directory}
  */
-// export const IBGIB_BASE_DIR = FilesystemDirectory.Data;
-export const IBGIB_BASE_DIR = FilesystemDirectory.Documents;
+// export const IBGIB_BASE_DIR = Directory.Data;
+export const IBGIB_BASE_DIR = Directory.Documents;
 /**
  * encoding for ibgib files.
  *
@@ -93,7 +94,7 @@ export const IBGIB_BASE_DIR = FilesystemDirectory.Documents;
  *
  * atow, only UTF-8 is supported.
  */
-export const IBGIB_ENCODING = FilesystemEncoding.UTF8;
+export const IBGIB_ENCODING = Encoding.UTF8;
 /**
  * Base directory for all data of the app.
  */

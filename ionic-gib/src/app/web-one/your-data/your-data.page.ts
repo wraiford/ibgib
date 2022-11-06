@@ -1,7 +1,6 @@
 import { ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
-import { Capacitor, Plugins } from '@capacitor/core';
 import { WebOnePageBase } from '../../common/bases/web-one-page-base';
-const { Storage } = Plugins;
+import { Storage } from '@capacitor/storage';
 
 import * as c from '../../common/constants';
 import { CommonService } from '../../services/common.service';

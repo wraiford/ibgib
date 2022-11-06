@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
-import { Plugins } from '@capacitor/core';
+import { Toast } from '@capacitor/toast';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib/dist/types';
@@ -216,7 +216,7 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       }
 
       let gotIt = `${robbot.data?.outputPrefix ?? ''}got it...${robbot.data?.outputSuffix ?? ''}`;
-      Plugins.Toast.show({ text: gotIt, duration: "long" }); // spins off...
+      Toast.show({ text: gotIt, duration: "long" }); // spins off...
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

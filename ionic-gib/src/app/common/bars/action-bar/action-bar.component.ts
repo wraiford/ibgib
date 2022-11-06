@@ -3,8 +3,7 @@ import {
   Input, ViewChild, AfterContentInit, EventEmitter, Output, ElementRef,
 } from '@angular/core';
 import { IonTextarea } from '@ionic/angular';
-import { Plugins, } from '@capacitor/core';
-const { Modals } = Plugins;
+import { Dialog } from '@capacitor/dialog';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr, TransformResult, V1 } from 'ts-gib';
@@ -771,7 +770,7 @@ export class ActionBarComponent extends IbgibComponentBase
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`)
-      await Modals.alert({ title: 'something went awry...', message: error.message });
+      await Dialog.alert({ title: 'something went awry...', message: error.message });
     } finally {
       if (logalot) { console.log(`${lc} complete.`); }
     }

@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
 import { IonSelect } from '@ionic/angular';
-import { Storage } from '@capacitor/core';
+import { Storage } from '@capacitor/storage';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib/dist/types';

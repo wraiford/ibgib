@@ -25,8 +25,8 @@ SwiperCore.use([
   IonicSlides,
 ]);
 import { Subscription } from 'rxjs';
-import { Capacitor, Plugins } from '@capacitor/core';
-const { Storage } = Plugins;
+import { Capacitor } from '@capacitor/core';
+import { Storage } from '@capacitor/storage';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib/dist/types';

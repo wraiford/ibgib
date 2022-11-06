@@ -5,11 +5,12 @@
 
 import { Injectable } from '@angular/core';
 import { AlertController, ModalController } from '@ionic/angular';
-import { Capacitor, Plugins } from '@capacitor/core';
-import { Observable, ReplaySubject, Subject, Subscription, } from 'rxjs';
+import { Capacitor } from '@capacitor/core';
+import { Toast } from '@capacitor/toast';
+import { ReplaySubject, Subscription, } from 'rxjs';
 
 import { IbGib_V1, GIB, GIB_DELIMITER, } from 'ts-gib/dist/V1';
-import { Gib, IbGibAddr, TransformResult, } from 'ts-gib';
+import { IbGibAddr, TransformResult, } from 'ts-gib';
 import * as h from 'ts-gib/dist/helper';
 import { Factory_V1 as factory } from 'ts-gib/dist/V1';
 import { getGib, getGibInfo, isPrimitive } from 'ts-gib/dist/V1/transforms/transform-helper';
@@ -32,7 +33,6 @@ import { concatMap, } from 'rxjs/operators';
 import { TagIbGib_V1 } from '../common/types/tag';
 import { UpdatePicModalResult } from '../common/modals/update-pic-modal-form/update-pic-modal-form.component';
 
-import { IbGibRobbotAny } from '../common/witnesses/robbots/robbot-base-v1';
 import { PicIbGib_V1 } from '../common/types/pic';
 import { ParticipantInfo, StatusCode, SyncSagaInfo, SyncSpaceOptionsData, SyncSpaceOptionsIbGib, SyncSpaceResultIbGib, SyncStatusData, SyncStatusIbGib } from '../common/types/outer-space';
 import { TjpIbGibAddr } from '../common/types/ibgib';
@@ -43,8 +43,8 @@ import {
   EncryptionData_V1, EncryptionInfo_EncryptGib,
   SecretData_V1, SecretIbGib_V1, SecretInfo_Password
 } from '../common/types/encryption';
-import { RobbotData_V1, RobbotIbGib_V1 } from '../common/types/robbot';
-import { AppData_V1, AppIbGib_V1 } from '../common/types/app';
+import { RobbotIbGib_V1 } from '../common/types/robbot';
+import { AppIbGib_V1 } from '../common/types/app';
 import { hasTjp, getTimelinesGroupedByTjp, getTjpAddr } from '../common/helper/ibgib';
 import { getFnPrompt, getFnAlert, getFnPromptPassword_AlertController } from '../common/helper/prompt-functions';
 import {
@@ -66,7 +66,6 @@ import { AppModalResult } from '../common/modals/app-modal-form/app-modal-form.c
 import { createNewApp, documentLocationIsAtWelcomePage } from '../common/helper/app';
 import { InMemoryIbgibCacheService } from './in-memory-ibgib-cache.service';
 import { IonicStorageLatestIbgibCacheService } from './ionic-storage-latest-ibgib-cache.service';
-import { getStatusIb } from '../common/helper/outer-space';
 import { CommentIbGib_V1 } from '../common/types/comment';
 import { UpdateCommentModalResult } from '../common/modals/update-comment-modal-form/update-comment-modal-form.component';
 
@@ -813,7 +812,7 @@ export class IbgibsService {
         fnBroadcast: (x) => this.fnBroadcast(x),
         fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       });
-      Plugins.Toast.show({ text: `trashed '${addr.slice(0, 32)}...'`, duration: "long" }); // spins off...
+      Toast.show({ text: `trashed '${addr.slice(0, 32)}...'`, duration: "long" }); // spins off...
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -853,7 +852,7 @@ export class IbgibsService {
         fnUpdateBootstrap: (x) => this.fnUpdateBootstrap(x),
       });
 
-      Plugins.Toast.show({ text: `archived '${addr.slice(0, 32)}...'`, duration: "long" }); // spins off...
+      Toast.show({ text: `archived '${addr.slice(0, 32)}...'`, duration: "long" }); // spins off...
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -1148,11 +1147,15 @@ export class IbgibsService {
       setTimeout(async () => {
         if (ibGib) {
           const tjpAddr = getTjpAddr({ ibGib });
-          await this.latestCacheSvc.put({
-            addr: tjpAddr,
-            ibGib: ibGib,
-            tjpAddr,
-          });
+          if (tjpAddr) {
+            await this.latestCacheSvc.put({
+              addr: tjpAddr,
+              ibGib: ibGib,
+              tjpAddr,
+            });
+          } else {
+            if (logalot) { console.log(`${lc} tjpAddr falsy so skipping cache (I: 9d2db4a06b4c1fb61d14ab3892064422)`); }
+          }
         }
       }, Math.ceil(Math.random() * 10000));
 

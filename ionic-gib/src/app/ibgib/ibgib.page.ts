@@ -9,17 +9,21 @@
  * the timeline.
  */
 
+import { Subscription, interval, Observable, Subject, } from 'rxjs';
+import { concatMap, debounceTime } from 'rxjs/operators';
 import {
   Component, OnInit, OnDestroy,
   ChangeDetectorRef, ChangeDetectionStrategy, Input, ViewChild
 } from '@angular/core';
 import { ActivatedRoute, ParamMap } from '@angular/router';
-// import { IonContent, IonRouterOutlet } from '@ionic/angular';
 import { IonContent } from '@ionic/angular';
-import { Subscription, interval, Observable, Subject, } from 'rxjs';
-import { concatMap, debounceTime } from 'rxjs/operators';
-import { Capacitor, FilesystemDirectory, FilesystemEncoding, Plugins } from '@capacitor/core';
-const { Modals, Clipboard, Storage, LocalNotifications, Filesystem } = Plugins;
+import { Capacitor, } from '@capacitor/core';
+import { Dialog } from '@capacitor/dialog';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Clipboard } from '@capacitor/clipboard';
+import { Storage } from '@capacitor/storage';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { Toast } from '@capacitor/toast';
 
 import * as h from 'ts-gib';
 import { IbGibAddr, TransformResult, V1 } from 'ts-gib';
@@ -466,7 +470,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
         }
       } else {
         // default special non-ibgib handler, go to the tags ibGib
-        Plugins.Toast.show({ text: `Redirecting to your tags because I don't understand the address.` }); // spins off
+        Toast.show({ text: `Redirecting to your tags because I don't understand the address.` }); // spins off
         while (this.common.ibgibs.initializing) {
           if (logalot) { console.log(`${lc} hacky wait while initializing ibgibs service (I: 936911af9f942cbdde7de4bf65fef822)`); }
           await h.delay(50);
@@ -565,11 +569,11 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
 
       const filenameWithExt = `${filename}.${ext}`;
 
-      let directory: FilesystemDirectory;
+      let directory: Directory;
       if (Capacitor.getPlatform() === 'ios') {
-        directory = FilesystemDirectory.External;
+        directory = Directory.External;
       } else {
-        directory = FilesystemDirectory.Documents;
+        directory = Directory.Documents;
       }
 
       // check to see if file already exists existing file
@@ -587,7 +591,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
         pathAlreadyExists = await pathExists({
           path,
           directory,
-          encoding: FilesystemEncoding.UTF8,
+          encoding: Encoding.UTF8,
         });
         attempts++;
       } while (pathAlreadyExists && attempts < 10); // just hard-coding this here, very edgy edge case.
@@ -600,7 +604,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       // string, but on my android testing this does not show the picture. I've
       // wasted enough time on this for now.
 
-      await writeFile({ path, data: dataToWrite, directory: FilesystemDirectory.Documents });
+      await writeFile({ path, data: dataToWrite, directory: Directory.Documents });
 
       await h.delay(100); // so user can see visually that write happened
       await getFnAlert()({ title: 'file downloaded', msg: `Successfully downloaded to ${path} in ${directory}.` });
@@ -848,11 +852,11 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       if (!this.tjp) {
         await this.loadTjp();
         if (!this.tjp) {
-          await Modals.alert({ title: `No timeline`, message: `Hmm, we can't turn off syncing because this ibgib does not have a timeline to sync. We shouldn't have even asked you to stop syncing! Sorry about that.` });
+          await Dialog.alert({ title: `No timeline`, message: `Hmm, we can't turn off syncing because this ibgib does not have a timeline to sync. We shouldn't have even asked you to stop syncing! Sorry about that.` });
           throw new Error(`tried to turn off syncing for non-tjp ibgib (E: 50f8354976e3ae3867126e7d02b34d22)`);
         }
       }
-      const resConfirmDisableAutosync = await Modals.confirm({
+      const resConfirmDisableAutosync = await Dialog.confirm({
         title: `Disable autosync for this ibgib's timeline?`,
         message: `Disable autosync for this ibgib's timeline until you re-enable it in the future?`,
       });
@@ -872,7 +876,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
         await this.common.ibgibs.disableAutosync({ tjpIbGibs });
       } else {
         if (logalot) { console.log(`${lc} disable autosync cancelled. continuing to sync. (I: 61b9de6368cc45ef6825d831f6628722)`); }
-        await Modals.alert({ title: `Cancelled`, message: `Turn OFF autosync CANCELLED.` });
+        await Dialog.alert({ title: `Cancelled`, message: `Turn OFF autosync CANCELLED.` });
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -918,7 +922,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
           tjpAddr: this.tjpAddr
         });
       if (latestAddr !== this.addr) {
-        await Modals.alert({
+        await Dialog.alert({
           title: 'Recent local changes available',
           message:
             `We are not currently at the latest local ibgib...do you have
@@ -948,12 +952,12 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
           `This will TURN ON auto syncing for the current ibGib (${this.ib}) and ALL its related ibGibs to your outerspace(s).`;
         const note = `(note: to turn off auto syncing, press the sync button again)`;
         const listTjpIbs = `List of ${tjpIbGibs.length} ibGib(s) that will autosync:\n${tjpIbGibs.map(x => x.ib).join('\n')}`;
-        const resConfirmSync = await Modals.confirm({
+        const resConfirmSync = await Dialog.confirm({
           title: 'Sync with outerspace?',
           message: `${body}\n\nProceed?\n\n${note}\n\n${listTjpIbs}`,
         });
         if (!resConfirmSync.value) {
-          await Modals.alert({ title: 'Sync cancelled.', message: 'Sync has been cancelled.' });
+          await Dialog.alert({ title: 'Sync cancelled.', message: 'Sync has been cancelled.' });
           this.item.syncing = false;
           setTimeout(() => this.ref.detectChanges());
           setTimeout(() => this.ref.detectChanges());
@@ -1151,7 +1155,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
 
   async handleTitleClick(): Promise<void> {
     if (this.item?.type === 'comment') {
-      await Modals.alert({
+      await Dialog.alert({
         title: 'Context',
         message: this.item?.text,
       });
@@ -1254,7 +1258,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
     try {
       let info = JSON.stringify(this.ibGib, null, 2);
       let addr = h.getIbGibAddr({ ibGib: this.ibGib });
-      await Modals.alert({ title: addr, message: info });
+      await Dialog.alert({ title: addr, message: info });
       console.log(info);
     } catch (error) {
       console.error(`${lc} ${error.message}`)
@@ -1331,16 +1335,16 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
         // let res = await Filesystem.requestPermissions();
         await Filesystem.writeFile({
           data: dataStr,
-          directory: FilesystemDirectory.ExternalStorage,
+          directory: Directory.ExternalStorage,
           path: `/Download/${filename}`,
-          encoding: FilesystemEncoding.UTF8,
+          encoding: Encoding.UTF8,
           recursive: true,
         });
       }
-      await Modals.alert({ title: 'export succeeded', message: 'way to go, the export succeeded' });
+      await Dialog.alert({ title: 'export succeeded', message: 'way to go, the export succeeded' });
     } catch (error) {
       debugger;
-      await Modals.alert({ title: 'export failed', message: `sorry, the export failed. error: ${error.message}` });
+      await Dialog.alert({ title: 'export failed', message: `sorry, the export failed. error: ${error.message}` });
       console.error(`${lc} ${error.message}`);
       throw error;
     } finally {
@@ -1674,7 +1678,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       return; /* <<<< returns early */
     } catch (error) {
       console.error(`${lc} ${error.message}`);
-      await Modals.alert({ title: 'something went awry...', message: error.message });
+      await Dialog.alert({ title: 'something went awry...', message: error.message });
     } finally {
       this.ref.detectChanges();
     }
@@ -1698,7 +1702,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       await this.common.ibgibs.registerNewIbGib({ ibGib: newTag });
 
       if (logalot) { console.log(`${lc} tag successful.`); }
-      await Modals.alert({ title: 'yess', message: `Tagged.` });
+      await Dialog.alert({ title: 'yess', message: `Tagged.` });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
