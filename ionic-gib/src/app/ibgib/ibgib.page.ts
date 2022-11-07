@@ -52,9 +52,13 @@ import { clearDoCancelModalOnBackButton, executeDoCancelModalIfNeeded, getSaferS
 import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { CommentIbGib_V1 } from '../common/types/comment';
 import { DisplayIbGib_V1 } from '../common/types/display';
+import { AppBase_V1 } from '../common/witnesses/apps/app-base-v1';
+import { LinkIbGib_V1 } from '../common/types/link';
+
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
+
 
 @Component({
   selector: 'ibgib-page',
@@ -255,6 +259,42 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
   @Input()
   appClassname: string;
 
+  /**
+   * These are NOT ibGib Addrs, but rather linkIbGib.data.text array.
+   *
+   * These driving open in all tabs button.
+   *
+   * @see {@link updateLinkURLs}
+   */
+  @Input()
+  linkURLs: string[];
+
+  /**
+   * Uses default list rel8n names
+   *
+   * @see {@link c.DEFAULT_LIST_REL8N_NAMES}
+   */
+  @Input()
+  get childAddrs(): IbGibAddr[] {
+    const lc = `${this.lc}[get childAddrs]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: be582a4a69920d29f16d1b51e1c60922)`); }
+
+      if (!this.ibGib?.rel8ns) { return []; }
+      const childAddrs = Object.keys(this.ibGib.rel8ns)
+        .filter(x => c.DEFAULT_LIST_REL8N_NAMES.includes(x))
+        .filter(x => this.ibGib.rel8ns[x]?.length > 0)
+        .flatMap(x => this.ibGib.rel8ns[x])
+      if (logalot) { console.log(`${lc} childAddrs:\n${childAddrs.join('\n')} (I: cb28bb83b726b110ad9b346cc23dbf22)`); }
+      return childAddrs;
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
 
   constructor(
     protected common: CommonService,
@@ -345,6 +385,9 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
 
       // use the correct app. (atow this means loading only from the app bar)
       this.updateActiveApp(); // spin off
+
+      // kind of a niche kluge to update flag if any children are links
+      await this.updateLinkURLs();
 
       // poll if there is a timeline/tjp involved
       if (this.tjp) {
@@ -527,8 +570,8 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
     }
   }
 
-  async handleDownloadPicClick(): Promise<void> {
-    const lc = `${this.lc}[${this.handleDownloadPicClick.name}]`;
+  async handleClick_DownloadPic(): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_DownloadPic.name}]`;
     const alert = getFnAlert();
     const prompt = getFnPrompt();
     try {
@@ -615,6 +658,103 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       if (logalot) { console.log(`${lc} complete.`); }
       this.downloadingPic = false;
       setTimeout(() => this.ref.detectChanges());
+    }
+  }
+
+  async handleClick_OpenChildIbGibs(): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_OpenChildIbGibs.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: af20b7c811051b38a43dc1e729db3d22)`); }
+
+      if (!this.ibGib) {
+        console.warn(`${lc} expected this.ibGib to be truthy? (W: 77277438e5204601b96672c2c29cfb88)`);
+        return; /* <<<< returns early */
+      }
+
+      // we're going to parse the URL pathname and find the location for the current ibgib
+      // addr. we'll replace this with the child ibgib addr and put it back together.
+      // this way, we reuse the current app being used and any query params
+
+      /** re-use this origin in child URL */
+      const { origin } = document.location;
+      /** pieces of the current URL pathname */
+      const pieces = document.location.pathname.split('/');
+      /** index in the pieces array of the addr */
+      const addrIndex = pieces.indexOf('ibgib') + 1;
+
+      // iterate the child addrs backwards because window.open puts the tab
+      // right next to the current tab. Otherwise, it will have the last opened
+      // next to the tab, which is counterintuitive
+      for (let i = this.childAddrs.length - 1; i >= 0; i--) {
+        const childAddr = this.childAddrs[i];
+
+        // if there's an app in the URL, we want to re-use that same app section
+        pieces[addrIndex] = childAddr;
+
+        const childPathname = pieces.join('/');
+        const newUrl = `${origin}${childPathname}`;
+        window.open(newUrl, "_blank");
+        if (i + 1 < this.childAddrs.length) {
+          await h.delay(100);
+        }
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  /**
+   * Kind of a niche kluge to enable open all links in new tabs functionality.
+   */
+  async updateLinkURLs(): Promise<void> {
+    const lc = `${this.lc}[${this.updateLinkURLs.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 09714baa996a2281cc1209cf448f5322)`); }
+      if (!this.ibGib) {
+        console.warn(`${lc} expected this.ibGib to be truthy? (W: f611e0d79ec64dbea7b637d5e905ef16)`);
+        // doesn't throw because this isn't core functionality
+        delete this.linkURLs;
+        return; /* <<<< returns early */
+      }
+
+      const linkAddrs = this.ibGib.rel8ns?.link ?? [];
+      if (linkAddrs.length === 0) { return; /* <<<< returns early */ }
+
+      let resGetLinks = await this.common.ibgibs.get({ addrs: linkAddrs });
+      if (!resGetLinks.success || resGetLinks.ibGibs?.length !== linkAddrs.length) {
+        console.error(`${lc} failed in getting all link addrs? (E: fa40b7caddef40bbae46344a1b8ed874)`);
+        delete this.linkURLs;
+        return; /* <<<< returns early */
+      }
+
+      this.linkURLs = resGetLinks.ibGibs.map(x => (<LinkIbGib_V1>x).data?.text);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      delete this.linkURLs;
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleClick_OpenLinks(): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_OpenLinks.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: e68819e91077c673eec7d17b4acfe622)`); }
+
+      let resAnchors = document.getElementsByClassName('link-url');
+      for (let i = 0; i < resAnchors.length; i++) {
+        const anchor = <HTMLAnchorElement>resAnchors[i];
+        anchor.click();
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
     }
   }
 
@@ -1134,6 +1274,8 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
 
       // additional loading because we're the main page
       await this.loadIbGib();
+
+      await this.updateLinkURLs();
 
       // additional item loading if we're a pic/comment
       if (this.item?.type === 'pic') { await this.loadPic(this.item); }

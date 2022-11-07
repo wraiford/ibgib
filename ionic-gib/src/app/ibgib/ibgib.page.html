@@ -66,7 +66,7 @@
 
       <!-- download pic -->
       <ion-button *ngIf="item?.type === 'pic' && (ios || android)" class="toolbar-title-btn"
-        [disabled]="syncing || refreshing" (click)="handleDownloadPicClick()">
+        [disabled]="syncing || refreshing" (click)="handleClick_DownloadPic()">
         <ion-icon name="download-outline"></ion-icon>
         <ion-icon name="image-outline"></ion-icon>
         <ion-spinner *ngIf="downloadingPic" name="circles" color="tertiary"></ion-spinner>
@@ -78,6 +78,22 @@
           <ion-icon name="image-outline"></ion-icon>
         </ion-button>
       </a>
+
+      <!-- open all child ibgibs (if in a browser, not ios/android) -->
+      <ion-button *ngIf="platform === 'web' && childAddrs?.length > 0" class="toolbar-title-btn" (click)="handleClick_OpenChildIbGibs()" title="opens all child ibgibs in new tabs">
+        <ion-icon name="open-outline"></ion-icon>
+        <ion-note>*</ion-note>
+      </ion-button>
+
+      <!-- open all links in new tabs -->
+      <ion-button *ngIf="linkURLs?.length > 0" class="toolbar-title-btn" (click)="handleClick_OpenLinks()" title="opens all child link URLs in new tabs">
+        <ion-icon name="open-outline"></ion-icon>
+        <ion-icon name="link-outline"></ion-icon>
+        <ion-note>*</ion-note>
+      </ion-button>
+      <div hidden *ngIf="linkURLs?.length > 0">
+        <a *ngFor="let url of linkURLs" class="link-url" [href]="url" target="_blank"></a>
+      </div>
 
       <!-- apps -->
       <ion-button *ngIf="ibGib" [disabled]="!ibGib" class="toolbar-title-btn" (click)="handleAppClick()"
