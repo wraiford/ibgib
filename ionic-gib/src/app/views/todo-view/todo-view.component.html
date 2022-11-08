@@ -4,6 +4,8 @@
   [isTodo]="true"
   (ibListItemClicked)='itemClicked($event)'
   (ibListItemLongClicked)='itemLongClicked($event)'
+  (ibListItemSwipedRight)="handleSwipeRight_ListItem($event)"
+  (ibListItemSwipedLeft)="handleSwipeLeft_ListItem($event)"
   [scrollEvents]="true"
   (ionScroll)='handleScroll($event)'
   (itemsAdded)='handleItemsAdded($event)'

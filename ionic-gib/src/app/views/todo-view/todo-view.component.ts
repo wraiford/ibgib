@@ -79,9 +79,12 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
 
   @Output()
   ibGibItemClicked = new EventEmitter<TodoItem>();
-
   @Output()
   ibGibItemLongClicked = new EventEmitter<TodoItem>();
+  @Output()
+  ibGibItemSwipedRight = new EventEmitter<[TodoItem, IbgibComponentBase]>();
+  @Output()
+  ibGibItemSwipedLeft = new EventEmitter<[TodoItem, IbgibComponentBase]>();
 
   @ViewChild('listView')
   listView: ListViewComponent;
@@ -170,6 +173,35 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
     }
   }
 
+  async handleSwipeRight_ListItem([item, itemRef]: [IbGibItem, IbgibComponentBase]): Promise<void> {
+    const lc = `${this.lc}[${this.handleSwipeRight_ListItem.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
+
+      this.ibGibItemSwipedRight.emit([item, itemRef]);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async handleSwipeLeft_ListItem([item, itemRef]: [IbGibItem, IbgibComponentBase]): Promise<void> {
+    const lc = `${this.lc}[${this.handleSwipeLeft_ListItem.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting...`); }
+      if (logalot) { console.log(`${lc} item: ${h.pretty(item)}`); }
+
+      this.ibGibItemSwipedLeft.emit([item, itemRef]);
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
   handleScroll(event: any): void {
     const lc = `${this.lc}[${this.handleScroll.name}]`;
     if (logalot) { console.log(`${lc} scrolling (I: cc8370a18af74e04bd89ecdbb720ae76)`); }

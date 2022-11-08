@@ -140,6 +140,57 @@ export class TodoAppComponent extends IbgibComponentBase {
     }
   }
 
+  async handleSwipeRight_IbGibItem([item, itemRef]: [TodoItem, IbgibComponentBase]): Promise<void> {
+    const lc = `${this.lc}[${this.handleSwipeRight_IbGibItem.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: cf826fb8bb1f4313a69d3ba4b7b1391e)`); }
+      // await this.showModal(item);
+
+      // need to get the address actually associated with the context, which may
+      // be in the past. this is not perfect but what can ya do.
+      // very ugly right now, not solved. state of ibgib/context binding with
+      // list/items eesh.
+      const ibGib_Context = this.ibGib;
+      const { rel8nName_Context } = item;
+      const addr = itemRef.getAddrActuallyRel8edToContext(ibGib_Context, rel8nName_Context);
+
+      await this.common.ibgibs.trash({
+        ibGib_Context: this.ibGib,
+        rel8nName_Context: item.rel8nName_Context,
+        addr
+      });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+  async handleSwipeLeft_IbGibItem([item, itemRef]: [TodoItem, IbgibComponentBase]): Promise<void> {
+    const lc = `${this.lc}[${this.handleSwipeLeft_IbGibItem.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: c1b73d260a904d0f988dd0a7e763c6c2)`); }
+      // need to get the address actually associated with the context, which may
+      // be in the past. this is not perfect but what can ya do.
+      // very ugly right now, not solved. state of ibgib/context binding with
+      // list/items eesh.
+      const ibGib_Context = this.ibGib;
+      const { rel8nName_Context } = item;
+      const addr = itemRef.getAddrActuallyRel8edToContext(ibGib_Context, rel8nName_Context);
+
+      await this.common.ibgibs.archive({
+        ibGib_Context: this.ibGib,
+        rel8nName_Context: item.rel8nName_Context,
+        addr
+      });
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
   handleClick_CloseModal(): void {
     const lc = `${this.lc}[${this.handleClick_CloseModal.name}]`;
     try {

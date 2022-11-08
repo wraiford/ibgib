@@ -309,6 +309,7 @@ export class AppComponent extends IbgibComponentBase
           await h.delay(100);
         }
 
+
         // these are AppComponent-specific initializations
         await this.initializeMyRoots();
         await this.initializeMyApps();
@@ -344,18 +345,23 @@ export class AppComponent extends IbgibComponentBase
       } catch (error) {
         const emsg = `${lc} ${error?.message || error?.toString() || '[hmmm what?]'}`;
         console.error(emsg);
-        Dialog.alert({
-          title: `Doh! ${emsg.substring(0, 30)}...`,
-          message: `There was a super bad error in the app's startup...I'm Sorry!
 
-          It's just me coding right now, and this is a prototype...and...my dog ate my homework.
+        // only show an error if they're not on a web-1 page because when you
+        // first show up to the welcome page, this will throw atow.
+        // if (!c.WEB_1_PATHS.some(p => window.location.pathname.endsWith(p))) {
+        //   Dialog.alert({
+        //     title: `Doh! ${emsg.substring(0, 30)}...`,
+        //     message: `There was a super bad error in the app's startup...I'm Sorry!
 
-          Please let me know at https://github.com/wraiford/ibgib/issues
+        //   It's just me coding right now, and this is a prototype...and...my dog ate my homework.
 
-          Anyway, here is the error details (Or look at the console hitting F12 in your browser):
+        //   Please let me know at https://github.com/wraiford/ibgib/issues
 
-          ${emsg}`
-        });
+        //   Anyway, here is the error details (Or look at the console hitting F12 in your browser):
+
+        //   ${emsg}`
+        //   });
+        // }
       } finally {
         this.initializing = false;
         setTimeout(() => this.ref.detectChanges());

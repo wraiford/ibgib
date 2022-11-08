@@ -27,7 +27,7 @@ import { RawExportIbGib_V1 } from '../../types/import-export';
 import { getTimelinesGroupedByTjp, } from '../../helper/ibgib';
 
 
-const logalot = c.GLOBAL_LOG_A_LOT || false;
+const logalot = c.GLOBAL_LOG_A_LOT || true;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
@@ -171,8 +171,24 @@ export class ActionBarComponent extends IbgibComponentBase
    * @see {@link sendOnReturnPlatforms}
    */
   private get doSendOnEnterKey(): boolean {
-    return this.sendOnReturnPlatforms.some(x => this.platforms.includes(x));
+    const lc = `${this.lc}[get doSendOnEnterKey]`;
+    const result = this.sendOnReturnPlatforms.some(x => this.platforms.includes(x));
+    if (logalot) { console.log(`${lc} result: ${result} (I: 6a8bd41a938dcafbe160f40920691f22)`); }
+    return result;
   }
+
+  @Input()
+  selectedExportIbGib: RawExportIbGib_V1;
+  settingExportIbGib: boolean;
+
+  /**
+   * we're creating pic/bin ibgibs when user adds one via
+   * file picker or camera. But we don't save/register it yet.
+   * These are just the candidate infos, that when the user presses
+   * the send button, we will add these candidates.
+   */
+  @Input()
+  resCreatePicCandidates: PicCandidate[] = [];
 
   @Output()
   actionBtnClick = new EventEmitter<ActionItem>();
@@ -552,15 +568,6 @@ export class ActionBarComponent extends IbgibComponentBase
     }
   }
 
-  /**
-   * we're creating pic/bin ibgibs when user adds one via
-   * file picker or camera. But we don't save/register it yet.
-   * These are just the candidate infos, that when the user presses
-   * the send button, we will add these candidates.
-   */
-  @Input()
-  resCreatePicCandidates: PicCandidate[] = [];
-
   async handleClick_Import(_event: MouseEvent): Promise<void> {
     const lc = `${this.lc}[${this.handleClick_Import.name}]`;
     try {
@@ -897,12 +904,26 @@ export class ActionBarComponent extends IbgibComponentBase
   }
 
   async handleCommentDetailInput(event: KeyboardEvent): Promise<void> {
-    const lc = `${this.lc}[${this.handleCommentDetailInput}]`;
+    const lc = `${this.lc}[${this.handleCommentDetailInput.name}]`;
     if (!this.actionDetailVisible) { this.actionDetailVisible = true; }
-    if ((!event.shiftKey) &&
+
+    const isCtrlEnter = (event.ctrlKey) &&
+      event.key === 'Enter' &&
+      this.actionDetailCommentText;
+    const isEnter_NoShift = (!event.shiftKey) &&
       this.doSendOnEnterKey && event.key === 'Enter' &&
-      this.actionDetailCommentText
-    ) {
+      this.actionDetailCommentText;
+
+    if (logalot) {
+      console.log(`${lc} event.shiftKey: ${event.shiftKey} (I: 03cee22a704cbd0c81fbefd64dba8d22)`);
+      console.log(`${lc} this.doSendOnEnterKey: ${this.doSendOnEnterKey}`);
+      console.log(`${lc} event.key: ${event.key}`);
+      console.log(`${lc} this.actionDetailCommentText: ${!!this.actionDetailCommentText}`);
+      console.log(`${lc} isCtrlEnter: ${isCtrlEnter}`);
+      console.log(`${lc} isEnter_NoShift: ${isEnter_NoShift}`);
+    }
+
+    if (isCtrlEnter || isEnter_NoShift) {
       event.stopPropagation(); // doesn't work
       event.stopImmediatePropagation(); // doesn't work
       await this.send_AddComment();
@@ -910,13 +931,26 @@ export class ActionBarComponent extends IbgibComponentBase
   }
 
   async handleLinkDetailInput(event: KeyboardEvent): Promise<void> {
-    const lc = `${this.lc}[${this.handleLinkDetailInput}]`;
+    const lc = `${this.lc}[${this.handleLinkDetailInput.name}]`;
     if (!this.actionDetailVisible) { this.actionDetailVisible = true; }
-    if ((!event.shiftKey) &&
-      this.doSendOnEnterKey && event.key === 'Enter' &&
+
+    const isCtrlEnter = (event.ctrlKey) &&
       event.key === 'Enter' &&
-      this.actionDetailLinkText
-    ) {
+      this.actionDetailLinkText;
+    const isEnter_NoShift = (!event.shiftKey) &&
+      this.doSendOnEnterKey && event.key === 'Enter' &&
+      this.actionDetailLinkText;
+
+    if (logalot) {
+      console.log(`${lc} event.shiftKey: ${event.shiftKey} (I: 03cee22a704cbd0c81fbefd64dba8d22)`);
+      console.log(`${lc} this.doSendOnEnterKey: ${this.doSendOnEnterKey}`);
+      console.log(`${lc} event.key: ${event.key}`);
+      console.log(`${lc} this.actionDetailLinkText: ${!!this.actionDetailLinkText}`);
+      console.log(`${lc} isCtrlEnter: ${isCtrlEnter}`);
+      console.log(`${lc} isEnter_NoShift: ${isEnter_NoShift}`);
+    }
+
+    if (isCtrlEnter || isEnter_NoShift) {
       event.stopPropagation(); // doesn't work
       event.stopImmediatePropagation(); // doesn't work
       await this.send_AddLink();
@@ -1046,9 +1080,6 @@ export class ActionBarComponent extends IbgibComponentBase
   }
 
 
-  @Input()
-  selectedExportIbGib: RawExportIbGib_V1;
-  settingExportIbGib: boolean;
 
   async handleImportFileInputClick(event: any): Promise<void> {
     const lc = `${this.lc}[${this.handleImportFileInputClick.name}]`;

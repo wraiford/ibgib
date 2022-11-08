@@ -1,6 +1,8 @@
 <todo-view [addr]="addr" [activeApp]="activeApp"
   (ibGibItemClicked)="handleClick_IbGibItem($event)"
   (ibGibItemLongClicked)="handleLongClick_IbGibItem($event)"
+  (ibGibItemSwipedRight)="handleSwipeRight_IbGibItem($event)"
+  (ibGibItemSwipedLeft)="handleSwipeLeft_IbGibItem($event)"
   >
 </todo-view>
 
