@@ -488,7 +488,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
         // (though of course atow this is a completely new paradigm for apps)
         setTimeout(async () => {
           while (!this.appBarIsVisible) {
-            console.log('appBarIsVisible false still')
+            if (logalot) { console.log('appBarIsVisible false still') }
             this.appBarIsVisible = true;
             await h.delay(100);
           }

@@ -1,13 +1,14 @@
 // #region imports & some init
 
+import { Subscription } from 'rxjs';
+import { concatMap, filter } from 'rxjs/operators';
 import { Component, OnInit, ChangeDetectorRef, Input, OnDestroy } from '@angular/core';
 import { NavigationEnd, Router, } from '@angular/router';
 import { MenuController, } from '@ionic/angular';
 import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { Storage } from '@capacitor/storage';
-import { Subscription } from 'rxjs';
-import { concatMap, filter } from 'rxjs/operators';
+import { Dialog } from '@capacitor/dialog';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr, } from 'ts-gib';
@@ -241,7 +242,7 @@ export class AppComponent extends IbgibComponentBase
           if (logalot) { console.log(`${lc} this.initializing is falsy`); }
         }
 
-        await Storage.migrate();
+        await this.initialize_Storage();
 
         let consented = await this.userConsentedToUsingStorageEtc();
         if (!consented) {
@@ -352,23 +353,73 @@ export class AppComponent extends IbgibComponentBase
         }, 15_000);
 
       } catch (error) {
-        console.error(`${lc} ${error.message}`);
+        const emsg = `${lc} ${error?.message || error?.toString() || '[hmmm what?]'}`;
+        console.error(emsg);
+        Dialog.alert({
+          title: `Doh! ${emsg.substring(0, 30)}...`,
+          message: `There was a super bad error in the app's startup...I'm Sorry!
+
+          It's just me coding right now, and this is a prototype...and...my dog ate my homework.
+
+          Please let me know at https://github.com/wraiford/ibgib/issues
+
+          Anyway, here is the error details (Or look at the console hitting F12 in your browser):
+
+          ${emsg}`
+        });
       } finally {
         this.initializing = false;
         setTimeout(() => this.ref.detectChanges());
         this.splashScreen.hide();
-
-        // this is what navigates if not using the welcome page
-        // if (navToAddr) {
-        // await this.go({
-        //   toAddr: navToAddr,
-        //   fromAddr: h.getIbGibAddr({ibGib: this.ibGib_Context}),
-        // });
-        // }
       }
     });
 
     if (logalot) { console.log(`${lc} complete. waiting for platform.ready...`); }
+  }
+
+  async initialize_Storage(): Promise<void> {
+    const lc = `${this.lc}[${this.initialize_Storage.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: ed99cd81989a3256ac6d34b66e5d7622)`); }
+
+      // I'm hitting the quota in storage, so I'm going to remove the cache'd
+      // items on start
+      if (window.localStorage) {
+        let resKeys = Object.keys(window.localStorage);
+
+        if (resKeys?.length > 0) {
+          let cacheKeys = resKeys.filter(x => x.includes('IonicStorageLatestIbgibCacheService'));
+
+          if (cacheKeys.length > 0) {
+            console.warn(`${lc} removing ${cacheKeys.length} cacheKeys (W: 6f9df589fb122788e54d5c6dbba10b22)`);
+          }
+
+          for (let i = 0; i < cacheKeys.length; i++) {
+            const key = cacheKeys[i];
+            window.localStorage.removeItem(key);
+          }
+        }
+      }
+      await Storage.migrate();
+
+      if (window.localStorage) {
+        let resKeys = Object.keys(window.localStorage);
+        // just want to log if we're actually removing any old keys
+        let hasPreMigrateKeys = resKeys.some(x => x.startsWith('_cap_'));
+        if (hasPreMigrateKeys) {
+          console.warn(`${lc} removing pre migrate cap keys (W: 81ed4f08dc644e5ea563831991aa9fb4)`)
+          await Storage.removeOld();
+        }
+      } else {
+        console.warn(`${lc} no window.localStorage. calling Storage.removeOld (W: 2ccd0ca33ce64764b351effc6b27b63d)`)
+        await Storage.removeOld();
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
   async ngOnInit(): Promise<void> {
