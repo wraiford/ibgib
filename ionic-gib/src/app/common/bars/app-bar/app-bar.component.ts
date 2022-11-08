@@ -215,14 +215,6 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
       this.apps = await this.common.ibgibs.getAppAppIbGibs({ createIfNone: false }) ?? [];
       if (this.apps?.length > 0) {
         this.appNames = this.apps.map(r => r.data.name);
-        // if (!this.selectedApp && loadLastSelected) {
-        //   let lastSelectedAppId = (await Storage.get({ key: this.lastAppStorageKey }))?.value;
-        //   if (lastSelectedAppId && this.apps.some(x => x.data?.uuid === lastSelectedAppId)) {
-        //     this.selectedApp = this.apps.filter(x => x.data?.uuid === lastSelectedAppId)[0];
-        //   } else {
-        //     this.selectedApp = this.apps[0];
-        //   }
-        // }
       } else {
         this.appNames = [];
       }

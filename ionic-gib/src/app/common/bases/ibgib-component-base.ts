@@ -108,10 +108,6 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
     @Input()
     set ibGib_Context(value: IbGib_V1) {
         const lc = `${this.lc}[set ibGib_Context]`;
-        // if (this.item?.ibGib_Context) {
-        //     console.warn(`${lc} can only set context once.`);
-        //     return; /* <<<< returns early */
-        // }
         if (!value) {
             if (logalot) { console.log(`${lc} ignored setting falsy context.`); }
             return; /* <<<< returns early */
@@ -133,7 +129,6 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
             setTimeout(() => {
                 if (this.item) {
                     setContext();
-                    // clearInterval(interval);
                 } else {
                     const now = new Date();
                     if (this._destroyed) {
@@ -143,7 +138,6 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
                     }
                 }
             }, 1000);
-            // setTimeout(() => { setContext(); }, 1000);
         }
     }
     get rel8nName_Context(): string { return this.item?.rel8nName_Context; }
@@ -179,20 +173,6 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
         }
     }
 
-    // @Input()
-    // get isRoot(): boolean { return isRootItem(this.item); }
-    // @Input()
-    // get isRoots(): boolean { return isRootsItem(this.item); }
-    // @Input()
-    // get isTag(): boolean { return isTagItem(this.item); }
-    // @Input()
-    // get isTags(): boolean { return isTagsItem(this.item); }
-    // @Input()
-    // get isPic(): boolean { return isPicItem(this.item); }
-    // @Input()
-    // get isComment(): boolean { return isCommentItem(this.item); }
-    // @Input()
-    // get isLink(): boolean { return isLinkItem(this.item); }
     @Input()
     get isRoot(): boolean { return this.ib?.startsWith('root ') || false; }
     @Input()

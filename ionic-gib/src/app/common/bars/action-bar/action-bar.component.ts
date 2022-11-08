@@ -374,11 +374,6 @@ export class ActionBarComponent extends IbgibComponentBase
       // hack to try to minimize still showing comment text very briefly after sending...
       // not a big deal i don't think
       setTimeout(() => { this.sending = false; this.ref.detectChanges(); }, 500);
-      // this.actionDetailLinkText = '';
-      // this.focusDetail();
-      // if (actionItem) { actionItem.busy = false; }
-      // this.sending = false;
-      // this.ref.detectChanges();
     }
   }
 
@@ -541,8 +536,6 @@ export class ActionBarComponent extends IbgibComponentBase
         await this.rel8ToThisIbGib({
           ibGibToRel8: resCreatePic.newIbGib,
           rel8nNames: ['pic'],
-          // only register on the last context
-          // registerNewContext: i === this.resCreatePicCandidates.length-1,
         });
 
       }
@@ -996,9 +989,6 @@ export class ActionBarComponent extends IbgibComponentBase
     const lc = `${this.lc}[${this.cancelPic.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: ba5628348b6a05d9e14e9cb6e48c3b22)`); }
-      // for (let i = 0; i < this.resCreatePicCandidates.length; i++) {
-      //   const candidate = this.resCreatePicCandidates[i];
-      // }
 
       this.resCreatePicCandidates = this.resCreatePicCandidates.filter(x => {
         return x.picSrc !== candidateToCancel.picSrc;

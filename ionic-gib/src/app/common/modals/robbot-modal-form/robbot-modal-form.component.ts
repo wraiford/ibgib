@@ -97,16 +97,6 @@ export class RobbotModalFormComponent
       this.metaformItems = [
         this.selectTypeItem,
       ];
-      // setTimeout(() => {
-      //   console.warn('setting default value to random robbot!!!')
-      //   console.warn('setting default value to random robbot!!!')
-      //   console.warn('setting default value to random robbot!!!')
-      //   console.warn('setting default value to random robbot!!!')
-      //   this.handleItemSelected(this.subformItems[0]);
-      //   this.selectTypeItem.defaultValue = 'RandomRobbot_V1'; //debug only!
-      // }, 1000);
-      // spin off initialize (can't await in ctor)
-      // this.initialize();
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);

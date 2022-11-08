@@ -185,8 +185,6 @@ export class AppComponent extends IbgibComponentBase
 
   @Input()
   initializing: boolean;
-  // @Input()
-  // get svcInitializing(): boolean { return this.common.ibgibs.initializing; }
 
   @Input()
   menuOpen: string = 'tags';
@@ -327,15 +325,6 @@ export class AppComponent extends IbgibComponentBase
           await this.updateIbGib(addr);
         }
 
-        // setTimeout(() => {
-        //   this.handleAddRobbot();
-        //   console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
-        //   console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
-        //   console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
-        //   console.warn('DEFAULTING TO ADD ROBBOT FOR TESTING PURPOSES');
-        // }, 3000);
-
-        // navToAddr = this.tagsAddr;
         this.common.platform.backButton.subscribeWithPriority(10, async () => {
           if (this.common?.nav) { await this.common.nav.back(); }
         });
@@ -428,12 +417,6 @@ export class AppComponent extends IbgibComponentBase
     try {
       this.subscribeParamMap();
       await super.ngOnInit();
-      // const path = window.location.pathname.split('ibgib/')[1];
-      // console.log(`path: ${path}`);
-      // if (path !== undefined) {
-      //   this.selectedIndex =
-      //     this.menuItems.findIndex(page => page.title.toLowerCase() === path.toLowerCase());
-      // }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     } finally {
@@ -625,19 +608,6 @@ export class AppComponent extends IbgibComponentBase
       const currentRootIbGib = await this.common.ibgibs.getCurrentRoot({});
       if (!currentRootIbGib) { throw new Error(`currentRoot not found(?)`); }
       if (!currentRootIbGib.data) { throw new Error(`currentRoot.data falsy (?)`); }
-      // let {icon, text, description} = currentRootIbGib.data;
-      // if (!icon) {
-      //   console.warn(`${lc} root.icon not found. Using default.`);
-      //   icon = c.DEFAULT_ROOT_ICON;
-      // }
-      // if (!text) {
-      //   console.warn(`${lc} root.text not found. Using default.`);
-      //   text = c.DEFAULT_ROOT_TEXT;
-      // }
-      // if (!description) {
-      //   console.warn(`${lc} root.description not found. Using default.`);
-      //   description = c.DEFAULT_ROOT_DESCRIPTION;
-      // }
       const addr = h.getIbGibAddr({ ibGib: currentRootIbGib });
 
       this.currentRoot = await this.getRootItem(addr);
@@ -1221,25 +1191,6 @@ export class AppComponent extends IbgibComponentBase
     }
 
   }
-  // async getSpaceItem_localSpace(space: IbGibSpaceAny): Promise<MenuItem> {
-  //   const lc = `${this.lc}[${this.getSpaceItem_localSpace.name}]`;
-  //   let item: MenuItem;
-  //   try {
-  //     const ibGib = space.toIbGibDto ? space.toIbGibDto() : space;
-  //     if (logalot) { console.log(`${lc} ibGib: ${h.pretty(ibGib)} (I: c24a7fc94df7b5403bc221e98083ee22)`); }
-  //     let validateIbGibErrors = await validateIbGibIntrinsically({ ibGib });
-  //     if (validateIbGibErrors?.length > 0) { throw new Error(`invalid ibGib intrinsically. errors: ${validateIbGibErrors} (E: d482f5e1ff2db1bb91312128797be922)`); }
-  //     const addr = h.getIbGibAddr({ ibGib });
-  //     if (!spaceNameIsValid(ibGib.data.name)) { throw new Error(`invalid spacename: ${space.data.name} (E: ee437d70aa5e8bdf44e692bfa4832f22)`); }
-  //     const text = ibGib.data.name || ibGib.ib;
-  //     const icon = (<any>space.data).icon || c.DEFAULT_SPACE_ICON;
-  //     item = this.getMenuItem({ text, icon, addr });
-  //   } catch (error) {
-  //     console.error(`${lc} ${error.message}`);
-  //     item = this.getErroredMenuItem();
-  //   }
-  //   return item;
-  // }
 
   async getSpaceItem(space: IbGibSpaceAny): Promise<MenuItem> {
     const lc = `${this.lc}[${this.getSpaceItem.name}]`;

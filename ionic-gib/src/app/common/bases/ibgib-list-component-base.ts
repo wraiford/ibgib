@@ -364,9 +364,6 @@ export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGib
                     const addrToAdd = addrsToAdd[i];
 
                     const cached = await this.common.cache.get({ addr: addrToAdd, addrScope: this.lc });
-                    // const cached = this._cachingItems ?
-                    //     null :
-                    //     await this.common.cache.get({addr: addrToAdd, addrScope: this.lc});
                     let newItem: TItem;
                     if (cached?.other) {
                         newItem = h.clone(cached?.other);
@@ -374,19 +371,6 @@ export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGib
                         newItem.ibGib_Context = this.ibGib;
                         if (logalot) { console.log(`${lc} found item in cache (I: d61f38fbed6042f98518e47a4edd6f67)`); }
                     } else {
-                        // hack: just implemented ionic storage and am reusing it here maybe unnecessarily
-                        // if (!this.paused) {
-                        //     let latestcached = await this.common.getLatestCache.get({addr: addrToAdd});
-                        //     if (latestcached?.ibGib) {
-                        //         newItem = <TItem>{ addr: h.getIbGibAddr({ibGib: latestcached.ibGib}) };
-                        //         if (logalot) { console.log(`${lc} in get latest cache, but queueing item to cache (${addrToAdd}) (I: 1c5486bb2830400dbd7e59ced7c9d6af)`); }
-                        //         itemsToCache.push(newItem);
-                        //     } else {
-                        //         newItem = <TItem>{ addr: addrToAdd };
-                        //         if (logalot) { console.log(`${lc} queueing item to cache (${addrToAdd}) (I: 0fe55669bfdd74f0cc9714ae96e4a622)`); }
-                        //         itemsToCache.push(newItem);
-                        //     }
-                        // } else {
                         newItem = <TItem>{
                             addr: addrToAdd,
                             ibGib_Context: this.ibGib,
@@ -423,12 +407,6 @@ export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGib
                     await this.common.cache.put({ addr: item.addr, addrScope: this.lc, ibGib: item.ibGib, other: item });
                 });
             }
-
-            // note our previous last item, which we'll use to determine if we
-            // have to sort again after adding the items
-            // const lastExistingItemBeforeAdd = this.items?.length > 0 ?
-            //     this.items[this.items.length - 1] :
-            //     null;
 
             // add the items to the list, which will change our bound view
 
@@ -662,18 +640,6 @@ export abstract class IbgibListComponentBase<TItem extends IbGibListItem = IbGib
         const lc = `${this.lc}[${this.addItems.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 4095aa8792efdc12e5e7cba9879fba22)`); }
-
-            // // first add to the unfiltered list
-            // this.unfilteredItems = direction === 'insert' ?
-            //     [...itemsToAdd, ...this.unfilteredItems] :
-            //     [...this.unfilteredItems, ...itemsToAdd];
-            // this.sortItems(this.unfilteredItems);
-
-            // // now apply filter if applicable
-            // if (this.display?.data?.filters?.length > 0) {
-            //     // filter per display settings
-            //     itemsToAdd = await this.filterPerDisplay({ itemsToAdd });
-            // }
 
             // apply possibly filtered items to this.items, which is what the
             // views are bound to

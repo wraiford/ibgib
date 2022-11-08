@@ -59,10 +59,10 @@ export async function createBinIbGib({
 
     if (!binHash) { throw new Error(`binHash required (E: 09da0190a9353089a9ed8a641fe0bc22)`); }
 
-    const binIb = getBinIb({binHash, binExt: ext});
+    const binIb = getBinIb({ binHash, binExt: ext });
     const binIbGib: BinIbGib_V1 = { ib: binIb, data: <any>base64Data };
 
-    const binGib = await getGib({ibGib: binIbGib, hasTjp: false});
+    const binGib = await getGib({ ibGib: binIbGib, hasTjp: false });
     binIbGib.gib = binGib;
 
     if (saveInSpace) {
@@ -71,7 +71,7 @@ export async function createBinIbGib({
       if (logalot) { console.log(`${lc} saving binary ibgib in space... (I: 8235addb1b3e4e638ef568da5f219d29)`); }
 
       // execute put
-      const resSaveBin = await putInSpace({ibGib: binIbGib, space});
+      const resSaveBin = await putInSpace({ ibGib: binIbGib, space });
 
       // if errored, throw
       if (!resSaveBin.success) { throw new Error(resSaveBin.errorMsg || 'error saving pic (E: cf892bc62ab44ec58534d9881c9c4332)'); }
@@ -119,9 +119,9 @@ export async function createPicAndBinIbGibs({
   if (logalot) { console.log(`${lc} starting...`); }
   try {
     const resCreateBin =
-      await createBinIbGib({base64Data: imageBase64, binHash, ext, saveInSpace, space});
+      await createBinIbGib({ base64Data: imageBase64, binHash, ext, saveInSpace, space });
     const { newIbGib: binIbGib } = resCreateBin;
-    const binAddr = h.getIbGibAddr({ibGib: binIbGib});
+    const binAddr = h.getIbGibAddr({ ibGib: binIbGib });
 
     // todo: do thumbnail also
 
@@ -146,7 +146,7 @@ export async function createPicAndBinIbGibs({
 
     // create an ibgib with the filename and ext
     const resPicIbGib = <TransformResult<PicIbGib_V1>>await factory.firstGen({
-      parentIbGib: factory.primitive({ib: 'pic'}),
+      parentIbGib: factory.primitive({ ib: 'pic' }),
       ib: `pic ${binHash}`,
       data,
       rel8ns,
@@ -156,10 +156,8 @@ export async function createPicAndBinIbGibs({
     });
     if (saveInSpace) {
       if (!space) { throw new Error(`space required if saveInSpace is truthy (E: 966901041c9e166c0f5ed23114003722)`); }
-      await persistTransformResult({resTransform: resPicIbGib, space});
+      await persistTransformResult({ resTransform: resPicIbGib, space });
     }
-    // const newPic = <PicIbGib_V1>resPicIbGib.newIbGib;
-  //   await common.ibgibs.rel8ToCurrentRoot({ibGib: newPic, linked: true, space});
 
     return [resPicIbGib, resCreateBin];
   } catch (error) {
@@ -208,11 +206,11 @@ export async function createPicAndBinIbGibsFromInputFilePickedEvent({
             try {
               if (logalot) { console.log(`${lc2} starting... (I: 1e948476ca86b328a12700dc57be0a22)`); }
               let imageBase64 = reader.result.toString().split('base64,')[1];
-              let binHash = await h.hash({s: imageBase64});
+              let binHash = await h.hash({ s: imageBase64 });
               const filenameWithExt = file.name;
               const filenamePieces = filenameWithExt.split('.');
-              const filename = filenamePieces.slice(0, filenamePieces.length-1).join('.');
-              const ext = filenamePieces.slice(filenamePieces.length-1)[0];
+              const filename = filenamePieces.slice(0, filenamePieces.length - 1).join('.');
+              const ext = filenamePieces.slice(filenamePieces.length - 1)[0];
               if (ext.includes(IBGIB_DELIMITER)) {
                 throw new Error(`file extension cannot contain the character ${IBGIB_DELIMITER} (E: f5bc9ef79f7efe01cd53abd49d9f6122)`);
               }
@@ -255,7 +253,7 @@ export function isPic({
 
     if (!ibGib) { throw new Error(`ibGib required (E: 1237b2d4602a3d526f6b159cb6ad0922)`); }
 
-    const {ib, data, rel8ns} = ibGib;
+    const { ib, data, rel8ns } = ibGib;
 
     // try rel8ns first
     if (!rel8ns) {

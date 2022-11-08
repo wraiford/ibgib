@@ -43,7 +43,6 @@ export function validateCommonRobbotData({
         const {
             name, uuid, classname,
             outputPrefix, outputSuffix,
-            // outputMode,
         } =
             robbotData;
 
@@ -74,19 +73,6 @@ export function validateCommonRobbotData({
                 errors.push(`outputSuffix must match regexp: ${c.ROBBOT_PREFIX_SUFFIX_REGEXP}`);
             }
         }
-
-        // if (outputMode) {
-        //     if (!VALID_ROBBOT_OUTPUT_MODES.includes(outputMode)) {
-        //         errors.push(`invalid outputMode (${outputMode}). Must be a value from ${VALID_ROBBOT_OUTPUT_MODES}`);
-        //     }
-        // }
-
-        // if (tagOutput !== undefined) {
-        //     const tagOutputType = typeof tagOutput;
-        //     if (tagOutputType !== 'boolean') {
-        //         errors.push(`invalid tagOutputType (${tagOutputType}). should be boolean if set.`);
-        //     }
-        // }
 
         if (classname) {
             if (!classname.match(c.ROBBOT_NAME_REGEXP)) {
@@ -122,8 +108,6 @@ export function getRobbotIb({
         }
 
         // ad hoc validation here. should centralize witness classname validation
-        // let classnameValidationError = validateWitnessClassname({classname});
-        // if (classnameValidationError) { throw new Error(`invalid classname. ${classnameValidationError} (E: 20fddb54342743a383c33c87a1db9343)`); }
 
         const { name, uuid } = robbotData;
         return `witness robbot ${classname} ${name} ${uuid}`;
@@ -151,9 +135,6 @@ export function getInfoFromRobbotIb({
     try {
         if (!robbotIb) { throw new Error(`robbotIb required (E: 4a35881058094f1a90bb4ea37052d6d7)`); }
 
-        // const name = robbot.data?.name || c.IBGIB_ROBBOT_NAME_DEFAULT;
-        // const id = robbot.data?.uuid || undefined;
-        // return `witness robbot ${classname} ${name} ${id}`;
         const pieces = robbotIb.split(' ');
 
         return {

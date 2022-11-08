@@ -45,14 +45,6 @@ export function validateDisplayData({
 
         if (sorts?.length > 0) { }
 
-        // if (uuid) {
-        //     if (!uuid.match(c.UUID_REGEXP)) {
-        //         errors.push(`uuid must match regexp: ${c.UUID_REGEXP}`);
-        //     }
-        // } else {
-        //     errors.push(`uuid required.`);
-        // }
-
         return errors;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
@@ -105,89 +97,3 @@ export function parseDisplayIb({
         throw error;
     }
 }
-
-// export async function createNewDisplay({
-//     common,
-//     ibgibs,
-//     space,
-// }: {
-//     /**
-//      * Either {@link common} or {@link ibgibs} is required
-//      * @hack
-//      */
-//     common?: CommonService,
-//     /**
-//      * Either {@link common} or {@link ibgibs} is required
-//      * @hack
-//      */
-//     ibgibs?: IbgibsService,
-//     /**
-//      * space within which to create the display. if not provided, the
-//      * defaults to the local user space via {@link common} or {@link ibgibs}.
-//      */
-//     space: IbGibSpaceAny,
-// }): Promise<DisplayIbGib_V1 | undefined> {
-//     const lc = `[${createNewDisplay.name}]`;
-//     try {
-//         if (logalot) { console.log(`${lc} starting...`); }
-
-//         if (!common && !ibgibs) { throw new Error(`(UNEXPECTED) either common or ibgibs service required. (E: 94f040fa9dba47478af3128ae18179a9)`); }
-//         ibgibs = ibgibs ?? common.ibgibs;
-
-//         space = space ?? await ibgibs.getLocalUserSpace({ lock: true });
-
-//         // prompt user to create the ibgib, passing in null because we're
-//         // creating not editing.
-//         // let resDisplay = common ?
-//         //     await getFn_promptDisplayIbGib(common)(space, /**ibGib*/ null) :
-//         //     await ibgibs.fnPromptDisplay(space, /*ibGib because creating*/null);
-
-//         /** this should be the witness class itself at this point. */
-//         const newDisplay = <DisplayIbGib_V1>resDisplay.newIbGib;
-//         let loading = await common.loadingCtrl.create({ message: 'creating...' });
-//         try {
-//             await loading.present();
-//             await h.delay(1000); // ensure that the user sees a creating message
-//             let allIbGibs: IbGib_V1[] = [];
-//             allIbGibs.push(newDisplay);
-//             resDisplay.intermediateIbGibs?.forEach(x => allIbGibs.push(x));
-//             resDisplay.dnas?.forEach(x => allIbGibs.push(x));
-//             for (let i = 0; i < allIbGibs.length; i++) {
-//                 const ibGib = allIbGibs[i];
-//                 const validationErrors = await validateIbGibIntrinsically({ ibGib });
-//                 if ((validationErrors ?? []).length > 0) { throw new Error(`(unexpected) invalid display ibgib created. validationErrors: ${validationErrors}. display: ${h.pretty(newDisplay.toIbGibDto())} (E: abebc94c346846c28aecefe3dea31fa7)`); }
-//             }
-
-//             await persistTransformResult({ resTransform: resDisplay, isMeta: true, space });
-//             const { zeroSpace, fnBroadcast, fnUpdateBootstrap } = ibgibs;
-//             await registerNewIbGib({
-//                 ibGib: newDisplay,
-//                 space,
-//                 zeroSpace,
-//                 fnBroadcast: (x) => fnBroadcast(x),
-//                 fnUpdateBootstrap: (x) => fnUpdateBootstrap(x),
-//             });
-
-//             await rel8ToSpecialIbGib({
-//                 type: "displays",
-//                 rel8nName: c.DISPLAY_REL8N_NAME,
-//                 ibGibsToRel8: [newDisplay],
-//                 space,
-//                 zeroSpace,
-//                 fnUpdateBootstrap,
-//                 fnBroadcast,
-//             });
-//         } catch (error) {
-//             console.error(`${lc} ${error.message}`);
-//             throw error;
-//         } finally {
-//             await loading.dismiss();
-//         }
-//         return newDisplay;
-//     } catch (error) {
-//         console.error(`${lc} ${error.message}`);
-//         return;
-//     } finally {
-//         if (logalot) { console.log(`${lc} complete.`); }
-//     }
-// }

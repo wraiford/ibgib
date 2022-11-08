@@ -20,19 +20,11 @@ export async function createNewTag(common: CommonService):
         if (logalot) { console.log(`${lc} starting...`); }
 
         // using this modal doesn't show icons in list to select
+        // (leaving this comment in to remind of this)
         // const modal = await common.modalController.create({
         //     component: TagModalFormComponent,
         // });
         // await modal.present();
-        // let resModal = await modal.onWillDismiss();
-        // const tagData: TagData_V1 = resModal.data;
-        // if (!tagData) {
-        //     if (logalot) { console.log(`${lc} cancelled.`) }
-        //     return; /* <<<< returns early */
-        // }
-
-        // if (logalot) { console.log(`${lc} tagData: ${h.pretty(tagData)}`); }
-        // const { text, icon, description } = tagData;
 
         const text = await chooseTagText();
         if (!text) { return; }

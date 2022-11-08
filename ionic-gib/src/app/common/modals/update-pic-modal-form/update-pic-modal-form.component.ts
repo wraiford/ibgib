@@ -216,24 +216,6 @@ export class UpdatePicModalFormComponent
       // pic ibgib is as if it's created anew. We need to mutate
       // the current pic ibgib to use the new binary
 
-      // current code when creating new pic ibgibs
-      // const data: PicData_V1 = { binHash, ext, filename, timestamp };
-      // const rel8ns: IbGibRel8ns_V1 = {
-      //   // 'pic on': [addr], // makes it more difficult to share/sync ibgibs
-      //   [c.BINARY_REL8N_NAME]: [binAddr],
-      // };
-
-      // // create an ibgib with the filename and ext
-      // const resPicIbGib = <TransformResult<PicIbGib_V1>>await factory.firstGen({
-      //   parentIbGib: factory.primitive({ib: 'pic'}),
-      //   ib: `pic ${binHash}`,
-      //   data,
-      //   rel8ns,
-      //   dna: true,
-      //   tjp: { uuid: true, timestamp: true },
-      //   nCounter: true,
-      // });
-
       /** This was created as if the pic were brand new (not mutated) */
       const newPicFromScratchIbGib = this.resCreatePic.newIbGib;
 
@@ -255,7 +237,7 @@ export class UpdatePicModalFormComponent
       const binAddr = h.getIbGibAddr({ ibGib: this.resCreateBin.newIbGib });
       const resRel8Bin = <TransformResult<PicIbGib_V1>>await V1.rel8({
         src: resMut8DataAndIb.newIbGib,
-        // linkedRel8ns: [c.BINARY_REL8N_NAME],
+        // linkedRel8ns: [c.BINARY_REL8N_NAME], // multiple binaries allowed on pics
         rel8nsToAddByAddr: {
           [c.BINARY_REL8N_NAME]: [binAddr],
         },

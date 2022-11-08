@@ -163,14 +163,6 @@ export class SecretModalFormComponent
   protected async createImpl(): Promise<TransformResult<IbGib_V1<SecretData_V1>>> {
     const lc = `${this.lc}[${this.createImpl.name}]`;
     try {
-      // if (logalot) { console.log(`${lc}`); }
-      // this.showHelp = false;
-      // const validationErrors = await this.validateForm();
-      // if (validationErrors.length > 0) {
-      //   console.warn(`${lc} validation failed. Errors:\n${validationErrors.join('\n')}`);
-      //   return;
-      // }
-
       let resNewIbGib: TransformResult<IbGib_V1<SecretData_V1>>;
 
       // create the space
@@ -181,9 +173,8 @@ export class SecretModalFormComponent
       }
 
       if (!resNewIbGib) { throw new Error(`creation failed...`); }
-      return resNewIbGib;
 
-      // await this.modalController.dismiss(resNewIbGib);
+      return resNewIbGib;
     } catch (error) {
       console.error(`${lc} ${error.message}`);
     }
@@ -229,43 +220,6 @@ export class SecretModalFormComponent
     const lc = `${this.lc}[${this.validateForm.name}]`;
 
     const errors = await super.validateForm();
-    // this.validationErrors.splice(0, this.validationErrors.length);
-    // this.erroredFields.splice(0, this.erroredFields.length);
-    // const errors: string[] = [];
-    // const erroredFields: string[] = [];
-
-    // let fields: FieldInfo[] = Object.values(this.fields);
-    // for (let i = 0; i < fields.length; i++) {
-    //   const field = fields[i];
-    //   let value = this[field.name];
-    //   if (logalot) { console.log(`${lc} doing ${field.name}`); }
-    //   if (value) {
-    //     if (logalot) { console.log(`${lc} value: ${value}`); }
-
-    //     if (typeof value === 'string') {
-    //       if (field.regexp) {
-    //         if (logalot) { console.log(`${lc} ${field.name} is a string. regexp: ${field.regexp}`); }
-    //         if ((value.match(field.regexp) ?? []).length === 0) {
-    //           erroredFields.push(field.name);
-    //           errors.push(`${field.name} must match regexp: ${field.regexp}`);
-    //         }
-    //       }
-    //       if ((<string>value).includes('\n')) {
-    //         erroredFields.push(field.name);
-    //         errors.push(`${field.name} cannot contain new lines.`);
-    //       }
-    //     }
-    //     if (field.fnValid && !field.fnValid(value)) {
-    //       erroredFields.push(field.name);
-    //       errors.push(`${field.name} error: ${field.fnErrorMsg}`);
-    //     }
-    //   } else {
-    //     if (field.required) {
-    //       erroredFields.push(field.name);
-    //       errors.push(`${field.name} required.`);
-    //     }
-    //   }
-    // }
 
     if (this.userPassword !== this.userPasswordConfirm) {
       let emsg = `passwords don't match`;

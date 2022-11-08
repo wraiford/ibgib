@@ -93,14 +93,6 @@ export class TodoAppComponent extends IbgibComponentBase {
       await this.loadIbGib();
       await this.loadTjp();
       await this.loadItem();
-      // don't pingLatest in todo app
-      // trigger an initial ping to check for newer ibgibs
-      // if (!this.paused) {
-      //   setTimeout(async () => {
-      //     await this.smallDelayToLoadBalanceUI();
-      //     await this.common.ibgibs.pingLatest_Local({ ibGib: this.ibGib, tjpIbGib: this.tjp, useCache: true });
-      //   });
-      // }
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);
       this.clearItem();
@@ -153,11 +145,6 @@ export class TodoAppComponent extends IbgibComponentBase {
     try {
       if (logalot) { console.log(`${lc} starting... (I: aa14deb245994637a41915d9e0e7f0a7)`); }
       this.closeModal();
-      // if (this._fullscreenIbGibAddr) { this.fullscreenIbGibAddr = null; }
-
-      // this.showModal_FullscreenIbGib = false;
-      // clearDoCancelModalOnBackButton();
-      // setTimeout(() => this.ref.detectChanges());
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

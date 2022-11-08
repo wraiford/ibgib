@@ -2830,9 +2830,6 @@ export function getInfoFromSpaceIb({
         if (!spaceIb) { throw new Error(`spaceIb required (E: fa5424cfb7e846e2851562f2f417944f)`); }
 
         if (spaceIb.startsWith('witness space ')) {
-            // const name = space.data?.name || c.IBGIB_SPACE_NAME_DEFAULT;
-            // const id = space.data?.uuid || undefined;
-            // return `witness space ${classname} ${name} ${id}`;
             const pieces = spaceIb.split(' ');
             return {
                 spaceClassname: pieces[2],

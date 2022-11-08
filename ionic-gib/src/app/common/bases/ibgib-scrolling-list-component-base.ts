@@ -178,8 +178,6 @@ export abstract class IbgibScrollingListComponentBase<TItem extends IbGibListIte
             await this.updateItems({
                 reloadAll: false, direction: 'insert', scrollAfter: false,
             });
-            // this.infiniteScroll.disabled = true;
-            // event;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;

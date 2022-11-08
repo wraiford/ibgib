@@ -354,9 +354,6 @@ export function getFn_promptRobbotIbGib(
             clearDoCancelModalOnBackButton();
             if (resModal.data) {
                 const result = <RobbotModalResult>resModal.data;
-                // const [resCreatePic, _resCreateBin] = result;
-                // const addr = h.getIbGibAddr({ibGib: resCreatePic.newIbGib});
-                // if (logalot) { console.log(`${lc} updated pic. addr: ${addr}`); }
                 return result;
             } else {
                 // didn't create one
@@ -395,9 +392,6 @@ export function getFn_promptAppIbGib(
             clearDoCancelModalOnBackButton();
             if (resModal.data) {
                 const result = <AppModalResult>resModal.data;
-                // const [resCreatePic, _resCreateBin] = result;
-                // const addr = h.getIbGibAddr({ibGib: resCreatePic.newIbGib});
-                // if (logalot) { console.log(`${lc} updated pic. addr: ${addr}`); }
                 return result;
             } else {
                 // didn't create one

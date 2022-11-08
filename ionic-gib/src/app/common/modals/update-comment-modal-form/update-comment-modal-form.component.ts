@@ -200,24 +200,6 @@ export class UpdateCommentModalFormComponent
       // pic ibgib is as if it's created anew. We need to mutate
       // the current pic ibgib to use the new binary
 
-      // current code when creating new pic ibgibs
-      // const data: CommentData_V1 = { binHash, ext, filename, timestamp };
-      // const rel8ns: IbGibRel8ns_V1 = {
-      //   // 'pic on': [addr], // makes it more difficult to share/sync ibgibs
-      //   [c.BINARY_REL8N_NAME]: [binAddr],
-      // };
-
-      // // create an ibgib with the filename and ext
-      // const resCommentIbGib = <TransformResult<CommentIbGib_V1>>await factory.firstGen({
-      //   parentIbGib: factory.primitive({ib: 'pic'}),
-      //   ib: `pic ${binHash}`,
-      //   data,
-      //   rel8ns,
-      //   dna: true,
-      //   tjp: { uuid: true, timestamp: true },
-      //   nCounter: true,
-      // });
-
       /** This was created as if the pic were brand new (not mutated) */
       const newCommentFromScratchIbGib = this.resCreateComment.newIbGib;
 

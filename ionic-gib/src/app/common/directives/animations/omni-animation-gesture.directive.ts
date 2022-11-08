@@ -460,13 +460,6 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
         try {
             if (logalot) { console.log(`${lc} starting... (I: 04a7f491f7ea4fa4a7091bdf49f46244)`); }
 
-            // const animation =
-            //     this.animationCtrl.create()
-            //         .addElement(this.el.nativeElement)
-            //         .duration(this.longClickCmdAnimationMs)
-            //         .to('height', `${this.el.nativeElement.clientHeight * 1.5}px`)
-            //         .fromTo('opacity', '0.7', '1');
-            // await animation.play();
             this.omniLongClick.emit();
         } catch (error) {
             console.error(`${lc} ${error.message}`);

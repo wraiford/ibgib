@@ -37,8 +37,6 @@ export function validateCommonAppData({
         const errors: string[] = [];
         const {
             name, uuid, classname,
-            // outputPrefix, outputSuffix,
-            // outputMode,
         } =
             appData;
 
@@ -57,31 +55,6 @@ export function validateCommonAppData({
         } else {
             errors.push(`uuid required.`);
         }
-
-        // if (outputPrefix) {
-        //     if (!outputPrefix.match(c.APP_PREFIX_SUFFIX_REGEXP)) {
-        //         errors.push(`outputPrefix must match regexp: ${c.APP_PREFIX_SUFFIX_REGEXP}`);
-        //     }
-        // }
-
-        // if (outputSuffix) {
-        //     if (!outputSuffix.match(c.APP_PREFIX_SUFFIX_REGEXP)) {
-        //         errors.push(`outputSuffix must match regexp: ${c.APP_PREFIX_SUFFIX_REGEXP}`);
-        //     }
-        // }
-
-        // if (outputMode) {
-        //     if (!VALID_APP_OUTPUT_MODES.includes(outputMode)) {
-        //         errors.push(`invalid outputMode (${outputMode}). Must be a value from ${VALID_APP_OUTPUT_MODES}`);
-        //     }
-        // }
-
-        // if (tagOutput !== undefined) {
-        //     const tagOutputType = typeof tagOutput;
-        //     if (tagOutputType !== 'boolean') {
-        //         errors.push(`invalid tagOutputType (${tagOutputType}). should be boolean if set.`);
-        //     }
-        // }
 
         if (classname) {
             if (!classname.match(c.APP_NAME_REGEXP)) {
@@ -347,27 +320,6 @@ export class AppFormBuilder extends WitnessFormBuilder {
         });
         return this;
     }
-
-    // outputSuffix({
-    //     of,
-    //     required,
-    // }: {
-    //     of: string,
-    //     required?: boolean,
-    // }): AppFormBuilder {
-    //     this.addItem({
-    //         // witness.data.outputSuffix
-    //         name: "outputSuffix",
-    //         description: `Technical setting that sets a suffix for all text output of the ${this.what}. (like a signature)`,
-    //         label: "Output Suffix",
-    //         regexp: c.APP_PREFIX_SUFFIX_REGEXP,
-    //         regexpErrorMsg: c.APP_PREFIX_SUFFIX_REGEXP_DESC,
-    //         dataType: 'textarea',
-    //         value: of,
-    //         required,
-    //     });
-    //     return this;
-    // }
 
 }
 

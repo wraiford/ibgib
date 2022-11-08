@@ -58,14 +58,6 @@ export class RawAppComponent extends IbgibComponentBase {
       await this.loadIbGib();
       await this.loadTjp();
       await this.loadItem();
-      // don't pingLatest in raw app
-      // trigger an initial ping to check for newer ibgibs
-      // if (!this.paused) {
-      //   setTimeout(async () => {
-      //     await this.smallDelayToLoadBalanceUI();
-      //     await this.common.ibgibs.pingLatest_Local({ ibGib: this.ibGib, tjpIbGib: this.tjp, useCache: true });
-      //   });
-      // }
     } catch (error) {
       console.error(`${lc} error: ${error.message}`);
       this.clearItem();

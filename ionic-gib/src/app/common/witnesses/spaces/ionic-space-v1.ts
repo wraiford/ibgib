@@ -569,19 +569,6 @@ export class IonicSpace_V1<
             if (!arg.data) { throw new Error('arg.data required. (E: d64a46e5efab4b09b57850ecf0854386)'); }
             if (arg.ibGibs?.length === 0) { throw new Error(`arg.ibGibs required. (E: b4930d564b284fb9b26b542f14143a28)`); }
 
-            // removing this because adding keys blows it up on older spaces.
-            // it's a klugy hack anyway.
-            // const reqKeys = Object.keys(DEFAULT_IONIC_SPACE_DATA_V1);
-            // const thisDataKeys = Object.keys(this.data || {});
-            // const nonInitializedKeys: string[] = [];
-            // reqKeys.forEach(key => {
-            //     if (!thisDataKeys.includes(key)) { nonInitializedKeys.push(key); }
-            // });
-            // if (nonInitializedKeys.length > 0) {
-            //     console.warn(`${lc} this.data: ${h.pretty(this.data ?? {})}`);
-            //     throw new Error(`not initialized yet. data keys not found: ${nonInitializedKeys}. (E: 32f7273516a0457ba2e2bbda69c5aae6)`);
-            // }
-
             if (logalot) { console.log(`arg and internal state validated...calling impl func`); }
             return await this.putIbGibsImpl(arg); // <<<< returns early
         } catch (error) {
@@ -746,22 +733,6 @@ export class IonicSpace_V1<
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ ibGib: arg }), }
         try {
             throw new Error(`not implemented (E: 2a45977c584c6bbbc4f164c16106bd22)`);
-            // const { ibGibAddrs } = arg.data!;
-            // let notFoundIbGibAddrs: IbGibAddr[] = undefined;
-            // for (let i = 0; i < ibGibAddrs.length; i++) {
-            //     const addr = ibGibAddrs[i];
-            //     if (!Object.keys(this.ibGibs).includes(addr)) {
-            //         if (!notFoundIbGibAddrs) { notFoundIbGibAddrs = []; }
-            //         notFoundIbGibAddrs.push(addr);
-            //     }
-            // }
-            // resultData.success = true;
-            // if (notFoundIbGibAddrs && notFoundIbGibAddrs.length > 0) {
-            //     resultData.addrsNotFound = notFoundIbGibAddrs;
-            //     resultData.can = false;
-            // } else {
-            //     resultData.can = true;
-            // }
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];
@@ -775,21 +746,6 @@ export class IonicSpace_V1<
         const resultData: IonicSpaceResultData = { optsAddr: getIbGibAddr({ ibGib: arg }), }
         try {
             throw new Error(`not implemented (E: 25a005d496efc69faefdec155ffb4a22)`);
-            // const ibGibs = arg.ibGibs || [];
-            // const addrsAlreadyHave: IbGibAddr[] = [];
-            // for (let i = 0; i < ibGibs?.length; i++) {
-            //     const ibGib = ibGibs[i];
-            //     const addr = getIbGibAddr({ibGib});
-            //     if (Object.keys(this.ibGibs).includes(addr)) {
-            //         addrsAlreadyHave.push(addr);
-            //     }
-            // }
-            // resultData.success = true;
-            // if (addrsAlreadyHave.length > 0) {
-            //     resultData.addrsAlreadyHave = addrsAlreadyHave;
-            //     resultData.warnings = (resultData.warnings || []).concat([`${lc} already have addr(s).`]);
-            // }
-            // resultData.can = ibGibs.length > addrsAlreadyHave.length;
         } catch (error) {
             console.error(`${lc} error: ${error.message}`);
             resultData.errors = [error.message];
@@ -984,19 +940,6 @@ export class IonicSpace_V1<
                 }
             }
 
-            // if (Capacitor.getPlatform() === 'android') {
-            //     try {
-            //         if (logalot) { console.log(`${lc} android detected. trying to delete first.`); }
-            //         let resDelete = await this.deleteFile({addr: h.getIbGibAddr({ibGib}), isMeta, isDna});
-            //         if (resDelete.success) {
-            //             if (logalot) { console.log(`${lc} delete succeeded.`); }
-            //         } else {
-            //             if (logalot) { console.log(`${lc} delete failed but maybe it didn't exist.`); }
-            //         }
-            //     } catch (error) {
-            //         if (logalot) { console.log(`${lc} tried to delete file first for android, but failed`); }
-            //     }
-            // }
             if (logalot) { console.log(`${lc} path: ${path}, directory: ${thisData.baseDir}, encoding: ${thisData.encoding} (I: d4440ececbe6c859f8fcf6d7ece12522)`); }
             const resWrite = await Filesystem.writeFile({
                 path,
