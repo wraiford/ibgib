@@ -682,21 +682,20 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       /** index in the pieces array of the addr */
       const addrIndex = pieces.indexOf('ibgib') + 1;
 
-      // iterate the child addrs backwards because window.open puts the tab
-      // right next to the current tab. Otherwise, it will have the last opened
-      // next to the tab, which is counterintuitive
-      for (let i = this.childAddrs.length - 1; i >= 0; i--) {
-        const childAddr = this.childAddrs[i];
-
-        // if there's an app in the URL, we want to re-use that same app section
+      // build list of urls from child addr and the current location
+      const urls = this.childAddrs.map(childAddr => {
         pieces[addrIndex] = childAddr;
-
         const childPathname = pieces.join('/');
         const newUrl = `${origin}${childPathname}`;
-        window.open(newUrl, "_blank");
-        if (i + 1 < this.childAddrs.length) {
-          await h.delay(100);
-        }
+        return newUrl;
+      });
+
+      // works in chrome if user ctrl/cmd clicks
+      const isMozilla =
+        window?.navigator?.userAgent?.toString().toLowerCase().includes('firefox') ?? false;
+      for (let index = 0; index < urls.length; index++) {
+        const url = isMozilla ? urls.reverse()[index] : urls[index];
+        window.open(url, "_blank");
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
