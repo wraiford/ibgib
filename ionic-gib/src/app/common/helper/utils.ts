@@ -545,3 +545,19 @@ export function replaceCharAt({
     chars[pos] = newChar;
     return chars.join('');
 }
+
+/**
+ * Apparently it's a pain to determine if a keyboard event is hitting the
+ * "enter" key across platforms.
+ *
+ * @link https://bugs.chromium.org/p/chromium/issues/detail?id=79407
+ * @link https://stackoverflow.com/questions/3883543/javascript-different-keycodes-on-different-browsers
+ *
+ * @returns true if the event is the user pressing the "Enter" key, else false
+ */
+export function isKeyboardEvent_Enter(event: KeyboardEvent): boolean {
+    const isEnter = event.key === 'Enter' || event.code === 'Enter';
+    // event.keyCode === 10 || event.keyCode === 13 ||
+    // event.charCode === 10 || event.charCode === 13;
+    return isEnter;
+}

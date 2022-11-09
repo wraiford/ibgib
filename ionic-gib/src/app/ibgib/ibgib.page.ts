@@ -780,6 +780,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       setTimeout(() => this.ref.detectChanges());
     }
   }
+
   async handleUpdatePicClick(): Promise<void> {
     const lc = `${this.lc}[${this.handleUpdatePicClick.name}]`;
     try {

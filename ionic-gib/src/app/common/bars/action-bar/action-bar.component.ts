@@ -25,9 +25,10 @@ import { PicIbGib_V1 } from '../../types/pic';
 import { BinIbGib_V1 } from '../../types/bin';
 import { RawExportIbGib_V1 } from '../../types/import-export';
 import { getTimelinesGroupedByTjp, } from '../../helper/ibgib';
+import { isKeyboardEvent_Enter } from '../../helper/utils';
 
 
-const logalot = c.GLOBAL_LOG_A_LOT || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 @Component({
@@ -908,10 +909,11 @@ export class ActionBarComponent extends IbgibComponentBase
     if (!this.actionDetailVisible) { this.actionDetailVisible = true; }
 
     const isCtrlEnter = (event.ctrlKey) &&
-      event.key === 'Enter' &&
+      isKeyboardEvent_Enter(event) &&
       this.actionDetailCommentText;
     const isEnter_NoShift = (!event.shiftKey) &&
-      this.doSendOnEnterKey && event.key === 'Enter' &&
+      this.doSendOnEnterKey &&
+      isKeyboardEvent_Enter(event) &&
       this.actionDetailCommentText;
 
     if (logalot) {
@@ -935,10 +937,11 @@ export class ActionBarComponent extends IbgibComponentBase
     if (!this.actionDetailVisible) { this.actionDetailVisible = true; }
 
     const isCtrlEnter = (event.ctrlKey) &&
-      event.key === 'Enter' &&
+      isKeyboardEvent_Enter(event) &&
       this.actionDetailLinkText;
     const isEnter_NoShift = (!event.shiftKey) &&
-      this.doSendOnEnterKey && event.key === 'Enter' &&
+      this.doSendOnEnterKey &&
+      isKeyboardEvent_Enter(event) &&
       this.actionDetailLinkText;
 
     if (logalot) {
