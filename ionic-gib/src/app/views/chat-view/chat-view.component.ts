@@ -7,14 +7,13 @@ import * as h from 'ts-gib/dist/helper';
 
 import * as c from '../../common/constants';
 import { CommonService } from '../../services/common.service';
-import { IbGibItem, IbGibTimelineUpdateInfo } from '../../common/types/ux';
+import { IbGibItem, } from '../../common/types/ux';
 import { IbgibListComponentBase } from '../../common/bases/ibgib-list-component-base';
 import { ListViewComponent } from '../list-view/list-view.component';
 import { ChatApp_V1 } from 'src/app/common/witnesses/apps/chat-app-v1';
 import { IbgibComponentBase } from 'src/app/common/bases/ibgib-component-base';
-import { DisplayIbGib_V1 } from 'src/app/common/types/display';
 
-const logalot = c.GLOBAL_LOG_A_LOT || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 
 export interface ChatItem extends IbGibItem {
 
@@ -34,6 +33,9 @@ export class ChatViewComponent extends IbgibListComponentBase<ChatItem> {
 
   @Input()
   disableSelection: boolean;
+
+  @Input()
+  showLabel: boolean;
 
   @Output()
   chatViewScrolled: EventEmitter<ScrollBaseCustomEvent> = new EventEmitter();

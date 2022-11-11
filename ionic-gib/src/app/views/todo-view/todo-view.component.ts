@@ -74,6 +74,9 @@ export class TodoViewComponent extends IbgibComponentBase<TodoItem> {
   @Input()
   loadingApp: boolean = false;
 
+  @Input()
+  showLabel: boolean;
+
   @Output()
   todoItemChecked = new EventEmitter<TodoItem>();
 

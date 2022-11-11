@@ -2,6 +2,7 @@
 <list-view #listView id='theList'
   [addr]='addr'
   [isTodo]="true"
+  [showLabel]="showLabel"
   (ibListItemClicked)='itemClicked($event)'
   (ibListItemLongClicked)='itemLongClicked($event)'
   (ibListItemSwipedRight)="handleSwipeRight_ListItem($event)"

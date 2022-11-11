@@ -2,7 +2,7 @@ import {
   Component, OnInit, ChangeDetectorRef,
   Input, ViewChild, AfterContentInit, EventEmitter, Output, ElementRef,
 } from '@angular/core';
-import { IonTextarea } from '@ionic/angular';
+import { getPlatforms, IonTextarea } from '@ionic/angular';
 import { Dialog } from '@capacitor/dialog';
 
 import * as h from 'ts-gib/dist/helper';
@@ -168,13 +168,29 @@ export class ActionBarComponent extends IbgibComponentBase
    * @see {@link sendOnReturnPlatforms}
    */
   private platforms: string[] = this.common.platform.platforms();
+
+
   /**
    * @see {@link sendOnReturnPlatforms}
    */
   private get doSendOnEnterKey(): boolean {
     const lc = `${this.lc}[get doSendOnEnterKey]`;
-    const result = this.sendOnReturnPlatforms.some(x => this.platforms.includes(x));
-    if (logalot) { console.log(`${lc} result: ${result} (I: 6a8bd41a938dcafbe160f40920691f22)`); }
+    const isAutoSendPlatform = this.sendOnReturnPlatforms.some(x => this.platforms.includes(x));
+    // "ios" | "ipad" | "iphone" | "android" | "phablet" | "tablet" | "cordova"
+    // | "capacitor" | "electron" | "pwa" | "mobile" | "mobileweb" | "desktop" |
+    // "hybrid"[];
+    if (logalot) { console.log(`${lc} isAutoSendPlatform: ${isAutoSendPlatform} (I: 6a8bd41a938dcafbe160f40920691f22)`); }
+
+    // this is part of ionic's getPlatforms implementation atow and it may be
+    // misleading. I'm going to do my own checking here to address an issue with a
+    // test computer that is registering as ["mobile","mobileweb"]
+    // it has a kensington trackball and a trackpad
+    // const matchMedia = (win: Window, query: string): boolean => win.matchMedia?.(query).matches;
+    // const isMobile = (win: Window) => matchMedia(win, '(any-pointer:coarse)');
+    let hasHover = window.matchMedia?.('(hover:hover)').matches;
+    let hasPointerFine = window.matchMedia?.('(pointer:fine)').matches;
+    let hasKeyboardProbably = hasHover && hasPointerFine;
+    let result = hasKeyboardProbably || isAutoSendPlatform;
     return result;
   }
 
@@ -983,7 +999,7 @@ export class ActionBarComponent extends IbgibComponentBase
       //  mobile mobileweb desktop hybrid
       const autoFocusPlatforms = ['ipad', 'phablet', 'tablet', 'electron', 'desktop'];
       const platforms = this.common.platform.platforms();
-      console.log(`${lc} TESTING platforms: ${platforms}`)
+      if (logalot) { console.log(`${lc} TESTING platforms: ${platforms}`); }
       const doAutoFocus = autoFocusPlatforms.some(x => platforms.includes(x));
       if (!doAutoFocus && !force) { return; }
 

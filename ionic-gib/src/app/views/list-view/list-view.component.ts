@@ -28,6 +28,9 @@ export class ListViewComponent extends IbgibScrollingListComponentBase {
   @Input()
   disableSelection: boolean;
 
+  @Input()
+  showLabel: boolean;
+
   /**
    * Can't just use 'click', 'ibclicked' etc because already taken.
    */

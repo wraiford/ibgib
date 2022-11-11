@@ -13,7 +13,7 @@ import { getTimestampInTicks } from '../../helper/utils';
 import { getDisplayIb } from '../../helper/display';
 import { IonInput } from '@ionic/angular';
 
-const logalot = c.GLOBAL_LOG_A_LOT || true;
+const logalot = c.GLOBAL_LOG_A_LOT || false;
 const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
 
 // /**

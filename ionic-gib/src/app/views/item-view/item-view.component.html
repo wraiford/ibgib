@@ -39,6 +39,21 @@
   [style.border-left-width]="hasChildren ? '2px' : '0px'"
   >
 </pic-view>
+<!-- pic label -->
+<comment-view *ngIf="item?.type === 'pic' && showLabel && labelAddr"
+  class='item-label'
+  [isTitleOrJustSmall]="true"
+  [addr]='labelAddr'
+  [hideTimestamp]="true"
+  [style.border-color]="debugBorderColor"
+  [style.border-width]="debugBorderWidth"
+  [style.border-style]="debugBorderStyle"
+  [style.border-left-color]="debugBorderColor"
+  [style.border-left-style]="'dotted'"
+  [style.border-left-width]="hasChildren ? '1px' : '0px'"
+  >
+</comment-view>
+
 
 <!-- comment -->
 <comment-view #commentView
@@ -83,6 +98,20 @@
   [style.border-left-width]="hasChildren ? '2px' : '0px'"
   >
 </link-view>
+<!-- link label -->
+<comment-view *ngIf="item?.type === 'link' && showLabel && labelAddr"
+  class='item-label'
+  [isTitleOrJustSmall]="true"
+  [addr]='labelAddr'
+  [hideTimestamp]="true"
+  [style.border-color]="debugBorderColor"
+  [style.border-width]="debugBorderWidth"
+  [style.border-style]="debugBorderStyle"
+  [style.border-left-color]="debugBorderColor"
+  [style.border-left-style]="'dotted'"
+  [style.border-left-width]="hasChildren ? '1px' : '0px'"
+  >
+</comment-view>
 
 <!-- tag -->
 <tag-view #tagView
