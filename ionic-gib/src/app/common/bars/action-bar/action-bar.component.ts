@@ -190,7 +190,9 @@ export class ActionBarComponent extends IbgibComponentBase
     let hasHover = window.matchMedia?.('(hover:hover)').matches;
     let hasPointerFine = window.matchMedia?.('(pointer:fine)').matches;
     let hasKeyboardProbably = hasHover && hasPointerFine;
-    let result = hasKeyboardProbably || isAutoSendPlatform;
+    let isMightyLargeForMobile = this.platforms.includes("mobile") && window.innerWidth > 810;
+
+    let result = hasKeyboardProbably || isAutoSendPlatform || isMightyLargeForMobile;
     return result;
   }
 
