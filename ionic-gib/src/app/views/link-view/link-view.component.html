@@ -5,6 +5,10 @@
   [style.border-style]="debugBorderStyle"
   >
   <!-- <pre class="link-text">{{ item?.text }}</pre> -->
+
+  <!-- show the "pic label" (first pic child of the link) -->
+  <img *ngIf='picLabelSrc && !isTitleOrJustSmall && !isYoutubeLink' [src]='picLabelSrc'/>
+
   <ion-item *ngIf="!isYoutubeLink">
     <a [style.maxHeight]="'100px'" class="link-text" [href]="item?.text" target="_blank">{{item?.text}}</a>
   </ion-item>
@@ -20,8 +24,14 @@
 </ion-card>
 
 <!-- title link -->
-<div *ngIf='ibGib && isTitleOrJustSmall' [title]="item?.text || item?.ib || '[html title binding error!]'"
+<div *ngIf='ibGib && isTitleOrJustSmall'
+  class="title-link-div"
+  [title]="item?.text || item?.ib || '[html title binding error!]'"
   >
+  <!-- show the "pic label" (first pic child of the link) -->
+  <ion-thumbnail *ngIf='picLabelSrc && isTitleOrJustSmall'>
+    <img [src]='picLabelSrc'/>
+  </ion-thumbnail>
   <a [style.maxHeight]="'100px'" class="is-title" [href]="item?.text" target="_blank">{{item?.text}}</a>
 </div>
 

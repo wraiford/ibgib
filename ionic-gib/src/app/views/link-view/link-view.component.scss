@@ -12,6 +12,10 @@ ion-card {
   display: flex;
   flex-direction: column;
   align-items: stretch;
+
+  ion-item {
+    padding: 5px 0px 0px 0px;
+  }
 }
 
 pre {
@@ -52,4 +56,11 @@ a {
   overflow-y: auto;
   cursor: pointer;
   // width: auto;
+}
+
+.title-link-div {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
 }
