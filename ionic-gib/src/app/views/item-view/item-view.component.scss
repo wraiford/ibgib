@@ -18,12 +18,14 @@
 
 .comment-item {
   @extend .list-item;
-  border-color: blue;
+}
+
+.link-item {
+  @extend .list-item;
 }
 
 .tag-item {
   @extend .list-item;
-  border-color: pink;
 }
 
 .disable-selection {
@@ -37,10 +39,8 @@
 
 .item-label {
   margin-top: 0px !important;
-  margin: 0px 3px 15px 3px !important;
-  margin-left: 15px;
+  margin: 0px 0px 25px 15px !important;
   padding-left: 5px;
-  // border-style: dotted !important;
-  width: 99%;
+  width: 97%;
   align-self: center;
 }

@@ -23,19 +23,10 @@ ion-list ion-item::part(native) {
   flex-direction: row;
   align-items: center;
 
-  ion-checkbox {
-    margin-left: 2px;
-    height: width;
-    flex-shrink: 1;
-    flex-grow: 0;
-  }
-
-  list-item {
+  ib-item {
     height: auto;
     border-radius: 15px;
-    width: 89%;
-    flex-shrink: 0;
-    flex-grow: 1;
+    padding: 0px;
   }
 
   .item-done {

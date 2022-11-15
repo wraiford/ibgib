@@ -6,7 +6,8 @@
   <ion-list (ionScroll)="handleScroll($event)">
     <ion-item *ngFor='let item of items;let i = index;trackBy: trackByAddr' class="list-item-row"
       [hidden]="item.filtered">
-        <ion-checkbox *ngIf="isTodo" [checked]="item.checked" [id]="'ib-primary-checkbox_'+i"(ionChange)="handleCheckboxChange($event, item)"></ion-checkbox>
+        <ion-checkbox *ngIf="isTodo" [checked]="item.checked" [id]="'ib-primary-checkbox_'+i"(ionChange)="handleCheckboxChange($event, item)"
+          slot="start"></ion-checkbox>
         <ib-item #itemRef
           [addr]='item.addr'
           [isTodo]="isTodo"
@@ -27,7 +28,8 @@
           <!-- [ibClickAnimation]="itemRef" -->
           <!-- (ibItemClicked)='handleIbItemClicked(item, itemRef)' -->
         </ib-item>
-        <ion-checkbox *ngIf="isTodo" [checked]="item.checked" (ionChange)="handleCheckboxChange_Secondary($event, item, i)"></ion-checkbox>
+        <ion-checkbox *ngIf="isTodo" [checked]="item.checked" (ionChange)="handleCheckboxChange_Secondary($event, item, i)"
+          slot="end"></ion-checkbox>
     </ion-item>
   </ion-list>
 </ion-content>

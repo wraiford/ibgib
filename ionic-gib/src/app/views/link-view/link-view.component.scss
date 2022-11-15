@@ -7,6 +7,11 @@
   font-size: large;
 }
 
+.pic-label-large {
+  max-height: 200px;
+  object-fit: contain;
+}
+
 ion-card {
   width: 96%;
   display: flex;

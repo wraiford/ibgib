@@ -7,7 +7,7 @@
   <!-- <pre class="link-text">{{ item?.text }}</pre> -->
 
   <!-- show the "pic label" (first pic child of the link) -->
-  <img *ngIf='picLabelSrc && !isTitleOrJustSmall && !isYoutubeLink' [src]='picLabelSrc'/>
+  <img *ngIf='picLabelSrc && !isTitleOrJustSmall && !isYoutubeLink' [src]='picLabelSrc' class="pic-label-large"/>
 
   <ion-item *ngIf="!isYoutubeLink">
     <a [style.maxHeight]="'100px'" class="link-text" [href]="item?.text" target="_blank">{{item?.text}}</a>
