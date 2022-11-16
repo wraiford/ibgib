@@ -267,8 +267,10 @@ export class IonicIbgibNavService implements IbgibNav {
       // which clears the stack with ionic nav. atow, see app.routing to see
       // that this instantiates an ibgib page component, which from testing
       // creates a new ibgib page component each nav.
-      const urlPieces = appId && appClassname ?
-        // ['app', appClassname, appId, 'ibgib', toAddr] :
+
+      /** bootstrap^gib goes to its own special page...maybe others in the future... */
+      const noAppAddrsHack = ['bootstrap^gib'];
+      const urlPieces = appId && appClassname && !noAppAddrsHack.includes(toAddr) ?
         ['ibgib', toAddr, 'app', appClassname, appId] :
         ['ibgib', toAddr];
       await this.nav?.navigateRoot(urlPieces, {

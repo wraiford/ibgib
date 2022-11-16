@@ -1,4 +1,5 @@
 import * as h from 'ts-gib/dist/helper';
+import { TransformResult } from 'ts-gib';
 import { Factory_V1 as factory, IbGibRel8ns_V1, IBGIB_DELIMITER, IbGib_V1 } from 'ts-gib/dist/V1';
 import { getGib } from 'ts-gib/dist/V1/transforms/transform-helper';
 // import { hash, getIbGibAddr, getTimestamp, pretty } from 'ts-gib/dist/helper';
@@ -8,8 +9,8 @@ import { PicData_V1, PicIbGib_V1 } from '../types/pic';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { BinIbGib_V1 } from '../types/bin';
 import { persistTransformResult, putInSpace } from './space';
-import { TransformResult } from 'ts-gib';
 import { getBinIb } from './ibgib';
+import { getFileReaderHack } from './utils';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
@@ -200,7 +201,8 @@ export async function createPicAndBinIbGibsFromInputFilePickedEvent({
       // wrap reader in promise for use with async/await
       const resSingleCreate =
         await new Promise<[TransformResult<PicIbGib_V1>, TransformResult<BinIbGib_V1>]>((resolve, reject) => {
-          const reader = new FileReader();
+          // const reader = new FileReader();
+          const reader = getFileReaderHack();
           reader.onload = async (_: any) => {
             const lc2 = `${lc}[reader.onload]`;
             try {

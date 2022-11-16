@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
 import { IonSelect } from '@ionic/angular';
-import { Storage } from '@capacitor/storage';
+import { Preferences } from '@capacitor/preferences';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib/dist/types';
@@ -240,7 +240,7 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
 
         if (this.selectedApp?.data.uuid !== appIbGib.data.uuid) {
           console.log(`new app selected. (I: eb3a8ca5a54a4fc8915931bd3ed19c8e)`);
-          await Storage.set({ key: this.lastAppStorageKey, value: appIbGib.data.uuid });
+          await Preferences.set({ key: this.lastAppStorageKey, value: appIbGib.data.uuid });
           this.selectedApp = appIbGib; // emits appSelected event
         } else {
           if (logalot) { console.log(`${lc} same app selected (I: 18e45c4819dc4a4c8cc20c1b138b59e3)`); }

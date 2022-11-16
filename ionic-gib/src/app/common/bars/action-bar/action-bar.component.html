@@ -80,12 +80,19 @@
         <input #inputFile type="file" hidden (change)="handleAddFileCamClick($event, 'file')" accept="image/*" multiple/>
       </ion-button>
       <!-- add from camera btn -->
-      <ion-button class="thumbnail-btn thumbnail-like" (click)='inputFile_Cam.click()'
+      <ion-button *ngIf="platform !== 'android'" class="thumbnail-btn thumbnail-like" (click)='inputFile_Cam.click()'
         [disabled]="sending" slot="icon-only" size="small">
         <ion-icon name="camera-outline"></ion-icon>
         <ion-badge slot="end">+</ion-badge>
         <input #inputFile_Cam type="file" hidden (change)="handleAddFileCamClick($event, 'camera')" accept="image/*" capture/>
       </ion-button>
+      <!-- android just don't work...use the web for tabs anyway... -->
+      <!-- <ion-button *ngIf="platform === 'android'" class="thumbnail-btn thumbnail-like" (click)='inputFile_Cam.click()'
+        [disabled]="sending" slot="icon-only" size="small">
+        <ion-icon name="camera-outline"></ion-icon>
+        <ion-badge slot="end">+*</ion-badge>
+        <input #inputFile_Cam type="file" (change)="handleAddFileCamClick($event, 'camera')" capture/>
+      </ion-button> -->
     </div>
     <!-- send btn -->
     <ng-template *ngTemplateOutlet="sendBtnTemplate;context: {clickHandler:send_AddPics.bind(this)}"></ng-template>

@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
 import { WebOnePageBase } from '../../common/bases/web-one-page-base';
-import { Storage } from '@capacitor/storage';
+import { Preferences } from '@capacitor/preferences';
 
 import * as c from '../../common/constants';
 import { CommonService } from '../../services/common.service';
@@ -47,7 +47,7 @@ export class YourDataPage extends WebOnePageBase implements OnInit {
       if (logalot) { console.log(`${lc} starting... (I: d7b4fe97765ddf35c33670d5040bf722)`); }
 
       // // check if the user has accepted
-      // let resGet = await Storage.get({ key: c.STORAGE_KEY_APP_USES_STUFF });
+      // let resGet = await Preferences.get({ key: c.STORAGE_KEY_APP_USES_STUFF });
       // this.accepted = resGet?.value === 'accepted';
 
       // // check if user already has a local space
@@ -78,7 +78,7 @@ export class YourDataPage extends WebOnePageBase implements OnInit {
     try {
       if (logalot) { console.log(`${lc} starting... (I: 641aff6bc9192c0c125d2e97ad99e622)`); }
 
-      await Storage.set({ key: c.STORAGE_KEY_APP_USES_STUFF, value: 'accepted' });
+      await Preferences.set({ key: c.STORAGE_KEY_APP_USES_STUFF, value: 'accepted' });
       this.accepted = true;
       setTimeout(() => this.ref.detectChanges());
     } catch (error) {

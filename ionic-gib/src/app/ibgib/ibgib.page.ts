@@ -21,7 +21,7 @@ import { Capacitor, } from '@capacitor/core';
 import { Dialog } from '@capacitor/dialog';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Clipboard } from '@capacitor/clipboard';
-import { Storage } from '@capacitor/storage';
+import { Preferences } from '@capacitor/preferences';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Toast } from '@capacitor/toast';
 
@@ -835,7 +835,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       if (logalot) { console.log(`${lc} starting...`); }
 
       this.appBarIsVisible = !this.appBarIsVisible;
-      await Storage.set({ key: c.SIMPLE_CONFIG_KEY_APP_VISIBLE, value: this.appBarIsVisible ? 'true' : 'false' });
+      await Preferences.set({ key: c.SIMPLE_CONFIG_KEY_APP_VISIBLE, value: this.appBarIsVisible ? 'true' : 'false' });
       setTimeout(() => this.ref.detectChanges());
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -905,7 +905,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       if (logalot) { console.log(`${lc} starting...`); }
 
       this.robbotBarIsVisible = !this.robbotBarIsVisible;
-      await Storage.set({ key: c.SIMPLE_CONFIG_KEY_ROBBOT_VISIBLE, value: this.robbotBarIsVisible ? 'true' : 'false' });
+      await Preferences.set({ key: c.SIMPLE_CONFIG_KEY_ROBBOT_VISIBLE, value: this.robbotBarIsVisible ? 'true' : 'false' });
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -922,12 +922,12 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       console.log(`${lc} robbot: ${h.pretty(robbot)}`);
 
       if (robbot) {
-        await Storage.set({
+        await Preferences.set({
           key: c.SIMPLE_CONFIG_KEY_ROBBOT_SELECTED_ADDR,
           value: h.getIbGibAddr({ ibGib: robbot }),
         })
       } else {
-        await Storage.remove({ key: c.SIMPLE_CONFIG_KEY_ROBBOT_SELECTED_ADDR });
+        await Preferences.remove({ key: c.SIMPLE_CONFIG_KEY_ROBBOT_SELECTED_ADDR });
       }
 
     } catch (error) {
@@ -1344,15 +1344,15 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
 
       // robbot bar visibility
       this.robbotBarIsVisible =
-        (await Storage.get({ key: c.SIMPLE_CONFIG_KEY_ROBBOT_VISIBLE }))?.value === 'true' ?? false;
+        (await Preferences.get({ key: c.SIMPLE_CONFIG_KEY_ROBBOT_VISIBLE }))?.value === 'true' ?? false;
 
       // app bar visibility
       this.appBarIsVisible =
-        (await Storage.get({ key: c.SIMPLE_CONFIG_KEY_APP_VISIBLE }))?.value === 'true' ?? false;
+        (await Preferences.get({ key: c.SIMPLE_CONFIG_KEY_APP_VISIBLE }))?.value === 'true' ?? false;
 
       // which robbot was selected last
       const selectedAddrSetting =
-        await Storage.get({ key: c.SIMPLE_CONFIG_KEY_ROBBOT_SELECTED_ADDR });
+        await Preferences.get({ key: c.SIMPLE_CONFIG_KEY_ROBBOT_SELECTED_ADDR });
       if (selectedAddrSetting.value) {
         this.selectedRobbotAddr = selectedAddrSetting.value;
       }

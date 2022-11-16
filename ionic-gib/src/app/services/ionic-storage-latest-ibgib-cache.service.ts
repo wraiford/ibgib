@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Storage } from '@capacitor/storage';
+import { Preferences } from '@capacitor/preferences';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib';
@@ -43,7 +43,7 @@ export class IonicStorageLatestIbgibCacheService implements IbGibCacheService {
 
       if (this.infos[key]) { return true; /* <<<< returns early */ }
 
-      const result = await Storage.get({ key });
+      const result = await Preferences.get({ key });
       return result ? true : false;
     } catch (error) {
       debugger;
@@ -106,7 +106,7 @@ export class IonicStorageLatestIbgibCacheService implements IbGibCacheService {
       const key = this.getKey({ addr, addrScope });
       const jsonString = JSON.stringify(info);
 
-      await Storage.set({ key, value: jsonString });
+      await Preferences.set({ key, value: jsonString });
       this.infos[key] = h.clone(info);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -128,7 +128,7 @@ export class IonicStorageLatestIbgibCacheService implements IbGibCacheService {
 
       let cached = this.infos[key];
       if (!cached) {
-        let resGet = await Storage.get({ key });
+        let resGet = await Preferences.get({ key });
         if (resGet?.value) { cached = <IbGibCacheInfo>JSON.parse(resGet.value); }
       }
 

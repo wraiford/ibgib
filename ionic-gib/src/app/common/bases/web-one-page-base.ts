@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Injectable, Input, OnDestroy, OnInit } from "@angular/core";
-import { Storage } from "@capacitor/storage";
+import { Preferences } from '@capacitor/preferences';
 
 import * as c from '../constants';
 import { CommonService } from '../../services/common.service';
@@ -39,7 +39,7 @@ export abstract class WebOnePageBase implements OnInit, OnDestroy {
       if (logalot) { console.log(`${lc} starting... (I: 7d29c2c4ca444cc59828ef3b3f847620)`); }
 
       // check if the user has accepted
-      let resGet = await Storage.get({ key: c.STORAGE_KEY_APP_USES_STUFF });
+      let resGet = await Preferences.get({ key: c.STORAGE_KEY_APP_USES_STUFF });
       this.accepted = resGet?.value === 'accepted';
 
       // check if user already has a local space

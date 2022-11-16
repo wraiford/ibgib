@@ -26,7 +26,7 @@ SwiperCore.use([
 ]);
 import { Subscription } from 'rxjs';
 import { Capacitor } from '@capacitor/core';
-import { Storage } from '@capacitor/storage';
+import { Preferences } from '@capacitor/preferences';
 
 import * as h from 'ts-gib/dist/helper';
 import { IbGibAddr } from 'ts-gib/dist/types';
@@ -747,7 +747,7 @@ export class WelcomePage extends WebOnePageBase implements OnInit, AfterViewInit
 
       if (this.goText?.toLowerCase() === 'go') {
         // we've gone through the entire welcome screen (not tl;dr skipping)
-        await Storage.set({ key: 'welcomeShown', value: 'true' });
+        await Preferences.set({ key: 'welcomeShown', value: 'true' });
 
         this.going = true;
         let loading_Global = await this.loadingController.create({ message: 'initializing ibgib...' });

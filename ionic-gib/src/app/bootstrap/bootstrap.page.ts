@@ -370,10 +370,11 @@ export class BootstrapPage extends DynamicFormComponentBase<any>
 
       // add fileFolder infos for each folder, space and bootstrap file found.
       for (let i = 0; i < contents.files.length; i++) {
+        const fileInfo = contents.files[i];
         /**
          * could be a file or directory, we don't know yet...
          */
-        const name = contents.files[i];
+        const name = fileInfo.name;
         const status = await Filesystem.stat({ path: path + '/' + name, directory });
         if (logalot) { console.log(`${lc} status: ${JSON.stringify(status, null, 2)} (I: 35c88b340c3c1344d6a89a72ccd5a522)`); }
         if (status.type === 'directory') {

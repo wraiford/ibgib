@@ -7,7 +7,7 @@ import { NavigationEnd, Router, } from '@angular/router';
 import { MenuController, } from '@ionic/angular';
 import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
-import { Storage } from '@capacitor/storage';
+import { Preferences } from "@capacitor/preferences";
 import { Dialog } from '@capacitor/dialog';
 
 import * as h from 'ts-gib/dist/helper';
@@ -395,7 +395,7 @@ export class AppComponent extends IbgibComponentBase
           }
         }
       }
-      await Storage.migrate();
+      await Preferences.migrate();
 
       if (window.localStorage) {
         let resKeys = Object.keys(window.localStorage);
@@ -403,11 +403,11 @@ export class AppComponent extends IbgibComponentBase
         let hasPreMigrateKeys = resKeys.some(x => x.startsWith('_cap_'));
         if (hasPreMigrateKeys) {
           console.warn(`${lc} removing pre migrate cap keys (W: 81ed4f08dc644e5ea563831991aa9fb4)`)
-          await Storage.removeOld();
+          await Preferences.removeOld();
         }
       } else {
-        console.warn(`${lc} no window.localStorage. calling Storage.removeOld (W: 2ccd0ca33ce64764b351effc6b27b63d)`)
-        await Storage.removeOld();
+        console.warn(`${lc} no window.localStorage. calling Preferences.removeOld (W: 2ccd0ca33ce64764b351effc6b27b63d)`)
+        await Preferences.removeOld();
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -449,7 +449,7 @@ export class AppComponent extends IbgibComponentBase
   async userConsentedToUsingStorageEtc(): Promise<boolean> {
     const lc = `${this.lc}[${this.userConsentedToUsingStorageEtc.name}]`;
     try {
-      let resGet = await Storage.get({ key: c.STORAGE_KEY_APP_USES_STUFF });
+      let resGet = await Preferences.get({ key: c.STORAGE_KEY_APP_USES_STUFF });
       if (resGet?.value === 'accepted') { return true; /* <<<< returns early */ }
       if (
         document.location.pathname.startsWith('/your-data') ||
@@ -470,7 +470,7 @@ export class AppComponent extends IbgibComponentBase
               text: 'accept',
               handler: async () => {
                 console.log(`${lc} accepted`);
-                await Storage.set({ key: c.STORAGE_KEY_APP_USES_STUFF, value: 'accepted' });
+                await Preferences.set({ key: c.STORAGE_KEY_APP_USES_STUFF, value: 'accepted' });
                 resolve(true);
               }
             },
@@ -1604,7 +1604,7 @@ export class AppComponent extends IbgibComponentBase
       await this.menu.close();
 
       // we've gone through the entire welcome screen (not tl;dr skipping)
-      await Storage.remove({ key: 'welcomeShown' });
+      await Preferences.remove({ key: 'welcomeShown' });
 
       await this.navToRaw('welcome');
     } catch (error) {

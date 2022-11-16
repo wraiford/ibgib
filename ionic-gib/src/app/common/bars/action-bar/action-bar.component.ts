@@ -25,7 +25,7 @@ import { PicIbGib_V1 } from '../../types/pic';
 import { BinIbGib_V1 } from '../../types/bin';
 import { RawExportIbGib_V1 } from '../../types/import-export';
 import { getTimelinesGroupedByTjp, } from '../../helper/ibgib';
-import { isKeyboardEvent_Enter } from '../../helper/utils';
+import { getFileReaderHack, isKeyboardEvent_Enter } from '../../helper/utils';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -1118,7 +1118,8 @@ export class ActionBarComponent extends IbgibComponentBase
       this.settingExportIbGib = true;
       this.inputImport.value = 'FILE: ' + file.name;
       setTimeout(() => this.settingExportIbGib = false, 1000);
-      let reader = new FileReader();
+      // let reader = new FileReader();
+      const reader = getFileReaderHack();
 
       reader.addEventListener('load', async () => {
         let exportIbGib = <RawExportIbGib_V1>JSON.parse(<string>reader.result);

@@ -561,3 +561,23 @@ export function isKeyboardEvent_Enter(event: KeyboardEvent): boolean {
     // event.charCode === 10 || event.charCode === 13;
     return isEnter;
 }
+
+/**
+ * https://github.com/ionic-team/capacitor/issues/1564
+ *
+ * Still doesn't work...hmm
+ */
+export function getFileReaderHack(): FileReader {
+    const lc = `[${getFileReaderHack.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: d03faf53dd5f1cd1014f2f0e01058b22)`); }
+        const fileReader = new FileReader();
+        const zoneOriginalInstance = (fileReader as any)["__zone_symbol__originalInstance"];
+        return zoneOriginalInstance || fileReader;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
