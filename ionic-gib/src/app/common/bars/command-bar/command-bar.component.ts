@@ -174,6 +174,26 @@ export class CommandBarComponent
     }
   }
 
+  handleClick_GoToAddr(): void {
+    const lc = `${this.lc}[${this.handleClick_GoToAddr.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: ae519e5d19514a4695bdae469a50b3a0)`); }
+      // spin off navigate after the above js event loop exits
+      setTimeout(() => {
+        this.go({
+          toAddr: this.addr,
+          fromAddr: h.getIbGibAddr({ ibGib: this.ibGib_Context }),
+          force: true
+        });
+      });
+      this.dismissMe.emit();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 
   async handleClick_Refresh(): Promise<void> {
     const lc = `${this.lc}[${this.handleClick_Refresh.name}]`;

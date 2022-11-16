@@ -291,7 +291,7 @@ export const ILLEGAL_TAG_DESC_CHARS = [
 /**
  * When showing a menu item, this is the max length
  */
-export const MENU_ITEM_IB_SUBSTRING_LENGTH = 15;
+export const MENU_ITEM_IB_SUBSTRING_LENGTH = 20;
 
 /**
  * comment ibs atow are comment [commentText substring]

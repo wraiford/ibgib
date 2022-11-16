@@ -1,6 +1,11 @@
 <ion-toolbar>
   <ion-buttons slot="end" color="primary">
 
+    <!-- goto addr-->
+    <ion-button [disabled]="refreshing" (click)="handleClick_GoToAddr()" title="navigate to this ibgib">
+      <ion-icon name="navigate-outline"></ion-icon>
+    </ion-button>
+
     <!-- local refresh -->
     <ion-button *ngIf="gib !== 'gib'" [disabled]="refreshing" (click)="handleClick_Refresh()" title="refresh this ibgib locally">
       <ion-icon *ngIf="!refreshing" name="refresh"></ion-icon>
