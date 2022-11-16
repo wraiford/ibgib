@@ -17,7 +17,7 @@ import { WitnessFactoriesService } from 'src/app/services/witness-factories.serv
 import { InMemoryIbgibCacheService } from 'src/app/services/in-memory-ibgib-cache.service';
 import { IonicStorageLatestIbgibCacheService } from 'src/app/services/ionic-storage-latest-ibgib-cache.service';
 import { ServiceWorkerModule } from '@angular/service-worker';
-import { FormBuilder } from '@angular/forms';
+import { UntypedFormBuilder } from '@angular/forms';
 
 export const DEFAULT_TEST_IMPORTS = [
     IonicModule.forRoot()
@@ -32,7 +32,7 @@ export const ANGULAR_TEST_PROVIDERS: any[] = [
     HttpHandler,
     HttpClient,
     ChangeDetectorRef,
-    FormBuilder,
+    UntypedFormBuilder,
 ];
 export const IONIC_TEST_PROVIDERS: any[] = [
     NavController, MenuController, LoadingController, AlertController,

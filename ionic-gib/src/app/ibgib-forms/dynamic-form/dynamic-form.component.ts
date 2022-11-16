@@ -1,5 +1,5 @@
 import { AfterViewInit, ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
-import { FormBuilder, FormArray, FormGroup, ValidatorFn, AsyncValidatorFn, AbstractControl, Validators, } from '@angular/forms';
+import { UntypedFormBuilder, FormArray, UntypedFormGroup, ValidatorFn, AsyncValidatorFn, AbstractControl, Validators, } from '@angular/forms';
 import { IonContent } from '@ionic/angular';
 import { Subscription } from 'rxjs/internal/Subscription';
 
@@ -59,7 +59,7 @@ export class DynamicFormComponent
    * This is created during {@link updateForm} function, i.e., it's driven by
    * the child {@link items} property.
    */
-  rootFormGroup: FormGroup;
+  rootFormGroup: UntypedFormGroup;
 
   /**
    * Not used yet...
@@ -68,7 +68,7 @@ export class DynamicFormComponent
    * with child items to drive subforms.
    */
   @Input()
-  parentFormGroup: FormGroup;
+  parentFormGroup: UntypedFormGroup;
 
   allItems_Flat_ById: { [uuid: string]: FormItemInfo };
   _items: FormItemInfo[] = [];
@@ -185,7 +185,7 @@ export class DynamicFormComponent
   public debugBorderStyle: string = "solid";
 
   constructor(
-    protected fb: FormBuilder,
+    protected fb: UntypedFormBuilder,
     protected ref: ChangeDetectorRef,
   ) {
     // super(fb);
