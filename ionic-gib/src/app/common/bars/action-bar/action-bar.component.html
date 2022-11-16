@@ -20,6 +20,22 @@
   </ion-segment-button>
 </ion-segment>
 
+<ng-template #sendBtnTemplate let-clickHandler="clickHandler">
+    <ion-button class="detail-send-btn" color="primary"
+      [disabled]="!canSend"
+      (click)="clickHandler()">
+
+      <ion-icon *ngIf="canSend" name="arrow-forward-outline"></ion-icon>
+      <ion-spinner *ngIf="!canSend" name="circles" color="tertiary"></ion-spinner>
+
+    </ion-button>
+</ng-template>
+
+<ng-template #sendIcons>
+  <ion-icon *ngIf="canSend" name="arrow-forward-outline"></ion-icon>
+  <ion-spinner *ngIf="!canSend" name="circles" color="tertiary"></ion-spinner>
+</ng-template>
+
 <!-- action detail -->
 <div *ngIf="actionDetailVisible && gib !== 'gib'" id="action-detail">
 
@@ -36,13 +52,7 @@
       (click)="handleTextAreaClick($event)"
       >
     </ion-textarea>
-    <ion-button class="detail-send-btn" color="primary"
-      [disabled]="!canSend"
-      (click)="send_AddComment()">
-      <!-- <ion-icon name="chatbox-outline"></ion-icon> -->
-      <ion-icon *ngIf="!sending" name="arrow-forward-outline"></ion-icon>
-      <ion-spinner *ngIf="sending" name="circles" color="tertiary"></ion-spinner>
-    </ion-button>
+    <ng-template *ngTemplateOutlet="sendBtnTemplate;context: {clickHandler:send_AddComment.bind(this)}"></ng-template>
   </div>
 
   <!-- pics/files -->
@@ -75,18 +85,10 @@
         <ion-icon name="camera-outline"></ion-icon>
         <ion-badge slot="end">+</ion-badge>
         <input #inputFile_Cam type="file" hidden (change)="handleAddFileCamClick($event, 'camera')" accept="image/*" capture/>
-        <!-- <input #inputFileCapture type="file" hidden (change)='item.filepicked($event)' accept="image/*" capture/> -->
       </ion-button>
     </div>
     <!-- send btn -->
-    <ion-button class="detail-send-btn" color="primary"
-      (click)="send_AddPics()"
-      [disabled]="!canSend">
-      <!-- <ion-icon name="camera-outline"></ion-icon>
-      <ion-icon name="image-outline"></ion-icon> -->
-      <ion-icon *ngIf="!sending" name="arrow-forward-outline"></ion-icon>
-      <ion-spinner *ngIf="sending" name="circles" color="tertiary"></ion-spinner>
-    </ion-button>
+    <ng-template *ngTemplateOutlet="sendBtnTemplate;context: {clickHandler:send_AddPics.bind(this)}"></ng-template>
   </div>
 
   <!-- link -->
@@ -102,19 +104,12 @@
       [disabled]="sending"
       >
     </ion-textarea>
-    <ion-button class="detail-send-btn" color="primary"
-      [disabled]="!canSend"
-      (click)="send_AddLink()">
-      <!-- <ion-icon name="chatbox-outline"></ion-icon> -->
-      <ion-icon *ngIf="!sending" name="arrow-forward-outline"></ion-icon>
-      <ion-spinner *ngIf="sending" name="circles" color="tertiary"></ion-spinner>
-    </ion-button>
+    <!-- send btn -->
+    <ng-template *ngTemplateOutlet="sendBtnTemplate;context: {clickHandler:send_AddLink.bind(this)}"></ng-template>
   </div>
 
   <!-- import -->
   <div *ngIf="actionDetailMode === 'import'" class="detail-container" [disabled]="sending">
-    <!-- <ion-list> -->
-      <!-- <ion-item> -->
         <ion-button (click)='inputFileImport.click()' [disabled]="sending">
           <ion-icon name="document-outline"></ion-icon>
           <input #inputFileImport type="file" hidden (change)="handleImportFileInputClick($event)" accept="application/json" multiple/>
@@ -128,20 +123,8 @@
           (click)="handleTextAreaClick($event)"
           >
         </ion-textarea>
-      <!-- </ion-item> -->
-      <!-- <ion-item>
-        <ion-label slot="start">import from file...</ion-label>
-        <ion-text>{{ selectedExportIbGibFilename ?? 'select file...' }}</ion-text>
-      </ion-item> -->
-    <!-- </ion-list> -->
-    <ion-button class="detail-send-btn" color="primary"
-      (click)="send_AddImport()"
-      [disabled]="!canSend">
-      <!-- <ion-icon name="sparkles-outline"></ion-icon>
-      <ion-icon name="download-outline"></ion-icon> -->
-      <ion-icon *ngIf="!sending" name="arrow-forward-outline"></ion-icon>
-      <ion-spinner *ngIf="sending" name="circles" color="tertiary"></ion-spinner>
-    </ion-button>
+    <!-- send btn -->
+    <ng-template *ngTemplateOutlet="sendBtnTemplate;context: {clickHandler:send_AddImport.bind(this)}"></ng-template>
   </div>
 
 </div>

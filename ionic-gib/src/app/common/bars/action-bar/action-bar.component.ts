@@ -78,6 +78,9 @@ export class ActionBarComponent extends IbgibComponentBase
   @Input()
   items: ActionItem[] = this.DEFAULT_ACTIONS.concat();
 
+  @Input()
+  get anyItemsBusy(): boolean { return this.items?.some(x => x.busy); }
+
   /**
    * Action detail, e.g., textarea for making a comment.
    *
