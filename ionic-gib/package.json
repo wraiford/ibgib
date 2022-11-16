@@ -1,6 +1,6 @@
 {
   "name": "ionicgib",
-  "version": "0.2.661",
+  "version": "0.2.663",
   "author": "William Raiford",
   "repository": {
     "url": "https://github.com/wraiford/ibgib",
@@ -133,7 +133,7 @@
     "@ionic/pwa-elements": "^1.5.2",
     "@schematics/angular": "^14.2.9",
     "encrypt-gib": "0.1.2",
-    "ngx-build-plus": "^13.0.0",
+    "ngx-build-plus": "^14.0.0",
     "rxjs": "~6.5.1",
     "swiper": "^8.2.4",
     "ts-gib": "^0.3.15",
@@ -141,7 +141,7 @@
     "zone.js": "~0.11.4"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^12.2.18",
+    "@angular-devkit/build-angular": "^14.2.9",
     "@angular/cli": "^14.2.9",
     "@angular/compiler": "^14.2.11",
     "@angular/compiler-cli": "^14.2.11",
