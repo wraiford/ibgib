@@ -2,7 +2,7 @@
   <ion-buttons slot="end" color="primary">
 
     <!-- goto addr-->
-    <ion-button [disabled]="refreshing" (click)="handleClick_GoToAddr()" title="navigate to this ibgib">
+    <ion-button *ngIf="showGotoAddr" [disabled]="refreshing" (click)="handleClick_GoToAddr()" title="navigate to this ibgib">
       <ion-icon name="navigate-outline"></ion-icon>
     </ion-button>
 

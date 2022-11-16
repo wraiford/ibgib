@@ -174,6 +174,11 @@ export class CommandBarComponent
     }
   }
 
+  @Input()
+  get showGotoAddr(): boolean {
+    return this.addr && this.addr !== h.getIbGibAddr({ ibGib: this.ibGib_Context });
+  }
+
   handleClick_GoToAddr(): void {
     const lc = `${this.lc}[${this.handleClick_GoToAddr.name}]`;
     try {
