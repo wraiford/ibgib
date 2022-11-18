@@ -62,9 +62,20 @@ export class OmniAnimationGestureDirective extends AnimationWithGestureDirective
     /**
      * max vertical distance before we cancel a slide swipe command and decide
      * the user is swiping up/down.
+     *
+     * There should be more vertical slack when the screen is larger, because
+     * the user may feel they need to slide farther than necessary.
      */
     @Input()
-    maxDeltaYCancelSlideThreshold: number = 30;
+    get maxDeltaYCancelSlideThreshold(): number {
+        // if it's a wide screen, this should be bigger not using ternary
+        // because in the future might have more breakpoints.
+        if (window.innerWidth > 600) {
+            return 150;
+        } else {
+            return 70;
+        }
+    }
 
     @Input()
     swipeRight_WeakColor: string = 'rgba(245, 0, 53, 0.1)';
