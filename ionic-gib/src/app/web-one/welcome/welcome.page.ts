@@ -44,6 +44,7 @@ import {
 } from '../../common/helper/prompt-functions';
 import { documentLocationIsAtWelcomePage } from '../../common/helper/app';
 import { WebOnePageBase } from '../../common/bases/web-one-page-base';
+import { environment } from '../../../environments/environment';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -657,6 +658,9 @@ export class WelcomePage extends WebOnePageBase implements OnInit, AfterViewInit
       }
       await this.drawAnimation();
 
+      const msg = `Cheers! We're on version ${environment.appVersion}`;
+      alert(msg);
+      console.log(`${lc} ${msg}`);
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
