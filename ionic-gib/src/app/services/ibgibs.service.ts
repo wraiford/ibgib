@@ -2588,7 +2588,10 @@ export class IbgibsService {
           // on the status updates throughout the sync saga. We can handle
           // updating our own local space based on those status updates.
           // await this._startSync({syncSagaInfo: sagaInfo, confirm});
-          await this._startSync({ syncSagaInfo: sagaInfo, watch, syncTimelogName });
+          // await this._startSync({ syncSagaInfo: sagaInfo, watch, syncTimelogName });
+
+          // taking out watch for now
+          await this._startSync({ syncSagaInfo: sagaInfo, watch: false, syncTimelogName });
         } catch (error) {
           // if this throws, then that is unexpected. The above result should
           // always be returned, and if it's errored then it should indicate as
@@ -2829,7 +2832,8 @@ export class IbgibsService {
 
       const argStartSync: SyncSpaceOptionsIbGib = await syncSpace.argy({
         argData: <SyncSpaceOptionsData>{
-          cmd: 'put', cmdModifiers: watch ? ['sync', 'watch'] : ['sync'],
+          // cmd: 'put', cmdModifiers: watch ? ['sync', 'watch'] : ['sync'],
+          cmd: 'put', cmdModifiers: ['sync'],
           sagaId,
           participants,
           ibGibAddrs: syncAddrs_All,
@@ -2852,16 +2856,16 @@ export class IbgibsService {
       syncSagaInfo.witnessFnArgsAndResults$.next(resStartSync);
 
       // in our return, we can check for updates since our last communication.
-      if (Object.keys(resStartSync.data.watchTjpUpdateMap ?? {}).length > 0) {
-        if (logalot) { console.log(`${lc} resStartSync.data.watchTjpUpdateMap: ${h.pretty(resStartSync.data.watchTjpUpdateMap)}`); }
-        console.timeLog(syncTimelogName, `handleWatchTjpUpdates starting...`);
-        await this.handleWatchTjpUpdates({
-          outerSpace: syncSpace,
-          updates: resStartSync.data.watchTjpUpdateMap,
-          localUserSpace,
-        });
-        console.timeLog(syncTimelogName, `handleWatchTjpUpdates complete.`);
-      }
+      // if (Object.keys(resStartSync.data.watchTjpUpdateMap ?? {}).length > 0) {
+      //   if (logalot) { console.log(`${lc} resStartSync.data.watchTjpUpdateMap: ${h.pretty(resStartSync.data.watchTjpUpdateMap)}`); }
+      //   console.timeLog(syncTimelogName, `handleWatchTjpUpdates starting...`);
+      //   await this.handleWatchTjpUpdates({
+      //     outerSpace: syncSpace,
+      //     updates: resStartSync.data.watchTjpUpdateMap,
+      //     localUserSpace,
+      //   });
+      //   console.timeLog(syncTimelogName, `handleWatchTjpUpdates complete.`);
+      // }
 
       // most of our handling will be in subscription to syncStatus$ updates.
       return resStartSync;

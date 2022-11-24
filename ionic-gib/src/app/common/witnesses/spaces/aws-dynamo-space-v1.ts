@@ -3334,14 +3334,15 @@ export class AWSDynamoSpace_V1<
             console.timeLog(timeLogName, 'add new watches, get any existing watch updates for space starting...');
             if (arg.data.cmdModifiers?.includes('watch')) {
                 if (logalot) { console.log(`${lc} cmd is put, modifier includes watch sync. Hooking into tjp addr updates. (I: f1d1ed57d03c4842b0654215113297e6)`); }
+                // ignored right now...kluge anyway.
                 // hook into any updates if the caller has included the
                 // `watch` CmdModifier.
-                await this.putSync_AddWatches({ arg, srcSpaceId });
-                const getWatchWarnings: string[] = [];
-                const watchUpdates =
-                    await this.getWatchUpdates({ client, spaceId: srcSpaceId, warnings: getWatchWarnings });
-                if (getWatchWarnings.length > 0) { console.log(`${lc} getWatchWarnings: ${getWatchWarnings.join('|')}`); }
-                if (watchUpdates) { resultData.watchTjpUpdateMap = watchUpdates; }
+                // await this.putSync_AddWatches({ arg, srcSpaceId });
+                // const getWatchWarnings: string[] = [];
+                // const watchUpdates =
+                //     await this.getWatchUpdates({ client, spaceId: srcSpaceId, warnings: getWatchWarnings });
+                // if (getWatchWarnings.length > 0) { console.log(`${lc} getWatchWarnings: ${getWatchWarnings.join('|')}`); }
+                // if (watchUpdates) { resultData.watchTjpUpdateMap = watchUpdates; }
             } else {
                 if (logalot) { console.log(`${lc} cmd is put, modifier includes sync but NOT watch. (I: 82180b881b7f47c49d157c14f8128785)`); }
             }
@@ -3861,15 +3862,16 @@ export class AWSDynamoSpace_V1<
 
                         if (logalot) { console.log(`${lcFn} checking if need to updated tjpWatches via updates`); }
                         if (Object.keys(updates).length > 0) {
-                            if (logalot) { console.log(`${lcFn} updates occurred. calling updateTjpWatches...`); }
+                            // ignored for now
+                            // if (logalot) { console.log(`${lcFn} updates occurred. calling updateTjpWatches...`); }
                             // we've updated at least one tjpAddr with a new ibGib.
                             // So we need to go through and register these changes
                             // with the corresponding watch ibgibs. those updates
                             // will be picked up on the next call by the incoming
                             // space.
-                            console.timeLog(timeLogName, 'updateTjpWatches starting...');
-                            await this.updateTjpWatches({ client, srcSpaceId, updates });
-                            console.timeLog(timeLogName, 'updateTjpWatches complete.');
+                            // console.timeLog(timeLogName, 'updateTjpWatches starting...');
+                            // await this.updateTjpWatches({ client, srcSpaceId, updates });
+                            // console.timeLog(timeLogName, 'updateTjpWatches complete.');
                         } else {
                             if (logalot) { console.log(`${lcFn} no updates occurred, so NOT calling updateTjpWatches.`); }
                         }
@@ -4473,23 +4475,25 @@ export class AWSDynamoSpace_V1<
                     }
                 }
                 console.timeLog(timeLogName, 'getDependencyGraph starting...');
-                const rel8dGraph = await getDependencyGraph({
-                    ibGibAddrs: rel8dAddrsOnlyInStore,
-                    live: true,
-                    maxRetries: c.DEFAULT_MAX_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
-                    msBetweenRetries: c.DEFAULT_MS_BETWEEN_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
-                    skipAddrs: allLocalIbGibs.map(x => h.getIbGibAddr({ ibGib: x })),
-                    space: this,
-                    timeLogName,
-                });
-                console.timeLog(timeLogName, 'getDependencyGraph complete.');
-                const rel8dIbGibsOnlyInStore = Object.values(rel8dGraph);
-                if (rel8dIbGibsOnlyInStore.length < rel8dAddrsOnlyInStore.length) { throw new Error(`rel8dIbGibsOnlyInStore.length < rel8dAddrsOnlyInStore.length? We should have at least those ibgibs explicitly rel8d, plus their dependency graphs. (E: 17654562e21f41ef98ff7a8906c2830c)`); }
-                if (rel8dIbGibsOnlyInStore.length > 0) {
-                    if (logalot) { console.log(`${lc} rel8dIbGibsOnlyInStore(mapped, length: ${rel8dIbGibsOnlyInStore.length}): ${rel8dIbGibsOnlyInStore.map(x => h.getIbGibAddr({ ibGib: x })).join('\n')}`); }
-                    rel8dIbGibsOnlyInStore.forEach(x => ibGibsOnlyInStore.push(x));
-                } else {
-                    if (logalot) { console.log(`${lc} rel8dIbGibsOnlyInStore is empty.`); }
+                if (rel8dAddrsOnlyInStore?.length > 0) {
+                    const rel8dGraph = await getDependencyGraph({
+                        ibGibAddrs: rel8dAddrsOnlyInStore,
+                        live: true,
+                        maxRetries: c.DEFAULT_MAX_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
+                        msBetweenRetries: c.DEFAULT_MS_BETWEEN_RETRIES_GET_DEPENDENCY_GRAPH_OUTERSPACE,
+                        skipAddrs: allLocalIbGibs.map(x => h.getIbGibAddr({ ibGib: x })),
+                        space: this,
+                        timeLogName,
+                    });
+                    console.timeLog(timeLogName, 'getDependencyGraph complete.');
+                    const rel8dIbGibsOnlyInStore = Object.values(rel8dGraph);
+                    if (rel8dIbGibsOnlyInStore.length < rel8dAddrsOnlyInStore.length) { throw new Error(`rel8dIbGibsOnlyInStore.length < rel8dAddrsOnlyInStore.length? We should have at least those ibgibs explicitly rel8d, plus their dependency graphs. (E: 17654562e21f41ef98ff7a8906c2830c)`); }
+                    if (rel8dIbGibsOnlyInStore.length > 0) {
+                        if (logalot) { console.log(`${lc} rel8dIbGibsOnlyInStore(mapped, length: ${rel8dIbGibsOnlyInStore.length}): ${rel8dIbGibsOnlyInStore.map(x => h.getIbGibAddr({ ibGib: x })).join('\n')}`); }
+                        rel8dIbGibsOnlyInStore.forEach(x => ibGibsOnlyInStore.push(x));
+                    } else {
+                        if (logalot) { console.log(`${lc} rel8dIbGibsOnlyInStore is empty.`); }
+                    }
                 }
 
                 // there are going to be issues here when the rel8d ibgibs
