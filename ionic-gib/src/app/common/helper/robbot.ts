@@ -387,8 +387,14 @@ export function getInteractionIb({
         if (data.type !== saferType) { throw new Error(`invalid data.type (${data.type}). Should be safer like (${saferType}) (E: efe7888da08f148c8972c0923356b122)`); }
 
         if (!data.timestamp) { throw new Error(`data.timestamp required (E: 8682a5af1cd48d0cb372b7f519a61e22)`); }
-        let saferTimestamp = getSaferSubstring({ text: data.timestamp, length: 64 });
-        if (data.timestamp !== saferTimestamp) { throw new Error(`data.timestamp is expected to be safe. this usually means should be in ticks, i.e. no spaces or special characters. (E: 3a0f627ec632272ee62da7ddf6a78422)`); }
+        const timestampInTicks = Number.isInteger(data.timestamp) ?
+            data.timestamp :
+            getTimestampInTicks(data.timestamp);
+        // let saferTimestamp = getSaferSubstring({ text: data.timestamp, length: 64 });
+
+        // if (data.timestamp !== saferTimestamp) {
+        //     throw new Error(`data.timestamp is expected to be safe. this usually means should be in ticks, i.e. no spaces or special characters. (E: 3a0f627ec632272ee62da7ddf6a78422)`);
+        // }
 
         if (addlDetailsText) {
             let saferAddlDetailsText = getSaferSubstring({ text: addlDetailsText, length: 64 });
@@ -399,8 +405,8 @@ export function getInteractionIb({
         }
 
         return addlDetailsText ?
-            `${atom} ${data.type} ${data.timestamp} ${addlDetailsText}` :
-            `${atom} ${data.type} ${data.timestamp}`;
+            `${atom} ${data.type} ${timestampInTicks} ${addlDetailsText}` :
+            `${atom} ${data.type} ${timestampInTicks}`;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

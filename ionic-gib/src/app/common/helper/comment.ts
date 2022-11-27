@@ -73,7 +73,6 @@ export function parseCommentIb({
 
     if (!ib) { throw new Error(`ib required (E: d89f8c4df46b970585c82bc89c1c6322)`); }
     const [_, safeIbCommentText, safeIbCommentMetadataText] = ib.split(' ');
-    debugger;
     return { safeIbCommentText, safeIbCommentMetadataText };
   } catch (error) {
     console.error(`${lc} ${error.message}`);

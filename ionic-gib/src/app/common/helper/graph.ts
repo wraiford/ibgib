@@ -393,6 +393,11 @@ export async function getGraphProjection(opts: GetDependencyGraphOptions): Promi
     try {
         if (logalot) { console.log(`${lc} starting... (I: 70508d7a5c63eae1f22ae851b32b3d22)`); }
 
+        if (!opts.ibGib && !opts.ibGibAddr && (opts.ibGibs ?? []).length === 0 && (opts.ibGibAddrs ?? []).length === 0) {
+            // no ibgibs/addrs, return empty - don't throw
+            return <GetGraphResult>{}; /* <<<< returns early */
+        }
+
         // ibGib and ibGibAddr get condensed into ibGibs and ibGibAddrs
         let {
             /*ibGib,*/ ibGibs, /*ibGibAddr,*/ ibGibAddrs,

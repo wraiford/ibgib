@@ -114,6 +114,32 @@ export function getExpirationUTCString({
 }): string {
     const lc = `[${getExpirationUTCString.name}]`;
     try {
+        return addTimeToDate({
+            startDate, years, months, days, hours, seconds,
+        }).toUTCString();
+    } catch (error) {
+        console.log(`${lc} ${error.message}`);
+        throw error;
+    }
+}
+
+export function addTimeToDate({
+    startDate,
+    years,
+    months,
+    days,
+    hours,
+    seconds,
+}: {
+    startDate?: Date,
+    years?: number,
+    months?: number,
+    days?: number,
+    hours?: number,
+    seconds?: number,
+}): Date {
+    const lc = `[${addTimeToDate.name}]`;
+    try {
         if (!startDate && !years && !months && !days && !hours && !seconds) {
             // throw here because otherwise we would return an expiration
             // timestamp string with now as the expiration, which doesn't make
@@ -121,7 +147,10 @@ export function getExpirationUTCString({
             throw new Error(`either startDate or a time interval required. (E: 30248f8b306f443ab036fa8c313c50d8)`);
         }
 
-        startDate = startDate ?? new Date(); // default to now
+        // don't want to mutate the incoming date
+        startDate = startDate ?
+            new Date(startDate) :
+            new Date(); // default to now
 
         /** incoming years/months/days/hours/seconds to add to start date */
         let intervalToAdd: number;
@@ -132,7 +161,7 @@ export function getExpirationUTCString({
             intervalToAdd = startDate.getFullYear() + years;
             newDateTicks = startDate.setFullYear(intervalToAdd);
             // call recursively for other interval args (if any)
-            return getExpirationUTCString({
+            return addTimeToDate({
                 startDate: new Date(newDateTicks),
                 months, days, hours, seconds, // all but years (just set)
             })
@@ -140,7 +169,7 @@ export function getExpirationUTCString({
             intervalToAdd = startDate.getMonth() + months;
             newDateTicks = startDate.setMonth(intervalToAdd);
             // call recursively for other interval args (if any)
-            return getExpirationUTCString({
+            return addTimeToDate({
                 startDate: new Date(newDateTicks),
                 years, days, hours, seconds, // all but months (just set)
             })
@@ -148,7 +177,7 @@ export function getExpirationUTCString({
             intervalToAdd = startDate.getDate() + days;
             newDateTicks = startDate.setDate(intervalToAdd);
             // call recursively for other interval args (if any)
-            return getExpirationUTCString({
+            return addTimeToDate({
                 startDate: new Date(newDateTicks),
                 years, months, hours, seconds, // all but days (just set)
             })
@@ -156,7 +185,7 @@ export function getExpirationUTCString({
             intervalToAdd = startDate.getHours() + hours;
             newDateTicks = startDate.setHours(intervalToAdd);
             // call recursively for other interval args (if any)
-            return getExpirationUTCString({
+            return addTimeToDate({
                 startDate: new Date(newDateTicks),
                 years, months, days, seconds, // all but hours (just set)
             })
@@ -164,21 +193,20 @@ export function getExpirationUTCString({
             intervalToAdd = startDate.getSeconds() + seconds;
             newDateTicks = startDate.setSeconds(intervalToAdd);
             // call recursively for other interval args (if any)
-            return getExpirationUTCString({
+            return addTimeToDate({
                 startDate: new Date(newDateTicks),
                 years, months, days, hours, // all but seconds (just set)
             })
         } else {
             // we've called our function recursively and all intervals args
             // falsy now, so startDate is the output date.
-            return startDate.toUTCString();
+            return startDate;
         }
     } catch (error) {
         console.log(`${lc} ${error.message}`);
         throw error;
     }
 }
-
 
 export function isExpired({
     expirationTimestampUTC,

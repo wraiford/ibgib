@@ -443,6 +443,7 @@ export type SemanticId =
     'semantic_in_progress' |
     'semantic_request_list' |
     'semantic_options' |
+    'semantic_ready' |
     'semantic_unknown' | 'semantic_default';
 export const SemanticId = {
     help: 'semantic_help' as SemanticId,
@@ -458,6 +459,7 @@ export const SemanticId = {
     in_progress: 'semantic_in_progress' as SemanticId,
     request_list: 'semantic_request_list' as SemanticId,
     options: 'semantic_options' as SemanticId,
+    ready: 'semantic_ready' as SemanticId,
     unknown: 'semantic_unknown' as SemanticId,
     default: 'semantic_default' as SemanticId,
 };
@@ -491,6 +493,13 @@ export interface SemanticHandler {
 
 export interface RobbotPropsData extends PropsData {
     /**
+     * This datum expects these template vars.
+     *
+     * This is not strictly necessary, but is used for documentation/aid to the
+     * caller on providing stuff for the datum for what is expected.
+     */
+    templateVars?: string;
+    /**
      * If assigned, then this lex datum is a semantic entry, and this is the corresponding
      * semantic id.
      */
@@ -505,7 +514,8 @@ export interface RobbotPropsData extends PropsData {
      */
     onlyNotInSession?: boolean;
     /**
-     * The robbot hasn't seen anything so has no knowledge.
+     * The robbot hasn't seen anything so has no knowledge/has nothing to work
+     * on.
      */
     blankSlate?: boolean;
     /**
@@ -514,7 +524,7 @@ export interface RobbotPropsData extends PropsData {
     freshStart?: boolean;
 }
 
-function toLexDatums_Semantics(semanticId: SemanticId, texts: string[]): LexDatum<RobbotPropsData>[] {
+export function toLexDatums_Semantics(semanticId: SemanticId, texts: string[]): LexDatum<RobbotPropsData>[] {
     return texts.flatMap(t => {
         return <LexDatum<RobbotPropsData>>{
             texts: [t],
@@ -523,7 +533,7 @@ function toLexDatums_Semantics(semanticId: SemanticId, texts: string[]): LexDatu
         };
     });
 }
-function toLexDatums_Atomics(atomicId: AtomicId, texts: string[]): LexDatum<RobbotPropsData>[] {
+export function toLexDatums_Atomics(atomicId: AtomicId, texts: string[]): LexDatum<RobbotPropsData>[] {
     return texts.flatMap(t => {
         return <LexDatum<RobbotPropsData>>{
             texts: [t],
