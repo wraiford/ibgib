@@ -294,13 +294,13 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
     private _analysis: WordyAnalysisIbGib_V1_Robbot;
 
-    protected _currentWorkingLookProjection: GetGraphResult;
+    protected _brainLookProjection: GetGraphResult;
     /**
      * When we go to get the current working ibgib, if there are none available, then this
      * will be set.
      */
     protected nothingToWorkOnAvailable: boolean;
-    protected _currentWorkingCommentIbGibs: CommentIbGib_V1[];
+    protected _brainCommentIbGibs: CommentIbGib_V1[];
     protected _currentWorkingComment: CommentIbGib_V1;
     protected _currentWorkingCommentTjpAddr: IbGibAddr;
     /**
@@ -430,14 +430,11 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 {
                     texts: [
                         `$(hi).`,
-                        `$(im_awake)`,
-                        `$requests`
                     ],
                     props: {
                         semanticId: SemanticId.hello,
                         onlyInSession: true,
                         freshStart: true, // explicit for readability
-                        templateVars: `requests`,
                     },
                 },
                 {
@@ -577,6 +574,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 5632af01149bc9c3af56346c2fbda622)`); }
 
+            debugger;
             // todo: pull this out into a function "getCurrentRequestsAvailable" or similar
             const requests = this.robbotLex.get(SemanticId.request_list, {
                 lineConcat: LexLineConcat.n,
@@ -584,7 +582,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             });
 
             // leaving off here
-            throw new Error(`leaving off here. changing this to get user to specify which thing to study next, or gets a random one, or a scheduled one. Basic generic hello, then be request-driven. (E: 13f4f3389dfd4a1ec983feaa750ccb22)`);
 
             const hello = this.robbotLex.get(SemanticId.hello, {
                 props: props =>
@@ -599,7 +596,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             const sb = SpeechBuilder.with()
                 .text(hello.text)
-                .newParagraph()
+                // .newParagraph()
                 ;
 
             const data: RobbotInteractionData_V1 = {
@@ -790,6 +787,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             await this.completeSessionIfNeeded({ sayBye: true });
             await this.closeCurrentWorkingContextIfNeeded();
             await this.initializeContext({ arg });
+            if (!this._brainCommentIbGibs) { await this.initializeBrain(); }
             await this.startSession();
             await this.promptNextInteraction({ isClick: true });
 
@@ -860,9 +858,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             await this.ready;
 
             // const space = await this.ibgibsSvc.getLocalUserSpace({ lock: true });
-            if (!this._currentWorkingCommentIbGibs) {
-                await this.initializeCurrentWorkingComment();
-            }
+            if (!this._brainCommentIbGibs) { await this.initializeBrain(); }
 
             // at this point, we should have all of the related ibgibs that we
             // care about loaded into this.cacheIbGibs and this.cachedLatestAddrsMap is populated.
@@ -956,47 +952,48 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    private async initializeCurrentWorkingComment(): Promise<void> {
-        const lc = `${this.lc}[${this.initializeCurrentWorkingComment.name}]`;
+    /**
+     * This is like loading a scene in a video game. We are initializing what
+     * the robbot knows insofar as ibgibs that it has seen and analyses.
+     */
+    private async initializeBrain(): Promise<void> {
+        const lc = `${this.lc}[${this.initializeBrain.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: c3a5aadc40ebcb63da6adbe67dca3a22)`); }
 
-            delete this._currentWorkingLookProjection;
-            delete this._currentWorkingCommentIbGibs;
-            delete this._currentWorkingComment;
-            delete this._currentWorkingCommentIbGibsAnalysisMap;
+            delete this._brainLookProjection;
+            delete this._brainCommentIbGibs;
 
             const space = await this.ibgibsSvc.getLocalUserSpace({ lock: true });
 
-            if (!this._currentWorkingLookProjection) {
-                this._currentWorkingLookProjection = await this.getAllIbGibsWeCanLookAt({ space });
+            if (!this._brainLookProjection) {
+                this._brainLookProjection = await this.getAllIbGibsWeCanLookAt({ space });
             }
-            if (!this._currentWorkingLookProjection) { throw new Error(`(UNEXPECTED) unable to get current working look projection? (E: ef1d13fdc201ceb612f7339578c65622)`); }
+            if (!this._brainLookProjection) { throw new Error(`(UNEXPECTED) unable to get current working look projection? (E: ef1d13fdc201ceb612f7339578c65622)`); }
 
-            if (!this._currentWorkingCommentIbGibs) {
-                this._currentWorkingCommentIbGibs = await this.getCommentIbGibs({
-                    lookProjection: this._currentWorkingLookProjection,
+            if (!this._brainCommentIbGibs) {
+                this._brainCommentIbGibs = await this.getCommentIbGibs({
+                    lookProjection: this._brainLookProjection,
                 });
             }
-            if (!this._currentWorkingCommentIbGibs) { throw new Error(`(UNEXPECTED) unable to get current working comment ibgibs? (E: 474bc448ee974f0cb17d85a225d63191)`); }
-            if (this._currentWorkingCommentIbGibs.length === 0) {
-                console.info(`${lc} nothing available to work on.`);
+            if (!this._brainCommentIbGibs) { throw new Error(`(UNEXPECTED) unable to get current working comment ibgibs? (E: 474bc448ee974f0cb17d85a225d63191)`); }
+            if (this._brainCommentIbGibs.length === 0) {
+                if (logalot) { console.info(`${lc} nothing available to work on (haven't looked at any ibgibs) (I: 816a82fe9aab41d5905d2933fa8a8682)`); }
                 this.nothingToWorkOnAvailable = true;
-                return; /* <<<< returns early */
+            } else {
+                if (logalot) { console.info(`${lc} we do have comment ibgibs in our brain (that we have looked at). (I: 439c854c030246ccb256b851318e610f)`); }
+                this.nothingToWorkOnAvailable = false;
             }
-
-            this.nothingToWorkOnAvailable = false;
 
             // check for any currently scheduled
 
-
             // when choosing a comment, we should know what comments need choosing...
             // or pick random one at start...hmmm
-            this._currentWorkingComment =
-                pickRandom({ x: this._currentWorkingCommentIbGibs });
-            if (logalot) { console.log(`${lc} current working comment set. addr: ${h.getIbGibAddr({ ibGib: this._currentWorkingComment })} (I: 78a694ba366f1c3871710dbfd9b75122)`); }
-            this._currentWorkingCommentTjpAddr =
-                getTjpAddr({ ibGib: this._currentWorkingComment, defaultIfNone: 'incomingAddr' });
+            // this._currentWorkingComment =
+            //     pickRandom({ x: this._brainCommentIbGibs });
+            // if (logalot) { console.log(`${lc} current working comment set. addr: ${h.getIbGibAddr({ ibGib: this._currentWorkingComment })} (I: 78a694ba366f1c3871710dbfd9b75122)`); }
+            // this._currentWorkingCommentTjpAddr =
+            //     getTjpAddr({ ibGib: this._currentWorkingComment, defaultIfNone: 'incomingAddr' });
             // load/create the analysis for the current working comment
 
             // this._currentWorkingCommentAnalysis =
@@ -1117,7 +1114,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 128d07e8fdc1a1d79a1b54dd83caeb22)`); }
 
-            let commentIbGibs = this._currentWorkingCommentIbGibs;
+            let commentIbGibs = this._brainCommentIbGibs;
 
             if (!commentIbGibs) { throw new Error(`commentIbGibs required (E: c6a983bf16cfe2e5aa48934499f53322)`); }
             if (commentIbGibs.length === 0) {
