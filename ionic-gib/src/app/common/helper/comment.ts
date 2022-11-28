@@ -39,7 +39,11 @@ export function getCommentIb({
 
     // get a safe slice of the comment text to add to the ib
     const ibCommentText =
-      getSaferSubstring({ text: commentText, length: c.DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH });
+      getSaferSubstring({
+        text: commentText,
+        length: c.DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH,
+        replaceMap: { ['?']: '__qm__' }, // we want to preserve question marks for requests for robbots
+      });
 
     if (addlMetadataText) {
       if (addlMetadataText.length > c.DEFAULT_COMMENT_METADATA_IB_SUBSTRING_LENGTH) {
@@ -60,9 +64,9 @@ export function getCommentIb({
 }
 
 export function parseCommentIb({
-  ib
+  ib,
 }: {
-  ib: Ib
+  ib: Ib,
 }): {
   safeIbCommentText: string;
   safeIbCommentMetadataText?: string;
@@ -72,7 +76,12 @@ export function parseCommentIb({
     if (logalot) { console.log(`${lc} starting... (I: 1a16f5e3134599eeb585eae77ee6af22)`); }
 
     if (!ib) { throw new Error(`ib required (E: d89f8c4df46b970585c82bc89c1c6322)`); }
-    const [_, safeIbCommentText, safeIbCommentMetadataText] = ib.split(' ');
+
+    let [_, safeIbCommentText, safeIbCommentMetadataText] = ib.split(' ');
+    // replaceMap: { ['?']: '__qm__' }, // we want to preserve question marks for requests for robbots
+    while (safeIbCommentText.includes('__qm__')) {
+      safeIbCommentText = safeIbCommentText.replace('__qm__', '?');
+    }
     return { safeIbCommentText, safeIbCommentMetadataText };
   } catch (error) {
     console.error(`${lc} ${error.message}`);

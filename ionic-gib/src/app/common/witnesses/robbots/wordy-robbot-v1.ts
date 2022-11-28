@@ -20,7 +20,7 @@ import {
     DEFAULT_ROBBOT_LEX_DATA, DEFAULT_HUMAN_LEX_DATA, SemanticInfo,
     RobbotInteractionData_V1, RobbotInteractionIbGib_V1,
     RobbotInteractionType,
-    ROBBOT_SESSION_REL8N_NAME, ROBBOT_INTERACTION_REL8N_NAME, ROBBOT_SESSION_ATOM, ROBBOT_ANALYSIS_ATOM, toLexDatums_Semantics,
+    ROBBOT_SESSION_REL8N_NAME, ROBBOT_INTERACTION_REL8N_NAME, ROBBOT_SESSION_ATOM, ROBBOT_ANALYSIS_ATOM, toLexDatums_Semantics, DEFAULT_ROBBOT_REQUEST_ESCAPE_STRING, AtomicId, DEFAULT_HUMAN_LEX_DATA_ENGLISH_ATOMICS,
 } from '../../types/robbot';
 import { DynamicForm } from '../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
@@ -33,9 +33,7 @@ import { CommentIbGib_V1 } from '../../types/comment';
 import { getFromSpace, getLatestAddrs } from '../../helper/space';
 import { AppSpaceData, AppSpaceRel8ns } from '../../types/app';
 import { IonicSpace_V1 } from '../spaces/ionic-space-v1';
-import { IbGibSpaceAny } from '../spaces/space-base-v1';
-import { IbGibTimelineUpdateInfo } from '../../types/ux';
-import { Lex, LexData, LexLineConcat, SpeechBuilder } from '../../helper/lex';
+import { LexLineConcat, SpeechBuilder } from '../../helper/lex';
 import { getTjpAddr } from '../../helper/ibgib';
 import { isComment, parseCommentIb } from '../../helper/comment';
 import { Ssml } from '../../helper/ssml';
@@ -334,24 +332,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     //     }
     // }
 
-    /**
-     * If this robbot has asked a question, then this will be the text asked.
-     *
-     * So if a new ibgib comes to the context, and that ibgib is our asked text, then we're
-     * not going to worry about it because we're going to assume it came from us.
-     * (There are lots of ways to do this...)
-     *
-     * If we asked a question and a
-     */
-    private _askedText: string;
-    /**
-     * If a new context update comes down the pipeline and we confirm it's equal to our
-     * `_askedText`, then we know that our question has been posted.
-     */
-    private _askedTextPosted: boolean;
-    private _expectedResponses: string;
-
-
     protected session: WordyRobbotSessionIbGib_V1;
     protected interactions: RobbotInteractionIbGib_V1[];
     /**
@@ -413,7 +393,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: a4668a7473027e56df42909c09f70822)`); }
             await super.initialize_lex();
-
 
             this.robbotLex.data[SemanticId.hello] = [
                 {
@@ -481,10 +460,21 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             this.robbotLex.data[SemanticId.ready] = [
                 ...toLexDatums_Semantics(SemanticId.ready, [
-                    'I\'m ready.', 'i\'m awake.',
+                    'I\'m ready.', 'I\'m awake.',
                 ])
             ];
 
+            this.userLex.data[SemanticId.hello] = [
+                ...DEFAULT_HUMAN_LEX_DATA_ENGLISH_ATOMICS[AtomicId.hi].flatMap(datum => {
+                    return {
+                        texts: datum.texts.concat(),
+                        props: <WordyRobbotPropsData>{
+                            semanticId: SemanticId.hello,
+                            isRequest: true,
+                        }
+                    }
+                }),
+            ];
 
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -574,15 +564,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 5632af01149bc9c3af56346c2fbda622)`); }
 
-            debugger;
-            // todo: pull this out into a function "getCurrentRequestsAvailable" or similar
-            const requests = this.robbotLex.get(SemanticId.request_list, {
-                lineConcat: LexLineConcat.n,
-                vars: { requests: 'next\nstop', }
-            });
-
-            // leaving off here
-
             const hello = this.robbotLex.get(SemanticId.hello, {
                 props: props =>
                     props.semanticId === SemanticId.hello &&
@@ -590,10 +571,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     props.freshStart === true,
             });
 
-            debugger;
-
             // get the first stimulation for the current comment
-
             const sb = SpeechBuilder.with()
                 .text(hello.text)
                 // .newParagraph()
@@ -900,7 +878,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             // first check to see if an analysis already exists in local space
             if (!this._analysis) { await this.analyze_Robbot({}) }
-            debugger;
             console.dir(ibGib);
             const timestamp = h.getTimestamp();
             const timestampInTicks = getTimestampInTicks(timestamp);
@@ -1057,26 +1034,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 debugger;
                 console.warn(`${lc} (UNEXPECTED) hmm, i thought this would only trigger while a session is in play... (W: c54c7d472cca423aae01b10ef95785a45)`)
             }
-        } catch (error) {
-            console.error(`${lc} ${error.message}`);
-            throw error;
-        } finally {
-            if (logalot) { console.log(`${lc} complete.`); }
-        }
-    }
-
-    /**
-     * the user has said something to us. we should nobly consider their request.
-     */
-    async handleRequest({ ibGib }: { ibGib: IbGib_V1 }): Promise<void> {
-        const lc = `${this.lc}[${this.handleRequest.name}]`;
-        try {
-            if (logalot) { console.log(`${lc} starting... (I: e594c9c637a8be26a669fefd5800d322)`); }
-            debugger;
-            console.table(ibGib);
-            debugger;
-            throw new Error(`not impl (E: c9ac49b454b16b790c9b9f0ac33ec522)`);
-
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -1844,7 +1801,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     });
                 } else {
                     // just starting session.
-                    debugger;
                     return await this.getNextInteraction_PerRequest({
                         semanticId: SemanticId.hello,
                     });
@@ -1927,12 +1883,14 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // map from the request text to a semantic id
             // const semanticId: SemanticId = SemanticId.help;
             let resRequestText = this.userLex.find({
-                fnDatumPredicate: d => d.texts.join('') === requestText
+                fnDatumPredicate: d => d.texts.join('').toLowerCase() === requestText.toLowerCase() && d.props.isRequest
             });
             if (resRequestText?.length === 1) {
                 const resId = resRequestText[0];
                 // id found, but is it semantic id?
-                if (Object.values(SemanticId).includes(<any>resId)) {
+                const semanticIds = Object.values(SemanticId);
+                if (logalot) { console.log(`${lc} semanticIds: ${semanticIds} (I: 1a37a42d7c276ab6f8d0d16f3cb3be22)`); }
+                if (semanticIds.includes(<any>resId)) {
                     // semantic id found
                     semanticId = <SemanticId>resId;
                 } else {

@@ -409,15 +409,19 @@ export interface RobbotInteractionIbGib_V1
 /**
  * These are used for raw words/phrases that compose larger, more complex
  * semantic ideas that use SemanticId.
+ *
+ * Because these are used in composition of lex data, they are not prefixed
+ * with something like "atomic_", e.g. "atomic_hi".
  */
 export type AtomicId =
     'hi' | 'welcome' | 'bye' |
-    'yes';
+    'yes' | 'no';
 export const AtomicId = {
     hi: 'hi' as AtomicId,
     welcome: 'welcome' as AtomicId,
     bye: 'bye' as AtomicId,
     yes: 'yes' as AtomicId,
+    no: 'no' as AtomicId,
 }
 
 /**
@@ -522,6 +526,10 @@ export interface RobbotPropsData extends PropsData {
      * Just starting a new session, i.e. no prev interactions exist.
      */
     freshStart?: boolean;
+    /**
+     * Flag to indicate if the lex datum corresponds to a user request.
+     */
+    isRequest?: boolean;
 }
 
 export function toLexDatums_Semantics(semanticId: SemanticId, texts: string[]): LexDatum<RobbotPropsData>[] {
@@ -545,6 +553,11 @@ export function toLexDatums_Atomics(atomicId: AtomicId, texts: string[]): LexDat
 
 export const DEFAULT_HUMAN_LEX_DATA_ENGLISH_SEMANTICS: LexData<RobbotPropsData> = {
     [SemanticId.help]: [
+        ...toLexDatums_Semantics(SemanticId.help, [
+            'help', 'help me',
+        ]),
+    ],
+    [SemanticId.hello]: [
         ...toLexDatums_Semantics(SemanticId.help, [
             'help', 'help me',
         ]),
@@ -596,7 +609,7 @@ export const DEFAULT_HUMAN_LEX_DATA_ENGLISH_SEMANTICS: LexData<RobbotPropsData> 
 export const DEFAULT_HUMAN_LEX_DATA_ENGLISH_ATOMICS: LexData<RobbotPropsData> = {
     [AtomicId.hi]: [
         ...toLexDatums_Atomics(AtomicId.hi, [
-            'hi', 'howdy', 'hello', 'greetings', 'good day', 'hello there', 'good day to you',
+            'hi', 'howdy', 'hello', 'greetings', 'good day', 'hello there', 'good day to you', 'yo',
         ]),
     ],
     [AtomicId.welcome]: [
@@ -609,6 +622,11 @@ export const DEFAULT_HUMAN_LEX_DATA_ENGLISH_ATOMICS: LexData<RobbotPropsData> = 
             'yes', 'y', 'yeah', 'yea', 'aye', 'yup', 'yep', 'sure', 'ok',
             'sounds good', 'go for it', 'yes please', 'yes thanks', 'ok thanks',
             'uh huh', 'god yes', 'affirmative', 'ten four', '10-4', 'roger',
+        ]),
+    ],
+    [AtomicId.no]: [
+        ...toLexDatums_Atomics(AtomicId.no, [
+            'no', 'n', 'nope', 'no thanks', 'no thank you',
         ]),
     ],
     [AtomicId.bye]: [

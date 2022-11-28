@@ -313,7 +313,6 @@ export function isRequestComment({
     const lc = `${isRequestComment.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: d7c49619ffb7a9c26d9d74959b91ae22)`); }
-        debugger;
 
         if (!isComment({ ibGib })) { return false; /* <<<< returns early */ }
 
@@ -387,7 +386,9 @@ export function getInteractionIb({
         if (data.type !== saferType) { throw new Error(`invalid data.type (${data.type}). Should be safer like (${saferType}) (E: efe7888da08f148c8972c0923356b122)`); }
 
         if (!data.timestamp) { throw new Error(`data.timestamp required (E: 8682a5af1cd48d0cb372b7f519a61e22)`); }
-        const timestampInTicks = Number.isInteger(data.timestamp) ?
+        const dataTimestampIsInt = Number.isInteger(Number.parseInt(data.timestamp));
+        if (dataTimestampIsInt) { debugger; }// debug
+        const timestampInTicks = dataTimestampIsInt ?
             data.timestamp :
             getTimestampInTicks(data.timestamp);
         // let saferTimestamp = getSaferSubstring({ text: data.timestamp, length: 64 });

@@ -39,6 +39,8 @@ import { Subscription } from 'rxjs';
 import { IbGibTimelineUpdateInfo } from '../../types/ux';
 import { getTimestampInTicks } from '../../helper/utils';
 import { Lex } from '../../helper/lex';
+import { getTjpAddr } from '../../helper/ibgib';
+import { filter } from 'rxjs/operators';
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
 
@@ -126,6 +128,7 @@ export abstract class RobbotBase_V1<
     protected cacheIbGibs: { [addr: string]: IbGib_V1 } = {};
 
 
+    protected _contextChangesSubscription: Subscription;
     protected _currentWorkingContextIbGib: IbGib_V1;
     /**
      * when we get an update to the context, we want to know what the _new_
@@ -157,7 +160,7 @@ export abstract class RobbotBase_V1<
             });
 
             let data: RobbotInteractionData_V1 = {
-                timestamp: getTimestampInTicks(),
+                timestamp: h.getTimestamp(),
                 type: RobbotInteractionType.clarification,
                 commentText,
             };
@@ -1013,23 +1016,39 @@ export abstract class RobbotBase_V1<
 
     }
 
-    private async getContextIbGibFromArg({
+    /**
+     * I originally created this just to extract the context from the arg, but
+     * I'm reusing it to get the latest context from the addr alone.
+     */
+    protected async getContextIbGibFromArgOrAddr({
         arg,
+        addr,
         latest,
     }: {
-        arg: RobbotCmdIbGib<IbGib_V1, RobbotCmdData, RobbotCmdRel8ns>,
+        arg?: RobbotCmdIbGib<IbGib_V1, RobbotCmdData, RobbotCmdRel8ns>,
+        addr?: IbGibAddr,
         /**
          * if true, after extracting the context from the arg, will get the
          * latest ibgib (if there is a newer version).
          */
         latest?: boolean,
     }): Promise<IbGib_V1> {
-        const lc = `${this.lc}[${this.getContextIbGibFromArg.name}]`;
+        const lc = `${this.lc}[${this.getContextIbGibFromArgOrAddr.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: c13f7cb92133984048f606075efb8a22)`); }
-            if ((arg.ibGibs ?? []).length === 0) { throw new Error(`(UNEXPECTED) invalid arg? no context ibgib on arg (E: 89997eb4bdeb3885bee9de5d33ee0f22)`); }
-            if ((arg.ibGibs ?? []).length !== 1) { throw new Error(`(UNEXPECTED) invalid arg? only expected one ibgib on arg.ibGibs (E: 1a1498af668740fe9439f4953a74ea8a)`); }
-            let contextIbGib = arg.ibGibs[0];
+            let contextIbGib: IbGib_V1;
+            if (!arg && !addr) { throw new Error(`either arg or addr required. (E: 3f647b65742242fd9ba878521acf7c22)`); }
+            if (arg) {
+                if ((arg.ibGibs ?? []).length === 0) { throw new Error(`(UNEXPECTED) invalid arg? no context ibgib on arg (E: 89997eb4bdeb3885bee9de5d33ee0f22)`); }
+                if ((arg.ibGibs ?? []).length !== 1) { throw new Error(`(UNEXPECTED) invalid arg? only expected one ibgib on arg.ibGibs (E: 1a1498af668740fe9439f4953a74ea8a)`); }
+                contextIbGib = arg.ibGibs[0];
+            } else {
+                // addr provided
+                const resGet = await this.ibgibsSvc.get({ addr });
+                if (!resGet.success || resGet.ibGibs?.length !== 1) { throw new Error(`could not get context addr (${addr}) (E: 834492313512a45b23a7bebacdc48122)`); }
+                contextIbGib = resGet.ibGibs[0];
+            }
+
             if (latest) {
                 const resLatestAddr = await this.ibgibsSvc.getLatestAddr({ ibGib: contextIbGib });
                 if (resLatestAddr !== h.getIbGibAddr({ ibGib: contextIbGib })) {
@@ -1066,12 +1085,37 @@ export abstract class RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: d93429c85b0a494388f66fba3eece922)`); }
 
-            this._currentWorkingContextIbGib = await this.getContextIbGibFromArg({ arg, latest: true });
-            this._currentWorkingContextIbGib_PriorChildrenAddrs = [
-                ...this._currentWorkingContextIbGib?.rel8ns?.comment ?? [],
-                ...this._currentWorkingContextIbGib?.rel8ns?.pic ?? [],
-                ...this._currentWorkingContextIbGib?.rel8ns?.link ?? [],
-            ];
+            /** used both now and when context ibgib is updated via observable */
+            const updatePriorChildren = () => {
+                this._currentWorkingContextIbGib_PriorChildrenAddrs = [
+                    ...this._currentWorkingContextIbGib?.rel8ns?.comment ?? [],
+                    ...this._currentWorkingContextIbGib?.rel8ns?.pic ?? [],
+                    ...this._currentWorkingContextIbGib?.rel8ns?.link ?? [],
+                ];
+            };
+
+            // set the props
+            this._currentWorkingContextIbGib = await this.getContextIbGibFromArgOrAddr({ arg, latest: true });
+            updatePriorChildren();
+
+            // subscribe to context ibgib updates
+            const tjpAddr = getTjpAddr({ ibGib: this._currentWorkingContextIbGib });
+            this._contextChangesSubscription =
+                this.ibgibsSvc.latestObs.pipe(filter(x => x.tjpAddr === tjpAddr)).subscribe(async update => {
+                    const currentAddr = h.getIbGibAddr({ ibGib: this._currentWorkingContextIbGib });
+                    if (update.latestAddr !== currentAddr) {
+                        if (logalot) { console.log(`${lc} update to context.\ncurrentAddr: ${currentAddr}\nlatestAddr: ${update.latestAddr} (I: d0adcc392e6e974c9917730ebad51322)`); }
+                        this._currentWorkingContextIbGib =
+                            update.latestIbGib ??
+                            await this.getContextIbGibFromArgOrAddr({ addr: update.latestAddr, latest: false }); // already latest
+                        if (!this._updatingContext) {
+                            await this.handleContextUpdate({ update });
+                            updatePriorChildren();
+                        } else {
+                            if (logalot) { console.log(`${lc} already updating context (I: f856f9414627ab00418dccd285b55822)`); }
+                        }
+                    }
+                });
 
             // rel8 to the context (conversation)
             await this.rel8To({
@@ -1082,23 +1126,23 @@ export abstract class RobbotBase_V1<
             // subscribe to receive updates to the context so we can participate
             // in the conversation (i.e. interpret incoming ibgibs like commands
             // if needed)
-            let gibInfo = getGibInfo({ gib: this._currentWorkingContextIbGib.gib });
-            if (gibInfo.tjpGib) {
-                this.ibgibsSvc.latestObs
-                    .subscribe(update => {
-                        if (!update.tjpAddr) { return; /* <<<< returns early */ }
-                        if (h.getIbAndGib({ ibGibAddr: update.tjpAddr }).gib !== gibInfo.tjpGib) { return; /* <<<< returns early */ }
-                        if (update.latestAddr === h.getIbGibAddr({ ibGib: this._currentWorkingContextIbGib })) {
-                            if (logalot) { console.log(`${lc} already have that context... (I: a6e17ec40d620f0bd5b231db39eaa522)`); }
-                            return; /* <<<< returns early */
-                        }
-                        if (this._updatingContext) {
-                            if (logalot) { console.log(`${lc} already updating context (I: f856f9414627ab00418dccd285b55822)`); }
-                            return; /* <<<< returns early */
-                        }
-                        this.handleContextUpdate({ update });
-                    });
-            }
+            // let gibInfo = getGibInfo({ gib: this._currentWorkingContextIbGib.gib });
+            // if (gibInfo.tjpGib) {
+            //     this.ibgibsSvc.latestObs
+            //         .subscribe(update => {
+            //             if (!update.tjpAddr) { return; /* <<<< returns early */ }
+            //             if (h.getIbAndGib({ ibGibAddr: update.tjpAddr }).gib !== gibInfo.tjpGib) { return; /* <<<< returns early */ }
+            //             if (update.latestAddr === h.getIbGibAddr({ ibGib: this._currentWorkingContextIbGib })) {
+            //                 if (logalot) { console.log(`${lc} already have that context... (I: a6e17ec40d620f0bd5b231db39eaa522)`); }
+            //                 return; /* <<<< returns early */
+            //             }
+            //             if (this._updatingContext) {
+            //                 if (logalot) { console.log(`${lc} already updating context (I: f856f9414627ab00418dccd285b55822)`); }
+            //                 return; /* <<<< returns early */
+            //             }
+            //             this.handleContextUpdate({ update });
+            //         });
+            // }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;

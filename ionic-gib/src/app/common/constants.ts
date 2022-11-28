@@ -296,7 +296,7 @@ export const MENU_ITEM_IB_SUBSTRING_LENGTH = 20;
 /**
  * comment ibs atow are comment [commentText substring]
  */
-export const DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH = 10;
+export const DEFAULT_COMMENT_TEXT_IB_SUBSTRING_LENGTH = 20;
 /**
  * comment ib can have additional metadata string,
  *

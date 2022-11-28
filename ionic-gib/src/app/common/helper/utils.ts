@@ -334,7 +334,8 @@ export async function getIdPool({
 export function getSaferSubstring({
     text,
     length,
-    keepLiterals = ['?', '-', '#', '@'],
+    keepLiterals = ['-'],
+    replaceMap,
 }: {
     text: string;
     length?: number,
@@ -354,6 +355,10 @@ export function getSaferSubstring({
      * to making those mean something in the app (#, @)
      */
     keepLiterals?: string[],
+    /**
+     *
+     */
+    replaceMap?: { [s: string]: string },
 }): string {
     const lc = `[${getSaferSubstring.name}]`;
     try {
@@ -378,6 +383,16 @@ export function getSaferSubstring({
                 tokenToKeepMap[tmpToken] = keep;
                 while (saferText.includes(keep)) {
                     saferText = saferText.replace(keep, tmpToken);
+                }
+            }
+        }
+
+        if (replaceMap && Object.keys(replaceMap).length > 0) {
+            for (let i = 0; i < Object.keys(replaceMap).length; i++) {
+                const toReplace = Object.keys(replaceMap)[i];
+                const replaceWith = replaceMap[toReplace];
+                while (saferText.includes(toReplace)) {
+                    saferText = saferText.replace(toReplace, replaceWith);
                 }
             }
         }
