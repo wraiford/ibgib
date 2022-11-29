@@ -154,10 +154,10 @@ export abstract class RobbotBase_V1<
 
             if (!this._currentWorkingContextIbGib) { throw new Error(`no current context and no default semantic handler implemented in child class. (E: dcc146b015c83e409411d47623857c22)`); }
 
-            await this.createCommentAndRel8ToContextIbGib({
-                text: await this.getOutputText({ text: commentText }),
-                contextIbGib: this._currentWorkingContextIbGib,
-            });
+            // await this.createCommentAndRel8ToContextIbGib({
+            //     text: await this.getOutputText({ text: commentText }),
+            //     contextIbGib: this._currentWorkingContextIbGib,
+            // });
 
             let data: RobbotInteractionData_V1 = {
                 timestamp: h.getTimestamp(),
@@ -258,10 +258,12 @@ export abstract class RobbotBase_V1<
             this.robbotLex = new Lex<TLexPropsData>(h.clone(DEFAULT_ROBBOT_LEX_DATA), {
                 defaultPropsMode: 'props',
                 defaultKeywordMode: 'all',
+                defaultLineConcat: 'paragraph', // outgoing robbot defaults to multiple paragraphs.
             });
             this.userLex = new Lex<TLexPropsData>(h.clone(DEFAULT_HUMAN_LEX_DATA), {
                 defaultPropsMode: 'props',
                 defaultKeywordMode: 'all',
+                defaultLineConcat: 'sentence', // incoming user lex defaults to combining sentences.
             });
         } catch (error) {
             console.error(`${lc} ${error.message}`);

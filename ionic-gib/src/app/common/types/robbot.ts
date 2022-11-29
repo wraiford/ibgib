@@ -445,7 +445,8 @@ export type SemanticId =
     'semantic_skip' | 'semantic_forget' | 'semantic_next' |
     'semantic_please' |
     'semantic_in_progress' |
-    'semantic_request_list' |
+    'semantic_list' |
+    'semantic_request' |
     'semantic_options' |
     'semantic_ready' |
     'semantic_unknown' | 'semantic_default';
@@ -461,7 +462,8 @@ export const SemanticId = {
     next: 'semantic_next' as SemanticId,
     please: 'semantic_please' as SemanticId,
     in_progress: 'semantic_in_progress' as SemanticId,
-    request_list: 'semantic_request_list' as SemanticId,
+    list: 'semantic_list' as SemanticId,
+    request: 'semantic_request' as SemanticId,
     options: 'semantic_options' as SemanticId,
     ready: 'semantic_ready' as SemanticId,
     unknown: 'semantic_unknown' as SemanticId,

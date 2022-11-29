@@ -409,6 +409,9 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 {
                     texts: [
                         `$(hi).`,
+                        `What do we want to do? You can give me requests like 'learn', 'hoogle', 'boogle'.`,
+                        `Just prefix it with "${DEFAULT_ROBBOT_REQUEST_ESCAPE_STRING}"`,
+                        `For a full list of requests available, try "list" or "ls". Or you can also request 'help'.`,
                     ],
                     props: {
                         semanticId: SemanticId.hello,
@@ -420,6 +423,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     texts: [
                         `$(hi).`,
                         `$(session_in_progress)`,
+                        `$(${SemanticId.ready})`,
                     ],
                     props: {
                         semanticId: SemanticId.hello,
@@ -430,14 +434,16 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             ];
             this.robbotLex.data['session_in_progress'] = [
                 {
-                    texts: ['Session is in progress...'],
+                    texts: [
+                        'Session is in progress...',
+                    ],
                 }
             ];
             this.robbotLex.data[SemanticId.help] = [
                 {
                     texts: [
                         `You can give me a request including the following: `,
-                        `$(${SemanticId.request_list}|{"lineConcat":"newline"})`, // todo: change this to a function call that takes current context into account
+                        `...[not implemented yet Fry]...`
                     ],
                     props: {
                         semanticId: SemanticId.help,
@@ -445,14 +451,15 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     }
                 }
             ];
-            this.robbotLex.data[SemanticId.request_list] = [
+            this.robbotLex.data[SemanticId.list] = [
                 {
                     texts: [
                         `Here are what requests are available right now:`,
                         `$requests`,
                     ],
+                    specifier: 'request',
                     props: {
-                        semanticId: SemanticId.request_list,
+                        semanticId: SemanticId.list,
                         templateVars: `requests`,
                     }
                 }
@@ -598,8 +605,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 96001be1ceab4c438469edb00e6d8f41)`); }
 
-            /** If there's no request, then it's a click... */
-
             const hello = this.robbotLex.get(SemanticId.hello, {
                 props: props =>
                     props.semanticId === SemanticId.hello &&
@@ -633,7 +638,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 props: props =>
                     props.semanticId === SemanticId.hello &&
                     props.blankSlate === true,
-                lineConcat: LexLineConcat.p,
             });
 
             const data: RobbotInteractionData_V1 = {
@@ -846,7 +850,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (!this._analysis) {
                 // no existing analysis yet, so create and rel8 to it
                 await this.analyze_Robbot({ saveInSpace: true });
-                const analysisText = await this.getAnalysisText({ analysisIbGib: this._analysis });
+                const analysisText = await this.getAnalysisOutputText({ analysisIbGib: this._analysis });
 
                 await this.createCommentAndRel8ToContextIbGib({
                     text: analysisText,
@@ -1242,8 +1246,11 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    private async getAnalysisText({ analysisIbGib }: { analysisIbGib: WordyAnalysisIbGib_V1_Robbot }): Promise<string> {
-        const lc = `${this.lc}[${this.getAnalysisText.name}]`;
+    /**
+     * Builds output text that is "spoken" when doing an analysis.
+     */
+    private async getAnalysisOutputText({ analysisIbGib }: { analysisIbGib: WordyAnalysisIbGib_V1_Robbot }): Promise<string> {
+        const lc = `${this.lc}[${this.getAnalysisOutputText.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 29368d76e897c905e4c8bcbbe53d2f22)`); }
             const analysisText = h.pretty(analysisIbGib.data);
