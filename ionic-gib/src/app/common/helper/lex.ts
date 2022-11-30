@@ -335,6 +335,7 @@ export const LexLineConcat = {
      *   if ssml: "<p>Line 1.</p><p>Line 2.</p>"
      */
     p: "paragraph" as LexLineConcat,
+    paragraph: "paragraph" as LexLineConcat,
     /**
      * Each line will be combined into a single string of sentences.
      * @example
@@ -343,6 +344,7 @@ export const LexLineConcat = {
      *   if ssml: "<s>Line 1</s><s>Line 2</s>"
      */
     s: "sentence" as LexLineConcat,
+    sentence: "sentence" as LexLineConcat,
     /**
      * Each line will be combined into a single string with new
      * line feeds between each line.
@@ -355,6 +357,7 @@ export const LexLineConcat = {
      *   if ssml: "<p>Line 1.</p><p>Line 2.</p>"
      */
     n: "newline" as LexLineConcat,
+    newline: "newline" as LexLineConcat,
     /**
      * Each line will be combined into a single string with each
      * line delimited by the delimiter specified in the function.

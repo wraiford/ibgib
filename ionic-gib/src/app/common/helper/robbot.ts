@@ -338,9 +338,11 @@ export function isRequestComment({
 export function getRequestTextFromComment({
     ibGib,
     requestEscapeString = DEFAULT_ROBBOT_REQUEST_ESCAPE_STRING,
+    lowercase,
 }: {
     ibGib: IbGib_V1,
     requestEscapeString?: string,
+    lowercase?: boolean,
 }): string {
     const lc = `${getRequestTextFromComment.name}]`;
     try {
@@ -351,14 +353,25 @@ export function getRequestTextFromComment({
         let { data } = ibGib;
         if (!data) { throw new Error(`ibGib.data required (E: 6155a49a0c1286c0bb8aa6f81c396522)`); }
 
-        let { text } = data;
+        let text: string = data.text;
 
         requestEscapeString = requestEscapeString || DEFAULT_ROBBOT_REQUEST_ESCAPE_STRING;
 
-        text = getSaferSubstring({ text: text, length: 100, keepLiterals: [requestEscapeString] });
+        text = getSaferSubstring({
+            text: text,
+            length: 100,
+            keepLiterals: [' ', requestEscapeString]
+        });
 
-        const subText = text.substring(requestEscapeString.length).trim();
-        return subText;
+        text = text
+            .substring(requestEscapeString.length) // remove the escape string
+            .trim();
+
+        if (lowercase) {
+            text = text.toLowerCase();
+        }
+
+        return text;
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

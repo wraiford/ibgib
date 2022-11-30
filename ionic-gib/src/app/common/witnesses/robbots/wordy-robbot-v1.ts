@@ -33,7 +33,7 @@ import { CommentIbGib_V1 } from '../../types/comment';
 import { getFromSpace, getLatestAddrs } from '../../helper/space';
 import { AppSpaceData, AppSpaceRel8ns } from '../../types/app';
 import { IonicSpace_V1 } from '../spaces/ionic-space-v1';
-import { LexLineConcat, SpeechBuilder } from '../../helper/lex';
+import { LexDatum, LexLineConcat, SpeechBuilder } from '../../helper/lex';
 import { getTjpAddr } from '../../helper/ibgib';
 import { isComment, parseCommentIb } from '../../helper/comment';
 import { Ssml } from '../../helper/ssml';
@@ -226,7 +226,24 @@ export const DEFAULT_UUID_WORDY_ROBBOT = undefined;
 export const DEFAULT_NAME_WORDY_ROBBOT = 'Wordsworthers';
 export const DEFAULT_DESCRIPTION_WORDY_ROBBOT =
     `A wordy robbot does wordy stuff like taking text and scrambling pieces or creating fill-in-the-blanks.`;
-export const DEFAULT_SEARCH_REL8N_NAMES_WORDY_ROBBOT = [
+/**
+ * look rel8n names are those named edges that the robbot can travel along when
+ * looking at what it's shown by the user using the :eyes: button.
+ *
+ * I'm trying out defaulting to empty and defaulting to pics/comments/links
+ * and related (e.g. tag targets).
+ *
+ * The idea is that you could just say look at this one ibgib and the robbot
+ * could analyze the entire sub-graph along certain edges, including those we do
+ * want to see (e.g. yes look at sub comments & pics) and excluding those we
+ * don't (e.g.  don't look at the dna).
+ *
+ * But then again, this is a more complex scenario and we may want the robbot
+ * just to look at the specific ones we say. I'm thinking about this wrt to
+ * analysis.
+ */
+// export const DEFAULT_LOOK_REL8N_NAMES_WORDY_ROBBOT: string = [].join(',');
+export const DEFAULT_LOOK_REL8N_NAMES_WORDY_ROBBOT = [
     'pic', 'comment', 'link',
     'result', 'import',
     'tagged',
@@ -235,13 +252,6 @@ export const DEFAULT_SEARCH_REL8N_NAMES_WORDY_ROBBOT = [
 ].join(',');
 export const WORDY_V1_ANALYSIS_REL8N_NAME = 'analysis';
 export const WORDY_V1_DEFAULT_REQUEST_TEXT = 'help';
-
-
-export type WordyChatId = SemanticId;
-export const WordyChatId = {
-    here_is_first: "wordy_here_is_first" as WordyChatId,
-}
-
 
 export interface WordyRobbotData_V1 extends RobbotData_V1 {
     /**
@@ -482,6 +492,28 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     }
                 }),
             ];
+            // this.userLex.data[SemanticId.count] = [
+            //     ...[`count`, `how many`].map(text => {
+            //         return {
+            //             texts: [text],
+            //             props: <WordyRobbotPropsData>{
+            //                 semanticId: SemanticId.count,
+            //                 isRequest: true,
+            //             }
+            //         };
+            //     }),
+            // ];
+            this.userLex.data[SemanticId.list] = [
+                ...[`list`, `ls`, `requests`, `reqs`].map(text => {
+                    return {
+                        texts: [text],
+                        props: <WordyRobbotPropsData>{
+                            semanticId: SemanticId.list,
+                            isRequest: true,
+                        }
+                    };
+                }),
+            ];
 
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -506,20 +538,28 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     {
                         handlerId: '0f97304634d1446f8b12d62ce9adf8b1',
                         semanticId: SemanticId.hello,
-                        fnCanExec: async (info) => !!this.session && !this.nothingToWorkOnAvailable && !this.prevInteraction,
+                        fnCanExec: async (info) => !this.nothingToWorkOnAvailable && !this.prevInteraction,
                         fnExec: (info) => this.handleSemantic_hello_freshStart(info),
                     },
                     {
                         handlerId: '31e3378528c74b98913ce766dc978f29',
                         semanticId: SemanticId.hello,
-                        fnCanExec: async (info) => !!this.session && !this.nothingToWorkOnAvailable && !!this.prevInteraction,
+                        fnCanExec: async (info) => !this.nothingToWorkOnAvailable && !!this.prevInteraction,
                         fnExec: (info) => this.handleSemantic_hello_continue(info),
                     },
                     {
                         handlerId: '8b6fbaa737834ce6b43258de4558eafd',
                         semanticId: SemanticId.hello,
-                        fnCanExec: async (info) => !!this.session && this.nothingToWorkOnAvailable,
+                        fnCanExec: async (info) => this.nothingToWorkOnAvailable,
                         fnExec: (info) => this.handleSemantic_hello_inSession_NothingToWorkOn(info),
+                    },
+                ],
+                [SemanticId.list]: [
+                    {
+                        handlerId: '1805d2175d9b4dfdb68b5758213f6a69',
+                        semanticId: SemanticId.list,
+                        fnCanExec: async (info) => true,
+                        fnExec: (info) => this.handleSemantic_list(info),
                     },
                 ]
                 // more handlers here
@@ -645,6 +685,58 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 timestamp: h.getTimestamp(),
                 type: RobbotInteractionType.clarification,
                 commentText: hello.text,
+            };
+
+            const ibGib = await getInteractionIbGib_V1({ data });
+            return ibGib;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    private async handleSemantic_list(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
+        const lc = `${this.lc}[${this.handleSemantic_list.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 27a9e811a4604c3f814c403ab3de61a0)`); }
+
+            /**
+             * each entry is a mapping of "bare" semantic id => array of request synonyms
+             *
+             * @example [ ["list", ["list", "ls", "requests"]], ["hello", "hello", "hi", "greetings"] ]
+
+             */
+            let requestEntries: [string, string[]][] =
+                Object.values(this.userLex.data)
+                    .filter(datas => datas.some(x => x.props?.isRequest && !!x.props.semanticId))
+                    .map(x => {
+                        let requests = x.filter(datum => datum.props?.isRequest && !!datum.props.semanticId);
+                        if (requests.length === 0) { throw new Error(`(UNEXPECTED) my logic is wrong...expected at least one request after filter... ? (E: 384ab52d2c1cf23ed55c47036d361622)`); }
+                        const semanticIds = unique(requests.map(x => x.props.semanticId));
+                        if (semanticIds.length !== 1) { throw new Error(`inconsistent user lex data. expected all requests to have the same semantic id. semanticIds: ${semanticIds.join(', ')} (E: 4f9063a855de332306fa3ff47a3e2222)`); }
+                        const semanticId = semanticIds[0]; // e.g. "semantic_hello"
+                        const requestName = semanticId.slice("semantic_".length); // e.g. "hello"
+                        const requestAliases = requests.map(x => x.texts[0]);
+                        // e.g. ["list", ["list", "ls", "requests"]]
+                        return [requestName, requestAliases];
+                    });
+            const requestsText = requestEntries.map(([reqName, reqAliases]) => {
+                return `${reqName}: ${reqAliases.join(',')}`; // e.g. "hello: hello, hi, hey, hey there, hi there"
+            });
+            // get the list lex and use template var
+            const speech = this.robbotLex.get(SemanticId.list, {
+                props: props =>
+                    props.semanticId === SemanticId.list,
+                vars: { requests: requestsText.join('\n') },
+            });
+
+            const data: RobbotInteractionData_V1 = {
+                uuid: await h.getUUID(),
+                timestamp: h.getTimestamp(),
+                type: RobbotInteractionType.clarification,
+                commentText: speech.text,
             };
 
             const ibGib = await getInteractionIbGib_V1({ data });
@@ -1885,12 +1977,29 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             let semanticId: SemanticId;
             const requestText =
-                getRequestTextFromComment({ ibGib: request }) || WORDY_V1_DEFAULT_REQUEST_TEXT;
+                getRequestTextFromComment({ ibGib: request, lowercase: true }) ||
+                WORDY_V1_DEFAULT_REQUEST_TEXT.toLowerCase();
+
+            const requestPieces = requestText.split(' ');
+
+            if (requestPieces.length === 0) {
+                console.error(`${lc} (UNEXPECTED) requestPieces.length === 0? request is truthy but requestText splits to nothing? funky junk. (E: fdd2cc6ce93842e485cd44e15a695c9a)`)
+                return SemanticId.unknown; /* <<<< returns early */
+            }
+
+            const requestId = requestPieces[0];
 
             // map from the request text to a semantic id
             // const semanticId: SemanticId = SemanticId.help;
             let resRequestText = this.userLex.find({
-                fnDatumPredicate: d => d.texts.join('').toLowerCase() === requestText.toLowerCase() && d.props.isRequest
+                fnDatumPredicate: d =>
+                    d.texts?.length > 0 &&
+                    (
+                        // first word of request is first piece of datum
+                        d.texts[0].toLowerCase() === requestId ||
+                        requestText.startsWith(d.texts[0])
+                    ) &&
+                    d.props.isRequest // all requests in lexicon should be marked with this property flag
             });
             if (resRequestText?.length === 1) {
                 const resId = resRequestText[0];
@@ -2066,7 +2175,7 @@ const DEFAULT_WORDY_ROBBOT_DATA_V1: WordyRobbotData_V1 = {
         'analysis',
     ],
 
-    lookRel8nNames: DEFAULT_SEARCH_REL8N_NAMES_WORDY_ROBBOT,
+    lookRel8nNames: DEFAULT_LOOK_REL8N_NAMES_WORDY_ROBBOT,
 
     // tagOutput: false,
     outputPrefix: '👀: ',
@@ -2200,7 +2309,7 @@ export class WordyRobbotFormBuilder extends RobbotFormBuilder {
         this.addItem({
             // witness.data.outputPrefix
             name: "lookRel8nNames",
-            description: `Every ibgib relates to other ibgibs via a "rel8n name". When you add a comment, this adds an ibgib via the "comment" rel8n name. So when you show your robbot an ibgib, do you want him to see sub-comments "inside" that ibGib? If so, include "comment". What about comments on pics? If so, also include "pic" or it won't see the comment under the pics. Basically, just leave this as-is unless you only want the robbot to look at the ibgib itself and no children, in which case blank this out.`,
+            description: `Every ibgib relates to other ibgibs via a "rel8n name". When you add a comment, this adds an ibgib via the "comment" rel8n name. So when you show your robbot an ibgib, do you want him/her/them to see sub-comments "inside" that ibGib? If so, include "comment". What about comments on pics? If so, also include "pic" or it won't see the comment under the pics. Basically, just leave this as-is unless you only want the robbot to look at the ibgib itself and no children, in which case blank this out.`,
             label: "Rel8n Names Visible",
             regexp: c.COMMA_DELIMITED_SIMPLE_STRINGS_REGEXP,
             regexpErrorMsg: c.COMMA_DELIMITED_SIMPLE_STRINGS_REGEXP_DESCRIPTION,

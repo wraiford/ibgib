@@ -447,6 +447,7 @@ export type SemanticId =
     'semantic_in_progress' |
     'semantic_list' |
     'semantic_request' |
+    'semantic_count' |
     'semantic_options' |
     'semantic_ready' |
     'semantic_unknown' | 'semantic_default';
@@ -464,6 +465,7 @@ export const SemanticId = {
     in_progress: 'semantic_in_progress' as SemanticId,
     list: 'semantic_list' as SemanticId,
     request: 'semantic_request' as SemanticId,
+    count: 'semantic_count' as SemanticId,
     options: 'semantic_options' as SemanticId,
     ready: 'semantic_ready' as SemanticId,
     unknown: 'semantic_unknown' as SemanticId,
