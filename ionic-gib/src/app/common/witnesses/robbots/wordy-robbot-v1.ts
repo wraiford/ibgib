@@ -162,7 +162,7 @@ export interface WordyAnalysisIbGib_V1_Robbot extends IbGib_V1<WordyAnalysisData
 /**
  * There are various ways to stimulate an ibgib.
  */
-export type StimulationType = 'just_show' | 'blank_words'
+export type StimulationType = 'lines' | 'just_show' | 'blank_words'
     // | 'next_line'
     // | 'demand_expand'
     ;
@@ -461,6 +461,22 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     }
                 }
             ];
+            this.userLex.data[SemanticId.hello] = [
+                ...DEFAULT_HUMAN_LEX_DATA_ENGLISH_ATOMICS[AtomicId.hi].flatMap(datum => {
+                    return {
+                        texts: datum.texts.concat(),
+                        props: <WordyRobbotPropsData>{
+                            semanticId: SemanticId.hello,
+                            isRequest: true,
+                        }
+                    }
+                }),
+            ];
+            this.robbotLex.data[SemanticId.ready] = [
+                ...toLexDatums_Semantics(SemanticId.ready, [
+                    'I\'m ready.', 'I\'m awake.',
+                ])
+            ];
             this.robbotLex.data[SemanticId.list] = [
                 {
                     texts: [
@@ -474,24 +490,34 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     }
                 }
             ];
-
-            this.robbotLex.data[SemanticId.ready] = [
-                ...toLexDatums_Semantics(SemanticId.ready, [
-                    'I\'m ready.', 'I\'m awake.',
-                ])
-            ];
-
-            this.userLex.data[SemanticId.hello] = [
-                ...DEFAULT_HUMAN_LEX_DATA_ENGLISH_ATOMICS[AtomicId.hi].flatMap(datum => {
-                    return {
-                        texts: datum.texts.concat(),
-                        props: <WordyRobbotPropsData>{
-                            semanticId: SemanticId.hello,
-                            isRequest: true,
-                        }
+            this.robbotLex.data[SemanticId.lines] = [
+                {
+                    texts: [
+                        `next line...`,
+                        `---`,
+                        `$prevLine`,
+                    ],
+                    specifier: 'request',
+                    props: {
+                        semanticId: SemanticId.lines,
+                        templateVars: `prevLine`,
+                        freshStart: true,
                     }
-                }),
+                },
+                {
+                    /** proceeding lines only show the previous line */
+                    texts: [
+                        `$prevLine`,
+                    ],
+                    specifier: 'request',
+                    props: {
+                        semanticId: SemanticId.lines,
+                        templateVars: `prevLine`,
+                        freshStart: false,
+                    }
+                },
             ];
+
             // this.userLex.data[SemanticId.count] = [
             //     ...[`count`, `how many`].map(text => {
             //         return {
@@ -509,6 +535,17 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                         texts: [text],
                         props: <WordyRobbotPropsData>{
                             semanticId: SemanticId.list,
+                            isRequest: true,
+                        }
+                    };
+                }),
+            ];
+            this.userLex.data[SemanticId.lines] = [
+                ...[`lines`, `do lines`, `learn lines`, `lyrics`, `do lyrics`].map(text => {
+                    return {
+                        texts: [text],
+                        props: <WordyRobbotPropsData>{
+                            semanticId: SemanticId.lines,
                             isRequest: true,
                         }
                     };
@@ -551,7 +588,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                         handlerId: '8b6fbaa737834ce6b43258de4558eafd',
                         semanticId: SemanticId.hello,
                         fnCanExec: async (info) => this.nothingToWorkOnAvailable,
-                        fnExec: (info) => this.handleSemantic_hello_inSession_NothingToWorkOn(info),
+                        fnExec: (info) => this.handleSemantic_NothingToWorkOn(info),
                     },
                 ],
                 [SemanticId.list]: [
@@ -561,7 +598,21 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                         fnCanExec: async (info) => true,
                         fnExec: (info) => this.handleSemantic_list(info),
                     },
-                ]
+                ],
+                [SemanticId.lines]: [
+                    {
+                        handlerId: 'b60a4d58d89e4065a16250a0836b4f98',
+                        semanticId: SemanticId.lines,
+                        fnCanExec: (info) => this.canHandleSemantic_lines(info),
+                        fnExec: (info) => this.handleSemantic_lines(info),
+                    },
+                    {
+                        handlerId: 'bfa8492a8c354c0e8ca8f48673a24c5b',
+                        semanticId: SemanticId.lines,
+                        fnCanExec: async (info) => this.nothingToWorkOnAvailable,
+                        fnExec: (info) => this.handleSemantic_NothingToWorkOn(info),
+                    },
+                ],
                 // more handlers here
             }
         } catch (error) {
@@ -669,8 +720,11 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    private async handleSemantic_hello_inSession_NothingToWorkOn(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
-        const lc = `${this.lc}[${this.handleSemantic_hello_inSession_NothingToWorkOn.name}]`;
+    /**
+     * Catchall when there is nothing to work on.
+     */
+    private async handleSemantic_NothingToWorkOn(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
+        const lc = `${this.lc}[${this.handleSemantic_NothingToWorkOn.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 5632af01149bc9c3af56346c2fbda622)`); }
 
@@ -736,6 +790,121 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 uuid: await h.getUUID(),
                 timestamp: h.getTimestamp(),
                 type: RobbotInteractionType.clarification,
+                commentText: speech.text,
+            };
+
+            const ibGib = await getInteractionIbGib_V1({ data });
+            return ibGib;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    /**
+     * We need a full function to make sure that we have at least one coment
+     * with multiple lines. If there are no comments with multiple lines, then
+     * we can't do lines.
+     *
+     * Note: In the future, there may be additional constraints, such as if
+     * there is a context that requires keeping the current working ibgib, e.g.
+     */
+    private async canHandleSemantic_lines(info: SemanticInfo): Promise<boolean> {
+        const lc = `${this.lc}[${this.canHandleSemantic_lines.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: d8444692b2adecc38106c09b7dd57322)`); }
+            if (this.nothingToWorkOnAvailable) {
+                console.log(`${lc} nothing to work on. returning false. (I: 8bd42da50367466da9e21886ff6a0f8b)`)
+                return false;
+            }
+
+            if (!this._brainCommentIbGibs) { throw new Error(`(UNEXPECTED) this comment ibgibs falsy? (E: 47e07fe70fa83c9cbd4f883339406622)`); }
+
+            const hasMultiLineComment = this._brainCommentIbGibs.some(x => x.data?.text?.includes('\n'));
+            if (logalot) { console.log(`${lc} hasMultiLineComment: ${hasMultiLineComment} (I: 457df866bd1ed3dbecad441d5a821822)`); }
+
+            return hasMultiLineComment;
+        } catch (error) {
+            debugger;
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    /**
+     * loads this._currentWorkingComment for lines stimulation based on info.
+     *
+     * ## requirements
+     *
+     * In this case, we are loading a comment to stimulate with lines.
+     *
+     * ## future todo
+     *
+     * * check for scheduled comments
+     */
+    private async loadNextWorkingComment_lines({ info }: { info: SemanticInfo }): Promise<void> {
+        const lc = `${this.lc}[${this.loadNextWorkingComment_lines.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 55d6e81101135ac6da3c8a3861a87322)`); }
+
+            // for now, choose among any of the comments having multiple lines
+            const multilines = this._brainCommentIbGibs.filter(x => x.data.text?.includes('\n'));
+
+            const randomComment = pickRandom({ x: multilines });
+            if (this._currentWorkingComment) {
+                this._currentWorkingComment = randomComment;
+                if (logalot) { console.log(`${lc} current working comment with multiple lines chosen. ${h.getIbGibAddr({ ibGib: randomComment })} (I: 07fb9c87f35e93f868a88718998cbb22)`); }
+            } else {
+                throw new Error(`(UNEXPECTED) current working comment not found? it is assumed that we hve at least one multiline comment if we get here. (E: 3ef967e7de91aa9b1ca5567345dbdc22)`);
+            }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    private async handleSemantic_lines(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
+        const lc = `${this.lc}[${this.handleSemantic_lines.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 32e7907bf40c4723a0b1a9091c3b7047)`); }
+
+            debugger;
+            if (!this._currentWorkingComment) { await this.loadNextWorkingComment_lines({ info }); }
+            const toStimulate = this._currentWorkingComment;
+            const toStimulateTjpAddr = getTjpAddr({ ibGib: toStimulate });
+
+            // if we're working on a current ibgib, then get the next blank line
+            // based on the previous interactions. So look through interactions
+            // for lines stimulations that correspond to the current comment.
+            if (this.interactions.some(x =>
+                x.data.type === 'stimulation' &&
+                (x.data.details as StimulationDetails)?.stimulationType === 'lines' &&
+                (<StimulationDetails>x.data.details)['@toStimulateTjp'] === toStimulateTjpAddr)
+            ) {
+                // there exists a previous interaction that was lines for the
+            }
+
+            // if no previous interaction, choose a comment with multiple lines
+            // and get it.  can check for text based on request text if we want
+            // to try to filter it down.
+
+            // get the list lex and use template var
+            const speech = this.robbotLex.get(SemanticId.lines, {
+                props: props =>
+                    props.semanticId === SemanticId.list,
+                // vars: { requests: requestsText.join('\n') },
+            });
+
+            const data: RobbotInteractionData_V1 = {
+                uuid: await h.getUUID(),
+                timestamp: h.getTimestamp(),
+                type: RobbotInteractionType.stimulation,
                 commentText: speech.text,
             };
 
@@ -1623,16 +1792,14 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 src: this.session,
                 rel8nsToAddByAddr: { [ROBBOT_INTERACTION_REL8N_NAME]: [interactionAddr], },
                 dna: true,
-                // linkedRel8ns: [Rel8n.ancestor, Rel8n.past],
                 nCounter: true,
             });
 
             // save the session (to the current local user space)
             await this.ibgibsSvc.persistTransformResult({ resTransform: resRel8Interaction });
-            const newSession = <WordyRobbotSessionIbGib_V1>resRel8Interaction.newIbGib;
-            this.session = newSession;
 
             // update the properties for this robbot
+            this.session = <WordyRobbotSessionIbGib_V1>resRel8Interaction.newIbGib;
             this.interactions.push(h.clone(interaction)); // interaction should be state only, no refs
         } catch (error) {
             console.error(`${lc} ${error.message}`);

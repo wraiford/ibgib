@@ -386,9 +386,11 @@ export const RobbotInteractionType = {
 export interface RobbotInteractionData_V1 extends IbGibData_V1 {
     timestamp: string;
     /**
-     * type of this interaction
+     * type of this interaction. for now, this is strongly typed, but
+     * later I should add a catchall `| string` type to allow for
+     * expansion.
      */
-    type: RobbotInteractionType | string;
+    type: RobbotInteractionType;
     commentText?: string;
     /**
      * should be an interfaced data object that represents the details of the
@@ -446,6 +448,7 @@ export type SemanticId =
     'semantic_please' |
     'semantic_in_progress' |
     'semantic_list' |
+    'semantic_lines' | // maybe just wordy...
     'semantic_request' |
     'semantic_count' |
     'semantic_options' |
@@ -464,6 +467,7 @@ export const SemanticId = {
     please: 'semantic_please' as SemanticId,
     in_progress: 'semantic_in_progress' as SemanticId,
     list: 'semantic_list' as SemanticId,
+    lines: 'semantic_lines' as SemanticId,
     request: 'semantic_request' as SemanticId,
     count: 'semantic_count' as SemanticId,
     options: 'semantic_options' as SemanticId,
