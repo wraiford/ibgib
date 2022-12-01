@@ -3045,15 +3045,15 @@ export async function trash({
             await setConfigAddr({ key: configKey, addr: newSpecialAddr, space, zeroSpace, fnUpdateBootstrap });
         }
 
-        if (fnBroadcast && fnUpdateBootstrap) {
-            await registerNewIbGib({
-                ibGib: resNewContext.newIbGib,
-                fnBroadcast,
-                fnUpdateBootstrap,
-                zeroSpace,
-                space,
-            });
-        };
+        // if (fnBroadcast && fnUpdateBootstrap) {
+        await registerNewIbGib({
+            ibGib: resNewContext.newIbGib,
+            fnBroadcast,
+            fnUpdateBootstrap,
+            zeroSpace,
+            space,
+        });
+        // };
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -3108,15 +3108,17 @@ export async function archive({
             await setConfigAddr({ key: configKey, addr: newSpecialAddr, space, zeroSpace, fnUpdateBootstrap });
         }
 
-        if (fnBroadcast && fnUpdateBootstrap) {
-            await registerNewIbGib({
-                ibGib: resNewContext.newIbGib,
-                fnBroadcast,
-                fnUpdateBootstrap,
-                zeroSpace,
-                space,
-            });
-        };
+        // if (fnBroadcast && fnUpdateBootstrap) {
+        await registerNewIbGib({
+            ibGib: resNewContext.newIbGib,
+            fnBroadcast,
+            fnUpdateBootstrap,
+            zeroSpace,
+            space,
+        });
+        // } else {
+        //     console.warn(`${lc} fnBroadcast or fnUpdateBootstrap falsy, so we can't register `)
+        // };
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

@@ -26,18 +26,15 @@ import { CommentIbGib_V1 } from '../../types/comment';
 import { PicIbGib_V1 } from '../../types/pic';
 import { getInteractionIbGib_V1, validateCommonRobbotData } from '../../helper/robbot';
 import { argy_, isArg, resulty_ } from '../witness-helper';
-import { IbGibSpaceAny } from '../spaces/space-base-v1';
 import { IbgibsService } from '../../../services/ibgibs.service';
 import { validateIbGibIntrinsically } from '../../helper/validate';
-import { getFromSpace, getLatestAddrs, persistTransformResult } from '../../helper/space';
+import { getFromSpace, getLatestAddrs, } from '../../helper/space';
 import { ErrorIbGib_V1 } from '../../types/error';
 import { errorIbGib } from '../../helper/error';
 import { getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 import { createCommentIbGib, parseCommentIb } from '../../helper/comment';
-import { WORDY_V1_ANALYSIS_REL8N_NAME } from './wordy-robbot-v1';
 import { Subscription } from 'rxjs';
 import { IbGibTimelineUpdateInfo } from '../../types/ux';
-import { getTimestampInTicks } from '../../helper/utils';
 import { Lex } from '../../helper/lex';
 import { getTjpAddr } from '../../helper/ibgib';
 import { filter } from 'rxjs/operators';
@@ -1106,6 +1103,15 @@ export abstract class RobbotBase_V1<
                 this.ibgibsSvc.latestObs.pipe(filter(x => x.tjpAddr === tjpAddr)).subscribe(async update => {
                     const currentAddr = h.getIbGibAddr({ ibGib: this._currentWorkingContextIbGib });
                     if (update.latestAddr !== currentAddr) {
+                        if (logalot) { console.warn(`${lc} checking if new context is actually new...damn getLatestAddr maybe not working in ionic space... argh (W: 3d1a12154dfafb9c96d07e6f75f7a322)`); }
+                        if (update.latestIbGib) {
+                            let latestN_Supposedly = update.latestIbGib.data?.n ?? -1;
+                            let currentN = this._currentWorkingContextIbGib?.data?.n ?? -2;
+                            if (latestN_Supposedly <= currentN) {
+                                console.warn(`${lc} latestN is not really the latest. latestN_Supposedly: ${latestN_Supposedly}, currentN: ${currentN} (W: 6792c9a596c44c03b262614ae79a715e)`)
+                                return; /* <<<< returns early */
+                            }
+                        }
                         if (logalot) { console.log(`${lc} update to context.\ncurrentAddr: ${currentAddr}\nlatestAddr: ${update.latestAddr} (I: d0adcc392e6e974c9917730ebad51322)`); }
                         this._currentWorkingContextIbGib =
                             update.latestIbGib ??

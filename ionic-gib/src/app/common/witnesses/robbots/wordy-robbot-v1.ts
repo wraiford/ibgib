@@ -310,7 +310,12 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     protected nothingToWorkOnAvailable: boolean;
     protected _brainCommentIbGibs: CommentIbGib_V1[];
     protected _currentWorkingComment: CommentIbGib_V1;
-    protected _currentWorkingCommentTjpAddr: IbGibAddr;
+    protected get _currentWorkingCommentTjpAddr(): IbGibAddr {
+        return this._currentWorkingComment ?
+            getTjpAddr({ ibGib: this._currentWorkingComment }) :
+            undefined;
+    }
+    protected _currentWorkingCommentTextInfo: WordyTextInfo;
     /**
      * map of working comment ibgibs (the things that we're analyzing).
      */
@@ -822,7 +827,15 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             if (!this._brainCommentIbGibs) { throw new Error(`(UNEXPECTED) this comment ibgibs falsy? (E: 47e07fe70fa83c9cbd4f883339406622)`); }
 
-            const hasMultiLineComment = this._brainCommentIbGibs.some(x => x.data?.text?.includes('\n'));
+            // const hasMultiLineComment = this._brainCommentIbGibs.some(x => x.data?.text?.includes('\n'));
+            const hasMultiLineComment = this._brainCommentIbGibs
+                .filter(x => !!x.data?.text?.trim())
+                .filter(x => {
+                    // I'm not sure if this covers all edge cases but good enough for now...
+                    const lines = x.data.text.trim().split('\n').filter(x => !!x).map(x => x.trim());
+                    return lines.length >= 2;
+                }).length > 0;
+
             if (logalot) { console.log(`${lc} hasMultiLineComment: ${hasMultiLineComment} (I: 457df866bd1ed3dbecad441d5a821822)`); }
 
             return hasMultiLineComment;
@@ -852,13 +865,22 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} starting... (I: 55d6e81101135ac6da3c8a3861a87322)`); }
 
             // for now, choose among any of the comments having multiple lines
-            const multilines = this._brainCommentIbGibs.filter(x => x.data.text?.includes('\n'));
+            const multilines = this._brainCommentIbGibs
+                .filter(x => !!x.data?.text?.trim())
+                .filter(x => {
+                    // I'm not sure if this covers all edge cases but good enough for now...
+                    const lines = x.data.text.trim().split('\n').filter(x => !!x).map(x => x.trim());
+                    return lines.length >= 2;
+                });
 
             const randomComment = pickRandom({ x: multilines });
-            if (this._currentWorkingComment) {
+            if (randomComment) {
                 this._currentWorkingComment = randomComment;
+                this._currentWorkingCommentTextInfo = this.getTextInfo({ srcIbGib: randomComment })
                 if (logalot) { console.log(`${lc} current working comment with multiple lines chosen. ${h.getIbGibAddr({ ibGib: randomComment })} (I: 07fb9c87f35e93f868a88718998cbb22)`); }
             } else {
+                delete this._currentWorkingComment;
+                delete this._currentWorkingCommentTextInfo;
                 throw new Error(`(UNEXPECTED) current working comment not found? it is assumed that we hve at least one multiline comment if we get here. (E: 3ef967e7de91aa9b1ca5567345dbdc22)`);
             }
         } catch (error) {
@@ -874,20 +896,40 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 32e7907bf40c4723a0b1a9091c3b7047)`); }
 
-            debugger;
             if (!this._currentWorkingComment) { await this.loadNextWorkingComment_lines({ info }); }
             const toStimulate = this._currentWorkingComment;
             const toStimulateTjpAddr = getTjpAddr({ ibGib: toStimulate });
 
+            debugger;
+
             // if we're working on a current ibgib, then get the next blank line
             // based on the previous interactions. So look through interactions
             // for lines stimulations that correspond to the current comment.
-            if (this.interactions.some(x =>
+            const isLinesContinuation = this.interactions && this.interactions.some(x =>
                 x.data.type === 'stimulation' &&
                 (x.data.details as StimulationDetails)?.stimulationType === 'lines' &&
-                (<StimulationDetails>x.data.details)['@toStimulateTjp'] === toStimulateTjpAddr)
-            ) {
+                (<StimulationDetails>x.data.details)['@toStimulateTjp'] === toStimulateTjpAddr
+            );
+
+            let lineIndex: number;
+            let lineText: string;
+            if (!isLinesContinuation) {
+                // this is the first one, so do the first line (atow)
+                // in the future, we should look for previous interactions per the context.
+                const lines = this._currentWorkingCommentTextInfo.lines.concat();
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i]?.trim();
+                    if (!!line) {
+                        // found non-empty line
+                        lineIndex = i;
+                        lineText = line;
+                        break;
+                    }
+                }
+                if (!lineText) { throw new Error(`(UNEXPECTED) lineText falsy? expected lines to be valid at this point.\naddr: ${h.getIbGibAddr({ ibGib: toStimulate })}\nlines: ${lines} (E: f35fbc3b9fa3d5185229b1ef24bc3422)`); }
+            } else {
                 // there exists a previous interaction that was lines for the
+                debugger; // todo
             }
 
             // if no previous interaction, choose a comment with multiple lines
@@ -1883,8 +1925,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} starting... (I: 3b5112795cebe1d56a9a11c624180322)`); }
 
             let details: StimulationDetails;
-            let toStimulateAddr = h.getIbGibAddr({ ibGib: this._currentWorkingComment });
-            let toStimulateTjpAddr = this._currentWorkingCommentTjpAddr;
+            const toStimulateAddr = h.getIbGibAddr({ ibGib: this._currentWorkingComment });
+            const toStimulateTjpAddr = this._currentWorkingCommentTjpAddr;
 
 
             // if (!this._currentWorkingCommentIbGibsAnalysisMap) {
@@ -2616,3 +2658,22 @@ function parseTextIbGibAnalysisIb({
         if (logalot) { console.log(`${lc} complete.`); }
     }
 }
+
+// function getNextLine({
+//     prevLineNumber,
+//     ibGib,
+// }: {
+//     prevLineNumber: number,
+//     ibGib: CommentIbGib_V1,
+// }): string {
+//     const lc = `${getNextLine.name}]`;
+//     try {
+//         if (logalot) { console.log(`${lc} starting... (I: b5b2daf71f1b06d8fa6a5f03bdd6ae22)`); }
+//         prevLineNumber = prevLineNumber ?? 0;
+//     } catch (error) {
+//         console.error(`${lc} ${error.message}`);
+//         throw error;
+//     } finally {
+//         if (logalot) { console.log(`${lc} complete.`); }
+//     }
+// }
