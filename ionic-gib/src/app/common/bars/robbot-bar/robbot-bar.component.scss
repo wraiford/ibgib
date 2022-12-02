@@ -2,7 +2,8 @@ ion-toolbar {
   justify-content: stretch;
 }
 
-ion-button, #robbot-name {
+ion-button,
+#robbot-name {
   color: var(--ion-color-primary);
   border-color: var(--ion-color-primary);
   border-width: 1px;
@@ -10,14 +11,16 @@ ion-button, #robbot-name {
   border-radius: 5px;
 }
 
-ion-button:hover, ion-menu-button:hover, #robbot-name:hover {
+ion-button:hover,
+ion-menu-button:hover,
+#robbot-name:hover {
   border-width: 2px;
-  background-color:rgba(var(--ion-color-primary-rgb), 0.14);
+  background-color: rgba(var(--ion-color-primary-rgb), 0.14);
 }
 
 ion-buttons {
-    justify-content: stretch;
-    align-items: stretch;
+  justify-content: stretch;
+  align-items: stretch;
 }
 
 #robbot-name {
@@ -60,5 +63,22 @@ ion-buttons {
     overflow: hidden;
     margin: 0px 0px 0px -23px;
     padding: 6px 6px 6px 23px;
+  }
+}
+
+.active-btn {
+  // can't convert css to scss variable here...i'm a terrible ui person
+  $primarycolorNotDry: #47a135;
+  background-color: rgba(red($primarycolorNotDry), green($primarycolorNotDry), blue($primarycolorNotDry), 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  $primarycolorNotDry: #213b23;
+
+  .active-btn {
+    // can't convert css to scss variable here...i'm a terrible ui person
+    // $color: #213b23;
+    // background-color: rgba(red($color), green($color), blue($color), 0.7);
+    background-color: rgba(red($primarycolorNotDry), green($primarycolorNotDry), blue($primarycolorNotDry), 0.7);
   }
 }

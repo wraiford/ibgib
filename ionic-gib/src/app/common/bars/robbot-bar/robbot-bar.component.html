@@ -33,6 +33,13 @@
       >
       <ion-icon slot="start" name="navigate-outline" color="primary"></ion-icon>
     </ion-button>
+    <ion-button *ngIf="selectedRobbot" (click)="handleRobbotToggleActivate($event)"
+      [ngClass]="{'active-btn':robbotIsActive}"
+      [title]="toggleActivateTitle"
+      >
+      <ion-icon *ngIf="!robbotIsActive" name="fitness-outline"></ion-icon>
+      <ion-icon *ngIf="robbotIsActive" name="bed-outline"></ion-icon>
+    </ion-button>
     <ion-button *ngIf="selectedRobbot" (click)="handleRobbotLook($event)"
       title="Let the robbot look at the current ibGib. What this does inevitably will depend on the robbot, but it's like putting the ibGib in its memory."
       >

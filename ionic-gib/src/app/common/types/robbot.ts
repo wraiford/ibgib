@@ -199,7 +199,7 @@ export interface RobbotIbGib_V1 extends IbGib_V1<RobbotData_V1, RobbotRel8ns_V1>
  * change these commands to better structure, e.g., verb/do/mod, can/get/addrs
  * */
 export type RobbotCmd =
-    'ib' | 'gib' | 'ibgib';
+    'ib' | 'gib' | 'ibgib' | 'activate' | 'deactivate';
 /** Cmds for interacting with ibgib spaces. */
 export const RobbotCmd = {
     /**
@@ -222,6 +222,12 @@ export const RobbotCmd = {
      * I imagine this will be like "what's up", but who knows.
      */
     ibgib: 'ibgib' as RobbotCmd,
+    /**
+     * power on
+     */
+    activate: 'activate' as RobbotCmd,
+    /** power off */
+    deactivate: 'deactivate' as RobbotCmd,
 }
 
 /**
@@ -453,7 +459,8 @@ export type SemanticId =
     'semantic_count' |
     'semantic_options' |
     'semantic_ready' |
-    'semantic_unknown' | 'semantic_default';
+    'semantic_unknown' | 'semantic_default' |
+    string; // have to do this for inheritance?
 export const SemanticId = {
     help: 'semantic_help' as SemanticId,
     hello: 'semantic_hello' as SemanticId,
@@ -503,7 +510,7 @@ export interface SemanticHandler {
     fnExec?: (info: SemanticInfo) => Promise<RobbotInteractionIbGib_V1>;
 }
 
-export interface RobbotPropsData extends PropsData {
+export interface RobbotPropsData<TSemanticId extends SemanticId = SemanticId> extends PropsData {
     /**
      * This datum expects these template vars.
      *
@@ -515,7 +522,7 @@ export interface RobbotPropsData extends PropsData {
      * If assigned, then this lex datum is a semantic entry, and this is the corresponding
      * semantic id.
      */
-    semanticId?: SemanticId;
+    semanticId?: TSemanticId;
     atomicId?: AtomicId;
     /**
      * Only use this lex datum if YES there is an active session in progress.

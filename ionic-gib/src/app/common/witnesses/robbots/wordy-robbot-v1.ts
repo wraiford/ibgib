@@ -33,7 +33,7 @@ import { CommentIbGib_V1 } from '../../types/comment';
 import { getFromSpace, getLatestAddrs } from '../../helper/space';
 import { AppSpaceData, AppSpaceRel8ns } from '../../types/app';
 import { IonicSpace_V1 } from '../spaces/ionic-space-v1';
-import { LexDatum, LexLineConcat, SpeechBuilder } from '../../helper/lex';
+import { LexDatum, LexLineConcat, LexResultObj, SpeechBuilder } from '../../helper/lex';
 import { getTjpAddr } from '../../helper/ibgib';
 import { isComment, parseCommentIb } from '../../helper/comment';
 import { Ssml } from '../../helper/ssml';
@@ -276,7 +276,18 @@ export interface WordyRobbotRel8ns_V1 extends RobbotRel8ns_V1 {
     session?: IbGibAddr[];
 }
 
-export interface WordyRobbotPropsData extends RobbotPropsData {
+export type WordySemanticId = "blank_line" | SemanticId;
+export const WordySemanticId = {
+    ...SemanticId,
+    blank_line: "blank_line" as WordySemanticId,
+}
+
+
+export interface WordyRobbotPropsData extends RobbotPropsData<WordySemanticId> {
+    /**
+     * If reviewing lines, this flag indicates that it's the first line
+     */
+    isFirstLine?: boolean;
 }
 
 // export type WordyLexKeywords =
@@ -522,6 +533,31 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     }
                 },
             ];
+            this.robbotLex.data[WordySemanticId.blank_line] = [
+                {
+                    texts: [
+                        `$title`,
+                        ``,
+                        `First line?`,
+                    ],
+                    props: {
+                        semanticId: WordySemanticId.blank_line,
+                        templateVars: `title`,
+                        isFirstLine: true,
+                    }
+                },
+                {
+                    texts: [
+                        `$priorText`,
+                        `$lineIndex: ___________?`,
+                    ],
+                    props: {
+                        semanticId: WordySemanticId.blank_line,
+                        templateVars: `priorText,lineIndex`,
+                        isFirstLine: false,
+                    }
+                },
+            ];
 
             // this.userLex.data[SemanticId.count] = [
             //     ...[`count`, `how many`].map(text => {
@@ -655,6 +691,26 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
 
+    }
+
+    protected async finalizeContext({
+        arg,
+    }: {
+        arg: RobbotCmdIbGib<IbGib_V1, RobbotCmdData, RobbotCmdRel8ns>,
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.finalizeContext.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: a645054a23d2ddeebc1cdefd5ca66222)`); }
+
+            await this.completeSessionIfNeeded({ sayBye: false });
+
+            return await super.finalizeContext({ arg });
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
     }
 
     // #region semantic handlers
@@ -911,8 +967,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 (<StimulationDetails>x.data.details)['@toStimulateTjp'] === toStimulateTjpAddr
             );
 
+            let speech: LexResultObj<WordyRobbotPropsData>;
             let lineIndex: number;
             let lineText: string;
+            let title: string = toStimulate.ib.substring('comment '.length);
             if (!isLinesContinuation) {
                 // this is the first one, so do the first line (atow)
                 // in the future, we should look for previous interactions per the context.
@@ -920,13 +978,23 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 for (let i = 0; i < lines.length; i++) {
                     const line = lines[i]?.trim();
                     if (!!line) {
-                        // found non-empty line
-                        lineIndex = i;
-                        lineText = line;
-                        break;
+                        if (i === 0 && isATitleHeading({ text: line })) { // indicates a title
+                            title = line;
+                        } else {
+                            // found non-empty line
+                            lineIndex = i;
+                            lineText = line;
+                            break;
+                        }
                     }
                 }
                 if (!lineText) { throw new Error(`(UNEXPECTED) lineText falsy? expected lines to be valid at this point.\naddr: ${h.getIbGibAddr({ ibGib: toStimulate })}\nlines: ${lines} (E: f35fbc3b9fa3d5185229b1ef24bc3422)`); }
+                speech = this.robbotLex.get(WordySemanticId.blank_line, {
+                    props: props =>
+                        props.semanticId === WordySemanticId.blank_line &&
+                        props.isFirstLine === true,
+                    vars: { title: toStimulate.ib },
+                });
             } else {
                 // there exists a previous interaction that was lines for the
                 debugger; // todo
@@ -937,11 +1005,13 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // to try to filter it down.
 
             // get the list lex and use template var
-            const speech = this.robbotLex.get(SemanticId.lines, {
-                props: props =>
-                    props.semanticId === SemanticId.list,
-                // vars: { requests: requestsText.join('\n') },
-            });
+            // const speech = this.robbotLex.get(SemanticId.lines, {
+            //     props: props =>
+            //         props.semanticId === SemanticId.list,
+            //     // vars: { requests: requestsText.join('\n') },
+            // });
+            // const speech = `${lineIndex}: ${}`
+            if (!speech) { throw new Error(`(UNEXPECTED) speech falsy? (E: 941e57036473404c6f1a432e388d6522)`); }
 
             const data: RobbotInteractionData_V1 = {
                 uuid: await h.getUUID(),
@@ -962,6 +1032,41 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
     // #endregion semantic handlers
 
+    // protected doCmdActivate({
+    //     arg,
+    // }: {
+    //     arg: IbGib_V1,
+    // }): Promise<IbGib_V1> {
+    //     const lc = `${this.lc}[${this.doCmdActivate.name}]`;
+    //     try {
+    //         if (logalot) { console.log(`${lc} starting...`); }
+    //         throw new Error(`not implemented in base class (E: d247741ada554414864431cead27b467)`);
+    //     } catch (error) {
+    //         console.error(`${lc} ${error.message}`);
+    //         throw error;
+    //     } finally {
+    //         if (logalot) { console.log(`${lc} complete.`); }
+    //     }
+    // }
+    // protected async doCmdDeactivate({
+    //     arg,
+    // }: {
+    //     arg: IbGib_V1,
+    // }): Promise<IbGib_V1> {
+    //     const lc = `${this.lc}[${this.doCmdDeactivate.name}]`;
+    //     try {
+    //         if (logalot) { console.log(`${lc} starting...`); }
+    //         if (this._currentWorkingContextIbGib) {
+    //             await this.completeSessionIfNeeded({ sayBye: false });
+    //         }
+    //         return ROOT;
+    //     } catch (error) {
+    //         console.error(`${lc} ${error.message}`);
+    //         throw error;
+    //     } finally {
+    //         if (logalot) { console.log(`${lc} complete.`); }
+    //     }
+    // }
 
     protected async doDefault({
         ibGib,
@@ -1070,7 +1175,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             await this.ready;
 
             await this.completeSessionIfNeeded({ sayBye: true });
-            await this.closeCurrentWorkingContextIfNeeded();
             await this.initializeContext({ arg });
             if (!this._brainCommentIbGibs) { await this.initializeBrain(); }
             await this.startSession();
@@ -2657,6 +2761,44 @@ function parseTextIbGibAnalysisIb({
     } finally {
         if (logalot) { console.log(`${lc} complete.`); }
     }
+}
+
+
+
+const TITLE_HEADING_REGEXP = /^\s*#+\s+.+$/;
+/**
+ * If text starts with '# ' or '## ', etc., then we'll consider it a heading.
+ *
+ * # driving use case
+ *
+ * I want to be able to consider a line in a multiline text (lyrics/poem/whatever)
+ * to be the title or some other metadata.
+ */
+function isATitleHeading({
+    text,
+    regexp = TITLE_HEADING_REGEXP,
+}: {
+    text: string
+    regexp?: RegExp,
+}): boolean {
+    const lc = `[${isATitleHeading.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: b3eee62ab59ffae806f45d2448a3de22)`); }
+
+        const isSingleLine = !text.includes('\n');
+        if (logalot) { console.log(`${lc} isSingleLine: ${isSingleLine} (I: 1309fbf3267478d54c48edee1f263c22)`); }
+
+        const matchesRegexp = !!text.match(regexp);
+        if (logalot) { console.log(`${lc} matchesRegexp: ${matchesRegexp} (I: 8aa44c44a72cb9deb30c64efb1c47c22)`); }
+
+        return isSingleLine && matchesRegexp;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+
 }
 
 // function getNextLine({

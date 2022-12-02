@@ -386,6 +386,8 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       // use the correct app. (atow this means loading only from the app bar)
       this.updateActiveApp(); // spin off
 
+      this.updateRobbotWithContext({ contextAddr: addr }); // spin off
+
       // kind of a niche kluge to update flag if any children are links
       await this.updateLinkURLs();
 
@@ -458,6 +460,21 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
       throw error;
     } finally {
       setTimeout(() => this.ref.detectChanges());
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async updateRobbotWithContext({ contextAddr }: { contextAddr: IbGibAddr }): Promise<void> {
+    const lc = `${this.lc}[${this.updateRobbotWithContext.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 64a96383d8bf584be6c204462919eb22)`); }
+      if (this.robbotBar?.selectedRobbot) {
+
+      }
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
       if (logalot) { console.log(`${lc} complete.`); }
     }
   }

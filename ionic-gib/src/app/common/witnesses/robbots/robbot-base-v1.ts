@@ -137,7 +137,6 @@ export abstract class RobbotBase_V1<
      */
     protected _currentWorkingContextIbGib_PriorChildrenAddrs: IbGibAddr[] = [];
 
-    protected _subLatestContext: Subscription;
     protected _updatingContext: boolean;
 
     protected semanticHandlers: { [semanticId: string]: SemanticHandler[] };
@@ -390,6 +389,10 @@ export abstract class RobbotBase_V1<
                 return this.doCmdGib({ arg: arg });
             } else if (arg.data.cmd === RobbotCmd.ibgib) {
                 return this.doCmdIbgib({ arg: arg });
+            } else if (arg.data.cmd === RobbotCmd.activate) {
+                return this.doCmdActivate({ arg: arg });
+            } else if (arg.data.cmd === RobbotCmd.deactivate) {
+                return this.doCmdDeactivate({ arg: arg });
             } else {
                 throw new Error(`unknown arg.data.cmd: ${arg.data.cmd} (E: 721fa6a5166327134f9504c1caa3e422)`);
             }
@@ -442,6 +445,60 @@ export abstract class RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting...`); }
             throw new Error(`not implemented in base class (E: 4fee11f05315467abd036cd8555d27db)`);
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+    protected async doCmdActivate({
+        arg,
+    }: {
+        arg: RobbotCmdIbGib,
+    }): Promise<TResultIbGib> {
+        const lc = `${this.lc}[${this.doCmdActivate.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: d453593a295d4cdbae2acb71d9f6de35)`); }
+            await this.ready;
+
+            if (arg.ibGibs?.length > 0) {
+                await this.initializeContext({ arg });
+            }
+
+            const result = await this.resulty({
+                resultData: {
+                    optsAddr: h.getIbGibAddr({ ibGib: arg }),
+                    success: true,
+                },
+            })
+            return <TResultIbGib>result;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+    protected async doCmdDeactivate({
+        arg,
+    }: {
+        arg: RobbotCmdIbGib,
+    }): Promise<TResultIbGib> {
+        const lc = `${this.lc}[${this.doCmdDeactivate.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: d453593a295d4cdbae2acb71d9f6de35)`); }
+            await this.ready;
+
+            await this.finalizeContext({ arg });
+
+            const result = await this.resulty({
+                resultData: {
+                    optsAddr: h.getIbGibAddr({ ibGib: arg }),
+                    success: true,
+                },
+            })
+            return <TResultIbGib>result;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -1074,6 +1131,10 @@ export abstract class RobbotBase_V1<
      *
      * When we initialize, we are setting state on this robbot as well as subscribing
      * to the context ibgib's updates in `this.ibgibsSvc`.
+     *
+     * if we already have a context, then this will check the new incoming
+     * context against it.  If it's the same timeline, then this won't do
+     * anything. Otherwise, it will finalize the previous context.
      */
     protected async initializeContext({
         arg,
@@ -1083,6 +1144,20 @@ export abstract class RobbotBase_V1<
         const lc = `${this.lc}[${this.initializeContext.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: d93429c85b0a494388f66fba3eece922)`); }
+
+            // get context from arg just to compare the tjp's so we don't need
+            // the latest at this point
+            const incomingContext_NotLatest = await this.getContextIbGibFromArgOrAddr({ arg, latest: false });
+            if (this._currentWorkingContextIbGib) {
+                let currentTjpAddr = getTjpAddr({ ibGib: this._currentWorkingContextIbGib });
+                const incomingTjpAddr = getTjpAddr({ ibGib: incomingContext_NotLatest })
+                if (currentTjpAddr === incomingTjpAddr) {
+                    console.warn(`${lc} initializing context but it's the same timeline (${currentTjpAddr}). (W: 7609f8f51172443183e0c93ad52bfe56)`);
+                    return;
+                } else {
+                    await this.finalizeContext({ arg });
+                }
+            }
 
             /** used both now and when context ibgib is updated via observable */
             const updatePriorChildren = () => {
@@ -1098,9 +1173,9 @@ export abstract class RobbotBase_V1<
             updatePriorChildren();
 
             // subscribe to context ibgib updates
-            const tjpAddr = getTjpAddr({ ibGib: this._currentWorkingContextIbGib });
+            const contextTjpAddr = getTjpAddr({ ibGib: this._currentWorkingContextIbGib });
             this._contextChangesSubscription =
-                this.ibgibsSvc.latestObs.pipe(filter(x => x.tjpAddr === tjpAddr)).subscribe(async update => {
+                this.ibgibsSvc.latestObs.pipe(filter(x => x.tjpAddr === contextTjpAddr)).subscribe(async update => {
                     const currentAddr = h.getIbGibAddr({ ibGib: this._currentWorkingContextIbGib });
                     if (update.latestAddr !== currentAddr) {
                         if (logalot) { console.warn(`${lc} checking if new context is actually new...damn getLatestAddr maybe not working in ionic space... argh (W: 3d1a12154dfafb9c96d07e6f75f7a322)`); }
@@ -1159,17 +1234,39 @@ export abstract class RobbotBase_V1<
         }
     }
 
-    protected async closeCurrentWorkingContextIfNeeded(): Promise<void> {
-        const lc = `${this.lc}[${this.closeCurrentWorkingContextIfNeeded.name}]`;
+    protected async finalizeContext({
+        arg,
+    }: {
+        arg: RobbotCmdIbGib<IbGib_V1, RobbotCmdData, RobbotCmdRel8ns>,
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.finalizeContext.name}]`;
         try {
-            if (logalot) { console.log(`${lc} starting... (I: d2b97975687bdc822c4974d153dfde22)`); }
-            if (this._subLatestContext) {
-                this._subLatestContext.unsubscribe();
-                delete this._subLatestContext;
+            if (logalot) { console.log(`${lc} starting... (I: dd53dfc745864dd19fde5f209ceb82c8)`); }
+
+
+            let tries = 0;
+            const maxTries = 100;
+            while (this._updatingContext && tries < maxTries) {
+                await h.delay(100);
+                tries++;
+                if (tries % 10 === 0) {
+                    console.log(`${lc} already updating context and taking a litle while... waiting still. tries: ${tries}/${maxTries} (I: d45ab59af9ea43518432e34ddad95c19)`)
+                }
             }
+            if (this._updatingContext) {
+                console.error(`${lc} previous call to updatingContext took too long. Ignoring flag and finalizing context. (E: 9a2dc4e1923442fa90fbeae72f358acd)`);
+            }
+
+            this._updatingContext = true;
+            if (this._contextChangesSubscription) {
+                this._contextChangesSubscription.unsubscribe();
+                delete this._contextChangesSubscription;
+            }
+            delete this._currentWorkingContextIbGib;
+
             if (this._currentWorkingContextIbGib) {
                 await this.createCommentAndRel8ToContextIbGib({
-                    text: 'end of line',
+                    text: await this.getOutputText({ text: 'end of line' }),
                     contextIbGib: this._currentWorkingContextIbGib,
                 });
                 delete this._currentWorkingContextIbGib;
@@ -1178,6 +1275,7 @@ export abstract class RobbotBase_V1<
             console.error(`${lc} ${error.message}`);
             throw error;
         } finally {
+            this._updatingContext = false;
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
