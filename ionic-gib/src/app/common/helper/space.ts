@@ -673,8 +673,10 @@ export async function setCurrentRoot({
         await persistTransformResult({ isMeta: true, resTransform: resNewRoots, space });
 
         const configKey = getSpecialConfigKey({ type: "roots" });
-        let newRootsAddr = h.getIbGibAddr({ ibGib: resNewRoots.newIbGib });
+        const newRoots = resNewRoots.newIbGib;
+        const newRootsAddr = h.getIbGibAddr({ ibGib: newRoots });
         await setConfigAddr({ key: configKey, addr: newRootsAddr, space, zeroSpace, fnUpdateBootstrap });
+        await registerNewIbGib({ ibGib: newRoots, space, fnBroadcast, zeroSpace, fnUpdateBootstrap });
 
         // how to let others know roots has changed?
     } catch (error) {
@@ -709,17 +711,19 @@ export async function rel8ToCurrentRoot({
 
     try {
         if (!space) { throw new Error(`space required. (E: f2758eab3bb844d2b749515672d9e392)`); }
+        if (!ibGib) { throw new Error(`ibGib required (E: f1bfd67754a7271553f4af544d30bc22)`); }
 
         let currentRoot = await getCurrentRoot({ space });
-        if (!currentRoot) { throw new Error('currentRoot undefined'); }
+        if (!currentRoot) { throw new Error('currentRoot undefined (E: 5c2d84dafc664808866008f6eb535750'); }
 
-        // todo: change this to only rel8 if the tjp doesn't already exist on the root
-        let ibGibAddr = h.getIbGibAddr({ ibGib });
+        // only relate the tjp to roots and use the latest special index ibgib to
+        // have the reference to the latest ibgib in the space.
+        const tjpAddr = getTjpAddr({ ibGib, defaultIfNone: "incomingAddr" });
+        const ibGibAddr = h.getIbGibAddr({ ibGib });
 
         // check to see if it's already rel8d. If so, we're done.
-        // NOTE: (very) naive!
         if (currentRoot.rel8ns[rel8nName] &&
-            currentRoot.rel8ns[rel8nName].includes(ibGibAddr)) {
+            currentRoot.rel8ns[rel8nName].includes(tjpAddr)) {
             // already rel8d
             return;
         }

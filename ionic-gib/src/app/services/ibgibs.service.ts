@@ -961,9 +961,7 @@ export class IbgibsService {
         await h.delay(100);
       }
       const roots = await this.getSpecialIbGib({ type: "roots", space });
-      if (!roots) {
-        throw new Error(`Roots not initialized. (E: e7712dc3d183487e98cd44a2b4324bc2)`);
-      }
+      if (!roots) { throw new Error(`Roots not initialized. (E: e7712dc3d183487e98cd44a2b4324bc2)`); }
       if (!roots.rel8ns) { throw new Error(`Roots not initialized properly. No rel8ns. (E: 689f47f5d1da4a868d1c1ddd2ff13e17)`); }
       if (!roots.rel8ns.current) { throw new Error(`Roots not initialized properly. No current root. (E: 962acd3f60474a329bfbd7682c003916)`); }
       if (roots.rel8ns.current.length === 0) { throw new Error(`Invalid Roots: empty current root rel8n. (E: fbdc13c157514efa86ade1bf9a38bbd6)`); }
@@ -975,7 +973,7 @@ export class IbgibsService {
       if (resCurrentRoot.ibGibs?.length === 1) {
         return <IbGib_V1<RootData>>resCurrentRoot.ibGibs![0];
       } else {
-        throw new Error(`could not get current root. addr: ${currentRootAddr}`);
+        throw new Error(`could not get current root. addr: ${currentRootAddr} (E: 69de35c5f71e45a1a5d83228e136642b)`);
       }
     } catch (error) {
       console.error(`${lc} ${error.message}`);

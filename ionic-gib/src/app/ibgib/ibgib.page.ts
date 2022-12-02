@@ -865,7 +865,7 @@ export class IbGibPage extends IbgibComponentBase implements OnInit, OnDestroy {
     const lc = `${this.lc}[${this.handleAppSelected.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 1df5978e051c48a9ad1bb2b773502e44)`); }
-      console.log(`${lc} app: ${h.pretty(app)}`);
+      if (logalot) { console.log(`${lc} app: ${h.pretty(app)} (I: bedd4a624e64455d863f6b1bd6d2b623)`); }
 
       if (!app) { return; /* <<<< returns early */ }
       if (!app.data?.uuid) { throw new Error(`invalid app (app.data.uuid is falsy) (E: d422ed43707b0eeb1ea45c9e9e4aad22)`); }

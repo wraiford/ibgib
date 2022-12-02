@@ -239,7 +239,7 @@ export class AppBarComponent extends IbgibComponentBase implements OnInit {
         if (!appIbGib.data.uuid) { throw new Error(`invalid app data. uuid required (E: 395428787001407d90ccea81ac900e9e)`); }
 
         if (this.selectedApp?.data.uuid !== appIbGib.data.uuid) {
-          console.log(`new app selected. (I: eb3a8ca5a54a4fc8915931bd3ed19c8e)`);
+          if (logalot) { console.log(`new app selected. (I: eb3a8ca5a54a4fc8915931bd3ed19c8e)`); }
           await Preferences.set({ key: this.lastAppStorageKey, value: appIbGib.data.uuid });
           this.selectedApp = appIbGib; // emits appSelected event
         } else {
