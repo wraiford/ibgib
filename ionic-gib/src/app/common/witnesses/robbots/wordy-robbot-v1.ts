@@ -379,6 +379,11 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
     protected alreadyHandledContextChildrenAddrs: IbGibAddr[] = [];
 
+    /**
+     * If a new child comes down the pipeline, then we should be ready for it.
+     */
+    private expectingResponse: boolean;
+
     constructor(initialData?: WordyRobbotData_V1, initialRel8ns?: WordyRobbotRel8ns_V1) {
         super(initialData, initialRel8ns); // calls initialize
         const lc = `${this.lc}[ctor]`;
@@ -1032,26 +1037,35 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
     // #endregion semantic handlers
 
-    // protected doCmdActivate({
-    //     arg,
-    // }: {
-    //     arg: IbGib_V1,
-    // }): Promise<IbGib_V1> {
-    //     const lc = `${this.lc}[${this.doCmdActivate.name}]`;
-    //     try {
-    //         if (logalot) { console.log(`${lc} starting...`); }
-    //         throw new Error(`not implemented in base class (E: d247741ada554414864431cead27b467)`);
-    //     } catch (error) {
-    //         console.error(`${lc} ${error.message}`);
-    //         throw error;
-    //     } finally {
-    //         if (logalot) { console.log(`${lc} complete.`); }
-    //     }
-    // }
+    protected async doCmdActivate({
+        arg,
+    }: {
+        arg: RobbotCmdIbGib,
+    }): Promise<IbGib_V1> {
+        const lc = `${this.lc}[${this.doCmdActivate.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting...`); }
+            let result = await super.doCmdActivate({ arg });
+
+            await this.ready;
+
+            await this.completeSessionIfNeeded({ sayBye: false });
+            await this.initializeContext({ arg });
+            if (!this._brainCommentIbGibs) { await this.initializeBrain(); }
+            await this.startSession();
+
+            return result;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
     // protected async doCmdDeactivate({
     //     arg,
     // }: {
-    //     arg: IbGib_V1,
+    // arg: RobbotCmdIbGib,
     // }): Promise<IbGib_V1> {
     //     const lc = `${this.lc}[${this.doCmdDeactivate.name}]`;
     //     try {
@@ -1437,9 +1451,14 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (isRequestComment({ ibGib: newChild, requestEscapeString: this.data.requestEscapeString })) {
                 await this.promptNextInteraction({ ibGib: newChild, isRequest: true });
             } else if (isComment({ ibGib: newChild }) && this.session) {
-                // in the middle of a session and someone else's comment has come to us
-                // there will be an issue if the robbot chooses to import a request ibgib...hmm
-                await this.promptNextInteraction({ ibGib: newChild, isRequest: false });
+                if (this.expectingResponse) {
+                    // in the middle of a session and someone else's comment has come to us
+                    // there will be an issue if the robbot chooses to import a request ibgib...hmm
+                    await this.promptNextInteraction({ ibGib: newChild, isRequest: false });
+                } else {
+                    if (logalot) { console.log(`${lc} new nonRequest ibgib detected, but this.expectingResponse is false. ignoring. (I: 2f6d6e826ff44f26faaa4006ca1a5322)`); }
+                    return; /* <<<< returns early */
+                }
             } else {
                 // not a request and not a comment during a session
                 debugger;
@@ -2439,7 +2458,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} starting... (I: 6bc390410be642518ff0babfc888d220)`); }
 
             throw new Error(`not impl yet (E: 121714b00e92505321c95e9792fec722)`);
-
 
             // if (!this.interactions) { this.interactions = []; } // inits here, maybe should elsewhere?
 

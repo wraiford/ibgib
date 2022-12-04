@@ -89,6 +89,38 @@ export function validateCommonRobbotData({
     }
 }
 
+export async function validateCommonRobbotIbGib({
+    robbotIbGib,
+}: {
+    robbotIbGib: RobbotIbGib_V1,
+}): Promise<string[]> {
+    const lc = `[${validateCommonRobbotIbGib.name}]`;
+    try {
+        const intrinsicErrors: string[] = await validateIbGibIntrinsically({ ibGib: robbotIbGib }) ?? [];
+
+        const ibErrors: string[] = [];
+        if (logalot) { console.log(`${lc} starting... (I: f7b34d791a483b8c5a9d188da66d3f22)`); }
+        let { robbotClassname, robbotName, robbotId } = parseRobbotIb({ robbotIb: robbotIbGib.ib });
+        if (!robbotClassname) { ibErrors.push(`robbotClassname required (E: 3234d39bf1c74ec3aff59f374282dfc8)`); }
+        if (!robbotName) { ibErrors.push(`robbotName required (E: b329dcc62ff548d7aa0681393b2c7057)`); }
+        if (!robbotId) { ibErrors.push(`robbotId required (E: b562c953bfaf4dd49e4d3a08304ee2fc)`); }
+
+        const dataErrors = validateCommonRobbotData({ robbotData: robbotIbGib.data });
+
+        let result = [...(intrinsicErrors ?? []), ...(ibErrors ?? []), ...(dataErrors ?? [])];
+        if (result.length > 0) {
+            return result;
+        } else {
+            return undefined;
+        }
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
 export function getRobbotIb({
     robbotData,
     classname,
@@ -122,7 +154,7 @@ export function getRobbotIb({
  *
  * NOTE this is space-delimited
  */
-export function getInfoFromRobbotIb({
+export function parseRobbotIb({
     robbotIb,
 }: {
     robbotIb: Ib,
@@ -131,7 +163,7 @@ export function getInfoFromRobbotIb({
     robbotName: string,
     robbotId: string,
 } {
-    const lc = `[${getInfoFromRobbotIb.name}]`;
+    const lc = `[${parseRobbotIb.name}]`;
     try {
         if (!robbotIb) { throw new Error(`robbotIb required (E: 4a35881058094f1a90bb4ea37052d6d7)`); }
 

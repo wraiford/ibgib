@@ -58,10 +58,10 @@ import {
   trash, archive,
 } from '../common/helper/space';
 import { getDependencyGraph, GetDependencyGraphOptions } from '../common/helper/graph';
-import { spaceNameIsValid } from '../common/helper/validate';
+import { spaceNameIsValid, validateIbGibIntrinsically } from '../common/helper/validate';
 import { groupBy } from '../common/helper/utils';
 import { RobbotModalResult } from '../common/modals/robbot-modal-form/robbot-modal-form.component';
-import { createNewRobbot } from '../common/helper/robbot';
+import { createNewRobbot, validateCommonRobbotData, validateCommonRobbotIbGib } from '../common/helper/robbot';
 import { AppModalResult } from '../common/modals/app-modal-form/app-modal-form.component';
 import { createNewApp, documentLocationIsAtWelcomePage } from '../common/helper/app';
 import { InMemoryIbgibCacheService } from './in-memory-ibgib-cache.service';
@@ -2355,8 +2355,8 @@ export class IbgibsService {
 
       let appRobbots: RobbotIbGib_V1[] = [];
       for (let i = 0; i < appRobbots_MaybeOutOfDate.length; i++) {
-        const robbotIbGib = appRobbots_MaybeOutOfDate[i];
-        const robbotAddr = h.getIbGibAddr({ ibGib: robbotIbGib });
+        let robbotIbGib = appRobbots_MaybeOutOfDate[i];
+        let robbotAddr = h.getIbGibAddr({ ibGib: robbotIbGib });
         const latestAddr = await this.getLatestAddr({ ibGib: robbotIbGib });
         if (latestAddr && latestAddr !== robbotAddr) {
           // robbot has a newer ibgib in its timeline
@@ -2364,12 +2364,18 @@ export class IbgibsService {
           if (!resGet || !resGet?.success || (resGet?.ibGibs ?? []).length === 0) {
             throw new Error(`could not get newer robbot ibgib (E: 15fa346c8ac17edb96e4b0870104c122)`);
           }
-          appRobbots.push(<RobbotIbGib_V1>resGet.ibGibs[0]);
-        } else {
+          robbotIbGib = <RobbotIbGib_V1>resGet.ibGibs[0];
+          robbotAddr = h.getIbGibAddr({ ibGib: robbotIbGib });
+        }
+
+        const errors = await validateCommonRobbotIbGib({ robbotIbGib });
+        if ((errors ?? []).length === 0) {
+          // only add if robbot doesn't have validation errors
           appRobbots.push(robbotIbGib);
+        } else {
+          console.error(`${lc} robbot ibGib (${robbotAddr}) has validation errors: ${errors}`)
         }
       }
-
 
       // create if applicable
       if (appRobbots.length === 0 && createIfNone) {

@@ -7,7 +7,7 @@ import { IbGibAddr } from 'ts-gib/dist/types';
 import * as c from '../../constants';
 import { CommonService } from '../../../services/common.service';
 import { IbgibComponentBase } from '../../bases/ibgib-component-base';
-import { createNewRobbot } from '../../helper/robbot';
+import { createNewRobbot, parseRobbotIb } from '../../helper/robbot';
 import { IbGibRobbotAny } from '../../witnesses/robbots/robbot-base-v1';
 import { RobbotCmd, RobbotIbGib_V1 } from '../../types/robbot';
 import { isError } from '../../helper/error';
@@ -89,20 +89,34 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       if (logalot) { console.log(`${lc} starting... (I: 8be84cc5aef559fdb5ba47f514124422)`); }
       if ((this.robbots ?? []).length === 0) { await this.updateRobbots(); }
       if ((this.robbots ?? []).length === 0) { throw new Error(`robbot selected but this.robbots is falsy/empty even after updating (E: f938dad5df2802107eafd2fb7edcc222)`); }
-      let robbotToSelect: RobbotIbGib_V1;
-      for (let i = 0; i < this.robbots.length; i++) {
-        const robbot = this.robbots[i];
-        const robbotAddrs = [
-          h.getIbGibAddr({ ibGib: robbot }),
-          ...(robbot.rel8ns?.past ?? [])
-        ];
-        if (robbotAddrs.includes(robbotAddr)) {
-          robbotToSelect = robbot;
-          break;
-        }
+
+      let { robbotId } = parseRobbotIb({ robbotIb: h.getIbAndGib({ ibGibAddr: robbotAddr }).ib });
+      let robbotsWithSameId = this.robbots.filter(x => x.data?.uuid === robbotId);
+
+      if (robbotsWithSameId.length === 1) {
+        this.selectedRobbot = robbotsWithSameId[0];
+      } else if (robbotsWithSameId.length > 1) {
+        debugger;
+        throw new Error(`multiple robbots found with the same id? robbotId: ${robbotId}\n${robbotsWithSameId.map(x => h.getIbGibAddr({ ibGib: x })).join('\n')} (E: 9855a7b6de93d08c983d2ca651657c22)`);
+      } else {
+        debugger;
+        throw new Error(`robbotAddr (${robbotAddr}) not found among robbots. (E: da7e66a4fee6e749321bd954b087ca22)`);
       }
-      if (!robbotToSelect) { throw new Error(`robbotAddr (${robbotAddr}) not found among robbots. (E: da7e66a4fee6e749321bd954b087ca22)`); }
-      this.selectedRobbot = robbotToSelect;
+
+      // let robbotToSelect: RobbotIbGib_V1;
+      // for (let i = 0; i < this.robbots.length; i++) {
+      //   const robbot = this.robbots[i];
+      //   const robbotAddrs = [
+      //     h.getIbGibAddr({ ibGib: robbot }),
+      //     ...(robbot.rel8ns?.past ?? [])
+      //   ];
+      //   if (robbotAddrs.includes(robbotAddr)) {
+      //     robbotToSelect = robbot;
+      //     break;
+      //   }
+      // }
+      // if (!robbotToSelect) { throw new Error(`robbotAddr (${robbotAddr}) not found among robbots. (E: da7e66a4fee6e749321bd954b087ca22)`); }
+      // this.selectedRobbot = robbotToSelect;
 
     } catch (error) {
       console.error(`${lc} ${error.message}`);
@@ -210,7 +224,6 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       let resCmd: any;
       let robbot: IbGibRobbotAny;
       let statusText: string;
-      debugger;
       if (this.robbotIsActive) {
         // robbot is already active, so deactivate it
         robbot = this._robbotWitness;
