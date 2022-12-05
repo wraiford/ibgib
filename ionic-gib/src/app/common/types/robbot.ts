@@ -569,12 +569,7 @@ export function toLexDatums_Atomics(atomicId: AtomicId, texts: string[]): LexDat
 export const DEFAULT_HUMAN_LEX_DATA_ENGLISH_SEMANTICS: LexData<RobbotPropsData> = {
     [SemanticId.help]: [
         ...toLexDatums_Semantics(SemanticId.help, [
-            'help', 'help me',
-        ]),
-    ],
-    [SemanticId.hello]: [
-        ...toLexDatums_Semantics(SemanticId.help, [
-            'help', 'help me',
+            'h', 'help', 'help me',
         ]),
     ],
     [SemanticId.yes]: [
