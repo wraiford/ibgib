@@ -109,6 +109,8 @@ export abstract class RobbotBase_V1<
 
     /**
      * Log context for convenience with logging. (Ignore if you don't want to use this.)
+     *
+     * Often used in conjunction with `logalot`.
      */
     protected lc: string = `${super.lc}[${RobbotBase_V1.name}]`;
 
@@ -116,13 +118,13 @@ export abstract class RobbotBase_V1<
      * Reference to the local ibgibs service, which is one way at getting at the
      * local user space.
      */
-    ibgibsSvc: IbgibsService;
+    public ibgibsSvc: IbgibsService;
 
     /**
      * When the robbot has to get some ibgibs, might as well store them here so
      * we don't have to get them again from storage.
      */
-    protected cacheIbGibs: { [addr: string]: IbGib_V1 } = {};
+    protected _cacheIbGibs: { [addr: string]: IbGib_V1 } = {};
 
 
     protected _contextChangesSubscription: Subscription;
@@ -139,26 +141,22 @@ export abstract class RobbotBase_V1<
 
     protected _updatingContext: boolean;
 
-    protected semanticHandlers: { [semanticId: string]: SemanticHandler[] };
+    protected _semanticHandlers: { [semanticId: string]: SemanticHandler[] };
 
     protected async handleSemanticDefault(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
         const lc = `${this.lc}[${this.handleSemanticDefault.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 01a2d1781851cc36b674f44b4fb69522)`); }
 
-            const commentText = 'huh?'; // a bit silly here...
-
-            if (!this._currentWorkingContextIbGib) { throw new Error(`no current context and no default semantic handler implemented in child class. (E: dcc146b015c83e409411d47623857c22)`); }
-
-            // await this.createCommentAndRel8ToContextIbGib({
-            //     text: await this.getOutputText({ text: commentText }),
-            //     contextIbGib: this._currentWorkingContextIbGib,
-            // });
+            const speech = this._robbotLex.get(SemanticId.unknown, {
+                props: props =>
+                    props.semanticId === SemanticId.unknown,
+            });
 
             let data: RobbotInteractionData_V1 = {
                 timestamp: h.getTimestamp(),
                 type: RobbotInteractionType.clarification,
-                commentText,
+                commentText: speech.text,
             };
 
             const interaction = await getInteractionIbGib_V1({ data });
@@ -174,11 +172,11 @@ export abstract class RobbotBase_V1<
     /**
      * lex that the robbot uses to speak.
      */
-    protected robbotLex: Lex<TLexPropsData>;
+    protected _robbotLex: Lex<TLexPropsData>;
     /**
      * lex that the robbot uses to interpret humans.
      */
-    protected userLex: Lex<TLexPropsData>;
+    protected _userLex: Lex<TLexPropsData>;
 
     /**
      * This should be awaited before dealing with the robbot.
@@ -230,11 +228,12 @@ export abstract class RobbotBase_V1<
         const lc = `${this.lc}[${this.initialize_semanticHandlers.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: a0f2a11688963b0156e337e7f8604f22)`); }
-            this.semanticHandlers = {
+            this._semanticHandlers = {
                 [SemanticId.default]: [
                     {
                         handlerId: "c8054c0b77fb4b37bff693e54e1f66bd",
                         semanticId: SemanticId.default,
+                        fnCanExec: (info) => Promise.resolve(true),
                         fnExec: (info) => { return this.handleSemanticDefault(info); },
                     }
                 ]
@@ -251,12 +250,21 @@ export abstract class RobbotBase_V1<
         const lc = `${this.lc}[${this.initialize_lex.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: a4668a7473027e56df42909c09f70822)`); }
-            this.robbotLex = new Lex<TLexPropsData>(h.clone(DEFAULT_ROBBOT_LEX_DATA), {
+            this._robbotLex = new Lex<TLexPropsData>(h.clone(DEFAULT_ROBBOT_LEX_DATA), {
                 defaultPropsMode: 'props',
                 defaultKeywordMode: 'all',
                 defaultLineConcat: 'paragraph', // outgoing robbot defaults to multiple paragraphs.
             });
-            this.userLex = new Lex<TLexPropsData>(h.clone(DEFAULT_HUMAN_LEX_DATA), {
+
+            // this._robbotLex.data[SemanticId.unknown] = [
+            //     {
+            //         texts: [
+            //             `huh?`, // silly
+            //         ]
+            //     }
+            // ];
+
+            this._userLex = new Lex<TLexPropsData>(h.clone(DEFAULT_HUMAN_LEX_DATA), {
                 defaultPropsMode: 'props',
                 defaultKeywordMode: 'all',
                 defaultLineConcat: 'sentence', // incoming user lex defaults to combining sentences.

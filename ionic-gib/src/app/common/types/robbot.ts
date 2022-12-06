@@ -454,11 +454,11 @@ export type SemanticId =
     'semantic_please' |
     'semantic_in_progress' |
     'semantic_list' |
-    'semantic_lines' | // maybe just wordy...
     'semantic_request' |
     'semantic_count' |
     'semantic_options' |
     'semantic_ready' |
+    'semantic_stop' |
     'semantic_unknown' | 'semantic_default' |
     string; // have to do this for inheritance?
 export const SemanticId = {
@@ -474,11 +474,11 @@ export const SemanticId = {
     please: 'semantic_please' as SemanticId,
     in_progress: 'semantic_in_progress' as SemanticId,
     list: 'semantic_list' as SemanticId,
-    lines: 'semantic_lines' as SemanticId,
     request: 'semantic_request' as SemanticId,
     count: 'semantic_count' as SemanticId,
     options: 'semantic_options' as SemanticId,
     ready: 'semantic_ready' as SemanticId,
+    stop: 'semantic_stop' as SemanticId,
     unknown: 'semantic_unknown' as SemanticId,
     default: 'semantic_default' as SemanticId,
 };

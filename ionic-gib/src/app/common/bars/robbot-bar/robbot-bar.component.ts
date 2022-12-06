@@ -39,6 +39,8 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
 
   robbots: RobbotIbGib_V1[];
 
+  private _robbotWitness: IbGibRobbotAny;
+
   private _selectedRobbotAddr: IbGibAddr;
   @Input()
   get selectedRobbotAddr(): IbGibAddr { return this._selectedRobbotAddr; }
@@ -49,6 +51,18 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
     }
   }
 
+  @Input()
+  get toggleActivateTitle(): string {
+    return this.robbotIsActive ?
+      "Put the robbot to bed (Currently active)" :
+      "Wake up the robbot (Currently inactive)";
+  }
+  @Input()
+  robbotIsActive: boolean;
+
+  /**
+   * This is only an ibGib (dto) not a full witness.
+   */
   @Output()
   robbotSelected = new EventEmitter<RobbotIbGib_V1>();
 
@@ -95,6 +109,7 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
 
       if (robbotsWithSameId.length === 1) {
         this.selectedRobbot = robbotsWithSameId[0];
+        this.robbotSelected.emit(h.clone(this.selectedRobbot));
       } else if (robbotsWithSameId.length > 1) {
         debugger;
         throw new Error(`multiple robbots found with the same id? robbotId: ${robbotId}\n${robbotsWithSameId.map(x => h.getIbGibAddr({ ibGib: x })).join('\n')} (E: 9855a7b6de93d08c983d2ca651657c22)`);
@@ -159,6 +174,10 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
         if (!robbotIbGib.data.uuid) { throw new Error(`invalid robbot data. uuid required (E: 464d1fdf45f642f90bafc169b8aea122)`); }
 
         if (this.selectedRobbot?.data.uuid !== robbotIbGib.data.uuid) {
+          if (this._robbotWitness) {
+            if (this.robbotIsActive) { await this.deactivateCurrentRobbotWitness(); }
+            delete this._robbotWitness;
+          }
           this.selectedRobbot = robbotIbGib;
           console.log(`new robbot selected. (I: f09b25c6b71b441c9c7c01e734ff2bb0)`);
           this.robbotSelected.emit(h.clone(robbotIbGib));
@@ -202,16 +221,79 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
     }
   }
 
-  @Input()
-  get toggleActivateTitle(): string {
-    return this.robbotIsActive ?
-      "Put the robbot to bed (they won't be actively chatting or anything)." :
-      "Wake up the robbot";
-  }
-  @Input()
-  robbotIsActive: boolean;
+  async activateCurrentRobbotWitness(): Promise<void> {
+    const lc = `${this.lc}[${this.activateCurrentRobbotWitness.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: c15c4130e4a936297cd6e5a7e960c422)`); }
 
-  private _robbotWitness: IbGibRobbotAny;
+      // robbot is not yet active, so activate it
+      // todo: deactivate robbot in change handler if selected robbot changed later
+      if (!this._robbotWitness) {
+        this._robbotWitness = await this.getSelectedRobbot_FullWitness();
+        if (logalot) { console.log(`${lc} robbotWitness created. (I: 5500d9b44b85ed605232d95ea565a522)`); }
+      }
+      const robbot = this._robbotWitness;
+
+      const argActivate = await robbot.argy({
+        argData: {
+          cmd: RobbotCmd.activate,
+          ibGibAddrs: [this.addr], // context
+        },
+        ibGibs: [this.ibGib], // context
+      });
+      const resCmd = await robbot.witness(argActivate);
+
+      if (!resCmd) { throw new Error(`resCmd is falsy. (E: 1e133819a0064f639e8740ea8f774e31)`); }
+      if (isError({ ibGib: resCmd })) {
+        const errIbGib = <ErrorIbGib_V1>resCmd;
+        throw new Error(`errIbGib: ${h.pretty(errIbGib)} (E: 0a012e46c8c645aa9984a07813930901)`);
+      }
+
+      this.robbotIsActive = true;
+      const statusText = `${robbot.data?.outputPrefix ?? ''} i'm awake! ${robbot.data?.outputSuffix ?? ''}`;
+      Toast.show({ text: statusText, duration: "long" }); // spins off...
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      setTimeout(() => this.ref.detectChanges());
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async deactivateCurrentRobbotWitness(): Promise<void> {
+    const lc = `${this.lc}[${this.deactivateCurrentRobbotWitness.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 3d736debdf6a3eff72f1da2996d1e322)`); }
+
+      // robbot is already active, so deactivate it
+      const robbot = this._robbotWitness;
+      const argDeactivate = await robbot.argy({
+        argData: {
+          cmd: RobbotCmd.deactivate,
+          ibGibAddrs: [this.addr], // context
+        },
+        ibGibs: [this.ibGib], // context
+      });
+      const resCmd = await robbot.witness(argDeactivate);
+      const statusText = `${robbot.data?.outputPrefix ?? ''} gonna take a nap...see you latr. ${robbot.data?.outputSuffix ?? ''}`;
+
+      if (!resCmd) { throw new Error(`resCmd is falsy. (E: ab4cda964fc14a0fb505c3b307f8802d)`); }
+      if (isError({ ibGib: resCmd })) {
+        const errIbGib = <ErrorIbGib_V1>resCmd;
+        throw new Error(`errIbGib: ${h.pretty(errIbGib)} (E: e521899a399f4d7d855511ea9f45149c)`);
+      }
+
+      Toast.show({ text: statusText, duration: "long" }); // spins off...
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      this.robbotIsActive = false;
+      setTimeout(() => this.ref.detectChanges());
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
 
   async handleRobbotToggleActivate(event: MouseEvent): Promise<void> {
     const lc = `${this.lc}[${this.handleRobbotToggleActivate.name}]`;
@@ -221,54 +303,11 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       event.stopImmediatePropagation();
       event.stopPropagation();
 
-      let resCmd: any;
-      let robbot: IbGibRobbotAny;
-      let statusText: string;
       if (this.robbotIsActive) {
-        // robbot is already active, so deactivate it
-        robbot = this._robbotWitness;
-        const argDeactivate = await robbot.argy({
-          argData: {
-            cmd: RobbotCmd.deactivate,
-            ibGibAddrs: [this.addr], // context
-          },
-          ibGibs: [this.ibGib], // context
-        });
-        resCmd = await robbot.witness(argDeactivate);
-        this.robbotIsActive = false;
-        statusText = `${robbot.data?.outputPrefix ?? ''} gonna take a nap...see you latr. ${robbot.data?.outputSuffix ?? ''}`;
+        await this.deactivateCurrentRobbotWitness();
       } else {
-        // robbot is not yet active, so activate it
-        // todo: deactivate robbot in change handler if selected robbot changed later
-        if (!this._robbotWitness) {
-          this._robbotWitness = await this.getSelectedRobbot_FullWitness();
-          if (logalot) { console.log(`${lc} robbotWitness created. (I: 5500d9b44b85ed605232d95ea565a522)`); }
-        }
-        robbot = this._robbotWitness;
-
-        const argActivate = await robbot.argy({
-          argData: {
-            cmd: RobbotCmd.activate,
-            ibGibAddrs: [this.addr], // context
-          },
-          ibGibs: [this.ibGib], // context
-        });
-        resCmd = await robbot.witness(argActivate);
-        this.robbotIsActive = true;
-        statusText = `${robbot.data?.outputPrefix ?? ''} i'm awake! ${robbot.data?.outputSuffix ?? ''}`;
+        await this.activateCurrentRobbotWitness();
       }
-
-      // setting ibgibsSvc is necessary to hook up plumbing atow,
-      // but in the future this is essentially assigning a local space
-      // to an ibgib witness (robbot in this case).
-
-      if (!resCmd) { throw new Error(`resCmd is falsy. (E: ab4cda964fc14a0fb505c3b307f8802d)`); }
-      if (isError({ ibGib: resCmd })) {
-        const errIbGib = <ErrorIbGib_V1>resCmd;
-        throw new Error(`errIbGib: ${h.pretty(errIbGib)} (E: e521899a399f4d7d855511ea9f45149c)`);
-      }
-
-      Toast.show({ text: statusText, duration: "long" }); // spins off...
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

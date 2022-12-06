@@ -24,7 +24,7 @@ import {
 } from '../../types/robbot';
 import { DynamicForm } from '../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
-import { addTimeToDate, getIdPool, getTimestampInTicks, pickRandom, replaceCharAt, unique } from '../../helper/utils';
+import { addTimeToDate, getIdPool, getSaferSubstring, getTimestampInTicks, pickRandom, replaceCharAt, unique } from '../../helper/utils';
 import { WitnessFormBuilder } from '../../helper/witness';
 import { getInteractionIbGib_V1, getRequestTextFromComment, getRobbotIb, getRobbotSessionIb, isRequestComment, RobbotFormBuilder } from '../../helper/robbot';
 import { DynamicFormBuilder } from '../../helper/form';
@@ -276,10 +276,16 @@ export interface WordyRobbotRel8ns_V1 extends RobbotRel8ns_V1 {
     session?: IbGibAddr[];
 }
 
-export type WordySemanticId = "blank_line" | SemanticId;
+export type WordySemanticId =
+    "semantic_blank_line" | "semantic_lines" |
+    "semantic_done" | "semantic_what_next" |
+    SemanticId;
 export const WordySemanticId = {
     ...SemanticId,
-    blank_line: "blank_line" as WordySemanticId,
+    blank_line: "semantic_blank_line" as WordySemanticId,
+    lines: 'semantic_lines' as WordySemanticId,
+    done: "semantic_done" as WordySemanticId,
+    what_next: "semantic_what_next" as WordySemanticId,
 }
 
 
@@ -333,32 +339,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
      * map of working comment ibgibs (the things that we're analyzing).
      */
     protected _currentWorkingCommentIbGibsAnalysisMap: { [addr: string]: WordyAnalysisIbGib_V1_Text } = {};
-    private _currentWorkingCommentInteractions: RobbotInteractionIbGib_V1[];
-
-    /**
-     * handlers semantic requests, usually (always?) prompted by the user or
-     * another robbot...
-     */
-    // protected semanticHandlers: { [semanticId: string]: SemanticHandler[] } = {
-    //     ...super.semanticHandlers,
-    // };
-
-    // protected async handleSemanticDefault({
-    //     semanticId,
-    //     other,
-    //     request,
-    // }: SemanticInfo,
-    // ): Promise<IbGib_V1> {
-    //     const lc = `${this.lc}[${this.handleSemanticDefault.name}]`;
-    //     try {
-    //         if (logalot) { console.log(`${lc} starting... (I: 01a2d1781851cc36b674f44b4fb69522)`); }
-    //     } catch (error) {
-    //         console.error(`${lc} ${error.message}`);
-    //         throw error;
-    //     } finally {
-    //         if (logalot) { console.log(`${lc} complete.`); }
-    //     }
-    // }
 
     protected session: WordyRobbotSessionIbGib_V1;
     protected interactions: RobbotInteractionIbGib_V1[];
@@ -427,7 +407,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} starting... (I: a4668a7473027e56df42909c09f70822)`); }
             await super.initialize_lex();
 
-            this.robbotLex.data[SemanticId.hello] = [
+            this._robbotLex.data[SemanticId.hello] = [
                 {
                     texts: [
                         `$(hi)!`,
@@ -465,14 +445,14 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     },
                 },
             ];
-            this.robbotLex.data['session_in_progress'] = [
+            this._robbotLex.data['session_in_progress'] = [
                 {
                     texts: [
                         'Session is in progress...',
                     ],
                 }
             ];
-            this.robbotLex.data[SemanticId.help] = [
+            this._robbotLex.data[SemanticId.help] = [
                 {
                     texts: [
                         `$(hi)! I'm $name, a Wordy Robbot here to help you learn words.`,
@@ -492,12 +472,12 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     }
                 }
             ];
-            this.robbotLex.data[SemanticId.ready] = [
+            this._robbotLex.data[SemanticId.ready] = [
                 ...toLexDatums_Semantics(SemanticId.ready, [
                     'I\'m ready.', 'I\'m awake.',
                 ])
             ];
-            this.robbotLex.data[SemanticId.list] = [
+            this._robbotLex.data[SemanticId.list] = [
                 {
                     texts: [
                         `Here are what requests are available right now:`,
@@ -509,7 +489,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     }
                 }
             ];
-            this.robbotLex.data[SemanticId.lines] = [
+            this._robbotLex.data[WordySemanticId.lines] = [
                 {
                     texts: [
                         `next line...`,
@@ -517,7 +497,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                         `$prevLine`,
                     ],
                     props: {
-                        semanticId: SemanticId.lines,
+                        semanticId: WordySemanticId.lines,
                         templateVars: `prevLine`,
                         freshStart: true,
                     }
@@ -528,13 +508,13 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                         `$prevLine`,
                     ],
                     props: {
-                        semanticId: SemanticId.lines,
+                        semanticId: WordySemanticId.lines,
                         templateVars: `prevLine`,
                         freshStart: false,
                     }
                 },
             ];
-            this.robbotLex.data[WordySemanticId.blank_line] = [
+            this._robbotLex.data[WordySemanticId.blank_line] = [
                 {
                     texts: [
                         `$title`,
@@ -559,6 +539,29 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     }
                 },
             ];
+            this._robbotLex.data[SemanticId.stop] = [
+                {
+                    texts: [
+                        `$(${WordySemanticId.done})`,
+                        ``,
+                        `$(${WordySemanticId.what_next})`,
+                    ]
+                }
+            ];
+            this._robbotLex.data[WordySemanticId.done] = [
+                ...toLexDatums_Semantics(WordySemanticId.done, [
+                    `OK we're done with that.`,
+                    `Gotcha, that's that.`
+                ]),
+            ];
+            this._robbotLex.data[WordySemanticId.what_next] = [
+                ...toLexDatums_Semantics(WordySemanticId.what_next, [
+                    `What's up next?`,
+                    `What's up now?`,
+                    `What would you like to do now?`,
+                    `Now what eh?`,
+                ]),
+            ];
 
             // this.userLex.data[SemanticId.count] = [
             //     ...[`count`, `how many`].map(text => {
@@ -571,7 +574,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             //         };
             //     }),
             // ];
-            this.userLex.data[SemanticId.hello] = [
+            this._userLex.data[SemanticId.hello] = [
                 ...DEFAULT_HUMAN_LEX_DATA_ENGLISH_ATOMICS[AtomicId.hi].flatMap(datum => {
                     return {
                         texts: datum.texts.concat(),
@@ -582,7 +585,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     }
                 }),
             ];
-            this.userLex.data[SemanticId.help] = [
+            this._userLex.data[SemanticId.help] = [
                 ...DEFAULT_HUMAN_LEX_DATA_ENGLISH_SEMANTICS[SemanticId.help].flatMap(datum => {
                     return {
                         texts: datum.texts.concat(),
@@ -593,7 +596,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     }
                 }),
             ];
-            this.userLex.data[SemanticId.list] = [
+            this._userLex.data[SemanticId.list] = [
                 ...[`list`, `ls`, `requests`, `reqs`].map(text => {
                     return {
                         texts: [text],
@@ -604,12 +607,23 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     };
                 }),
             ];
-            this.userLex.data[SemanticId.lines] = [
+            this._userLex.data[WordySemanticId.lines] = [
                 ...[`lines`, `do lines`, `learn lines`, `lyrics`, `do lyrics`].map(text => {
                     return {
                         texts: [text],
                         props: <WordyRobbotPropsData>{
-                            semanticId: SemanticId.lines,
+                            semanticId: WordySemanticId.lines,
+                            isRequest: true,
+                        }
+                    };
+                }),
+            ];
+            this._userLex.data[SemanticId.stop] = [
+                ...[`stop`, `cancel`, `abort`].map(text => {
+                    return {
+                        texts: [text],
+                        props: <WordyRobbotPropsData>{
+                            semanticId: SemanticId.stop,
                             isRequest: true,
                         }
                     };
@@ -631,9 +645,9 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             super.initialize_semanticHandlers();
 
-            this.semanticHandlers = {
+            this._semanticHandlers = {
                 // atow this is just mapping the default to the default handler method
-                ...this.semanticHandlers,
+                ...this._semanticHandlers,
 
                 [SemanticId.hello]: [
                     {
@@ -671,18 +685,26 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                         fnExec: (info) => this.handleSemantic_help(info),
                     },
                 ],
-                [SemanticId.lines]: [
+                [WordySemanticId.lines]: [
                     {
                         handlerId: 'b60a4d58d89e4065a16250a0836b4f98',
-                        semanticId: SemanticId.lines,
+                        semanticId: WordySemanticId.lines,
                         fnCanExec: (info) => this.canHandleSemantic_lines(info),
                         fnExec: (info) => this.handleSemantic_lines(info),
                     },
                     {
                         handlerId: 'bfa8492a8c354c0e8ca8f48673a24c5b',
-                        semanticId: SemanticId.lines,
+                        semanticId: WordySemanticId.lines,
                         fnCanExec: async (info) => this.nothingToWorkOnAvailable,
                         fnExec: (info) => this.handleSemantic_NothingToWorkOn(info),
+                    },
+                ],
+                [SemanticId.stop]: [
+                    {
+                        handlerId: 'a738b9fa84f44c2ca09b25354b7cf039',
+                        semanticId: SemanticId.stop,
+                        fnCanExec: (info) => this.canHandleSemantic_stop(info),
+                        fnExec: (info) => this.handleSemantic_stop(info),
                     },
                 ],
                 // more handlers here
@@ -754,7 +776,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 5632af01149bc9c3af56346c2fbda622)`); }
 
-            const hello = this.robbotLex.get(SemanticId.hello, {
+            const hello = this._robbotLex.get(SemanticId.hello, {
                 props: props =>
                     props.semanticId === SemanticId.hello &&
                     props.onlyInSession === true &&
@@ -788,7 +810,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 96001be1ceab4c438469edb00e6d8f41)`); }
 
-            const hello = this.robbotLex.get(SemanticId.hello, {
+            const hello = this._robbotLex.get(SemanticId.hello, {
                 props: props =>
                     props.semanticId === SemanticId.hello &&
                     props.onlyInSession === true &&
@@ -820,7 +842,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 5632af01149bc9c3af56346c2fbda622)`); }
 
-            const hello = this.robbotLex.get(SemanticId.hello, {
+            const hello = this._robbotLex.get(SemanticId.hello, {
                 props: props =>
                     props.semanticId === SemanticId.hello &&
                     props.blankSlate === true,
@@ -877,7 +899,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
              */
             let requestEntries: [string, string[]][] =
-                Object.values(this.userLex.data)
+                Object.values(this._userLex.data)
                     .filter(datas => datas.some(x => x.props?.isRequest && !!x.props.semanticId))
                     .map(x => {
                         let requests = x.filter(datum => datum.props?.isRequest && !!datum.props.semanticId);
@@ -921,7 +943,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             const requestTexts = await this.getUserRequestTexts({ contextFlags: ['all'] });
 
             // get the list lex and use template var
-            const speech = this.robbotLex.get(SemanticId.list, {
+            const speech = this._robbotLex.get(SemanticId.list, {
                 props: props =>
                     props.semanticId === SemanticId.list,
                 vars: { requests: requestTexts.join('\n') },
@@ -953,7 +975,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             //     return `${reqName}: ${reqAliases.join(',')}`; // e.g. "hello: hello, hi, hey, hey there, hi there"
             // });
             // get the list lex and use template var
-            const speech = this.robbotLex.get(SemanticId.help, {
+            const speech = this._robbotLex.get(SemanticId.help, {
                 props: props =>
                     props.semanticId === SemanticId.help,
                 vars: {
@@ -1097,6 +1119,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     if (!!line) {
                         if (i === 0 && isATitleHeading({ text: line })) { // indicates a title
                             title = line;
+                        } else if (isATitleHeading({ text: line })) {
+                            if (logalot) { console.log(`${lc} title heading found. skipping i: ${i}... (I: 7989ae7e3916727e44bc082afc5c9e22)`); }
                         } else {
                             // found non-empty line
                             lineIndex = i;
@@ -1106,7 +1130,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     }
                 }
                 if (!lineText) { throw new Error(`(UNEXPECTED) lineText falsy? expected lines to be valid at this point.\naddr: ${h.getIbGibAddr({ ibGib: toStimulate })}\nlines: ${lines} (E: f35fbc3b9fa3d5185229b1ef24bc3422)`); }
-                speech = this.robbotLex.get(WordySemanticId.blank_line, {
+                speech = this._robbotLex.get(WordySemanticId.blank_line, {
                     props: props =>
                         props.semanticId === WordySemanticId.blank_line &&
                         props.isFirstLine === true,
@@ -1149,6 +1173,56 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
+    private async canHandleSemantic_stop(info: SemanticInfo): Promise<boolean> {
+        const lc = `${this.lc}[${this.canHandleSemantic_stop.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: d8444692b2adecc38106c09b7dd57322)`); }
+            if (this.nothingToWorkOnAvailable) {
+                debugger;
+                console.log(`${lc} nothing to work on. returning false. (I: 8bd42da50367466da9e21886ff6a0f8b)`)
+                return false;
+            }
+
+            return this.expectingResponse;
+        } catch (error) {
+            debugger;
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    private async handleSemantic_stop(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
+        const lc = `${this.lc}[${this.handleSemantic_stop.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 7786969633e1459c9a6991c7c5a15954)`); }
+
+            // cancel stimulation
+            this.expectingResponse = false;
+            // what else? todo: extra stimulation cancellation when stop issued
+
+            const speech = this._robbotLex.get(SemanticId.stop, {
+                props: props =>
+                    props.semanticId === SemanticId.stop,
+            });
+
+            const data: RobbotInteractionData_V1 = {
+                uuid: await h.getUUID(),
+                timestamp: h.getTimestamp(),
+                type: RobbotInteractionType.stimulation,
+                commentText: speech.text,
+            };
+
+            const ibGib = await getInteractionIbGib_V1({ data });
+            return ibGib;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
     // #endregion semantic handlers
 
     protected async doCmdActivate({
@@ -1737,7 +1811,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     console.error(`${lc} comment ibgib doesn't have a latestAddr entry? will use the (possibly non-latest) comment ibgib itself (E: a474e5d0d0c4428ca1f01f260820a3fe)`);
                     latestAddr = srcAddr;
                 }
-                const latestCommentIbGib = this.cacheIbGibs[latestAddr];
+                const latestCommentIbGib = this._cacheIbGibs[latestAddr];
                 if (!latestCommentIbGib) { throw new Error(`(UNEXPECTED) expected latestCommentIbGib to exist at this point. (E: 369cfa38bd7527f71ea6962c3d037c22)`); }
                 srcIbGib = <CommentIbGib_V1>latestCommentIbGib;
                 srcAddr = h.getIbGibAddr({ ibGib: srcIbGib });
@@ -1843,7 +1917,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 console.warn(`${lc} (UNEXPECTED) commentAddr falsy in latestAddrsMap? (W: 614c8de84f74490cb9780b20a746db5d)`);
                 latestAddr = commentAddr;
             }
-            if (!this.cacheIbGibs[latestAddr] && !latestAddrsToGet.includes(latestAddr)) {
+            if (!this._cacheIbGibs[latestAddr] && !latestAddrsToGet.includes(latestAddr)) {
                 latestAddrsToGet.push(latestAddr);
             }
         }
@@ -1852,7 +1926,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (resGetLatestIbGibs.success && resGetLatestIbGibs.ibGibs?.length === latestAddrsToGet.length) {
                 for (let i = 0; i < resGetLatestIbGibs.ibGibs.length; i++) {
                     const latestIbGib = resGetLatestIbGibs.ibGibs[i];
-                    this.cacheIbGibs[h.getIbGibAddr({ ibGib: latestIbGib })] = latestIbGib;
+                    this._cacheIbGibs[h.getIbGibAddr({ ibGib: latestIbGib })] = latestIbGib;
                 }
             } else {
                 console.error(`${lc} full result: `);
@@ -1882,7 +1956,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             const rel8dIbGibsMap = await this.getRel8dIbGibs({ rel8nNames: [this.data.defaultRel8nName] });
             const allRel8dIbGibs = Object.values(rel8dIbGibsMap).flatMap(x => x);
-            allRel8dIbGibs.forEach(x => { this.cacheIbGibs[h.getIbGibAddr({ ibGib: x })] = x; });
+            allRel8dIbGibs.forEach(x => { this._cacheIbGibs[h.getIbGibAddr({ ibGib: x })] = x; });
 
             /**
              * we want to get all of the children of our ibgibs
@@ -1892,7 +1966,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 onlyRel8nNames: this.data.lookRel8nNames.split(','),
                 space
             });
-            Object.values(lookProjection).forEach(x => { this.cacheIbGibs[h.getIbGibAddr({ ibGib: x })] = x; });
+            Object.values(lookProjection).forEach(x => { this._cacheIbGibs[h.getIbGibAddr({ ibGib: x })] = x; });
             return lookProjection;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -2038,7 +2112,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             if (sayBye) {
                 if (logalot) { console.log(`${lc} saying bye... (I: fc02b62d8fa9a5498fbffafecac75522)`); }
-                let { text } = this.robbotLex.get(SemanticId.bye);
+                let { text } = this._robbotLex.get(SemanticId.bye);
                 if (!text) {
                     console.error(`${lc} (UNEXPECTED) lex didn't work? tried to get 'bye' and text is falsy. (E: 3e77e1f771caad72cc52c881cb46da22)`);
                     text = 'bye';
@@ -2418,45 +2492,64 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         request,
     }: {
         request: IbGib_V1,
-    }): SemanticId {
+    }): WordySemanticId {
         const lc = `${this.lc}[${this.getSemanticIdFromRequest.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 55f29fba4f37d2749bfc83d51bea4822)`); }
 
-            let semanticId: SemanticId;
+            let semanticId: WordySemanticId;
             const requestText =
                 getRequestTextFromComment({ ibGib: request, lowercase: true }) ||
                 WORDY_V1_DEFAULT_REQUEST_TEXT.toLowerCase();
 
+            // we're getting naive requestId, but may be unnecessary as we also
+            // check matching against the datum starting with the entire request
             const requestPieces = requestText.split(' ');
-
             if (requestPieces.length === 0) {
                 console.error(`${lc} (UNEXPECTED) requestPieces.length === 0? request is truthy but requestText splits to nothing? funky junk. (E: fdd2cc6ce93842e485cd44e15a695c9a)`)
                 return SemanticId.unknown; /* <<<< returns early */
             }
-
             const requestId = requestPieces[0];
 
             // map from the request text to a semantic id
             // const semanticId: SemanticId = SemanticId.help;
-            let resRequestText = this.userLex.find({
-                fnDatumPredicate: d =>
-                    d.texts?.length > 0 &&
-                    (
-                        // first word of request is first piece of datum
-                        d.texts[0].toLowerCase() === requestId ||
-                        requestText.startsWith(d.texts[0])
-                    ) &&
-                    d.props.isRequest // all requests in lexicon should be marked with this property flag
+            const resRequestText = this._userLex.find({
+                fnDatumPredicate: d => {
+                    // paranoid/convenient place to check for malformed lex data
+                    if ((d.texts ?? [])?.length === 0) {
+                        console.error(`${lc} invalid lex data. datum is empty. d: ${h.pretty(d)} (E: 39dafc29ff934932b4e87cc4b2788baf)`);
+                        return false;
+                    }
+
+                    // must account for when request is multiple words like
+                    // "hello there".  CLIs nowadays think we should have to
+                    // surround things with quotes but we should be able to
+                    // handle this (synonyms, spaces, ...).  but if the request
+                    // text is 'h', then we shouldn't match up with any request
+                    // that starts with h.
+                    const datumIsRequest = d.props?.isRequest;
+                    const datumFirstText = d.texts[0].toLowerCase();
+                    const matchesRequestId = datumFirstText === requestId;
+                    /** remove non word/keep only spaces, so regexp is guaranteed here */
+                    const safeRequestText = getSaferSubstring({ text: requestText, keepLiterals: [' '] });
+                    /**
+                     * Do the same for datum, so we can include things like
+                     * apostrophes for contractions and still match up in the
+                     * regular expression
+                     */
+                    const safeDatumFirstText = getSaferSubstring({ text: datumFirstText, keepLiterals: [' '] });
+                    const requestStartsWithDatumText = !!safeRequestText.match(new RegExp(`^${safeDatumFirstText}(\\s|$)`));
+                    return datumIsRequest && (matchesRequestId || requestStartsWithDatumText);
+                }
             });
             if (resRequestText?.length === 1) {
                 const resId = resRequestText[0];
                 // id found, but is it semantic id?
-                const semanticIds = Object.values(SemanticId);
+                const semanticIds = Object.values(WordySemanticId);
                 if (logalot) { console.log(`${lc} semanticIds: ${semanticIds} (I: 1a37a42d7c276ab6f8d0d16f3cb3be22)`); }
                 if (semanticIds.includes(<any>resId)) {
                     // semantic id found
-                    semanticId = <SemanticId>resId;
+                    semanticId = <WordySemanticId>resId;
                 } else {
                     // text found but not a semantic id? equate this with not found
                     console.warn(`${lc} id found but not a known semantic id: ${resId} (W: 01729fb7a4e94f20a42436f3c957bb44)`)
@@ -2464,6 +2557,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 }
             } else if (resRequestText?.length > 1) {
                 // multiple found? this is a problem with the data
+                debugger;
                 throw new Error(`(UNEXPECTED) multiple ids found from user requestText (${requestText})? todo: confirm what user said workflow not implemented yet (E: 8e1f4c7c0e757b5e9126bf4f5213ca22)`);
             } else {
                 // not found
@@ -2490,8 +2584,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: c272043e6dd6697f0f07367bc4917622)`); }
 
-            let handlers = this.semanticHandlers[semanticId] ?? [];
-            if (handlers.length === 0) { handlers = this.semanticHandlers[SemanticId.default] ?? []; }
+            let handlers = this._semanticHandlers[semanticId] ?? [];
+            if (handlers.length === 0) { handlers = this._semanticHandlers[SemanticId.default] ?? []; }
             if (handlers.length === 0) { throw new Error(`semanticId (${semanticId}) not found and no SemanticId.default handler found either. (E: 39a1cd4803e999df8e26512418ac0f22)`); }
 
             /** first determine which handlers can execute */
@@ -2503,6 +2597,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                         await handler.fnCanExec(info) :
                         true;
                     if (canExec) {
+                        debugger;
                         handlersThatCanExecute.push(handler);
                     } else {
                         if (logalot) { console.log(`${lc} handler canExec false (${handler.semanticId}, ${handler.handlerId}) (I: 5fd34c847eff556214f098f22b4c3622)`); }
@@ -2514,7 +2609,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             if (handlersThatCanExecute.length === 0) {
                 // try again with semanticId of default
-                handlers = this.semanticHandlers[SemanticId.default] ?? [];
+                handlers = this._semanticHandlers[SemanticId.default] ?? [];
                 if (handlers.length === 0) { throw new Error(`found no handlers that could execute and default handler not found (E: d82f110cd447068cbe8b994c5b3a7122)`); }
                 await fnGetHandlers();
             }
