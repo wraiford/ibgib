@@ -24,7 +24,8 @@
         "titleBar.activeForeground": "#15202b",
         "titleBar.inactiveBackground": "#42b88399",
         "titleBar.inactiveForeground": "#15202b99",
-        "commandCenter.border": "#15202b99"
+        "commandCenter.border": "#15202b99",
+        "tab.activeBackground": "#590557"
     },
     "editor.formatOnSave": true,
     "files.insertFinalNewline": true,
