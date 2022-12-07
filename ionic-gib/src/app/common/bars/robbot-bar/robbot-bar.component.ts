@@ -111,10 +111,8 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
         this.selectedRobbot = robbotsWithSameId[0];
         this.robbotSelected.emit(h.clone(this.selectedRobbot));
       } else if (robbotsWithSameId.length > 1) {
-        debugger;
         throw new Error(`multiple robbots found with the same id? robbotId: ${robbotId}\n${robbotsWithSameId.map(x => h.getIbGibAddr({ ibGib: x })).join('\n')} (E: 9855a7b6de93d08c983d2ca651657c22)`);
       } else {
-        debugger;
         throw new Error(`robbotAddr (${robbotAddr}) not found among robbots. (E: da7e66a4fee6e749321bd954b087ca22)`);
       }
 
@@ -251,7 +249,7 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
 
       this.robbotIsActive = true;
       const statusText = `${robbot.data?.outputPrefix ?? ''} i'm awake! ${robbot.data?.outputSuffix ?? ''}`;
-      Toast.show({ text: statusText, duration: "long" }); // spins off...
+      Toast.show({ text: statusText, duration: "long", position: "top" }); // spins off...
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;
@@ -347,7 +345,7 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
       }
 
       let gotIt = `${robbot.data?.outputPrefix ?? ''}got it...${robbot.data?.outputSuffix ?? ''}`;
-      Toast.show({ text: gotIt, duration: "long" }); // spins off...
+      Toast.show({ text: gotIt, duration: "long", position: "center" }); // spins off...
     } catch (error) {
       console.error(`${lc} ${error.message}`);
       throw error;

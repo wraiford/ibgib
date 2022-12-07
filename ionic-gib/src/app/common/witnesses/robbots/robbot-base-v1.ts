@@ -236,7 +236,15 @@ export abstract class RobbotBase_V1<
                         fnCanExec: (info) => Promise.resolve(true),
                         fnExec: (info) => { return this.handleSemanticDefault(info); },
                     }
-                ]
+                ],
+                [SemanticId.unknown]: [
+                    {
+                        handlerId: "9eb4c537cddb40d4927c2aa58e4e6f4b",
+                        semanticId: SemanticId.default,
+                        fnCanExec: (info) => Promise.resolve(true),
+                        fnExec: (info) => { return this.handleSemanticDefault(info); },
+                    }
+                ],
             }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -256,13 +264,16 @@ export abstract class RobbotBase_V1<
                 defaultLineConcat: 'paragraph', // outgoing robbot defaults to multiple paragraphs.
             });
 
-            // this._robbotLex.data[SemanticId.unknown] = [
-            //     {
-            //         texts: [
-            //             `huh?`, // silly
-            //         ]
-            //     }
-            // ];
+            this._robbotLex.data[SemanticId.unknown] = [
+                {
+                    texts: [
+                        `huh?`, // silly
+                    ],
+                    props: <TLexPropsData>{
+                        semanticId: SemanticId.unknown,
+                    }
+                }
+            ];
 
             this._userLex = new Lex<TLexPropsData>(h.clone(DEFAULT_HUMAN_LEX_DATA), {
                 defaultPropsMode: 'props',

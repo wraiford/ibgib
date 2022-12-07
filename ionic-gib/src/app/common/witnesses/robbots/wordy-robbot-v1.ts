@@ -543,9 +543,11 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 {
                     texts: [
                         `$(${WordySemanticId.done})`,
-                        ``,
                         `$(${WordySemanticId.what_next})`,
-                    ]
+                    ],
+                    props: {
+                        semanticId: SemanticId.stop,
+                    }
                 }
             ];
             this._robbotLex.data[WordySemanticId.done] = [
@@ -2597,7 +2599,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                         await handler.fnCanExec(info) :
                         true;
                     if (canExec) {
-                        debugger;
                         handlersThatCanExecute.push(handler);
                     } else {
                         if (logalot) { console.log(`${lc} handler canExec false (${handler.semanticId}, ${handler.handlerId}) (I: 5fd34c847eff556214f098f22b4c3622)`); }
