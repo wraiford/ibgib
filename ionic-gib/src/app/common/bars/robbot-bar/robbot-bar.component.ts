@@ -201,8 +201,8 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
     }
   }
 
-  async handleAddRobbot(): Promise<void> {
-    const lc = `${this.lc}[${this.handleAddRobbot.name}]`;
+  async handleClick_AddRobbot(): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_AddRobbot.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
       if (this.addingRobbot) { throw new Error(`(UNEXPECTED) already adding tag...shouldn't get here (E: 3978fdd932764199b659d9166f718205)`); }
@@ -317,8 +317,8 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
     }
   }
 
-  async handleRobbotLook(event: MouseEvent): Promise<void> {
-    const lc = `${this.lc}[${this.handleRobbotLook.name}]`;
+  async handleClick_RobbotLook(event: MouseEvent): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_RobbotLook.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
@@ -356,8 +356,8 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
     }
   }
 
-  async handleRobbotSpeak(event: MouseEvent): Promise<void> {
-    const lc = `${this.lc}[${this.handleRobbotSpeak.name}]`;
+  async handleClick_RobbotSpeak(event: MouseEvent): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_RobbotSpeak.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 
@@ -392,8 +392,8 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
     }
   }
 
-  async handleRobbotThink(event: MouseEvent): Promise<void> {
-    const lc = `${this.lc}[${this.handleRobbotThink.name}]`;
+  async handleClick_RobbotThink(event: MouseEvent): Promise<void> {
+    const lc = `${this.lc}[${this.handleClick_RobbotThink.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting...`); }
 

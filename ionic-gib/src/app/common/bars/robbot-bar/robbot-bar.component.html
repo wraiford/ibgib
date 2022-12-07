@@ -40,22 +40,22 @@
       <ion-icon *ngIf="!robbotIsActive" name="fitness-outline"></ion-icon>
       <ion-icon *ngIf="robbotIsActive" name="bed-outline"></ion-icon>
     </ion-button>
-    <ion-button *ngIf="selectedRobbot" (click)="handleRobbotLook($event)"
+    <ion-button *ngIf="selectedRobbot" (click)="handleClick_RobbotLook($event)"
       title="Let the robbot look at the current ibGib. What this does inevitably will depend on the robbot, but it's like putting the ibGib in its memory."
       >
       <ion-label>👀</ion-label>
     </ion-button>
-    <ion-button *ngIf="selectedRobbot" (click)="handleRobbotSpeak($event)"
+    <ion-button *ngIf="selectedRobbot" (click)="handleClick_RobbotSpeak($event)"
       title="Ask the robbot to join in the conversation. For some robbots, this will prompt only one item to be added to the chat, but for others perhaps more dynamic interaction."
       >
       <ion-icon name="chatbubbles-outline"></ion-icon>
     </ion-button>
-    <ion-button *ngIf="selectedRobbot" (click)="handleRobbotThink($event)"
+    <ion-button *ngIf="selectedRobbot" (click)="handleClick_RobbotThink($event)"
       title="Ask the robbot to think about what he/she's seen so far."
       >
       <ion-icon name="school-outline"></ion-icon>
     </ion-button>
-    <ion-button (click)="handleAddRobbot()"
+    <ion-button (click)="handleClick_AddRobbot()"
       title="Create a new robbot. You can create more than one instance of any particular type of Robbot. The new Robbot will have its own (often new) memory and experience through time."
       >
       <ion-icon name="add-outline"></ion-icon>
