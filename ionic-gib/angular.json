@@ -68,6 +68,12 @@
                 "input": "src/global.scss"
               }
             ],
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "./node_modules/swiper",
+                "./node_modules/@ionic/angular/css"
+              ]
+            },
             "scripts": [],
             "aot": true,
             "vendorChunk": true,
@@ -137,6 +143,12 @@
             "tsConfig": "tsconfig.spec.json",
             "karmaConfig": "karma.conf.js",
             "styles": [],
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "./node_modules/swiper",
+                "./node_modules/@ionic/angular/css"
+              ]
+            },
             "scripts": [],
             "assets": [
               {

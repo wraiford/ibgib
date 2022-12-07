@@ -1,4 +1,4 @@
-/*
+/**
  * App Global CSS
  * ----------------------------------------------------------------------------
  * Put style rules here that you want to apply globally. These styles are for
@@ -7,24 +7,34 @@
  * output CSS.
  * For more information on global stylesheets, visit the documentation:
  * https://ionicframework.com/docs/layout/global-stylesheets
+ *
+ * To import entries where examples may show a tilde (~), add the package in angular.json.
+ * ATOW it's e.g.
+ *          "stylePreprocessorOptions": {
+ *            "includePaths": [
+ *              "./node_modules/swiper",
+ *              "./node_modules/@ionic/angular/css"
+ *            ]
+ *          },
+ *
  */
 
 /* Core CSS required for Ionic components to work properly */
 @import "@ionic/angular/css/core.css";
-// @import "~@ionic/angular/css/core.css";
+// @import "@ionic/angular/css/core.css";
 
 /* Basic CSS for apps built with Ionic */
-@import "~@ionic/angular/css/normalize.css";
-// @import "~@ionic/angular/css/structure.css";
-@import "~@ionic/angular/css/typography.css";
-@import '~@ionic/angular/css/display.css';
+@import "@ionic/angular/css/normalize.css";
+// @import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import '@ionic/angular/css/display.css';
 
 /* Optional CSS utils that can be commented out */
-@import "~@ionic/angular/css/padding.css";
-@import "~@ionic/angular/css/float-elements.css";
-@import "~@ionic/angular/css/text-alignment.css";
-@import "~@ionic/angular/css/text-transformation.css";
-@import "~@ionic/angular/css/flex-utils.css";
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/float-elements.css";
+@import "@ionic/angular/css/text-alignment.css";
+@import "@ionic/angular/css/text-transformation.css";
+@import "@ionic/angular/css/flex-utils.css";
 
 app-root,
 ion-app,
@@ -85,16 +95,16 @@ ion-input.floating-with-placeholder {
 
 // for swiper, customizing like ion-slides
 // see https://ionicframework.com/docs/angular/slides
-@import '~swiper/scss';
-@import '~swiper/scss/autoplay';
-@import '~swiper/scss/keyboard';
-@import '~swiper/scss/zoom';
-@import "~swiper/scss/navigation";
-@import '~swiper/scss/pagination';
-@import '~swiper/scss/scrollbar';
-// @import '~swiper/scss/effect-fade';
-@import '~swiper/scss/effect-cube';
-@import '~@ionic/angular/css/ionic-swiper';
+@import 'swiper/scss';
+@import 'swiper/scss/autoplay';
+@import 'swiper/scss/keyboard';
+@import 'swiper/scss/zoom';
+@import "swiper/scss/navigation";
+@import 'swiper/scss/pagination';
+@import 'swiper/scss/scrollbar';
+// @import 'swiper/scss/effect-fade';
+@import 'swiper/scss/effect-cube';
+@import '@ionic/angular/css/ionic-swiper';
 
 // this is required for navigation buttons in vertical swipers.
 .swiper-container-vertical {
