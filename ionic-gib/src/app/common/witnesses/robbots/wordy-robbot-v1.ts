@@ -159,49 +159,145 @@ export interface WordyAnalysisRel8ns_V1_Robbot extends IbGibRel8ns_V1 {
 }
 export interface WordyAnalysisIbGib_V1_Robbot extends IbGib_V1<WordyAnalysisData_V1_Robbot, WordyAnalysisRel8ns_V1_Robbot> { }
 
+export type StimulationScope =
+    'all' | 'paragraph' | 'line' | 'word' | 'letter';
+export const StimulationScope = {
+    'all': 'all' as StimulationScope,
+    'paragraph': 'paragraph' as StimulationScope,
+    'line': 'line' as StimulationScope,
+    'word': 'word' as StimulationScope,
+    'letter': 'letter' as StimulationScope,
+    // pic
+}
 /**
  * There are various ways to stimulate an ibgib.
  */
-export type StimulationType = 'lines' | 'just_show' | 'blank_words'
-    // | 'next_line'
-    // | 'demand_expand'
+export type StimulationType =
+    'look' |
+    'copy' |
+    'blank' |
+    'expound'
     ;
 export const StimulationType = {
     /**
-     * The user is just shown the source ibgib raw.
+     * The user is just shown the source ibgib raw and asked to look.
      */
-    'just_show': 'just_show' as StimulationType,
+    'look': 'look' as StimulationType,
     /**
-     * The user is shown a source comment text/line/paragraph with a single
-     * blanked out word.  The user must type in the blanked out word.
+     * The user is asked to copy the given unit of type {@link StimulationScope}
      */
-    'blank_words': 'blank_words' as StimulationType,
+    'copy': 'copy' as StimulationType,
     /**
-     * The user is shown one or more lines and a blank. the user must type in
-     * the line.
+     * A unit of type {@link StimulationScope} is blanked out.
+     *
+     * The user is asked to provide the missing blank.
      */
-    // 'next_line': 'next_line' as StimulationType,
+    'blank': 'blank' as StimulationType,
     /**
      * the user has to say something that will be added to the target ibgib.
      * if the user says "skip" or "no" or "no thanks", etc., then it will be
      * skipped.
      */
-    // 'demand_expand': 'demand_expand' as StimulationType,
+    'expound': 'expound' as StimulationType,
 }
-export interface StimulationDetails {
+export interface StimulationTarget {
+    /**
+     * Soft link to the tjp address (timeline) of the ibgib being stimulated.
+     */
+    '@toStimulateTjp': IbGibAddr;
+    /**
+     * Weighted strength of the stimulation.
+     */
+    weight: number;
+    /**
+     * Soft link to punctiliar address of the exact ibgib stimulated
+     */
+    '@toStimulate'?: IbGibAddr;
+
+}
+/**
+ * Fundamental shape that describes stimulating ibgibs.
+ *
+ * In my driving use case, with Wordy Robbot especially, this
+ * is for "learning" the material, i.e., creating, nurturing and
+ * maintaining brain traces.
+ */
+export interface Stimulation {
+    /**
+     * The scope of the stimulation, like 'paragraph' or 'line'.
+     * @see {@link StimulationScope}
+     */
+    stimulationScope: StimulationScope;
     /**
      * type of stimulation, like is it a fill in the blank or just showing the
      * ibgib.
+     * @see {@link StimulationType}
      */
     stimulationType: StimulationType;
     /**
-     * Soft link to the source address of the ibgib being stimulated.
+     * soft links to target ibgibs being stimulated
      */
-    '@toStimulate': IbGibAddr;
+    targets: StimulationTarget[];
     /**
-     * Soft link to the source's tjp address of the ibgib being stimulated.
+     * How much does this type of stimulation start off as being estimated
+     * for in terms of strength a la ANNs.
+     *
+     * For example, if the stimulation is "write this 1000 times", that would
+     * be an incredible amount of stimulation. If the stimulation is
+     * "scan over this text quickly", then the stimulation would be
+     * relatively small.
+     *
+     * ## notes on "weighting" vs other Naming Things paradigms
+     *
+     * This will be very subjective to start off with, and basically is
+     * a placeholder/springboard for future more advanced weighting
+     * implementations (that use ML e.g.).
+     *
+     * This is also phrased in the paradigm of neural weightings, but this is
+     * isomorphic to money/value/cost in economics. So this could be called
+     * "baseValue" or "baseCost".
+     *
+     * In terms of elevated stimulations, this is equivalent to first learning
+     * in terms of dollars and cents and then growing scale. So our early
+     * stimulations are nickel and dime, like fill in the blanks, but we
+     * progress to grand stimulations like "write an ode" which would equal a
+     * multi-million/billion/cajillion dollar transaction.
      */
-    '@toStimulateTjp': IbGibAddr;
+    baseStrength: number;
+    /**
+     * If true, then this stimulation expects a metric of some sort, like a grade.
+     * For starters, this will be entirely self-reported by the user. In the future
+     * when we are talking about multiple entities interacting, then this could
+     * be provided by one or more third parties.
+     */
+    expectsFeedback?: boolean;
+    /**
+     * Addresses of the feedback ibgib(s) if needed/relavent.
+     *
+     * the ib's should contain the relative metadata information so we don't
+     * have to load the full ibgib. e.g. `comment 5^ASDFEW1234` or `comment
+     * good^ABC123`, but this should ultimately be up to the handler.
+     */
+    '@feedbackList'?: IbGibAddr[];
+    /**
+     * If true, the stimulation expects the user to add an ibgib to the current
+     * context ibgib. For starters, this will be a comment ibgib with, e.g.,
+     * the blanked out text.
+     */
+    expectsResponse?: boolean;
+    /**
+     * When providing at least one response, these are the soft link addresses.
+     */
+    '@responseList'?: IbGibAddr[];
+    /**
+     * Indicates that this stimulation is complete and nothing further is
+     * expected regarding it.
+     *
+     * If {@link expectsFeedback} and {@link expectsResponse} are both falsy,
+     * then this should be set to true (though ultimately it's the lack of
+     * both of those that is directly meaningful).
+     */
+    isComplete?: boolean;
     /**
      * If we are making a comment ourselves (and not, e.g., just presenting some
      * other ibgib without additional comment), then here is the text for it.
@@ -209,17 +305,22 @@ export interface StimulationDetails {
      * This should also be included in the comment.
      */
     commentText?: string;
+    /**
+     * If we are stimulating an ibgib multiple times, this tracks the number of
+     * times in a given stimulation sequence.
+     */
+    consecutiveCount?: number;
 }
 /**
  * We're stimulating the ibgib via blanking out one or more words in the ibgib's
  * text.
  */
-export interface StimulationDetails_BlankWords extends StimulationDetails {
-    stimulationType: 'blank_words';
+export interface Stimulation_Blank extends Stimulation {
+    stimulationType: 'blank';
     /**
-     * List of words that were blanked out in this stimulation
+     * Text that we've blanked out.
      */
-    blankedWords: string[];
+    blankedText: string;
 }
 
 export const DEFAULT_UUID_WORDY_ROBBOT = undefined;
@@ -277,13 +378,16 @@ export interface WordyRobbotRel8ns_V1 extends RobbotRel8ns_V1 {
 }
 
 export type WordySemanticId =
-    "semantic_blank_line" | "semantic_lines" |
+    "semantic_learn" |
+    "semantic_blank" |
+    // "semantic_lines" |
     "semantic_done" | "semantic_what_next" |
     SemanticId;
 export const WordySemanticId = {
     ...SemanticId,
-    blank_line: "semantic_blank_line" as WordySemanticId,
-    lines: 'semantic_lines' as WordySemanticId,
+    learn: 'semantic_learn' as WordySemanticId,
+    blank: "semantic_blank" as WordySemanticId,
+    // lines: 'semantic_lines' as WordySemanticId,
     done: "semantic_done" as WordySemanticId,
     what_next: "semantic_what_next" as WordySemanticId,
 }
@@ -291,9 +395,15 @@ export const WordySemanticId = {
 
 export interface WordyRobbotPropsData extends RobbotPropsData<WordySemanticId> {
     /**
-     * If reviewing lines, this flag indicates that it's the first line
+     * If reviewing lines, this flag indicates that it's the first line.
+     * If doing a single line, this would indicate first word.
+     * If a single word, first letter. etc
      */
-    isFirstLine?: boolean;
+    isFirst?: boolean;
+    /**
+     * If the lex entry is restricted to a specific stimulationType
+     */
+    stimulationScope?: StimulationScope;
 }
 
 // export type WordyLexKeywords =
@@ -303,6 +413,14 @@ export interface WordyRobbotPropsData extends RobbotPropsData<WordySemanticId> {
 // }
 
 type WordyContextFlag = 'all';
+
+interface CurrentWorkingInfo {
+    ibGib: CommentIbGib_V1;
+    addr: IbGibAddr;
+    tjpAddr: IbGibAddr;
+    textInfo?: WordyTextInfo;
+    stimulations?: Stimulation[];
+}
 
 /**
  *
@@ -327,18 +445,20 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
      * will be set.
      */
     protected nothingToWorkOnAvailable: boolean;
+    protected _commentIbGibsAnalysisMap: { [addr: string]: WordyAnalysisIbGib_V1_Text } = {};
     protected _brainCommentIbGibs: CommentIbGib_V1[];
-    protected _currentWorkingComment: CommentIbGib_V1;
-    protected get _currentWorkingCommentTjpAddr(): IbGibAddr {
-        return this._currentWorkingComment ?
-            getTjpAddr({ ibGib: this._currentWorkingComment }) :
-            undefined;
-    }
-    protected _currentWorkingCommentTextInfo: WordyTextInfo;
+    protected _currentWorkingInfos: { [tjpAddr: string]: CurrentWorkingInfo } = undefined;
+    // protected _currentWorkingComments: CommentIbGib_V1[];
+    // protected get _currentWorkingCommentTjpAddr(): IbGibAddr {
+    //     return this._currentWorkingComment ?
+    //         getTjpAddr({ ibGib: this._currentWorkingComment }) :
+    //         undefined;
+    // }
+    // protected _currentWorkingCommentTextInfo: WordyTextInfo;
     /**
      * map of working comment ibgibs (the things that we're analyzing).
      */
-    protected _currentWorkingCommentIbGibsAnalysisMap: { [addr: string]: WordyAnalysisIbGib_V1_Text } = {};
+    // protected _currentWorkingStimulations: Stimulation
 
     protected session: WordyRobbotSessionIbGib_V1;
     protected interactions: RobbotInteractionIbGib_V1[];
@@ -514,28 +634,43 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     }
                 },
             ];
-            this._robbotLex.data[WordySemanticId.blank_line] = [
+            this._robbotLex.data[WordySemanticId.blank] = [
                 {
                     texts: [
                         `$title`,
                         ``,
-                        `First line?`,
+                        `First $what ?`,
                     ],
                     props: {
-                        semanticId: WordySemanticId.blank_line,
-                        templateVars: `title`,
-                        isFirstLine: true,
+                        semanticId: WordySemanticId.blank,
+                        templateVars: `title,what`,
+                        isFirst: true,
                     }
                 },
                 {
                     texts: [
-                        `$priorText`,
-                        `$lineIndex: ___________?`,
+                        `$text`,
                     ],
                     props: {
-                        semanticId: WordySemanticId.blank_line,
-                        templateVars: `priorText,lineIndex`,
-                        isFirstLine: false,
+                        semanticId: WordySemanticId.blank,
+                        templateVars: `title,priorText,lineIndex,nextText`,
+                        isFirst: false,
+                        stimulationScope: "word",
+                    }
+                },
+                {
+                    texts: [
+                        `$title`,
+                        ``,
+                        `$priorText`,
+                        `$lineIndex: ___________?`,
+                        `$nextText`
+                    ],
+                    props: {
+                        semanticId: WordySemanticId.blank,
+                        templateVars: `title,priorText,lineIndex,nextText`,
+                        isFirst: false,
+                        stimulationScope: "line",
                     }
                 },
             ];
@@ -609,17 +744,36 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     };
                 }),
             ];
-            this._userLex.data[WordySemanticId.lines] = [
-                ...[`lines`, `do lines`, `learn lines`, `lyrics`, `do lyrics`].map(text => {
+            this._userLex.data[WordySemanticId.learn] = [
+                ...[
+                    `lines`, `do lines`, `learn lines`,
+                    `lyrics`, `do lyrics`,
+                    `poems`, `poem`, `poetry`, `do poems`, `do a poem`, `do poetry`
+                ].map(text => {
                     return {
                         texts: [text],
                         props: <WordyRobbotPropsData>{
-                            semanticId: WordySemanticId.lines,
+                            semanticId: WordySemanticId.learn,
                             isRequest: true,
                         }
                     };
                 }),
             ];
+            // this._userLex.data[WordySemanticId.lines] = [
+            //     ...[
+            //         `lines`, `do lines`, `learn lines`,
+            //         `lyrics`, `do lyrics`,
+            //         `poems`, `poem`, `poetry`, `do poems`, `do a poem`, `do poetry`
+            //     ].map(text => {
+            //         return {
+            //             texts: [text],
+            //             props: <WordyRobbotPropsData>{
+            //                 semanticId: WordySemanticId.lines,
+            //                 isRequest: true,
+            //             }
+            //         };
+            //     }),
+            // ];
             this._userLex.data[SemanticId.stop] = [
                 ...[`stop`, `cancel`, `abort`].map(text => {
                     return {
@@ -687,16 +841,16 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                         fnExec: (info) => this.handleSemantic_help(info),
                     },
                 ],
-                [WordySemanticId.lines]: [
+                [WordySemanticId.learn]: [
                     {
                         handlerId: 'b60a4d58d89e4065a16250a0836b4f98',
-                        semanticId: WordySemanticId.lines,
-                        fnCanExec: (info) => this.canHandleSemantic_lines(info),
-                        fnExec: (info) => this.handleSemantic_lines(info),
+                        semanticId: WordySemanticId.learn,
+                        fnCanExec: (info) => this.canHandleSemantic_learn(info),
+                        fnExec: (info) => this.handleSemantic_learn(info),
                     },
                     {
                         handlerId: 'bfa8492a8c354c0e8ca8f48673a24c5b',
-                        semanticId: WordySemanticId.lines,
+                        semanticId: WordySemanticId.learn,
                         fnCanExec: async (info) => this.nothingToWorkOnAvailable,
                         fnExec: (info) => this.handleSemantic_NothingToWorkOn(info),
                     },
@@ -1012,8 +1166,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
      * Note: In the future, there may be additional constraints, such as if
      * there is a context that requires keeping the current working ibgib, e.g.
      */
-    private async canHandleSemantic_lines(info: SemanticInfo): Promise<boolean> {
-        const lc = `${this.lc}[${this.canHandleSemantic_lines.name}]`;
+    private async canHandleSemantic_learn(info: SemanticInfo): Promise<boolean> {
+        const lc = `${this.lc}[${this.canHandleSemantic_learn.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: d8444692b2adecc38106c09b7dd57322)`); }
             if (this.nothingToWorkOnAvailable) {
@@ -1045,6 +1199,60 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
+    private async loadNextWorkingInfo({
+        info,
+    }: {
+        /**
+         * semantic info that is driving the request
+         */
+        info: SemanticInfo,
+    }): Promise<void> {
+        const lc = `${this.lc}[${this.loadNextWorkingInfo.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 88d5a4edb1e52b5cdd830234f160f622)`); }
+
+            // #region validate
+            if (this.nothingToWorkOnAvailable) { throw new Error(`(UNEXPECTED) nothing to work on? not expected to get here if this is the case. (E: 3e937b9be1e69adc6b25d974f7a16222)`); }
+            if (!this._brainCommentIbGibs) { throw new Error(`(UNEXPECTED) brain empty? (brainCommentIbGibs falsy) (E: 47e07fe70fa83c9cbd4f883339406622)`); }
+            if (this._currentWorkingInfos) { throw new Error(`(UNEXPECTED) already have current working infos? This should be finalized by somewhere else before we choose a new one. (E: 33c37ad3abdd3a095dcf72af38bc1c22)`); }
+            // #endregion endvalidate
+
+            // for now, pick random
+            // todo: pick next working ibgib(s) according to scheduler/value to be gained, taking info/request into account
+            const ibGibs = [pickRandom({ x: this._brainCommentIbGibs })];
+            this._currentWorkingInfos = {};
+            for (let i = 0; i < ibGibs.length; i++) {
+                const ibGib = ibGibs[i];
+                const addr = h.getIbGibAddr({ ibGib });
+                const tjpAddr = getTjpAddr({ ibGib });
+                this._currentWorkingInfos[tjpAddr] = {
+                    ibGib, addr, tjpAddr,
+                    stimulations: await this.getPreviousStimulations({ ibGib }),
+                    textInfo: this.getTextInfo({ srcIbGib: ibGib }),
+                } satisfies CurrentWorkingInfo;
+            }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    private async getPreviousStimulations({ ibGib }): Promise<Stimulation[]> {
+        const lc = `${this.lc}[${this.getPreviousStimulations.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 7931fecbf0856aac0a78c5e541b3d222)`); }
+            console.error(`${lc} not implemented yet. returning empty array. (E:4294420eece247adaf0e2406da3dd8f5 )`)
+            return [];
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
     /**
      * loads this._currentWorkingComment for lines stimulation based on info.
      *
@@ -1061,25 +1269,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 55d6e81101135ac6da3c8a3861a87322)`); }
 
-            // for now, choose among any of the comments having multiple lines
-            const multilines = this._brainCommentIbGibs
-                .filter(x => !!x.data?.text?.trim())
-                .filter(x => {
-                    // I'm not sure if this covers all edge cases but good enough for now...
-                    const lines = x.data.text.trim().split('\n').filter(x => !!x).map(x => x.trim());
-                    return lines.length >= 2;
-                });
-
-            const randomComment = pickRandom({ x: multilines });
-            if (randomComment) {
-                this._currentWorkingComment = randomComment;
-                this._currentWorkingCommentTextInfo = this.getTextInfo({ srcIbGib: randomComment })
-                if (logalot) { console.log(`${lc} current working comment with multiple lines chosen. ${h.getIbGibAddr({ ibGib: randomComment })} (I: 07fb9c87f35e93f868a88718998cbb22)`); }
-            } else {
-                delete this._currentWorkingComment;
-                delete this._currentWorkingCommentTextInfo;
-                throw new Error(`(UNEXPECTED) current working comment not found? it is assumed that we hve at least one multiline comment if we get here. (E: 3ef967e7de91aa9b1ca5567345dbdc22)`);
-            }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -1088,31 +1277,49 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    private async handleSemantic_lines(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
-        const lc = `${this.lc}[${this.handleSemantic_lines.name}]`;
+    /**
+     * handles a direct request to learn.
+     *
+     * it is up to the learning process to clear out relevant state after each call, ultimately
+     * clearing out the current working comment
+     * @param info
+     * @returns
+     */
+    private async handleSemantic_learn(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
+        const lc = `${this.lc}[${this.handleSemantic_learn.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 32e7907bf40c4723a0b1a9091c3b7047)`); }
 
-            if (!this._currentWorkingComment) { await this.loadNextWorkingComment_lines({ info }); }
-            const toStimulate = this._currentWorkingComment;
-            const toStimulateTjpAddr = getTjpAddr({ ibGib: toStimulate });
+            if (!this._currentWorkingInfos) { await this.loadNextWorkingInfo({ info }); }
+            const currentWorkingTjpAddrs = Object.keys(this._currentWorkingInfos);
+            const currentWorkingIbGibsCount = currentWorkingTjpAddrs.length;
+            if (currentWorkingIbGibsCount === 1) {
+                // stimulate the single ibgib based on previous stimulations
+                const info = this._currentWorkingInfos[currentWorkingTjpAddrs[0]];
+                const { addr, ibGib, tjpAddr, stimulations, textInfo } = info;
+            } else if (currentWorkingIbGibsCount > 1) {
+                throw new Error(`multiple current working ibgibs not impl yet (E: ae63a68b41b2ebc89b63dbc188668922)`);
+            } else {
+                throw new Error(`(UNEXPECTED) currentWorkingInfos not initialized? (E: 2d7bf80d321706e5f61b2dc48c898922)`);
+            }
 
             debugger;
 
             // if we're working on a current ibgib, then get the next blank line
             // based on the previous interactions. So look through interactions
             // for lines stimulations that correspond to the current comment.
-            const isLinesContinuation = this.interactions && this.interactions.some(x =>
-                x.data.type === 'stimulation' &&
-                (x.data.details as StimulationDetails)?.stimulationType === 'lines' &&
-                (<StimulationDetails>x.data.details)['@toStimulateTjp'] === toStimulateTjpAddr
-            );
+            // const isLinesContinuation = this.interactions && this.interactions.some(x =>
+            //     x.data.type === 'stimulation' &&
+            //     (x.data.details as StimulationDetails)?.stimulationType === 'lines' &&
+            //     (<StimulationDetails>x.data.details)['@toStimulateTjp'] === toStimulateTjpAddr
+            // );
 
             let speech: LexResultObj<WordyRobbotPropsData>;
             let lineIndex: number;
             let lineText: string;
             let title: string = toStimulate.ib.substring('comment '.length) + '...';
             if (!isLinesContinuation) {
+                await this.startStimulation()
                 // this is the first one, so do the first line (atow)
                 // in the future, we should look for previous interactions per the context.
                 const lines = this._currentWorkingCommentTextInfo.lines.concat();
@@ -1135,7 +1342,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 speech = this._robbotLex.get(WordySemanticId.blank_line, {
                     props: props =>
                         props.semanticId === WordySemanticId.blank_line &&
-                        props.isFirstLine === true,
+                        props.isFirst === true,
                     vars: { title },
                 });
             } else {
@@ -1202,6 +1409,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             // cancel stimulation
             this.expectingResponse = false;
+            delete this._currentWorkingComments;
+            delete this._currentWorkingCommentTextInfo;
             // what else? todo: extra stimulation cancellation when stop issued
 
             const speech = this._robbotLex.get(SemanticId.stop, {
@@ -2234,17 +2443,17 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    protected async getNextStimulation(): Promise<StimulationDetails> {
+    protected async getNextStimulation(): Promise<Stimulation> {
         const lc = `${this.lc}[${this.getNextStimulation.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 3b5112795cebe1d56a9a11c624180322)`); }
 
-            let details: StimulationDetails;
-            const toStimulateAddr = h.getIbGibAddr({ ibGib: this._currentWorkingComment });
+            let details: Stimulation;
+            const toStimulateAddr = h.getIbGibAddr({ ibGib: this._currentWorkingComments });
             const toStimulateTjpAddr = this._currentWorkingCommentTjpAddr;
 
 
-            // if (!this._currentWorkingCommentIbGibsAnalysisMap) {
+            // if (!this._commentIbGibsAnalysisMap) {
             //     this._currentWorkingCommentAnalysis =
             //         await this.getTextAnalysisForIbGib({ ibGib: this._currentWorkingComment, createIfNone: true });
             // }
@@ -2280,11 +2489,11 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     }: {
         toStimulateAddr: IbGibAddr,
         toStimulateTjpAddr: IbGibAddr,
-    }): Promise<StimulationDetails> {
+    }): Promise<Stimulation> {
         const lc = `${this.lc}[${this.getNextStimulation_JustShow.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 3e375d090dbb52c5865381c90ee09122)`); }
-            const details: StimulationDetails = {
+            const details: Stimulation = {
                 stimulationType: 'just_show',
                 "@toStimulate": toStimulateAddr,
                 "@toStimulateTjp": toStimulateTjpAddr,
@@ -2303,11 +2512,11 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     }: {
         toStimulateAddr: IbGibAddr,
         toStimulateTjpAddr: IbGibAddr,
-    }): Promise<StimulationDetails> {
+    }): Promise<Stimulation> {
         const lc = `${this.lc}[${this.getNextStimulation_BlankWords.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 3e375d090dbb52c5865381c90ee09122)`); }
-            const { text } = this._currentWorkingComment.data;
+            const { text } = this._currentWorkingComments.data;
             if (!text) { throw new Error(`currentWorkingComment.data.text required (E: 732341ddc7ba531a1aaf465c95d9a322)`); }
 
             const regexWords = /[\w\-']+/g;
@@ -2385,7 +2594,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // at this point, the textWithBlanks should have the same exact text
             // as the incoming text, but with word(s) blanked out.
 
-            const details: StimulationDetails_BlankWords = {
+            const details: Stimulation_Blank = {
                 stimulationType: 'blank_words',
                 "@toStimulate": toStimulateAddr,
                 "@toStimulateTjp": toStimulateTjpAddr,
