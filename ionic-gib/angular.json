@@ -157,6 +157,11 @@
                 "output": "/"
               },
               {
+                "glob": "robots.txt",
+                "input": "src/",
+                "output": "/"
+              },
+              {
                 "glob": "**/*",
                 "input": "src/assets",
                 "output": "/assets"
