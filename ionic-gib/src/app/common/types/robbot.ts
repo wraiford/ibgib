@@ -1,5 +1,5 @@
 import * as h from 'ts-gib/dist/helper';
-import { Gib } from 'ts-gib';
+import { Gib, IbGibAddr } from 'ts-gib';
 import { IbGibData_V1, IbGibRel8ns_V1, IbGib_V1 } from "ts-gib/dist/V1";
 
 import * as c from '../constants';
@@ -434,11 +434,35 @@ export interface RobbotInteractionData_V1 extends IbGibData_V1 {
      * to create another generic interface here would be too unwieldy. (already may be!)
      */
     details?: any;
+    /**
+     * If interaction is associated with a session, here is the session tjp addr.
+     */
+    '@sessionTjp'?: TjpIbGibAddr;
+    /**
+     * If interaction is associated with a session, here is the session id.
+     */
+    sessionId?: string;
 }
 export interface RobbotInteractionRel8ns_V1 extends IbGibRel8ns_V1 {
 }
 export interface RobbotInteractionIbGib_V1
     extends IbGib_V1<RobbotInteractionData_V1, RobbotInteractionRel8ns_V1> { }
+
+export interface RobbotSessionData_V1 extends IbGibData_V1 {
+    timestamp: string;
+    /**
+     * Soft link to the context address where the session takes place.
+     */
+    '@context': IbGibAddr;
+    /**
+     * Soft link to the context's tjp address where the session takes place.
+     */
+    '@contextTjp': IbGibAddr;
+}
+export interface RobbotSessionRel8ns_V1 extends IbGibRel8ns_V1 {
+    interaction?: IbGibAddr[];
+}
+export interface RobbotSessionIbGib_V1 extends IbGib_V1<RobbotSessionData_V1, RobbotSessionRel8ns_V1> { }
 
 
 /**
