@@ -8,14 +8,16 @@ import { getSaferSubstring, getTimestampInTicks } from './utils';
 import { IbGibRobbotAny } from '../witnesses/robbots/robbot-base-v1';
 import { CommonService } from '../../services/common.service';
 import {
+    DEFAULT_INTERACTION_SUBJECTTJPGIBS_DELIM,
+    UNDEFINED_INTERACTION_SUBJECTTJPGIBS_STRING,
     DEFAULT_ROBBOT_REQUEST_ESCAPE_STRING,
-    RobbotData_V1, RobbotIbGib_V1, RobbotInteractionData_V1, RobbotInteractionIbGib_V1, RobbotInteractionRel8ns_V1, ROBBOT_SESSION_ATOM,
+    RobbotData_V1, RobbotIbGib_V1, RobbotInteractionData_V1, RobbotInteractionIbGib_V1, RobbotInteractionIbInfo, RobbotInteractionRel8ns_V1, RobbotInteractionType, ROBBOT_INTERACTION_ATOM, ROBBOT_SESSION_ATOM,
     // RobbotOutputMode, VALID_ROBBOT_OUTPUT_MODES
 } from '../types/robbot';
 import { getFn_promptRobbotIbGib } from './prompt-functions';
 import { IbGibSpaceAny } from '../witnesses/spaces/space-base-v1';
 import { WitnessFormBuilder } from './witness';
-import { validateIbGibIntrinsically } from './validate';
+import { validateGib, validateIb, validateIbGibIntrinsically } from './validate';
 import { persistTransformResult, registerNewIbGib, rel8ToSpecialIbGib } from './space';
 import { IbgibsService } from '../../services/ibgibs.service';
 import { isComment, parseCommentIb } from './comment';
@@ -412,8 +414,18 @@ export function getRequestTextFromComment({
     }
 }
 
-export const ROBBOT_INTERACTION_IB_ATOM = 'robbot_interaction';
-
+/**
+ * Creates space-delimited ib. Extracts certain info from `data` and appends
+ * addlDetailsText at the end.
+ *
+ * atow the schema is:
+ *
+ *     return addlDetailsText ?
+ *         `${ROBBOT_INTERACTION_ATOM} ${data.type} ${timestampInTicks} ${subjectTjpGibsString} ${addlDetailsText}` :
+ *         `${ROBBOT_INTERACTION_ATOM} ${data.type} ${timestampInTicks} ${subjectTjpGibsString}`;
+ *
+ * @returns space-delimited interaction ib
+ */
 export function getInteractionIb({
     data,
     addlDetailsText,
@@ -424,7 +436,6 @@ export function getInteractionIb({
     const lc = `[${getInteractionIb.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: 9ac657cab7e292e2bd587595757ab622)`); }
-        const atom = 'robbot_interaction';
         if (!data) { throw new Error(`data required (E: 8fac6ce2ae6dd521255dc8ba241a5222)`); }
         if (!data.type) { throw new Error(`data.type required (E: 77786fe653be04c9fa33e30ac3b77f22)`); }
         let saferType = getSaferSubstring({ text: data.type, length: 32 });
@@ -436,11 +447,15 @@ export function getInteractionIb({
         const timestampInTicks = dataTimestampIsInt ?
             data.timestamp :
             getTimestampInTicks(data.timestamp);
-        // let saferTimestamp = getSaferSubstring({ text: data.timestamp, length: 64 });
 
-        // if (data.timestamp !== saferTimestamp) {
-        //     throw new Error(`data.timestamp is expected to be safe. this usually means should be in ticks, i.e. no spaces or special characters. (E: 3a0f627ec632272ee62da7ddf6a78422)`);
-        // }
+        const subjectTjpGibs = data.subjectTjpGibs ?? [];
+        let subjectTjpGibsString: string;
+        if (subjectTjpGibs.length === 0) {
+            if (logalot) { console.log(`${lc} data.subjectTjpGibs is falsy. defaulting subjectTjpGibsString to ${UNDEFINED_INTERACTION_SUBJECTTJPGIBS_STRING} (I: 850477faa7316bb65e6e0e370dc54f22)`); }
+            subjectTjpGibsString = UNDEFINED_INTERACTION_SUBJECTTJPGIBS_STRING;
+        } else {
+            subjectTjpGibsString = subjectTjpGibs.join(DEFAULT_INTERACTION_SUBJECTTJPGIBS_DELIM)
+        }
 
         if (addlDetailsText) {
             let saferAddlDetailsText = getSaferSubstring({ text: addlDetailsText, length: 64 });
@@ -451,8 +466,51 @@ export function getInteractionIb({
         }
 
         return addlDetailsText ?
-            `${atom} ${data.type} ${timestampInTicks} ${addlDetailsText}` :
-            `${atom} ${data.type} ${timestampInTicks}`;
+            `${ROBBOT_INTERACTION_ATOM} ${data.type} ${timestampInTicks} ${subjectTjpGibsString} ${addlDetailsText}` :
+            `${ROBBOT_INTERACTION_ATOM} ${data.type} ${timestampInTicks} ${subjectTjpGibsString}`;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+export function parseInteractionIb({
+    ib,
+}: {
+    ib: Ib,
+}): RobbotInteractionIbInfo {
+    const lc = `[${parseInteractionIb.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: ed5e959a2952fc6684a168ef8e9b6622)`); }
+        const ibValidationErrors = validateIb({ ib }) ?? [];
+        if (ibValidationErrors.length > 0) { throw new Error(`ib (${ib}) has validationErrors: ${ibValidationErrors} (E: c1b8c65524561ae67f58b237ba12fb22)`); }
+
+        let [atom, type, timestampInTicks, subjectTjpGibsString, addlDetailsText] = ib;
+        if (atom !== ROBBOT_INTERACTION_ATOM) {
+            console.warn(`${lc} atom !== default robbot interaction atom (${atom} !== ${ROBBOT_INTERACTION_ATOM}) (W: 9102868391174bbc90c54cb53726a4de)`);
+        }
+        if (!Object.values(RobbotInteractionType).includes(<any>type)) {
+            console.warn(`${lc} unknown robbot interaction type (${type}). (W: 68e85a9c495542f4a4a164752cc600e3)`);
+        }
+        let subjectTjpGibs: Gib[] = undefined;
+        if (subjectTjpGibsString !== UNDEFINED_INTERACTION_SUBJECTTJPGIBS_STRING) {
+            subjectTjpGibs =
+                subjectTjpGibsString.split(DEFAULT_INTERACTION_SUBJECTTJPGIBS_DELIM).filter(x => !!x);
+            const invalidTjpGibs = subjectTjpGibs.filter(gib => {
+                const validationErrors = validateGib({ gib }) ?? [];
+                if (validationErrors.length > 0) {
+                    console.error(`${lc} tjpGib (${gib}) has validation errors: ${validationErrors} (E: 679a654649ae4945932e85b3ded981be)`);
+                    return true;
+                } else {
+                    return false;
+                }
+            });
+            if (invalidTjpGibs.length > 0) { throw new Error(`ib contains invalid tjpGibs: ${invalidTjpGibs} (E: 7a5074e2e8685ec28c83954a1c12df22)`); }
+        }
+
+        return { atom, type, timestampInTicks, subjectTjpGibs, addlDetailsText };
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;
@@ -469,11 +527,9 @@ export function isInteraction({
     ib?: Ib,
 }): boolean {
     ib = ib ?? ibGib.ib;
-
     if (!ib) { throw new Error(`either ib or ibGib required (E: 15786fe75a5219ec7d925189f22d9f22)`); }
-
-    const [atom, _type, _timestamp, _metadata] = ib;
-    return atom === ROBBOT_INTERACTION_IB_ATOM
+    let info = parseInteractionIb({ ib });
+    return info.atom === ROBBOT_INTERACTION_ATOM;
 }
 
 /**
@@ -510,7 +566,7 @@ export async function getInteractionIbGib_V1({
         if (!data.uuid) { data.uuid = await h.getUUID(); }
 
         rel8ns = rel8ns ?? {};
-        rel8ns.ancestor = [`${ROBBOT_INTERACTION_IB_ATOM}^${GIB}`];
+        rel8ns.ancestor = [`${ROBBOT_INTERACTION_ATOM}^${GIB}`];
         delete rel8ns.past;
 
         const ib = getInteractionIb({ data, addlDetailsText });

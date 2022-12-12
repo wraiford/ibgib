@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { ReplaySubject, Subscription } from 'rxjs';
 
 import * as h from 'ts-gib/dist/helper';
 import {
@@ -26,7 +26,7 @@ import { DynamicForm } from '../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
 import { addTimeToDate, getIdPool, getSaferSubstring, getTimestampInTicks, pickRandom, replaceCharAt, unique } from '../../helper/utils';
 import { WitnessFormBuilder } from '../../helper/witness';
-import { getInteractionIbGib_V1, getRequestTextFromComment, getRobbotIb, getRobbotSessionIb, isRequestComment, RobbotFormBuilder } from '../../helper/robbot';
+import { getInteractionIb, getInteractionIbGib_V1, getRequestTextFromComment, getRobbotIb, getRobbotSessionIb, isRequestComment, parseInteractionIb, RobbotFormBuilder } from '../../helper/robbot';
 import { DynamicFormBuilder } from '../../helper/form';
 import { getGraphProjection, GetGraphResult } from '../../helper/graph';
 import { CommentIbGib_V1 } from '../../types/comment';
@@ -37,6 +37,7 @@ import { LexDatum, LexLineConcat, LexResultObj, SpeechBuilder } from '../../help
 import { getTjpAddr } from '../../helper/ibgib';
 import { isComment, parseCommentIb } from '../../helper/comment';
 import { Ssml } from '../../helper/ssml';
+import { validateIbGibIntrinsically } from '../../helper/validate';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
@@ -162,6 +163,9 @@ export interface WordyAnalysisIbGib_V1_Robbot extends IbGib_V1<WordyAnalysisData
 export type StimulationScope =
     'all' | 'paragraph' | 'line' | 'word' | 'letter';
 export const StimulationScope = {
+    /**
+     * the entirety of the ibgib/text.
+     */
     'all': 'all' as StimulationScope,
     'paragraph': 'paragraph' as StimulationScope,
     'line': 'line' as StimulationScope,
@@ -173,16 +177,16 @@ export const StimulationScope = {
  * There are various ways to stimulate an ibgib.
  */
 export type StimulationType =
-    'look' |
+    'skim' |
     'copy' |
     'blank' |
     'expound'
     ;
 export const StimulationType = {
     /**
-     * The user is just shown the source ibgib raw and asked to look.
+     * The user is just shown the source ibgib raw and asked to look over quickly.
      */
-    'look': 'look' as StimulationType,
+    'skim': 'skim' as StimulationType,
     /**
      * The user is asked to copy the given unit of type {@link StimulationScope}
      */
@@ -224,16 +228,16 @@ export interface StimulationTarget {
  */
 export interface Stimulation {
     /**
-     * The scope of the stimulation, like 'paragraph' or 'line'.
-     * @see {@link StimulationScope}
-     */
-    stimulationScope: StimulationScope;
-    /**
      * type of stimulation, like is it a fill in the blank or just showing the
      * ibgib.
      * @see {@link StimulationType}
      */
     stimulationType: StimulationType;
+    /**
+     * The scope of the stimulation, like 'paragraph' or 'line'.
+     * @see {@link StimulationScope}
+     */
+    stimulationScope: StimulationScope;
     /**
      * soft links to target ibgibs being stimulated
      */
@@ -304,7 +308,7 @@ export interface Stimulation {
      *
      * This should also be included in the comment.
      */
-    commentText?: string;
+    commentText: string;
     /**
      * If we are stimulating an ibgib multiple times, this tracks the number of
      * times in a given stimulation sequence.
@@ -419,7 +423,19 @@ interface CurrentWorkingInfo {
     addr: IbGibAddr;
     tjpAddr: IbGibAddr;
     textInfo?: WordyTextInfo;
-    stimulations?: Stimulation[];
+    /**
+     * interactions created prior to the current session that have info's ibgib
+     * as a subject.
+     *
+     * @see {@link prevStimulations}
+     */
+    prevInteractions?: RobbotInteractionIbGib_V1[];
+    /**
+     * stimulations created prior to the current session that have info's ibgib
+     * as a subject. this is a convenience projections of
+     * {@link prevInteractions}.
+     */
+    prevStimulations?: Stimulation[];
 }
 
 /**
@@ -484,7 +500,13 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     /**
      * If a new child comes down the pipeline, then we should be ready for it.
      */
-    private expectingResponse: boolean;
+    #expectingResponse: boolean;
+
+    #responseSubj = new ReplaySubject<IbGib_V1>;
+    /**
+     * when expecting a response,
+     */
+    readonly #responseObs$ = this.#responseSubj.asObservable();
 
     constructor(initialData?: WordyRobbotData_V1, initialRel8ns?: WordyRobbotRel8ns_V1) {
         super(initialData, initialRel8ns); // calls initialize
@@ -945,12 +967,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 // .newParagraph()
                 ;
 
-            const data: RobbotInteractionData_V1 = {
-                uuid: await h.getUUID(),
-                timestamp: h.getTimestamp(),
+            const data = await this.getRobbotInteractionData({
                 type: RobbotInteractionType.greeting,
                 commentText: sb.outputSpeech({}).text,
-            };
+            });
 
             const ibGib = await getInteractionIbGib_V1({ data });
             return ibGib;
@@ -961,6 +981,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
+
     private async handleSemantic_hello_continue(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
         const lc = `${this.lc}[${this.handleSemantic_hello_continue.name}]`;
         try {
@@ -973,12 +994,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     !props.freshStart,
             });
 
-            const data: RobbotInteractionData_V1 = {
-                uuid: await h.getUUID(),
-                timestamp: h.getTimestamp(),
+            const data = await this.getRobbotInteractionData({
                 type: RobbotInteractionType.clarification,
                 commentText: hello.text,
-            };
+            });
 
             const ibGib = await getInteractionIbGib_V1({ data });
             return ibGib;
@@ -1004,12 +1023,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     props.blankSlate === true,
             });
 
-            const data: RobbotInteractionData_V1 = {
-                uuid: await h.getUUID(),
-                timestamp: h.getTimestamp(),
+            const data = await this.getRobbotInteractionData({
                 type: RobbotInteractionType.clarification,
                 commentText: hello.text,
-            };
+            });
 
             const ibGib = await getInteractionIbGib_V1({ data });
             return ibGib;
@@ -1105,12 +1122,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 vars: { requests: requestTexts.join('\n') },
             });
 
-            const data: RobbotInteractionData_V1 = {
-                uuid: await h.getUUID(),
-                timestamp: h.getTimestamp(),
+            const data = await this.getRobbotInteractionData({
                 type: RobbotInteractionType.clarification,
                 commentText: speech.text,
-            };
+            });
 
             const ibGib = await getInteractionIbGib_V1({ data });
             return ibGib;
@@ -1140,12 +1155,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 },
             });
 
-            const data: RobbotInteractionData_V1 = {
-                uuid: await h.getUUID(),
-                timestamp: h.getTimestamp(),
+            const data = await this.getRobbotInteractionData({
                 type: RobbotInteractionType.clarification,
                 commentText: speech.text,
-            };
+            });
 
             const ibGib = await getInteractionIbGib_V1({ data });
             return ibGib;
@@ -1225,10 +1238,15 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 const ibGib = ibGibs[i];
                 const addr = h.getIbGibAddr({ ibGib });
                 const tjpAddr = getTjpAddr({ ibGib });
+                const prevInteractions = await this.getPreviousInteractions({ ibGib }),
+                throw new Error(`left off...now i need to save /rel8 interaction to this robbot so getPreviousInteractions finds them. also think on how session relates (E: 3254c67dc94fa96a0c6e9253e27e6222)`);
+                const prevStimulations = prevInteractions
+                    .filter(x => x.data.type === 'stimulation')
+                    .map(x => <Stimulation>x.data.details);
                 this._currentWorkingInfos[tjpAddr] = {
                     ibGib, addr, tjpAddr,
-                    stimulations: await this.getPreviousStimulations({ ibGib }),
                     textInfo: this.getTextInfo({ srcIbGib: ibGib }),
+                    prevInteractions, prevStimulations,
                 } satisfies CurrentWorkingInfo;
             }
         } catch (error) {
@@ -1239,12 +1257,42 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    private async getPreviousStimulations({ ibGib }): Promise<Stimulation[]> {
-        const lc = `${this.lc}[${this.getPreviousStimulations.name}]`;
+    private async getPreviousInteractions({ ibGib }): Promise<RobbotInteractionIbGib_V1[]> {
+        const lc = `${this.lc}[${this.getPreviousInteractions.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 7931fecbf0856aac0a78c5e541b3d222)`); }
             console.error(`${lc} not implemented yet. returning empty array. (E:4294420eece247adaf0e2406da3dd8f5 )`)
-            return [];
+
+            // each stimulation interaction has a subject tjpgib in its ib field.
+
+            const tjpGib = getGibInfo({ gib: ibGib.gib }).tjpGib;
+            const interactionAddrs = (this.rel8ns[ROBBOT_INTERACTION_REL8N_NAME] ?? [])
+                .filter(ibGibAddr => {
+                    let { ib } = h.getIbAndGib({ ibGibAddr });
+                    let info = parseInteractionIb({ ib }); // also validates the ib
+                    return info.subjectTjpGibs?.includes(tjpGib);
+                });
+            if (interactionAddrs.length > 0) {
+                // YES, there ARE interaction addrs for the given ibGib, so get
+                // those interactions from the local space.
+                let resGetInteractions = await this.ibgibsSvc.get({ addrs: interactionAddrs });
+                if (resGetInteractions.success && resGetInteractions.ibGibs?.length === interactionAddrs.length) {
+                    const gottenIbGibs = resGetInteractions.ibGibs;
+                    for (let i = 0; i < gottenIbGibs.length; i++) {
+                        const gottenIbGib = gottenIbGibs[i];
+                        let errors = await validateIbGibIntrinsically({ ibGib: gottenIbGib });
+                        if (errors?.length > 0) { throw new Error(`gotten interaction ibgib has validation errors: ${errors} (E: b33b1620a8196a5161f19b786b02c322)`); }
+                    }
+                    return <RobbotInteractionIbGib_V1[]>gottenIbGibs;
+                } else {
+                    console.error(`${lc} full result: `);
+                    console.dir(resGetInteractions);
+                    throw new Error(`problem with getting interaction ibgibs (E: cf118e649f21429d92e5dba5692829cd)`);
+                }
+            } else {
+                // NO, there are NOT any previous interactions
+                return [];
+            }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -1277,11 +1325,13 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
+
     /**
      * handles a direct request to learn.
      *
      * it is up to the learning process to clear out relevant state after each call, ultimately
      * clearing out the current working comment
+     *
      * @param info
      * @returns
      */
@@ -1289,6 +1339,12 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[${this.handleSemantic_learn.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 32e7907bf40c4723a0b1a9091c3b7047)`); }
+
+            // interactions have the subject tjp gibs in their ib fields (as
+            // well as in internal data field).
+            // get the stimulation
+
+            //
 
             if (!this._currentWorkingInfos) { await this.loadNextWorkingInfo({ info }); }
             const currentWorkingTjpAddrs = Object.keys(this._currentWorkingInfos);
@@ -1314,41 +1370,41 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             //     (<StimulationDetails>x.data.details)['@toStimulateTjp'] === toStimulateTjpAddr
             // );
 
-            let speech: LexResultObj<WordyRobbotPropsData>;
-            let lineIndex: number;
-            let lineText: string;
-            let title: string = toStimulate.ib.substring('comment '.length) + '...';
-            if (!isLinesContinuation) {
-                await this.startStimulation()
-                // this is the first one, so do the first line (atow)
-                // in the future, we should look for previous interactions per the context.
-                const lines = this._currentWorkingCommentTextInfo.lines.concat();
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i]?.trim();
-                    if (!!line) {
-                        if (i === 0 && isATitleHeading({ text: line })) { // indicates a title
-                            title = line;
-                        } else if (isATitleHeading({ text: line })) {
-                            if (logalot) { console.log(`${lc} title heading found. skipping i: ${i}... (I: 7989ae7e3916727e44bc082afc5c9e22)`); }
-                        } else {
-                            // found non-empty line
-                            lineIndex = i;
-                            lineText = line;
-                            break;
-                        }
-                    }
-                }
-                if (!lineText) { throw new Error(`(UNEXPECTED) lineText falsy? expected lines to be valid at this point.\naddr: ${h.getIbGibAddr({ ibGib: toStimulate })}\nlines: ${lines} (E: f35fbc3b9fa3d5185229b1ef24bc3422)`); }
-                speech = this._robbotLex.get(WordySemanticId.blank_line, {
-                    props: props =>
-                        props.semanticId === WordySemanticId.blank_line &&
-                        props.isFirst === true,
-                    vars: { title },
-                });
-            } else {
-                // there exists a previous interaction that was lines for the
-                debugger; // todo
-            }
+            // let speech: LexResultObj<WordyRobbotPropsData>;
+            // let lineIndex: number;
+            // let lineText: string;
+            // let title: string = toStimulate.ib.substring('comment '.length) + '...';
+            // if (!isLinesContinuation) {
+            //     await this.startStimulation()
+            //     // this is the first one, so do the first line (atow)
+            //     // in the future, we should look for previous interactions per the context.
+            //     const lines = this._currentWorkingCommentTextInfo.lines.concat();
+            //     for (let i = 0; i < lines.length; i++) {
+            //         const line = lines[i]?.trim();
+            //         if (!!line) {
+            //             if (i === 0 && isATitleHeading({ text: line })) { // indicates a title
+            //                 title = line;
+            //             } else if (isATitleHeading({ text: line })) {
+            //                 if (logalot) { console.log(`${lc} title heading found. skipping i: ${i}... (I: 7989ae7e3916727e44bc082afc5c9e22)`); }
+            //             } else {
+            //                 // found non-empty line
+            //                 lineIndex = i;
+            //                 lineText = line;
+            //                 break;
+            //             }
+            //         }
+            //     }
+            //     if (!lineText) { throw new Error(`(UNEXPECTED) lineText falsy? expected lines to be valid at this point.\naddr: ${h.getIbGibAddr({ ibGib: toStimulate })}\nlines: ${lines} (E: f35fbc3b9fa3d5185229b1ef24bc3422)`); }
+            //     speech = this._robbotLex.get(WordySemanticId.blank_line, {
+            //         props: props =>
+            //             props.semanticId === WordySemanticId.blank_line &&
+            //             props.isFirst === true,
+            //         vars: { title },
+            //     });
+            // } else {
+            //     // there exists a previous interaction that was lines for the
+            //     debugger; // todo
+            // }
 
             // if no previous interaction, choose a comment with multiple lines
             // and get it.  can check for text based on request text if we want
@@ -1361,16 +1417,17 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             //     // vars: { requests: requestsText.join('\n') },
             // });
             // const speech = `${lineIndex}: ${}`
-            if (!speech) { throw new Error(`(UNEXPECTED) speech falsy? (E: 941e57036473404c6f1a432e388d6522)`); }
+            // if (!speech) { throw new Error(`(UNEXPECTED) speech falsy? (E: 941e57036473404c6f1a432e388d6522)`); }
 
-            const data: RobbotInteractionData_V1 = {
-                uuid: await h.getUUID(),
-                timestamp: h.getTimestamp(),
+            let stimulation: Stimulation;
+
+            const data = await this.getRobbotInteractionData({
                 type: RobbotInteractionType.stimulation,
-                commentText: speech.text,
-            };
+                commentText: stimulation.commentText,
+                details: <Stimulation>stimulation,
+            });
 
-            this.expectingResponse = true;
+            this.#expectingResponse = true;
 
             const ibGib = await getInteractionIbGib_V1({ data });
             return ibGib;
@@ -1392,7 +1449,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 return false;
             }
 
-            return this.expectingResponse;
+            return this.#expectingResponse;
         } catch (error) {
             debugger;
             console.error(`${lc} ${error.message}`);
@@ -1408,9 +1465,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} starting... (I: 7786969633e1459c9a6991c7c5a15954)`); }
 
             // cancel stimulation
-            this.expectingResponse = false;
-            delete this._currentWorkingComments;
-            delete this._currentWorkingCommentTextInfo;
+            throw new Error(`not impl atow (E: 511d356c217700e9cde2d62968ebd222)`);
+            this.#expectingResponse = false;
+            // delete this._currentWorkingComments;
+            // delete this._currentWorkingCommentTextInfo;
             // what else? todo: extra stimulation cancellation when stop issued
 
             const speech = this._robbotLex.get(SemanticId.stop, {
@@ -1418,12 +1476,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     props.semanticId === SemanticId.stop,
             });
 
-            const data: RobbotInteractionData_V1 = {
-                uuid: await h.getUUID(),
-                timestamp: h.getTimestamp(),
+            const data = await this.getRobbotInteractionData({
                 type: RobbotInteractionType.stimulation,
                 commentText: speech.text,
-            };
+            });
 
             const ibGib = await getInteractionIbGib_V1({ data });
             return ibGib;
@@ -1852,7 +1908,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (isRequestComment({ ibGib: newChild, requestEscapeString: this.data.requestEscapeString })) {
                 await this.promptNextInteraction({ ibGib: newChild, isRequest: true });
             } else if (isComment({ ibGib: newChild }) && this.session) {
-                if (this.expectingResponse) {
+                if (this.#expectingResponse) {
                     // in the middle of a session and someone else's comment has come to us
                     // there will be an issue if the robbot chooses to import a request ibgib...hmm
                     await this.promptNextInteraction({ ibGib: newChild, isRequest: false });

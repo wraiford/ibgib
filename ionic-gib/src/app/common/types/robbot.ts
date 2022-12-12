@@ -1,4 +1,5 @@
 import * as h from 'ts-gib/dist/helper';
+import { Gib } from 'ts-gib';
 import { IbGibData_V1, IbGibRel8ns_V1, IbGib_V1 } from "ts-gib/dist/V1";
 
 import * as c from '../constants';
@@ -335,8 +336,9 @@ export const ROBBOT_SESSION_REL8N_NAME = 'session';
 export const ROBBOT_INTERACTION_REL8N_NAME = 'interaction';
 
 export const ROBBOT_SESSION_ATOM = 'robbot_session';
-
 export const ROBBOT_ANALYSIS_ATOM = 'robbot_analysis';
+export const ROBBOT_INTERACTION_ATOM = 'robbot_interaction';
+
 
 /**
  * This is stimulus that is coming over the Context that a robbot is being
@@ -389,6 +391,18 @@ export const RobbotInteractionType = {
     help: 'help' as RobbotInteractionType,
 }
 
+
+export const DEFAULT_INTERACTION_SUBJECTTJPGIBS_DELIM = '_';
+export const UNDEFINED_INTERACTION_SUBJECTTJPGIBS_STRING = 'undefined';
+
+export interface RobbotInteractionIbInfo {
+    atom: string,
+    type: string,
+    timestampInTicks: string,
+    subjectTjpGibs: Gib[],
+    addlDetailsText?: string,
+}
+
 export interface RobbotInteractionData_V1 extends IbGibData_V1 {
     timestamp: string;
     /**
@@ -397,6 +411,19 @@ export interface RobbotInteractionData_V1 extends IbGibData_V1 {
      * expansion.
      */
     type: RobbotInteractionType;
+    /**
+     * The tjpGib of the interaction's context ibgib.
+     */
+    contextTjpGib: Gib;
+    /**
+     * When an interaction pertains to particular timelines, e.g. stimulating
+     * one or more ibgibs, those tjp gibs should be listed here.
+     */
+    subjectTjpGibs?: Gib[];
+    /**
+     * Produced comment text from the interaction. This should be the
+     * content of text that the robbot outputs to the context.
+     */
     commentText?: string;
     /**
      * should be an interfaced data object that represents the details of the

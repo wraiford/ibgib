@@ -1,5 +1,5 @@
 import * as h from 'ts-gib/dist/helper';
-import { Ib, IbGibAddr, V1 } from 'ts-gib';
+import { Gib, Ib, IbGibAddr, V1 } from 'ts-gib';
 import {
     IbGib_V1, IbGibRel8ns_V1, ROOT,
 } from 'ts-gib/dist/V1';
@@ -153,11 +153,10 @@ export abstract class RobbotBase_V1<
                     props.semanticId === SemanticId.unknown,
             });
 
-            let data: RobbotInteractionData_V1 = {
-                timestamp: h.getTimestamp(),
+            const data = await this.getRobbotInteractionData({
                 type: RobbotInteractionType.clarification,
                 commentText: speech.text,
-            };
+            });
 
             const interaction = await getInteractionIbGib_V1({ data });
             return interaction;
@@ -1415,6 +1414,74 @@ export abstract class RobbotBase_V1<
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
+        }
+    }
+
+    protected async getRobbotInteractionData({
+        type,
+        commentText,
+        details,
+        uuid,
+        timestamp,
+    }: {
+        /**
+         * the tyep of interaction.
+         *
+         * @see {@link RobbotInteractionType}
+         */
+        type: RobbotInteractionType,
+        /**
+         * the comment text of the interaction.
+         *
+         * Does not include any prefix/suffix of the robbot.
+         */
+        commentText: string,
+        /**
+         * interaction details.
+         */
+        details?: any,
+        /**
+         * If provided, will be the id of the interaction.
+         */
+        uuid?: string,
+        /**
+         * if provided, will be the timestamp of the interaction data.
+         */
+        timestamp?: string,
+    }): Promise<RobbotInteractionData_V1> {
+        const lc = `${this.lc}[${this.getRobbotInteractionData.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: b05837a91c6973326fde8cf51aac1922)`); }
+
+            if (!type) { throw new Error(`type required (E: 737f8ecc21c519d1d61bce2a91fe2d22)`); }
+            if (!this._currentWorkingContextIbGib?.gib) { throw new Error(`this._currentWorkingContextIbGib?.gib is falsy (E: 6489a36ab0c797f1b5d52db709ea0322)`); }
+
+            uuid = uuid || await h.getUUID();
+            timestamp = timestamp || h.getTimestamp();
+
+            let contextTjpGib: Gib = getGibInfo({ gib: this._currentWorkingContextIbGib.gib }).tjpGib;
+            if (!contextTjpGib) {
+                contextTjpGib = this._currentWorkingContextIbGib.gib;
+                if (!contextTjpGib) { throw new Error(`(UNEXPECTED) this._currentWorkingContextIbGib.gib falsy?  (E: 50cddb787f1a0af19567531b30bd5522)`); }
+                console.warn(`${lc} contextTjpGib is falsy? This means that the robbot context does not have a timeline. This might be ok, but not expected. contextTjp will be considered the gib of the context (${contextTjpGib}) (W: f2a6f91ef5e44170a5e3d5456f2fb2f2)`);
+            }
+
+            const data: RobbotInteractionData_V1 = {
+                uuid,
+                timestamp,
+                type,
+                contextTjpGib,
+                commentText,
+            };
+
+            if (details) { data.details = details; }
+
+            return data;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
         }
     }
 }
