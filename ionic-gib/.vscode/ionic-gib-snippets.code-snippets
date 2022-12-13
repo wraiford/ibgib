@@ -1,22 +1,22 @@
 {
-    // Place your ionic-gib workspace snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and
-    // description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope
-    // is left empty or omitted, the snippet gets applied to all languages. The prefix is what is
-    // used to trigger the snippet and the body will be expanded and inserted. Possible variables are:
-    // $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders.
-    // Placeholders with the same ids are connected.
-    // Example:
-    // "Print to console": {
-    //     "scope": "javascript,typescript",
-    //     "prefix": "log",
-    //     "body": [
-    //         "console.log('$1');",
-    //         "$2"
-    //     ],
-    //     "description": "Log output to console"
-    // }
-    "lc try..catch rethrow": {
-        "scope": "javascript,typescript",
+	// Place your ionic-gib workspace snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and
+	// description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope
+	// is left empty or omitted, the snippet gets applied to all languages. The prefix is what is
+	// used to trigger the snippet and the body will be expanded and inserted. Possible variables are:
+	// $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders.
+	// Placeholders with the same ids are connected.
+	// Example:
+	// "Print to console": {
+	//     "scope": "javascript,typescript",
+	//     "prefix": "log",
+	//     "body": [
+	//         "console.log('$1');",
+	//         "$2"
+	//     ],
+	//     "description": "Log output to console"
+	// }
+	"lc try..catch rethrow": {
+		"scope": "javascript,typescript",
 		"prefix": "lc_trycatch_rethrow",
 		"body": [
 			"const lc = `\\${this.lc}[\\${this.$1.name}]`;",
@@ -27,9 +27,9 @@
 			"\tthrow error;",
 			"}"
 		],
-    },
-    "lc try..catch..finally rethrow": {
-        "scope": "javascript,typescript",
+	},
+	"lc try..catch..finally rethrow": {
+		"scope": "javascript,typescript",
 		"prefix": "lc_trycatchfinally_rethrow",
 		"body": [
 			"const lc = `\\${this.lc}[\\${this.$1.name}]`;",
@@ -42,9 +42,9 @@
 			"\t$2",
 			"}"
 		],
-    },
-    "lc try..catch..finally rethrow with logging": {
-        "scope": "javascript,typescript",
+	},
+	"lc try..catch..finally rethrow with logging": {
+		"scope": "javascript,typescript",
 		"prefix": "lc_trycatchfinally_rethrow_withlogging",
 		"body": [
 			"const lc = `\\${this.lc}[\\${this.$1.name}]`;",
@@ -58,9 +58,9 @@
 			"\tif (logalot) { console.log(`\\${lc} complete.`); }",
 			"}"
 		],
-    },
-    "func async lc try..catch rethrow": {
-        "scope": "javascript,typescript",
+	},
+	"func async lc try..catch rethrow": {
+		"scope": "javascript,typescript",
 		"prefix": "func_lc_trycatch_rethrow",
 		"body": [
 			"${1:export async function} ${2:fnName}({",
@@ -77,9 +77,9 @@
 			"\t}",
 			"}"
 		],
-    },
-    "func async lc try..catch..finally rethrow": {
-        "scope": "javascript,typescript",
+	},
+	"func async lc try..catch..finally rethrow": {
+		"scope": "javascript,typescript",
 		"prefix": "func_lc_trycatchfinally_rethrow",
 		"body": [
 			"${1:export async function} ${2:fnName}({",
@@ -98,9 +98,9 @@
 			"\t}",
 			"}"
 		],
-    },
-    "func async lc try..catch..finally rethrow with logging": {
-        "scope": "javascript,typescript",
+	},
+	"func async lc try..catch..finally rethrow with logging": {
+		"scope": "javascript,typescript",
 		"prefix": "func_lc_trycatchfinally_rethrow_withlogging",
 		"body": [
 			"${1:export async function} ${2:fnName}({",
@@ -120,37 +120,37 @@
 			"\t}",
 			"}"
 		],
-    },
-    "throw new error with guid": {
-        "scope": "javascript,typescript",
+	},
+	"throw new error with guid": {
+		"scope": "javascript,typescript",
 		"prefix": "throw_new_error_with_guid",
 		"body": [
 			"$0throw new Error(`$1 (E: $RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$CURRENT_YEAR_SHORT)`); "
 		],
-    },
-    "if..throw with guid": {
-        "scope": "javascript,typescript",
+	},
+	"if..throw with guid": {
+		"scope": "javascript,typescript",
 		"prefix": "if_throw_with_guid",
 		"body": [
 			"$0if ($1) { throw new Error(`$2 (E: $RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$CURRENT_YEAR_SHORT)`); }"
 		],
-    },
-    "if logalot log": {
-        "scope": "javascript,typescript",
+	},
+	"if logalot log": {
+		"scope": "javascript,typescript",
 		"prefix": "if_logalot_log",
 		"body": [
 			"$0if (logalot$1) { console.${2:log}(`\\${lc} $3 (I: $RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$RANDOM_HEX$CURRENT_YEAR_SHORT)`); }"
 		],
-    },
-    "surround log if logalot log": {
-        "scope": "javascript,typescript",
+	},
+	"surround log if logalot log": {
+		"scope": "javascript,typescript",
 		"prefix": "surround_log_if_logalot",
 		"body": [
 			"if (logalot) { $SELECTION }"
 		],
-    },
-    "surround if logalot timer console time-timeEnd": {
-        "scope": "javascript,typescript",
+	},
+	"surround if logalot timer console time-timeEnd": {
+		"scope": "javascript,typescript",
 		"prefix": "surround_if_logalot_timer_console_time_timeend",
 		"body": [
 			"let timerName: string;",
@@ -170,20 +170,20 @@
 			"\tconsole.log(`\\${timerName} complete.`);",
 			"}",
 		],
-    },
-    "if logalot global ibgib timer": {
-        "scope": "javascript,typescript",
+	},
+	"if logalot global ibgib timer": {
+		"scope": "javascript,typescript",
 		"prefix": "if_logalot_ibgib_timer",
 		"body": [
 			"if (logalot) { console.log(`\\${lc}\\${c.GLOBAL_TIMER_NAME}`); console.timeLog(c.GLOBAL_TIMER_NAME); }$0"
 		],
-    },
-    "return early": {
-        "scope": "javascript,typescript",
+	},
+	"return early": {
+		"scope": "javascript,typescript",
 		"prefix": "return_early",
 		"description": "I like to indicate returning early in a function in a comment, so it's more obvious in the editor if I'm scanning for comments.",
 		"body": [
-			"return; /* <<<< returns early */",
+			"return$1; /* <<<< returns early */$0",
 		],
-    },
+	},
 }
