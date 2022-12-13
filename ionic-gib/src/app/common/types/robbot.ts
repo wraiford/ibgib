@@ -367,7 +367,7 @@ export interface StimulusForRobbot {
     isClick?: boolean;
 }
 
-export type RobbotInteractionType = 'greeting' | 'stimulation' | 'farewell' | 'clarification' | 'help';
+export type RobbotInteractionType = 'greeting' | 'stimulation' | 'farewell' | 'info' | 'help';
 export const RobbotInteractionType = {
     /**
      * opening statement of a robbot
@@ -384,7 +384,7 @@ export const RobbotInteractionType = {
     /**
      * small nudges of info, including possibly repeating previous statement.
      */
-    clarification: 'clarification' as RobbotInteractionType,
+    info: 'info' as RobbotInteractionType,
     /**
      * providing info about context to aid the user in their options.
      */

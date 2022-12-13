@@ -154,7 +154,7 @@ export abstract class RobbotBase_V1<
             });
 
             const data = await this.getRobbotInteractionData({
-                type: RobbotInteractionType.clarification,
+                type: RobbotInteractionType.info,
                 commentText: speech.text,
             });
 

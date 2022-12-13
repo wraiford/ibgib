@@ -1,6 +1,6 @@
 {
   "name": "ionicgib",
-  "version": "0.2.700",
+  "version": "0.2.703",
   "author": "William Raiford",
   "repository": {
     "url": "https://github.com/wraiford/ibgib",
@@ -162,7 +162,7 @@
     "protractor": "~7.0.0",
     "ts-node": "~8.3.0",
     "tslint": "~6.1.0",
-    "typescript": "4.8.4"
+    "typescript": "^4.8.4"
   },
   "description": "App frontend for the ibgib DLT protocol.",
   "man:webExt": "web-ext config options. see https://extensionworkshop.com/documentation/develop/getting-started-with-web-ext/#Setting_option_defaults_in_a_configuration_file",

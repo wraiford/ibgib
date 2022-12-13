@@ -47,7 +47,8 @@ import { validateIbGibIntrinsically } from '../../helper/validate';
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
 
-export interface WordyUniqueWordInfo {
+
+interface WordyUniqueWordInfo {
     /**
      * total number of times the text contains the word.
      */
@@ -166,20 +167,20 @@ export const StimulationScope = {
  * There are various ways to stimulate an ibgib.
  */
 export type StimulationType =
-    'skim' |
-    'copy' |
+    'read' |
+    'type' |
     'blank' |
     'expound'
     ;
 export const StimulationType = {
     /**
-     * The user is just shown the source ibgib raw and asked to look over quickly.
+     * The user is just shown the source ibgib raw and asked to read it.
      */
-    'skim': 'skim' as StimulationType,
+    'read': 'read' as StimulationType,
     /**
-     * The user is asked to copy the given unit of type {@link StimulationScope}
+     * The user is asked to type the given unit of type {@link StimulationScope}
      */
-    'copy': 'copy' as StimulationType,
+    'type': 'type' as StimulationType,
     /**
      * A unit of type {@link StimulationScope} is blanked out.
      *
@@ -193,20 +194,33 @@ export const StimulationType = {
      */
     'expound': 'expound' as StimulationType,
 }
+export function getExpectsResponse({ stimulationType }: { stimulationType: StimulationType }): boolean {
+    const lc = `[${getExpectsResponse.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 416b47d45164ab2194ebbdca893eec22)`); }
+        switch (stimulationType) {
+            case 'read': return false;
+            case 'type': return true;
+            case 'blank': return true;
+            case 'expound': return false;
+            default: throw new Error(`unknown stimulationType: ${stimulationType} (E: 08200b453d891734bf5fd76cb0f98522)`);
+        }
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
 export interface StimulationTarget {
     /**
      * Soft link to the tjp address (timeline) of the ibgib being stimulated.
      */
     '@toStimulateTjp': IbGibAddr;
     /**
-     * Weighted strength of the stimulation.
-     */
-    weight: number;
-    /**
      * Soft link to punctiliar address of the exact ibgib stimulated
      */
     '@toStimulate'?: IbGibAddr;
-
 }
 /**
  * Fundamental shape that describes stimulating ibgibs.
@@ -231,32 +245,6 @@ export interface Stimulation {
      * soft links to target ibgibs being stimulated
      */
     targets: StimulationTarget[];
-    /**
-     * How much does this type of stimulation start off as being estimated
-     * for in terms of strength a la ANNs.
-     *
-     * For example, if the stimulation is "write this 1000 times", that would
-     * be an incredible amount of stimulation. If the stimulation is
-     * "scan over this text quickly", then the stimulation would be
-     * relatively small.
-     *
-     * ## notes on "weighting" vs other Naming Things paradigms
-     *
-     * This will be very subjective to start off with, and basically is
-     * a placeholder/springboard for future more advanced weighting
-     * implementations (that use ML e.g.).
-     *
-     * This is also phrased in the paradigm of neural weightings, but this is
-     * isomorphic to money/value/cost in economics. So this could be called
-     * "baseValue" or "baseCost".
-     *
-     * In terms of elevated stimulations, this is equivalent to first learning
-     * in terms of dollars and cents and then growing scale. So our early
-     * stimulations are nickel and dime, like fill in the blanks, but we
-     * progress to grand stimulations like "write an ode" which would equal a
-     * multi-million/billion/cajillion dollar transaction.
-     */
-    baseStrength: number;
     /**
      * If true, then this stimulation expects a metric of some sort, like a grade.
      * For starters, this will be entirely self-reported by the user. In the future
@@ -303,13 +291,18 @@ export interface Stimulation {
      * times in a given stimulation sequence.
      */
     consecutiveCount?: number;
+    /**
+     * If the stimulation requires extra parameters, they should be put here.
+     *
+     * For example, a blank stimulation will atow include which text was blanked out.
+     */
+    details?: any;
 }
 /**
  * We're stimulating the ibgib via blanking out one or more words in the ibgib's
  * text.
  */
-export interface Stimulation_Blank extends Stimulation {
-    stimulationType: 'blank';
+export interface BlankDetails {
     /**
      * Text that we've blanked out.
      */
@@ -1007,7 +1000,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             });
 
             const data = await this.getRobbotInteractionData({
-                type: RobbotInteractionType.clarification,
+                type: RobbotInteractionType.info,
                 commentText: hello.text,
             });
 
@@ -1036,7 +1029,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             });
 
             const data = await this.getRobbotInteractionData({
-                type: RobbotInteractionType.clarification,
+                type: RobbotInteractionType.info,
                 commentText: hello.text,
             });
 
@@ -1135,7 +1128,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             });
 
             const data = await this.getRobbotInteractionData({
-                type: RobbotInteractionType.clarification,
+                type: RobbotInteractionType.info,
                 commentText: speech.text,
             });
 
@@ -1168,7 +1161,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             });
 
             const data = await this.getRobbotInteractionData({
-                type: RobbotInteractionType.clarification,
+                type: RobbotInteractionType.info,
                 commentText: speech.text,
             });
 
@@ -1258,7 +1251,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     ibGib, addr, tjpAddr,
                     textInfo: this.getTextInfo({ srcIbGib: ibGib }),
                     prevInteractions, prevStimulations,
-                } satisfies CurrentWorkingInfo;
+                } as CurrentWorkingInfo; // angular doesn't use ts with satisfies yet
             }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -1360,14 +1353,14 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
              * the current stimulation saga (if applicable).
              */
             let forceNew = false;
+            let speechChangeUpText: string;
             if (this.prevStimulation.expectsFeedback || this.prevStimulation?.expectsResponse) {
                 // the user has requested to learn even though we're expecting feedback
                 // ...OR
                 // the user has requested to learn even though we're expecting a response
-                debugger;
                 forceNew = true;
-                let speechChangeUp = this._robbotLex.get(WordySemanticId.change_up);
-                throw new Error(`change up from expecting feedback or response not impl (E: 4f67ecad0ccfa17509cc38e29d969422)`);
+                speechChangeUpText = this._robbotLex.get(WordySemanticId.change_up).text;
+                delete this._currentWorkingInfos;
             }
 
             // either the previous stimulation completed or this is the first stimulation
@@ -2542,7 +2535,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 3b5112795cebe1d56a9a11c624180322)`); }
 
-            let details: Stimulation;
+            let resStimulation: Stimulation;
 
             const prevStimulation = forceNew ?
                 undefined :
@@ -2557,32 +2550,41 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 console.warn(`${lc} currentIbGibInfo.textInfo falsy. (no idea if this is right or not, so i'm noting here...) (W: 4b69c637a9eb4b6e9b30c05f1bc5f668)`);
                 textInfo = this.getTextInfo({ srcIbGib: ibGib });
             }
-            const toStimulateAddr = h.getIbGibAddr({ ibGib });
-            const toStimulateTjpAddr = tjpAddr;
 
+            resStimulation.targets = [
+                { "@toStimulate": addr, "@toStimulateTjp": tjpAddr },
+            ];
 
-            // if (!this._commentIbGibsAnalysisMap) {
-            //     this._currentWorkingCommentAnalysis =
-            //         await this.getTextAnalysisForIbGib({ ibGib: this._currentWorkingComment, createIfNone: true });
-            // }
-            // let analysis = this._currentWorkingCommentAnalysis // shorter variable
+            const stimulationType = pickRandom({ x: Object.values(StimulationType) });
+            let stimulationScope: StimulationScope;
+            if (textInfo.paragraphs?.length > 1) {
+                // has multiple paragraphs
+                stimulationScope = 'paragraph';
+            } else if (textInfo.lines?.length > 1) {
+                // has multiple lines
+                stimulationScope = 'line';
+            } else if (textInfo.wordCount > 4) {
+                // has a decent length phrase/sentence
+                stimulationScope = 'word';
+            } else {
+                // has only a few words
+                stimulationScope = pickRandom({ x: ['all', 'letter'] });
+            }
 
-            // use analysis to get the next stimulation
+            // get specific details depending on the stimulation chosen
+            const details = await this.getStimulationDetails({
+                ibGib,
+                stimulationType,
+                stimulationScope,
+                prevStimulation,
+            });
+            if (details) { resStimulation.details = details; }
 
-            // let randomStimulationType = pickRandom<StimulationType>({ x: Object.values(StimulationType) });
-            // switch (randomStimulationType) {
-            //     case 'just_show':
-            //         // no details
-            //         details = await this.getNextStimulation_JustShow({ toStimulateAddr, toStimulateTjpAddr });
-            //         break;
-            //     case 'blank_words':
-            //         details =
-            //             await this.getNextStimulation_BlankWords({ toStimulateAddr, toStimulateTjpAddr });
-            //         break;
-            //     default:
-            //         throw new Error(`unknown stimulation type: ${randomStimulationType} (E: 19d29e48868ec7cc4b3d2fa9ab5ac622)`);
-            // }
-            return details;
+            resStimulation.expectsResponse = getExpectsResponse({ stimulationType });
+
+            // details.isComplete = this.getIsComplete({ ibGib, stimulationType, stimulationScope, prevStimulation });
+
+            return resStimulation;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -2590,6 +2592,93 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
+
+    protected async getStimulationDetails({
+        ibGib,
+        stimulationType,
+        stimulationScope,
+        prevStimulation,
+    }: {
+        ibGib: IbGib_V1,
+        stimulationType: StimulationType,
+        stimulationScope: StimulationScope,
+        prevStimulation: Stimulation,
+    }) {
+        const lc = `${this.lc}[${this.getStimulationDetails.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 53818e78677ecf5f8874b43fde30e622)`); }
+            if (stimulationType !== 'blank') { return null; }
+
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    // getIsComplete({
+    //     ibGib,
+    //     stimulationType,
+    //     stimulationScope,
+    //     prevStimulation,
+    // }: {
+    //     ibGib: CommentIbGib_V1,
+    //     stimulationType: StimulationType,
+    //     stimulationScope: StimulationScope,
+    //     prevStimulation: Stimulation,
+    // }): boolean {
+    //     const lc = `${this.lc}[${this.getIsComplete.name}]`;
+    //     try {
+    //         if (logalot) { console.log(`${lc} starting... (I: 878253864022a20d8fea8c9773270122)`); }
+
+    //         // gauntlet strategy: default to true and only set to false with special cases
+    //         let resIsComplete = true;
+
+    //         const stimulationTypesThatAreOneAndDone: StimulationType[] = [
+    //             'read', 'type', 'expound',
+    //         ];
+    //         if (stimulationTypesThatAreOneAndDone.includes(stimulationType)) {
+    //             return true; /* <<<< returns early */
+    //         }
+
+    //         if (stimulationType === 'blank' && stimulationScope === '')  {
+
+    //         }
+
+    //         return resIsComplete;
+    //     } catch (error) {
+    //         console.error(`${lc} ${error.message}`);
+    //         throw error;
+    //     } finally {
+    //         if (logalot) { console.log(`${lc} complete.`); }
+    //     }
+    // }
+
+    // /**
+    //  * If the ibgib's text is very short, then scope of 'all' may be small.
+    //  *
+    //  * If the ibgib's text is 'paragraph', and the paragraphs average
+    //  * @param param0
+    //  */
+    // protected async getStimulationStrength({
+    //     currentIbGibInfo,
+    // }: {
+    //     currentIbGibInfo: CurrentWorkingInfo,
+    // }): Promise<number> {
+    //     const lc = `${this.lc}[${this.getStimulationStrength.name}]`;
+    //     try {
+    //         if (logalot) { console.log(`${lc} starting... (I: bdca966d60db8a3f1af676a753c96422)`); }
+    //         let { addr, ibGib, tjpAddr, prevInteractions, prevStimulations, textInfo } = currentIbGibInfo;
+    //         throw new Error(`not impl (E: cafe2679e9df0002e503ad53254d4e22)`);
+
+    //     } catch (error) {
+    //         console.error(`${lc} ${error.message}`);
+    //         throw error;
+    //     } finally {
+    //         if (logalot) { console.log(`${lc} complete.`); }
+    //     }
+    // }
 
     protected async getNextStimulation_JustShow({
         toStimulateAddr,
@@ -2705,22 +2794,21 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // at this point, the textWithBlanks should have the same exact text
             // as the incoming text, but with word(s) blanked out.
 
-            const details: Stimulation_Blank = {
-                stimulationType: 'blank',
-                stimulationScope: 'word',
-                baseStrength: 1,
-                targets: [
-                    {
-                        "@toStimulate": toStimulateAddr,
-                        "@toStimulateTjp": toStimulateTjpAddr,
-                        weight: 1,
-                    }
-                ],
-                blankedText: 'sdkjfiowefjoeiwfj eowifjew iofjew ofiejw fioejwfo iejwof eiwfjoeiwfj eiowfjiojeiofjew fioejwfio j',
-                commentText: textWithBlanks,
-            };
+            // const details: Stimulation_Blank = {
+            //     stimulationType: 'blank',
+            //     stimulationScope: 'word',
+            //     targets: [
+            //         {
+            //             "@toStimulate": toStimulateAddr,
+            //             "@toStimulateTjp": toStimulateTjpAddr,
+            //             weight: 1,
+            //         }
+            //     ],
+            //     blankedText: 'sdkjfiowefjoeiwfj eowifjew iofjew ofiejw fioejwfo iejwof eiwfjoeiwfj eiowfjiojeiofjew fioejwfio j',
+            //     commentText: textWithBlanks,
+            // };
 
-            return details;
+            // return details;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
