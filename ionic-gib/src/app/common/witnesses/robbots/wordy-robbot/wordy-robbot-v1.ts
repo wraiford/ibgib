@@ -2,15 +2,15 @@ import { Injectable } from '@angular/core';
 import { ReplaySubject, Subscription } from 'rxjs';
 
 import * as h from 'ts-gib/dist/helper';
+import { Gib, Ib, IbGibAddr, TransformResult } from 'ts-gib';
 import {
     IbGib_V1, ROOT, Factory_V1 as factory, Rel8n,
     IbGibRel8ns_V1, isPrimitive, IbGibData_V1, Factory_V1, rel8, mut8,
 } from 'ts-gib/dist/V1';
-import { Gib, Ib, IbGibAddr, TransformResult } from 'ts-gib';
 import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
-import * as c from '../../constants';
-import { IbGibRobbotAny, RobbotBase_V1 } from './robbot-base-v1';
+import * as c from '../../../constants';
+import { IbGibRobbotAny, RobbotBase_V1 } from '../robbot-base-v1';
 import {
     RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1,
     RobbotCmdData, RobbotCmdIbGib, RobbotCmdRel8ns,
@@ -26,23 +26,24 @@ import {
     RobbotSessionIbGib_V1, RobbotSessionData_V1, RobbotSessionRel8ns_V1,
     ROBBOT_ANALYSIS_ATOM,
     DEFAULT_ROBBOT_REQUEST_ESCAPE_STRING,
-} from '../../types/robbot';
-import { DynamicForm } from '../../../ibgib-forms/types/form-items';
-import { DynamicFormFactoryBase } from '../../../ibgib-forms/bases/dynamic-form-factory-base';
-import { addTimeToDate, getIdPool, getSaferSubstring, getTimestampInTicks, pickRandom, replaceCharAt, unique } from '../../helper/utils';
-import { WitnessFormBuilder } from '../../helper/witness';
-import { getInteractionIb, getInteractionIbGib_V1, getRequestTextFromComment, getRobbotIb, getRobbotSessionIb, isRequestComment, parseInteractionIb, RobbotFormBuilder } from '../../helper/robbot';
-import { DynamicFormBuilder } from '../../helper/form';
-import { getGraphProjection, GetGraphResult } from '../../helper/graph';
-import { CommentIbGib_V1 } from '../../types/comment';
-import { getFromSpace, getLatestAddrs } from '../../helper/space';
-import { AppSpaceData, AppSpaceRel8ns } from '../../types/app';
-import { IonicSpace_V1 } from '../spaces/ionic-space-v1';
-import { LexDatum, LexLineConcat, LexResultObj, SpeechBuilder } from '../../helper/lex';
-import { getTjpAddr } from '../../helper/ibgib';
-import { isComment, parseCommentIb } from '../../helper/comment';
-import { Ssml } from '../../helper/ssml';
-import { validateIbGibIntrinsically } from '../../helper/validate';
+} from '../../../types/robbot';
+import { DynamicForm } from '../../../../ibgib-forms/types/form-items';
+import { DynamicFormFactoryBase } from '../../../../ibgib-forms/bases/dynamic-form-factory-base';
+import { addTimeToDate, getIdPool, getSaferSubstring, getTimestampInTicks, pickRandom, replaceCharAt, unique } from '../../../helper/utils';
+import { WitnessFormBuilder } from '../../../helper/witness';
+import { getInteractionIb, getInteractionIbGib_V1, getRequestTextFromComment, getRobbotIb, getRobbotSessionIb, isRequestComment, parseInteractionIb, RobbotFormBuilder } from '../../../helper/robbot';
+import { DynamicFormBuilder } from '../../../helper/form';
+import { getGraphProjection, GetGraphResult } from '../../../helper/graph';
+import { CommentIbGib_V1 } from '../../../types/comment';
+import { getFromSpace, getLatestAddrs } from '../../../helper/space';
+import { AppSpaceData, AppSpaceRel8ns } from '../../../types/app';
+import { IonicSpace_V1 } from '../../spaces/ionic-space-v1';
+import { LexDatum, LexLineConcat, LexResultObj, SpeechBuilder } from '../../../helper/lex';
+import { getTjpAddr } from '../../../helper/ibgib';
+import { isComment, parseCommentIb } from '../../../helper/comment';
+import { Ssml } from '../../../helper/ssml';
+import { validateIbGibIntrinsically } from '../../../helper/validate';
+import { Stimulation, StimulationScope, StimulationTarget, StimulationType } from './stimulators';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
@@ -150,164 +151,6 @@ export interface WordyAnalysisRel8ns_V1_Robbot extends IbGibRel8ns_V1 {
 }
 export interface WordyAnalysisIbGib_V1_Robbot extends IbGib_V1<WordyAnalysisData_V1_Robbot, WordyAnalysisRel8ns_V1_Robbot> { }
 
-export type StimulationScope =
-    'all' | 'paragraph' | 'line' | 'word' | 'letter';
-export const StimulationScope = {
-    /**
-     * the entirety of the ibgib/text.
-     */
-    'all': 'all' as StimulationScope,
-    'paragraph': 'paragraph' as StimulationScope,
-    'line': 'line' as StimulationScope,
-    'word': 'word' as StimulationScope,
-    'letter': 'letter' as StimulationScope,
-    // pic
-}
-/**
- * There are various ways to stimulate an ibgib.
- */
-export type StimulationType =
-    'read' |
-    'type' |
-    'blank' |
-    'expound'
-    ;
-export const StimulationType = {
-    /**
-     * The user is just shown the source ibgib raw and asked to read it.
-     */
-    'read': 'read' as StimulationType,
-    /**
-     * The user is asked to type the given unit of type {@link StimulationScope}
-     */
-    'type': 'type' as StimulationType,
-    /**
-     * A unit of type {@link StimulationScope} is blanked out.
-     *
-     * The user is asked to provide the missing blank.
-     */
-    'blank': 'blank' as StimulationType,
-    /**
-     * the user has to say something that will be added to the target ibgib.
-     * if the user says "skip" or "no" or "no thanks", etc., then it will be
-     * skipped.
-     */
-    'expound': 'expound' as StimulationType,
-}
-export function getExpectsResponse({ stimulationType }: { stimulationType: StimulationType }): boolean {
-    const lc = `[${getExpectsResponse.name}]`;
-    try {
-        if (logalot) { console.log(`${lc} starting... (I: 416b47d45164ab2194ebbdca893eec22)`); }
-        switch (stimulationType) {
-            case 'read': return false;
-            case 'type': return true;
-            case 'blank': return true;
-            case 'expound': return false;
-            default: throw new Error(`unknown stimulationType: ${stimulationType} (E: 08200b453d891734bf5fd76cb0f98522)`);
-        }
-    } catch (error) {
-        console.error(`${lc} ${error.message}`);
-        throw error;
-    } finally {
-        if (logalot) { console.log(`${lc} complete.`); }
-    }
-}
-export interface StimulationTarget {
-    /**
-     * Soft link to the tjp address (timeline) of the ibgib being stimulated.
-     */
-    '@toStimulateTjp': IbGibAddr;
-    /**
-     * Soft link to punctiliar address of the exact ibgib stimulated
-     */
-    '@toStimulate'?: IbGibAddr;
-}
-/**
- * Fundamental shape that describes stimulating ibgibs.
- *
- * In my driving use case, with Wordy Robbot especially, this
- * is for "learning" the material, i.e., creating, nurturing and
- * maintaining brain traces.
- */
-export interface Stimulation {
-    /**
-     * type of stimulation, like is it a fill in the blank or just showing the
-     * ibgib.
-     * @see {@link StimulationType}
-     */
-    stimulationType: StimulationType;
-    /**
-     * The scope of the stimulation, like 'paragraph' or 'line'.
-     * @see {@link StimulationScope}
-     */
-    stimulationScope: StimulationScope;
-    /**
-     * soft links to target ibgibs being stimulated
-     */
-    targets: StimulationTarget[];
-    /**
-     * If true, then this stimulation expects a metric of some sort, like a grade.
-     * For starters, this will be entirely self-reported by the user. In the future
-     * when we are talking about multiple entities interacting, then this could
-     * be provided by one or more third parties.
-     */
-    expectsFeedback?: boolean;
-    /**
-     * Addresses of the feedback ibgib(s) if needed/relavent.
-     *
-     * the ib's should contain the relative metadata information so we don't
-     * have to load the full ibgib. e.g. `comment 5^ASDFEW1234` or `comment
-     * good^ABC123`, but this should ultimately be up to the handler.
-     */
-    '@feedbackList'?: IbGibAddr[];
-    /**
-     * If true, the stimulation expects the user to add an ibgib to the current
-     * context ibgib. For starters, this will be a comment ibgib with, e.g.,
-     * the blanked out text.
-     */
-    expectsResponse?: boolean;
-    /**
-     * When providing at least one response, these are the soft link addresses.
-     */
-    '@responseList'?: IbGibAddr[];
-    /**
-     * Indicates that this stimulation is complete and nothing further is
-     * expected regarding it.
-     *
-     * If {@link expectsFeedback} and {@link expectsResponse} are both falsy,
-     * then this should be set to true (though ultimately it's the lack of
-     * both of those that is directly meaningful).
-     */
-    isComplete?: boolean;
-    /**
-     * If we are making a comment ourselves (and not, e.g., just presenting some
-     * other ibgib without additional comment), then here is the text for it.
-     *
-     * This should also be included in the comment.
-     */
-    commentText: string;
-    /**
-     * If we are stimulating an ibgib multiple times, this tracks the number of
-     * times in a given stimulation sequence.
-     */
-    consecutiveCount?: number;
-    /**
-     * If the stimulation requires extra parameters, they should be put here.
-     *
-     * For example, a blank stimulation will atow include which text was blanked out.
-     */
-    details?: any;
-}
-/**
- * We're stimulating the ibgib via blanking out one or more words in the ibgib's
- * text.
- */
-export interface BlankDetails {
-    /**
-     * Text that we've blanked out.
-     */
-    blankedText: string;
-}
 
 export const DEFAULT_UUID_WORDY_ROBBOT = undefined;
 export const DEFAULT_NAME_WORDY_ROBBOT = 'Wordsworthers';
@@ -773,6 +616,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             ];
             this._userLex.data[WordySemanticId.learn] = [
                 ...[
+                    AtomicId.learn,
                     `lines`, `do lines`, `learn lines`,
                     `lyrics`, `do lyrics`,
                     `poems`, `poem`, `poetry`, `do poems`, `do a poem`, `do poetry`
@@ -1218,12 +1062,12 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     }
 
     private async loadNextWorkingInfo({
-        info,
+        semanticInfo,
     }: {
         /**
          * semantic info that is driving the request
          */
-        info: SemanticInfo,
+        semanticInfo: SemanticInfo,
     }): Promise<void> {
         const lc = `${this.lc}[${this.loadNextWorkingInfo.name}]`;
         try {
@@ -1265,8 +1109,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[${this.getPreviousInteractions.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 7931fecbf0856aac0a78c5e541b3d222)`); }
-            console.error(`${lc} not implemented yet. returning empty array. (E:4294420eece247adaf0e2406da3dd8f5 )`)
-
+            debugger;
             // each stimulation interaction has a subject tjpgib in its ib field.
 
             const tjpGib = getGibInfo({ gib: ibGib.gib }).tjpGib;
@@ -1342,6 +1185,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[${this.handleSemantic_learn.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 32e7907bf40c4723a0b1a9091c3b7047)`); }
+            debugger;
 
             // interactions have the subject tjp gibs in their ib fields (as
             // well as in internal data field).
@@ -1354,7 +1198,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
              */
             let forceNew = false;
             let speechChangeUpText: string;
-            if (this.prevStimulation.expectsFeedback || this.prevStimulation?.expectsResponse) {
+            if (this.prevStimulation?.expectsFeedback || this.prevStimulation?.expectsResponse) {
                 // the user has requested to learn even though we're expecting feedback
                 // ...OR
                 // the user has requested to learn even though we're expecting a response
@@ -1364,14 +1208,15 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             }
 
             // either the previous stimulation completed or this is the first stimulation
-            if (!this._currentWorkingInfos) { await this.loadNextWorkingInfo({ info }); }
+            if (!this._currentWorkingInfos) { await this.loadNextWorkingInfo({ semanticInfo: info }); }
             const currentWorkingTjpAddrs = Object.keys(this._currentWorkingInfos);
             const currentWorkingIbGibsCount = currentWorkingTjpAddrs.length;
+            debugger;
             if (currentWorkingIbGibsCount === 1) {
                 // stimulate the single ibgib based on previous stimulations
                 const currentIbGibInfo = this._currentWorkingInfos[currentWorkingTjpAddrs[0]];
                 const { addr, ibGib, tjpAddr, prevInteractions, prevStimulations, textInfo } = currentIbGibInfo;
-                let nextStimulation = await this.getNextStimulation({ currentIbGibInfo, forceNew });
+                let nextStimulation = await this.getNextStimulation({ semanticInfo: info, currentIbGibInfo, forceNew });
             } else if (currentWorkingIbGibsCount > 1) {
                 throw new Error(`multiple current working ibgibs not impl yet (E: ae63a68b41b2ebc89b63dbc188668922)`);
             } else {
@@ -2524,10 +2369,22 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
+    /**
+     * Gets the next stimulation, based on the current state and whether or not
+     * we're continuing a previous stimulation.  This can be because we're
+     * forcing a new stimulation or if there isn't a previous stimulation, etc.
+     *
+     * ## notes
+     *
+     * Basically, atow this funnels to other get stimulation functions based on
+     * continuations.
+     */
     protected async getNextStimulation({
+        semanticInfo,
         currentIbGibInfo,
         forceNew,
     }: {
+        semanticInfo: SemanticInfo,
         currentIbGibInfo: CurrentWorkingInfo,
         forceNew: boolean,
     }): Promise<Stimulation> {
@@ -2535,15 +2392,65 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 3b5112795cebe1d56a9a11c624180322)`); }
 
+            if (!currentIbGibInfo) { throw new Error(`(UNEXPECTED) currentIbGibInfo falsy? (E: 6aed3baf217c0280130161585d49f222)`); }
+
+            /**
+             * The resulting stimulation we're going to populate.
+             */
             let resStimulation: Stimulation;
 
-            const prevStimulation = forceNew ?
-                undefined :
-                this.prevStimulation ?? currentIbGibInfo?.prevStimulations?.at(-1) ?? undefined;
-            if (!prevStimulation.isComplete) {
-                console.warn(`${lc} prevStimulation.isComplete is falsy. returning early with the same stimulation. (W: bed26fee7d7044ae88071ba2e95ec341)`)
-                return h.clone(prevStimulation); /* <<<< returns early */
+            /**
+             * If we're continuing a compound stimulation, like if we've just
+             * prompted a line 3 review and now we should prompt a blank line
+             * for line 4, then we'll set this to true.
+             */
+            let isContinuation: boolean = false;
+            const prevStimulation = currentIbGibInfo?.prevStimulations?.at(-1) ?? null;
+            if (semanticInfo.request) {
+                if (logalot) { console.log(`${lc} driven by request, so isContinuation is FALSE. (I: 5b84d9fca74bc2f3143332356b5b4c22)`); }
+            } else if (forceNew) {
+                if (logalot) { console.log(`${lc} forceNew is true, so isContinuation is FALSE. (I: 55f9c5fd9b224f3c8bf3b043c633aafd)`) }
+            } else if (prevStimulation) {
+                if (prevStimulation.isComplete) {
+                    if (logalot) { console.log(`${lc} prevStimulation.isComplete is true, so isContinuation is FALSE. (I: d99f143ac8dde1371eaaa609bddf7122)`); }
+                } else {
+                    if (logalot) { console.log(`${lc} prevStimulation.isComplete is falsy, so isContinuation is TRUE. (W: bed26fee7d7044ae88071ba2e95ec341)`) }
+                    isContinuation = true;
+                }
+            } else {
+                if (logalot) { console.log(`${lc} no prevStimulation, so isContinuation is FALSE. (I: cbc23b322af8a97559649ee59f63a922)`); }
             }
+
+            if (isContinuation) {
+                resStimulation = await this.getNextStimulation_Continue({ semanticInfo, currentIbGibInfo, prevStimulation }); /* <<<< returns early */
+            } else {
+                resStimulation = await this.getNextStimulation_Fresh({ semanticInfo, currentIbGibInfo }); /* <<<< returns early */
+            }
+
+            return resStimulation;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    protected async getNextStimulation_Fresh({
+        semanticInfo,
+        currentIbGibInfo,
+    }: {
+        semanticInfo: SemanticInfo,
+        currentIbGibInfo: CurrentWorkingInfo,
+    }): Promise<Stimulation> {
+        const lc = `${this.lc}[${this.getNextStimulation_Fresh.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 9ed1794bdedf32139d50d73c6fc94422)`); }
+
+            /**
+             * The resulting stimulation we're going to populate.
+             */
+            let resStimulation: Stimulation;
 
             let { addr, ibGib, tjpAddr, prevInteractions, prevStimulations, textInfo } = currentIbGibInfo;
             if (!textInfo) {
@@ -2551,7 +2458,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 textInfo = this.getTextInfo({ srcIbGib: ibGib });
             }
 
-            resStimulation.targets = [
+            let targets: StimulationTarget[] = [
                 { "@toStimulate": addr, "@toStimulateTjp": tjpAddr },
             ];
 
@@ -2576,15 +2483,44 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 ibGib,
                 stimulationType,
                 stimulationScope,
-                prevStimulation,
+                prevStimulation: null,
             });
-            if (details) { resStimulation.details = details; }
 
-            resStimulation.expectsResponse = getExpectsResponse({ stimulationType });
+            // let expectsResponse = getExpectsResponse({ stimulationType });
 
             // details.isComplete = this.getIsComplete({ ibGib, stimulationType, stimulationScope, prevStimulation });
 
+            resStimulation = {
+                stimulationType, stimulationScope,
+                targets,
+                expectsResponse: false, // just to compile, not the right value
+                commentText: '',
+            }
+            if (details) { resStimulation.details = details; }
+
             return resStimulation;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    protected async getNextStimulation_Continue({
+        semanticInfo,
+        currentIbGibInfo,
+        prevStimulation,
+    }: {
+        semanticInfo: SemanticInfo,
+        currentIbGibInfo: CurrentWorkingInfo,
+        prevStimulation: Stimulation,
+    }): Promise<Stimulation> {
+        const lc = `${this.lc}[${this.getNextStimulation_Continue.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: bb6e1c4b0f67366f9bbf28cae8deda22)`); }
+            debugger;
+            throw new Error(`not impl (E: e2e64aad550a91f4838311ff74ed1722)`);
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;

@@ -474,13 +474,15 @@ export interface RobbotSessionIbGib_V1 extends IbGib_V1<RobbotSessionData_V1, Ro
  */
 export type AtomicId =
     'hi' | 'welcome' | 'bye' |
-    'yes' | 'no';
+    'yes' | 'no' |
+    'learn';
 export const AtomicId = {
     hi: 'hi' as AtomicId,
     welcome: 'welcome' as AtomicId,
     bye: 'bye' as AtomicId,
     yes: 'yes' as AtomicId,
     no: 'no' as AtomicId,
+    learn: 'learn' as AtomicId,
 }
 
 /**
@@ -693,6 +695,11 @@ export const DEFAULT_HUMAN_LEX_DATA_ENGLISH_ATOMICS: LexData<RobbotPropsData> = 
     [AtomicId.bye]: [
         ...toLexDatums_Atomics(AtomicId.bye, [
             'bye', 'bye bye', 'adios', 'ciao', 'later',
+        ]),
+    ],
+    [AtomicId.learn]: [
+        ...toLexDatums_Atomics(AtomicId.learn, [
+            'learn', 'study', 'review',
         ]),
     ],
 }

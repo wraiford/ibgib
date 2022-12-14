@@ -6,7 +6,7 @@ import { getGibInfo } from "ts-gib/dist/V1/transforms/transform-helper";
 import { CommentIbGib_V1 } from "../types/comment";
 import { ROBBOT_SESSION_ATOM } from '../types/robbot';
 import { IbGibRobbotAny } from '../witnesses/robbots/robbot-base-v1';
-import { WordyRobbot_V1, WordyRobbot_V1_Factory } from "../witnesses/robbots/wordy-robbot-v1";
+import { WordyRobbot_V1, WordyRobbot_V1_Factory } from "../witnesses/robbots/wordy-robbot/wordy-robbot-v1";
 import { createCommentIbGib } from "./comment";
 import { getRequestTextFromComment, getRobbotSessionIb, parseRobbotSessionIb } from "./robbot";
 import { getTimestampInTicks } from "./utils";

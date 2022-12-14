@@ -1,5 +1,10 @@
 /// <reference lib="webworker" />
 
+/**
+ * This is the beginnings of an attempt at futzing around with offloading
+ * processing to webworkers.
+ */
+
 import * as h from 'ts-gib/dist/helper';
 
 addEventListener('message', async ({ data }) => {

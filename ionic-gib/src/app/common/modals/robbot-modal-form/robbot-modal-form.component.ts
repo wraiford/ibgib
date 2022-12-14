@@ -16,7 +16,7 @@ import { ModalDynamicFormComponentBase } from '../../bases/modal-dynamic-form-co
 import { WitnessFactoriesService } from '../../../services/witness-factories.service';
 import { DynamicFormComponent } from '../../../ibgib-forms/dynamic-form/dynamic-form.component';
 import { RandomRobbot_V1, } from '../../witnesses/robbots/random-robbot-v1';
-import { WordyRobbot_V1 } from '../../witnesses/robbots/wordy-robbot-v1';
+import { WordyRobbot_V1 } from '../../witnesses/robbots/wordy-robbot/wordy-robbot-v1';
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
 
