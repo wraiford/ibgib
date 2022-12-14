@@ -1,26 +1,23 @@
 import { Injectable } from '@angular/core';
-import { ReplaySubject, Subscription } from 'rxjs';
+import { ReplaySubject } from 'rxjs';
 
 import * as h from 'ts-gib/dist/helper';
 import { Gib, Ib, IbGibAddr, TransformResult } from 'ts-gib';
 import {
     IbGib_V1, ROOT, Factory_V1 as factory, Rel8n,
-    IbGibRel8ns_V1, isPrimitive, IbGibData_V1, Factory_V1, rel8, mut8,
+    IbGibRel8ns_V1, rel8, mut8,
 } from 'ts-gib/dist/V1';
 import { getGib, getGibInfo } from 'ts-gib/dist/V1/transforms/transform-helper';
 
 import * as c from '../../../constants';
-import { IbGibRobbotAny, RobbotBase_V1 } from '../robbot-base-v1';
+import { RobbotBase_V1 } from '../robbot-base-v1';
 import {
-    RobbotData_V1, RobbotRel8ns_V1, RobbotIbGib_V1,
     RobbotCmdData, RobbotCmdIbGib, RobbotCmdRel8ns,
-    RobbotCmd,
     StimulusForRobbot,
     SemanticId, SemanticHandler,
     SemanticInfo, toLexDatums_Semantics, DEFAULT_HUMAN_LEX_DATA_ENGLISH_SEMANTICS,
     AtomicId, DEFAULT_HUMAN_LEX_DATA_ENGLISH_ATOMICS,
-    RobbotPropsData,
-    RobbotInteractionData_V1, RobbotInteractionIbGib_V1, RobbotInteractionType,
+    RobbotInteractionIbGib_V1, RobbotInteractionType,
     ROBBOT_INTERACTION_REL8N_NAME,
     ROBBOT_SESSION_REL8N_NAME, ROBBOT_SESSION_ATOM,
     RobbotSessionIbGib_V1, RobbotSessionData_V1, RobbotSessionRel8ns_V1,
@@ -31,239 +28,40 @@ import { DynamicForm } from '../../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../../ibgib-forms/bases/dynamic-form-factory-base';
 import { addTimeToDate, getIdPool, getSaferSubstring, getTimestampInTicks, pickRandom, replaceCharAt, unique } from '../../../helper/utils';
 import { WitnessFormBuilder } from '../../../helper/witness';
-import { getInteractionIb, getInteractionIbGib_V1, getRequestTextFromComment, getRobbotIb, getRobbotSessionIb, isRequestComment, parseInteractionIb, RobbotFormBuilder } from '../../../helper/robbot';
+import {
+    getInteractionIbGib_V1, getRequestTextFromComment,
+    getRobbotIb, getRobbotSessionIb, isRequestComment,
+    parseInteractionIb, RobbotFormBuilder,
+} from '../../../helper/robbot';
 import { DynamicFormBuilder } from '../../../helper/form';
 import { getGraphProjection, GetGraphResult } from '../../../helper/graph';
 import { CommentIbGib_V1 } from '../../../types/comment';
 import { getFromSpace, getLatestAddrs } from '../../../helper/space';
 import { AppSpaceData, AppSpaceRel8ns } from '../../../types/app';
 import { IonicSpace_V1 } from '../../spaces/ionic-space-v1';
-import { LexDatum, LexLineConcat, LexResultObj, SpeechBuilder } from '../../../helper/lex';
+import { SpeechBuilder } from '../../../helper/lex';
 import { getTjpAddr } from '../../../helper/ibgib';
-import { isComment, parseCommentIb } from '../../../helper/comment';
-import { Ssml } from '../../../helper/ssml';
+import { isComment } from '../../../helper/comment';
 import { validateIbGibIntrinsically } from '../../../helper/validate';
-import { Stimulation, StimulationScope, StimulationTarget, StimulationType } from './stimulators';
+import {
+    CurrentWorkingInfo,
+    DEFAULT_DESCRIPTION_WORDY_ROBBOT, DEFAULT_LOOK_REL8N_NAMES_WORDY_ROBBOT, DEFAULT_NAME_WORDY_ROBBOT, DEFAULT_UUID_WORDY_ROBBOT,
+    Stimulation, StimulationDetails, StimulationScope, StimulationTarget, StimulationType,
+    WordyAnalysisData_V1_Robbot, WordyAnalysisData_V1_Text, WordyAnalysisIbGib_V1_Robbot,
+    WordyAnalysisIbGib_V1_Text, WordyContextFlag, WordyRobbotData_V1,
+    WordyRobbotPropsData,
+    WordyRobbotRel8ns_V1,
+    WordySemanticId, WordyTextInfo, WordyUniqueWordInfo,
+    WORDY_V1_ANALYSIS_REL8N_NAME,
+    WORDY_V1_DEFAULT_REQUEST_TEXT
+} from './types';
+import {
+    WORDY_STIMULATORS
+} from './stimulators';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
 
-
-interface WordyUniqueWordInfo {
-    /**
-     * total number of times the text contains the word.
-     */
-    totalIncidence: number;
-    /**
-     * number of lines in all of the text that contain the word.
-     *
-     * ## notes
-     *
-     * Yeah, I'm not doing the sentence thing because it's a tedious thing to
-     * get the regexp correct in that case.
-     */
-    lineIncidence: number;
-    /**
-     * number of paragraphs in all of the corpus that contain the word.
-     */
-    paragraphIncidence: number;
-    /**
-     * number of source ibgibs that contain the word.
-     */
-    srcIncidence: number;
-}
-/**
- * in the future, we will extract text from pics or other sources, but for now
- * this will primarily be from comments or aggregate.
- */
-export type WordyTextSourceType = 'agg' | 'comment' | 'pic' | 'other';
-/**
- * breakdown info of an individual text source (atow a comment ibgib).
- */
-export interface WordyTextInfo {
-    srcIbGib?: IbGib_V1;
-    /**
-     * Here and not in rel8ns because an aggregate analysis will have these
-     * data.
-     */
-    srcAddr?: IbGibAddr;
-    srcType?: WordyTextSourceType;
-    /**
-     * for comment ibgibs, this is comment.data.text.
-     */
-    text: string;
-    /**
-     * copy of text but broken out into paragraphs.
-     */
-    paragraphs: string[];
-    /**
-     * copy of text but broken out into lines.
-     */
-    lines: string[];
-    /**
-     * breakdown infos of unique words in text
-     */
-    wordInfos: { [word: string]: WordyUniqueWordInfo };
-    /**
-     * approximate count of non-unique words in the text.
-     */
-    wordCount: number;
-}
-
-export interface WordyAnalysisData_V1_Text extends IbGibData_V1 {
-    /**
-     * Breakdown of the text.
-     */
-    textInfo: WordyTextInfo;
-    /**
-     * Here duplicates in textInfo.srcAddr.
-     */
-    srcAddr?: IbGibAddr;
-    timestamp_LastInteraction: string;
-    timestamp_LastStimulation: string;
-    stimulationCount: number;
-    /**
-     * timestamp after which the source is scheduled to be stimulated.
-     */
-    timestamp_Scheduled?: string;
-    /**
-     * Total number of interactions regarding the src ibgib.
-     */
-    interactionCount: number;
-    srcTjpGib: Gib;
-}
-export interface WordyAnalysisRel8ns_V1_Text extends IbGibRel8ns_V1 {
-}
-export interface WordyAnalysisIbGib_V1_Text extends IbGib_V1<WordyAnalysisData_V1_Text, WordyAnalysisRel8ns_V1_Text> { }
-
-export interface WordyAnalysisData_V1_Robbot {
-    timestamp: string;
-    textInfos: WordyTextInfo[];
-    aggInfo: WordyTextInfo;
-}
-export interface WordyAnalysisRel8ns_V1_Robbot extends IbGibRel8ns_V1 {
-    /**
-     * rel8ns to sub analyses for this robbot that pertain to specific ibgibs.
-     *
-     * @see {@link getTextIbGibAnalysisIb}
-     */
-    analysis?: IbGibAddr[];
-}
-export interface WordyAnalysisIbGib_V1_Robbot extends IbGib_V1<WordyAnalysisData_V1_Robbot, WordyAnalysisRel8ns_V1_Robbot> { }
-
-
-export const DEFAULT_UUID_WORDY_ROBBOT = undefined;
-export const DEFAULT_NAME_WORDY_ROBBOT = 'Wordsworthers';
-export const DEFAULT_DESCRIPTION_WORDY_ROBBOT =
-    `A wordy robbot does wordy stuff like taking text and scrambling pieces or creating fill-in-the-blanks.`;
-/**
- * look rel8n names are those named edges that the robbot can travel along when
- * looking at what it's shown by the user using the :eyes: button.
- *
- * I'm trying out defaulting to empty and defaulting to pics/comments/links
- * and related (e.g. tag targets).
- *
- * The idea is that you could just say look at this one ibgib and the robbot
- * could analyze the entire sub-graph along certain edges, including those we do
- * want to see (e.g. yes look at sub comments & pics) and excluding those we
- * don't (e.g.  don't look at the dna).
- *
- * But then again, this is a more complex scenario and we may want the robbot
- * just to look at the specific ones we say. I'm thinking about this wrt to
- * analysis.
- */
-// export const DEFAULT_LOOK_REL8N_NAMES_WORDY_ROBBOT: string = [].join(',');
-export const DEFAULT_LOOK_REL8N_NAMES_WORDY_ROBBOT = [
-    'pic', 'comment', 'link',
-    'result', 'import',
-    'tagged',
-    c.TAGGED_REL8N_NAME,
-    c.DEFAULT_ROOT_REL8N_NAME,
-].join(',');
-export const WORDY_V1_ANALYSIS_REL8N_NAME = 'analysis';
-export const WORDY_V1_DEFAULT_REQUEST_TEXT = 'help';
-
-export interface WordyRobbotData_V1 extends RobbotData_V1 {
-    /**
-     * comma-delimited string of rel8n names.
-     *
-     * These are the rel8n names that the robbot can search through its own
-     * ibgibs that it has seen. I'm sure that's worded poorly, so...
-     *
-     * For example, when you look at a comment ibgib, that ibgib may
-     * have other ibgibs "inside" (rel8d) to it via various rel8n names.
-     * If you want to search for comments within comments, then include
-     * the 'comment' rel8n name. If you want to search for pics also,
-     * include 'pic' rel8n name.
-     *
-     * @see {@link WordyRobbot_V1.getAllIbGibsWeCanLookAt}
-     */
-    lookRel8nNames: string;
-}
-
-export interface WordyRobbotRel8ns_V1 extends RobbotRel8ns_V1 {
-    analysis?: IbGibAddr[];
-    session?: IbGibAddr[];
-}
-
-export type WordySemanticId =
-    "semantic_learn" |
-    "semantic_blank" |
-    // "semantic_lines" |
-    "semantic_done" | "semantic_what_next" |
-    "semantic_change_up" |
-    SemanticId;
-export const WordySemanticId = {
-    ...SemanticId,
-    learn: 'semantic_learn' as WordySemanticId,
-    blank: "semantic_blank" as WordySemanticId,
-    // lines: 'semantic_lines' as WordySemanticId,
-    done: "semantic_done" as WordySemanticId,
-    what_next: "semantic_what_next",
-    change_up: "semantic_change_up" as WordySemanticId,
-}
-
-
-export interface WordyRobbotPropsData extends RobbotPropsData<WordySemanticId> {
-    /**
-     * If reviewing lines, this flag indicates that it's the first line.
-     * If doing a single line, this would indicate first word.
-     * If a single word, first letter. etc
-     */
-    isFirst?: boolean;
-    /**
-     * If the lex entry is restricted to a specific stimulationType
-     */
-    stimulationScope?: StimulationScope;
-}
-
-// export type WordyLexKeywords =
-// 'blankSlate';
-// export const WordyLexKeywords = {
-// blankSlate: 'blankSlate' as WordyLexKeywords,
-// }
-
-type WordyContextFlag = 'all';
-
-interface CurrentWorkingInfo {
-    ibGib: CommentIbGib_V1;
-    addr: IbGibAddr;
-    tjpAddr: IbGibAddr;
-    textInfo?: WordyTextInfo;
-    /**
-     * interactions created prior to the current session that have info's ibgib
-     * as a subject.
-     *
-     * @see {@link prevStimulations}
-     */
-    prevInteractions?: RobbotInteractionIbGib_V1[];
-    /**
-     * stimulations created prior to the current session that have info's ibgib
-     * as a subject. this is a convenience projections of
-     * {@link prevInteractions}.
-     */
-    prevStimulations?: Stimulation[];
-}
 
 /**
  *
@@ -2462,9 +2260,47 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 { "@toStimulate": addr, "@toStimulateTjp": tjpAddr },
             ];
 
-            const stimulationType = pickRandom({ x: Object.values(StimulationType) });
+            let chooseFromTypes: StimulationType[];
+            prevStimulations = (prevStimulations ?? []);
+            if (prevStimulations.length === 0) {
+                // first time is always read
+                chooseFromTypes = ['read'];
+            } else if (prevStimulations.length > 0 && prevStimulations.length <= 2) {
+                chooseFromTypes = ['say', 'type'];
+            } else if (prevStimulations.length > 2 && prevStimulations.length < 7) {
+            } else if (prevStimulations.length >= 7) {
+                console.warn(`${lc} hard-coded seed length to 7. ibGib addr: ${addr} (W: a3757a31c10f4b9aae228fc63f8a9e80)`);
+                chooseFromTypes = ['seed']
+            } else {
+                // default to random
+                console.warn(`${lc} (UNEXPECTED) shouldn't get here? chooseFromTypes for stimulationType defaulting to choose from any known type. (W: dbdee7edb8b4461b802d328a3608eff1)`);
+                chooseFromTypes = Object.values(StimulationType);
+            }
+            const stimulationType = pickRandom({ x: chooseFromTypes });
+            if (logalot) { console.log(`${lc} stimulationType (${stimulationType}) chosen, having prevStimulations.length (${prevStimulations.length}) (I: 44b96f254d920ea87b0af8c8fe877722)`); }
+
+            // we've narroed down the stimulators to this point. now just pick
+            // one at random, though in the future this could be hooked up to an
+            // ANN of some sort.
+            let stimulator = pickRandom({ x: WORDY_STIMULATORS });
+
+            // get specific details depending on the stimulation chosen
+            let counter = 0;
+            let arbitraryMaxCounter = 10;
+            let details: StimulationDetails = undefined;
+            while (details === undefined && counter < arbitraryMaxCounter) {
+                details = await stimulator.getStimulationDetails({
+                    stimulationType,
+                    ibGib,
+                    prevStimulations,
+                    textInfo,
+                });
+                counter++;
+            }
+            if (details === undefined) { throw new Error(`(UNEXPECTED) details undefined after ${arbitraryMaxCounter} attempts? (E: 652b4389904dc43497fddb093aba8722)`); }
+
             let stimulationScope: StimulationScope;
-            if (textInfo.paragraphs?.length > 1) {
+            if (textInfo.paragraphs?.length > 15) {
                 // has multiple paragraphs
                 stimulationScope = 'paragraph';
             } else if (textInfo.lines?.length > 1) {
@@ -2478,13 +2314,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 stimulationScope = pickRandom({ x: ['all', 'letter'] });
             }
 
-            // get specific details depending on the stimulation chosen
-            const details = await this.getStimulationDetails({
-                ibGib,
-                stimulationType,
-                stimulationScope,
-                prevStimulation: null,
-            });
+
 
             // let expectsResponse = getExpectsResponse({ stimulationType });
 
