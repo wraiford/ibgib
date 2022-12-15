@@ -329,6 +329,15 @@ export interface StimulationTarget {
  */
 export interface Stimulation {
     /**
+     * Name of the stimulator who produced the stimulation.
+     */
+    stimulatorName: string;
+    /**
+     * If applicable, the version of the stimulator who produced the
+     * stimulation.
+     */
+    stimulatorVersion?: string;
+    /**
      * type of stimulation, like is it a fill in the blank or just showing the
      * ibgib.
      * @see {@link StimulationType}
@@ -424,8 +433,8 @@ export interface StimulationDetails_Blank extends StimulationDetails {
     blankedTexts: string[];
 }
 
-export interface GetStimulationDetailsOptions {
-    ibGib: IbGib_V1,
+export interface StimulateArgs {
+    ibGibs: IbGib_V1[],
     stimulationType: StimulationType,
     prevStimulations: Stimulation[],
     textInfo: WordyTextInfo,
@@ -433,26 +442,17 @@ export interface GetStimulationDetailsOptions {
 
 export interface Stimulator {
     /**
-     * Which type does this stimulator produce?
+     * Should be idempotent indicator of initialization for the Stimulator.
      */
-    readonly type: StimulationType;
-
+    readonly initialized: Promise<void>;
+    readonly instanceId: string;
+    readonly name: string;
+    readonly version: string;
     /**
-     * Which scopes does this stimulator produce?
+     * Which type(s) does this stimulator produce?
      */
-    readonly applicableScopes: StimulationScope[];
-
-    /**
-     * If the stimulator has particular details to stimulate, like "blankedText" for
-     * a "blank" stimulation, then this should be true.
-     *
-     * If the sitmulator doesn't have any details, like with a basic "read" stimulation,
-     * then this should be false.
-     */
-    hasDetails: boolean;
-
-    /**
-     * @returns Stimulation details if applicable. If not applicable, should return null.
-     */
-    getStimulationDetails(opts: GetStimulationDetailsOptions): Promise<any | null>;
+    readonly types: StimulationType[];
+    initialize(): Promise<void>;
+    canStimulate(opts: StimulateArgs): Promise<boolean>;
+    getStimulation(opts: StimulateArgs): Promise<Stimulation | null>;
 }

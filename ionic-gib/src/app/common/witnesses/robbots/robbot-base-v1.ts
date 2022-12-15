@@ -197,11 +197,11 @@ export abstract class RobbotBase_V1<
      * the single `witness` access point, but of course these runtime aspects
      * won't be memoized if storing the ibgib.
      */
-    public ready: Promise<void>;
+    public initialized: Promise<void>;
 
     constructor(initialData?: TData, initialRel8ns?: TRel8ns) {
         super(initialData, initialRel8ns);
-        this.ready = this.initialize();
+        this.initialized = this.initialize();
     }
 
     // #region initialize
@@ -478,7 +478,7 @@ export abstract class RobbotBase_V1<
         const lc = `${this.lc}[${this.doCmdActivate.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: d453593a295d4cdbae2acb71d9f6de35)`); }
-            await this.ready;
+            await this.initialized;
 
             if (arg.ibGibs?.length > 0) {
                 await this.initializeContext({ arg });
@@ -506,7 +506,7 @@ export abstract class RobbotBase_V1<
         const lc = `${this.lc}[${this.doCmdDeactivate.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: d453593a295d4cdbae2acb71d9f6de35)`); }
-            await this.ready;
+            await this.initialized;
 
             await this.finalizeContext({ arg });
 

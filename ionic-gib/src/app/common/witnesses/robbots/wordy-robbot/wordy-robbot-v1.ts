@@ -47,6 +47,7 @@ import {
     CurrentWorkingInfo,
     DEFAULT_DESCRIPTION_WORDY_ROBBOT, DEFAULT_LOOK_REL8N_NAMES_WORDY_ROBBOT, DEFAULT_NAME_WORDY_ROBBOT, DEFAULT_UUID_WORDY_ROBBOT,
     Stimulation, StimulationDetails, StimulationScope, StimulationTarget, StimulationType,
+    Stimulator,
     WordyAnalysisData_V1_Robbot, WordyAnalysisData_V1_Text, WordyAnalysisIbGib_V1_Robbot,
     WordyAnalysisIbGib_V1_Text, WordyContextFlag, WordyRobbotData_V1,
     WordyRobbotPropsData,
@@ -1165,7 +1166,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} starting...`); }
             let result = await super.doCmdActivate({ arg });
 
-            await this.ready;
+            await this.initialized;
 
             await this.completeSessionIfNeeded({ sayBye: false });
             await this.initializeContext({ arg });
@@ -1233,7 +1234,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting...`); }
 
-            await this.ready;
+            await this.initialized;
 
             await this.lookAt({ ibGibs: arg.ibGibs });
 
@@ -1306,7 +1307,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 5d820b45337bf51c8d0f3daa3013ae22)`); }
 
-            await this.ready;
+            await this.initialized;
 
             await this.completeSessionIfNeeded({ sayBye: true });
             await this.initializeContext({ arg });
@@ -1378,7 +1379,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: ae300cb9c18b9014eb9ded1cd5666e22)`); }
 
-            await this.ready;
+            await this.initialized;
 
             // const space = await this.ibgibsSvc.getLocalUserSpace({ lock: true });
             if (!this._brainCommentIbGibs) { await this.initializeBrain(); }
@@ -2196,6 +2197,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
              * The resulting stimulation we're going to populate.
              */
             let resStimulation: Stimulation;
+            debugger;
 
             /**
              * If we're continuing a compound stimulation, like if we've just
@@ -2256,10 +2258,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 textInfo = this.getTextInfo({ srcIbGib: ibGib });
             }
 
-            let targets: StimulationTarget[] = [
-                { "@toStimulate": addr, "@toStimulateTjp": tjpAddr },
-            ];
-
+            // drive the stimulation by type at first
             let chooseFromTypes: StimulationType[];
             prevStimulations = (prevStimulations ?? []);
             if (prevStimulations.length === 0) {
@@ -2276,57 +2275,106 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 console.warn(`${lc} (UNEXPECTED) shouldn't get here? chooseFromTypes for stimulationType defaulting to choose from any known type. (W: dbdee7edb8b4461b802d328a3608eff1)`);
                 chooseFromTypes = Object.values(StimulationType);
             }
-            const stimulationType = pickRandom({ x: chooseFromTypes });
+            let stimulationType = pickRandom({ x: chooseFromTypes });
             if (logalot) { console.log(`${lc} stimulationType (${stimulationType}) chosen, having prevStimulations.length (${prevStimulations.length}) (I: 44b96f254d920ea87b0af8c8fe877722)`); }
 
-            // we've narroed down the stimulators to this point. now just pick
-            // one at random, though in the future this could be hooked up to an
-            // ANN of some sort.
-            let stimulator = pickRandom({ x: WORDY_STIMULATORS });
+            // now that we've chosen then type, narrow down stimulators to those
+            // that produce this type.
+            let stimulatorPool: Stimulator[] = [];
+            let stimulatorsForStimulationType = WORDY_STIMULATORS.filter(x => x.types.includes(stimulationType));
+            if (stimulatorsForStimulationType.length === 0) {
+                console.error(`${lc} (UNEXPECTED) no stimulators found for type '${stimulationType}'? defaulting to '${StimulationType.read}'. (E: 8789fb6a26f2433b86e6c7125a20c204)`);
+                stimulationType = 'read';
+                stimulatorsForStimulationType = WORDY_STIMULATORS.filter(x => x.types.includes(stimulationType));
+                if (stimulatorsForStimulationType.length === 0) { throw new Error(`(UNEXPECTED) no stimulator found even for '${StimulationType.read}'? (E: 93039a562d5758437fddae3467ebfb22)`); }
+            }
 
-            // get specific details depending on the stimulation chosen
-            let counter = 0;
-            let arbitraryMaxCounter = 10;
-            let details: StimulationDetails = undefined;
-            while (details === undefined && counter < arbitraryMaxCounter) {
-                details = await stimulator.getStimulationDetails({
-                    stimulationType,
-                    ibGib,
-                    prevStimulations,
-                    textInfo,
+            // we've narrowed down the stimulators by type. now narrow down by
+            // more expensive checking from the stimulators themselves.
+            for (let i = 0; i < stimulatorsForStimulationType.length; i++) {
+                const stimulator = stimulatorsForStimulationType[i];
+                const canStimulate = await stimulator.canStimulate({
+                    ibGibs: [ibGib], prevStimulations, stimulationType, textInfo,
                 });
-                counter++;
+                if (canStimulate) { stimulatorPool.push(stimulator); }
             }
-            if (details === undefined) { throw new Error(`(UNEXPECTED) details undefined after ${arbitraryMaxCounter} attempts? (E: 652b4389904dc43497fddb093aba8722)`); }
+            if (stimulatorPool.length === 0) { debugger; throw new Error(`(UNEXPECTED) stimulatorPool empty? should have at least found a ${StimulationType.read} stimulator. (E: aa6598f391590b89c708d81a7b5cc622)`); }
 
-            let stimulationScope: StimulationScope;
-            if (textInfo.paragraphs?.length > 15) {
-                // has multiple paragraphs
-                stimulationScope = 'paragraph';
-            } else if (textInfo.lines?.length > 1) {
-                // has multiple lines
-                stimulationScope = 'line';
-            } else if (textInfo.wordCount > 4) {
-                // has a decent length phrase/sentence
-                stimulationScope = 'word';
-            } else {
-                // has only a few words
-                stimulationScope = pickRandom({ x: ['all', 'letter'] });
+            resStimulation = await this.getStimulationFromStimulatorPool({
+                stimulatorPool, ibGibs: [ibGib], prevStimulations, stimulationType, textInfo
+            });
+
+            return resStimulation;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    /**
+     * we've narrowed down to the smallest pool of candidate at this point. now
+     * just pick one at random, though in the future this could be hooked up to
+     * an ANN of some sort or simply a better algorithm.
+     */
+    protected async getStimulationFromStimulatorPool({
+        stimulatorPool,
+        ibGibs,
+        prevStimulations,
+        stimulationType,
+        textInfo,
+    }: {
+        stimulatorPool: Stimulator[],
+        ibGibs: IbGib_V1[],
+        prevStimulations: Stimulation[],
+        stimulationType: StimulationType,
+        textInfo: WordyTextInfo,
+    }): Promise<Stimulation> {
+        const lc = `${this.lc}[${this.getStimulationFromStimulatorPool.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 5e29331c7d798d8edc4937c481579c22)`); }
+
+            let resStimulation: Stimulation;
+
+            /**
+             * we will narrow down the pool in case the one(s) we pick do not
+             * produce a stimulation.
+             */
+            let culledPool = stimulatorPool.concat();
+
+            while (!resStimulation && culledPool.length > 0) {
+                const stimulator = pickRandom({ x: culledPool });
+                try {
+
+                    // produce the stimulation itself.
+                    resStimulation = await stimulator.getStimulation({
+                        ibGibs, prevStimulations, stimulationType, textInfo,
+                    });
+
+                    if (logalot) {
+                        console.log(`${lc} resStimulation... (I: 3c1546e0d5c2dfccab8650f24caec722)`);
+                        console.dir(resStimulation);
+                    }
+                } catch (err) {
+                    console.error(`{lc}[try getStimulation] ${err.message ?? 'some error'} (E: ff0d1ff05894470da74f0a4e5d5a116d)`);
+                }
+                if (!resStimulation) {
+                    culledPool = culledPool.filter(x => x.instanceId !== stimulator.instanceId);
+                    if (culledPool.length > 0) {
+                        // try again, but warn. atow, I have no idea if this
+                        // will be common or what.
+                        console.warn(`${lc} stimulator (name: ${stimulator.name}, instanceId: ${stimulator.instanceId}) failed to create stimulation. trying another stimulator... (W: e5166d4bff9749139340e971a4cabc30)`);
+                    } else {
+                        // nothing produced, so throw
+                        const stimulatorNames = stimulatorPool.map(x => x.name);
+                        throw new Error(`Of original stimulators, we were unable to produce stimulation. stimulatorNames: (${stimulatorNames.length}): ${stimulatorNames.join(',')} (E: 71b94402b58d487f952aa61486369e22)`);
+                    }
+                }
             }
+            if (!resStimulation) { throw new Error(`(UNEXPECTED) resStimulation still falsy? should have already thrown by now. (E: b77cde4e4a4a6b18d413b698032cfa22)`); }
 
-
-
-            // let expectsResponse = getExpectsResponse({ stimulationType });
-
-            // details.isComplete = this.getIsComplete({ ibGib, stimulationType, stimulationScope, prevStimulation });
-
-            resStimulation = {
-                stimulationType, stimulationScope,
-                targets,
-                expectsResponse: false, // just to compile, not the right value
-                commentText: '',
-            }
-            if (details) { resStimulation.details = details; }
+            if (logalot) { console.log(`${lc} resStimulation... (I: 8af31a138aa5ec2812dd31b2d2365122)`); console.dir(resStimulation); }
 
             return resStimulation;
         } catch (error) {
