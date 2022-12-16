@@ -13,6 +13,7 @@ import {
     StimulateArgs, Stimulation, StimulationScope, StimulationTarget, StimulationType, Stimulator
 } from '.././types';
 import { getTargets } from '.././helper';
+import { Lex, LexData } from 'src/app/common/helper/lex';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
@@ -37,6 +38,13 @@ export abstract class StimulatorBase implements Stimulator {
     get version(): string { return this.getVersion(); }
     get types(): StimulationType[] { return this.getTypes(); }
 
+    #lex: Lex;
+    /**
+     * Each stimulator has its own lex data that it will use in generating the
+     * `stimulation.commentText`.
+     */
+    protected get lex(): Lex { return this.#lex; }
+
     constructor() {
         this.#initialized = this.initialize(); // spins off!
     }
@@ -48,6 +56,8 @@ export abstract class StimulatorBase implements Stimulator {
         // idempotent ready initializer
         if (this.#initialized) { return this.#initialized; }
 
+        await this.initialize_lex();
+
         return new Promise(resolve => {
             const delayMs = Math.ceil(Math.random() * 5_000);
             setTimeout(async () => {
@@ -55,6 +65,34 @@ export abstract class StimulatorBase implements Stimulator {
                 resolve();
             }, delayMs);
         });
+    }
+
+    /**
+     * convenience method to grab the lex data used in the stimulator's lex
+     * object.
+     */
+    protected abstract getLexData(): Promise<LexData>;
+
+    /**
+     * initializes this.#lex with lex data from {@link getLexData}.
+     */
+    protected async initialize_lex(): Promise<void> {
+        const lc = `${this.lc}[${this.initialize_lex.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: b53b3532d1cc4a9db1da6f97adfc6b5c)`); }
+
+            const lexData = await this.getLexData();
+            this.#lex = new Lex<any>(lexData, {
+                defaultPropsMode: 'props',
+                defaultKeywordMode: 'all',
+                defaultLineConcat: 'paragraph', // outgoing robbot defaults to multiple paragraphs.
+            });
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
     }
 
     /**

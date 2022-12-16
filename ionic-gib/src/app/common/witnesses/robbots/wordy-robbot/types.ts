@@ -11,6 +11,7 @@ import {
     SemanticId, SemanticHandler,
     RobbotPropsData,
     RobbotInteractionIbGib_V1,
+    SemanticInfo,
 } from '../../../types/robbot';
 import { CommentIbGib_V1 } from '../../../types/comment';
 // import { Stimulation, StimulationDetails, StimulationDetails_Blank, StimulationScope, StimulationTarget, StimulationType, WORDY_STIMULATORS } from './stimulators';
@@ -188,7 +189,7 @@ export const WordySemanticId = {
     blank: "semantic_blank" as WordySemanticId,
     // lines: 'semantic_lines' as WordySemanticId,
     done: "semantic_done" as WordySemanticId,
-    what_next: "semantic_what_next",
+    what_next: "semantic_what_next" as WordySemanticId,
     change_up: "semantic_change_up" as WordySemanticId,
 }
 
@@ -434,9 +435,40 @@ export interface StimulationDetails_Blank extends StimulationDetails {
 }
 
 export interface StimulateArgs {
+    /**
+     * Original driving ibGib(s) information that contains, among other things,
+     * the raw comment text that is driving the stimulation.
+     *
+     * This is like the raw prompt text in a CLI. So the raw text may be
+     *
+     *     ?learn lines
+     *
+     * or it may contain parameter-like specifications:
+     *
+     *     ?learn lines from volare
+     */
+    semanticInfo: SemanticInfo,
+    /**
+     * This is the target ibGib(s) that we're working on.
+     *
+     * @example
+     *     { ib: comment nelbludipintodiblu, gib: ABC123, data: {...}, rel8ns: {...} }
+     */
     ibGibs: IbGib_V1[],
+    /**
+     * Type of stimulation that we're narrowed down to use for stimulation.
+     */
     stimulationType: StimulationType,
+    /**
+     * list of previous stimulations for the given ibGibs.
+     *
+     * Note that each `prevStimulations[x].targets` noly has to intersect at least once with
+     * any of the given `ibGibs`.
+     */
     prevStimulations: Stimulation[],
+    /**
+     * word analysis of the given `ibGibs`.
+     */
     textInfo: WordyTextInfo,
 }
 

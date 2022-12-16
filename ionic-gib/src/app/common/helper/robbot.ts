@@ -488,7 +488,6 @@ export function parseInteractionIb({
         if (ibValidationErrors.length > 0) { throw new Error(`ib (${ib}) has validationErrors: ${ibValidationErrors} (E: c1b8c65524561ae67f58b237ba12fb22)`); }
 
         let [atom, type, timestampInTicks, subjectTjpGibsString, addlDetailsText] = ib.split(' ');
-        debugger;
         if (atom !== ROBBOT_INTERACTION_ATOM) {
             console.warn(`${lc} atom !== default robbot interaction atom (${atom} !== ${ROBBOT_INTERACTION_ATOM}) (W: 9102868391174bbc90c54cb53726a4de)`);
         }

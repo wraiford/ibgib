@@ -908,7 +908,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[${this.getPreviousInteractions.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 7931fecbf0856aac0a78c5e541b3d222)`); }
-            debugger;
             // each stimulation interaction has a subject tjpgib in its ib field.
 
             const tjpGib = getGibInfo({ gib: ibGib.gib }).tjpGib;
@@ -984,8 +983,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         const lc = `${this.lc}[${this.handleSemantic_learn.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 32e7907bf40c4723a0b1a9091c3b7047)`); }
-            debugger;
 
+            const clearWorking = () => {
+                delete this._currentWorkingInfos;
+            }
             // interactions have the subject tjp gibs in their ib fields (as
             // well as in internal data field).
             // get the stimulation
@@ -1003,19 +1004,20 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 // the user has requested to learn even though we're expecting a response
                 forceNew = true;
                 speechChangeUpText = this._robbotLex.get(WordySemanticId.change_up).text;
-                delete this._currentWorkingInfos;
+                clearWorking();
             }
 
             // either the previous stimulation completed or this is the first stimulation
             if (!this._currentWorkingInfos) { await this.loadNextWorkingInfo({ semanticInfo: info }); }
             const currentWorkingTjpAddrs = Object.keys(this._currentWorkingInfos);
             const currentWorkingIbGibsCount = currentWorkingTjpAddrs.length;
-            debugger;
+
+            let nextStimulation: Stimulation;
             if (currentWorkingIbGibsCount === 1) {
                 // stimulate the single ibgib based on previous stimulations
                 const currentIbGibInfo = this._currentWorkingInfos[currentWorkingTjpAddrs[0]];
                 const { addr, ibGib, tjpAddr, prevInteractions, prevStimulations, textInfo } = currentIbGibInfo;
-                let nextStimulation = await this.getNextStimulation({ semanticInfo: info, currentIbGibInfo, forceNew });
+                nextStimulation = await this.getNextStimulation({ semanticInfo: info, currentIbGibInfo, forceNew });
             } else if (currentWorkingIbGibsCount > 1) {
                 throw new Error(`multiple current working ibgibs not impl yet (E: ae63a68b41b2ebc89b63dbc188668922)`);
             } else {
@@ -1083,15 +1085,17 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // const speech = `${lineIndex}: ${}`
             // if (!speech) { throw new Error(`(UNEXPECTED) speech falsy? (E: 941e57036473404c6f1a432e388d6522)`); }
 
-            let stimulation: Stimulation;
-
             const data = await this.getRobbotInteractionData({
                 type: RobbotInteractionType.stimulation,
-                commentText: stimulation.commentText,
-                details: <Stimulation>stimulation,
+                commentText: nextStimulation.commentText,
+                details: <Stimulation>nextStimulation,
             });
 
-            this.#expectingResponse = true;
+            this.#expectingResponse = nextStimulation.expectsResponse;
+
+            if (nextStimulation.isComplete) {
+                clearWorking();
+            }
 
             const ibGib = await getInteractionIbGib_V1({ data });
             return ibGib;
@@ -2197,7 +2201,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
              * The resulting stimulation we're going to populate.
              */
             let resStimulation: Stimulation;
-            debugger;
 
             /**
              * If we're continuing a compound stimulation, like if we've just
@@ -2295,13 +2298,14 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 const stimulator = stimulatorsForStimulationType[i];
                 const canStimulate = await stimulator.canStimulate({
                     ibGibs: [ibGib], prevStimulations, stimulationType, textInfo,
+                    semanticInfo,
                 });
                 if (canStimulate) { stimulatorPool.push(stimulator); }
             }
             if (stimulatorPool.length === 0) { debugger; throw new Error(`(UNEXPECTED) stimulatorPool empty? should have at least found a ${StimulationType.read} stimulator. (E: aa6598f391590b89c708d81a7b5cc622)`); }
 
             resStimulation = await this.getStimulationFromStimulatorPool({
-                stimulatorPool, ibGibs: [ibGib], prevStimulations, stimulationType, textInfo
+                stimulatorPool, ibGibs: [ibGib], prevStimulations, stimulationType, textInfo, semanticInfo
             });
 
             return resStimulation;
@@ -2324,12 +2328,14 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         prevStimulations,
         stimulationType,
         textInfo,
+        semanticInfo,
     }: {
         stimulatorPool: Stimulator[],
         ibGibs: IbGib_V1[],
         prevStimulations: Stimulation[],
         stimulationType: StimulationType,
         textInfo: WordyTextInfo,
+        semanticInfo: SemanticInfo,
     }): Promise<Stimulation> {
         const lc = `${this.lc}[${this.getStimulationFromStimulatorPool.name}]`;
         try {
@@ -2349,7 +2355,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
                     // produce the stimulation itself.
                     resStimulation = await stimulator.getStimulation({
-                        ibGibs, prevStimulations, stimulationType, textInfo,
+                        ibGibs, stimulationType, prevStimulations, textInfo, semanticInfo,
                     });
 
                     if (logalot) {
