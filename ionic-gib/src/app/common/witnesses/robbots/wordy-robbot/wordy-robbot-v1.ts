@@ -141,13 +141,13 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     /**
      * If a new child comes down the pipeline, then we should be ready for it.
      */
-    #expectingResponse: boolean;
+    _expectingResponse: boolean;
 
-    #responseSubj = new ReplaySubject<IbGib_V1>;
+    _responseSubj = new ReplaySubject<IbGib_V1>;
     /**
      * when expecting a response,
      */
-    readonly #responseObs$ = this.#responseSubj.asObservable();
+    readonly _responseObs$ = this._responseSubj.asObservable();
 
     constructor(initialData?: WordyRobbotData_V1, initialRel8ns?: WordyRobbotRel8ns_V1) {
         super(initialData, initialRel8ns); // calls initialize
@@ -1024,9 +1024,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 throw new Error(`(UNEXPECTED) currentWorkingInfos not initialized? (E: 2d7bf80d321706e5f61b2dc48c898922)`);
             }
 
-
-            debugger;
-
             // if we're working on a current ibgib, then get the next blank line
             // based on the previous interactions. So look through interactions
             // for lines stimulations that correspond to the current comment.
@@ -1091,7 +1088,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 details: <Stimulation>nextStimulation,
             });
 
-            this.#expectingResponse = nextStimulation.expectsResponse;
+            this._expectingResponse = nextStimulation.expectsResponse;
 
             if (nextStimulation.isComplete) {
                 clearWorking();
@@ -1117,7 +1114,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 return false;
             }
 
-            return this.#expectingResponse;
+            return this._expectingResponse;
         } catch (error) {
             debugger;
             console.error(`${lc} ${error.message}`);
@@ -1134,7 +1131,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             // cancel stimulation
             throw new Error(`not impl atow (E: 511d356c217700e9cde2d62968ebd222)`);
-            this.#expectingResponse = false;
+            this._expectingResponse = false;
             // delete this._currentWorkingComments;
             // delete this._currentWorkingCommentTextInfo;
             // what else? todo: extra stimulation cancellation when stop issued
@@ -1576,7 +1573,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (isRequestComment({ ibGib: newChild, requestEscapeString: this.data.requestEscapeString })) {
                 await this.promptNextInteraction({ ibGib: newChild, isRequest: true });
             } else if (isComment({ ibGib: newChild }) && this.session) {
-                if (this.#expectingResponse) {
+                if (this._expectingResponse) {
                     // in the middle of a session and someone else's comment has come to us
                     // there will be an issue if the robbot chooses to import a request ibgib...hmm
                     await this.promptNextInteraction({ ibGib: newChild, isRequest: false });

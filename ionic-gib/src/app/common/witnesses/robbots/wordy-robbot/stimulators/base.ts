@@ -28,25 +28,25 @@ const logalot = c.GLOBAL_LOG_A_LOT || true;
 export abstract class StimulatorBase implements Stimulator {
     protected lc: string = `[${StimulatorBase.name}]`;
 
-    #initialized: Promise<void>;
-    get initialized(): Promise<void> { return this.#initialized; }
+    _initialized: Promise<void>;
+    get initialized(): Promise<void> { return this._initialized; }
 
-    #instanceId: string;
-    get instanceId(): string { return this.#instanceId; }
+    _instanceId: string;
+    get instanceId(): string { return this._instanceId; }
 
     get name(): string { return this.getName(); }
     get version(): string { return this.getVersion(); }
     get types(): StimulationType[] { return this.getTypes(); }
 
-    #lex: Lex;
+    _lex: Lex;
     /**
      * Each stimulator has its own lex data that it will use in generating the
      * `stimulation.commentText`.
      */
-    protected get lex(): Lex { return this.#lex; }
+    protected get lex(): Lex { return this._lex; }
 
     constructor() {
-        this.#initialized = this.initialize(); // spins off!
+        this._initialized = this.initialize(); // spins off!
     }
 
     /**
@@ -54,14 +54,14 @@ export abstract class StimulatorBase implements Stimulator {
      */
     async initialize(): Promise<void> {
         // idempotent ready initializer
-        if (this.#initialized) { return this.#initialized; }
+        // if (this._initialized) { return this._initialized; }
 
         await this.initialize_lex();
 
         return new Promise(resolve => {
             const delayMs = Math.ceil(Math.random() * 5_000);
             setTimeout(async () => {
-                this.#instanceId = (await h.getUUID()).slice(0, 8);
+                this._instanceId = (await h.getUUID()).slice(0, 8);
                 resolve();
             }, delayMs);
         });
@@ -74,7 +74,7 @@ export abstract class StimulatorBase implements Stimulator {
     protected abstract getLexData(): Promise<LexData>;
 
     /**
-     * initializes this.#lex with lex data from {@link getLexData}.
+     * initializes this._lex with lex data from {@link getLexData}.
      */
     protected async initialize_lex(): Promise<void> {
         const lc = `${this.lc}[${this.initialize_lex.name}]`;
@@ -82,7 +82,7 @@ export abstract class StimulatorBase implements Stimulator {
             if (logalot) { console.log(`${lc} starting... (I: b53b3532d1cc4a9db1da6f97adfc6b5c)`); }
 
             const lexData = await this.getLexData();
-            this.#lex = new Lex<any>(lexData, {
+            this._lex = new Lex<any>(lexData, {
                 defaultPropsMode: 'props',
                 defaultKeywordMode: 'all',
                 defaultLineConcat: 'paragraph', // outgoing robbot defaults to multiple paragraphs.
