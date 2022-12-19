@@ -624,3 +624,52 @@ export function getFileReaderHack(): FileReader {
         if (logalot) { console.log(`${lc} complete.`); }
     }
 }
+
+/**
+ * checks for mouse/trackball presence and infers keyboard when one is detected.
+ *
+ * ## aside
+ *
+ * It's amazing this isn't in an API...
+ *
+ * @returns true if by magical inference there is probably* a keyboard
+ */
+export function weHaveAPhysicalKeyboardProbably(): boolean {
+    const lc = `${weHaveAPhysicalKeyboardProbably.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 70a952db8e1f23263ba98607def6f422)`); }
+        const hasHover = window?.matchMedia?.('(hover:hover)').matches;
+        const hasPointerFine = window?.matchMedia?.('(pointer:fine)').matches;
+        return hasHover && hasPointerFine;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
+/**
+ * Check for either a physical keyboard or a relatively large window
+ *
+ * ## notes
+ *
+ * Such a long silly name because it's silly we don't have a better way of
+ * detecting this with an official API.
+ *
+ * @returns true if we think that we're running on mobile
+ */
+export function weAreRunningOnMobileProbably(): boolean {
+    const lc = `${weAreRunningOnMobileProbably.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 5fd8deba6cb8cd40633c69371df95f22)`); }
+        const keyboard = weHaveAPhysicalKeyboardProbably();
+        const isMightyLargeForMobile = window.innerWidth > 810;
+        return keyboard || isMightyLargeForMobile;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}

@@ -254,7 +254,7 @@ export const StimulationScope = {
 export type StimulationType =
     'read' |
     'say' |
-    'type' |
+    'echo' |
     'blank' |
     'seed'
     ;
@@ -268,9 +268,9 @@ export const StimulationType = {
      */
     'say': 'say' as StimulationType,
     /**
-     * The user is asked to type the given unit of type {@link StimulationScope}
+     * The user is asked to echo (i.e. type) the given unit of type {@link StimulationScope}
      */
-    'type': 'type' as StimulationType,
+    'echo': 'echo' as StimulationType,
     /**
      * A unit of type {@link StimulationScope} is blanked out.
      *
@@ -298,7 +298,7 @@ export function getExpectsResponse({ stimulationType }: { stimulationType: Stimu
         if (logalot) { console.log(`${lc} starting... (I: 416b47d45164ab2194ebbdca893eec22)`); }
         switch (stimulationType) {
             case 'read': return false;
-            case 'type': return true;
+            case 'echo': return true;
             case 'blank': return true;
             case 'seed': return true;
             default: throw new Error(`unknown stimulationType: ${stimulationType} (E: 08200b453d891734bf5fd76cb0f98522)`);
@@ -375,6 +375,14 @@ export interface Stimulation {
      */
     expectsResponse?: boolean;
     /**
+     * The text possibilities which we expect in the user's response or
+     * feedback.
+     *
+     * So if we blanked out certain strings in a text, then these will be the
+     * blanked out texts. Same goes for user echoed string(s) and the like.
+     */
+    expectedTexts?: string[];
+    /**
      * When providing at least one response, these are the soft link addresses.
      */
     '@responseList'?: IbGibAddr[];
@@ -383,8 +391,7 @@ export interface Stimulation {
      * expected regarding it.
      *
      * If {@link expectsFeedback} and {@link expectsResponse} are both falsy,
-     * then this should be set to true (though ultimately it's the lack of
-     * both of those that is directly meaningful).
+     * then this should be set to true.
      */
     isComplete?: boolean;
     /**
@@ -395,10 +402,15 @@ export interface Stimulation {
      */
     commentText: string;
     /**
-     * If we are stimulating an ibgib multiple times, this tracks the number of
-     * times in a given stimulation sequence.
+     * If we are stimulating an ibgib multiple times, i.e. a "saga", this tracks
+     * the 0-indexed number of times in a given stimulation sequence.
      */
-    consecutiveCount?: number;
+    saga_n?: number;
+    /**
+     * If we are stimulating an ibgib multiple times, i.e. a "saga", this tracks
+     * the remaining number of stimulations planned.
+     */
+    saga_remaining?: number;
     /**
      * If the stimulation requires extra parameters, they should be put here.
      *

@@ -59,6 +59,7 @@ import {
 import {
     WORDY_STIMULATORS
 } from './stimulators';
+import { getWordyTextInfo } from './helper';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
@@ -113,7 +114,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 if (interaction.data.details) {
                     stimulations.push(interaction.data.details);
                 } else {
-                    throw new Error(`(UNEXPECTED) invalid interaction. data.type === 'stimulation' but data.details is falsy? addr: ${h.getIbGibAddr({ ibGib: interaction })}(E: 3edaae3f42abc5eaebaf2f1c799f1f22)`);
+                    throw new Error(`(UNEXPECTED) invalid interaction. data.type === 'stimulation' but data.details is falsy? addr: ${h.getIbGibAddr({ ibGib: interaction })} (E: 3edaae3f42abc5eaebaf2f1c799f1f22)`);
                 }
             }
         }
@@ -141,7 +142,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     /**
      * If a new child comes down the pipeline, then we should be ready for it.
      */
-    _expectingResponse: boolean;
+    _expectingChild: boolean;
 
     _responseSubj = new ReplaySubject<IbGib_V1>;
     /**
@@ -472,8 +473,9 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             super.initialize_semanticHandlers();
 
             this._semanticHandlers = {
-                // atow this is just mapping the default to the default handler method
-                ...this._semanticHandlers,
+                // atow this is just mapping the SemanticId.default/unknown to
+                // the default handler method
+                ...super._semanticHandlers,
 
                 [SemanticId.hello]: [
                     {
@@ -999,12 +1001,17 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             let forceNew = false;
             let speechChangeUpText: string;
             if (this.prevStimulation?.expectsFeedback || this.prevStimulation?.expectsResponse) {
+                debugger;
                 // the user has requested to learn even though we're expecting feedback
                 // ...OR
                 // the user has requested to learn even though we're expecting a response
                 forceNew = true;
                 speechChangeUpText = this._robbotLex.get(WordySemanticId.change_up).text;
                 clearWorking();
+            } else if (this.prevStimulation) {
+                debugger;
+            } else {
+                debugger;
             }
 
             // either the previous stimulation completed or this is the first stimulation
@@ -1088,14 +1095,55 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 details: <Stimulation>nextStimulation,
             });
 
-            this._expectingResponse = nextStimulation.expectsResponse;
+            // set expecting response, either per stimulation or this robbot
+            this._expectingChild =
+                await this.handleSemantic_learn_getExpectingResponse({ info, nextStimulation });
 
-            if (nextStimulation.isComplete) {
-                clearWorking();
-            }
+            if (nextStimulation.isComplete) { clearWorking(); }
 
             const ibGib = await getInteractionIbGib_V1({ data });
             return ibGib;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+    /**
+     * There are two ways that we're expecting a response.
+     *
+     * 1. If the stimulation itself is expecting a response, i.e., stimulation.isComplete == falsy
+     * 2. If the robbot is looking to do another stimulation.
+     *
+     * Right now, I'm thinking that a learn session should be 7 hoogle berries,
+     * but it is easier to implement it to always expect a response until we get
+     * a request to stop or the robbot's session is ended (either by navigating
+     * away or the user hitting the sleep button).
+     */
+    private async handleSemantic_learn_getExpectingResponse({
+        info,
+        nextStimulation,
+    }: {
+        info: SemanticInfo,
+        nextStimulation: Stimulation,
+    }): Promise<boolean> {
+        const lc = `${this.lc}[${this.handleSemantic_learn_getExpectingResponse.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 8ceffe8d93de70f867f5c354c603fe22)`); }
+            let expectingResponse: boolean;
+
+            if (!nextStimulation.isComplete) {
+                // the stimulation itself is expecting a response
+                expectingResponse = true;
+            } else {
+                // the stimulation is complete, but maybe this wordy robbot wants to keep going.
+                // for now, we're always returning true until we get a request to stop.
+                // (so this if...else statement won't look so strange)
+                expectingResponse = true;
+            }
+
+            return expectingResponse;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -1113,8 +1161,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 console.log(`${lc} nothing to work on. returning false. (I: 8bd42da50367466da9e21886ff6a0f8b)`)
                 return false;
             }
-
-            return this._expectingResponse;
+            return this._expectingChild;
         } catch (error) {
             debugger;
             console.error(`${lc} ${error.message}`);
@@ -1130,10 +1177,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} starting... (I: 7786969633e1459c9a6991c7c5a15954)`); }
 
             // cancel stimulation
-            throw new Error(`not impl atow (E: 511d356c217700e9cde2d62968ebd222)`);
-            this._expectingResponse = false;
-            // delete this._currentWorkingComments;
-            // delete this._currentWorkingCommentTextInfo;
+            this._expectingChild = false;
+            if (this._currentWorkingInfos) {
+                delete this._currentWorkingInfos;
+            }
             // what else? todo: extra stimulation cancellation when stop issued
 
             const speech = this._robbotLex.get(SemanticId.stop, {
@@ -1142,7 +1189,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             });
 
             const data = await this.getRobbotInteractionData({
-                type: RobbotInteractionType.stimulation,
+                type: RobbotInteractionType.info,
                 commentText: speech.text,
             });
 
@@ -1573,7 +1620,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (isRequestComment({ ibGib: newChild, requestEscapeString: this.data.requestEscapeString })) {
                 await this.promptNextInteraction({ ibGib: newChild, isRequest: true });
             } else if (isComment({ ibGib: newChild }) && this.session) {
-                if (this._expectingResponse) {
+                if (this._expectingChild) {
                     // in the middle of a session and someone else's comment has come to us
                     // there will be an issue if the robbot chooses to import a request ibgib...hmm
                     await this.promptNextInteraction({ ibGib: newChild, isRequest: false });
@@ -1756,29 +1803,37 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 return null;
             }
 
-            const paragraphs = text.split(/\n\n+/g).map(x => x.trim());
-            const lines = text.trim().split('\n').filter(x => !!x).map(x => x.trim());
-            const wordInfos: { [word: string]: WordyUniqueWordInfo } = {};
-            const sortedWords = text.match(/\b(\w+)['\-]?(\w+)?\b/g).map(x => x.toLowerCase()).sort();
-            const wordCount = sortedWords.length;
-            const uniqueWords = unique(sortedWords);
-            for (let j = 0; j < uniqueWords.length; j++) {
-                const word = uniqueWords[j];
-                const wordInfo: WordyUniqueWordInfo = {
-                    paragraphIncidence: paragraphs.filter(x => x.toLowerCase().includes(word)).length,
-                    lineIncidence: lines.filter(x => x.toLowerCase().includes(word)).length,
-                    srcIncidence: 1,
-                    totalIncidence: (text.toLowerCase().match(new RegExp(`\\b${word}\\b`, 'gm')) ?? []).length,
-                };
-                wordInfos[word] = wordInfo;
-            }
+            // const paragraphs = text.split(/\n\n+/g).map(x => x.trim());
+            // const lines = text.trim().split('\n').filter(x => !!x).map(x => x.trim());
+            // const wordInfos: { [word: string]: WordyUniqueWordInfo } = {};
+            // const sortedWords = text.match(/\b(\w+)['\-]?(\w+)?\b/g).map(x => x.toLowerCase()).sort();
+            // const wordCount = sortedWords.length;
+            // const uniqueWords = unique(sortedWords);
+            // for (let j = 0; j < uniqueWords.length; j++) {
+            //     const word = uniqueWords[j];
+            //     const wordInfo: WordyUniqueWordInfo = {
+            //         paragraphIncidence: paragraphs.filter(x => x.toLowerCase().includes(word)).length,
+            //         lineIncidence: lines.filter(x => x.toLowerCase().includes(word)).length,
+            //         srcIncidence: 1,
+            //         totalIncidence: (text.toLowerCase().match(new RegExp(`\\b${word}\\b`, 'gm')) ?? []).length,
+            //     };
+            //     wordInfos[word] = wordInfo;
+            // }
 
-            const info: WordyTextInfo = {
-                srcType: srcIbGib ? 'comment' : undefined,
-                srcIbGib, srcAddr,
-                text, paragraphs, lines,
-                wordInfos, wordCount,
-            };
+            // const info: WordyTextInfo = {
+            //     srcType: srcIbGib ? 'comment' : undefined,
+            //     srcIbGib, srcAddr,
+            //     text, paragraphs, lines,
+            //     wordInfos, wordCount,
+            // };
+
+            const info = getWordyTextInfo({ text: text })
+
+            if (srcIbGib) {
+                info.srcType = 'comment';
+                info.srcIbGib = srcIbGib;
+                info.srcAddr = srcAddr;
+            }
 
             if (logalot) {
                 console.log(`${lc} commentInfo: ${h.pretty(info)} (I: 3a36a4f8650efbd4d42d376e24fd0322)`);
@@ -2265,8 +2320,11 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 // first time is always read
                 chooseFromTypes = ['read'];
             } else if (prevStimulations.length > 0 && prevStimulations.length <= 2) {
-                chooseFromTypes = ['say', 'type'];
+                debugger;
+                // chooseFromTypes = ['say', 'echo'];
+                chooseFromTypes = ['echo']; // debug
             } else if (prevStimulations.length > 2 && prevStimulations.length < 7) {
+                debugger;
             } else if (prevStimulations.length >= 7) {
                 console.warn(`${lc} hard-coded seed length to 7. ibGib addr: ${addr} (W: a3757a31c10f4b9aae228fc63f8a9e80)`);
                 chooseFromTypes = ['seed']
@@ -2663,7 +2721,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             } else if (isRequest) {
                 // someone has issued a request
                 return await this.getNextInteraction_PerRequest({ request: ibGib });
-            } else {
+            } else if (this._expectingChild) {
                 // ibgib added to context that may be a response to a
                 // question, or is not relevant (but it isn't a request)
                 return await this.getNextInteraction_PerNonRequest({ nonRequest: ibGib });
@@ -2906,7 +2964,28 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} starting... (I: 6bc390410be642518ff0babfc888d220)`); }
 
             debugger;
-            throw new Error(`not impl yet (E: 121714b00e92505321c95e9792fec722)`);
+            throw new Error(`not impl (E: e736fd37f2a49b39d629b925bfb00922)`);
+            // validate
+
+            // get our handlers that correspond to this semanticId at this point in time
+            // const info: SemanticInfo = {other: nonRequest};
+            // const handlersThatCanExecute =
+            //     await this.getHandlersThatCanExecute({ semanticId, info });
+            // if (handlersThatCanExecute.length === 0) { throw new Error(`no handlers anywhere and what up with no default handler? (E: e1fc96c2ea63abbe1c02fffff4f41322)`); }
+
+            // // get the interaction produced in our pipeline of handlers that can
+            // // execute. in the future, this can be smarter than simply returning
+            // // the first truthy interaction, including executing multiple paths
+            // // concurrently and choosing among them depending on, e.g., an
+            // // evaluation metric
+            // const interaction = await this.getInteractionFromHandlerPipeline({
+            //     info,
+            //     handlerPipeline: handlersThatCanExecute,
+            // });
+            // if (!interaction) { throw new Error(`no interaction produced. (E: d839ef8709d1793868ce9a2f8558e622)`); }
+
+            // // we're done
+            // return interaction;
 
             // if (!this.interactions) { this.interactions = []; } // inits here, maybe should elsewhere?
 

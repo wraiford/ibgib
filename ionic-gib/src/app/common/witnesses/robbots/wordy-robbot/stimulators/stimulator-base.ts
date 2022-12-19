@@ -1,4 +1,3 @@
-
 /**
  * stimulators
 */
@@ -7,12 +6,12 @@ import * as h from 'ts-gib/dist/helper';
 import { IbGib_V1 } from 'ts-gib/dist/V1';
 import { IbGibAddr } from 'ts-gib';
 
-import * as c from '../../../../../common/constants';
-import { pickRandom } from '../../../../../common/helper/utils';
+import * as c from '../../../../constants';
+import { pickRandom } from '../../../../helper/utils';
 import {
     StimulateArgs, Stimulation, StimulationScope, StimulationTarget, StimulationType, Stimulator
-} from '.././types';
-import { getTargets } from '.././helper';
+} from '../types';
+import { getTargets } from '../helper';
 import { Lex, LexData } from 'src/app/common/helper/lex';
 
 

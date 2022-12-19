@@ -25,7 +25,7 @@ import { PicIbGib_V1 } from '../../types/pic';
 import { BinIbGib_V1 } from '../../types/bin';
 import { RawExportIbGib_V1 } from '../../types/import-export';
 import { getTimelinesGroupedByTjp, } from '../../helper/ibgib';
-import { getFileReaderHack, isKeyboardEvent_Enter } from '../../helper/utils';
+import { weAreRunningOnMobileProbably, getFileReaderHack, isKeyboardEvent_Enter } from '../../helper/utils';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || false;
@@ -195,7 +195,8 @@ export class ActionBarComponent extends IbgibComponentBase
     let hasKeyboardProbably = hasHover && hasPointerFine;
     let isMightyLargeForMobile = this.platforms.includes("mobile") && window.innerWidth > 810;
 
-    let result = hasKeyboardProbably || isAutoSendPlatform || isMightyLargeForMobile;
+    // let result = hasKeyboardProbably || isAutoSendPlatform || isMightyLargeForMobile;
+    let result = isAutoSendPlatform || weAreRunningOnMobileProbably();
     return result;
   }
 

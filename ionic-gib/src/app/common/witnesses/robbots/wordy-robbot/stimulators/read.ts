@@ -11,7 +11,7 @@ import {
     StimulateArgs, Stimulation, StimulationScope, StimulationTarget, StimulationType, Stimulator
 } from '.././types';
 import { getTargets } from '.././helper';
-import { StimulatorBase } from './base';
+import { StimulatorBase } from './stimulator-base';
 import { LexData, PropsData } from '../../../../../common/helper/lex';
 import { SemanticId, toLexDatums_Semantics } from 'src/app/common/types/robbot';
 import { pickRandom } from '../../../../../common/helper/utils';
@@ -47,7 +47,7 @@ export class Stimulator_Read extends StimulatorBase {
                 [ReadSemanticId.read]: [
                     {
                         texts: [
-                            `Read over this:`,
+                            `# read`,
                             ``,
                             `$text`,
                         ],
@@ -137,7 +137,7 @@ export class Stimulator_ReadFirstLines extends StimulatorBase {
                 [ReadSemanticId.read]: [
                     {
                         texts: [
-                            `Read the first lines of each paragraph:`,
+                            `# first lines`,
                             ``,
                             `$text`,
                         ],
