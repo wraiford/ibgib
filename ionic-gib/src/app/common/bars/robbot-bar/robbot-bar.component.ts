@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, Output, ViewChild } from '@angular/core';
 import { Toast } from '@capacitor/toast';
 
 import * as h from 'ts-gib/dist/helper';
@@ -21,7 +21,7 @@ const debugBorder = c.GLOBAL_DEBUG_BORDER || false;
   templateUrl: './robbot-bar.component.html',
   styleUrls: ['./robbot-bar.component.scss'],
 })
-export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
+export class RobbotBarComponent extends IbgibComponentBase implements OnDestroy {
   protected lc: string = `[${RobbotBarComponent.name}]`;
 
   public debugBorderWidth: string = debugBorder ? "2px" : "0px"
@@ -66,12 +66,36 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
   @Output()
   robbotSelected = new EventEmitter<RobbotIbGib_V1>();
 
+  // debugInterval: any;
+
   constructor(
     protected common: CommonService,
     protected ref: ChangeDetectorRef,
 
   ) {
     super(common, ref);
+    // const lc = `${this.lc}[ctor]`;
+    // h.getUUID().then(id => {
+    //   this.debugInterval = setInterval(() => {
+    //     console.log(`${lc} ${id.substring(0, 5)} still kicking...`)
+    //   }, 3000);
+    // })
+  }
+
+  async ngOnDestroy(): Promise<void> {
+    const lc = `${this.lc}[${this.ngOnDestroy.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: 84ba7fd7e4bcd399911a5128264a9622)`); }
+      // clearInterval(this.debugInterval);
+      // delete this.debugInterval;
+      if (this._robbotWitness && this.robbotIsActive) { await this.deactivateCurrentRobbotWitness(); }
+      await super.ngOnDestroy();
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
   }
 
   async updateIbGib(addr: IbGibAddr): Promise<void> {
@@ -263,6 +287,40 @@ export class RobbotBarComponent extends IbgibComponentBase implements OnInit {
     const lc = `${this.lc}[${this.deactivateCurrentRobbotWitness.name}]`;
     try {
       if (logalot) { console.log(`${lc} starting... (I: 3d736debdf6a3eff72f1da2996d1e322)`); }
+
+      // robbot is already active, so deactivate it
+      const robbot = this._robbotWitness;
+      const argDeactivate = await robbot.argy({
+        argData: {
+          cmd: RobbotCmd.deactivate,
+          ibGibAddrs: [this.addr], // context
+        },
+        ibGibs: [this.ibGib], // context
+      });
+      const resCmd = await robbot.witness(argDeactivate);
+      const statusText = `${robbot.data?.outputPrefix ?? ''} gonna take a nap...see you latr. ${robbot.data?.outputSuffix ?? ''}`;
+
+      if (!resCmd) { throw new Error(`resCmd is falsy. (E: ab4cda964fc14a0fb505c3b307f8802d)`); }
+      if (isError({ ibGib: resCmd })) {
+        const errIbGib = <ErrorIbGib_V1>resCmd;
+        throw new Error(`errIbGib: ${h.pretty(errIbGib)} (E: e521899a399f4d7d855511ea9f45149c)`);
+      }
+
+      Toast.show({ text: statusText, duration: "long" }); // spins off...
+    } catch (error) {
+      console.error(`${lc} ${error.message}`);
+      throw error;
+    } finally {
+      this.robbotIsActive = false;
+      setTimeout(() => this.ref.detectChanges());
+      if (logalot) { console.log(`${lc} complete.`); }
+    }
+  }
+
+  async finalizeCurrentRobbotWitness(): Promise<void> {
+    const lc = `${this.lc}[${this.finalizeCurrentRobbotWitness.name}]`;
+    try {
+      if (logalot) { console.log(`${lc} starting... (I: f2949f76149e438e96e5ec73e2dfea0c)`); }
 
       // robbot is already active, so deactivate it
       const robbot = this._robbotWitness;

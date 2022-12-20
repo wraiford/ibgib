@@ -20,6 +20,7 @@ import {
     RobbotPropsData,
     DEFAULT_ROBBOT_LEX_DATA,
     DEFAULT_HUMAN_LEX_DATA,
+    SemanticHandlerResult,
 } from '../../types/robbot';
 import { WitnessBase_V1, } from '../witness-base-v1';
 import { CommentIbGib_V1 } from '../../types/comment';
@@ -143,7 +144,7 @@ export abstract class RobbotBase_V1<
 
     protected _semanticHandlers: { [semanticId: string]: SemanticHandler[] };
 
-    protected async handleSemanticDefault(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
+    protected async handleSemanticDefault(info: SemanticInfo): Promise<SemanticHandlerResult> {
         const lc = `${this.lc}[${this.handleSemanticDefault.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 01a2d1781851cc36b674f44b4fb69522)`); }
@@ -159,7 +160,7 @@ export abstract class RobbotBase_V1<
             });
 
             const interaction = await getInteractionIbGib_V1({ data });
-            return interaction;
+            return { interaction };
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -227,6 +228,7 @@ export abstract class RobbotBase_V1<
         const lc = `${this.lc}[${this.initialize_semanticHandlers.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: a0f2a11688963b0156e337e7f8604f22)`); }
+            debugger;
             this._semanticHandlers = {
                 [SemanticId.default]: [
                     {
@@ -1277,6 +1279,7 @@ export abstract class RobbotBase_V1<
 
             this._updatingContext = true;
             if (this._contextChangesSubscription) {
+                debugger;
                 this._contextChangesSubscription.unsubscribe();
                 delete this._contextChangesSubscription;
             }
@@ -1421,6 +1424,7 @@ export abstract class RobbotBase_V1<
         type,
         commentText,
         details,
+        expectingResponse,
         uuid,
         timestamp,
     }: {
@@ -1440,6 +1444,10 @@ export abstract class RobbotBase_V1<
          * interaction details.
          */
         details?: any,
+        /**
+         * if interaction intends to evoke a response
+         */
+        expectingResponse?: boolean,
         /**
          * If provided, will be the id of the interaction.
          */
@@ -1472,6 +1480,7 @@ export abstract class RobbotBase_V1<
                 type,
                 contextTjpGib,
                 commentText,
+                expectingResponse,
             };
 
             if (details) { data.details = details; }

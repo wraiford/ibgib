@@ -430,7 +430,6 @@ export abstract class IbgibComponentBase<TItem extends IbGibItem = IbGibItem>
         try {
             if (logalot) { console.log(`${lc} starting...`); }
 
-
             await this.cleanAndCacheCurrentItem();
             this.unsubscribeLatest();
             this.ngOnDestroy_Modal();

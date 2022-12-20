@@ -11,6 +11,7 @@ import {
     WitnessCmdData, WitnessCmdRel8ns, WitnessCmdIbGib,
     WitnessResultData, WitnessResultRel8ns, WitnessResultIbGib,
 } from "./witness";
+import { ReplaySubject } from 'rxjs';
 
 
 export type RobbotTransparency = 'transparent' | 'translucent' | 'opaque';
@@ -442,6 +443,11 @@ export interface RobbotInteractionData_V1 extends IbGibData_V1 {
      * If interaction is associated with a session, here is the session id.
      */
     sessionId?: string;
+    /**
+     * Flag to indicate if the interaction is expecting a response, like a
+     * question to be answered by the user.
+     */
+    expectingResponse?: boolean;
 }
 export interface RobbotInteractionRel8ns_V1 extends IbGibRel8ns_V1 {
 }
@@ -537,11 +543,21 @@ export const SemanticId = {
 };
 
 export interface SemanticInfo {
-    semanticId: SemanticId;
+    semanticId?: SemanticId;
     request?: IbGib_V1;
     other?: IbGib_V1;
+    isContinuation?: boolean;
 }
 
+export interface SemanticHandlerResult {
+    interaction: RobbotInteractionIbGib_V1;
+    /**
+     * If the handler is expecting a response (however the handler may interpret that response),
+     *
+     */
+    // responseSubject?: ReplaySubject<IbGib_V1 | null>;
+    // onResponse?: (response: IbGib_V1|null) => Promise<void>;
+}
 export interface SemanticHandler {
     /**
      * This should be a unique id for this handler.
@@ -555,12 +571,18 @@ export interface SemanticHandler {
      * If truthy, the robbot should execute this filter before
      * attempting to execute this handler's {@link fnExec}
      */
-    fnCanExec?: (info: SemanticInfo) => Promise<boolean>;
+    fnCanExec: (info: SemanticInfo) => Promise<boolean>;
     /**
      * Actual function of handler that gets executed if context is
-     * correct ({@link fnCanExec} is true).
+     * correct ({@link fnCanHandle} is true).
      */
-    fnExec?: (info: SemanticInfo) => Promise<RobbotInteractionIbGib_V1>;
+    fnExec: (info: SemanticInfo) => Promise<SemanticHandlerResult>;
+    /**
+     * If the user cancels the response and this is truthy, this is called.
+     */
+    fnCancelResponse?: () => Promise<void>;
+    // handleSubject$: ReplaySubject<SemanticInfo>;
+    // handleResult$: ReplaySubject<SemanticHandlerResult>;
 }
 
 export interface RobbotPropsData<TSemanticId extends SemanticId = SemanticId> extends PropsData {

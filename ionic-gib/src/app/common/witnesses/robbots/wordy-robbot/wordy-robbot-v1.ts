@@ -23,6 +23,7 @@ import {
     RobbotSessionIbGib_V1, RobbotSessionData_V1, RobbotSessionRel8ns_V1,
     ROBBOT_ANALYSIS_ATOM,
     DEFAULT_ROBBOT_REQUEST_ESCAPE_STRING,
+    SemanticHandlerResult,
 } from '../../../types/robbot';
 import { DynamicForm } from '../../../../ibgib-forms/types/form-items';
 import { DynamicFormFactoryBase } from '../../../../ibgib-forms/bases/dynamic-form-factory-base';
@@ -140,21 +141,23 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     protected alreadyHandledContextChildrenAddrs: IbGibAddr[] = [];
 
     /**
-     * If a new child comes down the pipeline, then we should be ready for it.
+     * The last handler to signal that it is expecting a response.
      */
-    _expectingChild: boolean;
+    protected handlerExpectingResponse: SemanticHandler;
 
-    _responseSubj = new ReplaySubject<IbGib_V1>;
-    /**
-     * when expecting a response,
-     */
-    readonly _responseObs$ = this._responseSubj.asObservable();
+    debugInterval: any;
 
     constructor(initialData?: WordyRobbotData_V1, initialRel8ns?: WordyRobbotRel8ns_V1) {
         super(initialData, initialRel8ns); // calls initialize
         const lc = `${this.lc}[ctor]`;
         try {
             if (logalot) { console.log(`${lc} starting...`); }
+            console.log(`${lc} still what?`)
+            h.getUUID().then(id => {
+                this.debugInterval = setInterval(() => {
+                    console.log(`${lc} ${id.substring(0, 8)} wordy robbot still kicking...`)
+                }, 3000);
+            })
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -471,11 +474,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} starting... (I: 8a9f396f796d456e97a7b6ec7cc352d1)`); }
 
             super.initialize_semanticHandlers();
+            const superHandlers = { ...this._semanticHandlers };
 
             this._semanticHandlers = {
-                // atow this is just mapping the SemanticId.default/unknown to
-                // the default handler method
-                ...super._semanticHandlers,
+                ...superHandlers,
 
                 [SemanticId.hello]: [
                     {
@@ -585,6 +587,11 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             await this.completeSessionIfNeeded({ sayBye: false });
 
+            if (this.debugInterval) {
+                clearInterval(this.debugInterval);
+                delete this.debugInterval;
+            }
+
             return await super.finalizeContext({ arg });
         } catch (error) {
             console.error(`${lc} ${error.message}`);
@@ -599,7 +606,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     /**
      * We have started a new session, atow this is only when we click the Gib (chat) button.
      */
-    private async handleSemantic_hello_freshStart(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
+    private async handleSemantic_hello_freshStart(info: SemanticInfo): Promise<SemanticHandlerResult> {
         const lc = `${this.lc}[${this.handleSemantic_hello_freshStart.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 5632af01149bc9c3af56346c2fbda622)`); }
@@ -622,8 +629,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 commentText: sb.outputSpeech({}).text,
             });
 
-            const ibGib = await getInteractionIbGib_V1({ data });
-            return ibGib;
+            const interaction = await getInteractionIbGib_V1({ data });
+            return { interaction };
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -632,7 +639,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    private async handleSemantic_hello_continue(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
+    private async handleSemantic_hello_continue(info: SemanticInfo): Promise<SemanticHandlerResult> {
         const lc = `${this.lc}[${this.handleSemantic_hello_continue.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 96001be1ceab4c438469edb00e6d8f41)`); }
@@ -649,8 +656,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 commentText: hello.text,
             });
 
-            const ibGib = await getInteractionIbGib_V1({ data });
-            return ibGib;
+            const interaction = await getInteractionIbGib_V1({ data });
+            return { interaction };
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -662,7 +669,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     /**
      * Catchall when there is nothing to work on.
      */
-    private async handleSemantic_NothingToWorkOn(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
+    private async handleSemantic_NothingToWorkOn(info: SemanticInfo): Promise<SemanticHandlerResult> {
         const lc = `${this.lc}[${this.handleSemantic_NothingToWorkOn.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 5632af01149bc9c3af56346c2fbda622)`); }
@@ -678,8 +685,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 commentText: hello.text,
             });
 
-            const ibGib = await getInteractionIbGib_V1({ data });
-            return ibGib;
+            const interaction = await getInteractionIbGib_V1({ data });
+            return { interaction };
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -758,7 +765,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    private async handleSemantic_list(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
+    private async handleSemantic_list(info: SemanticInfo): Promise<SemanticHandlerResult> {
         const lc = `${this.lc}[${this.handleSemantic_list.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 27a9e811a4604c3f814c403ab3de61a0)`); }
@@ -777,8 +784,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 commentText: speech.text,
             });
 
-            const ibGib = await getInteractionIbGib_V1({ data });
-            return ibGib;
+            const interaction = await getInteractionIbGib_V1({ data });
+            return { interaction };
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -786,7 +793,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
-    private async handleSemantic_help(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
+    private async handleSemantic_help(info: SemanticInfo): Promise<SemanticHandlerResult> {
         const lc = `${this.lc}[${this.handleSemantic_help.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 17510159283247f6bce7239d71c5bf33)`); }
@@ -810,8 +817,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 commentText: speech.text,
             });
 
-            const ibGib = await getInteractionIbGib_V1({ data });
-            return ibGib;
+            const interaction = await getInteractionIbGib_V1({ data });
+            return { interaction };
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -981,7 +988,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
      *
      * @returns
      */
-    private async handleSemantic_learn(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
+    private async handleSemantic_learn(info: SemanticInfo): Promise<SemanticHandlerResult> {
         const lc = `${this.lc}[${this.handleSemantic_learn.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 32e7907bf40c4723a0b1a9091c3b7047)`); }
@@ -1089,20 +1096,21 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // const speech = `${lineIndex}: ${}`
             // if (!speech) { throw new Error(`(UNEXPECTED) speech falsy? (E: 941e57036473404c6f1a432e388d6522)`); }
 
+            const expectingResponse =
+                await this.handleSemantic_learn_getExpectingResponse({ info, nextStimulation });
+
             const data = await this.getRobbotInteractionData({
                 type: RobbotInteractionType.stimulation,
                 commentText: nextStimulation.commentText,
-                details: <Stimulation>nextStimulation,
+                details: nextStimulation,
+                expectingResponse,
             });
 
-            // set expecting response, either per stimulation or this robbot
-            this._expectingChild =
-                await this.handleSemantic_learn_getExpectingResponse({ info, nextStimulation });
 
             if (nextStimulation.isComplete) { clearWorking(); }
 
-            const ibGib = await getInteractionIbGib_V1({ data });
-            return ibGib;
+            const interaction = await getInteractionIbGib_V1({ data });
+            return { interaction };
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -1161,7 +1169,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 console.log(`${lc} nothing to work on. returning false. (I: 8bd42da50367466da9e21886ff6a0f8b)`)
                 return false;
             }
-            return this._expectingChild;
+            return !!this.handlerExpectingResponse;
         } catch (error) {
             debugger;
             console.error(`${lc} ${error.message}`);
@@ -1171,17 +1179,24 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    private async handleSemantic_stop(info: SemanticInfo): Promise<RobbotInteractionIbGib_V1> {
+    private async handleSemantic_stop(info: SemanticInfo): Promise<SemanticHandlerResult> {
         const lc = `${this.lc}[${this.handleSemantic_stop.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 7786969633e1459c9a6991c7c5a15954)`); }
 
             // cancel stimulation
-            this._expectingChild = false;
-            if (this._currentWorkingInfos) {
-                delete this._currentWorkingInfos;
+            if (this.handlerExpectingResponse?.fnCancelResponse) {
+                if (logalot) { console.log(`${lc} calling cancel for handler (${this.handlerExpectingResponse.semanticId}, ${this.handlerExpectingResponse.handlerId}) (I: 58c882dbc936785cde12ef833272c222)`); }
+                try {
+                    await this.handlerExpectingResponse.fnCancelResponse();
+                } catch (error) {
+                    console.error(`${lc} there was an error when trying to cancel. ${error.message ?? 'unknown error'} (E: 9987b870e3b34e7e9e2d07a1a775020c)`)
+                }
             }
-            // what else? todo: extra stimulation cancellation when stop issued
+            delete this.handlerExpectingResponse;
+
+            if (this._currentWorkingInfos) { delete this._currentWorkingInfos; }
+            // what else? todo: extra stimulation cancellation when stop issued?...
 
             const speech = this._robbotLex.get(SemanticId.stop, {
                 props: props =>
@@ -1191,10 +1206,11 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             const data = await this.getRobbotInteractionData({
                 type: RobbotInteractionType.info,
                 commentText: speech.text,
+                expectingResponse: false,
             });
 
-            const ibGib = await getInteractionIbGib_V1({ data });
-            return ibGib;
+            const interaction = await getInteractionIbGib_V1({ data });
+            return { interaction };
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -1229,18 +1245,17 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
+
     // protected async doCmdDeactivate({
     //     arg,
     // }: {
-    // arg: RobbotCmdIbGib,
+    //     arg: RobbotCmdIbGib,
     // }): Promise<IbGib_V1> {
     //     const lc = `${this.lc}[${this.doCmdDeactivate.name}]`;
     //     try {
     //         if (logalot) { console.log(`${lc} starting...`); }
-    //         if (this._currentWorkingContextIbGib) {
-    //             await this.completeSessionIfNeeded({ sayBye: false });
-    //         }
-    //         return ROOT;
+    //         let result = await super.doCmdDeactivate({ arg });
+    //         return result;
     //     } catch (error) {
     //         console.error(`${lc} ${error.message}`);
     //         throw error;
@@ -1620,7 +1635,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (isRequestComment({ ibGib: newChild, requestEscapeString: this.data.requestEscapeString })) {
                 await this.promptNextInteraction({ ibGib: newChild, isRequest: true });
             } else if (isComment({ ibGib: newChild }) && this.session) {
-                if (this._expectingChild) {
+                if (!!this.handlerExpectingResponse) {
                     // in the middle of a session and someone else's comment has come to us
                     // there will be an issue if the robbot chooses to import a request ibgib...hmm
                     await this.promptNextInteraction({ ibGib: newChild, isRequest: false });
@@ -2176,6 +2191,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // get next interaction per stimulus, but don't execute yet
             const interaction = await this.getNextInteraction({ ibGib, isRequest, isClick });
 
+            if (!interaction) { throw new Error(`no interaction produced (E: 7b911d5aa57593585cff8dc3d65dc822)`); }
+
             // save the interaction, no need to register with local space via
             // `this.ibgibsSvc.registerNewIbGib` call, because we don't need a
             // timeline as we are not intending on updating the interaction
@@ -2703,29 +2720,37 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (!ibGib && !isClick) { throw new Error(`either ibGib or isClick required. (E: 6d148b641d322ae44f5cd8fe0bda1d22)`); }
             if (ibGib && isClick) { throw new Error(`(UNEXPECTED) ibGib expected to be falsy if isClick is true. (E: 9062f682e9aa40247fdfb7d7eebf6922)`); }
 
+            let resInteraction: RobbotInteractionIbGib_V1;
+
             if (isClick) {
                 if (!this.session) { throw new Error(`(unexpected) session expected to exist at this point (E: 15c5cf99f4864942fbc8e6b42da4d922)`); }
                 if (this.prevInteraction) {
                     // the user doesn't know there is already a session started? Or
                     // something else? just ping the user that a session is in
                     // progress and ask what's up, give the short help command
-                    return await this.getNextInteraction_PerRequest({
+                    resInteraction = await this.getNextInteraction_PerRequest({
                         semanticId: SemanticId.help,
                     });
                 } else {
                     // just starting session.
-                    return await this.getNextInteraction_PerRequest({
+                    resInteraction = await this.getNextInteraction_PerRequest({
                         semanticId: SemanticId.hello,
                     });
                 }
             } else if (isRequest) {
                 // someone has issued a request
-                return await this.getNextInteraction_PerRequest({ request: ibGib });
-            } else if (this._expectingChild) {
+                resInteraction = await this.getNextInteraction_PerRequest({ request: ibGib });
+            } else if (this.handlerExpectingResponse) {
                 // ibgib added to context that may be a response to a
                 // question, or is not relevant (but it isn't a request)
-                return await this.getNextInteraction_PerNonRequest({ nonRequest: ibGib });
+                resInteraction = await this.getNextInteraction_PerNonRequest({ nonRequest: ibGib });
+            } else {
+                debugger;
+                throw new Error(`(UNEXPECTED) not sure what to do with the incoming stimulus? It's not a click, not a request and we're not expecting a child + have a handler. (E: bd1258d7513ea177f3783c512281e922)`);
             }
+
+            if (!resInteraction) { throw new Error(`(UNEXPECTED) resInteraction expected to be truthy. (E: 38c5d5ff5f1ca027e3845383f0ea5b22)`); }
+            return resInteraction;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -2931,9 +2956,11 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 if (logalot) { console.group(lcHandler); } // just trying out the grouping...
                 try {
                     if (logalot) { console.log(`${lc} starting... (I: 4e952477f1e1554be6d5c0063a6a8822)`); }
-                    interaction = await handler.fnExec(info);
+                    const resHandler = await handler.fnExec(info);
+                    interaction = resHandler.interaction;
                     if (interaction) {
                         if (logalot) { console.log(`${lcHandler} complete. YES interaction found from handler (${handler.semanticId}, ${handler.handlerId}). breaking for loop... (I: 994337ed6936ad16dddb0c7cec8ec622)`); }
+                        this.handlerExpectingResponse = handler;
                         break;
                     } else {
                         if (logalot) { console.log(`${lcHandler} complete. NO interaction not found for handler (${handler.semanticId}, ${handler.handlerId}) (I: f76ff3fb1a1b1a0976ac6e53e2d90b22)`); }
@@ -2961,10 +2988,11 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     }): Promise<RobbotInteractionIbGib_V1> {
         const lc = `${this.lc}[${this.getNextInteraction_PerNonRequest.name}]`;
         try {
-            if (logalot) { console.log(`${lc} starting... (I: 6bc390410be642518ff0babfc888d220)`); }
+            if (logalot) { console.log(`${lc} starting... (I: dabb6954cfae412eaacf638f8923e065)`); }
+
+            if (!this.handlerExpectingResponse) { throw new Error(`(UNEXPECTED) this.lastHandler is assumed to be truthy at this point. (E: 6bdce4d14599440eebe34da419db4322)`); }
 
             debugger;
-            throw new Error(`not impl (E: e736fd37f2a49b39d629b925bfb00922)`);
             // validate
 
             // get our handlers that correspond to this semanticId at this point in time
@@ -2973,37 +3001,19 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             //     await this.getHandlersThatCanExecute({ semanticId, info });
             // if (handlersThatCanExecute.length === 0) { throw new Error(`no handlers anywhere and what up with no default handler? (E: e1fc96c2ea63abbe1c02fffff4f41322)`); }
 
-            // // get the interaction produced in our pipeline of handlers that can
-            // // execute. in the future, this can be smarter than simply returning
-            // // the first truthy interaction, including executing multiple paths
-            // // concurrently and choosing among them depending on, e.g., an
-            // // evaluation metric
-            // const interaction = await this.getInteractionFromHandlerPipeline({
-            //     info,
-            //     handlerPipeline: handlersThatCanExecute,
-            // });
-            // if (!interaction) { throw new Error(`no interaction produced. (E: d839ef8709d1793868ce9a2f8558e622)`); }
+            // get the interaction produced in our pipeline of handlers that can
+            // execute. in the future, this can be smarter than simply returning
+            // the first truthy interaction, including executing multiple paths
+            // concurrently and choosing among them depending on, e.g., an
+            // evaluation metric
+            const interaction = await this.getInteractionFromHandlerPipeline({
+                info: { other: nonRequest, isContinuation: true },
+                handlerPipeline: [this.handlerExpectingResponse],
+            });
+            if (!interaction) { throw new Error(`no interaction produced. (E: e52bf40cbef545a2944ccea43692b31d)`); }
 
-            // // we're done
-            // return interaction;
-
-            // if (!this.interactions) { this.interactions = []; } // inits here, maybe should elsewhere?
-
-            // // create an interaction pool to choose from, but avoid using one
-            // // we've already done at least one go round
-            // const allInteractionTypes: WordyInteractionType[] = Object.values(WordyInteractionType);
-            // const unusedInteractionTypes =
-            //     allInteractionTypes.filter(x => !this.interactions.some(action => action.data.type === x))
-            // const interactionPool = unusedInteractionTypes.length > 0 ?
-            //     unusedInteractionTypes :
-            //     allInteractionTypes;
-            // if (logalot) { console.log(`${lc} interactionPool: ${interactionPool} (I: ba94059a6a80473ca26db7bc340ed4515)`); }
-
-            // // for now, we're just picking a random type from the pool (without more advanced weighting)
-            // const interactionType = pickRandom({ x: interactionPool });
-            // if (logalot) { console.log(`${lc} chose interactionType ${interactionType} (I: 53eb344bf7e146f6b256b4a0d820f35a)`); }
-
-            // return interactionType;
+            // we're done
+            return interaction;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
