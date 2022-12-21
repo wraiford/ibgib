@@ -116,15 +116,38 @@ describe('lex', () => {
         });
     });
 
-    describe('find', () => {
-        it('"help" predicate should find SemanticId.help', () => {
-            const foundIds = testLex.find({
-                fnDatumPredicate: (x => x.texts && x.texts.includes('help'))
+    fdescribe('find', () => {
+        it('"help" predicate looking for text equals exactly "help" should find SemanticId.help with one datum', () => {
+            const results = testLex.find({
+                fnDatumPredicate: (x => x.texts && x.texts.includes('help') && x.props.semanticId === SemanticId.help)
             });
+            expect(results).toBeTruthy();
+            const foundIds = Object.keys(results);
             expect(foundIds).toBeTruthy();
             expect(foundIds.length).toEqual(1);
             expect(foundIds[0]).toBeTruthy();
             expect(foundIds[0]).toEqual(SemanticId.help);
+
+            let datums = results[SemanticId.help];
+            expect(datums).toBeTruthy();
+            expect(datums.length).toBe(1, 'atow only expect one entry to exactly equal help');
+            expect(datums[0].texts.join('')).toBe('help', 'expect the datum found to have texts === help');
+        });
+
+        it('"help" predicate looking for text includes help and SemanticId.help should find multiple datums', () => {
+            const results = testLex.find({
+                fnDatumPredicate: (x => x.texts && x.texts.some(t => t.includes('help')) && x.props.semanticId === SemanticId.help)
+            });
+            expect(results).toBeTruthy();
+            const foundIds = Object.keys(results);
+            expect(foundIds).toBeTruthy();
+            expect(foundIds.length).toEqual(1);
+            expect(foundIds[0]).toBeTruthy();
+            expect(foundIds[0]).toEqual(SemanticId.help);
+
+            let datums = results[SemanticId.help];
+            expect(datums).toBeTruthy();
+            expect(datums.length).toBe(2, `atow expect two entries to include help: "help me" and "help". got: ${datums.map(x => x.texts.join('|'))}`);
         });
 
         it('each human data should map to a single semantic id', () => {
@@ -149,12 +172,13 @@ describe('lex', () => {
                     // now do a find for that text, and it should return
                     // the single entry that corresponds to the semantic id
                     //
-                    const resIds = testLex.find({
+                    const results = testLex.find({
                         fnDatumPredicate: x =>
                             !!x.props?.semanticId && // only want to find ones corresponding to semantics
                             x.texts?.includes(testText) // narrow down to our test text
                     });
 
+                    const resIds = Object.keys(results);
                     expect(resIds).toBeTruthy();
                     expect(resIds.length).toEqual(1);
                     const foundId = resIds[0];

@@ -30,7 +30,7 @@ import { DynamicFormFactoryBase } from '../../../../ibgib-forms/bases/dynamic-fo
 import { addTimeToDate, getIdPool, getSaferSubstring, getTimestampInTicks, pickRandom, replaceCharAt, unique } from '../../../helper/utils';
 import { WitnessFormBuilder } from '../../../helper/witness';
 import {
-    getInteractionIbGib_V1, getRequestTextFromComment,
+    getInteractionIbGib_V1, getSpaceDelimitedSaferRequestText,
     getRobbotIb, getRobbotSessionIb, isRequestComment,
     parseInteractionIb, RobbotFormBuilder,
 } from '../../../helper/robbot';
@@ -770,6 +770,8 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 27a9e811a4604c3f814c403ab3de61a0)`); }
 
+
+
             const requestTexts = await this.getUserRequestTexts({ contextFlags: ['all'] });
 
             // get the list lex and use template var
@@ -1030,7 +1032,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (currentWorkingIbGibsCount === 1) {
                 // stimulate the single ibgib based on previous stimulations
                 const currentIbGibInfo = this._currentWorkingInfos[currentWorkingTjpAddrs[0]];
-                const { addr, ibGib, tjpAddr, prevInteractions, prevStimulations, textInfo } = currentIbGibInfo;
+                // const { addr, ibGib, tjpAddr, prevInteractions, prevStimulations, textInfo } = currentIbGibInfo;
                 nextStimulation = await this.getNextStimulation({ semanticInfo: info, currentIbGibInfo, forceNew });
             } else if (currentWorkingIbGibsCount > 1) {
                 throw new Error(`multiple current working ibgibs not impl yet (E: ae63a68b41b2ebc89b63dbc188668922)`);
@@ -1096,6 +1098,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // const speech = `${lineIndex}: ${}`
             // if (!speech) { throw new Error(`(UNEXPECTED) speech falsy? (E: 941e57036473404c6f1a432e388d6522)`); }
 
+            debugger;
             const expectingResponse =
                 await this.handleSemantic_learn_getExpectingResponse({ info, nextStimulation });
 
@@ -2319,6 +2322,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 9ed1794bdedf32139d50d73c6fc94422)`); }
 
+            debugger;
             /**
              * The resulting stimulation we're going to populate.
              */
@@ -2737,9 +2741,9 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                         semanticId: SemanticId.hello,
                     });
                 }
-            } else if (isRequest) {
+            } else if (isRequest && isComment({ ibGib })) {
                 // someone has issued a request
-                resInteraction = await this.getNextInteraction_PerRequest({ request: ibGib });
+                resInteraction = await this.getNextInteraction_PerRequest({ request: <CommentIbGib_V1>ibGib });
             } else if (this.handlerExpectingResponse) {
                 // ibgib added to context that may be a response to a
                 // question, or is not relevant (but it isn't a request)
@@ -2763,7 +2767,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         request,
         semanticId,
     }: {
-        request?: IbGib_V1,
+        request?: CommentIbGib_V1,
         semanticId?: SemanticId,
     }): Promise<RobbotInteractionIbGib_V1> {
         const lc = `${this.lc}[${this.getNextInteraction_PerRequest.name}]`;
@@ -2774,7 +2778,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (!request && !semanticId) { throw new Error(`either request or semanticId required (E: 47bb984a4214c2cde6c7b5ef1c195b22)`); }
 
             // get the semanticId
-            if (!semanticId) { semanticId = this.getSemanticIdFromRequest({ request }); }
+            if (!semanticId) {
+                let info = this.parseRequest({ request });
+                semanticId = info.semanticId;
+            }
             if (!semanticId) { throw new Error(`(UNEXPECTED) semanticId not provided and not able to be gotten? (E: a03c04f2d5b16a05ff05cfcb10b60c22)`); }
 
             // get our handlers that correspond to this semanticId at this point in time
@@ -2805,32 +2812,44 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
-    protected getSemanticIdFromRequest({
+    protected parseRequest({
         request,
     }: {
         request: IbGib_V1,
-    }): WordySemanticId {
-        const lc = `${this.lc}[${this.getSemanticIdFromRequest.name}]`;
+    }): {
+        semanticId: WordySemanticId,
+        primary?: string,
+        remainder?: string,
+    } {
+        const lc = `${this.lc}[${this.parseRequest.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 55f29fba4f37d2749bfc83d51bea4822)`); }
 
             let semanticId: WordySemanticId;
-            const requestText =
-                getRequestTextFromComment({ ibGib: request, lowercase: true }) ||
+            const entireRequestText_safe_lower =
+                getSpaceDelimitedSaferRequestText({ ibGib: request, lowercase: true }) ||
                 WORDY_V1_DEFAULT_REQUEST_TEXT.toLowerCase();
+            /**
+             * the primary raw text found that directly translates to the semanticId.
+             */
+            let primary: string;
+            /**
+             * the remainder of the text found that may act as parameterization.
+             */
+            let remainder: string;
 
             // we're getting naive requestId, but may be unnecessary as we also
             // check matching against the datum starting with the entire request
-            const requestPieces = requestText.split(' ');
+            const requestPieces = entireRequestText_safe_lower.split(' ');
             if (requestPieces.length === 0) {
                 console.error(`${lc} (UNEXPECTED) requestPieces.length === 0? request is truthy but requestText splits to nothing? funky junk. (E: fdd2cc6ce93842e485cd44e15a695c9a)`)
-                return SemanticId.unknown; /* <<<< returns early */
+                return { semanticId: SemanticId.unknown }; /* <<<< returns early */
             }
             const requestId = requestPieces[0];
 
             // map from the request text to a semantic id
             // const semanticId: SemanticId = SemanticId.help;
-            const resRequestText = this._userLex.find({
+            const resultsFind = this._userLex.find({
                 fnDatumPredicate: d => {
                     // paranoid/convenient place to check for malformed lex data
                     if ((d.texts ?? [])?.length === 0) {
@@ -2848,7 +2867,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     const datumFirstText = d.texts[0].toLowerCase();
                     const matchesRequestId = datumFirstText === requestId;
                     /** remove non word/keep only spaces, so regexp is guaranteed here */
-                    const safeRequestText = getSaferSubstring({ text: requestText, keepLiterals: [' '] });
+                    const safeRequestText = getSaferSubstring({ text: entireRequestText_safe_lower, keepLiterals: [' '] });
                     /**
                      * Do the same for datum, so we can include things like
                      * apostrophes for contractions and still match up in the
@@ -2856,11 +2875,20 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                      */
                     const safeDatumFirstText = getSaferSubstring({ text: datumFirstText, keepLiterals: [' '] });
                     const requestStartsWithDatumText = !!safeRequestText.match(new RegExp(`^${safeDatumFirstText}(\\s|$)`));
-                    return datumIsRequest && (matchesRequestId || requestStartsWithDatumText);
+                    const matches = datumIsRequest && (matchesRequestId || requestStartsWithDatumText);
+                    if (matches) {
+
+                        return true;
+                    } else {
+                        return false;
+                    }
                 }
             });
-            if (resRequestText?.length === 1) {
-                const resId = resRequestText[0];
+
+            const resultsFind_Ids = Object.keys(resultsFind ?? []);
+
+            if (resultsFind_Ids?.length === 1) {
+                const resId = resultsFind_Ids[0];
                 // id found, but is it semantic id?
                 const semanticIds = Object.values(WordySemanticId);
                 if (logalot) { console.log(`${lc} semanticIds: ${semanticIds} (I: 1a37a42d7c276ab6f8d0d16f3cb3be22)`); }
@@ -2872,16 +2900,17 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     console.warn(`${lc} id found but not a known semantic id: ${resId} (W: 01729fb7a4e94f20a42436f3c957bb44)`)
                     semanticId = SemanticId.unknown;
                 }
-            } else if (resRequestText?.length > 1) {
+
+            } else if (resultsFind_Ids?.length > 1) {
                 // multiple found? this is a problem with the data
                 debugger;
-                throw new Error(`(UNEXPECTED) multiple ids found from user requestText (${requestText})? todo: confirm what user said workflow not implemented yet (E: 8e1f4c7c0e757b5e9126bf4f5213ca22)`);
+                throw new Error(`(UNEXPECTED) multiple ids found from user requestText (${entireRequestText_safe_lower})? todo: confirm what user said workflow not implemented yet (E: 8e1f4c7c0e757b5e9126bf4f5213ca22)`);
             } else {
                 // not found
                 semanticId = SemanticId.unknown;
             }
 
-            return semanticId;
+            return { semanticId };
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;

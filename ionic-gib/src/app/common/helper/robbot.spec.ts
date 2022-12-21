@@ -8,7 +8,7 @@ import { ROBBOT_SESSION_ATOM } from '../types/robbot';
 import { IbGibRobbotAny } from '../witnesses/robbots/robbot-base-v1';
 import { WordyRobbot_V1, WordyRobbot_V1_Factory } from "../witnesses/robbots/wordy-robbot/wordy-robbot-v1";
 import { createCommentIbGib } from "./comment";
-import { getRequestTextFromComment, getRobbotSessionIb, parseRobbotSessionIb } from "./robbot";
+import { getSpaceDelimitedSaferRequestText, getRobbotSessionIb, parseRobbotSessionIb } from "./robbot";
 import { getTimestampInTicks } from "./utils";
 
 describe('getRequestTextFromComment', () => {
@@ -23,7 +23,7 @@ describe('getRequestTextFromComment', () => {
                     rel8ns: { 'ancestor': ['comment^gib'], },
                     data: { text }
                 }
-                const resRequestText = getRequestTextFromComment({ ibGib, requestEscapeString: escape });
+                const resRequestText = getSpaceDelimitedSaferRequestText({ ibGib, requestEscapeString: escape });
                 expect(resRequestText).toEqual(requestText);
             });
         });

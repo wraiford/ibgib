@@ -213,7 +213,7 @@ export interface WordyRobbotPropsData extends RobbotPropsData<WordySemanticId> {
 // blankSlate: 'blankSlate' as WordyLexKeywords,
 // }
 
-export type WordyContextFlag = 'all';
+export type WordyContextFlag = 'all' | 'stimulators';
 
 export interface CurrentWorkingInfo {
     ibGib: CommentIbGib_V1;

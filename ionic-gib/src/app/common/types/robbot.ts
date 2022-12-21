@@ -12,6 +12,7 @@ import {
     WitnessResultData, WitnessResultRel8ns, WitnessResultIbGib,
 } from "./witness";
 import { ReplaySubject } from 'rxjs';
+import { CommentIbGib_V1 } from './comment';
 
 
 export type RobbotTransparency = 'transparent' | 'translucent' | 'opaque';
@@ -152,6 +153,7 @@ export interface RobbotData_V1 extends WitnessData_V1 {
  * a comment is a request of a robbot)
  */
 export const DEFAULT_ROBBOT_REQUEST_ESCAPE_STRING = '?';
+export const DEFAULT_ROBBOT_REQUEST_MAX_LENGTH = 100;
 
 
 // /**
@@ -544,7 +546,7 @@ export const SemanticId = {
 
 export interface SemanticInfo {
     semanticId?: SemanticId;
-    request?: IbGib_V1;
+    request?: CommentIbGib_V1;
     other?: IbGib_V1;
     isContinuation?: boolean;
 }

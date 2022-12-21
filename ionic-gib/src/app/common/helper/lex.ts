@@ -226,6 +226,7 @@ export type FilterPerProps<TProps> = (props: TProps) => boolean;
 export interface LexFindOptions<TProps = PropsData> {
     fnDatumPredicate?: LexDatumPredicate<TProps>,
 }
+export type LexFindResults<TProps = PropsData> = { [id: string]: LexDatum<TProps>[] }
 
 /**
  * filter against the entier lex datum entry. see the LexGet options.
@@ -815,29 +816,22 @@ export class Lex<TProps = PropsData> {
      *
      * @returns array of data ids that have at least one LexDatum entry that matches criteria.
      */
-    find({ fnDatumPredicate }: LexFindOptions<TProps>): string[] {
+    find({ fnDatumPredicate }: LexFindOptions<TProps>): LexFindResults<TProps> | null {
         const lc = `${this.lc}[${this.find.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 35e26d234ca2d0e987b39ee939f29c22)`); }
             if (!fnDatumPredicate) { throw new Error(`only fnDatumPredicate implemented atow (E: 8c8babd2fa6fc4cb223b7b8c10ad5c22)`); }
 
-            const resultIds: string[] = [];
+            const results: LexFindResults<TProps> = {};
 
             const ids = Object.keys(this.data);
             for (let i = 0; i < ids.length; i++) {
                 const id = ids[i];
-                /**
-                 * this.data means the data construct as a whole, datums here
-                 * indicates the individual value array that corresponds to the
-                 * id.
-                 */
-                const datums = this.data[id];
-                if (datums.some(d => fnDatumPredicate(d))) {
-                    resultIds.push(id);
-                }
+                const matchingDatums = this.data[id].filter(d => fnDatumPredicate(d));
+                if (matchingDatums.length > 0) { results[id] = matchingDatums; }
             }
 
-            return resultIds;
+            return Object.keys(results).length > 0 ? results : null;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;

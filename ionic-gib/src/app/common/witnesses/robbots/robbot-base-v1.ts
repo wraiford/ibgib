@@ -228,7 +228,6 @@ export abstract class RobbotBase_V1<
         const lc = `${this.lc}[${this.initialize_semanticHandlers.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: a0f2a11688963b0156e337e7f8604f22)`); }
-            debugger;
             this._semanticHandlers = {
                 [SemanticId.default]: [
                     {

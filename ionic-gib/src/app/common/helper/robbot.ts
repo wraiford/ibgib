@@ -11,7 +11,9 @@ import {
     DEFAULT_INTERACTION_SUBJECTTJPGIBS_DELIM,
     UNDEFINED_INTERACTION_SUBJECTTJPGIBS_STRING,
     DEFAULT_ROBBOT_REQUEST_ESCAPE_STRING,
-    RobbotData_V1, RobbotIbGib_V1, RobbotInteractionData_V1, RobbotInteractionIbGib_V1, RobbotInteractionIbInfo, RobbotInteractionRel8ns_V1, RobbotInteractionType, ROBBOT_INTERACTION_ATOM, ROBBOT_SESSION_ATOM,
+    RobbotData_V1, RobbotIbGib_V1, RobbotInteractionData_V1, RobbotInteractionIbGib_V1,
+    RobbotInteractionIbInfo, RobbotInteractionRel8ns_V1, RobbotInteractionType,
+    ROBBOT_INTERACTION_ATOM, ROBBOT_SESSION_ATOM, DEFAULT_ROBBOT_REQUEST_MAX_LENGTH,
     // RobbotOutputMode, VALID_ROBBOT_OUTPUT_MODES
 } from '../types/robbot';
 import { getFn_promptRobbotIbGib } from './prompt-functions';
@@ -367,18 +369,23 @@ export function isRequestComment({
 }
 
 /**
+ * Strips the request escape string and any non-alphanumeric characters except spaces,
+ * returning the rest fo the string up to `maxLength`.
  *
+ * This does *not* interpret anything beyond this.
  */
-export function getRequestTextFromComment({
+export function getSpaceDelimitedSaferRequestText({
     ibGib,
     requestEscapeString = DEFAULT_ROBBOT_REQUEST_ESCAPE_STRING,
     lowercase,
+    maxLength,
 }: {
     ibGib: IbGib_V1,
     requestEscapeString?: string,
     lowercase?: boolean,
+    maxLength?: number,
 }): string {
-    const lc = `${getRequestTextFromComment.name}]`;
+    const lc = `${getSpaceDelimitedSaferRequestText.name}]`;
     try {
         if (logalot) { console.log(`${lc} starting... (I: b4cbe054fe254414b77204ad80e519aa)`); }
 
@@ -390,10 +397,11 @@ export function getRequestTextFromComment({
         let text: string = data.text;
 
         requestEscapeString = requestEscapeString || DEFAULT_ROBBOT_REQUEST_ESCAPE_STRING;
+        const length = maxLength || DEFAULT_ROBBOT_REQUEST_MAX_LENGTH;
 
         text = getSaferSubstring({
             text: text,
-            length: 100,
+            length,
             keepLiterals: [' ', requestEscapeString]
         });
 
