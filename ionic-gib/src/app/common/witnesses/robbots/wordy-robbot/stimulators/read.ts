@@ -148,7 +148,7 @@ export class Stimulator_ReadFirstLines extends StimulatorBase {
         return this._lexData;
     }
 
-    protected getName(): string { return Stimulator_Read.name; }
+    protected getName(): string { return Stimulator_ReadFirstLines.name; }
     protected getVersion(): string { return "v1"; }
     protected getTypes(): StimulationType[] { return [StimulationType.read]; }
 
@@ -194,7 +194,8 @@ export class Stimulator_ReadFirstLines extends StimulatorBase {
                 commentText: speech.text,
                 stimulationScope,
                 stimulatorName: this.getName(),
-                isComplete: true,
+                expectsResponse: false,
+                // isComplete: true,
             };
 
             return resStimulation;

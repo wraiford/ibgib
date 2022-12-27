@@ -552,7 +552,14 @@ export interface SemanticInfo {
 }
 
 export interface SemanticHandlerResult {
-    interaction: RobbotInteractionIbGib_V1;
+    interaction: RobbotInteractionIbGib_V1 | null;
+    /**
+     * Should be set to true if the interaction is aborted (i.e. we're ignoring
+     * some stimulus). Like if we're expecting a response, but some other ibgib
+     * is given (maybe some users/other robbots are talking and it doesn't
+     * pertain to us).
+     */
+    ignored?: boolean;
     /**
      * If the handler is expecting a response (however the handler may interpret that response),
      *

@@ -36,6 +36,38 @@ export function getTargets({
     }
 }
 
+export function getWords({
+    text,
+    doLowercase,
+    doSort,
+    doUnique
+}: {
+    text: string,
+    doLowercase?: boolean,
+    doSort?: boolean,
+    doUnique?: boolean,
+}): string[] {
+    const lc = `${getWords.name}]`;
+    try {
+        if (logalot) { console.log(`${lc} starting... (I: 49b58b2dd268350f5b036b5d24a92722)`); }
+        const wordsRegExpArray = text.match(/\b(\w+)['\-]?(\w+)?\b/g);
+
+        let words = doLowercase ?
+            wordsRegExpArray.map(x => x.toLowerCase()) :
+            wordsRegExpArray.concat();
+
+        if (doUnique) { words = unique(words); }
+        if (doSort) { words.sort(); }
+
+        return words;
+    } catch (error) {
+        console.error(`${lc} ${error.message}`);
+        throw error;
+    } finally {
+        if (logalot) { console.log(`${lc} complete.`); }
+    }
+}
+
 export function getWordyTextInfo({
     text,
 }: {
@@ -50,7 +82,8 @@ export function getWordyTextInfo({
         const paragraphs = text.split(/\n\n+/g).map(x => x.trim());
         const lines = text.trim().split('\n').filter(x => !!x).map(x => x.trim());
         const wordInfos: { [word: string]: WordyUniqueWordInfo } = {};
-        const sortedWords = text.match(/\b(\w+)['\-]?(\w+)?\b/g).map(x => x.toLowerCase()).sort();
+        // const sortedWords = text.match(/\b(\w+)['\-]?(\w+)?\b/g).map(x => x.toLowerCase()).sort();
+        const sortedWords = getWords({ text, doLowercase: true, doSort: true });
         const wordCount = sortedWords.length;
         const uniqueWords = unique(sortedWords);
         for (let j = 0; j < uniqueWords.length; j++) {

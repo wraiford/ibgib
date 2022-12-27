@@ -10,12 +10,13 @@ import * as c from '../../../../../common/constants';
 import {
     StimulateArgs, Stimulation, StimulationScope, StimulationTarget, StimulationType, Stimulator, WordyTextInfo
 } from '.././types';
-import { getTargets, getWordyTextInfo } from '.././helper';
+import { getTargets, getWords, getWordyTextInfo } from '.././helper';
 import { StimulatorBase } from './stimulator-base';
 import { LexData, PropsData } from '../../../../../common/helper/lex';
 import { SemanticId, toLexDatums_Semantics } from 'src/app/common/types/robbot';
 import { pickRandom, weAreRunningOnMobileProbably } from '../../../../../common/helper/utils';
 import { ContinuableStimulatorBase } from './continuable-base';
+import { CommentIbGib_V1 } from 'src/app/common/types/comment';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
@@ -148,6 +149,7 @@ export class Stimulator_Echo extends ContinuableStimulatorBase {
                 stimulationType,
                 targets,
                 commentText: speech.text,
+                expectsResponse: true,
                 expectedTexts: specialWords,
                 stimulationScope,
                 stimulatorName: this.getName(),
@@ -296,8 +298,50 @@ export class Stimulator_EchoFirstLines extends StimulatorBase {
     protected getTypes(): StimulationType[] { return [StimulationType.echo]; }
 
     protected async canStimulateImpl(args: StimulateArgs): Promise<boolean> {
-        let { ibGibs, prevStimulations, stimulationType, textInfo } = args;
-        return textInfo.paragraphs?.length > 2;
+        const lc = `${this.lc}[${this.canStimulateImpl.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 3761995b41430ea04e6a9d7425753722)`); }
+
+            let { ibGibs, prevStimulations, stimulationType, textInfo, isResponseCandidate } = args;
+            if (isResponseCandidate) {
+                // we should get here only if this stimulator is the previous
+                // stimulation generator
+                if ((prevStimulations ?? []).length === 0) { throw new Error(`(UNEXPECTED) isResponseCandidate is true, but prevStimulations is falsy/empty? (E: 7278785b7d915fe7afc7b6d6a1e62622)`); }
+                let prevStimulation = prevStimulations.at(-1);
+                let { expectedTexts } = prevStimulation;
+                if ((expectedTexts ?? []).length === 0) { throw new Error(`(UNEXPECTED) isReponseCandidate is true, so we are the previous stimluation generator. but prevStimluation.expectedTexts is empty/falsy? (E: 400d7e788557f9f1020724c139020222)`); }
+
+                // if the incoming words has some "reasonable" overlap with
+                // expected texts, then yes, we can handle the response.
+                // Otherwise, it ain't to do with us.
+                let incomingText = ibGibs.map(x => (<CommentIbGib_V1>x).data.text ?? '').join(' ');
+                let incomingWords = getWords({
+                    text: incomingText,
+                    doLowercase: true, doSort: false, doUnique: false,
+                });
+
+                let count = 0;
+                incomingWords.forEach(word => {
+                    if (expectedTexts.includes(word)) { count++; }
+                });
+
+                const minPctIsh = 0.5;
+                const incomingPctIsh = count / incomingWords.length;
+
+                const incomingIsSimilar = incomingPctIsh > minPctIsh;
+                if (logalot) { console.log(`${lc} incomingIsSimilar: ${incomingIsSimilar} (I: 20b485c4d43596cea40a9301f7eed822)`); }
+                return incomingIsSimilar;
+            } else {
+                const hasMultipleParagraphs = textInfo.paragraphs?.length > 2;
+                if (logalot) { console.log(`${lc} hasMultipleParagraphs: ${hasMultipleParagraphs} (I: fb6d06a2d694e4d09f522044ea24c122)`); }
+                return hasMultipleParagraphs;
+            }
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            return false;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
     }
 
     protected async getStimulationImpl({

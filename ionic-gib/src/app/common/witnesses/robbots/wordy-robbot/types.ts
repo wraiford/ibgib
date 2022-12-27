@@ -354,24 +354,12 @@ export interface Stimulation {
      */
     targets: StimulationTarget[];
     /**
-     * If true, then this stimulation expects a metric of some sort, like a grade.
-     * For starters, this will be entirely self-reported by the user. In the future
-     * when we are talking about multiple entities interacting, then this could
-     * be provided by one or more third parties.
-     */
-    expectsFeedback?: boolean;
-    /**
-     * Addresses of the feedback ibgib(s) if needed/relavent.
-     *
-     * the ib's should contain the relative metadata information so we don't
-     * have to load the full ibgib. e.g. `comment 5^ASDFEW1234` or `comment
-     * good^ABC123`, but this should ultimately be up to the handler.
-     */
-    '@feedbackList'?: IbGibAddr[];
-    /**
      * If true, the stimulation expects the user to add an ibgib to the current
      * context ibgib. For starters, this will be a comment ibgib with, e.g.,
      * the blanked out text.
+     *
+     * This could also be feedback or just a "grunt", like a "." or "ok", used
+     * to indicate the robbot should continue.
      */
     expectsResponse?: boolean;
     /**
@@ -459,29 +447,36 @@ export interface StimulateArgs {
      *
      *     ?learn lines from volare
      */
-    semanticInfo: SemanticInfo,
+    semanticInfo: SemanticInfo;
     /**
      * This is the target ibGib(s) that we're working on.
      *
      * @example
      *     { ib: comment nelbludipintodiblu, gib: ABC123, data: {...}, rel8ns: {...} }
      */
-    ibGibs: IbGib_V1[],
+    ibGibs: IbGib_V1[];
     /**
      * Type of stimulation that we're narrowed down to use for stimulation.
      */
-    stimulationType: StimulationType,
+    stimulationType?: StimulationType;
     /**
      * list of previous stimulations for the given ibGibs.
      *
      * Note that each `prevStimulations[x].targets` noly has to intersect at least once with
      * any of the given `ibGibs`.
      */
-    prevStimulations: Stimulation[],
+    prevStimulations: Stimulation[];
     /**
      * word analysis of the given `ibGibs`.
      */
-    textInfo: WordyTextInfo,
+    textInfo: WordyTextInfo;
+    /**
+     * If the stimulator is being fed this ibGib as a response candidate.
+     *
+     * This should only be true when the stimulator has previously flagged that
+     * it expects a response.
+     */
+    isResponseCandidate?: boolean;
 }
 
 export interface Stimulator {

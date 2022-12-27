@@ -47,6 +47,7 @@ import { validateIbGibIntrinsically } from '../../../helper/validate';
 import {
     CurrentWorkingInfo,
     DEFAULT_DESCRIPTION_WORDY_ROBBOT, DEFAULT_LOOK_REL8N_NAMES_WORDY_ROBBOT, DEFAULT_NAME_WORDY_ROBBOT, DEFAULT_UUID_WORDY_ROBBOT,
+    StimulateArgs,
     Stimulation, StimulationDetails, StimulationScope, StimulationTarget, StimulationType,
     Stimulator,
     WordyAnalysisData_V1_Robbot, WordyAnalysisData_V1_Text, WordyAnalysisIbGib_V1_Robbot,
@@ -144,6 +145,10 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
      * The last handler to signal that it is expecting a response.
      */
     protected handlerExpectingResponse: SemanticHandler;
+    /**
+     * The stimulator expecting a response
+     */
+    protected stimulatorExpectingResponse: Stimulator;
 
     debugInterval: any;
 
@@ -981,6 +986,19 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         }
     }
 
+    private clearWorkingInfos(): void {
+        const lc = `${this.lc}[${this.clearWorkingInfos.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: ea5e6b214c2156528633070a3282c622)`); }
+
+            delete this._currentWorkingInfos;
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
 
     /**
      * handles a direct request to learn.
@@ -995,33 +1013,9 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 32e7907bf40c4723a0b1a9091c3b7047)`); }
 
-            const clearWorking = () => {
-                delete this._currentWorkingInfos;
-            }
             // interactions have the subject tjp gibs in their ib fields (as
             // well as in internal data field).
             // get the stimulation
-
-            /**
-             * If we're in the middle of smoething and the user says to learn,
-             * then we are forcing the next stimulation to be disconnected frmo
-             * the current stimulation saga (if applicable).
-             */
-            let forceNew = false;
-            let speechChangeUpText: string;
-            if (this.prevStimulation?.expectsFeedback || this.prevStimulation?.expectsResponse) {
-                debugger;
-                // the user has requested to learn even though we're expecting feedback
-                // ...OR
-                // the user has requested to learn even though we're expecting a response
-                forceNew = true;
-                speechChangeUpText = this._robbotLex.get(WordySemanticId.change_up).text;
-                clearWorking();
-            } else if (this.prevStimulation) {
-                debugger;
-            } else {
-                debugger;
-            }
 
             // either the previous stimulation completed or this is the first stimulation
             if (!this._currentWorkingInfos) { await this.loadNextWorkingInfo({ semanticInfo: info }); }
@@ -1033,7 +1027,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 // stimulate the single ibgib based on previous stimulations
                 const currentIbGibInfo = this._currentWorkingInfos[currentWorkingTjpAddrs[0]];
                 // const { addr, ibGib, tjpAddr, prevInteractions, prevStimulations, textInfo } = currentIbGibInfo;
-                nextStimulation = await this.getNextStimulation({ semanticInfo: info, currentIbGibInfo, forceNew });
+                nextStimulation = await this.getNextStimulation({ semanticInfo: info, currentIbGibInfo });
             } else if (currentWorkingIbGibsCount > 1) {
                 throw new Error(`multiple current working ibgibs not impl yet (E: ae63a68b41b2ebc89b63dbc188668922)`);
             } else {
@@ -1099,21 +1093,28 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // if (!speech) { throw new Error(`(UNEXPECTED) speech falsy? (E: 941e57036473404c6f1a432e388d6522)`); }
 
             debugger;
-            const expectingResponse =
-                await this.handleSemantic_learn_getExpectingResponse({ info, nextStimulation });
+            if (nextStimulation) {
+                if (logalot) { console.log(`${lc} nextStimulation found. (I: c22d41e9097af2f64c52de5aff73bc22)`); }
+                const expectingResponse =
+                    await this.handleSemantic_learn_getExpectingResponse({ info, nextStimulation });
 
-            const data = await this.getRobbotInteractionData({
-                type: RobbotInteractionType.stimulation,
-                commentText: nextStimulation.commentText,
-                details: nextStimulation,
-                expectingResponse,
-            });
+                const data = await this.getRobbotInteractionData({
+                    type: RobbotInteractionType.stimulation,
+                    commentText: nextStimulation.commentText,
+                    details: nextStimulation,
+                    expectingResponse,
+                });
 
+                if (nextStimulation.isComplete) {
+                    if (logalot) { console.log(`${lc} nextStimulation.isComplete is true, so clearing the working infos. (I: c3077609865afc575529179e790a8e22)`); }
+                    this.clearWorkingInfos();
+                }
 
-            if (nextStimulation.isComplete) { clearWorking(); }
-
-            const interaction = await getInteractionIbGib_V1({ data });
-            return { interaction };
+                const interaction = await getInteractionIbGib_V1({ data });
+                return { interaction };
+            } else {
+                return { interaction: null, ignored: true }
+            }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -1151,7 +1152,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 // the stimulation is complete, but maybe this wordy robbot wants to keep going.
                 // for now, we're always returning true until we get a request to stop.
                 // (so this if...else statement won't look so strange)
-                expectingResponse = true;
+                expectingResponse = false;
             }
 
             return expectingResponse;
@@ -2257,68 +2258,11 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     protected async getNextStimulation({
         semanticInfo,
         currentIbGibInfo,
-        forceNew,
     }: {
         semanticInfo: SemanticInfo,
         currentIbGibInfo: CurrentWorkingInfo,
-        forceNew: boolean,
-    }): Promise<Stimulation> {
+    }): Promise<Stimulation | null> {
         const lc = `${this.lc}[${this.getNextStimulation.name}]`;
-        try {
-            if (logalot) { console.log(`${lc} starting... (I: 3b5112795cebe1d56a9a11c624180322)`); }
-
-            if (!currentIbGibInfo) { throw new Error(`(UNEXPECTED) currentIbGibInfo falsy? (E: 6aed3baf217c0280130161585d49f222)`); }
-
-            /**
-             * The resulting stimulation we're going to populate.
-             */
-            let resStimulation: Stimulation;
-
-            /**
-             * If we're continuing a compound stimulation, like if we've just
-             * prompted a line 3 review and now we should prompt a blank line
-             * for line 4, then we'll set this to true.
-             */
-            let isContinuation: boolean = false;
-            const prevStimulation = currentIbGibInfo?.prevStimulations?.at(-1) ?? null;
-            if (semanticInfo.request) {
-                if (logalot) { console.log(`${lc} driven by request, so isContinuation is FALSE. (I: 5b84d9fca74bc2f3143332356b5b4c22)`); }
-            } else if (forceNew) {
-                if (logalot) { console.log(`${lc} forceNew is true, so isContinuation is FALSE. (I: 55f9c5fd9b224f3c8bf3b043c633aafd)`) }
-            } else if (prevStimulation) {
-                if (prevStimulation.isComplete) {
-                    if (logalot) { console.log(`${lc} prevStimulation.isComplete is true, so isContinuation is FALSE. (I: d99f143ac8dde1371eaaa609bddf7122)`); }
-                } else {
-                    if (logalot) { console.log(`${lc} prevStimulation.isComplete is falsy, so isContinuation is TRUE. (W: bed26fee7d7044ae88071ba2e95ec341)`) }
-                    isContinuation = true;
-                }
-            } else {
-                if (logalot) { console.log(`${lc} no prevStimulation, so isContinuation is FALSE. (I: cbc23b322af8a97559649ee59f63a922)`); }
-            }
-
-            if (isContinuation) {
-                resStimulation = await this.getNextStimulation_Continue({ semanticInfo, currentIbGibInfo, prevStimulation }); /* <<<< returns early */
-            } else {
-                resStimulation = await this.getNextStimulation_Fresh({ semanticInfo, currentIbGibInfo }); /* <<<< returns early */
-            }
-
-            return resStimulation;
-        } catch (error) {
-            console.error(`${lc} ${error.message}`);
-            throw error;
-        } finally {
-            if (logalot) { console.log(`${lc} complete.`); }
-        }
-    }
-
-    protected async getNextStimulation_Fresh({
-        semanticInfo,
-        currentIbGibInfo,
-    }: {
-        semanticInfo: SemanticInfo,
-        currentIbGibInfo: CurrentWorkingInfo,
-    }): Promise<Stimulation> {
-        const lc = `${this.lc}[${this.getNextStimulation_Fresh.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 9ed1794bdedf32139d50d73c6fc94422)`); }
 
@@ -2334,55 +2278,97 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 textInfo = this.getTextInfo({ srcIbGib: ibGib });
             }
 
-            // drive the stimulation by type at first
-            let chooseFromTypes: StimulationType[];
-            prevStimulations = (prevStimulations ?? []);
-            if (prevStimulations.length === 0) {
-                // first time is always read
-                chooseFromTypes = ['read'];
-            } else if (prevStimulations.length > 0 && prevStimulations.length <= 2) {
-                debugger;
-                // chooseFromTypes = ['say', 'echo'];
-                chooseFromTypes = ['echo']; // debug
-            } else if (prevStimulations.length > 2 && prevStimulations.length < 7) {
-                debugger;
-            } else if (prevStimulations.length >= 7) {
-                console.warn(`${lc} hard-coded seed length to 7. ibGib addr: ${addr} (W: a3757a31c10f4b9aae228fc63f8a9e80)`);
-                chooseFromTypes = ['seed']
-            } else {
-                // default to random
-                console.warn(`${lc} (UNEXPECTED) shouldn't get here? chooseFromTypes for stimulationType defaulting to choose from any known type. (W: dbdee7edb8b4461b802d328a3608eff1)`);
-                chooseFromTypes = Object.values(StimulationType);
+            // a bit tricky here. we may be called here because the stimulator is expecting a response.
+            // but even so, the user may be overriding the current stimulation saga, or who knows what.
+            // atow, if this is a continuation, we'll pass it to the stimulator. if it can handle it, then
+            // it will, otherwise it will be ignored. If it's not a continuation, i.e. if the user has
+            // done another request, then we'll just move forward like it isn't a continuation/there isn't
+            // a stimulator expecting a response.
+            if (this.stimulatorExpectingResponse) {
+                if (logalot) { console.log(`${lc} stimulator is expecting response. Either get the next stimulation from it or ignore it. (I: 3570b57aa162460694781916cc75abf6)`); }
+                if (semanticInfo.isContinuation) {
+                    if (logalot) { console.log(`${lc} semanticInfo.isContinuation is true. (I: 7bf059f8f9dc32ece3596537bb6be822)`); }
+                    const stimulator = this.stimulatorExpectingResponse;
+                    const args: StimulateArgs = {
+                        ibGibs: [ibGib],
+                        // stimulationType: this.prevStimulation.stimulationType,
+                        stimulationType: null, // continue previous stimulation saga
+                        prevStimulations,
+                        textInfo,
+                        semanticInfo,
+                        isResponseCandidate: true,
+                    }
+                    const canHandle = await stimulator.canStimulate(args);
+                    if (canHandle) {
+                        if (logalot) { console.log(`${lc} canHandle is true (I: b04f796ceb7944dba45d530593eda117)`); }
+                        resStimulation = await stimulator.getStimulation(args);
+                    } else {
+                        if (logalot) { console.log(`${lc} canHandle is false, i.e. stimulator expecting response but the one given isn't relevant. ignoring stimulus... (I: e3acd620140a44167623e7f31130c322)`); }
+                        resStimulation = null;
+                    }
+                } else if (semanticInfo.request) {
+                    debugger;
+                    if (logalot) { console.log(`${lc} stimulator expecting response but !semanticInfo.isContinuation && user has issued another request. (I: 858f514208dd057cc80e09e4c1305c22)`); }
+                } else {
+                    debugger;
+                    if (logalot) { console.log(`${lc} stimulator expecting response, but !semanticInfo.isContinuation and user has NOT issued another request? (I: 77caf34d85e1b061995f0fbb3b1d9b22)`); }
+                }
             }
-            let stimulationType = pickRandom({ x: chooseFromTypes });
-            if (logalot) { console.log(`${lc} stimulationType (${stimulationType}) chosen, having prevStimulations.length (${prevStimulations.length}) (I: 44b96f254d920ea87b0af8c8fe877722)`); }
 
-            // now that we've chosen then type, narrow down stimulators to those
-            // that produce this type.
-            let stimulatorPool: Stimulator[] = [];
-            let stimulatorsForStimulationType = WORDY_STIMULATORS.filter(x => x.types.includes(stimulationType));
-            if (stimulatorsForStimulationType.length === 0) {
-                console.error(`${lc} (UNEXPECTED) no stimulators found for type '${stimulationType}'? defaulting to '${StimulationType.read}'. (E: 8789fb6a26f2433b86e6c7125a20c204)`);
-                stimulationType = 'read';
-                stimulatorsForStimulationType = WORDY_STIMULATORS.filter(x => x.types.includes(stimulationType));
-                if (stimulatorsForStimulationType.length === 0) { throw new Error(`(UNEXPECTED) no stimulator found even for '${StimulationType.read}'? (E: 93039a562d5758437fddae3467ebfb22)`); }
-            }
+            if (!resStimulation && !semanticInfo.isContinuation) {
+                // not expecting a response. atow, drive the stimulation by type
+                // and previous stimulation count. In the future, this is
+                // definitely a point that could be more sophisticated
+                let chooseFromTypes: StimulationType[];
+                prevStimulations = (prevStimulations ?? []);
+                if (prevStimulations.length === 0) {
+                    // first time is always read
+                    chooseFromTypes = ['read'];
+                } else if (prevStimulations.length > 0 && prevStimulations.length <= 2) {
+                    debugger;
+                    // chooseFromTypes = ['say', 'echo'];
+                    chooseFromTypes = ['echo']; // debug
+                } else if (prevStimulations.length > 2 && prevStimulations.length < 7) {
+                    debugger;
+                } else if (prevStimulations.length >= 7) {
+                    console.warn(`${lc} hard-coded seed length to 7. ibGib addr: ${addr} (W: a3757a31c10f4b9aae228fc63f8a9e80)`);
+                    chooseFromTypes = ['seed']; // note to self: this should prompt user how to continue with the ibgib. renew, create derivative, others...hmmm
+                } else {
+                    // default to random
+                    console.warn(`${lc} (UNEXPECTED) shouldn't get here? chooseFromTypes for stimulationType defaulting to choose from any known type. (W: dbdee7edb8b4461b802d328a3608eff1)`);
+                    chooseFromTypes = Object.values(StimulationType);
+                }
+                let stimulationType = pickRandom({ x: chooseFromTypes });
+                if (logalot) { console.log(`${lc} stimulationType (${stimulationType}) chosen, having prevStimulations.length (${prevStimulations.length}) (I: 44b96f254d920ea87b0af8c8fe877722)`); }
 
-            // we've narrowed down the stimulators by type. now narrow down by
-            // more expensive checking from the stimulators themselves.
-            for (let i = 0; i < stimulatorsForStimulationType.length; i++) {
-                const stimulator = stimulatorsForStimulationType[i];
-                const canStimulate = await stimulator.canStimulate({
-                    ibGibs: [ibGib], prevStimulations, stimulationType, textInfo,
-                    semanticInfo,
+                // now that we've chosen then type, narrow down stimulators to those
+                // that produce this type.
+                let stimulatorPool: Stimulator[] = [];
+                let stimulatorsForStimulationType = WORDY_STIMULATORS.filter(x => x.types.includes(stimulationType));
+                if (stimulatorsForStimulationType.length === 0) {
+                    console.error(`${lc} (UNEXPECTED) no stimulators found for type '${stimulationType}'? defaulting to '${StimulationType.read}'. (E: 8789fb6a26f2433b86e6c7125a20c204)`);
+                    stimulationType = 'read';
+                    stimulatorsForStimulationType = WORDY_STIMULATORS.filter(x => x.types.includes(stimulationType));
+                    if (stimulatorsForStimulationType.length === 0) { throw new Error(`(UNEXPECTED) no stimulator found even for '${StimulationType.read}'? (E: 93039a562d5758437fddae3467ebfb22)`); }
+                }
+
+                // we've narrowed down the stimulators by type. now narrow down by
+                // more expensive checking from the stimulators themselves.
+                for (let i = 0; i < stimulatorsForStimulationType.length; i++) {
+                    const stimulator = stimulatorsForStimulationType[i];
+                    const canStimulate = await stimulator.canStimulate({
+                        ibGibs: [ibGib], prevStimulations, stimulationType, textInfo,
+                        semanticInfo,
+                    });
+                    if (canStimulate) { stimulatorPool.push(stimulator); }
+                }
+                if (stimulatorPool.length === 0) { debugger; throw new Error(`(UNEXPECTED) stimulatorPool empty? should have at least found a ${StimulationType.read} stimulator. (E: aa6598f391590b89c708d81a7b5cc622)`); }
+
+                resStimulation = await this.getStimulationFromStimulatorPool({
+                    stimulatorPool, ibGibs: [ibGib], prevStimulations, stimulationType, textInfo, semanticInfo
                 });
-                if (canStimulate) { stimulatorPool.push(stimulator); }
             }
-            if (stimulatorPool.length === 0) { debugger; throw new Error(`(UNEXPECTED) stimulatorPool empty? should have at least found a ${StimulationType.read} stimulator. (E: aa6598f391590b89c708d81a7b5cc622)`); }
 
-            resStimulation = await this.getStimulationFromStimulatorPool({
-                stimulatorPool, ibGibs: [ibGib], prevStimulations, stimulationType, textInfo, semanticInfo
-            });
 
             return resStimulation;
         } catch (error) {
@@ -2425,8 +2411,9 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
              */
             let culledPool = stimulatorPool.concat();
 
+            let stimulator: Stimulator;
             while (!resStimulation && culledPool.length > 0) {
-                const stimulator = pickRandom({ x: culledPool });
+                stimulator = pickRandom({ x: culledPool });
                 try {
 
                     // produce the stimulation itself.
@@ -2455,32 +2442,13 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 }
             }
             if (!resStimulation) { throw new Error(`(UNEXPECTED) resStimulation still falsy? should have already thrown by now. (E: b77cde4e4a4a6b18d413b698032cfa22)`); }
+            if (!stimulator) { throw new Error(`(UNEXPECTED) stimulator falsy? expected stimulator to be truthy here. (E: 59ec891864266dce79454d48ea730f22)`); }
 
             if (logalot) { console.log(`${lc} resStimulation... (I: 8af31a138aa5ec2812dd31b2d2365122)`); console.dir(resStimulation); }
 
-            return resStimulation;
-        } catch (error) {
-            console.error(`${lc} ${error.message}`);
-            throw error;
-        } finally {
-            if (logalot) { console.log(`${lc} complete.`); }
-        }
-    }
+            if (resStimulation.expectsResponse) { this.stimulatorExpectingResponse = stimulator; }
 
-    protected async getNextStimulation_Continue({
-        semanticInfo,
-        currentIbGibInfo,
-        prevStimulation,
-    }: {
-        semanticInfo: SemanticInfo,
-        currentIbGibInfo: CurrentWorkingInfo,
-        prevStimulation: Stimulation,
-    }): Promise<Stimulation> {
-        const lc = `${this.lc}[${this.getNextStimulation_Continue.name}]`;
-        try {
-            if (logalot) { console.log(`${lc} starting... (I: bb6e1c4b0f67366f9bbf28cae8deda22)`); }
-            debugger;
-            throw new Error(`not impl (E: e2e64aad550a91f4838311ff74ed1722)`);
+            return resStimulation;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -2505,206 +2473,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} starting... (I: 53818e78677ecf5f8874b43fde30e622)`); }
             if (stimulationType !== 'blank') { return null; }
 
-        } catch (error) {
-            console.error(`${lc} ${error.message}`);
-            throw error;
-        } finally {
-            if (logalot) { console.log(`${lc} complete.`); }
-        }
-    }
-
-    // getIsComplete({
-    //     ibGib,
-    //     stimulationType,
-    //     stimulationScope,
-    //     prevStimulation,
-    // }: {
-    //     ibGib: CommentIbGib_V1,
-    //     stimulationType: StimulationType,
-    //     stimulationScope: StimulationScope,
-    //     prevStimulation: Stimulation,
-    // }): boolean {
-    //     const lc = `${this.lc}[${this.getIsComplete.name}]`;
-    //     try {
-    //         if (logalot) { console.log(`${lc} starting... (I: 878253864022a20d8fea8c9773270122)`); }
-
-    //         // gauntlet strategy: default to true and only set to false with special cases
-    //         let resIsComplete = true;
-
-    //         const stimulationTypesThatAreOneAndDone: StimulationType[] = [
-    //             'read', 'type', 'expound',
-    //         ];
-    //         if (stimulationTypesThatAreOneAndDone.includes(stimulationType)) {
-    //             return true; /* <<<< returns early */
-    //         }
-
-    //         if (stimulationType === 'blank' && stimulationScope === '')  {
-
-    //         }
-
-    //         return resIsComplete;
-    //     } catch (error) {
-    //         console.error(`${lc} ${error.message}`);
-    //         throw error;
-    //     } finally {
-    //         if (logalot) { console.log(`${lc} complete.`); }
-    //     }
-    // }
-
-    // /**
-    //  * If the ibgib's text is very short, then scope of 'all' may be small.
-    //  *
-    //  * If the ibgib's text is 'paragraph', and the paragraphs average
-    //  * @param param0
-    //  */
-    // protected async getStimulationStrength({
-    //     currentIbGibInfo,
-    // }: {
-    //     currentIbGibInfo: CurrentWorkingInfo,
-    // }): Promise<number> {
-    //     const lc = `${this.lc}[${this.getStimulationStrength.name}]`;
-    //     try {
-    //         if (logalot) { console.log(`${lc} starting... (I: bdca966d60db8a3f1af676a753c96422)`); }
-    //         let { addr, ibGib, tjpAddr, prevInteractions, prevStimulations, textInfo } = currentIbGibInfo;
-    //         throw new Error(`not impl (E: cafe2679e9df0002e503ad53254d4e22)`);
-
-    //     } catch (error) {
-    //         console.error(`${lc} ${error.message}`);
-    //         throw error;
-    //     } finally {
-    //         if (logalot) { console.log(`${lc} complete.`); }
-    //     }
-    // }
-
-    protected async getNextStimulation_JustShow({
-        toStimulateAddr,
-        toStimulateTjpAddr,
-    }: {
-        toStimulateAddr: IbGibAddr,
-        toStimulateTjpAddr: IbGibAddr,
-    }): Promise<Stimulation> {
-        const lc = `${this.lc}[${this.getNextStimulation_JustShow.name}]`;
-        try {
-            if (logalot) { console.log(`${lc} starting... (I: 3e375d090dbb52c5865381c90ee09122)`); }
-            throw new Error(`not impl (E: 32fd0967c8d49f7255b18dc6ace17822)`);
-            // const details: Stimulation = {
-            //     stimulationType: 'just_show',
-            //     "@toStimulate": toStimulateAddr,
-            //     "@toStimulateTjp": toStimulateTjpAddr,
-            // };
-            // return details;
-        } catch (error) {
-            console.error(`${lc} ${error.message}`);
-            throw error;
-        } finally {
-            if (logalot) { console.log(`${lc} complete.`); }
-        }
-    }
-    protected async getNextStimulation_BlankWords({
-        toStimulateAddr,
-        toStimulateTjpAddr,
-    }: {
-        toStimulateAddr: IbGibAddr,
-        toStimulateTjpAddr: IbGibAddr,
-    }): Promise<Stimulation> {
-        const lc = `${this.lc}[${this.getNextStimulation_BlankWords.name}]`;
-        try {
-            if (logalot) { console.log(`${lc} starting... (I: 3e375d090dbb52c5865381c90ee09122)`); }
-            throw new Error(`not impl (E: bc9e53a80ee7d2e9db103dd16dfd3c22)`);
-            const text = 'sdfjksdkfjdklsfjkj';
-            // const { text } = this._currentWorkingComments.data;
-            if (!text) { throw new Error(`currentWorkingComment.data.text required (E: 732341ddc7ba531a1aaf465c95d9a322)`); }
-
-            const regexWords = /[\w\-']+/g;
-            const words = text.match(regexWords)
-                .filter(x => !!x)
-                .filter(x => !x.startsWith('http'))
-                .filter(x => !x.startsWith('www'))
-                .map(x => x.toLowerCase());
-
-            const uniqueWords = unique(words);
-
-            const blankedWords: string[] = [];
-
-            // to blank out a word, we need at least 2! Otherwise, abort blank out and do a different stimulation,
-            // and return early!
-            if (uniqueWords.length < 2) {
-                /* <<<< returns early */
-                return await this.getNextStimulation_JustShow({ toStimulateAddr, toStimulateTjpAddr });
-            }
-
-            if (uniqueWords.length <= 5) {
-                // arbitrary small-ish number of words so just blank out one
-                blankedWords.push(pickRandom({ x: uniqueWords }))
-            } else {
-                // arbitrary large-ish number of words so blank out more than one
-                const numToBlankOut = Math.ceil(uniqueWords.length / 5);
-                const maxBlanksPerBlankOut = 3;
-                for (let i = 0; i < numToBlankOut; i++) {
-                    const uniqueWordPool = uniqueWords.filter(x => !blankedWords.includes(x));
-                    blankedWords.push(pickRandom({ x: uniqueWordPool }))
-                    if (blankedWords.length === maxBlanksPerBlankOut) { break; }
-                }
-            }
-
-            // now that we have our blanked words, take the incoming text,
-            // replace those words with the blanks, and include this in our
-            // details.
-
-            /**
-             * output from original text that includes possible uppercases that
-             * do not match the unique words (since those are all lowercased).
-             */
-            let textWithBlanks: string = text.concat();
-            /**
-             * we will update this for finding the indexes and go by position,
-             * because the original text will have uppercases that we want to
-             * replace.
-             */
-            let lowerText = text.toLowerCase();
-            /**
-             *
-             * @param word lowercased word that provides the length
-             * @param pos position of the word
-             */
-            const fnBlankOutWord: (s: string, word: string, pos: number) => string = (s, word, pos) => {
-                let res: string = s.concat();
-                for (let i = 0; i < word.length; i++) {
-                    res = replaceCharAt({ s: res, pos, newChar: '_' });
-                }
-                return res;
-            };
-
-            // execute the blanking out of words
-            for (let i = 0; i < blankedWords.length; i++) {
-                const wordToBlank = blankedWords[i];
-                while (lowerText.includes(wordToBlank)) {
-                    let pos = lowerText.indexOf(wordToBlank);
-                    // replace in our lowerText so we don't find it again next iteration
-                    lowerText = fnBlankOutWord(lowerText, wordToBlank, pos);
-                    // mirror in our output text which may have uppercased letters (and not match exactly)
-                    textWithBlanks = fnBlankOutWord(textWithBlanks, wordToBlank, pos);
-                }
-            }
-
-            // at this point, the textWithBlanks should have the same exact text
-            // as the incoming text, but with word(s) blanked out.
-
-            // const details: Stimulation_Blank = {
-            //     stimulationType: 'blank',
-            //     stimulationScope: 'word',
-            //     targets: [
-            //         {
-            //             "@toStimulate": toStimulateAddr,
-            //             "@toStimulateTjp": toStimulateTjpAddr,
-            //             weight: 1,
-            //         }
-            //     ],
-            //     blankedText: 'sdkjfiowefjoeiwfj eowifjew iofjew ofiejw fioejwfo iejwof eiwfjoeiwfj eiowfjiojeiofjew fioejwfio j',
-            //     commentText: textWithBlanks,
-            // };
-
-            // return details;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -2747,6 +2515,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             } else if (this.handlerExpectingResponse) {
                 // ibgib added to context that may be a response to a
                 // question, or is not relevant (but it isn't a request)
+                debugger;
                 resInteraction = await this.getNextInteraction_PerNonRequest({ nonRequest: ibGib });
             } else {
                 debugger;
@@ -2856,7 +2625,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                         console.error(`${lc} invalid lex data. datum is empty. d: ${h.pretty(d)} (E: 39dafc29ff934932b4e87cc4b2788baf)`);
                         return false;
                     }
-
                     // must account for when request is multiple words like
                     // "hello there".  CLIs nowadays think we should have to
                     // surround things with quotes but we should be able to
@@ -2877,11 +2645,14 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     const requestStartsWithDatumText = !!safeRequestText.match(new RegExp(`^${safeDatumFirstText}(\\s|$)`));
                     const matches = datumIsRequest && (matchesRequestId || requestStartsWithDatumText);
                     if (matches) {
-
-                        return true;
-                    } else {
-                        return false;
-                    }
+                        if (matchesRequestId) {
+                            primary = safeRequestText;
+                        } else {
+                            primary = datumFirstText;
+                            remainder = safeRequestText.substring(datumFirstText.length + 1);
+                        }
+                    };
+                    return matches;
                 }
             });
 
@@ -2900,7 +2671,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     console.warn(`${lc} id found but not a known semantic id: ${resId} (W: 01729fb7a4e94f20a42436f3c957bb44)`)
                     semanticId = SemanticId.unknown;
                 }
-
             } else if (resultsFind_Ids?.length > 1) {
                 // multiple found? this is a problem with the data
                 debugger;
@@ -2987,7 +2757,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     if (logalot) { console.log(`${lc} starting... (I: 4e952477f1e1554be6d5c0063a6a8822)`); }
                     const resHandler = await handler.fnExec(info);
                     interaction = resHandler.interaction;
-                    if (interaction) {
+                    if (interaction?.data.expectingResponse) {
                         if (logalot) { console.log(`${lcHandler} complete. YES interaction found from handler (${handler.semanticId}, ${handler.handlerId}). breaking for loop... (I: 994337ed6936ad16dddb0c7cec8ec622)`); }
                         this.handlerExpectingResponse = handler;
                         break;
