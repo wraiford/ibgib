@@ -37,16 +37,17 @@ export abstract class ContinuableStimulatorBase extends StimulatorBase {
         try {
             if (logalot) { console.log(`${lc} starting... (I: ae0465a2e281e2149f65a8a827cba222)`); }
 
-            let { ibGibs, prevStimulations, stimulationType, textInfo, semanticInfo } = args;
+            let { prevStimulations, } = args;
+            debugger;
 
-            const prevStimulation = prevStimulations.at(-1);
+            const mostRecentStimulation = prevStimulations.at(-1);
 
-            const isContinuation = prevStimulation?.expectsResponse &&
-                prevStimulation.stimulatorName === this.name &&
-                prevStimulation.stimulatorVersion === this.version;
+            const isContinuation = mostRecentStimulation?.expectsResponse &&
+                mostRecentStimulation.stimulatorName === this.name &&
+                mostRecentStimulation.stimulatorVersion === this.version;
 
             if (isContinuation) {
-                return this.getStimulationImpl_Continuation({ args, targets, prevStimulation });
+                return this.getStimulationImpl_Continuation({ args, targets, mostRecentStimulation });
             } else {
                 return this.getStimulationImpl_Fresh({ args, targets });
             }
@@ -65,13 +66,15 @@ export abstract class ContinuableStimulatorBase extends StimulatorBase {
         args: StimulateArgs
         targets: StimulationTarget[],
     }): Promise<Stimulation>;
+
     protected abstract getStimulationImpl_Continuation({
         args,
         targets,
-        prevStimulation,
+        mostRecentStimulation,
     }: {
         args: StimulateArgs
         targets: StimulationTarget[],
-        prevStimulation: Stimulation,
+        mostRecentStimulation: Stimulation,
     }): Promise<Stimulation>;
+
 }

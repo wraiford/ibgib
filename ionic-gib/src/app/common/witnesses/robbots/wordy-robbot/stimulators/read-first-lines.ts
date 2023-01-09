@@ -32,9 +32,8 @@ interface LexPropsData extends PropsData {
 
 }
 
-
-export class Stimulator_Read extends StimulatorBase {
-    protected lc: string = `[${Stimulator_Read.name}]`;
+export class Stimulator_ReadFirstLines extends StimulatorBase {
+    protected lc: string = `[${Stimulator_ReadFirstLines.name}]`;
 
     constructor() {
         super();
@@ -47,7 +46,7 @@ export class Stimulator_Read extends StimulatorBase {
                 [ReadSemanticId.read]: [
                     {
                         texts: [
-                            `# read`,
+                            `# first lines`,
                             ``,
                             `$text`,
                         ],
@@ -58,26 +57,13 @@ export class Stimulator_Read extends StimulatorBase {
         return this._lexData;
     }
 
-    protected async initialize_lex(): Promise<void> {
-        const lc = `${this.lc}[${this.initialize_lex.name}]`;
-        try {
-            if (logalot) { console.log(`${lc} starting... (I: efe0debb5c12b10684273b9c89af2522)`); }
-            await super.initialize_lex();
-        } catch (error) {
-            console.error(`${lc} ${error.message}`);
-            throw error;
-        } finally {
-            if (logalot) { console.log(`${lc} complete.`); }
-        }
-    }
-
-    protected getName(): string { return Stimulator_Read.name; }
+    protected getName(): string { return Stimulator_ReadFirstLines.name; }
     protected getVersion(): string { return "v1"; }
     protected getTypes(): StimulationType[] { return [StimulationType.read]; }
 
-    protected canStimulateImpl(args: StimulateArgs): Promise<boolean> {
-        // can always read
-        return Promise.resolve(true);
+    protected async canStimulateImpl(args: StimulateArgs): Promise<boolean> {
+        let { ibGibs, prevStimulations, textInfo } = args;
+        return textInfo.paragraphs?.length > 2;
     }
 
     protected async getStimulationImpl({
@@ -93,13 +79,20 @@ export class Stimulator_Read extends StimulatorBase {
 
             let { ibGibs, prevStimulations, textInfo } = args;
 
-            const stimulationScope = StimulationScope.all;
+            const stimulationScope = StimulationScope.paragraph;
 
             // just concat the incoming ibGib(s). Right now, there is only one ibGib anyway...
-            const srcText = ibGibs.map(x => x.data?.text).join('\n\n');
+            let firstLines = textInfo.paragraphs.map(paragraph => {
+                // for each paragraph, return the first line, whether it's by
+                // line break or by sentence delimiter.
+                const pieces = paragraph.includes('\n') ?
+                    paragraph.split('\n').filter(x => !!x) :
+                    paragraph.split(/[.!\?]/).filter(x => !!x);
+                return pieces.length > 0 ? pieces[0] : '';
+            }).filter(line => !!line);
+            const srcText = firstLines.map(x => x + '\t\t...').join('\n\n');
 
             // get the read text from our local lex.
-            // todo: vary text for read via property isFirst or something, so we can say "for starters, read/scan/skim over this..."
             const speech = this.lex.get(ReadSemanticId.read, {
                 vars: { text: srcText }
             });
@@ -111,7 +104,8 @@ export class Stimulator_Read extends StimulatorBase {
                 commentText: speech.text,
                 stimulationScope,
                 stimulatorName: this.getName(),
-                isComplete: true,
+                expectsResponse: false,
+                // isComplete: true,
             };
 
             return resStimulation;

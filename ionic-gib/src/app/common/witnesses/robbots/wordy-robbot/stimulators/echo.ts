@@ -10,7 +10,7 @@ import * as c from '../../../../../common/constants';
 import {
     StimulateArgs, Stimulation, StimulationScope, StimulationTarget, StimulationType, Stimulator, WordyTextInfo
 } from '.././types';
-import { getTargets, getWords, getWordyTextInfo } from '.././helper';
+import { getMostSpecialestWords, getTargets, getWords, getWordyTextInfo } from '.././helper';
 import { StimulatorBase } from './stimulator-base';
 import { LexData, PropsData } from '../../../../../common/helper/lex';
 import { SemanticId, toLexDatums_Semantics } from 'src/app/common/types/robbot';
@@ -114,7 +114,7 @@ export class Stimulator_Echo extends ContinuableStimulatorBase {
         try {
             if (logalot) { console.log(`${lc} starting... (I: 9e849b937fbf5b053561f3953113a522)`); }
 
-            let { ibGibs, prevStimulations, stimulationType, textInfo, semanticInfo } = args;
+            let { ibGibs, prevStimulations, textInfo, semanticInfo } = args;
 
             // in accordance with "elevated stimulations", we want to start out
             // small and grow bigger as we go. So first echo just single words
@@ -128,7 +128,7 @@ export class Stimulator_Echo extends ContinuableStimulatorBase {
 
             // get the more special words (rarer, TF/IDF-ish)
             const countToEcho = pickRandom({ x: [1, 2, 3, 4] });
-            const specialWords = await this.getMostSpecialestWords({
+            const specialWords = await getMostSpecialestWords({
                 subsetText: srcText,
                 globalTextInfo: textInfo,
                 countToReturn: countToEcho,
@@ -146,7 +146,8 @@ export class Stimulator_Echo extends ContinuableStimulatorBase {
             });
 
             const resStimulation: Stimulation = {
-                stimulationType,
+                stimulationType: 'echo',
+                actualTimestampUTC: h.getTimestamp(),
                 targets,
                 commentText: speech.text,
                 expectsResponse: true,
@@ -164,75 +165,75 @@ export class Stimulator_Echo extends ContinuableStimulatorBase {
         }
     }
 
-    /**
-     * Returns single words sorted by specialness/uniqueness.
-     *
-     * For now, this will go strictly by total incidence, but in the future should also
-     * take into account the line/paragraph/src incidence counts.
-     */
-    private async getMostSpecialestWords({
-        subsetText,
-        globalTextInfo,
-        countToReturn,
-    }: {
-        subsetText: string,
-        globalTextInfo: WordyTextInfo,
-        countToReturn: number,
-    }): Promise<string[]> {
-        const lc = `${this.lc}[${this.getMostSpecialestWords.name}]`;
-        try {
-            if (logalot) { console.log(`${lc} starting... (I: fb01dc35ed411110c9cdc84c60539d22)`); }
+    // /**
+    //  * Returns single words sorted by specialness/uniqueness.
+    //  *
+    //  * For now, this will go strictly by total incidence, but in the future should also
+    //  * take into account the line/paragraph/src incidence counts.
+    //  */
+    // private async getMostSpecialestWords({
+    //     subsetText,
+    //     globalTextInfo,
+    //     countToReturn,
+    // }: {
+    //     subsetText: string,
+    //     globalTextInfo: WordyTextInfo,
+    //     countToReturn: number,
+    // }): Promise<string[]> {
+    //     const lc = `${this.lc}[${this.getMostSpecialestWords.name}]`;
+    //     try {
+    //         if (logalot) { console.log(`${lc} starting... (I: fb01dc35ed411110c9cdc84c60539d22)`); }
 
-            if ((countToReturn || -1) < 1) { throw new Error(`countToReturn must be at least 1 (E: c00bbed11689f263f9b5438b3f471322)`); }
+    //         if ((countToReturn || -1) < 1) { throw new Error(`countToReturn must be at least 1 (E: c00bbed11689f263f9b5438b3f471322)`); }
 
-            // sort subset by global incidence, not just specialness here
-            // locally in the subset. i think there is supposed to be complete
-            // overlap with subset and global, but i code defensively at
-            // first...
-            let subsetInfo = getWordyTextInfo({ text: subsetText });
-            let subsetUniqueWords = Object.keys(subsetInfo.wordInfos);
-            let globalUniqueWords = Object.keys(globalTextInfo.wordInfos);
+    //         // sort subset by global incidence, not just specialness here
+    //         // locally in the subset. i think there is supposed to be complete
+    //         // overlap with subset and global, but i code defensively at
+    //         // first...
+    //         let subsetInfo = getWordyTextInfo({ text: subsetText });
+    //         let subsetUniqueWords = Object.keys(subsetInfo.wordInfos);
+    //         let globalUniqueWords = Object.keys(globalTextInfo.wordInfos);
 
-            /** indicates complete overlap of subset and global words. */
-            const properSubset = subsetUniqueWords.every(x => globalUniqueWords.includes(x));
-            if (!properSubset) { console.error(`${lc} subset text has word not in global text info. (E: da8d49d40b654c468db3d714b1443c0a)`); }
+    //         /** indicates complete overlap of subset and global words. */
+    //         const properSubset = subsetUniqueWords.every(x => globalUniqueWords.includes(x));
+    //         if (!properSubset) { console.error(`${lc} subset text has word not in global text info. (E: da8d49d40b654c468db3d714b1443c0a)`); }
 
-            subsetUniqueWords.sort((a_word, b_word) => {
-                const a_info = properSubset ?
-                    globalTextInfo.wordInfos[a_word] :
-                    subsetInfo.wordInfos[a_word];
-                const b_info = properSubset ?
-                    globalTextInfo.wordInfos[b_word] :
-                    subsetInfo.wordInfos[b_word];
-                const a_rating = a_info.totalIncidence;
-                const b_rating = b_info.totalIncidence;
-                return a_rating - b_rating;
-            });
+    //         subsetUniqueWords.sort((a_word, b_word) => {
+    //             const a_info = properSubset ?
+    //                 globalTextInfo.wordInfos[a_word] :
+    //                 subsetInfo.wordInfos[a_word];
+    //             const b_info = properSubset ?
+    //                 globalTextInfo.wordInfos[b_word] :
+    //                 subsetInfo.wordInfos[b_word];
+    //             const a_rating = a_info.totalIncidence;
+    //             const b_rating = b_info.totalIncidence;
+    //             return a_rating - b_rating;
+    //         });
 
-            const resSpecialWords = subsetUniqueWords.slice(0, countToReturn - 1);
-            if (logalot) { console.log(`${lc} resSpecialWords: ${resSpecialWords.join(',')} (I: b90bfafdc8db962456ea56fc46e1dc22)`); }
-            return resSpecialWords;
-        } catch (error) {
-            console.error(`${lc} ${error.message}`);
-            throw error;
-        } finally {
-            if (logalot) { console.log(`${lc} complete.`); }
-        }
-    }
+    //         const resSpecialWords = subsetUniqueWords.slice(0, countToReturn - 1);
+    //         if (logalot) { console.log(`${lc} resSpecialWords: ${resSpecialWords.join(',')} (I: b90bfafdc8db962456ea56fc46e1dc22)`); }
+    //         return resSpecialWords;
+    //     } catch (error) {
+    //         console.error(`${lc} ${error.message}`);
+    //         throw error;
+    //     } finally {
+    //         if (logalot) { console.log(`${lc} complete.`); }
+    //     }
+    // }
     protected async getStimulationImpl_Continuation({
         args,
         targets,
-        prevStimulation,
+        mostRecentStimulation,
     }: {
         args: StimulateArgs
         targets: StimulationTarget[],
-        prevStimulation: Stimulation,
+        mostRecentStimulation: Stimulation,
     }): Promise<Stimulation> {
         const lc = `${this.lc}[${this.getStimulationImpl_Continuation.name}]`;
         try {
             if (logalot) { console.log(`${lc} starting... (I: 8c958aa03b674d9c8920e178a7d4adb7)`); }
 
-            let { ibGibs, prevStimulations, stimulationType, textInfo, semanticInfo } = args;
+            let { ibGibs, prevStimulations, textInfo, semanticInfo } = args;
 
             // in accordance with "elevated stimulations", we want to start out
             // small and grow bigger as we go. So first echo just single words
@@ -250,8 +251,9 @@ export class Stimulator_Echo extends ContinuableStimulatorBase {
             });
 
             const resStimulation: Stimulation = {
-                stimulationType,
+                stimulationType: 'echo',
                 targets,
+                actualTimestampUTC: h.getTimestamp(),
                 commentText: speech.text,
                 stimulationScope,
                 stimulatorName: this.getName(),
@@ -302,7 +304,7 @@ export class Stimulator_EchoFirstLines extends StimulatorBase {
         try {
             if (logalot) { console.log(`${lc} starting... (I: 3761995b41430ea04e6a9d7425753722)`); }
 
-            let { ibGibs, prevStimulations, stimulationType, textInfo, isResponseCandidate } = args;
+            let { ibGibs, prevStimulations, textInfo, isResponseCandidate } = args;
             if (isResponseCandidate) {
                 // we should get here only if this stimulator is the previous
                 // stimulation generator
@@ -355,7 +357,7 @@ export class Stimulator_EchoFirstLines extends StimulatorBase {
         try {
             if (logalot) { console.log(`${lc} starting... (I: ae0465a2e281e2149f65a8a827cba222)`); }
 
-            let { ibGibs, prevStimulations, stimulationType, textInfo } = args;
+            let { ibGibs, prevStimulations, textInfo } = args;
 
             const stimulationScope = StimulationScope.paragraph;
 
@@ -376,8 +378,9 @@ export class Stimulator_EchoFirstLines extends StimulatorBase {
             });
 
             const resStimulation: Stimulation = {
-                stimulationType,
+                stimulationType: 'echo',
                 targets,
+                actualTimestampUTC: h.getTimestamp(),
                 commentText: speech.text,
                 stimulationScope,
                 stimulatorName: this.getName(),

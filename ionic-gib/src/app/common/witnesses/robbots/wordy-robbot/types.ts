@@ -248,6 +248,11 @@ export const StimulationScope = {
     'letter': 'letter' as StimulationScope,
     // pic
 }
+export type StimulationMetaType = 'elevating' | 'none';
+export const StimulationMetaType = {
+    elevating: 'elevating' as StimulationMetaType,
+    none: 'none' as StimulationMetaType,
+}
 /**
  * There are various ways to stimulate an ibgib.
  */
@@ -339,11 +344,24 @@ export interface Stimulation {
      */
     stimulatorVersion?: string;
     /**
+     * UTC timestamp of the stimulation.
+     */
+    actualTimestampUTC: string;
+    /**
+     * UTC timestamp of when the stimulation had been scheduled for.
+     */
+    scheduledTimestampUTC?: string;
+    /**
+     * UTC timestamp of the next stimulation for the target(s).
+     */
+    nextScheduledTimestampUTC?: string;
+    /**
      * type of stimulation, like is it a fill in the blank or just showing the
      * ibgib.
      * @see {@link StimulationType}
      */
     stimulationType: StimulationType;
+    stimulationMetaType?: StimulationMetaType;
     /**
      * The scope of the stimulation, like 'paragraph' or 'line'.
      * @see {@link StimulationScope}
@@ -388,7 +406,7 @@ export interface Stimulation {
      *
      * This should also be included in the comment.
      */
-    commentText: string;
+    commentText?: string;
     /**
      * If we are stimulating an ibgib multiple times, i.e. a "saga", this tracks
      * the 0-indexed number of times in a given stimulation sequence.
@@ -405,6 +423,16 @@ export interface Stimulation {
      * For example, a blank stimulation will atow include which text was blanked out.
      */
     details?: any;
+    /**
+     * If the stimulation is composite, then this can be used for more focused
+     * stimulation steps.
+     *
+     * For example, atow the evelating stimulator is a meta-stimulator that
+     * leverages individual sub stimulators to provide concrete stimulations.
+     * One of those could in the future also delegate the actual stimulation to
+     * some lower stimulator as well.
+     */
+    subStimulation?: Stimulation;
 }
 
 /**
@@ -455,10 +483,10 @@ export interface StimulateArgs {
      *     { ib: comment nelbludipintodiblu, gib: ABC123, data: {...}, rel8ns: {...} }
      */
     ibGibs: IbGib_V1[];
-    /**
-     * Type of stimulation that we're narrowed down to use for stimulation.
-     */
-    stimulationType?: StimulationType;
+    // /**
+    //  * Type of stimulation that we're narrowed down to use for stimulation.
+    //  */
+    // stimulationType?: StimulationType;
     /**
      * list of previous stimulations for the given ibGibs.
      *
