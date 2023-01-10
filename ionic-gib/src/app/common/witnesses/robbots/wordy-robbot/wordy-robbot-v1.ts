@@ -106,36 +106,36 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
     // protected _currentWorkingStimulations: Stimulation
 
     protected session: RobbotSessionIbGib_V1;
-    protected interactions: RobbotInteractionIbGib_V1[];
-    protected get stimulations(): Stimulation[] {
-        if (!this.interactions) { return []; }
-        const stimulations: Stimulation[] = [];
-        for (let i = 0; i < this.interactions.length; i++) {
-            const interaction = this.interactions[i];
-            if (interaction.data.type === 'stimulation') {
-                if (interaction.data.details) {
-                    stimulations.push(interaction.data.details);
-                } else {
-                    throw new Error(`(UNEXPECTED) invalid interaction. data.type === 'stimulation' but data.details is falsy? addr: ${h.getIbGibAddr({ ibGib: interaction })} (E: 3edaae3f42abc5eaebaf2f1c799f1f22)`);
-                }
-            }
-        }
-        return stimulations;
-    }
+    protected sessionInteractions: RobbotInteractionIbGib_V1[];
+    // protected get stimulations(): Stimulation[] {
+    //     if (!this.interactionsInSession) { return []; }
+    //     const stimulations: Stimulation[] = [];
+    //     for (let i = 0; i < this.interactionsInSession.length; i++) {
+    //         const interaction = this.interactionsInSession[i];
+    //         if (interaction.data.type === 'stimulation') {
+    //             if (interaction.data.details) {
+    //                 stimulations.push(interaction.data.details);
+    //             } else {
+    //                 throw new Error(`(UNEXPECTED) invalid interaction. data.type === 'stimulation' but data.details is falsy? addr: ${h.getIbGibAddr({ ibGib: interaction })} (E: 3edaae3f42abc5eaebaf2f1c799f1f22)`);
+    //             }
+    //         }
+    //     }
+    //     return stimulations;
+    // }
     /**
      * syntactic sugar for getting the most recent interaction.
      *
      * @returns most recent interaction if there are any, else returns undefined
      */
-    protected get prevInteraction(): RobbotInteractionIbGib_V1 | undefined {
-        return this.interactions?.length > 0 ?
-            this.interactions[this.interactions.length - 1] :
+    protected get prevInteractionInSession(): RobbotInteractionIbGib_V1 | undefined {
+        return this.sessionInteractions?.length > 0 ?
+            this.sessionInteractions[this.sessionInteractions.length - 1] :
             undefined;
     }
-    protected get prevStimulation(): Stimulation | undefined {
-        const { stimulations } = this;
-        return stimulations?.length > 0 ? stimulations[stimulations.length - 1] : undefined;
-    }
+    // protected get prevStimulation(): Stimulation | undefined {
+    //     const { stimulations } = this;
+    //     return stimulations?.length > 0 ? stimulations[stimulations.length - 1] : undefined;
+    // }
 
     protected cachedLatestAddrsMap: { [addr: string]: string }
 
@@ -488,13 +488,13 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     {
                         handlerId: '0f97304634d1446f8b12d62ce9adf8b1',
                         semanticId: SemanticId.hello,
-                        fnCanExec: async (info) => !this.nothingToWorkOnAvailable && !this.prevInteraction,
+                        fnCanExec: async (info) => !this.nothingToWorkOnAvailable && !this.prevInteractionInSession,
                         fnExec: (info) => this.handleSemantic_hello_freshStart(info),
                     },
                     {
                         handlerId: '31e3378528c74b98913ce766dc978f29',
                         semanticId: SemanticId.hello,
-                        fnCanExec: async (info) => !this.nothingToWorkOnAvailable && !!this.prevInteraction,
+                        fnCanExec: async (info) => !this.nothingToWorkOnAvailable && !!this.prevInteractionInSession,
                         fnExec: (info) => this.handleSemantic_hello_continue(info),
                     },
                     {
@@ -926,8 +926,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} starting... (I: 7931fecbf0856aac0a78c5e541b3d222)`); }
             // each stimulation interaction has a subject tjpgib in its ib field.
 
-            throw new Error(`this doesn't work. i am not storing the interactions correctly. The following just has an interaction with tjpgibs as undefined. (E: a93f2819618cf2ade34dd99d20621123)`);
-
             const tjpGib = getGibInfo({ gib: ibGib.gib }).tjpGib;
             const interactionAddrs = (this.rel8ns[ROBBOT_INTERACTION_REL8N_NAME] ?? [])
                 .filter(ibGibAddr => {
@@ -936,6 +934,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     return info.subjectTjpGibs?.includes(tjpGib);
                 });
             if (interactionAddrs.length > 0) {
+                debugger;
                 // YES, there ARE interaction addrs for the given ibGib, so get
                 // those interactions from the local space.
                 let resGetInteractions = await this.ibgibsSvc.get({ addrs: interactionAddrs });
@@ -954,6 +953,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 }
             } else {
                 // NO, there are NOT any previous interactions
+                debugger;
                 return [];
             }
         } catch (error) {
@@ -1017,6 +1017,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             // interactions have the subject tjp gibs in their ib fields (as
             // well as in internal data field).
+
             // get the stimulation
 
             // either the previous stimulation completed or this is the first stimulation
@@ -1100,11 +1101,17 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                 const expectingResponse =
                     await this.handleSemantic_learn_getExpectingResponse({ info, nextStimulation });
 
+                const subjectTjpGibs =
+                    nextStimulation.targets.map(target => target['@toStimulateTjp']).map(tjpAddr => h.getIbAndGib({ ibGibAddr: tjpAddr }).gib);
+
+                if (logalot) { console.log(`${lc} subjectTjpGibs: ${subjectTjpGibs.join(',')} (I: de8a1473aefd4a11aa6544e772483423)`); }
+
                 const data = await this.getRobbotInteractionData({
                     type: RobbotInteractionType.stimulation,
                     commentText: nextStimulation.commentText,
                     details: nextStimulation,
                     expectingResponse,
+                    subjectTjpGibs,
                 });
 
                 if (nextStimulation.isComplete) {
@@ -2072,7 +2079,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             sessionIbGib.gib = await getGib({ ibGib: sessionIbGib, hasTjp: true })
 
             this.session = sessionIbGib;
-            this.interactions = [];
+            this.sessionInteractions = [];
 
             // rel8 to the session itself
             await this.rel8To({ ibGibs: [sessionIbGib], rel8nName: ROBBOT_SESSION_REL8N_NAME })
@@ -2099,11 +2106,11 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             if (logalot) { console.log(`${lc} starting... (I: c87e977729f64268bcc400934dce64c6)`); }
             if (!this.session) {
                 if (logalot) { console.log(`${lc} no session active. returning early... (I: 15e9224f49fabda9da212e123ba3e922)`); }
-                if (this.interactions) { throw new Error(`(UNEXPECTED) this.session falsy but this.interactions truthy? (E: cfd11408e779b3797fb8519b267a8522)`); }
+                if (this.sessionInteractions) { throw new Error(`(UNEXPECTED) this.session falsy but this.interactions truthy? (E: cfd11408e779b3797fb8519b267a8522)`); }
                 return; /* <<<< returns early */
             }
 
-            if ((this.interactions ?? []).length === 0) {
+            if ((this.sessionInteractions ?? []).length === 0) {
                 if (logalot) { console.log(`${lc} this.session is truthy but no interactions, so deleting without saving. (I: 66788b63af12ad2095992c56a3668122)`); }
                 return; /* <<<< returns early */
             }
@@ -2112,7 +2119,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // so save the interactions, and then save the entire session.
             let resPut = await this.ibgibsSvc.put({
                 ibGibs: [
-                    ...this.interactions,
+                    // ...this.interactionsInSession,
                     this.session,
                 ]
             });
@@ -2133,7 +2140,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         } finally {
             if (logalot) { console.log(`${lc} deleting session/interactions (I: d863ced4302ba54933177ba908983322)`); }
             delete this.session;
-            delete this.interactions;
+            delete this.sessionInteractions;
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
@@ -2218,7 +2225,25 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // we DO want to rel8 to the interaction, because each one is its
             // own stone (i.e. non-timeline)
             await this.rel8To({ ibGibs: [interaction], rel8nName: ROBBOT_INTERACTION_REL8N_NAME });
-            this.interactions.push(interaction);
+            this.sessionInteractions.push(interaction);
+            if (this._currentWorkingInfos) {
+                const tjpAddrs = Object.keys(this._currentWorkingInfos);
+                for (let i = 0; i < tjpAddrs.length; i++) {
+                    const tjpAddr = tjpAddrs[i];
+                    const info = this._currentWorkingInfos[tjpAddr];
+                    info.prevInteractions = [
+                        ...(info.prevInteractions ?? []),
+                        interaction,
+                    ];
+                    if (interaction.data?.type === 'stimulation') {
+                        if (!interaction.data.details) { throw new Error(`(unexpected) interaction of type 'stimulation' should have data.details be the stimulation object. (E: 030a32f0312833ce1bb265d278bcde23)`); }
+                        info.prevStimulations = [
+                            ...(info.prevStimulations ?? []),
+                            <Stimulation>interaction.data.details,
+                        ];
+                    }
+                }
+            }
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
@@ -2497,7 +2522,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             if (isClick) {
                 if (!this.session) { throw new Error(`(unexpected) session expected to exist at this point (E: 15c5cf99f4864942fbc8e6b42da4d922)`); }
-                if (this.prevInteraction) {
+                if (this.prevInteractionInSession) {
                     // the user doesn't know there is already a session started? Or
                     // something else? just ping the user that a session is in
                     // progress and ask what's up, give the short help command

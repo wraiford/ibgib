@@ -1422,6 +1422,7 @@ export abstract class RobbotBase_V1<
     protected async getRobbotInteractionData({
         type,
         commentText,
+        subjectTjpGibs,
         details,
         expectingResponse,
         uuid,
@@ -1439,6 +1440,16 @@ export abstract class RobbotBase_V1<
          * Does not include any prefix/suffix of the robbot.
          */
         commentText: string,
+        /**
+         * If the interaction has one or more specific target/subject, then this
+         * is where their gibs go.
+         *
+         * ## driving use case
+         *
+         * I need a way from starting with an ibgib and getting its related
+         * interactions.
+         */
+        subjectTjpGibs?: Gib[],
         /**
          * interaction details.
          */
@@ -1480,6 +1491,7 @@ export abstract class RobbotBase_V1<
                 contextTjpGib,
                 commentText,
                 expectingResponse,
+                subjectTjpGibs,
             };
 
             if (details) { data.details = details; }

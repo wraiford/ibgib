@@ -170,11 +170,12 @@ export class ElevatingStimulator extends ContinuableStimulatorBase {
             debugger;
 
             // always start skimming via the first lines
-            const stimulator = this.subStimulators.filter(x => x.name === Stimulator_ReadFirstLines.name)[0];
-            const subStimulation = await stimulator.getStimulation(args);
+            const subStimulator = this.subStimulators.filter(x => x.name === Stimulator_ReadFirstLines.name)[0];
+            const subStimulation = await subStimulator.getStimulation(args);
 
             const resStimulation: Stimulation = {
                 stimulatorName: this.getName(),
+                stimulatorVersion: this.getVersion(),
                 stimulationMetaType: 'elevating',
                 targets,
                 isComplete: false,
@@ -183,9 +184,10 @@ export class ElevatingStimulator extends ContinuableStimulatorBase {
                 scheduledTimestampUTC: subStimulation.scheduledTimestampUTC,
                 nextScheduledTimestampUTC: subStimulation.nextScheduledTimestampUTC,
                 commentText: subStimulation.commentText,
-                expectsResponse: subStimulation.expectsResponse,
+                expectsResponse: true,
                 expectedTexts: subStimulation.expectedTexts,
                 stimulationScope: subStimulation.stimulationScope,
+                subStimulation: subStimulation,
             };
 
             return resStimulation;
@@ -214,47 +216,50 @@ export class ElevatingStimulator extends ContinuableStimulatorBase {
         try {
             if (logalot) { console.log(`${lc} starting... (I: 8c958aa03b674d9c8920e178a7d4adb7)`); }
 
-            let { ibGibs, prevStimulations, textInfo, semanticInfo } = args;
+            // probably too defensive
+            if (!mostRecentStimulation?.subStimulation) {
+                console.error(`${lc} (UNEXPECTED) mostRecentStimulation?.subStimulation expected to be truthy. diverting to fresh get stimulation instead of throwing though. (E: 3d143d711e434bd28b867586dae5d3b9)`);
+                return await this.getStimulationImpl_Fresh({ args, targets });
+            }
 
+            let { ibGibs, prevStimulations, textInfo, semanticInfo } = args;
+            let subStimulator: Stimulator;
+
+            const { subStimulation: mostRecentSubStimulation } = mostRecentStimulation;
+            if (mostRecentSubStimulation.expectsResponse) {
+                // populate subStimulator from the previous subStimulator and let it handle it.
+                const subs = this.subStimulators.filter(x =>
+                    x.name === subStimulation.stimulatorName
+                    && x.version === subStimulation.stimulatorVersion
+                );
+                if (subs.length !== 1) { throw new Error(`unexpected most recent subStimulation name/version. ${mostRecentSubStimulation.stimulatorName}, ${mostRecentSubStimulation.stimulatorVersion} (E: e9ca1a6aa36d640a8d78dcc2dab3ab23)`); }
+                subStimulator = subs[0];
+            } else {
+                // pick another subStimulator, since the previous one wasn't expecting a response.
+                throw new Error(`not implemented yet. here is where we want to elevate/choose substimulator based on previous interactions/stimulations. (E: ed19777eae6cb1cac193420a0c0e5623)`);
+            }
             debugger;
 
-            throw new Error(`not impl (E: 4948296d208e56903db84faddab79923)`);
+            const subStimulation = await subStimulator.getStimulation(args);
 
-            // if (mostRecentStimulation.isComplete) {
-            //     // sub stimulator completed its stimulation
-            // } else {
-            //     // sub stimulator is ready for the next stimulation
-            // }
-            // // in the future, if these get broken out we would be testing/including
-            // // authentication stuff here.
-            // this.subStimulators.filter(x => x.name === mostRecentStimulation.stimulatorName)
+            const resStimulation: Stimulation = {
+                stimulatorName: this.getName(),
+                stimulatorVersion: this.getVersion(),
+                stimulationMetaType: 'elevating',
+                targets,
+                isComplete: false,
+                stimulationType: subStimulation.stimulationType,
+                actualTimestampUTC: subStimulation.actualTimestampUTC,
+                scheduledTimestampUTC: subStimulation.scheduledTimestampUTC,
+                nextScheduledTimestampUTC: subStimulation.nextScheduledTimestampUTC,
+                commentText: subStimulation.commentText,
+                expectsResponse: true,
+                expectedTexts: subStimulation.expectedTexts,
+                stimulationScope: subStimulation.stimulationScope,
+                subStimulation: subStimulation,
+            };
 
-            // // in accordance with "elevated stimulations", we want to start out
-            // // small and grow bigger as we go. So first echo just single words
-            // // (tf/idf-ish), and then entire lines.
-
-
-            // const stimulationScope = StimulationScope.word;
-
-            // // just concat the incoming ibGib(s). Right now, there is only one ibGib anyway...
-            // const srcText = ibGibs.map(x => x.data?.text).join('\n\n');
-
-            // // get the echo text from our local lex.
-            // // todo: vary text for echo via property isFirst or something, so we can say "for starters, echo over this..."
-            // const speech = this.lex.get(EchoSemanticId.echo, {
-            //     vars: { text: srcText }
-            // });
-
-            // const resStimulation: Stimulation = {
-            //     stimulationType: ,
-            //     targets,
-            //     commentText: speech.text,
-            //     stimulationScope,
-            //     stimulatorName: this.getName(),
-            //     isComplete: true,
-            // };
-
-            // return resStimulation;
+            return resStimulation;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;
