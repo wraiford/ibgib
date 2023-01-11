@@ -934,9 +934,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     return info.subjectTjpGibs?.includes(tjpGib);
                 });
             if (interactionAddrs.length > 0) {
-                debugger;
-                // YES, there ARE interaction addrs for the given ibGib, so get
-                // those interactions from the local space.
+                if (logalot) { console.log(`${lc} YES, there ARE interaction addrs for the given ibGib, so get those interactions from the local space. (I: d32cfe4c9c925d9eba570c938318c323)`); }
                 let resGetInteractions = await this.ibgibsSvc.get({ addrs: interactionAddrs });
                 if (resGetInteractions.success && resGetInteractions.ibGibs?.length === interactionAddrs.length) {
                     const gottenIbGibs = resGetInteractions.ibGibs;
@@ -952,8 +950,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
                     throw new Error(`problem with getting interaction ibgibs (E: cf118e649f21429d92e5dba5692829cd)`);
                 }
             } else {
-                // NO, there are NOT any previous interactions
-                debugger;
+                if (logalot) { console.log(`${lc} NO, there are NOT any previous interactions (I: 80fc05f787d7d7ed657659ae98418223)`); }
                 return [];
             }
         } catch (error) {
@@ -1095,7 +1092,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // const speech = `${lineIndex}: ${}`
             // if (!speech) { throw new Error(`(UNEXPECTED) speech falsy? (E: 941e57036473404c6f1a432e388d6522)`); }
 
-            debugger;
             if (nextStimulation) {
                 if (logalot) { console.log(`${lc} nextStimulation found. (I: c22d41e9097af2f64c52de5aff73bc22)`); }
                 const expectingResponse =
@@ -1753,7 +1749,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             // if we don't have an existing analysis, then we want to create a new one.
 
             // let analysisIbGib: WordyAnalysisIbGib_V1_Robbot;
-            debugger;
             let resTransform: TransformResult<IbGib_V1>;
             if (this._analysis) {
                 // yes existing analysis, mut8 that
@@ -2293,7 +2288,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
         try {
             if (logalot) { console.log(`${lc} starting... (I: 9ed1794bdedf32139d50d73c6fc94422)`); }
 
-            debugger;
             /**
              * The resulting stimulation we're going to populate.
              */
@@ -2341,54 +2335,7 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             }
 
             if (!resStimulation) {
-                // // not expecting a response. atow, drive the stimulation by type
-                // // and previous stimulation count. In the future, this is
-                // // definitely a point that could be more sophisticated
-                // let chooseFromTypes: StimulationType[];
-                // prevStimulations = (prevStimulations ?? []);
-                // if (prevStimulations.length === 0) {
-                //     // first time is always read
-                //     chooseFromTypes = ['read'];
-                // } else if (prevStimulations.length > 0 && prevStimulations.length <= 2) {
-                //     debugger;
-                //     // chooseFromTypes = ['say', 'echo'];
-                //     chooseFromTypes = ['echo']; // debug
-                // } else if (prevStimulations.length > 2 && prevStimulations.length < 7) {
-                //     debugger;
-                // } else if (prevStimulations.length >= 7) {
-                //     console.warn(`${lc} hard-coded seed length to 7. ibGib addr: ${addr} (W: a3757a31c10f4b9aae228fc63f8a9e80)`);
-                //     chooseFromTypes = ['seed']; // note to self: this should prompt user how to continue with the ibgib. renew, create derivative, others...hmmm
-                // } else {
-                //     // default to random
-                //     console.warn(`${lc} (UNEXPECTED) shouldn't get here? chooseFromTypes for stimulationType defaulting to choose from any known type. (W: dbdee7edb8b4461b802d328a3608eff1)`);
-                //     chooseFromTypes = Object.values(StimulationType);
-                // }
-                // let stimulationType = pickRandom({ x: chooseFromTypes });
-                // if (logalot) { console.log(`${lc} stimulationType (${stimulationType}) chosen, having prevStimulations.length (${prevStimulations.length}) (I: 44b96f254d920ea87b0af8c8fe877722)`); }
-
-                // now that we've chosen then type, narrow down stimulators to those
-                // that produce this type.
-                // let stimulatorPool: Stimulator[] = [];
-                // let stimulatorsForStimulationType = WORDY_STIMULATORS.filter(x => x.types.includes(stimulationType));
-                // if (stimulatorsForStimulationType.length === 0) {
-                //     console.error(`${lc} (UNEXPECTED) no stimulators found for type '${stimulationType}'? defaulting to '${StimulationType.read}'. (E: 8789fb6a26f2433b86e6c7125a20c204)`);
-                //     stimulationType = 'read';
-                //     stimulatorsForStimulationType = WORDY_STIMULATORS.filter(x => x.types.includes(stimulationType));
-                //     if (stimulatorsForStimulationType.length === 0) { throw new Error(`(UNEXPECTED) no stimulator found even for '${StimulationType.read}'? (E: 93039a562d5758437fddae3467ebfb22)`); }
-                // }
-
-                // we've narrowed down the stimulators by type. now narrow down by
-                // more expensive checking from the stimulators themselves.
-                // for (let i = 0; i < stimulatorsForStimulationType.length; i++) {
-                //     const stimulator = stimulatorsForStimulationType[i];
-                //     const canStimulate = await stimulator.canStimulate({
-                //         ibGibs: [ibGib], prevStimulations, stimulationType, textInfo,
-                //         semanticInfo,
-                //     });
-                //     if (canStimulate) { stimulatorPool.push(stimulator); }
-                // }
-                // if (stimulatorPool.length === 0) { debugger; throw new Error(`(UNEXPECTED) stimulatorPool empty? should have at least found a ${StimulationType.read} stimulator. (E: aa6598f391590b89c708d81a7b5cc622)`); }
-
+                if (logalot) { console.log(`${lc} resStimulation not produced, so just pick any stimulator and get a stimulation (I: 5735785f90a5826c6114a633bb7e0f23)`); }
                 const stimulatorPool: Stimulator[] = WORDY_STIMULATORS.concat();
 
                 resStimulation = await this.getStimulationFromStimulatorPool({
@@ -2541,7 +2488,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
             } else if (this.handlerExpectingResponse) {
                 // ibgib added to context that may be a response to a
                 // question, or is not relevant (but it isn't a request)
-                debugger;
                 resInteraction = await this.getNextInteraction_PerNonRequest({ nonRequest: ibGib });
             } else {
                 debugger;
@@ -2817,7 +2763,6 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
             if (!this.handlerExpectingResponse) { throw new Error(`(UNEXPECTED) this.handlerExpectingResponse is assumed to be truthy at this point. (E: 6bdce4d14599440eebe34da419db4322)`); }
 
-            debugger;
             // validate
 
             // get our handlers that correspond to this semanticId at this point in time

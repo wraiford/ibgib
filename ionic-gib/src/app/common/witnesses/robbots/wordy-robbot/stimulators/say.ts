@@ -1,5 +1,5 @@
 /**
- * read stimulator
+ * say stimulator
 */
 
 import * as h from 'ts-gib/dist/helper';
@@ -20,20 +20,21 @@ import { pickRandom } from '../../../../../common/helper/utils';
 const logalot = c.GLOBAL_LOG_A_LOT || true;
 
 
-export type ReadSemanticId =
-    "semantic_read" |
+export type SaySemanticId =
+    "semantic_say" |
     SemanticId;
-export const ReadSemanticId = {
+export const SaySemanticId = {
     ...SemanticId,
-    read: 'semantic_read' as ReadSemanticId,
+    say: 'semantic_say' as SaySemanticId,
 }
 
 interface LexPropsData extends PropsData {
 
 }
 
-export class Stimulator_ReadFirstLines extends StimulatorBase {
-    protected lc: string = `[${Stimulator_ReadFirstLines.name}]`;
+
+export class Stimulator_Say extends StimulatorBase {
+    protected lc: string = `[${Stimulator_Say.name}]`;
 
     constructor() {
         super();
@@ -43,10 +44,10 @@ export class Stimulator_ReadFirstLines extends StimulatorBase {
     protected async getLexData(): Promise<LexData<PropsData>> {
         if (!this._lexData) {
             this._lexData = {
-                [ReadSemanticId.read]: [
+                [SaySemanticId.say]: [
                     {
                         texts: [
-                            `# first lines`,
+                            `# say this *out loud*, as evenly and clearly as possible`,
                             ``,
                             `$text`,
                         ],
@@ -57,13 +58,26 @@ export class Stimulator_ReadFirstLines extends StimulatorBase {
         return this._lexData;
     }
 
-    protected getName(): string { return Stimulator_ReadFirstLines.name; }
-    protected getVersion(): string { return "v1"; }
-    protected getTypes(): StimulationType[] { return [StimulationType.read]; }
+    protected async initialize_lex(): Promise<void> {
+        const lc = `${this.lc}[${this.initialize_lex.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: efe0debb5c12b10684273b9c89af2522)`); }
+            await super.initialize_lex();
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
 
-    protected async canStimulateImpl(args: StimulateArgs): Promise<boolean> {
-        let { ibGibs, prevStimulations, textInfo } = args;
-        return textInfo.paragraphs?.length > 2;
+    protected getName(): string { return Stimulator_Say.name; }
+    protected getVersion(): string { return "v1"; }
+    protected getTypes(): StimulationType[] { return [StimulationType.say]; }
+
+    protected canStimulateImpl(args: StimulateArgs): Promise<boolean> {
+        // can always say
+        return Promise.resolve(true);
     }
 
     protected async getStimulationImpl({
@@ -79,34 +93,26 @@ export class Stimulator_ReadFirstLines extends StimulatorBase {
 
             let { ibGibs, prevStimulations, textInfo } = args;
 
-            const stimulationScope = StimulationScope.paragraph;
+            const stimulationScope = StimulationScope.all;
 
             // just concat the incoming ibGib(s). Right now, there is only one ibGib anyway...
-            let firstLines = textInfo.paragraphs.map(paragraph => {
-                // for each paragraph, return the first line, whether it's by
-                // line break or by sentence delimiter.
-                const pieces = paragraph.includes('\n') ?
-                    paragraph.split('\n').filter(x => !!x) :
-                    paragraph.split(/[.!\?]/).filter(x => !!x);
-                return pieces.length > 0 ? pieces[0] : '';
-            }).filter(line => !!line);
-            const srcText = firstLines.map(x => x + '\t\t...').join('\n\n');
+            const srcText = ibGibs.map(x => x.data?.text).join('\n\n');
 
-            // get the read text from our local lex.
-            const speech = this.lex.get(ReadSemanticId.read, {
+            // get the say text from our local lex.
+            // todo: vary text for say via property isFirst or something, so we can say "for starters, read/scan/skim over this..."
+            const speech = this.lex.get(SaySemanticId.say, {
                 vars: { text: srcText }
             });
 
             const resStimulation: Stimulation = {
-                stimulationType: 'read',
+                stimulationType: 'say',
                 stimulatorName: this.name,
                 stimulatorVersion: this.version,
                 targets,
                 actualTimestampUTC: h.getTimestamp(),
                 commentText: speech.text,
                 stimulationScope,
-                expectsResponse: false,
-                // isComplete: true,
+                isComplete: true,
             };
 
             return resStimulation;

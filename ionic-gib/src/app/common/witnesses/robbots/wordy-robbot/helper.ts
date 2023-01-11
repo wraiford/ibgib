@@ -135,6 +135,8 @@ export async function getMostSpecialestWords({
     try {
         if (logalot) { console.log(`${lc} starting... (I: fb01dc35ed411110c9cdc84c60539d22)`); }
 
+        debugger;
+
         if ((countToReturn || -1) < 1) { throw new Error(`countToReturn must be at least 1 (E: c00bbed11689f263f9b5438b3f471322)`); }
 
         // sort subset by global incidence, not just specialness here

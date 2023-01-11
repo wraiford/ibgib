@@ -106,11 +106,12 @@ export class Stimulator_Read extends StimulatorBase {
 
             const resStimulation: Stimulation = {
                 stimulationType: 'read',
+                stimulatorName: this.name,
+                stimulatorVersion: this.version,
                 targets,
                 actualTimestampUTC: h.getTimestamp(),
                 commentText: speech.text,
                 stimulationScope,
-                stimulatorName: this.getName(),
                 isComplete: true,
             };
 

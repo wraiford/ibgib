@@ -229,14 +229,14 @@ export class ElevatingStimulator extends ContinuableStimulatorBase {
             if (mostRecentSubStimulation.expectsResponse) {
                 // populate subStimulator from the previous subStimulator and let it handle it.
                 const subs = this.subStimulators.filter(x =>
-                    x.name === subStimulation.stimulatorName
-                    && x.version === subStimulation.stimulatorVersion
+                    x.name === mostRecentSubStimulation.stimulatorName
+                    && x.version === mostRecentSubStimulation.stimulatorVersion
                 );
                 if (subs.length !== 1) { throw new Error(`unexpected most recent subStimulation name/version. ${mostRecentSubStimulation.stimulatorName}, ${mostRecentSubStimulation.stimulatorVersion} (E: e9ca1a6aa36d640a8d78dcc2dab3ab23)`); }
                 subStimulator = subs[0];
             } else {
                 // pick another subStimulator, since the previous one wasn't expecting a response.
-                throw new Error(`not implemented yet. here is where we want to elevate/choose substimulator based on previous interactions/stimulations. (E: ed19777eae6cb1cac193420a0c0e5623)`);
+                subStimulator = await this.getNextSubStimulator({ args, targets, mostRecentStimulation });
             }
             debugger;
 
@@ -261,6 +261,89 @@ export class ElevatingStimulator extends ContinuableStimulatorBase {
 
             return resStimulation;
         } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    protected async getNextSubStimulator({
+        args,
+        targets,
+        mostRecentStimulation,
+    }: {
+        args: StimulateArgs
+        targets: StimulationTarget[],
+        mostRecentStimulation: Stimulation,
+    }): Promise<Stimulator> {
+        const lc = `${this.lc}[${this.getNextSubStimulator.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 6fcdd7dc6127e9216f691c01af40cd23)`); }
+
+            let { ibGibs, prevStimulations, textInfo, semanticInfo } = args;
+            // atow, drive the stimulation by type
+            // and previous stimulation count. In the future, this is
+            // definitely a point that could be more sophisticated
+
+            prevStimulations = prevStimulations ?? [];
+            let prevCompleteStimulations = prevStimulations
+                .filter(x => x.stimulationMetaType === 'elevating')
+
+            // if (semanticInfo.other) {
+            //     // we're continuing from the user typing in something in the chat
+            //     debugger;
+            // } else if (semanticInfo.request) {
+            //     debugger;
+            //     // throw new Error(`not implemented when the semanticInfo.request is truthy. (E: 3a5cb39af8c813c3bdf4c2a118fe1223)`);
+            //     semanticInfo.semanticId
+            // }
+
+            prevStimulations = (prevStimulations ?? []);
+            const totalCount = prevStimulations.length;
+            const period = 7;
+            const factor = totalCount % period;
+
+            /**
+             * We'll narrow it down to the type of stimulation, then match it to a stimulator.
+             */
+            let chooseFromTypes: StimulationType[];
+            if (totalCount === 0) {
+                debugger;
+                if (logalot) { console.log(`${lc} totalCount is 0, so first choice? (I: af6376ebd5281d239c13690c36557a23)`); }
+                chooseFromTypes = ['read'];
+            } else if (factor > 0 && factor <= 2) {
+                debugger;
+                if (logalot) { console.log(`${lc} factor > 0 and <= 2 (I: ab79d32b27c3dd9a55e8866c3c2e6323)`); }
+                chooseFromTypes = ['read', 'say', 'echo']; // debug
+            } else if (factor > 2 && factor < period) {
+                if (logalot) { console.log(`${lc} factor > 2 and < ${period} (I: 1207ec83a9ade97ee2b65e511a95ba23)`); }
+                chooseFromTypes = ['blank']; // debug
+            } else if (factor === 0) {
+                if (logalot) { console.log(`${lc} completed round. factor is 0. (I: fc6aaf92bcdd79f7ce7f9c4274a86623)`); }
+                chooseFromTypes = ['seed']; // note to self: this should prompt user how to continue with the ibgib. renew, create derivative, others...hmmm
+            } else {
+                // default to random
+                console.warn(`${lc} (UNEXPECTED) shouldn't get here? chooseFromTypes for stimulationType defaulting to choose from any known type. (W: dbdee7edb8b4461b802d328a3608eff1)`);
+                chooseFromTypes = Object.values(StimulationType);
+            }
+            if (logalot) { console.log(`${lc} chooseFromTypes: ${chooseFromTypes} (I: dd1eb9e1a24404ad99413376f7f35523)`); }
+
+            let stimulationType = pickRandom({ x: chooseFromTypes });
+            if (logalot) { console.log(`${lc} stimulationType (${stimulationType}) chosen, having prevStimulations.length (${prevStimulations.length}) (I: 44b96f254d920ea87b0af8c8fe877722)`); }
+
+            const stimulatorToString = (stimulator: Stimulator) => { return `${stimulator.name} (${stimulator.version})`; };
+
+            const stimulatorsPool = this.subStimulators.filter(x => x.types.includes(stimulationType))
+            if (logalot) { console.log(`${lc} stimulatorsPool: ${stimulatorsPool.map(x => stimulatorToString(x)).join(', ')} (I: 00b63187197133b4cb152dbd866cf723)`); }
+
+            const resStimulator = pickRandom({ x: stimulatorsPool });
+            if (logalot) { console.log(`${lc} resStimulator: ${stimulatorToString(resStimulator)} (I: 10b30b4196bf8b99cd0175b2bef41923)`); }
+
+            debugger;
+            return resStimulator;
+        } catch (error) {
+            debugger;
             console.error(`${lc} ${error.message}`);
             throw error;
         } finally {

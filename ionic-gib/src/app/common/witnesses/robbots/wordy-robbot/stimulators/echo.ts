@@ -147,13 +147,14 @@ export class Stimulator_Echo extends ContinuableStimulatorBase {
 
             const resStimulation: Stimulation = {
                 stimulationType: 'echo',
+                stimulatorName: this.name,
+                stimulatorVersion: this.version,
                 actualTimestampUTC: h.getTimestamp(),
                 targets,
                 commentText: speech.text,
                 expectsResponse: true,
                 expectedTexts: specialWords,
                 stimulationScope,
-                stimulatorName: this.getName(),
             };
 
             return resStimulation;
@@ -252,11 +253,12 @@ export class Stimulator_Echo extends ContinuableStimulatorBase {
 
             const resStimulation: Stimulation = {
                 stimulationType: 'echo',
+                stimulatorName: this.name,
+                stimulatorVersion: this.version,
                 targets,
                 actualTimestampUTC: h.getTimestamp(),
                 commentText: speech.text,
                 stimulationScope,
-                stimulatorName: this.getName(),
                 isComplete: true,
             };
 
@@ -379,11 +381,12 @@ export class Stimulator_EchoFirstLines extends StimulatorBase {
 
             const resStimulation: Stimulation = {
                 stimulationType: 'echo',
+                stimulatorName: this.name,
+                stimulatorVersion: this.version,
                 targets,
                 actualTimestampUTC: h.getTimestamp(),
                 commentText: speech.text,
                 stimulationScope,
-                stimulatorName: this.getName(),
                 isComplete: true,
             };
 

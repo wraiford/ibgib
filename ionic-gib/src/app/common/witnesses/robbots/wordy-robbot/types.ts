@@ -297,6 +297,12 @@ export const StimulationType = {
      */
     'seed': 'seed' as StimulationType,
 }
+// export type StimulationPhase = 'prompt' | 'feedback';
+// export const StimulationPhase = {
+//     prompt: 'prompt' as StimulationPhase,
+//     feedback: 'feedback' as StimulationPhase,
+// }
+
 export function getExpectsResponse({ stimulationType }: { stimulationType: StimulationType }): boolean {
     const lc = `[${getExpectsResponse.name}]`;
     try {
@@ -339,10 +345,9 @@ export interface Stimulation {
      */
     stimulatorName: string;
     /**
-     * If applicable, the version of the stimulator who produced the
-     * stimulation.
+     * The version of the stimulator who produced the stimulation.
      */
-    stimulatorVersion?: string;
+    stimulatorVersion: string;
     /**
      * UTC timestamp of the stimulation.
      */
@@ -362,6 +367,7 @@ export interface Stimulation {
      */
     stimulationType: StimulationType;
     stimulationMetaType?: StimulationMetaType;
+    // stimulationPhrase: StimulationPhase;
     /**
      * The scope of the stimulation, like 'paragraph' or 'line'.
      * @see {@link StimulationScope}
