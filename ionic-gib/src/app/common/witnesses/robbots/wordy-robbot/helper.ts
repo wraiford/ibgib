@@ -163,9 +163,28 @@ export async function getMostSpecialestWords({
             return a_rating - b_rating;
         });
 
-        const resSpecialWords = subsetUniqueWords.slice(0, countToReturn - 1);
-        if (logalot) { console.log(`${lc} resSpecialWords: ${resSpecialWords.join(',')} (I: b90bfafdc8db962456ea56fc46e1dc22)`); }
-        return resSpecialWords;
+        // so now, subsetUniqueWords is sorted by incidence. But we don't want
+        // to return the same words every time, if there are many incidence
+        // ties. So get the boundary of incidence to get all words at or below that
+        // level of incidence, and then pick randomly.
+        const boundaryWord = subsetUniqueWords[countToReturn - 1];
+        const boundaryTotalIncidence = subsetInfo.wordInfos[boundaryWord].totalIncidence;
+        const wordsWithSimilarIncidence = subsetUniqueWords.filter(word => {
+            return subsetInfo.wordInfos[word].totalIncidence <= boundaryTotalIncidence;
+        });
+
+        // now that we have our pool of words of similar incidence, pick from
+        // among them
+        const resSpecialWords: Set<string> = new Set<string>();
+        let counter = 0; // prevent infinite loops
+        do {
+            let word = pickRandom({ x: wordsWithSimilarIncidence });
+            resSpecialWords.add(word);
+            counter++;
+        } while (resSpecialWords.size < countToReturn && counter < 100);
+
+        if (logalot) { console.log(`${lc} resSpecialWords: ${[...resSpecialWords].join(',')} (I: b90bfafdc8db962456ea56fc46e1dc22)`); }
+        return [...resSpecialWords];
     } catch (error) {
         console.error(`${lc} ${error.message}`);
         throw error;

@@ -243,8 +243,8 @@ export class ElevatingStimulator extends ContinuableStimulatorBase {
             const subStimulation = await subStimulator.getStimulation(args);
 
             const resStimulation: Stimulation = {
-                stimulatorName: this.getName(),
-                stimulatorVersion: this.getVersion(),
+                stimulatorName: this.name,
+                stimulatorVersion: this.version,
                 stimulationMetaType: 'elevating',
                 targets,
                 isComplete: false,
@@ -300,6 +300,8 @@ export class ElevatingStimulator extends ContinuableStimulatorBase {
             // }
 
             prevStimulations = (prevStimulations ?? []);
+
+            // just hard coding a strategy here
             const totalCount = prevStimulations.length;
             const period = 7;
             const factor = totalCount % period;
@@ -315,7 +317,8 @@ export class ElevatingStimulator extends ContinuableStimulatorBase {
             } else if (factor > 0 && factor <= 2) {
                 debugger;
                 if (logalot) { console.log(`${lc} factor > 0 and <= 2 (I: ab79d32b27c3dd9a55e8866c3c2e6323)`); }
-                chooseFromTypes = ['read', 'say', 'echo']; // debug
+                // chooseFromTypes = ['read', 'say', 'echo']; // debug
+                chooseFromTypes = ['echo']; // debug
             } else if (factor > 2 && factor < period) {
                 if (logalot) { console.log(`${lc} factor > 2 and < ${period} (I: 1207ec83a9ade97ee2b65e511a95ba23)`); }
                 chooseFromTypes = ['blank']; // debug

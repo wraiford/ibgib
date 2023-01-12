@@ -166,61 +166,6 @@ export class Stimulator_Echo extends ContinuableStimulatorBase {
         }
     }
 
-    // /**
-    //  * Returns single words sorted by specialness/uniqueness.
-    //  *
-    //  * For now, this will go strictly by total incidence, but in the future should also
-    //  * take into account the line/paragraph/src incidence counts.
-    //  */
-    // private async getMostSpecialestWords({
-    //     subsetText,
-    //     globalTextInfo,
-    //     countToReturn,
-    // }: {
-    //     subsetText: string,
-    //     globalTextInfo: WordyTextInfo,
-    //     countToReturn: number,
-    // }): Promise<string[]> {
-    //     const lc = `${this.lc}[${this.getMostSpecialestWords.name}]`;
-    //     try {
-    //         if (logalot) { console.log(`${lc} starting... (I: fb01dc35ed411110c9cdc84c60539d22)`); }
-
-    //         if ((countToReturn || -1) < 1) { throw new Error(`countToReturn must be at least 1 (E: c00bbed11689f263f9b5438b3f471322)`); }
-
-    //         // sort subset by global incidence, not just specialness here
-    //         // locally in the subset. i think there is supposed to be complete
-    //         // overlap with subset and global, but i code defensively at
-    //         // first...
-    //         let subsetInfo = getWordyTextInfo({ text: subsetText });
-    //         let subsetUniqueWords = Object.keys(subsetInfo.wordInfos);
-    //         let globalUniqueWords = Object.keys(globalTextInfo.wordInfos);
-
-    //         /** indicates complete overlap of subset and global words. */
-    //         const properSubset = subsetUniqueWords.every(x => globalUniqueWords.includes(x));
-    //         if (!properSubset) { console.error(`${lc} subset text has word not in global text info. (E: da8d49d40b654c468db3d714b1443c0a)`); }
-
-    //         subsetUniqueWords.sort((a_word, b_word) => {
-    //             const a_info = properSubset ?
-    //                 globalTextInfo.wordInfos[a_word] :
-    //                 subsetInfo.wordInfos[a_word];
-    //             const b_info = properSubset ?
-    //                 globalTextInfo.wordInfos[b_word] :
-    //                 subsetInfo.wordInfos[b_word];
-    //             const a_rating = a_info.totalIncidence;
-    //             const b_rating = b_info.totalIncidence;
-    //             return a_rating - b_rating;
-    //         });
-
-    //         const resSpecialWords = subsetUniqueWords.slice(0, countToReturn - 1);
-    //         if (logalot) { console.log(`${lc} resSpecialWords: ${resSpecialWords.join(',')} (I: b90bfafdc8db962456ea56fc46e1dc22)`); }
-    //         return resSpecialWords;
-    //     } catch (error) {
-    //         console.error(`${lc} ${error.message}`);
-    //         throw error;
-    //     } finally {
-    //         if (logalot) { console.log(`${lc} complete.`); }
-    //     }
-    // }
     protected async getStimulationImpl_Continuation({
         args,
         targets,
@@ -235,6 +180,8 @@ export class Stimulator_Echo extends ContinuableStimulatorBase {
             if (logalot) { console.log(`${lc} starting... (I: 8c958aa03b674d9c8920e178a7d4adb7)`); }
 
             let { ibGibs, prevStimulations, textInfo, semanticInfo } = args;
+
+            throw new Error(`leaving off here. i could just have this do the same as fresh and ignor the feedback (what the user typed in) and then at the end of the elevating stimulation provide a summary... Also, I could try to squeeze in composition of feedback and the next stimulation at some other point in code. Maybe instead of commentText, I have feedbackText and nextStimulationText? (E: 875129855a9362df2efbc658dbb78c23)`);
 
             // in accordance with "elevated stimulations", we want to start out
             // small and grow bigger as we go. So first echo just single words

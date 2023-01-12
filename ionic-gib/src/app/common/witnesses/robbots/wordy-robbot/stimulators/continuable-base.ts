@@ -42,9 +42,16 @@ export abstract class ContinuableStimulatorBase extends StimulatorBase {
 
             const mostRecentStimulation = prevStimulations.at(-1);
 
-            const isContinuation = mostRecentStimulation?.expectsResponse &&
+            const thisIsMostRecentStimulatorMeta = mostRecentStimulation?.expectsResponse &&
                 mostRecentStimulation.stimulatorName === this.name &&
                 mostRecentStimulation.stimulatorVersion === this.version;
+
+            const thisIsMostRecentStimulatorSub = mostRecentStimulation?.subStimulation.expectsResponse &&
+                mostRecentStimulation.subStimulation.stimulatorName === this.name &&
+                mostRecentStimulation.subStimulation.stimulatorVersion === this.version;
+
+
+            const isContinuation = thisIsMostRecentStimulatorMeta || thisIsMostRecentStimulatorSub;
 
             if (isContinuation) {
                 return this.getStimulationImpl_Continuation({ args, targets, mostRecentStimulation });
