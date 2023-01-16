@@ -331,7 +331,6 @@ export interface StimulationTarget {
      */
     '@toStimulate'?: IbGibAddr;
 }
-
 /**
  * Fundamental shape that describes stimulating ibgibs.
  *

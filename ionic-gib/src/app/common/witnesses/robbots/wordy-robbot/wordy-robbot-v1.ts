@@ -1102,6 +1102,18 @@ export class WordyRobbot_V1 extends RobbotBase_V1<
 
                 if (logalot) { console.log(`${lc} subjectTjpGibs: ${subjectTjpGibs.join(',')} (I: de8a1473aefd4a11aa6544e772483423)`); }
 
+                // let commentText: string;
+                // if (nextStimulation.feedbackText && nextStimulation.commentText) {
+
+                // } else if (nextStimulation.feedbackText) {
+
+                // } else {
+
+                // }
+                //  = nextStimulation.feedbackText ?
+                //     `${nextStimulation.feedbackText}\n\n${nextStimulation.commentText}` :
+                //     nextStimulation.commentText;
+
                 const data = await this.getRobbotInteractionData({
                     type: RobbotInteractionType.stimulation,
                     commentText: nextStimulation.commentText,

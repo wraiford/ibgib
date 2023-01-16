@@ -27,6 +27,9 @@ import { CommentIbGib_V1 } from '../../../../../../common/types/comment';
 import { Stimulator_Read } from '../read';
 import { Stimulator_Echo } from '../echo';
 import { Stimulator_ReadFirstLines } from '../read-first-lines';
+import { Stimulator_Say } from '../say';
+import { Stimulator_Seed } from '../seed';
+import { Stimulator_Blank } from '../blank';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
@@ -121,6 +124,9 @@ export class ElevatingStimulator extends ContinuableStimulatorBase {
         new Stimulator_ReadFirstLines(),
         new Stimulator_Read(),
         new Stimulator_Echo(),
+        new Stimulator_Say(),
+        new Stimulator_Blank(),
+        new Stimulator_Seed(),
     ];
 
     // protected async getSubStimulator({
@@ -130,7 +136,7 @@ export class ElevatingStimulator extends ContinuableStimulatorBase {
     // }): Promise<Stimulator> {
     //     const lc = `${this.lc}[${this.getSubStimulator.name}]`;
     //     try {
-    //         if (logalot) { console.log(`${lc} starting... (I: 92b1376b8a87fce975ae4e544036b722)`); }
+    //         if (logalot) { console.log(`${lc} starting... (I: 3759fe3d5531476d85d2cb722a484c0a)`); }
 
     //         this.subStimulators.filter(x => x.name === mostRecentStimulation.stimulatorName);
 
@@ -139,7 +145,7 @@ export class ElevatingStimulator extends ContinuableStimulatorBase {
     //                 break;
 
     //             default:
-    //                 throw new Error(`unknown stimulatorName: ${mostRecentStimulation.stimulatorName} (E: 22f859c4c6221bbd564cce1bd45b6922)`);
+    //                 throw new Error(`unknown stimulatorName: ${mostRecentStimulation.stimulatorName} (E: 221281690aa449669c9929c13fed4938)`);
     //         }
 
     //     } catch (error) {
@@ -163,7 +169,7 @@ export class ElevatingStimulator extends ContinuableStimulatorBase {
     }): Promise<Stimulation> {
         const lc = `${this.lc}[${this.getStimulationImpl_Fresh.name}]`;
         try {
-            if (logalot) { console.log(`${lc} starting... (I: 9e849b937fbf5b053561f3953113a522)`); }
+            if (logalot) { console.log(`${lc} starting... (I: bb19c62486594ddfbbc982262c0877ef)`); }
 
             // let { ibGibs, prevStimulations, textInfo, semanticInfo } = args;
 
@@ -214,11 +220,11 @@ export class ElevatingStimulator extends ContinuableStimulatorBase {
     }): Promise<Stimulation> {
         const lc = `${this.lc}[${this.getStimulationImpl_Continuation.name}]`;
         try {
-            if (logalot) { console.log(`${lc} starting... (I: 8c958aa03b674d9c8920e178a7d4adb7)`); }
+            if (logalot) { console.log(`${lc} starting... (I: 16fde645e6b8435f9c266b14b9c43817)`); }
 
             // probably too defensive
             if (!mostRecentStimulation?.subStimulation) {
-                console.error(`${lc} (UNEXPECTED) mostRecentStimulation?.subStimulation expected to be truthy. diverting to fresh get stimulation instead of throwing though. (E: 3d143d711e434bd28b867586dae5d3b9)`);
+                console.error(`${lc} (UNEXPECTED) mostRecentStimulation?.subStimulation expected to be truthy. diverting to fresh get stimulation instead of throwing though. (E: 85a8a0414d3e4b70aa5fc8a419a76b58)`);
                 return await this.getStimulationImpl_Fresh({ args, targets });
             }
 
@@ -232,7 +238,7 @@ export class ElevatingStimulator extends ContinuableStimulatorBase {
                     x.name === mostRecentSubStimulation.stimulatorName
                     && x.version === mostRecentSubStimulation.stimulatorVersion
                 );
-                if (subs.length !== 1) { throw new Error(`unexpected most recent subStimulation name/version. ${mostRecentSubStimulation.stimulatorName}, ${mostRecentSubStimulation.stimulatorVersion} (E: e9ca1a6aa36d640a8d78dcc2dab3ab23)`); }
+                if (subs.length !== 1) { throw new Error(`unexpected most recent subStimulation name/version. ${mostRecentSubStimulation.stimulatorName}, ${mostRecentSubStimulation.stimulatorVersion} (E: 99d236b0b7434533b41a82d993a09ba3)`); }
                 subStimulator = subs[0];
             } else {
                 // pick another subStimulator, since the previous one wasn't expecting a response.
@@ -279,27 +285,15 @@ export class ElevatingStimulator extends ContinuableStimulatorBase {
     }): Promise<Stimulator> {
         const lc = `${this.lc}[${this.getNextSubStimulator.name}]`;
         try {
-            if (logalot) { console.log(`${lc} starting... (I: 6fcdd7dc6127e9216f691c01af40cd23)`); }
+            if (logalot) { console.log(`${lc} starting... (I: 24754fe8beb94494a024982cfc9044c6)`); }
 
             let { ibGibs, prevStimulations, textInfo, semanticInfo } = args;
+
             // atow, drive the stimulation by type
             // and previous stimulation count. In the future, this is
             // definitely a point that could be more sophisticated
 
             prevStimulations = prevStimulations ?? [];
-            let prevCompleteStimulations = prevStimulations
-                .filter(x => x.stimulationMetaType === 'elevating')
-
-            // if (semanticInfo.other) {
-            //     // we're continuing from the user typing in something in the chat
-            //     debugger;
-            // } else if (semanticInfo.request) {
-            //     debugger;
-            //     // throw new Error(`not implemented when the semanticInfo.request is truthy. (E: 3a5cb39af8c813c3bdf4c2a118fe1223)`);
-            //     semanticInfo.semanticId
-            // }
-
-            prevStimulations = (prevStimulations ?? []);
 
             // just hard coding a strategy here
             const totalCount = prevStimulations.length;
@@ -312,36 +306,35 @@ export class ElevatingStimulator extends ContinuableStimulatorBase {
             let chooseFromTypes: StimulationType[];
             if (totalCount === 0) {
                 debugger;
-                if (logalot) { console.log(`${lc} totalCount is 0, so first choice? (I: af6376ebd5281d239c13690c36557a23)`); }
+                if (logalot) { console.log(`${lc} totalCount is 0, so first choice? (I: 781490d63abc430db967a627c5e49148)`); }
                 chooseFromTypes = ['read'];
             } else if (factor > 0 && factor <= 2) {
                 debugger;
-                if (logalot) { console.log(`${lc} factor > 0 and <= 2 (I: ab79d32b27c3dd9a55e8866c3c2e6323)`); }
-                // chooseFromTypes = ['read', 'say', 'echo']; // debug
-                chooseFromTypes = ['echo']; // debug
+                if (logalot) { console.log(`${lc} factor > 0 and <= 2 (I: 7e6d17d0a66841cbbfdb09e477ca2a14)`); }
+                chooseFromTypes = ['say', 'echo'];
             } else if (factor > 2 && factor < period) {
-                if (logalot) { console.log(`${lc} factor > 2 and < ${period} (I: 1207ec83a9ade97ee2b65e511a95ba23)`); }
+                if (logalot) { console.log(`${lc} factor > 2 and < ${period} (I: eeea5d8709b94f17a99b45043fff138c)`); }
                 chooseFromTypes = ['blank']; // debug
             } else if (factor === 0) {
-                if (logalot) { console.log(`${lc} completed round. factor is 0. (I: fc6aaf92bcdd79f7ce7f9c4274a86623)`); }
+                if (logalot) { console.log(`${lc} completed round. factor is 0. (I: 020c0089586d4ba997f5938b4f336585)`); }
                 chooseFromTypes = ['seed']; // note to self: this should prompt user how to continue with the ibgib. renew, create derivative, others...hmmm
             } else {
                 // default to random
-                console.warn(`${lc} (UNEXPECTED) shouldn't get here? chooseFromTypes for stimulationType defaulting to choose from any known type. (W: dbdee7edb8b4461b802d328a3608eff1)`);
+                console.warn(`${lc} (UNEXPECTED) shouldn't get here? chooseFromTypes for stimulationType defaulting to choose from any known type. (W: 06db10c547ed43a5b5052c9a00d0db3f)`);
                 chooseFromTypes = Object.values(StimulationType);
             }
-            if (logalot) { console.log(`${lc} chooseFromTypes: ${chooseFromTypes} (I: dd1eb9e1a24404ad99413376f7f35523)`); }
+            if (logalot) { console.log(`${lc} chooseFromTypes: ${chooseFromTypes} (I: fe59e35afeb44a1a971c5a4bdbc38bbc)`); }
 
             let stimulationType = pickRandom({ x: chooseFromTypes });
-            if (logalot) { console.log(`${lc} stimulationType (${stimulationType}) chosen, having prevStimulations.length (${prevStimulations.length}) (I: 44b96f254d920ea87b0af8c8fe877722)`); }
+            if (logalot) { console.log(`${lc} stimulationType (${stimulationType}) chosen, having prevStimulations.length (${prevStimulations.length}) (I: 55cc26ddd0d6480994dfeb3ea108a75d)`); }
 
             const stimulatorToString = (stimulator: Stimulator) => { return `${stimulator.name} (${stimulator.version})`; };
 
             const stimulatorsPool = this.subStimulators.filter(x => x.types.includes(stimulationType))
-            if (logalot) { console.log(`${lc} stimulatorsPool: ${stimulatorsPool.map(x => stimulatorToString(x)).join(', ')} (I: 00b63187197133b4cb152dbd866cf723)`); }
+            if (logalot) { console.log(`${lc} stimulatorsPool: ${stimulatorsPool.map(x => stimulatorToString(x)).join(', ')} (I: b941c6b811e24bed9496455f41880292)`); }
 
             const resStimulator = pickRandom({ x: stimulatorsPool });
-            if (logalot) { console.log(`${lc} resStimulator: ${stimulatorToString(resStimulator)} (I: 10b30b4196bf8b99cd0175b2bef41923)`); }
+            if (logalot) { console.log(`${lc} resStimulator: ${stimulatorToString(resStimulator)} (I: 62a7507c1eb34d618366835c8eefd6fa)`); }
 
             debugger;
             return resStimulator;

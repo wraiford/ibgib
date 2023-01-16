@@ -10,11 +10,12 @@ import * as c from '../../../../../common/constants';
 import {
     StimulateArgs, Stimulation, StimulationScope, StimulationTarget, StimulationType, Stimulator
 } from '.././types';
-import { getTargets } from '.././helper';
+import { getMostSpecialestWords, getTargets } from '.././helper';
 import { StimulatorBase } from './stimulator-base';
 import { LexData, PropsData } from '../../../../../common/helper/lex';
 import { SemanticId, toLexDatums_Semantics } from 'src/app/common/types/robbot';
 import { pickRandom } from '../../../../../common/helper/utils';
+import { ContinuableStimulatorBase } from './continuable-base';
 
 
 const logalot = c.GLOBAL_LOG_A_LOT || true;
@@ -33,7 +34,7 @@ interface LexPropsData extends PropsData {
 }
 
 
-export class Stimulator_Say extends StimulatorBase {
+export class Stimulator_Say extends ContinuableStimulatorBase {
     protected lc: string = `[${Stimulator_Say.name}]`;
 
     constructor() {
@@ -49,7 +50,7 @@ export class Stimulator_Say extends StimulatorBase {
                         texts: [
                             `# say this *out loud*, as evenly and clearly as possible`,
                             ``,
-                            `$text`,
+                            `$textToSay`,
                         ],
                     }
                 ],
@@ -80,37 +81,80 @@ export class Stimulator_Say extends StimulatorBase {
         return Promise.resolve(true);
     }
 
-    protected async getStimulationImpl({
+    protected async getTextToSay({
+        args,
+        targets,
+    }: {
+        args: StimulateArgs
+        targets: StimulationTarget[],
+    }): Promise<string> {
+        const lc = `${this.lc}[${this.getTextToSay.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: 562b6c3503a7150debc30d12792f1923)`); }
+
+            let { ibGibs, prevStimulations, textInfo, semanticInfo } = args;
+
+            // just concat the incoming ibGib(s). Right now, there is only one ibGib anyway...
+            const fullText = ibGibs.map(x => x.data?.text).join('\n\n');
+
+            // get the more special words (rarer, TF/IDF-ish)
+            const countToSay = pickRandom({ x: [3, 7] });
+            const specialWords = await getMostSpecialestWords({
+                subsetText: fullText,
+                globalTextInfo: textInfo,
+                countToReturn: countToSay,
+            });
+
+            if (specialWords?.length > countToSay) { throw new Error(`(UNEXPECTED) specialWords.length (${specialWords.length}) > countToSay (${countToSay})? (E: fbbf20f3920044ae8c48de3b3fd6968a)`); }
+
+            return specialWords.join(', ');
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
+    protected async getStimulationImpl_Fresh({
         args,
         targets,
     }: {
         args: StimulateArgs
         targets: StimulationTarget[],
     }): Promise<Stimulation> {
-        const lc = `${this.lc}[${this.getStimulationImpl.name}]`;
+        const lc = `${this.lc}[${this.getStimulationImpl_Fresh.name}]`;
         try {
-            if (logalot) { console.log(`${lc} starting... (I: ae0465a2e281e2149f65a8a827cba222)`); }
+            if (logalot) { console.log(`${lc} starting... (I: d4aa141baf1149a68f4d0f1a5033f414)`); }
 
-            let { ibGibs, prevStimulations, textInfo } = args;
+            let { ibGibs, prevStimulations, textInfo, semanticInfo } = args;
 
-            const stimulationScope = StimulationScope.all;
+            // in accordance with "elevated stimulations", we want to start out
+            // small and grow bigger as we go. So first say just single words
+            // (TF/IDF-ish), and then entire lines.
+            debugger;
 
-            // just concat the incoming ibGib(s). Right now, there is only one ibGib anyway...
-            const srcText = ibGibs.map(x => x.data?.text).join('\n\n');
+            const stimulationScope = StimulationScope.word;
+
+            const textToSay = await this.getTextToSay({ args, targets });
 
             // get the say text from our local lex.
-            // todo: vary text for say via property isFirst or something, so we can say "for starters, read/scan/skim over this..."
+            // todo: vary text for say via property isFirst or something, so we can say "for starters, say over this..."
             const speech = this.lex.get(SaySemanticId.say, {
-                vars: { text: srcText }
+                vars: {
+                    textToSay,
+                }
             });
 
             const resStimulation: Stimulation = {
                 stimulationType: 'say',
                 stimulatorName: this.name,
                 stimulatorVersion: this.version,
-                targets,
                 actualTimestampUTC: h.getTimestamp(),
+                targets,
                 commentText: speech.text,
+                // expectsResponse: true,
+                // expectedTexts: specialWords,
                 stimulationScope,
                 isComplete: true,
             };
@@ -123,4 +167,22 @@ export class Stimulator_Say extends StimulatorBase {
             if (logalot) { console.log(`${lc} complete.`); }
         }
     }
+
+    protected getStimulationImpl_Continuation({ args, targets, mostRecentStimulation, }: {
+        args: StimulateArgs,
+        targets: StimulationTarget[],
+        mostRecentStimulation: Stimulation,
+    }): Promise<Stimulation> {
+        const lc = `${this.lc}[${this.getStimulationImpl_Continuation.name}]`;
+        try {
+            if (logalot) { console.log(`${lc} starting... (I: e736fdcd77cc4fedc820c08cb8a8eb23)`); }
+            return this.getStimulationImpl_Fresh({ args, targets });
+        } catch (error) {
+            console.error(`${lc} ${error.message}`);
+            throw error;
+        } finally {
+            if (logalot) { console.log(`${lc} complete.`); }
+        }
+    }
+
 }

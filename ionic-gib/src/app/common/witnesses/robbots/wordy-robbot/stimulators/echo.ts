@@ -14,7 +14,7 @@ import { getMostSpecialestWords, getTargets, getWords, getWordyTextInfo } from '
 import { StimulatorBase } from './stimulator-base';
 import { LexData, PropsData } from '../../../../../common/helper/lex';
 import { SemanticId, toLexDatums_Semantics } from 'src/app/common/types/robbot';
-import { pickRandom, weAreRunningOnMobileProbably } from '../../../../../common/helper/utils';
+import { getSaferSubstring, pickRandom, weAreRunningOnMobileProbably } from '../../../../../common/helper/utils';
 import { ContinuableStimulatorBase } from './continuable-base';
 import { CommentIbGib_V1 } from 'src/app/common/types/comment';
 
@@ -66,7 +66,7 @@ export class Stimulator_Echo extends ContinuableStimulatorBase {
                     {
                         texts: [
                             `# echo`,
-                            `## repeat this/these back to me`,
+                            `## type these back to me`,
                             ``,
                             `$echoText`,
                             ``,
@@ -124,12 +124,12 @@ export class Stimulator_Echo extends ContinuableStimulatorBase {
             const stimulationScope = StimulationScope.word;
 
             // just concat the incoming ibGib(s). Right now, there is only one ibGib anyway...
-            const srcText = ibGibs.map(x => x.data?.text).join('\n\n');
+            const fullText = ibGibs.map(x => x.data?.text).join('\n\n');
 
             // get the more special words (rarer, TF/IDF-ish)
-            const countToEcho = pickRandom({ x: [1, 2, 3, 4] });
+            const countToEcho = pickRandom({ x: [3, 7] });
             const specialWords = await getMostSpecialestWords({
-                subsetText: srcText,
+                subsetText: fullText,
                 globalTextInfo: textInfo,
                 countToReturn: countToEcho,
             });
@@ -141,7 +141,7 @@ export class Stimulator_Echo extends ContinuableStimulatorBase {
             const speech = this.lex.get(EchoSemanticId.echo, {
                 vars: {
                     echoText: specialWords.join(', '),
-                    fullText: srcText,
+                    fullText,
                 }
             });
 
@@ -152,9 +152,10 @@ export class Stimulator_Echo extends ContinuableStimulatorBase {
                 actualTimestampUTC: h.getTimestamp(),
                 targets,
                 commentText: speech.text,
-                expectsResponse: true,
+                // expectsResponse: true,
                 expectedTexts: specialWords,
                 stimulationScope,
+                isComplete: true,
             };
 
             return resStimulation;
@@ -180,164 +181,74 @@ export class Stimulator_Echo extends ContinuableStimulatorBase {
             if (logalot) { console.log(`${lc} starting... (I: 8c958aa03b674d9c8920e178a7d4adb7)`); }
 
             let { ibGibs, prevStimulations, textInfo, semanticInfo } = args;
+            return await this.getStimulationImpl_Fresh({ args, targets });
 
-            throw new Error(`leaving off here. i could just have this do the same as fresh and ignor the feedback (what the user typed in) and then at the end of the elevating stimulation provide a summary... Also, I could try to squeeze in composition of feedback and the next stimulation at some other point in code. Maybe instead of commentText, I have feedbackText and nextStimulationText? (E: 875129855a9362df2efbc658dbb78c23)`);
+            // if we've reached here, then we have echoed at least once.
+
+            // i'm calculating the score here, but i'm not sure if this even
+            // matters.  ultimately the progress will be determined by the
+            // opinion of the learner.  we can always have a request that does
+            // this kind of calculation for us and presents it to the user.
+            // let score: number;
+            // let perfectScore: number;
+            // if (semanticInfo.other?.data?.text) {
+            //     debugger;
+            //     const expectedTexts = (mostRecentStimulation.expectedTexts ?? [])
+            //         .map(x => getSaferSubstring({ text: x }))
+            //         .map(x => x.toLowerCase());
+            //     if (logalot) { console.log(`${lc} expectedTexts: ${expectedTexts.join(',')} (I: a9eb05c8bba84fb4ec242632bcdb0323)`); }
+            //     const responseText = <string>semanticInfo.other.data.text;
+            //     if (logalot) { console.log(`${lc} responseText: ${responseText} (I: 496fa807389a7f876b82b03795b3f623)`); }
+            //     const actualTexts = responseText
+            //         .split(/\W/)
+            //         .map(x => (x ?? "").trim().toLowerCase())
+            //         .map(x => getSaferSubstring({ text: x }))
+            //         .filter(x => !!x);
+            //     if (logalot) { console.log(`${lc} actualTexts: ${actualTexts.join(',')} (I: 287ff8a78c9b76b6ab62b1c557bedc23)`); }
+            //     const expectedMap: { [s: string]: boolean } = {};
+            //     for (let i = 0; i < expectedTexts.length; i++) {
+            //         const expectedResponse = expectedTexts[i];
+            //         expectedMap[expectedResponse] = actualTexts.includes(expectedResponse)
+            //     }
+            //     perfectScore = expectedTexts.length;
+            //     score = expectedTexts.length;
+            //     Object.values(expectedMap).forEach(x => {
+            //         if (!x) { score--; }
+            //     });
+            //     console.log(`${lc} score: ${score}/${perfectScore}`);
+            // } else {
+            //     debugger;
+            // }
 
             // in accordance with "elevated stimulations", we want to start out
             // small and grow bigger as we go. So first echo just single words
             // (tf/idf-ish), and then entire lines.
 
-            const stimulationScope = StimulationScope.word;
+            // const stimulationScope = StimulationScope.word;
 
-            // just concat the incoming ibGib(s). Right now, there is only one ibGib anyway...
-            const srcText = ibGibs.map(x => x.data?.text).join('\n\n');
+            // // just concat the incoming ibGib(s). Right now, there is only one ibGib anyway...
+            // const srcText = ibGibs.map(x => x.data?.text).join('\n\n');
 
-            // get the echo text from our local lex.
-            // todo: vary text for echo via property isFirst or something, so we can say "for starters, echo over this..."
-            const speech = this.lex.get(EchoSemanticId.echo, {
-                vars: { text: srcText }
-            });
+            // // get the echo text from our local lex.
+            // // todo: vary text for echo via property isFirst or something, so we can say "for starters, echo over this..."
+            // const speech = this.lex.get(EchoSemanticId.echo, {
+            //     vars: { text: srcText }
+            // });
 
-            const resStimulation: Stimulation = {
-                stimulationType: 'echo',
-                stimulatorName: this.name,
-                stimulatorVersion: this.version,
-                targets,
-                actualTimestampUTC: h.getTimestamp(),
-                commentText: speech.text,
-                stimulationScope,
-                isComplete: true,
-            };
+            // const resStimulation: Stimulation = {
+            //     stimulationType: 'echo',
+            //     stimulatorName: this.name,
+            //     stimulatorVersion: this.version,
+            //     targets,
+            //     actualTimestampUTC: h.getTimestamp(),
+            //     commentText: speech.text,
+            //     stimulationScope,
+            //     isComplete: true,
+            //     details: {
+            //     }
+            // };
 
-            return resStimulation;
-        } catch (error) {
-            console.error(`${lc} ${error.message}`);
-            throw error;
-        } finally {
-            if (logalot) { console.log(`${lc} complete.`); }
-        }
-    }
-}
-
-export class Stimulator_EchoFirstLines extends StimulatorBase {
-    protected lc: string = `[${Stimulator_EchoFirstLines.name}]`;
-
-    constructor() {
-        super();
-    }
-
-    _lexData: LexData<LexPropsData>;
-    protected async getLexData(): Promise<LexData<PropsData>> {
-        if (!this._lexData) {
-            this._lexData = {
-                [EchoSemanticId.echo]: [
-                    {
-                        texts: [
-                            `# first lines`,
-                            ``,
-                            `$text`,
-                        ],
-                    }
-                ],
-            }
-        }
-        return this._lexData;
-    }
-
-    protected getName(): string { return Stimulator_Echo.name; }
-    protected getVersion(): string { return "v1"; }
-    protected getTypes(): StimulationType[] { return [StimulationType.echo]; }
-
-    protected async canStimulateImpl(args: StimulateArgs): Promise<boolean> {
-        const lc = `${this.lc}[${this.canStimulateImpl.name}]`;
-        try {
-            if (logalot) { console.log(`${lc} starting... (I: 3761995b41430ea04e6a9d7425753722)`); }
-
-            let { ibGibs, prevStimulations, textInfo, isResponseCandidate } = args;
-            if (isResponseCandidate) {
-                // we should get here only if this stimulator is the previous
-                // stimulation generator
-                if ((prevStimulations ?? []).length === 0) { throw new Error(`(UNEXPECTED) isResponseCandidate is true, but prevStimulations is falsy/empty? (E: 7278785b7d915fe7afc7b6d6a1e62622)`); }
-                let prevStimulation = prevStimulations.at(-1);
-                let { expectedTexts } = prevStimulation;
-                if ((expectedTexts ?? []).length === 0) { throw new Error(`(UNEXPECTED) isReponseCandidate is true, so we are the previous stimluation generator. but prevStimluation.expectedTexts is empty/falsy? (E: 400d7e788557f9f1020724c139020222)`); }
-
-                // if the incoming words has some "reasonable" overlap with
-                // expected texts, then yes, we can handle the response.
-                // Otherwise, it ain't to do with us.
-                let incomingText = ibGibs.map(x => (<CommentIbGib_V1>x).data.text ?? '').join(' ');
-                let incomingWords = getWords({
-                    text: incomingText,
-                    doLowercase: true, doSort: false, doUnique: false,
-                });
-
-                let count = 0;
-                incomingWords.forEach(word => {
-                    if (expectedTexts.includes(word)) { count++; }
-                });
-
-                const minPctIsh = 0.5;
-                const incomingPctIsh = count / incomingWords.length;
-
-                const incomingIsSimilar = incomingPctIsh > minPctIsh;
-                if (logalot) { console.log(`${lc} incomingIsSimilar: ${incomingIsSimilar} (I: 20b485c4d43596cea40a9301f7eed822)`); }
-                return incomingIsSimilar;
-            } else {
-                const hasMultipleParagraphs = textInfo.paragraphs?.length > 2;
-                if (logalot) { console.log(`${lc} hasMultipleParagraphs: ${hasMultipleParagraphs} (I: fb6d06a2d694e4d09f522044ea24c122)`); }
-                return hasMultipleParagraphs;
-            }
-        } catch (error) {
-            console.error(`${lc} ${error.message}`);
-            return false;
-        } finally {
-            if (logalot) { console.log(`${lc} complete.`); }
-        }
-    }
-
-    protected async getStimulationImpl({
-        args,
-        targets,
-    }: {
-        args: StimulateArgs
-        targets: StimulationTarget[],
-    }): Promise<Stimulation> {
-        const lc = `${this.lc}[${this.getStimulationImpl.name}]`;
-        try {
-            if (logalot) { console.log(`${lc} starting... (I: ae0465a2e281e2149f65a8a827cba222)`); }
-
-            let { ibGibs, prevStimulations, textInfo } = args;
-
-            const stimulationScope = StimulationScope.paragraph;
-
-            // just concat the incoming ibGib(s). Right now, there is only one ibGib anyway...
-            let firstLines = textInfo.paragraphs.map(paragraph => {
-                // for each paragraph, return the first line, whether it's by
-                // line break or by sentence delimiter.
-                const pieces = paragraph.includes('\n') ?
-                    paragraph.split('\n').filter(x => !!x) :
-                    paragraph.split(/[.!\?]/).filter(x => !!x);
-                return pieces.length > 0 ? pieces[0] : '';
-            }).filter(line => !!line);
-            const srcText = firstLines.map(x => x + '\t\t...').join('\n\n');
-
-            // get the echo text from our local lex.
-            const speech = this.lex.get(EchoSemanticId.echo, {
-                vars: { text: srcText }
-            });
-
-            const resStimulation: Stimulation = {
-                stimulationType: 'echo',
-                stimulatorName: this.name,
-                stimulatorVersion: this.version,
-                targets,
-                actualTimestampUTC: h.getTimestamp(),
-                commentText: speech.text,
-                stimulationScope,
-                isComplete: true,
-            };
-
-            return resStimulation;
+            // return resStimulation;
         } catch (error) {
             console.error(`${lc} ${error.message}`);
             throw error;

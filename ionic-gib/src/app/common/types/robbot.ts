@@ -483,7 +483,8 @@ export interface RobbotSessionIbGib_V1 extends IbGib_V1<RobbotSessionData_V1, Ro
 export type AtomicId =
     'hi' | 'welcome' | 'bye' |
     'yes' | 'no' |
-    'learn';
+    'learn' |
+    'wtg';
 export const AtomicId = {
     hi: 'hi' as AtomicId,
     welcome: 'welcome' as AtomicId,
@@ -491,6 +492,7 @@ export const AtomicId = {
     yes: 'yes' as AtomicId,
     no: 'no' as AtomicId,
     learn: 'learn' as AtomicId,
+    wtg: 'wtg' as AtomicId,
 }
 
 /**
@@ -520,6 +522,7 @@ export type SemanticId =
     'semantic_options' |
     'semantic_ready' |
     'semantic_stop' |
+    'semantic_result' |
     'semantic_unknown' | 'semantic_default' |
     string; // have to do this for inheritance?
 export const SemanticId = {
@@ -540,6 +543,7 @@ export const SemanticId = {
     options: 'semantic_options' as SemanticId,
     ready: 'semantic_ready' as SemanticId,
     stop: 'semantic_stop' as SemanticId,
+    result: 'semantic_result' as SemanticId,
     unknown: 'semantic_unknown' as SemanticId,
     default: 'semantic_default' as SemanticId,
 };
@@ -731,6 +735,11 @@ export const DEFAULT_HUMAN_LEX_DATA_ENGLISH_ATOMICS: LexData<RobbotPropsData> = 
     [AtomicId.learn]: [
         ...toLexDatums_Atomics(AtomicId.learn, [
             'learn', 'study', 'review',
+        ]),
+    ],
+    [AtomicId.wtg]: [
+        ...toLexDatums_Atomics(AtomicId.wtg, [
+            'wtg', 'nice', 'not bad', 'pretty good', 'good job',
         ]),
     ],
 }

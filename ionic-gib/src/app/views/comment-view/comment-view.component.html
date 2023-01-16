@@ -15,9 +15,9 @@
   <pre [style.maxHeight]="'100px'" class="is-title">{{ item?.text }}</pre>
 </div>
 
+  <!-- [title]="item?.text || item?.ib || '[html title binding error!]'" -->
 <!-- LARGE comment -->
 <ion-card *ngIf='ibGib && isLarge'
-  [title]="item?.text || item?.ib || '[html title binding error!]'"
   class="is-large"
   [style.border-color]="debugBorderColor"
   [style.border-width]="debugBorderWidth"
