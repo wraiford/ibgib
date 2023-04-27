@@ -2,7 +2,7 @@
 
 https://ibgib.space - atow you can check out the prototype in action
 
-# :under_construction: refactor in progress :under_construction:
+# :construction: refactor in progress :construction:
 
 Currently I'm breaking out code from here and solidifying the overall architectural approach.
 Here is a list atow of other repos:
