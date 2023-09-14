@@ -40,4 +40,5 @@ libs/ts-gib
 libs/capacitor-gib
 libs/helper-gib
 libs/aws-dynamodb-sync-space-gib
+libs/ga-gib
 
