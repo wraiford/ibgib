@@ -32,7 +32,6 @@ const routes: Routes = [
   {
     path: 'ibgib',
     redirectTo: 'welcome',
-    // redirectTo: 'ibgib/ib^gib',
     pathMatch: 'full'
   },
   {
