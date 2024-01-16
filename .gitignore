@@ -33,6 +33,7 @@ www
 # apps/libraries are in their own repositories
 apps/ibgib
 apps/plain-gib
+apps/nd-gib
 apps/ng-ionic-gib
 libs/core-gib
 libs/encrypt-gib
