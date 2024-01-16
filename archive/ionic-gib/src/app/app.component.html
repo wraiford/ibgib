@@ -1,0 +1,316 @@
+<ion-app>
+  <ion-split-pane contentId="main-content">
+
+    <!-- menu -->
+    <ion-menu menuId="main" contentId="main-content" type="overlay">
+      <ion-content>
+        <!-- Getting and setting the state of the accordion group -->
+
+        <!-- main menu accordion group -->
+        <ion-accordion-group value="web1">
+
+          <!-- web 1.0 (at top for now while transition to web 3.0) -->
+          <ion-accordion value="web1">
+            <ion-item slot="header" title="web 1.0...">
+              <ion-label class="header" expand="block">
+                <ion-icon slot="start" name="globe-outline"></ion-icon>
+                <ion-text>web 1.0</ion-text>
+              </ion-label>
+            </ion-item>
+            <ion-list slot="content" class="accordion-item-list">
+              <ion-item lines="none">
+                <button class="web-1-button"
+                  title="nav to static welcome page"
+                  (click)="handleClick_Welcome()">
+                  <ion-icon slot="start" name="beer-outline"></ion-icon>
+                  <ion-label>welcome</ion-label>
+                </button>
+              </ion-item>
+              <ion-item lines="none">
+                <button class="web-1-button"
+                  title="nav to static privacy page"
+                  (click)="handleClick_Privacy()">
+                  <ion-icon slot="start" name="eye-off-outline"></ion-icon>
+                  <ion-label>privacy (YOUR data)</ion-label>
+                </button>
+              </ion-item>
+              <ion-item lines="none">
+                <button class="web-1-button"
+                  title="nav to static about page"
+                  (click)="handleClick_AboutUs()">
+                  <ion-icon slot="start" name="body-outline"></ion-icon>
+                  <ion-label>about us</ion-label>
+                </button>
+              </ion-item>
+            </ion-list>
+          </ion-accordion>
+
+          <!-- localspaces/bootstrap -->
+          <ion-accordion value="bootstrap">
+            <ion-item slot="header" [title]="'\ncurrent local space: ' + localSpaceName">
+              <ion-label class="header" expand="block">
+                <ion-icon slot="start" name="earth-outline"></ion-icon>
+                <ion-text>{{ localSpaceName ?? 'where are we...' }}</ion-text>
+              </ion-label>
+            </ion-item>
+            <ion-list slot="content" class="accordion-item-list">
+              <ion-item *ngFor="let spaceItem of localSpaceItems"
+                class="accordion-item"
+                lines="none"
+                [title]="getSpaceTooltip('localspace', spaceItem)"
+                >
+                <ion-button (click)="spaceItem.clickHandler(spaceItem)">
+                  <ion-icon slot="start" name="earth-outline"></ion-icon>
+                  <ion-label>{{ spaceItem.title }}</ion-label>
+                </ion-button>
+              </ion-item>
+              <ion-item lines="none">
+                <ion-buttons class="special-menu-btns">
+                  <!-- goto button for localspaces is bootstrap -->
+                  <ion-button
+                    title="goto spaces ibgib where all of your individual space ibgibs are"
+                    color="secondary"
+                    (click)="handleGotoSpecial('bootstrap')">
+                    <ion-icon slot="start" name="navigate-outline" color="primary"></ion-icon>
+                    <ion-label>goto bootstrap</ion-label>
+                  </ion-button>
+                  <!-- <ion-button [disabled]="addingSpace"
+                    color="secondary"
+                    (click)="handleAddSpace()">
+                    <ion-spinner *ngIf="addingSpace" name="circles" color="primary"></ion-spinner>
+                    <ion-icon slot="start" name="add-outline" color="primary"></ion-icon>
+                    <ion-label>add</ion-label>
+                  </ion-button> -->
+                </ion-buttons>
+              </ion-item>
+            </ion-list>
+          </ion-accordion>
+
+          <!-- outerspaces -->
+          <ion-accordion value="outerspaces">
+            <ion-item slot="header" title="outerspaces like sync spaces">
+              <ion-label class="header" expand="block">
+                <!-- <ion-button (click)="handleSpaceClick()"> -->
+                  <ion-icon slot="start" name="sparkles-outline" title="local space"
+                    ></ion-icon>
+                  <ion-text>outerspaces</ion-text>
+                <!-- </ion-button> -->
+              </ion-label>
+            </ion-item>
+            <ion-list slot="content" class="accordion-item-list">
+              <ion-item *ngFor="let spaceItem of outerSpaceItems"
+                class="accordion-item"
+                lines="none"
+                [title]="getSpaceTooltip('outerspace', spaceItem)"
+                >
+                <ion-button (click)="spaceItem.clickHandler(spaceItem)">
+                  <ion-icon slot="start" [name]="spaceItem.icon"></ion-icon>
+                  <ion-label>{{ spaceItem.title }}</ion-label>
+                </ion-button>
+              </ion-item>
+              <ion-item lines="none">
+                <ion-buttons class="special-menu-btns">
+                  <ion-button
+                    title="goto spaces ibgib where all of your individual space ibgibs are"
+                    color="secondary"
+                    (click)="handleGotoSpecial('outerspaces')">
+                    <ion-icon slot="start" name="navigate-outline" color="primary"></ion-icon>
+                    <ion-label>goto</ion-label>
+                  </ion-button>
+                  <!-- <ion-button [disabled]="addingSpace"
+                    color="secondary"
+                    (click)="handleAddSpace()">
+                    <ion-spinner *ngIf="addingSpace" name="circles" color="primary"></ion-spinner>
+                    <ion-icon slot="start" name="add-outline" color="primary"></ion-icon>
+                    <ion-label>add</ion-label>
+                  </ion-button> -->
+                </ion-buttons>
+              </ion-item>
+            </ion-list>
+          </ion-accordion>
+
+          <!-- apps -->
+          <ion-accordion value="apps">
+            <ion-item slot="header" title="our helpers...">
+              <ion-label class="header" expand="block">
+                <ion-icon title="apps" slot="start" name="apps-outline"></ion-icon>
+                <ion-text>apps</ion-text>
+              </ion-label>
+            </ion-item>
+            <ion-list slot="content" class="accordion-item-list">
+              <ion-item *ngFor="let appItem of appItems"
+                lines="none"
+                >
+                <ion-button (click)="appItem.clickHandler(appItem)">
+                  <ion-icon slot="start" [name]="appItem.icon"></ion-icon>
+                  <ion-label>{{ appItem.title }}</ion-label>
+                </ion-button>
+              </ion-item>
+              <ion-item lines="none">
+                <ion-buttons class="special-menu-btns">
+                  <ion-button [disabled]="addingApp"
+                    title="goto apps ibgib where all of your apps are" color="secondary"
+                    (click)="handleGotoSpecial('apps')">
+                    <ion-spinner *ngIf="addingApp" name="circles" color="primary"></ion-spinner>
+                    <ion-icon slot="start" name="navigate-outline" color="primary"></ion-icon>
+                    <ion-label>goto</ion-label>
+                  </ion-button>
+                  <ion-button [disabled]="initializing || refreshing || addingApp" color="secondary"
+                    (click)="handleAddApp()">
+                    <ion-spinner *ngIf="initializing || refreshing || addingApp" name="circles" color="primary"></ion-spinner>
+                    <ion-icon slot="start" name="add-outline" color="primary"></ion-icon>
+                    <ion-label>add</ion-label>
+                  </ion-button>
+                </ion-buttons>
+              </ion-item>
+              <ion-item *ngIf="initializing || refreshing || addingApp || !appsAddr">
+                <ion-label color="primary">i believe...</ion-label>
+                <ion-spinner name="circles" color="tertiary"></ion-spinner>
+              </ion-item>
+            </ion-list>
+          </ion-accordion>
+
+          <!-- tags -->
+          <ion-accordion value="tags">
+            <ion-item slot="header" title="tags are like bookmarks, bookmarks are like tags...">
+              <ion-label class="header" expand="block">
+                <!-- <ion-button (click)="handleTagsClick()"> -->
+                  <ion-icon slot="start" name="pricetags-outline"></ion-icon>
+                  <ion-text>tags</ion-text>
+                <!-- </ion-button> -->
+              </ion-label>
+            </ion-item>
+            <ion-list slot="content" class="accordion-item-list">
+              <ion-item *ngFor="let tagItem of tagItems"
+                lines="none" [title]="tagItem.title"
+                >
+                <ion-button (click)="tagItem.clickHandler(tagItem)">
+                  <ion-icon slot="start" [name]="tagItem.icon"></ion-icon>
+                  <ion-label>{{ tagItem.title }}</ion-label>
+                </ion-button>
+              </ion-item>
+              <ion-item lines="none">
+                <ion-buttons class="special-menu-btns">
+                  <ion-button [disabled]="addingTag"
+                    title="goto tags ibgib where all of your tags are"
+                    color="secondary"
+                    (click)="handleGotoSpecial('tags')">
+                    <ion-spinner *ngIf="addingTag" name="circles" color="primary"></ion-spinner>
+                    <ion-icon slot="start" name="navigate-outline" color="primary"></ion-icon>
+                    <ion-label>goto</ion-label>
+                  </ion-button>
+                  <ion-button [disabled]="initializing || refreshing || addingTag"
+                    title="add tag"
+                    color="secondary"
+                    (click)="handleAddTag()">
+                    <ion-spinner *ngIf="initializing || refreshing || addingTag" name="circles" color="primary"></ion-spinner>
+                    <ion-icon slot="start" name="add-outline" color="primary"></ion-icon>
+                    <ion-label>add</ion-label>
+                  </ion-button>
+                </ion-buttons>
+              </ion-item>
+              <ion-item *ngIf="initializing">
+                <ion-label color="primary">i believe...</ion-label>
+                <ion-spinner name="circles" color="tertiary"></ion-spinner>
+              </ion-item>
+            </ion-list>
+          </ion-accordion>
+
+          <!-- robbots -->
+          <ion-accordion value="robbots">
+            <ion-item slot="header" title="our helpers...">
+              <ion-label class="header" expand="block">
+                <ion-icon title="robbots" slot="start" name="body-outline"></ion-icon>
+                <ion-text>robbots</ion-text>
+              </ion-label>
+            </ion-item>
+            <ion-list slot="content" class="accordion-item-list">
+              <ion-item *ngFor="let robbotItem of robbotItems"
+                lines="none"
+                >
+                <ion-button (click)="robbotItem.clickHandler(robbotItem)">
+                  <ion-icon slot="start" [name]="robbotItem.icon"></ion-icon>
+                  <ion-label>{{ robbotItem.title }}</ion-label>
+                </ion-button>
+              </ion-item>
+              <ion-item lines="none">
+                <ion-buttons class="special-menu-btns">
+                  <ion-button [disabled]="addingRobbot"
+                    title="goto robbots ibgib where all of your robbots are" color="secondary"
+                    (click)="handleGotoSpecial('robbots')">
+                    <ion-spinner *ngIf="addingRobbot" name="circles" color="primary"></ion-spinner>
+                    <ion-icon slot="start" name="navigate-outline" color="primary"></ion-icon>
+                    <ion-label>goto</ion-label>
+                  </ion-button>
+                  <ion-button [disabled]="initializing || refreshing || addingRobbot" color="secondary"
+                    (click)="handleAddRobbot()">
+                    <ion-spinner *ngIf="initializing || refreshing || addingRobbot" name="circles" color="primary"></ion-spinner>
+                    <ion-icon slot="start" name="add-outline" color="primary"></ion-icon>
+                    <ion-label>add</ion-label>
+                  </ion-button>
+                </ion-buttons>
+              </ion-item>
+              <ion-item *ngIf="initializing || refreshing || addingRobbot || !robbotsAddr">
+                <ion-label color="primary">i believe...</ion-label>
+                <ion-spinner name="circles" color="tertiary"></ion-spinner>
+              </ion-item>
+            </ion-list>
+          </ion-accordion>
+
+          <!-- roots -->
+          <ion-accordion value="roots">
+            <ion-item slot="header" title="everything starts at the roots...">
+              <ion-label class="header" expand="block">
+                <ion-icon slot="start" name="analytics-outline"></ion-icon>
+                <ion-text>roots {{currentRoot ? '('+currentRoot?.title+')' : ''}}</ion-text>
+              </ion-label>
+            </ion-item>
+            <ion-list slot="content" class="accordion-item-list">
+              <ion-item>
+                <ion-label>current: </ion-label>
+                <ion-select
+                  [compareWith]="compareMenuItems"
+                  [value]="currentRoot"
+                  okText="Set Root"
+                  (ionChange)="handleRootChange($event)"
+                  >
+                  <ion-select-option *ngFor="let item of rootItems" [value]="item">
+                    <ion-icon slot="start" [ios]="item.icon" [md]="item.icon.replace('outline', 'sharp')"></ion-icon>
+                    <ion-label>{{ item.title }}</ion-label>
+                  </ion-select-option>
+                </ion-select>
+              </ion-item>
+              <ion-item *ngFor="let rootItem of rootItems"
+                lines="none"
+                [title]="rootItem.title"
+                >
+                <ion-button (click)="rootItem.clickHandler(rootItem)">
+                  <ion-icon slot="start" [name]="rootItem.icon"></ion-icon>
+                  <ion-label>{{ rootItem.title }}</ion-label>
+                </ion-button>
+              </ion-item>
+              <ion-item lines="none">
+                <ion-buttons class="special-menu-btns">
+                  <ion-button
+                    title="goto roots ibgib where all of your individual root ibgibs are"
+                    color="secondary"
+                    (click)="handleGotoSpecial('roots')">
+                    <ion-icon slot="start" name="navigate-outline" color="primary"></ion-icon>
+                    <ion-label>goto</ion-label>
+                  </ion-button>
+                </ion-buttons>
+              </ion-item>
+
+            </ion-list>
+          </ion-accordion>
+
+        </ion-accordion-group>
+
+      </ion-content>
+    </ion-menu>
+
+    <!-- main content -->
+    <ion-router-outlet id="main-content"></ion-router-outlet>
+
+  </ion-split-pane>
+</ion-app>

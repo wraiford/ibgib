@@ -1,0 +1,31 @@
+
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button slot="icon-only" color="primary"></ion-menu-button>
+    </ion-buttons>
+    <ion-title color="primary">about us</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+
+  <ion-accordion-group [value]="openAccordionGroups" [multiple]="true">
+
+    <ion-accordion value="bill" id="important">
+      <ion-item slot="header" title="important">
+        <ion-avatar slot="start">
+          <img alt="pic of me, bill raiford" src="/assets/people/20220818_bill.jpeg" />
+        </ion-avatar>
+        <ion-text>bill raiford</ion-text>
+      </ion-item>
+      <section slot="content">
+        <ion-text>
+          <p>i believe</p>
+        </ion-text>
+      </section>
+    </ion-accordion>
+
+  </ion-accordion-group>
+
+</ion-content>

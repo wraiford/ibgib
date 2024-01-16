@@ -1,6 +1,6 @@
 # ibgib
 
-https://ibgib.space - atow you can check out the prototype in action
+:eyes: https://ibgib.space - check out the prototype! :eyes:
 
 # :construction: refactor in progress :construction:
 
